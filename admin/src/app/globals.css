@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-heading: var(--font-heading), sans-serif;
+  --font-body: var(--font-body), sans-serif;
+  --color-brand-primary: #0F172A;
+  --color-brand-secondary: #1E40AF;
+  --color-brand-accent: #F59E0B;
+  --color-brand-success: #22C55E;
+}
+
+:root {
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: #070A13;
+  color: #F8FAFC;
+  overflow-x: hidden;
+}
