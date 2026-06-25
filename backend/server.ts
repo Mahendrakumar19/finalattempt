@@ -23,7 +23,7 @@ app.get('/api/settings', async (req, res) => {
     const settings = await db.getSettings();
     res.json(settings);
   } catch (err: any) {
-    res.status(550).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -157,7 +157,13 @@ class BackendDB {
     if (fs.existsSync(JSON_DB_PATH)) {
       try {
         const raw = fs.readFileSync(JSON_DB_PATH, 'utf-8');
-        this.localStore = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        this.localStore = {
+          ...this.localStore,
+          ...parsed
+        };
+        // Save the merged data back to the file so it becomes complete
+        this.saveLocalData();
       } catch (e) {
         console.error('Failed reading database_store.json, creating new file.');
         this.saveLocalData();
