@@ -109,6 +109,204 @@ interface LocalDBStore {
 }
 
 let mysqlPool: mysql.Pool | null = null;
+
+async function initializeMySQLTables(pool: mysql.Pool) {
+  try {
+    console.log('Initializing MySQL Database tables if they do not exist...');
+    
+    // 1. Settings
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        id INT PRIMARY KEY DEFAULT 1,
+        heroTitle TEXT,
+        heroSubtitle TEXT,
+        tagline TEXT
+      )
+    `);
+    
+    // 2. Leads
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS leads (
+        id VARCHAR(255) PRIMARY KEY,
+        fullName VARCHAR(255) NOT NULL,
+        mobile VARCHAR(50) NOT NULL,
+        email VARCHAR(255),
+        targetExam VARCHAR(255) NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        createdAt VARCHAR(255) NOT NULL
+      )
+    `);
+    
+    // 3. Faculty
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS faculty (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        role VARCHAR(255) NOT NULL,
+        experience VARCHAR(255) NOT NULL,
+        avatar TEXT,
+        bio TEXT,
+        demoLectures TEXT
+      )
+    `);
+    
+    // 4. Results
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS results (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        rank VARCHAR(100) NOT NULL,
+        exam VARCHAR(100) NOT NULL,
+        course VARCHAR(255) NOT NULL,
+        service VARCHAR(255) NOT NULL,
+        district VARCHAR(100) NOT NULL,
+        photo TEXT,
+        year INT NOT NULL,
+        story TEXT
+      )
+    `);
+    
+    // 5. Current Affairs
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affairs (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        publishDate VARCHAR(100) NOT NULL,
+        summary TEXT,
+        content TEXT
+      )
+    `);
+    
+    // 6. Blogs
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS blogs (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        publishDate VARCHAR(100) NOT NULL,
+        readTime VARCHAR(100) NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        content TEXT
+      )
+    `);
+    
+    // 7. Resources
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS resources (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        size VARCHAR(100) NOT NULL,
+        type VARCHAR(100) NOT NULL,
+        downloadCount INT DEFAULT 0,
+        url TEXT
+      )
+    `);
+    
+    // 8. Course Progress
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS course_progress (
+        studentId VARCHAR(255),
+        courseId VARCHAR(255),
+        lessonId VARCHAR(255),
+        completed TINYINT(1) DEFAULT 0,
+        updatedAt VARCHAR(255),
+        PRIMARY KEY (studentId, lessonId)
+      )
+    `);
+    
+    // 9. Student Queries
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS student_queries (
+        id VARCHAR(255) PRIMARY KEY,
+        studentName VARCHAR(255) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        text TEXT NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        replyText TEXT
+      )
+    `);
+
+    console.log('MySQL Database tables initialized successfully.');
+    
+    // Seed settings table if empty
+    const [settingsRows]: any = await pool.query('SELECT COUNT(*) as count FROM settings');
+    if (settingsRows[0].count === 0) {
+      await pool.query(
+        'INSERT INTO settings (id, heroTitle, heroSubtitle, tagline) VALUES (1, ?, ?, ?)',
+        [
+          '72nd BPSC Preparation Starts Here',
+          'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
+          'One Mentor. One Strategy. One Final Attempt.'
+        ]
+      );
+      console.log('Seeded settings table.');
+    }
+
+    // Seed Faculty if empty
+    const [facCount]: any = await pool.query('SELECT COUNT(*) as count FROM faculty');
+    if (facCount[0].count === 0) {
+      for (const f of facultyData) {
+        await pool.query(
+          'INSERT INTO faculty (id, name, role, experience, avatar, bio, demoLectures) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [f.id, f.name, f.role, f.experience, f.avatar, f.bio, JSON.stringify(f.demoLectures)]
+        );
+      }
+      console.log('Seeded faculty table.');
+    }
+
+    // Seed Results if empty
+    const [resCount]: any = await pool.query('SELECT COUNT(*) as count FROM results');
+    if (resCount[0].count === 0) {
+      for (const r of resultData) {
+        await pool.query(
+          'INSERT INTO results (id, name, rank, exam, course, service, district, photo, year, story) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [r.id, r.name, r.rank, r.exam, r.course, r.service, r.district, r.photo, r.year, r.story]
+        );
+      }
+      console.log('Seeded results table.');
+    }
+
+    // Seed Current Affairs if empty
+    const [caCount]: any = await pool.query('SELECT COUNT(*) as count FROM current_affairs');
+    if (caCount[0].count === 0) {
+      for (const ca of currentAffairsData) {
+        await pool.query(
+          'INSERT INTO current_affairs (id, title, category, publishDate, summary, content) VALUES (?, ?, ?, ?, ?, ?)',
+          [ca.id, ca.title, ca.category, ca.publishDate, ca.summary, ca.content]
+        );
+      }
+      console.log('Seeded current affairs table.');
+    }
+
+    // Seed Blogs if empty
+    const [blogCount]: any = await pool.query('SELECT COUNT(*) as count FROM blogs');
+    if (blogCount[0].count === 0) {
+      for (const b of blogData) {
+        await pool.query(
+          'INSERT INTO blogs (id, title, publishDate, readTime, category, content) VALUES (?, ?, ?, ?, ?, ?)',
+          [b.id, b.title, b.publishDate, b.readTime, b.category, b.content]
+        );
+      }
+      console.log('Seeded blogs table.');
+    }
+
+    // Seed Resources if empty
+    const [resourceCount]: any = await pool.query('SELECT COUNT(*) as count FROM resources');
+    if (resourceCount[0].count === 0) {
+      for (const r of resourceData) {
+        await pool.query(
+          'INSERT INTO resources (id, title, size, type, downloadCount, url) VALUES (?, ?, ?, ?, ?, ?)',
+          [r.id, r.title, r.size, r.type, r.downloadCount, r.url]
+        );
+      }
+      console.log('Seeded resources table.');
+    }
+
+  } catch (err) {
+    console.error('Failed to initialize MySQL Database tables:', err);
+  }
+}
+
 if (useRealDB) {
   try {
     mysqlPool = mysql.createPool({
@@ -118,6 +316,8 @@ if (useRealDB) {
       queueLimit: 0
     });
     console.log('MySQL Database connection pool initialized successfully.');
+    // Run schema creation in background asynchronously
+    initializeMySQLTables(mysqlPool);
   } catch (error) {
     console.error('MySQL connection failed, falling back to local storage file:', error);
     mysqlPool = null;
