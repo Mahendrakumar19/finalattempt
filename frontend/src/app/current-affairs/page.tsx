@@ -1,26 +1,44 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Calendar, ChevronRight, FileText, Share2, Printer } from 'lucide-react';
-import { currentAffairs } from '@/services/db';
+import { db, fallbackCurrentAffairs } from '@/services/db';
 
 type CategoryType = 'All' | 'National' | 'International' | 'Economy' | 'Environment' | 'Science' | 'Bihar Special';
 
 export default function CurrentAffairs() {
+  const [articlesList, setArticlesList] = useState<any[]>(fallbackCurrentAffairs);
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArticleId, setSelectedArticleId] = useState<string | null>(null);
 
+  useEffect(() => {
+    const loadArticles = async () => {
+      try {
+        const ca = await db.getCurrentAffairs();
+        if (ca && ca.length > 0) {
+          setArticlesList(ca);
+        }
+      } catch (err) {
+        console.error('Failed loading current affairs:', err);
+      }
+    };
+    loadArticles();
+  }, []);
+
   const categories: CategoryType[] = ['All', 'National', 'International', 'Economy', 'Environment', 'Science', 'Bihar Special'];
 
-  const filteredArticles = currentAffairs.filter(article => {
-    const matchesCategory = selectedCategory === 'All' || article.category === selectedCategory;
-    const matchesSearch = article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          article.summary.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredArticles = articlesList.filter(article => {
+    const category = article.category || '';
+    const title = article.title || '';
+    const summary = article.summary || '';
+    const matchesCategory = selectedCategory === 'All' || category === selectedCategory;
+    const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          summary.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  const selectedArticle = currentAffairs.find(a => a.id === selectedArticleId) || filteredArticles[0];
+  const selectedArticle = articlesList.find(a => a.id === selectedArticleId) || filteredArticles[0];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">

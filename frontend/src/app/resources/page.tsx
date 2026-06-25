@@ -1,12 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Download, FileText, ArrowRight, CheckCircle, Search } from 'lucide-react';
-import { resources } from '@/services/db';
+import { db, fallbackResources } from '@/services/db';
 
 export default function Resources() {
   const [downloadStates, setDownloadStates] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [resourcesList, setResourcesList] = useState<any[]>(fallbackResources);
+
+  useEffect(() => {
+    const loadResources = async () => {
+      try {
+        const res = await db.getResources();
+        if (res && res.length > 0) {
+          setResourcesList(res);
+        }
+      } catch (err) {
+        console.error('Failed loading resources:', err);
+      }
+    };
+    loadResources();
+  }, []);
 
   const handleDownload = (id: string) => {
     setDownloadStates(prev => ({ ...prev, [id]: true }));
@@ -15,9 +30,10 @@ export default function Resources() {
     }, 3000);
   };
 
-  const filteredResources = resources.filter(res => 
-    res.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredResources = resourcesList.filter(res => {
+    const title = res.title || '';
+    return title.toLowerCase().includes(searchQuery.toLowerCase());
+  });
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">

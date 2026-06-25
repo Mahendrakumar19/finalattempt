@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, BookOpen, Clock, Calendar, CheckCircle, HelpCircle, Play, DollarSign } from 'lucide-react';
-import { db, faculty } from '@/services/db';
+import { db } from '@/services/db';
 import CourseTabs from './CourseTabs';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,7 +13,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
   }
 
   // Find relevant faculty members for the course
-  const courseFaculty = faculty.slice(0, 3); // Map mock mentors
+  const allFaculty = await db.getFaculty();
+  const courseFaculty = (allFaculty || []).slice(0, 3); // Map mock mentors
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">

@@ -65,6 +65,15 @@ class FinalAttemptDB {
     }
   }
 
+  public async getSettings() {
+    const data = await this.apiFetch('/api/settings');
+    return data || {
+      heroTitle: '72nd BPSC Preparation Starts Here',
+      heroSubtitle: 'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
+      tagline: 'One Mentor. One Strategy. One Final Attempt.'
+    };
+  }
+
   public async getCourses(): Promise<Course[]> {
     const data = await this.apiFetch('/api/courses');
     return data || courseData;
@@ -76,7 +85,6 @@ class FinalAttemptDB {
   }
 
   public async getSectionsByCourseId(courseId: string): Promise<CourseSection[]> {
-    // Generate sections dynamically
     return [
       { id: `sect-${courseId}-1`, courseId, title: 'Foundational Concepts & Strategy', orderIndex: 1 },
       { id: `sect-${courseId}-2`, courseId, title: 'Core Syllabus Depth Integration', orderIndex: 2 },
@@ -111,7 +119,6 @@ class FinalAttemptDB {
     if (data) {
       return data.filter((p: any) => p.courseId === courseId);
     }
-    // Client mock fallback
     return [
       { studentId, courseId, lessonId: `les-${courseId}-1-1`, completed: true, updatedAt: new Date().toISOString() },
       { studentId, courseId, lessonId: `les-${courseId}-1-2`, completed: true, updatedAt: new Date().toISOString() }
@@ -141,7 +148,6 @@ class FinalAttemptDB {
     });
     if (data) return data;
 
-    // Client fallback
     const mockLead: Lead = {
       id: `lead-${Date.now()}`,
       fullName,
@@ -164,6 +170,31 @@ class FinalAttemptDB {
     return ok?.success || true;
   }
 
+  public async getFaculty() {
+    const data = await this.apiFetch('/api/faculty');
+    return data || facultyData;
+  }
+
+  public async getResults() {
+    const data = await this.apiFetch('/api/results');
+    return data || resultData;
+  }
+
+  public async getCurrentAffairs() {
+    const data = await this.apiFetch('/api/current-affairs');
+    return data || currentAffairsData;
+  }
+
+  public async getBlogs() {
+    const data = await this.apiFetch('/api/blogs');
+    return data || blogData;
+  }
+
+  public async getResources() {
+    const data = await this.apiFetch('/api/resources');
+    return data || resourceData;
+  }
+
   public async syncMoodleData() {
     const data = await this.apiFetch('/api/sync', { method: 'POST' });
     return data || {
@@ -176,9 +207,9 @@ class FinalAttemptDB {
 }
 
 export const db = new FinalAttemptDB();
-export const faculty = facultyData;
-export const results = resultData;
-export const currentAffairs = currentAffairsData;
 export const pyqs = pyqData;
-export const blogs = blogData;
-export const resources = resourceData;
+export const fallbackFaculty = facultyData;
+export const fallbackResults = resultData;
+export const fallbackCurrentAffairs = currentAffairsData;
+export const fallbackBlogs = blogData;
+export const fallbackResources = resourceData;

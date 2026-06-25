@@ -19,8 +19,6 @@ const dbConfig = {
 };
 
 const useRealDB = !!(dbConfig.host && dbConfig.user && dbConfig.database);
-
-// Local JSON Store fallback
 const JSON_DB_PATH = path.join(__dirname, 'database_store.json');
 
 export interface Lead {
@@ -42,10 +40,72 @@ export interface QueryMsg {
   replyText?: string;
 }
 
+export interface FacultyMember {
+  id: string;
+  name: string;
+  role: string;
+  experience: string;
+  avatar: string;
+  bio: string;
+  demoLectures: { title: string; duration: string; url: string }[];
+}
+
+export interface ResultTopper {
+  id: string;
+  name: string;
+  rank: string;
+  exam: string;
+  course: string;
+  service: string;
+  district: string;
+  photo: string;
+  year: number;
+  story: string;
+}
+
+export interface CurrentAffairArticle {
+  id: string;
+  title: string;
+  category: 'National' | 'International' | 'Economy' | 'Environment' | 'Science' | 'Bihar Special';
+  publishDate: string;
+  summary: string;
+  content: string;
+}
+
+export interface BlogItem {
+  id: string;
+  title: string;
+  publishDate: string;
+  readTime: string;
+  category: string;
+  content: string;
+}
+
+export interface ResourceDownload {
+  id: string;
+  title: string;
+  size: string;
+  type: string;
+  downloadCount: number;
+  url: string;
+}
+
+export interface SiteSettings {
+  heroTitle: string;
+  heroSubtitle: string;
+  tagline: string;
+}
+
 interface LocalDBStore {
   leads: Lead[];
   progress: { studentId: string; courseId: string; lessonId: string; completed: boolean; updatedAt: string }[];
   queries: QueryMsg[];
+  faculty: FacultyMember[];
+  results: ResultTopper[];
+  currentAffairs: CurrentAffairArticle[];
+  blogs: BlogItem[];
+  resources: ResourceDownload[];
+  settings: SiteSettings;
 }
 
 let mysqlPool: mysql.Pool | null = null;
@@ -76,7 +136,17 @@ class BackendDB {
     ],
     queries: [
       { id: 'q-1', studentName: 'Ritik Kumar', subject: 'Polity Centre-State relations doubt', text: 'Should we quote case laws in Article 356 explanations?', status: 'Unread' }
-    ]
+    ],
+    faculty: [...facultyData],
+    results: [...resultData],
+    currentAffairs: [...currentAffairsData],
+    blogs: [...blogData],
+    resources: [...resourceData],
+    settings: {
+      heroTitle: '72nd BPSC Preparation Starts Here',
+      heroSubtitle: 'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
+      tagline: 'One Mentor. One Strategy. One Final Attempt.'
+    }
   };
 
   constructor() {
@@ -99,6 +169,36 @@ class BackendDB {
 
   private saveLocalData() {
     fs.writeFileSync(JSON_DB_PATH, JSON.stringify(this.localStore, null, 2), 'utf-8');
+  }
+
+  // SETTINGS
+  public async getSettings(): Promise<SiteSettings> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM settings LIMIT 1');
+        if (rows && rows.length > 0) return rows[0] as SiteSettings;
+      } catch (err) {
+        console.error('MySQL query error, using local fallback:', err);
+      }
+    }
+    return this.localStore.settings;
+  }
+
+  public async updateSettings(settings: SiteSettings): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO settings (id, heroTitle, heroSubtitle, tagline) VALUES (1, ?, ?, ?) ON DUPLICATE KEY UPDATE heroTitle = ?, heroSubtitle = ?, tagline = ?',
+          [settings.heroTitle, settings.heroSubtitle, settings.tagline, settings.heroTitle, settings.heroSubtitle, settings.tagline]
+        );
+        return true;
+      } catch (err) {
+        console.error('MySQL update error, using local fallback:', err);
+      }
+    }
+    this.localStore.settings = settings;
+    this.saveLocalData();
+    return true;
   }
 
   // LEADS
@@ -124,7 +224,6 @@ class BackendDB {
       status: 'New',
       createdAt: new Date().toISOString()
     };
-
     if (mysqlPool) {
       try {
         await mysqlPool.query(
@@ -136,7 +235,6 @@ class BackendDB {
         console.error('MySQL insert error, using local fallback:', err);
       }
     }
-
     this.localStore.leads.unshift(lead);
     this.saveLocalData();
     return lead;
@@ -151,7 +249,6 @@ class BackendDB {
         console.error('MySQL update error, using local fallback:', err);
       }
     }
-
     const lead = this.localStore.leads.find(l => l.id === id);
     if (lead) {
       lead.status = status;
@@ -161,7 +258,352 @@ class BackendDB {
     return false;
   }
 
-  // PROGRESS
+  // FACULTY
+  public async getFaculty(): Promise<FacultyMember[]> {
+    if (mysqlPool) {
+      try {
+        const [rows] = await mysqlPool.query('SELECT * FROM faculty');
+        return rows as FacultyMember[];
+      } catch (err) {
+        console.error('MySQL query error, using local fallback:', err);
+      }
+    }
+    return this.localStore.faculty;
+  }
+
+  public async createFaculty(member: FacultyMember): Promise<FacultyMember> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO faculty (id, name, role, experience, avatar, bio, demoLectures) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [member.id, member.name, member.role, member.experience, member.avatar, member.bio, JSON.stringify(member.demoLectures)]
+        );
+        return member;
+      } catch (err) {
+        console.error('MySQL insert error, using local fallback:', err);
+      }
+    }
+    this.localStore.faculty.push(member);
+    this.saveLocalData();
+    return member;
+  }
+
+  public async updateFaculty(id: string, updated: FacultyMember): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query(
+          'UPDATE faculty SET name = ?, role = ?, experience = ?, avatar = ?, bio = ?, demoLectures = ? WHERE id = ?',
+          [updated.name, updated.role, updated.experience, updated.avatar, updated.bio, JSON.stringify(updated.demoLectures), id]
+        );
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('MySQL update error, using local fallback:', err);
+      }
+    }
+    const idx = this.localStore.faculty.findIndex(f => f.id === id);
+    if (idx >= 0) {
+      this.localStore.faculty[idx] = updated;
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  public async deleteFaculty(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query('DELETE FROM faculty WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('MySQL delete error, using local fallback:', err);
+      }
+    }
+    const idx = this.localStore.faculty.findIndex(f => f.id === id);
+    if (idx >= 0) {
+      this.localStore.faculty.splice(idx, 1);
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  // RESULTS
+  public async getResults(): Promise<ResultTopper[]> {
+    if (mysqlPool) {
+      try {
+        const [rows] = await mysqlPool.query('SELECT * FROM results');
+        return rows as ResultTopper[];
+      } catch (err) {
+        console.error('MySQL query error, using local fallback:', err);
+      }
+    }
+    return this.localStore.results;
+  }
+
+  public async createResult(item: ResultTopper): Promise<ResultTopper> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO results (id, name, rank, exam, course, service, district, photo, year, story) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [item.id, item.name, item.rank, item.exam, item.course, item.service, item.district, item.photo, item.year, item.story]
+        );
+        return item;
+      } catch (err) {
+        console.error('MySQL insert error:', err);
+      }
+    }
+    this.localStore.results.unshift(item);
+    this.saveLocalData();
+    return item;
+  }
+
+  public async updateResult(id: string, updated: ResultTopper): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query(
+          'UPDATE results SET name = ?, rank = ?, exam = ?, course = ?, service = ?, district = ?, photo = ?, year = ?, story = ? WHERE id = ?',
+          [updated.name, updated.rank, updated.exam, updated.course, updated.service, updated.district, updated.photo, updated.year, updated.story, id]
+        );
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('MySQL update error:', err);
+      }
+    }
+    const idx = this.localStore.results.findIndex(r => r.id === id);
+    if (idx >= 0) {
+      this.localStore.results[idx] = updated;
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  public async deleteResult(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query('DELETE FROM results WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('MySQL delete error:', err);
+      }
+    }
+    const idx = this.localStore.results.findIndex(r => r.id === id);
+    if (idx >= 0) {
+      this.localStore.results.splice(idx, 1);
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  // CURRENT AFFAIRS
+  public async getCurrentAffairs(): Promise<CurrentAffairArticle[]> {
+    if (mysqlPool) {
+      try {
+        const [rows] = await mysqlPool.query('SELECT * FROM current_affairs');
+        return rows as CurrentAffairArticle[];
+      } catch (err) {
+        console.error('MySQL query error:', err);
+      }
+    }
+    return this.localStore.currentAffairs;
+  }
+
+  public async createCurrentAffair(item: CurrentAffairArticle): Promise<CurrentAffairArticle> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO current_affairs (id, title, category, publishDate, summary, content) VALUES (?, ?, ?, ?, ?, ?)',
+          [item.id, item.title, item.category, item.publishDate, item.summary, item.content]
+        );
+        return item;
+      } catch (err) {
+        console.error('MySQL insert error:', err);
+      }
+    }
+    this.localStore.currentAffairs.unshift(item);
+    this.saveLocalData();
+    return item;
+  }
+
+  public async updateCurrentAffair(id: string, updated: CurrentAffairArticle): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query(
+          'UPDATE current_affairs SET title = ?, category = ?, publishDate = ?, summary = ?, content = ? WHERE id = ?',
+          [updated.title, updated.category, updated.publishDate, updated.summary, updated.content, id]
+        );
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('MySQL update error:', err);
+      }
+    }
+    const idx = this.localStore.currentAffairs.findIndex(c => c.id === id);
+    if (idx >= 0) {
+      this.localStore.currentAffairs[idx] = updated;
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  public async deleteCurrentAffair(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query('DELETE FROM current_affairs WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('MySQL delete error:', err);
+      }
+    }
+    const idx = this.localStore.currentAffairs.findIndex(c => c.id === id);
+    if (idx >= 0) {
+      this.localStore.currentAffairs.splice(idx, 1);
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  // BLOGS
+  public async getBlogs(): Promise<BlogItem[]> {
+    if (mysqlPool) {
+      try {
+        const [rows] = await mysqlPool.query('SELECT * FROM blogs');
+        return rows as BlogItem[];
+      } catch (err) {
+        console.error('MySQL query error:', err);
+      }
+    }
+    return this.localStore.blogs;
+  }
+
+  public async createBlog(item: BlogItem): Promise<BlogItem> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO blogs (id, title, publishDate, readTime, category, content) VALUES (?, ?, ?, ?, ?, ?)',
+          [item.id, item.title, item.publishDate, item.readTime, item.category, item.content]
+        );
+        return item;
+      } catch (err) {
+        console.error('MySQL insert error:', err);
+      }
+    }
+    this.localStore.blogs.unshift(item);
+    this.saveLocalData();
+    return item;
+  }
+
+  public async updateBlog(id: string, updated: BlogItem): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query(
+          'UPDATE blogs SET title = ?, publishDate = ?, readTime = ?, category = ?, content = ? WHERE id = ?',
+          [updated.title, updated.publishDate, updated.readTime, updated.category, updated.content, id]
+        );
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('MySQL update error:', err);
+      }
+    }
+    const idx = this.localStore.blogs.findIndex(b => b.id === id);
+    if (idx >= 0) {
+      this.localStore.blogs[idx] = updated;
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  public async deleteBlog(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query('DELETE FROM blogs WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('MySQL delete error:', err);
+      }
+    }
+    const idx = this.localStore.blogs.findIndex(b => b.id === id);
+    if (idx >= 0) {
+      this.localStore.blogs.splice(idx, 1);
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  // RESOURCES
+  public async getResources(): Promise<ResourceDownload[]> {
+    if (mysqlPool) {
+      try {
+        const [rows] = await mysqlPool.query('SELECT * FROM resources');
+        return rows as ResourceDownload[];
+      } catch (err) {
+        console.error('MySQL query error:', err);
+      }
+    }
+    return this.localStore.resources;
+  }
+
+  public async createResource(item: ResourceDownload): Promise<ResourceDownload> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO resources (id, title, size, type, downloadCount, url) VALUES (?, ?, ?, ?, ?, ?)',
+          [item.id, item.title, item.size, item.type, item.downloadCount, item.url]
+        );
+        return item;
+      } catch (err) {
+        console.error('MySQL insert error:', err);
+      }
+    }
+    this.localStore.resources.push(item);
+    this.saveLocalData();
+    return item;
+  }
+
+  public async updateResource(id: string, updated: ResourceDownload): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query(
+          'UPDATE resources SET title = ?, size = ?, type = ?, downloadCount = ?, url = ? WHERE id = ?',
+          [updated.title, updated.size, updated.type, updated.downloadCount, updated.url, id]
+        );
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('MySQL update error:', err);
+      }
+    }
+    const idx = this.localStore.resources.findIndex(r => r.id === id);
+    if (idx >= 0) {
+      this.localStore.resources[idx] = updated;
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  public async deleteResource(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query('DELETE FROM resources WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('MySQL delete error:', err);
+      }
+    }
+    const idx = this.localStore.resources.findIndex(r => r.id === id);
+    if (idx >= 0) {
+      this.localStore.resources.splice(idx, 1);
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  // STUDENT PROGRESS & ATTENDANCE
   public async getStudentProgress(studentId: string) {
     if (mysqlPool) {
       try {
@@ -263,10 +705,3 @@ class BackendDB {
 }
 
 export const db = new BackendDB();
-export const seedCourses = courseData;
-export const seedFaculty = facultyData;
-export const seedResults = resultData;
-export const seedCurrentAffairs = currentAffairsData;
-export const seedPyqs = pyqData;
-export const seedBlogs = blogData;
-export const seedResources = resourceData;

@@ -1,11 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Play, Award, Clock, Star } from 'lucide-react';
-import { faculty } from '@/services/db';
+import { db, fallbackFaculty } from '@/services/db';
 
 export default function Faculty() {
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  const [facultyList, setFacultyList] = useState<any[]>(fallbackFaculty);
+
+  useEffect(() => {
+    const loadFaculty = async () => {
+      try {
+        const fac = await db.getFaculty();
+        if (fac && fac.length > 0) {
+          setFacultyList(fac);
+        }
+      } catch (err) {
+        console.error('Failed loading faculty:', err);
+      }
+    };
+    loadFaculty();
+  }, []);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
@@ -22,7 +37,7 @@ export default function Faculty() {
 
       {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {faculty.map((member) => (
+        {facultyList.map((member) => (
           <div key={member.id} className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row gap-6 hover:shadow-lg transition-all duration-300">
             {/* Avatar & Experience */}
             <div className="flex flex-col items-center shrink-0">
@@ -54,7 +69,7 @@ export default function Faculty() {
               <div className="space-y-2 pt-2 border-t border-slate-100">
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Demo Lectures</span>
                 <div className="space-y-2">
-                  {member.demoLectures.map((lec, idx) => (
+                  {(member.demoLectures || []).map((lec: any, idx: number) => (
                     <div key={idx} className="flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100 hover:bg-white hover:border-blue-100 transition-colors">
                       <span className="text-xs font-semibold text-slate-700 truncate pr-4">{lec.title}</span>
                       <button

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Sparkles, 
@@ -21,11 +21,20 @@ import {
   Download,
   Smartphone
 } from 'lucide-react';
-import { db, faculty, results, currentAffairs } from '@/services/db';
+import { db, fallbackResults, fallbackCurrentAffairs } from '@/services/db';
 
 export default function Home() {
   const [activeCaTab, setActiveCaTab] = useState<'Daily' | 'Weekly' | 'Bihar Special' | 'Editorial' | 'PYQs'>('Daily');
   
+  // Real-time dynamic states
+  const [heroSettings, setHeroSettings] = useState({
+    heroTitle: '72nd BPSC Preparation Starts Here',
+    heroSubtitle: 'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
+    tagline: 'One Mentor. One Strategy. One Final Attempt.'
+  });
+  const [liveResults, setLiveResults] = useState<any[]>(fallbackResults);
+  const [liveCurrentAffairs, setLiveCurrentAffairs] = useState<any[]>(fallbackCurrentAffairs);
+
   // Lead form states
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
@@ -34,6 +43,24 @@ export default function Home() {
 
   // Modal demo states
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadLiveData = async () => {
+      try {
+        const s = await db.getSettings();
+        if (s) setHeroSettings(s);
+
+        const r = await db.getResults();
+        if (r && r.length > 0) setLiveResults(r);
+
+        const ca = await db.getCurrentAffairs();
+        if (ca && ca.length > 0) setLiveCurrentAffairs(ca);
+      } catch (e) {
+        console.error('Failed loading live Home data, using mock fallbacks.', e);
+      }
+    };
+    loadLiveData();
+  }, []);
 
   const handleSubmitLead = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,18 +77,18 @@ export default function Home() {
   // Filter current affairs based on selected tab
   const getFilteredCa = () => {
     if (activeCaTab === 'Daily') {
-      return currentAffairs.filter(item => item.category === 'National' || item.category === 'Economy');
+      return liveCurrentAffairs.filter(item => item.category === 'National' || item.category === 'Economy');
     }
     if (activeCaTab === 'Weekly') {
-      return currentAffairs.filter(item => item.category === 'International');
+      return liveCurrentAffairs.filter(item => item.category === 'International');
     }
     if (activeCaTab === 'Bihar Special') {
-      return currentAffairs.filter(item => item.category === 'Bihar Special');
+      return liveCurrentAffairs.filter(item => item.category === 'Bihar Special');
     }
     if (activeCaTab === 'Editorial') {
-      return currentAffairs.filter(item => item.category === 'Environment');
+      return liveCurrentAffairs.filter(item => item.category === 'Environment');
     }
-    return currentAffairs.slice(0, 3); // Fallback
+    return liveCurrentAffairs.slice(0, 3); // Fallback
   };
 
   return (
@@ -156,33 +183,33 @@ export default function Home() {
                 {/* Topper 1 (Ankita Kumari) */}
                 <div className="absolute top-6 left-4 bg-white p-3 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 animate-float">
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
-                    <img src={results[0].photo} alt="topper" className="w-full h-full object-cover" />
+                    <img src={liveResults[0]?.photo} alt="topper" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-extrabold text-slate-900 leading-tight">{results[0].name}</h5>
-                    <p className="text-[10px] text-blue-600 font-bold">{results[0].rank} &bull; {results[0].service}</p>
+                    <h5 className="text-xs font-extrabold text-slate-900 leading-tight">{liveResults[0]?.name}</h5>
+                    <p className="text-[10px] text-blue-600 font-bold">{liveResults[0]?.rank} &bull; {liveResults[0]?.service}</p>
                   </div>
                 </div>
 
                 {/* Topper 2 (Rohit Verma) */}
                 <div className="absolute top-28 right-4 bg-white p-3 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 animate-float [animation-delay:2s]">
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
-                    <img src={results[1].photo} alt="topper" className="w-full h-full object-cover" />
+                    <img src={liveResults[1]?.photo} alt="topper" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-extrabold text-slate-900 leading-tight">{results[1].name}</h5>
-                    <p className="text-[10px] text-blue-600 font-bold">{results[1].rank} &bull; {results[1].service}</p>
+                    <h5 className="text-xs font-extrabold text-slate-900 leading-tight">{liveResults[1]?.name}</h5>
+                    <p className="text-[10px] text-blue-600 font-bold">{liveResults[1]?.rank} &bull; {liveResults[1]?.service}</p>
                   </div>
                 </div>
 
                 {/* Topper 3 (Shreya Sinha) */}
                 <div className="absolute bottom-6 left-1/4 bg-white p-3 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 animate-float [animation-delay:4s]">
                   <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 shrink-0">
-                    <img src={results[2].photo} alt="topper" className="w-full h-full object-cover" />
+                    <img src={liveResults[2]?.photo} alt="topper" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <h5 className="text-xs font-extrabold text-slate-900 leading-tight">{results[2].name}</h5>
-                    <p className="text-[10px] text-blue-600 font-bold">{results[2].rank} &bull; {results[2].service}</p>
+                    <h5 className="text-xs font-extrabold text-slate-900 leading-tight">{liveResults[2]?.name}</h5>
+                    <p className="text-[10px] text-blue-600 font-bold">{liveResults[2]?.rank} &bull; {liveResults[2]?.service}</p>
                   </div>
                 </div>
 
@@ -457,7 +484,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-            {results.map((topper) => (
+            {(liveResults || []).slice(0, 5).map((topper: any) => (
               <div key={topper.id} className="bg-white rounded-2xl border border-slate-100 p-5 text-center flex flex-col items-center hover:shadow-lg transition-shadow">
                 <div className="w-20 h-20 rounded-full overflow-hidden mb-4 border-2 border-slate-100">
                   <img src={topper.photo} alt={topper.name} className="w-full h-full object-cover" />

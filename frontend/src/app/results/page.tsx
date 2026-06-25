@@ -1,27 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Trophy, MapPin, Award } from 'lucide-react';
-import { results } from '@/services/db';
+import { db, fallbackResults } from '@/services/db';
 
 export default function Results() {
+  const [resultsList, setResultsList] = useState<any[]>(fallbackResults);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState<string>('All');
   const [selectedExam, setSelectedExam] = useState<string>('All');
   const [selectedDistrict, setSelectedDistrict] = useState<string>('All');
 
-  // Extracts lists for filter selectors
-  const years = ['All', ...Array.from(new Set(results.map(r => r.year.toString())))];
-  const exams = ['All', ...Array.from(new Set(results.map(r => r.exam)))];
-  const districts = ['All', ...Array.from(new Set(results.map(r => r.district)))];
+  useEffect(() => {
+    const loadResults = async () => {
+      try {
+        const r = await db.getResults();
+        if (r && r.length > 0) {
+          setResultsList(r);
+        }
+      } catch (err) {
+        console.error('Failed loading results:', err);
+      }
+    };
+    loadResults();
+  }, []);
 
-  const filteredResults = results.filter(topper => {
-    const matchesSearch = topper.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          topper.story.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          topper.service.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesYear = selectedYear === 'All' || topper.year.toString() === selectedYear;
-    const matchesExam = selectedExam === 'All' || topper.exam === selectedExam;
-    const matchesDistrict = selectedDistrict === 'All' || topper.district === selectedDistrict;
+  // Extracts lists for filter selectors
+  const years = ['All', ...Array.from(new Set(resultsList.map(r => (r.year || '').toString())))];
+  const exams = ['All', ...Array.from(new Set(resultsList.map(r => r.exam || '')))];
+  const districts = ['All', ...Array.from(new Set(resultsList.map(r => r.district || '')))];
+
+  const filteredResults = resultsList.filter(topper => {
+    const name = topper.name || '';
+    const story = topper.story || '';
+    const service = topper.service || '';
+    const year = topper.year || '';
+    const exam = topper.exam || '';
+    const district = topper.district || '';
+
+    const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          story.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          service.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesYear = selectedYear === 'All' || year.toString() === selectedYear;
+    const matchesExam = selectedExam === 'All' || exam === selectedExam;
+    const matchesDistrict = selectedDistrict === 'All' || district === selectedDistrict;
 
     return matchesSearch && matchesYear && matchesExam && matchesDistrict;
   });

@@ -1,9 +1,26 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { BookOpen, Calendar, Clock, ArrowRight } from 'lucide-react';
-import { blogs } from '@/services/db';
+import { db, fallbackBlogs } from '@/services/db';
 
 export default function Blog() {
+  const [blogsList, setBlogsList] = useState<any[]>(fallbackBlogs);
+
+  useEffect(() => {
+    const loadBlogs = async () => {
+      try {
+        const bg = await db.getBlogs();
+        if (bg && bg.length > 0) {
+          setBlogsList(bg);
+        }
+      } catch (err) {
+        console.error('Failed loading blogs:', err);
+      }
+    };
+    loadBlogs();
+  }, []);
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
       {/* Header */}
@@ -19,7 +36,7 @@ export default function Blog() {
 
       {/* Blogs list */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {blogs.map((post) => (
+        {blogsList.map((post) => (
           <div key={post.id} className="bg-white rounded-3xl border border-slate-100 p-6 flex flex-col justify-between hover:shadow-lg hover:border-blue-100 transition-all duration-300">
             <div className="space-y-4">
               <div className="flex justify-between items-center text-[10px] font-bold text-slate-450 uppercase">

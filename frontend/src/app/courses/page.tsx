@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, SlidersHorizontal, BookOpen, Clock, Calendar } from 'lucide-react';
+import { db } from '@/services/db';
 import { courseData } from '@/services/seedData';
 
 type CategoryType = 'All' | 'UPSC' | 'BPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview';
@@ -10,13 +11,28 @@ type CategoryType = 'All' | 'UPSC' | 'BPSC' | 'Foundation' | 'Prelims' | 'Mains'
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [coursesList, setCoursesList] = useState<any[]>(courseData);
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const c = await db.getCourses();
+        if (c && c.length > 0) {
+          setCoursesList(c);
+        }
+      } catch (err) {
+        console.error('Failed loading courses:', err);
+      }
+    };
+    loadCourses();
+  }, []);
 
   const categories: CategoryType[] = ['All', 'UPSC', 'BPSC', 'Foundation', 'Prelims', 'Mains', 'Interview'];
 
-  const filteredCourses = courseData.filter(course => {
+  const filteredCourses = coursesList.filter(course => {
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
-    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          course.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (course.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (course.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
