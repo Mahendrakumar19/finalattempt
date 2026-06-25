@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "server.ts",
   "scripts": {
-    "dev": "nodemon --exec ts-node server.ts",
+    "dev": "nodemon --ignore database_store.json --exec ts-node server.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
