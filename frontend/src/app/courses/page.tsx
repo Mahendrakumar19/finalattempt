@@ -27,9 +27,14 @@ export default function Courses() {
     loadCourses();
   }, []);
 
-  const categories: CategoryType[] = ['All', 'UPSC', 'BPSC', 'Foundation', 'Prelims', 'Mains', 'Interview'];
+  // FUTURE USE: UPSC Category is commented out for frontend display as the platform is currently not focusing on UPSC.
+  // const categories: CategoryType[] = ['All', 'UPSC', 'BPSC', 'Foundation', 'Prelims', 'Mains', 'Interview'];
+  const categories: CategoryType[] = ['All', 'BPSC', 'Foundation', 'Prelims', 'Mains', 'Interview'];
 
   const filteredCourses = coursesList.filter(course => {
+    // FUTURE USE: Hide UPSC courses from active view as we are currently focusing only on BPSC.
+    if (course.category === 'UPSC') return false;
+
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
     const matchesSearch = (course.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (course.description || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -45,7 +50,8 @@ export default function Courses() {
           Explore Our Courses
         </h1>
         <p className="text-slate-500 text-sm max-w-xl">
-          Choose from BPSC and UPSC batches curated by industry-leading mentors. Restrained pricing structures and result-oriented schedules.
+          {/* FUTURE USE: Add UPSC back into course page descriptions when focus expands */}
+          Choose from BPSC batches curated by industry-leading mentors. Restrained pricing structures and result-oriented schedules.
         </p>
       </div>
 

@@ -130,7 +130,9 @@ export default function Contact() {
                   <option>BPSC Target Batch</option>
                   <option>Prelims Test Series</option>
                   <option>Mains Answer Writing</option>
+                  {/* FUTURE USE: UPSC Mentorship Option. Commented out as the platform is currently not focusing on UPSC.
                   <option>UPSC Mentorship</option>
+                  */}
                 </select>
               </div>
 

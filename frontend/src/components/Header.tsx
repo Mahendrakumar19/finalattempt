@@ -31,6 +31,8 @@ export default function Header() {
         { name: 'Mains Answer Writing', href: '/courses/mains-answer-writing' },
       ]
     },
+    /* FUTURE USE: UPSC Option is commented out as the platform is currently not focusing on UPSC.
+       We will reactivate this option when UPSC modules are launched.
     {
       name: 'UPSC',
       href: '#',
@@ -39,6 +41,7 @@ export default function Header() {
         { name: 'Prelims Mock Program', href: '/courses/prelims-test-series' },
       ]
     },
+    */
     { name: 'Current Affairs', href: '/current-affairs' },
     { name: 'Results', href: '/results' },
     {
@@ -68,7 +71,8 @@ export default function Header() {
       <div className="w-full bg-brand-primary text-slate-300 py-1.5 px-4 sm:px-6 lg:px-8 text-xs flex flex-col sm:flex-row justify-between items-center gap-2 border-b border-slate-800">
         <div className="flex items-center gap-2 font-medium">
           <Sparkles className="w-3.5 h-3.5 text-brand-accent animate-pulse" />
-          <span>Bihar's Most Trusted Mentorship Platform for BPSC & UPSC Aspirants</span>
+          {/* FUTURE USE: Add UPSC back into ticker text when focus expands */}
+          <span>Bihar's Most Trusted Mentorship Platform for BPSC Aspirants</span>
         </div>
         <div className="flex items-center gap-6">
           <Link href="/student" className="hover:text-white transition-colors flex items-center gap-1.5 font-medium">

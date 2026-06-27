@@ -49,7 +49,8 @@ export default function CurrentAffairs() {
           Current Affairs Editorial
         </h1>
         <p className="text-slate-500 text-sm max-w-xl">
-          Daily analytical insights on high-yield exam themes. Restrained, authoritative articles curated for BPSC and UPSC Mains.
+          {/* FUTURE USE: Include UPSC back when active */}
+          Daily analytical insights on high-yield exam themes. Restrained, authoritative articles curated for BPSC Mains.
         </p>
       </div>
 

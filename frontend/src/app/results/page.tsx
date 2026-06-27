@@ -57,7 +57,8 @@ export default function Results() {
           Proud Moments & Results
         </h1>
         <p className="text-slate-500 text-sm">
-          Real results, real ranks, and inspirational stories of BPSC & UPSC aspirants who cleared in their final attempts with us.
+          {/* FUTURE USE: Include UPSC back when active */}
+          Real results, real ranks, and inspirational stories of BPSC aspirants who cleared in their final attempts with us.
         </p>
       </div>
 

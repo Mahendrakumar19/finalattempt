@@ -43,8 +43,9 @@ export default function Resources() {
         <h1 className="text-4xl font-heading font-extrabold text-brand-primary tracking-tight">
           Aspirant Resources & Notes
         </h1>
-        <p className="text-slate-500 text-sm max-w-lg mx-auto">
-          Access high-yield study notes, PDFs, mind maps, and BPSC/UPSC exam preparation templates absolutely free.
+        <p className="text-slate-500 text-sm max-w-xl mx-auto">
+          {/* FUTURE USE: Include UPSC back when active */}
+          Access high-yield study notes, PDFs, mind maps, and BPSC exam preparation templates absolutely free.
         </p>
       </div>
 

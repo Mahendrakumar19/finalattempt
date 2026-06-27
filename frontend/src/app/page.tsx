@@ -404,7 +404,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Course 6 */}
+            {/* FUTURE USE: UPSC Mentorship Program card. Commented out as the platform is currently not focusing on UPSC.
             <div className="bg-white rounded-2xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col">
               <div className="p-6 flex-grow">
                 <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center mb-4">
@@ -412,7 +412,7 @@ export default function Home() {
                 </div>
                 <h3 className="font-heading font-extrabold text-lg text-brand-primary mb-2">UPSC Mentorship Program</h3>
                 <p className="text-xs text-slate-500 mb-6">Personalized scheduling and 1-on-1 strategy audit by selected toppers.</p>
-
+                
                 <div className="space-y-3.5 pt-4 border-t border-slate-100">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-slate-400">Duration</span>
@@ -430,6 +430,7 @@ export default function Home() {
                 </Link>
               </div>
             </div>
+            */}
           </div>
         </div>
       </section>
@@ -443,7 +444,8 @@ export default function Home() {
               Why Bihar Aspirants Choose Us?
             </h2>
             <p className="text-slate-500 text-sm mt-4">
-              We understand the unique challenges of BPSC and UPSC preparation, providing tailored support.
+              {/* FUTURE USE: Add UPSC back into description when focus expands */}
+              We understand the unique challenges of BPSC preparation, providing tailored support.
             </p>
           </div>
 
@@ -698,7 +700,9 @@ export default function Home() {
                     <option>BPSC Target Batch</option>
                     <option>Prelims Test Series</option>
                     <option>Mains Answer Writing</option>
+                    {/* FUTURE USE: UPSC Mentorship Option. Commented out as the platform is currently not focusing on UPSC.
                     <option>UPSC Mentorship</option>
+                    */}
                   </select>
                 </div>
                 <div className="sm:col-span-3 pt-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-slate-100 mt-4">

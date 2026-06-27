@@ -155,7 +155,7 @@ export default function FacultyPortal() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
-                { title: 'Centre-State legislative Relations', time: 'Today, 03:00 PM', batch: 'UPSC Mentorship', status: 'Live Soon' },
+                { title: 'Centre-State legislative Relations', time: 'Today, 03:00 PM', batch: 'BPSC Mentorship', status: 'Live Soon' },
                 { title: 'Bihar Land Revenue Acts & GK', time: 'Tomorrow, 10:00 AM', batch: 'BPSC Foundation', status: 'Scheduled' }
               ].map((cls, idx) => (
                 <div key={idx} className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-4 shadow-xs">
