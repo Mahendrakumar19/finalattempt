@@ -17,7 +17,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
   const courseFaculty = (allFaculty || []).slice(0, 3); // Map mock mentors
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
       {/* Back button */}
       <Link href="/courses" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
         <ArrowLeft className="w-4 h-4" />

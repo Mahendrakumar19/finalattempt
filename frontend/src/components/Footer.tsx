@@ -12,7 +12,7 @@ export default function Footer() {
 
   return (
     <footer className="bg-[#0F172A] text-slate-400 pt-16 pb-8 border-t border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
           {/* Logo & Description */}
           <div className="lg:col-span-2 space-y-6">
@@ -36,13 +36,13 @@ export default function Footer() {
               <a href="#" className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-blue-600 hover:text-white flex items-center justify-center text-slate-400 transition-all">
                 <Globe className="w-4 h-4" />
               </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-pink-600 hover:text-white flex items-center justify-center text-slate-400 transition-all">
+              <a href="https://www.instagram.com/finalattempt_official" className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-pink-600 hover:text-white flex items-center justify-center text-slate-400 transition-all">
                 <Globe className="w-4 h-4" />
               </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-red-600 hover:text-white flex items-center justify-center text-slate-400 transition-all">
+              <a href="https://www.youtube.com/channel/UCDY09TIhDxK9bKgQxftZx-w" className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-red-600 hover:text-white flex items-center justify-center text-slate-400 transition-all">
                 <Video className="w-4 h-4" />
               </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-blue-500 hover:text-white flex items-center justify-center text-slate-400 transition-all">
+              <a href="https://t.me/Finalattemptofficial" className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-blue-500 hover:text-white flex items-center justify-center text-slate-400 transition-all">
                 <Send className="w-4 h-4" />
               </a>
             </div>
@@ -102,7 +102,7 @@ export default function Footer() {
 
         {/* Legal & Copyright */}
         <div className="border-t border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
-          <p>&copy; {new Date().getFullYear()} Final Attempt IAS. All Rights Reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Final Attempt. All Rights Reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="#" className="hover:text-white transition-colors">Terms & Conditions</Link>

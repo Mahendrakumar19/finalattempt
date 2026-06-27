@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  Sparkles, 
-  Users, 
-  Award, 
-  BookOpen, 
-  ChevronRight, 
-  CheckCircle, 
+import {
+  Sparkles,
+  Users,
+  Award,
+  BookOpen,
+  ChevronRight,
+  CheckCircle,
   Star,
   FileText,
   Bookmark,
@@ -25,7 +25,7 @@ import { db, fallbackResults, fallbackCurrentAffairs } from '@/services/db';
 
 export default function Home() {
   const [activeCaTab, setActiveCaTab] = useState<'Daily' | 'Weekly' | 'Bihar Special' | 'Editorial' | 'PYQs'>('Daily');
-  
+
   // Real-time dynamic states
   const [heroSettings, setHeroSettings] = useState({
     heroTitle: '72nd BPSC Preparation Starts Here',
@@ -98,7 +98,7 @@ export default function Home() {
         {/* Decorative Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#f1f5f9_1px,transparent_1px),linear-gradient(to_bottom,#f1f5f9_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Hero Left Content */}
             <div className="lg:col-span-7 space-y-8">
@@ -178,7 +178,7 @@ export default function Home() {
               <div className="relative w-full max-w-md h-[450px] bg-slate-50/50 rounded-3xl border border-slate-100 p-6 flex flex-col items-center justify-center overflow-hidden">
                 {/* Simulated Map Visual */}
                 <div className="absolute inset-0 bg-contain bg-center opacity-10 bg-no-repeat pointer-events-none" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=80')` }} />
-                
+
                 {/* Premium Topper Cards overlays */}
                 {/* Topper 1 (Ankita Kumari) */}
                 <div className="absolute top-6 left-4 bg-white p-3 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 animate-float">
@@ -227,7 +227,7 @@ export default function Home() {
 
       {/* 2. STATS BANNER */}
       <section className="bg-brand-primary text-white py-8 border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
               { value: '5000+', label: 'Students Mentored', icon: Users },
@@ -251,7 +251,7 @@ export default function Home() {
 
       {/* 3. COURSES SECTION */}
       <section className="py-20 bg-slate-50 border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 mb-12">
             <div>
               <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Our Programs</span>
@@ -277,7 +277,7 @@ export default function Home() {
                 </div>
                 <h3 className="font-heading font-extrabold text-lg text-brand-primary mb-2">BPSC Foundation Batch</h3>
                 <p className="text-xs text-slate-500 mb-6">Complete coverage of Prelims & Mains syllabus with Bihar-specific modules.</p>
-                
+
                 <div className="space-y-3.5 pt-4 border-t border-slate-100">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-slate-400">Duration</span>
@@ -304,7 +304,7 @@ export default function Home() {
                 </div>
                 <h3 className="font-heading font-extrabold text-lg text-brand-primary mb-2">BPSC Target Batch</h3>
                 <p className="text-xs text-slate-500 mb-6">Comprehensive high-speed batch for serious aspirants preparing for BPSC.</p>
-                
+
                 <div className="space-y-3.5 pt-4 border-t border-slate-100">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-slate-400">Duration</span>
@@ -331,7 +331,7 @@ export default function Home() {
                 </div>
                 <h3 className="font-heading font-extrabold text-lg text-brand-primary mb-2">Prelims Test Series 2025</h3>
                 <p className="text-xs text-slate-500 mb-6">Sectional + Full Length Mock Tests with performance diagnostic analytics.</p>
-                
+
                 <div className="space-y-3.5 pt-4 border-t border-slate-100">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-slate-400">Tests</span>
@@ -358,7 +358,7 @@ export default function Home() {
                 </div>
                 <h3 className="font-heading font-extrabold text-lg text-brand-primary mb-2">Mains Answer Writing</h3>
                 <p className="text-xs text-slate-500 mb-6">Daily answer writing practice with evaluation and detailed micro-feedback.</p>
-                
+
                 <div className="space-y-3.5 pt-4 border-t border-slate-100">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-slate-400">Duration</span>
@@ -385,7 +385,7 @@ export default function Home() {
                 </div>
                 <h3 className="font-heading font-extrabold text-lg text-brand-primary mb-2">Interview Guidance</h3>
                 <p className="text-xs text-slate-500 mb-6">DAF analysis, simulated panel mock interviews with senior retired IAS officers.</p>
-                
+
                 <div className="space-y-3.5 pt-4 border-t border-slate-100">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-slate-400">Mocks</span>
@@ -412,7 +412,7 @@ export default function Home() {
                 </div>
                 <h3 className="font-heading font-extrabold text-lg text-brand-primary mb-2">UPSC Mentorship Program</h3>
                 <p className="text-xs text-slate-500 mb-6">Personalized scheduling and 1-on-1 strategy audit by selected toppers.</p>
-                
+
                 <div className="space-y-3.5 pt-4 border-t border-slate-100">
                   <div className="flex justify-between text-xs font-bold">
                     <span className="text-slate-400">Duration</span>
@@ -436,9 +436,9 @@ export default function Home() {
 
       {/* 4. BIHAR ADVANTAGE - WHY CHOOSE US */}
       <section className="py-20 bg-white border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Why Final Attempt IAS</span>
+            <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Why Final Attempt</span>
             <h2 className="text-3xl sm:text-4xl font-heading font-extrabold text-brand-primary mt-2">
               Why Bihar Aspirants Choose Us?
             </h2>
@@ -470,7 +470,7 @@ export default function Home() {
 
       {/* 5. TOPPERS HALL OF FAME */}
       <section className="py-20 bg-slate-50 border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-end mb-12">
             <div>
               <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Our Toppers</span>
@@ -503,7 +503,7 @@ export default function Home() {
 
       {/* 6. CURRENT AFFAIRS magazine tab selector */}
       <section className="py-20 bg-white border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-xl mx-auto mb-12">
             <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Current Affairs</span>
             <h2 className="text-3xl font-heading font-extrabold text-brand-primary mt-2">
@@ -517,11 +517,10 @@ export default function Home() {
               <button
                 key={tab}
                 onClick={() => setActiveCaTab(tab as any)}
-                className={`px-5 py-2 text-xs font-bold rounded-xl transition-all ${
-                  activeCaTab === tab 
-                    ? 'bg-brand-primary text-white shadow-md' 
+                className={`px-5 py-2 text-xs font-bold rounded-xl transition-all ${activeCaTab === tab
+                    ? 'bg-brand-primary text-white shadow-md'
                     : 'text-slate-600 hover:bg-slate-50 border border-slate-100'
-                }`}
+                  }`}
               >
                 {tab} CA
               </button>
@@ -552,7 +551,7 @@ export default function Home() {
 
       {/* 7. APP DOWNLOAD BLOCK */}
       <section className="py-16 bg-slate-50 border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-[#0F172A] rounded-3xl overflow-hidden p-8 sm:p-12 lg:p-16 relative text-white border border-slate-800">
             {/* Ambient Background Light */}
             <div className="absolute right-0 top-0 w-80 h-80 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
@@ -616,7 +615,7 @@ export default function Home() {
                 <div className="w-56 h-[380px] bg-slate-850 rounded-[40px] border-[12px] border-slate-800 shadow-2xl relative overflow-hidden flex flex-col justify-between p-4 text-slate-300 select-none">
                   {/* Top notch */}
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-800 rounded-b-xl" />
-                  
+
                   <div className="pt-6 space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-bold">Hello Ritik</span>

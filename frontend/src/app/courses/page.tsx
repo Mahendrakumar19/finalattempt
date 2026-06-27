@@ -37,7 +37,7 @@ export default function Courses() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
+    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
       {/* Page Header */}
       <div className="space-y-4">
         <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Our Programs</span>

@@ -41,7 +41,7 @@ export default function CurrentAffairs() {
   const selectedArticle = articlesList.find(a => a.id === selectedArticleId) || filteredArticles[0];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
+    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
       {/* Header */}
       <div className="space-y-4">
         <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Magazine Ecosystem</span>

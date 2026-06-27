@@ -49,7 +49,7 @@ export default function Results() {
   });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
+    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
       {/* Header */}
       <div className="space-y-4 text-center max-w-2xl mx-auto">
         <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Our Toppers</span>

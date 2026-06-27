@@ -17,7 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Final Attempt IAS | Admin CMS Portal",
+  title: "Final Attempt | Admin CMS Portal",
   description: "Administrative console and learning system sync manager.",
 };
 

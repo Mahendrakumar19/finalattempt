@@ -2,7 +2,7 @@ import { Award, Users, BookOpen, Clock, Sparkles } from 'lucide-react';
 
 export default function About() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-20">
+    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-20">
       {/* 1. Page Header */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">About Us</span>
@@ -11,7 +11,7 @@ export default function About() {
           <span className="text-brand-secondary">One Final Attempt.</span>
         </h1>
         <p className="text-slate-500 text-sm leading-relaxed">
-          Final Attempt IAS is not just another coaching institute; it is a premium learning ecosystem built by senior policy makers, educators, and successful toppers to give you the strategic edge needed to clear the civil services examination.
+          Final Attempt is not just another coaching institute; it is a premium learning ecosystem built by senior policy makers, educators, and successful toppers to give you the strategic edge needed to clear the civil services examination.
         </p>
       </div>
 
@@ -43,9 +43,9 @@ export default function About() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-4 flex justify-center">
             <div className="w-56 h-72 rounded-2xl overflow-hidden bg-slate-200 border-4 border-white shadow-lg relative">
-              <img 
-                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400" 
-                alt="Founder" 
+              <img
+                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400"
+                alt="Founder"
                 className="w-full h-full object-cover"
               />
             </div>
@@ -56,11 +56,11 @@ export default function About() {
               Mentor-in-Chief's Message
             </h3>
             <p className="text-xs text-slate-600 leading-relaxed italic">
-              "UPSC and BPSC exams do not just test your knowledge—they test your temperament, strategy, and consistency. After mentoring thousands of civil service aspirants, we realized that the primary reason students fail is not a lack of study material, but the lack of personalized micro-scheduling. Final Attempt IAS was founded to change this. We provide you with one mentor, one solid strategy, and all the tools to ensure this is your final successful attempt."
+              "UPSC and BPSC exams do not just test your knowledge—they test your temperament, strategy, and consistency. After mentoring thousands of civil service aspirants, we realized that the primary reason students fail is not a lack of study material, but the lack of personalized micro-scheduling. Final Attempt was founded to change this. We provide you with one mentor, one solid strategy, and all the tools to ensure this is your final successful attempt."
             </p>
             <div>
               <h5 className="font-heading font-extrabold text-sm text-brand-primary">Siddharth Kumar Sinha</h5>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Founder & Chief Mentor, Final Attempt IAS</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Founder & Chief Mentor, Final Attempt</p>
             </div>
           </div>
         </div>

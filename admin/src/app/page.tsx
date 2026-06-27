@@ -379,20 +379,23 @@ export default function AdminPortal() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#070A13] text-[#F8FAFC] flex flex-col md:flex-row antialiased font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col md:flex-row antialiased font-sans relative overflow-hidden">
       
+      {/* Decorative Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 pointer-events-none" />
+
       {/* SIDEBAR */}
-      <aside className="w-full md:w-64 bg-[#0F172A] border-b md:border-b-0 md:border-r border-slate-800 p-5 flex flex-col justify-between shrink-0">
+      <aside className="w-full md:w-64 bg-white/80 backdrop-blur-md border-b md:border-b-0 md:border-r border-slate-200/80 p-5 flex flex-col justify-between shrink-0 relative z-10">
         <div className="space-y-8">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-red-650 flex items-center justify-center font-extrabold text-sm border border-red-500 shadow-sm text-white">
+            <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center font-extrabold text-sm border border-red-500 shadow-sm text-white">
               FA
             </div>
             <div className="flex flex-col">
-              <span className="font-heading font-extrabold text-sm tracking-tight text-white uppercase">
+              <span className="font-heading font-extrabold text-sm tracking-tight text-slate-900 uppercase">
                 Final Attempt
               </span>
-              <span className="text-[9px] text-red-500 font-bold tracking-wider uppercase">
+              <span className="text-[9px] text-red-650 font-bold tracking-wider uppercase">
                 CMS Director
               </span>
             </div>
@@ -409,8 +412,8 @@ export default function AdminPortal() {
                 }}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === link.name 
-                    ? 'bg-red-600 text-white shadow-md' 
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    ? 'bg-red-50 text-red-600 border border-red-200/60 shadow-xs' 
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 <link.icon className="w-4 h-4 shrink-0" />
@@ -421,12 +424,12 @@ export default function AdminPortal() {
         </div>
 
         {/* Port Link */}
-        <div className="pt-6 border-t border-slate-850 mt-8">
+        <div className="pt-6 border-t border-slate-200 mt-8">
           <a 
             href="http://localhost:3000" 
             target="_blank"
             rel="noreferrer"
-            className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-2"
+            className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-2"
           >
             <LogOut className="w-4 h-4" />
             <span>Launch Web Site</span>
@@ -435,24 +438,24 @@ export default function AdminPortal() {
       </aside>
 
       {/* MAIN MAIN PANEL */}
-      <main className="flex-grow p-6 sm:p-10 space-y-8 overflow-y-auto max-h-screen">
+      <main className="flex-grow p-6 sm:p-10 space-y-8 overflow-y-auto max-h-screen relative z-10">
         
         {/* TOP STATUS */}
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div>
             <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider">CMS Console</span>
-            <h2 className="text-2xl font-heading font-extrabold text-white mt-1">{activeTab} Editor</h2>
+            <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">{activeTab} Editor</h2>
           </div>
 
           <div className="flex items-center gap-4">
             <button 
               onClick={fetchCMSData}
-              className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white transition-colors"
+              className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-400 hover:text-slate-900 transition-colors shadow-xs"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
             {backendOffline && (
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 text-xs font-bold">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>Offline Fallback</span>
               </div>
@@ -466,25 +469,25 @@ export default function AdminPortal() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 { label: 'Total Enquiries', value: leadsList.length.toString(), desc: 'Direct Lead records', icon: Users, color: 'text-blue-500' },
-                { label: 'Total Faculty', value: facultyList.length.toString(), desc: 'Active mentoring profiles', icon: Users, color: 'text-amber-500' },
+                { label: 'Total Faculty', value: facultyList.length.toString(), desc: 'Active mentoring profiles', icon: Users, color: 'text-amber-550' },
                 { label: 'Results Ranks', value: resultsList.length.toString(), desc: 'Successful topper stories', icon: Award, color: 'text-emerald-500' },
-                { label: 'Current Articles', value: caList.length.toString(), desc: 'Magazine current affairs', icon: FileText, color: 'text-purple-500' }
+                { label: 'Current Articles', value: caList.length.toString(), desc: 'Magazine current affairs', icon: FileText, color: 'text-purple-550' }
               ].map((metric, idx) => (
-                <div key={idx} className="bg-slate-900/60 p-5 rounded-2xl border border-slate-805 space-y-3">
+                <div key={idx} className="bg-white/70 backdrop-blur-md p-5 rounded-2xl border border-slate-200/80 space-y-3 shadow-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-[9px] text-slate-550 font-bold uppercase tracking-wider">{metric.label}</span>
+                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{metric.label}</span>
                     <metric.icon className={`w-4 h-4 ${metric.color}`} />
                   </div>
-                  <p className="text-2xl font-extrabold text-white">{metric.value}</p>
-                  <p className="text-[10px] text-slate-450 font-semibold">{metric.desc}</p>
+                  <p className="text-2xl font-extrabold text-slate-900">{metric.value}</p>
+                  <p className="text-[10px] text-slate-400 font-semibold">{metric.desc}</p>
                 </div>
               ))}
             </div>
 
             {/* Quick overview updates log */}
-            <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-805 space-y-4">
-              <h3 className="font-heading font-bold text-sm text-white">Live Site Information</h3>
-              <p className="text-xs text-slate-400 leading-relaxed">
+            <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-4 shadow-xs">
+              <h3 className="font-heading font-bold text-sm text-slate-900">Live Site Information</h3>
+              <p className="text-xs text-slate-500 leading-relaxed font-medium">
                 Site parameters and database records are synchronized in real-time. Changing values inside these CMS directories pushes updates instantly to the public site layouts on port 3000.
               </p>
             </div>
@@ -493,9 +496,9 @@ export default function AdminPortal() {
 
         {/* TAB 2: SETTINGS (Hero headings editor) */}
         {activeTab === 'Settings' && (
-          <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-805 max-w-2xl">
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 max-w-2xl shadow-xs">
             <form onSubmit={handleSaveSettings} className="space-y-5">
-              <h3 className="font-heading font-extrabold text-sm text-white border-b border-slate-800 pb-3">
+              <h3 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-3">
                 Homepage Hero Configurations
               </h3>
 
@@ -505,7 +508,7 @@ export default function AdminPortal() {
                   type="text"
                   value={settings.tagline}
                   onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
-                  className="w-full px-4 py-3 text-xs bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-red-500 text-white"
+                  className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-red-500 text-slate-900"
                 />
               </div>
 
@@ -515,7 +518,7 @@ export default function AdminPortal() {
                   type="text"
                   value={settings.heroTitle}
                   onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
-                  className="w-full px-4 py-3 text-xs bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-red-500 text-white"
+                  className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-red-500 text-slate-900"
                 />
               </div>
 
@@ -525,14 +528,14 @@ export default function AdminPortal() {
                   value={settings.heroSubtitle}
                   rows={3}
                   onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
-                  className="w-full px-4 py-3 text-xs bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-red-500 text-white"
+                  className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-red-500 text-slate-900"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={backendOffline}
-                className="px-6 py-2.5 bg-red-600 hover:bg-red-750 text-white font-bold rounded-xl text-xs disabled:opacity-50 cursor-pointer"
+                className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs disabled:opacity-50 cursor-pointer shadow-xs transition-transform hover:scale-[1.01]"
               >
                 Save Settings
               </button>
@@ -542,15 +545,15 @@ export default function AdminPortal() {
 
         {/* TAB 3: LEADS */}
         {activeTab === 'Leads' && (
-          <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-805 space-y-6">
-            <h3 className="font-heading font-extrabold text-sm text-white border-b border-slate-800 pb-3">
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
+            <h3 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-3">
               Strategy Booking Enquiries
             </h3>
             
             {leadsList.length > 0 ? (
-              <div className="overflow-x-auto rounded-2xl border border-slate-800">
+              <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white/50">
                 <table className="w-full text-xs text-left border-collapse">
-                  <thead className="bg-slate-850 text-slate-400 uppercase font-bold text-[10px] tracking-wider border-b border-slate-800">
+                  <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200">
                     <tr>
                       <th className="p-4">Name</th>
                       <th className="p-4">Mobile</th>
@@ -559,19 +562,19 @@ export default function AdminPortal() {
                       <th className="p-4">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800 text-slate-200">
+                  <tbody className="divide-y divide-slate-200 text-slate-700">
                     {leadsList.map((lead) => (
-                      <tr key={lead.id} className="hover:bg-slate-900/40">
-                        <td className="p-4 font-bold">{lead.fullName}</td>
+                      <tr key={lead.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-4 font-bold text-slate-900">{lead.fullName}</td>
                         <td className="p-4">{lead.mobile}</td>
-                        <td className="p-4 text-blue-400">{lead.targetExam}</td>
+                        <td className="p-4 text-blue-600 font-semibold">{lead.targetExam}</td>
                         <td className="p-4">
-                          <span className={`px-2 py-0.5 rounded font-bold text-[9px] uppercase ${
+                          <span className={`px-2.5 py-0.5 rounded-full font-bold text-[9px] uppercase border ${
                             lead.status === 'Enrolled' 
-                              ? 'bg-emerald-500/10 text-emerald-400' 
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
                               : lead.status === 'Contacted' 
-                              ? 'bg-blue-500/10 text-blue-400' 
-                              : 'bg-amber-500/10 text-amber-400'
+                              ? 'bg-blue-50 border-blue-200 text-blue-600' 
+                              : 'bg-amber-50 border-amber-200 text-amber-600'
                           }`}>
                             {lead.status}
                           </span>
@@ -580,7 +583,7 @@ export default function AdminPortal() {
                           <select
                             value={lead.status}
                             onChange={(e) => handleUpdateLeadStatus(lead.id, e.target.value)}
-                            className="bg-slate-850 text-white border border-slate-700 rounded px-2 py-1 text-[10px] focus:outline-none"
+                            className="bg-slate-50 text-slate-800 border border-slate-200 rounded-lg px-2.5 py-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-red-500"
                           >
                             <option value="New">New</option>
                             <option value="Contacted">Contacted</option>
@@ -603,13 +606,13 @@ export default function AdminPortal() {
         {activeTab === 'Faculty' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-heading font-extrabold text-sm text-white">Faculty Profiles</h3>
+              <h3 className="font-heading font-extrabold text-sm text-slate-900">Faculty Profiles</h3>
               <button 
                 onClick={() => {
                   setFacultyForm({ id: '', name: '', role: '', experience: '', avatar: '', bio: '', demoLectures: [] });
                   setActiveModal({ type: 'add' });
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl text-xs"
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-xs"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Mentor</span>
@@ -618,15 +621,15 @@ export default function AdminPortal() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {facultyList.map((fac, idx) => (
-                <div key={fac.id} className="bg-slate-900/60 p-6 rounded-3xl border border-slate-805 flex gap-4 justify-between items-start">
+                <div key={fac.id} className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 flex gap-4 justify-between items-start shadow-xs">
                   <div className="flex gap-4">
-                    <div className="w-14 h-16 rounded-xl overflow-hidden bg-slate-800 shrink-0">
+                    <div className="w-14 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-150">
                       <img src={fac.avatar || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400'} alt="fac" className="w-full h-full object-cover" />
                     </div>
                     <div className="space-y-1">
-                      <h4 className="font-heading font-bold text-sm text-white leading-tight">{fac.name}</h4>
-                      <p className="text-[10px] text-blue-400 font-bold uppercase">{fac.role}</p>
-                      <p className="text-xs text-slate-400 line-clamp-2">{fac.bio}</p>
+                      <h4 className="font-heading font-bold text-sm text-slate-900 leading-tight">{fac.name}</h4>
+                      <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">{fac.role}</p>
+                      <p className="text-xs text-slate-550 line-clamp-2 leading-relaxed">{fac.bio}</p>
                     </div>
                   </div>
 
@@ -636,13 +639,13 @@ export default function AdminPortal() {
                         setFacultyForm(fac);
                         setActiveModal({ type: 'edit', index: idx });
                       }}
-                      className="p-2 bg-slate-800 rounded-xl hover:bg-slate-700 text-slate-300 transition-colors"
+                      className="p-2 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button 
                       onClick={() => handleDeleteFaculty(fac.id)}
-                      className="p-2 bg-red-500/10 rounded-xl hover:bg-red-600 hover:text-white text-red-400 transition-colors"
+                      className="p-2 bg-red-50 border border-red-200 rounded-xl hover:bg-red-600 hover:text-white text-red-500 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -653,9 +656,9 @@ export default function AdminPortal() {
 
             {/* Modal for Add/Edit Faculty */}
             {activeModal && activeTab === 'Faculty' && (
-              <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-                <form onSubmit={handleSaveFaculty} className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-md w-full space-y-4">
-                  <h3 className="font-heading font-extrabold text-sm text-white">
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <form onSubmit={handleSaveFaculty} className="bg-white border border-slate-200/80 p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
+                  <h3 className="font-heading font-extrabold text-sm text-slate-900">
                     {activeModal.type === 'add' ? 'Add New Faculty Member' : 'Edit Faculty Member'}
                   </h3>
                   
@@ -666,7 +669,7 @@ export default function AdminPortal() {
                       required 
                       value={facultyForm.name} 
                       onChange={(e) => setFacultyForm({ ...facultyForm, name: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                     />
                   </div>
 
@@ -677,7 +680,7 @@ export default function AdminPortal() {
                       required 
                       value={facultyForm.role} 
                       onChange={(e) => setFacultyForm({ ...facultyForm, role: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                     />
                   </div>
 
@@ -688,7 +691,7 @@ export default function AdminPortal() {
                         type="text" 
                         value={facultyForm.experience} 
                         onChange={(e) => setFacultyForm({ ...facultyForm, experience: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -697,7 +700,7 @@ export default function AdminPortal() {
                         type="text" 
                         value={facultyForm.avatar} 
                         onChange={(e) => setFacultyForm({ ...facultyForm, avatar: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                   </div>
@@ -708,15 +711,15 @@ export default function AdminPortal() {
                       rows={3} 
                       value={facultyForm.bio} 
                       onChange={(e) => setFacultyForm({ ...facultyForm, bio: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                     />
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-800 text-xs font-semibold rounded-xl">
+                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
                       Cancel
                     </button>
-                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl">
+                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors">
                       Save Profile
                     </button>
                   </div>
@@ -730,22 +733,22 @@ export default function AdminPortal() {
         {activeTab === 'Results' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-heading font-extrabold text-sm text-white">Topper Results</h3>
+              <h3 className="font-heading font-extrabold text-sm text-slate-900">Topper Results</h3>
               <button 
                 onClick={() => {
                   setResultForm({ id: '', name: '', rank: '', exam: 'BPSC 69th', course: 'Mentorship Program', service: 'Deputy Collector', district: 'Patna', photo: '', year: 2026, story: '' });
                   setActiveModal({ type: 'add' });
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl text-xs"
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl text-xs shadow-xs"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Topper</span>
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-900/60">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-md shadow-xs">
               <table className="w-full text-xs text-left border-collapse">
-                <thead className="bg-slate-850 text-slate-400 uppercase font-bold text-[10px] border-b border-slate-800">
+                <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[10px] border-b border-slate-200">
                   <tr>
                     <th className="p-4">Photo</th>
                     <th className="p-4">Name</th>
@@ -756,18 +759,18 @@ export default function AdminPortal() {
                     <th className="p-4">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-805 text-slate-200">
+                <tbody className="divide-y divide-slate-200 text-slate-700">
                   {resultsList.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-slate-900/20">
+                    <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="p-4">
-                        <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-800">
+                        <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-100 border border-slate-200">
                           <img src={item.photo} alt="topper" className="w-full h-full object-cover" />
                         </div>
                       </td>
-                      <td className="p-4 font-bold">{item.name}</td>
-                      <td className="p-4 text-amber-500 font-extrabold">{item.rank}</td>
+                      <td className="p-4 font-bold text-slate-900">{item.name}</td>
+                      <td className="p-4 text-amber-600 font-extrabold">{item.rank}</td>
                       <td className="p-4">{item.exam}</td>
-                      <td className="p-4 text-blue-400">{item.service}</td>
+                      <td className="p-4 text-blue-600 font-semibold">{item.service}</td>
                       <td className="p-4">{item.district}</td>
                       <td className="p-4 flex gap-2">
                         <button 
@@ -775,13 +778,13 @@ export default function AdminPortal() {
                             setResultForm(item);
                             setActiveModal({ type: 'edit', index: idx });
                           }}
-                          className="p-1.5 bg-slate-850 rounded hover:bg-slate-700 text-slate-300"
+                          className="p-1.5 bg-slate-50 border border-slate-200 rounded hover:bg-slate-100 text-slate-650"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
                         <button 
                           onClick={() => handleDeleteResult(item.id)}
-                          className="p-1.5 bg-red-500/10 rounded hover:bg-red-600 hover:text-white text-red-400"
+                          className="p-1.5 bg-red-50 border border-red-200 rounded hover:bg-red-650 hover:text-white text-red-500 transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -794,9 +797,9 @@ export default function AdminPortal() {
 
             {/* Modal add/edit result */}
             {activeModal && activeTab === 'Results' && (
-              <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-                <form onSubmit={handleSaveResult} className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto">
-                  <h3 className="font-heading font-extrabold text-sm text-white">
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <form onSubmit={handleSaveResult} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+                  <h3 className="font-heading font-extrabold text-sm text-slate-900">
                     {activeModal.type === 'add' ? 'Add Topper Rank Record' : 'Edit Topper Rank Record'}
                   </h3>
                   
@@ -806,7 +809,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" required value={resultForm.name} 
                         onChange={(e) => setResultForm({ ...resultForm, name: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -814,7 +817,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" required value={resultForm.rank} 
                         onChange={(e) => setResultForm({ ...resultForm, rank: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                   </div>
@@ -825,7 +828,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" required value={resultForm.exam} 
                         onChange={(e) => setResultForm({ ...resultForm, exam: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -833,7 +836,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" required value={resultForm.service} 
                         onChange={(e) => setResultForm({ ...resultForm, service: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                   </div>
@@ -844,7 +847,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" required value={resultForm.district} 
                         onChange={(e) => setResultForm({ ...resultForm, district: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -852,7 +855,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" value={resultForm.photo} 
                         onChange={(e) => setResultForm({ ...resultForm, photo: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                   </div>
@@ -862,15 +865,15 @@ export default function AdminPortal() {
                     <textarea 
                       rows={3} value={resultForm.story} 
                       onChange={(e) => setResultForm({ ...resultForm, story: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                     />
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-800 text-xs font-semibold rounded-xl">
+                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
                       Cancel
                     </button>
-                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-750 text-white text-xs font-bold rounded-xl">
+                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors">
                       Save Record
                     </button>
                   </div>
@@ -884,13 +887,13 @@ export default function AdminPortal() {
         {activeTab === 'Current Affairs' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-heading font-extrabold text-sm text-white">Current Affairs Articles</h3>
+              <h3 className="font-heading font-extrabold text-sm text-slate-900">Current Affairs Articles</h3>
               <button 
                 onClick={() => {
                   setCaForm({ id: '', title: '', category: 'National', publishDate: '', summary: '', content: '' });
                   setActiveModal({ type: 'add' });
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl text-xs"
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-xs transition-transform hover:scale-[1.01]"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Article</span>
@@ -899,15 +902,15 @@ export default function AdminPortal() {
 
             <div className="space-y-4">
               {caList.map((article, idx) => (
-                <div key={article.id} className="p-5 bg-slate-900/60 rounded-3xl border border-slate-805 flex justify-between items-start">
+                <div key={article.id} className="p-5 bg-white/70 backdrop-blur-md rounded-3xl border border-slate-200/80 flex justify-between items-start shadow-xs">
                   <div className="space-y-2">
-                    <div className="flex gap-2 items-center text-[10px] font-bold text-slate-500">
-                      <span className="text-blue-500">{article.category}</span>
+                    <div className="flex gap-2 items-center text-[10px] font-bold text-slate-450">
+                      <span className="text-blue-600">{article.category}</span>
                       <span>&bull;</span>
                       <span>{article.publishDate}</span>
                     </div>
-                    <h4 className="font-heading font-extrabold text-sm text-white">{article.title}</h4>
-                    <p className="text-xs text-slate-400 line-clamp-2">{article.summary}</p>
+                    <h4 className="font-heading font-extrabold text-sm text-slate-900">{article.title}</h4>
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{article.summary}</p>
                   </div>
 
                   <div className="flex gap-2 shrink-0 ml-4">
@@ -916,13 +919,13 @@ export default function AdminPortal() {
                         setCaForm(article);
                         setActiveModal({ type: 'edit', index: idx });
                       }}
-                      className="p-2 bg-slate-850 rounded-xl hover:bg-slate-700 text-slate-300"
+                      className="p-2 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button 
                       onClick={() => handleDeleteCA(article.id)}
-                      className="p-2 bg-red-500/10 rounded-xl hover:bg-red-600 text-red-400"
+                      className="p-2 bg-red-50 border border-red-200 rounded-xl hover:bg-red-650 hover:text-white text-red-500 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -933,9 +936,9 @@ export default function AdminPortal() {
 
             {/* Modal add/edit CA */}
             {activeModal && activeTab === 'Current Affairs' && (
-              <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-                <form onSubmit={handleSaveCA} className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto">
-                  <h3 className="font-heading font-extrabold text-sm text-white">
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <form onSubmit={handleSaveCA} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+                  <h3 className="font-heading font-extrabold text-sm text-slate-900">
                     {activeModal.type === 'add' ? 'Add Current Affairs Article' : 'Edit Current Affairs Article'}
                   </h3>
 
@@ -945,7 +948,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" required value={caForm.title} 
                         onChange={(e) => setCaForm({ ...caForm, title: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -953,7 +956,7 @@ export default function AdminPortal() {
                       <select 
                         value={caForm.category} 
                         onChange={(e) => setCaForm({ ...caForm, category: e.target.value as any })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       >
                         <option>National</option>
                         <option>International</option>
@@ -970,7 +973,7 @@ export default function AdminPortal() {
                     <textarea 
                       rows={2} required value={caForm.summary} 
                       onChange={(e) => setCaForm({ ...caForm, summary: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                     />
                   </div>
 
@@ -979,15 +982,15 @@ export default function AdminPortal() {
                     <textarea 
                       rows={8} required value={caForm.content} 
                       onChange={(e) => setCaForm({ ...caForm, content: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl font-mono"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl font-mono focus:outline-none focus:border-red-500"
                     />
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-800 text-xs font-semibold rounded-xl">
+                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
                       Cancel
                     </button>
-                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-755 text-white text-xs font-bold rounded-xl">
+                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors">
                       Publish Article
                     </button>
                   </div>
@@ -1001,13 +1004,13 @@ export default function AdminPortal() {
         {activeTab === 'Blogs' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-heading font-extrabold text-sm text-white">Blog Strategy Posts</h3>
+              <h3 className="font-heading font-extrabold text-sm text-slate-900">Blog Strategy Posts</h3>
               <button 
                 onClick={() => {
                   setBlogForm({ id: '', title: '', publishDate: '', readTime: '5 min read', category: 'Strategy', content: '' });
                   setActiveModal({ type: 'add' });
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl text-xs"
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl text-xs shadow-xs transition-transform hover:scale-[1.01]"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Post</span>
@@ -1016,14 +1019,14 @@ export default function AdminPortal() {
 
             <div className="space-y-4">
               {blogsList.map((post, idx) => (
-                <div key={post.id} className="p-5 bg-slate-900/60 rounded-3xl border border-slate-805 flex justify-between items-start">
+                <div key={post.id} className="p-5 bg-white/70 backdrop-blur-md rounded-3xl border border-slate-200/80 flex justify-between items-start shadow-xs">
                   <div className="space-y-2">
-                    <div className="flex gap-2 items-center text-[10px] font-bold text-slate-500">
-                      <span className="text-blue-500">{post.category}</span>
+                    <div className="flex gap-2 items-center text-[10px] font-bold text-slate-450">
+                      <span className="text-blue-600">{post.category}</span>
                       <span>&bull;</span>
                       <span>{post.readTime}</span>
                     </div>
-                    <h4 className="font-heading font-extrabold text-sm text-white">{post.title}</h4>
+                    <h4 className="font-heading font-extrabold text-sm text-slate-900">{post.title}</h4>
                   </div>
 
                   <div className="flex gap-2 shrink-0 ml-4">
@@ -1032,13 +1035,13 @@ export default function AdminPortal() {
                         setBlogForm(post);
                         setActiveModal({ type: 'edit', index: idx });
                       }}
-                      className="p-2 bg-slate-850 rounded-xl hover:bg-slate-700 text-slate-300"
+                      className="p-2 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button 
                       onClick={() => handleDeleteBlog(post.id)}
-                      className="p-2 bg-red-500/10 rounded-xl hover:bg-red-600 text-red-400"
+                      className="p-2 bg-red-50 border border-red-200 rounded-xl hover:bg-red-650 hover:text-white text-red-500 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1049,9 +1052,9 @@ export default function AdminPortal() {
 
             {/* Modal add/edit Blog */}
             {activeModal && activeTab === 'Blogs' && (
-              <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-                <form onSubmit={handleSaveBlog} className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto">
-                  <h3 className="font-heading font-extrabold text-sm text-white">
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <form onSubmit={handleSaveBlog} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-xl w-full space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+                  <h3 className="font-heading font-extrabold text-sm text-slate-900">
                     {activeModal.type === 'add' ? 'Create Blog Post' : 'Edit Blog Post'}
                   </h3>
 
@@ -1061,7 +1064,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" required value={blogForm.title} 
                         onChange={(e) => setBlogForm({ ...blogForm, title: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1069,7 +1072,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" required value={blogForm.category} 
                         onChange={(e) => setBlogForm({ ...blogForm, category: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                   </div>
@@ -1079,7 +1082,7 @@ export default function AdminPortal() {
                     <input 
                       type="text" required value={blogForm.readTime} 
                       onChange={(e) => setBlogForm({ ...blogForm, readTime: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                     />
                   </div>
 
@@ -1088,15 +1091,15 @@ export default function AdminPortal() {
                     <textarea 
                       rows={8} required value={blogForm.content} 
                       onChange={(e) => setBlogForm({ ...blogForm, content: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl font-mono"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl font-mono focus:outline-none focus:border-red-500"
                     />
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-800 text-xs font-semibold rounded-xl">
+                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
                       Cancel
                     </button>
-                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-755 text-white text-xs font-bold rounded-xl">
+                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors">
                       Publish Post
                     </button>
                   </div>
@@ -1110,13 +1113,13 @@ export default function AdminPortal() {
         {activeTab === 'Resources' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
-              <h3 className="font-heading font-extrabold text-sm text-white">Free Resources Downloads</h3>
+              <h3 className="font-heading font-extrabold text-sm text-slate-900">Free Resources Downloads</h3>
               <button 
                 onClick={() => {
                   setResourceForm({ id: '', title: '', size: '2.5 MB', type: 'PDF', downloadCount: 0, url: '#' });
                   setActiveModal({ type: 'add' });
                 }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl text-xs"
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-650 hover:bg-red-750 text-white font-bold rounded-xl text-xs shadow-xs transition-transform hover:scale-[1.01]"
               >
                 <Plus className="w-4 h-4" />
                 <span>Add Resource</span>
@@ -1125,10 +1128,10 @@ export default function AdminPortal() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {resourcesList.map((res, idx) => (
-                <div key={res.id} className="bg-slate-900/60 p-5 rounded-3xl border border-slate-805 flex justify-between items-center">
+                <div key={res.id} className="bg-white/70 backdrop-blur-md p-5 rounded-3xl border border-slate-200/80 flex justify-between items-center shadow-xs">
                   <div className="space-y-1">
-                    <h4 className="font-heading font-bold text-xs text-white leading-tight">{res.title}</h4>
-                    <p className="text-[10px] text-slate-450 uppercase font-semibold">Format: {res.type} &bull; Size: {res.size}</p>
+                    <h4 className="font-heading font-bold text-xs text-slate-900 leading-tight">{res.title}</h4>
+                    <p className="text-[10px] text-slate-450 uppercase font-bold">Format: {res.type} &bull; Size: {res.size}</p>
                   </div>
 
                   <div className="flex gap-2">
@@ -1137,13 +1140,13 @@ export default function AdminPortal() {
                         setResourceForm(res);
                         setActiveModal({ type: 'edit', index: idx });
                       }}
-                      className="p-1.5 bg-slate-850 rounded hover:bg-slate-700 text-slate-300"
+                      className="p-1.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 text-slate-600 transition-colors"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button 
                       onClick={() => handleDeleteResource(res.id)}
-                      className="p-1.5 bg-red-500/10 rounded hover:bg-red-600 text-red-400"
+                      className="p-1.5 bg-red-50 border border-red-200 rounded-xl hover:bg-red-650 hover:text-white text-red-500 transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -1154,9 +1157,9 @@ export default function AdminPortal() {
 
             {/* Modal add/edit Resource */}
             {activeModal && activeTab === 'Resources' && (
-              <div className="fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-                <form onSubmit={handleSaveResource} className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-md w-full space-y-4">
-                  <h3 className="font-heading font-extrabold text-sm text-white">
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <form onSubmit={handleSaveResource} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
+                  <h3 className="font-heading font-extrabold text-sm text-slate-900">
                     {activeModal.type === 'add' ? 'Add Study Resource' : 'Edit Study Resource'}
                   </h3>
 
@@ -1165,7 +1168,7 @@ export default function AdminPortal() {
                     <input 
                       type="text" required value={resourceForm.title} 
                       onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                     />
                   </div>
 
@@ -1175,7 +1178,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" required value={resourceForm.size} 
                         onChange={(e) => setResourceForm({ ...resourceForm, size: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -1183,7 +1186,7 @@ export default function AdminPortal() {
                       <input 
                         type="text" required value={resourceForm.type} 
                         onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                       />
                     </div>
                   </div>
@@ -1193,15 +1196,15 @@ export default function AdminPortal() {
                     <input 
                       type="text" required value={resourceForm.url} 
                       onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-950 border border-slate-800 text-white text-xs rounded-xl"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
                     />
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-800 text-xs font-semibold rounded-xl">
+                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
                       Cancel
                     </button>
-                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-755 text-white text-xs font-bold rounded-xl">
+                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors">
                       Save Resource
                     </button>
                   </div>

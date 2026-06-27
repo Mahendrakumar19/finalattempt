@@ -75,17 +75,20 @@ export default function FacultyPortal() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#070A13] text-[#F8FAFC] flex flex-col md:flex-row antialiased font-sans">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col md:flex-row antialiased font-sans relative overflow-hidden">
       
+      {/* Decorative Grid Background */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 pointer-events-none" />
+
       {/* SIDEBAR */}
-      <aside className="w-full md:w-64 bg-[#0F172A] border-b md:border-b-0 md:border-r border-slate-800 p-5 flex flex-col justify-between shrink-0">
+      <aside className="w-full md:w-64 bg-white/80 backdrop-blur-md border-b md:border-b-0 md:border-r border-slate-200/80 p-5 flex flex-col justify-between shrink-0 relative z-10">
         <div className="space-y-8">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center font-extrabold text-sm border border-amber-400 shadow-sm text-slate-950">
               FA
             </div>
             <div className="flex flex-col">
-              <span className="font-heading font-extrabold text-sm tracking-tight text-white uppercase">
+              <span className="font-heading font-extrabold text-sm tracking-tight text-slate-900 uppercase">
                 Final Attempt
               </span>
               <span className="text-[9px] text-[#F59E0B] font-bold tracking-wider uppercase">
@@ -94,13 +97,13 @@ export default function FacultyPortal() {
             </div>
           </div>
 
-          <div className="p-3 bg-slate-900/60 rounded-2xl border border-slate-800 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs">
+          <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs">
               SS
             </div>
             <div>
-              <p className="text-xs font-bold text-white">Siddharth Sir</p>
-              <p className="text-[9px] text-slate-500">Chief Polity Mentor</p>
+              <p className="text-xs font-bold text-slate-900">Siddharth Sir</p>
+              <p className="text-[9px] text-slate-555">Chief Polity Mentor</p>
             </div>
           </div>
 
@@ -110,10 +113,10 @@ export default function FacultyPortal() {
               <button
                 key={link.name}
                 onClick={() => setActiveTab(link.name)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === link.name 
-                    ? 'bg-amber-500 text-slate-950 shadow-md' 
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200/60 shadow-xs' 
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 <link.icon className="w-4 h-4 shrink-0" />
@@ -124,8 +127,8 @@ export default function FacultyPortal() {
         </div>
 
         {/* Footer */}
-        <div className="pt-6 border-t border-slate-800 flex justify-between items-center mt-8">
-          <Link href="/" className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-2">
+        <div className="pt-6 border-t border-slate-200 flex justify-between items-center mt-8">
+          <Link href="/" className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-2">
             <LogOut className="w-4 h-4" />
             <span>Portal Home</span>
           </Link>
@@ -133,13 +136,13 @@ export default function FacultyPortal() {
       </aside>
 
       {/* MAIN MAIN PANEL */}
-      <main className="flex-grow p-6 sm:p-10 space-y-8 overflow-y-auto max-h-screen">
+      <main className="flex-grow p-6 sm:p-10 space-y-8 overflow-y-auto max-h-screen relative z-10">
         
         {/* TOP STATUS */}
         <div className="flex justify-between items-center">
           <div>
-            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">Faculty Portal</span>
-            <h2 className="text-2xl font-heading font-extrabold text-white mt-1">Hello, Siddharth Sir</h2>
+            <span className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Faculty Portal</span>
+            <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">Hello, Siddharth Sir</h2>
           </div>
         </div>
 
@@ -148,22 +151,22 @@ export default function FacultyPortal() {
         {/* TAB 1: CLASSES */}
         {activeTab === 'Classes' && (
           <div className="space-y-6">
-            <h3 className="font-heading font-extrabold text-lg text-white">Your Scheduled Lectures</h3>
+            <h3 className="font-heading font-extrabold text-lg text-slate-900">Your Scheduled Lectures</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
                 { title: 'Centre-State legislative Relations', time: 'Today, 03:00 PM', batch: 'UPSC Mentorship', status: 'Live Soon' },
                 { title: 'Bihar Land Revenue Acts & GK', time: 'Tomorrow, 10:00 AM', batch: 'BPSC Foundation', status: 'Scheduled' }
               ].map((cls, idx) => (
-                <div key={idx} className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-4">
+                <div key={idx} className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-4 shadow-xs">
                   <div className="flex justify-between items-center">
-                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 font-bold text-[9px] uppercase tracking-wider rounded">
+                    <span className="px-2.5 py-0.5 bg-blue-50 text-blue-650 border border-blue-150 font-bold text-[9px] uppercase tracking-wider rounded">
                       {cls.batch}
                     </span>
                     <span className="text-[9px] text-[#22C55E] font-bold">{cls.status}</span>
                   </div>
-                  <h4 className="font-heading font-bold text-sm text-white">{cls.title}</h4>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <h4 className="font-heading font-bold text-sm text-slate-900">{cls.title}</h4>
+                  <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold">
                     <Calendar className="w-4 h-4" />
                     <span>{cls.time}</span>
                   </div>
@@ -175,20 +178,20 @@ export default function FacultyPortal() {
 
         {/* TAB 2: ATTENDANCE */}
         {activeTab === 'Attendance' && (
-          <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-6">
-            <h3 className="font-heading font-extrabold text-lg text-white">Daily Session Attendance Log</h3>
-            <p className="text-xs text-slate-500">Check class presence for: GS II Basics (June 24 Batch)</p>
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
+            <h3 className="font-heading font-extrabold text-lg text-slate-900">Daily Session Attendance Log</h3>
+            <p className="text-xs text-slate-500 font-semibold">Check class presence for: GS II Basics (June 24 Batch)</p>
             
-            <div className="bg-slate-850 rounded-2xl border border-slate-800 divide-y divide-slate-800">
+            <div className="bg-slate-50/50 rounded-2xl border border-slate-200/80 divide-y divide-slate-200/80">
               {attendanceList.map((student) => (
                 <div key={student.id} className="p-4 flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-200">{student.name}</span>
+                  <span className="font-bold text-slate-800">{student.name}</span>
                   <button
                     onClick={() => handleToggleAttendance(student.id)}
                     className={`px-4 py-1.5 rounded-xl font-bold transition-all text-[10px] uppercase border ${
                       student.present 
-                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                        : 'bg-red-500/10 border-red-500/20 text-red-400'
+                        ? 'bg-emerald-50 border-emerald-250 text-emerald-600 shadow-xs' 
+                        : 'bg-red-50 border-red-250 text-red-600 shadow-xs'
                     }`}
                   >
                     {student.present ? 'Present' : 'Absent'}
@@ -201,23 +204,23 @@ export default function FacultyPortal() {
 
         {/* TAB 3: EVALUATION */}
         {activeTab === 'Evaluation' && (
-          <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-6">
-            <h3 className="font-heading font-extrabold text-lg text-white">Student Essay Evaluations</h3>
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
+            <h3 className="font-heading font-extrabold text-lg text-slate-900">Student Essay Evaluations</h3>
             
             <div className="space-y-4">
               {evaluationList.map((sub) => (
-                <div key={sub.id} className="p-4 bg-slate-850/50 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
+                <div key={sub.id} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-xs">
                   <div className="space-y-1">
                     <div className="flex gap-2 items-center">
-                      <span className="font-bold text-slate-200">{sub.studentName}</span>
-                      <span className="text-[10px] text-slate-500">({sub.course})</span>
+                      <span className="font-bold text-slate-800">{sub.studentName}</span>
+                      <span className="text-[10px] text-slate-500 font-semibold">({sub.course})</span>
                     </div>
-                    <p className="text-slate-400 font-medium">Task: {sub.task}</p>
+                    <p className="text-slate-600 font-medium">Task: {sub.task}</p>
                   </div>
 
                   <div className="flex items-center gap-3">
                     {sub.status === 'Graded' ? (
-                      <span className="px-3.5 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-extrabold rounded-xl text-[10px] uppercase">
+                      <span className="px-3.5 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-600 font-extrabold rounded-xl text-[10px] uppercase shadow-xs">
                         Graded: {sub.score}
                       </span>
                     ) : (
@@ -227,11 +230,11 @@ export default function FacultyPortal() {
                           placeholder="Grade e.g. 8.5"
                           value={inputScores[sub.id] || ''}
                           onChange={(e) => setInputScores(prev => ({ ...prev, [sub.id]: e.target.value }))}
-                          className="w-24 px-3 py-1.5 bg-slate-900 border border-slate-850 text-white rounded-lg focus:outline-none"
+                          className="w-24 px-3 py-1.5 bg-white border border-slate-250 text-slate-900 rounded-lg focus:outline-none focus:border-amber-500"
                         />
                         <button
                           onClick={() => handleGradeSubmission(sub.id)}
-                          className="px-4 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-lg hover:bg-amber-600 transition-colors"
+                          className="px-4 py-1.5 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition-colors shadow-xs"
                         >
                           Grade
                         </button>
@@ -246,40 +249,40 @@ export default function FacultyPortal() {
 
         {/* TAB 4: QUERIES */}
         {activeTab === 'Queries' && (
-          <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-6">
-            <h3 className="font-heading font-extrabold text-lg text-white">Student Query Helpdesk</h3>
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
+            <h3 className="font-heading font-extrabold text-lg text-slate-900">Student Query Helpdesk</h3>
             
             <div className="space-y-4">
               {queriesList.map((query) => (
-                <div key={query.id} className="p-4 bg-slate-850/50 rounded-2xl border border-slate-800 space-y-3 text-xs">
+                <div key={query.id} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-200/80 space-y-3 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-slate-200">{query.studentName}</span>
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                    <span className="font-bold text-slate-800">{query.studentName}</span>
+                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${
                       query.status === 'Replied' 
-                        ? 'bg-emerald-500/10 text-emerald-400' 
-                        : 'bg-amber-500/10 text-amber-400'
+                        ? 'bg-emerald-50 text-emerald-650 border-emerald-150' 
+                        : 'bg-amber-50 text-amber-650 border-amber-150'
                     }`}>
                       {query.status}
                     </span>
                   </div>
                   
                   <div className="space-y-1">
-                    <p className="font-bold text-white">{query.subject}</p>
-                    <p className="text-slate-400 italic">"{query.text}"</p>
+                    <p className="font-bold text-slate-900">{query.subject}</p>
+                    <p className="text-slate-550 italic font-medium">"{query.text}"</p>
                   </div>
 
                   {query.status === 'Unread' && (
-                    <div className="flex gap-2 pt-2 border-t border-slate-800">
+                    <div className="flex gap-2 pt-2 border-t border-slate-200/80">
                       <input
                         type="text"
                         placeholder="Type answer reply..."
                         value={replyInput[query.id] || ''}
                         onChange={(e) => setReplyInput(prev => ({ ...prev, [query.id]: e.target.value }))}
-                        className="flex-grow px-3 py-1.5 bg-slate-900 border border-slate-850 text-white rounded-lg focus:outline-none"
+                        className="flex-grow px-3 py-1.5 bg-white border border-slate-250 text-slate-900 rounded-lg focus:outline-none focus:border-amber-500"
                       />
                       <button
                         onClick={() => handleReplyQuery(query.id)}
-                        className="px-4 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-lg hover:bg-amber-600 transition-colors"
+                        className="px-4 py-1.5 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition-colors shadow-xs"
                       >
                         Reply
                       </button>
@@ -293,27 +296,27 @@ export default function FacultyPortal() {
 
         {/* TAB 5: STUDENT TRACKING */}
         {activeTab === 'Student Tracking' && (
-          <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-6">
-            <h3 className="font-heading font-extrabold text-lg text-white">Student Progress Tracking</h3>
+          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
+            <h3 className="font-heading font-extrabold text-lg text-slate-900">Student Progress Tracking</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
                 { name: 'Ritik Kumar', completed: '72%', score: '88/100', status: 'Consistent' },
                 { name: 'Aman Singh', completed: '65%', score: '78/100', status: 'Consistent' }
               ].map((stud, idx) => (
-                <div key={idx} className="p-4 bg-slate-850/50 rounded-2xl border border-slate-800 space-y-3 text-xs">
+                <div key={idx} className="p-4 bg-slate-50/50 rounded-2xl border border-slate-200/80 space-y-3 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="font-bold text-white">{stud.name}</span>
-                    <span className="text-[10px] text-blue-400 font-bold">{stud.status}</span>
+                    <span className="font-bold text-slate-900">{stud.name}</span>
+                    <span className="text-[10px] text-blue-600 font-bold">{stud.status}</span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-[10px] text-slate-400 pt-1 border-t border-slate-800">
+                  <div className="grid grid-cols-2 gap-4 text-[10px] text-slate-500 pt-1.5 border-t border-slate-200/80 font-bold">
                     <div>
                       <p className="uppercase leading-none">Curriculum Done</p>
-                      <p className="text-white font-bold mt-1 text-sm">{stud.completed}</p>
+                      <p className="text-slate-900 font-extrabold mt-1 text-sm">{stud.completed}</p>
                     </div>
                     <div>
                       <p className="uppercase leading-none">Mock Average</p>
-                      <p className="text-white font-bold mt-1 text-sm">{stud.score}</p>
+                      <p className="text-slate-900 font-extrabold mt-1 text-sm">{stud.score}</p>
                     </div>
                   </div>
                 </div>

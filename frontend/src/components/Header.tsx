@@ -22,8 +22,8 @@ export default function Header() {
   const navLinks = [
     { name: 'Home', href: '/' },
     { name: 'Courses', href: '/courses' },
-    { 
-      name: 'BPSC', 
+    {
+      name: 'BPSC',
       href: '#',
       dropdown: [
         { name: '70th BPSC Foundation', href: '/courses/bpsc-foundation' },
@@ -31,8 +31,8 @@ export default function Header() {
         { name: 'Mains Answer Writing', href: '/courses/mains-answer-writing' },
       ]
     },
-    { 
-      name: 'UPSC', 
+    {
+      name: 'UPSC',
       href: '#',
       dropdown: [
         { name: 'UPSC Mentorship Program', href: '/courses/upsc-mentorship' },
@@ -41,8 +41,8 @@ export default function Header() {
     },
     { name: 'Current Affairs', href: '/current-affairs' },
     { name: 'Results', href: '/results' },
-    { 
-      name: 'Resources', 
+    {
+      name: 'Resources',
       href: '#',
       dropdown: [
         { name: 'Study Notes & PDFs', href: '/resources' },
@@ -50,8 +50,8 @@ export default function Header() {
         { name: 'Editorial Blog', href: '/blog' },
       ]
     },
-    { 
-      name: 'About Us', 
+    {
+      name: 'About Us',
       href: '#',
       dropdown: [
         { name: 'Our Mission & Vision', href: '/about' },
@@ -94,7 +94,7 @@ export default function Header() {
       </div>
 
       {/* Main Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
@@ -103,7 +103,7 @@ export default function Header() {
             </div>
             <div className="flex flex-col">
               <span className="font-heading font-extrabold text-lg tracking-tight text-brand-primary">
-                FINAL ATTEMPT <span className="text-brand-secondary">IAS</span>
+                FINAL ATTEMPT
               </span>
               <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase -mt-1">
                 One Mentor. One Strategy.
@@ -118,9 +118,8 @@ export default function Header() {
                 {link.dropdown ? (
                   <button
                     onClick={() => toggleDropdown(link.name)}
-                    className={`flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all ${
-                      pathname.startsWith(link.href) ? 'text-brand-secondary bg-slate-50' : 'text-slate-600 hover:text-brand-primary'
-                    }`}
+                    className={`flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all ${pathname.startsWith(link.href) ? 'text-brand-secondary bg-slate-50' : 'text-slate-600 hover:text-brand-primary'
+                      }`}
                   >
                     <span>{link.name}</span>
                     <ChevronDown className="w-4 h-4 text-slate-400 group-hover/nav:rotate-180 transition-transform duration-300" />
@@ -128,9 +127,8 @@ export default function Header() {
                 ) : (
                   <Link
                     href={link.href}
-                    className={`px-3 py-2 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all ${
-                      pathname === link.href ? 'text-brand-secondary bg-slate-50 font-bold' : 'text-slate-600 hover:text-brand-primary'
-                    }`}
+                    className={`px-3 py-2 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all ${pathname === link.href ? 'text-brand-secondary bg-slate-50 font-bold' : 'text-slate-600 hover:text-brand-primary'
+                      }`}
                   >
                     {link.name}
                   </Link>
