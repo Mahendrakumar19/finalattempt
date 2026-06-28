@@ -4,6 +4,8 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "./dist",
+    "rootDir": "..",
+    "ignoreDeprecations": "5.0",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -11,4 +13,5 @@
     "resolveJsonModule": true
   },
   "include": ["**/*.ts", "../frontend/src/services/seedData.ts"]
+
 }

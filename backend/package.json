@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "nodemon --ignore database_store.json --exec ts-node server.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/backend/server.js"
   },
   "dependencies": {
     "@types/socket.io": "^3.0.1",
