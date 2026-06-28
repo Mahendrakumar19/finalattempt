@@ -31,7 +31,7 @@ app.use(cors({
     'http://localhost:3000',
     'http://localhost:3001',
     'https://finalttempt-tau.vercel.app',
-    'https://finalattempt-t7n6.vercel.app',
+    'https://finalattempt-ehbd.vercel.app/',
     process.env.FRONTEND_URL || 'http://localhost:3000',
     process.env.ADMIN_URL || 'http://localhost:3001'
   ],
