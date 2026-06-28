@@ -7,6 +7,11 @@
     "dev": "npx concurrently -k -p \"[{name}]\" -n \"Frontend,Admin,Backend\" -c \"blue.bold,red.bold,yellow.bold\" \"npm run dev --prefix frontend\" \"npm run dev --prefix admin\" \"npm run dev --prefix backend\""
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@types/swagger-ui-express": "^4.1.8",
+    "concurrently": "^8.2.2",
+    "swagger-jsdoc": "^6.3.0"
+  },
+  "dependencies": {
+    "swagger-ui-express": "^5.0.1"
   }
 }

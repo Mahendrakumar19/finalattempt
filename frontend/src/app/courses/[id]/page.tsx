@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ArrowLeft, BookOpen, Clock, Calendar, CheckCircle, HelpCircle, Play, DollarSign } from 'lucide-react';
 import { db } from '@/services/db';
 import CourseTabs from './CourseTabs';
+import EnrollmentCard from './EnrollmentCard';
 
 export default async function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -55,28 +56,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
 
         {/* Pricing / Booking Card */}
         <div className="lg:col-span-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-lg space-y-6 lg:sticky lg:top-24">
-          <div className="space-y-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Course Fees</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-extrabold text-brand-primary">{course.fee}</span>
-              <span className="text-xs text-slate-400 font-medium">Bilingual material included</span>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <Link
-              href={`/contact?enquiry=${course.id}`}
-              className="w-full inline-flex items-center justify-center px-4 py-3 bg-brand-secondary text-white font-bold rounded-xl text-xs hover:bg-blue-800 transition-colors shadow-md shadow-blue-500/10 text-center"
-            >
-              Enroll / Check Syllabus
-            </Link>
-            <Link
-              href="/contact?enquiry=general"
-              className="w-full inline-flex items-center justify-center px-4 py-3 bg-slate-50 text-slate-700 font-bold border border-slate-200 rounded-xl text-xs hover:bg-slate-100 transition-colors text-center"
-            >
-              Request Call Back
-            </Link>
-          </div>
+          <EnrollmentCard courseId={course.id} fee={course.fee} />
 
           <div className="space-y-3.5 pt-4 border-t border-slate-100">
             <div className="flex gap-2.5 text-xs text-slate-500">

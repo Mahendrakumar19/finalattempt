@@ -3,15 +3,17 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, ChevronDown, Phone, User, MapPin, Sparkles } from 'lucide-react';
+import { Menu, X, ChevronDown, Phone, User, MapPin, Sparkles, LogOut } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const pathname = usePathname();
+  const { user, isAuthenticated, logout } = useAuth();
 
   // Hide header/footer on portals for clean dashboard layout
-  const isPortal = pathname.startsWith('/student') || pathname.startsWith('/faculty') || pathname.startsWith('/admin');
+  const isPortal = pathname.startsWith('/student') || pathname.startsWith('/faculty') || pathname.startsWith('/admin') || pathname.startsWith('/lms') || pathname.startsWith('/auth');
 
   if (isPortal) return null;
 
@@ -75,15 +77,40 @@ export default function Header() {
           <span>Bihar's Most Trusted Mentorship Platform for BPSC Aspirants</span>
         </div>
         <div className="flex items-center gap-6">
-          <Link href="/student" className="hover:text-white transition-colors flex items-center gap-1.5 font-medium">
+          <Link 
+            href={
+              isAuthenticated 
+                ? user?.role === 'admin' 
+                  ? '/admin' 
+                  : user?.role === 'faculty' 
+                    ? '/faculty/dashboard' 
+                    : '/student/dashboard'
+                : '/auth/login'
+            } 
+            className="hover:text-white transition-colors flex items-center gap-1.5 font-medium"
+          >
             <User className="w-3.5 h-3.5" />
-            <span>Student Login</span>
+            <span>
+              {isAuthenticated 
+                ? `Hi, ${user?.fullName?.split(' ')[0]} (${user?.role})` 
+                : 'Student Login'}
+            </span>
           </Link>
           <span className="text-slate-600">|</span>
-          <Link href="/faculty/dashboard" className="hover:text-white transition-colors flex items-center gap-1.5 font-medium">
-            <User className="w-3.5 h-3.5" />
-            <span>Faculty Login</span>
-          </Link>
+          {isAuthenticated ? (
+            <button 
+              onClick={logout} 
+              className="hover:text-red-400 transition-colors flex items-center gap-1.5 font-medium"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
+            </button>
+          ) : (
+            <Link href="/auth/login" className="hover:text-white transition-colors flex items-center gap-1.5 font-medium">
+              <User className="w-3.5 h-3.5" />
+              <span>Faculty Login</span>
+            </Link>
+          )}
           <span className="text-slate-600">|</span>
           <a href="tel:+919113131819" className="hover:text-white transition-colors flex items-center gap-1.5 font-semibold text-brand-accent">
             <Phone className="w-3.5 h-3.5" />

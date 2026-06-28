@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import SyllabusEditor from '@/components/faculty/SyllabusEditor';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Users, 
   Calendar, 
@@ -20,6 +22,7 @@ import {
 type FacultyTab = 'Classes' | 'Attendance' | 'Evaluation' | 'Queries' | 'Student Tracking';
 
 export default function FacultyPortal() {
+  const { logout, user } = useAuth();
   const [activeTab, setActiveTab] = useState<FacultyTab>('Classes');
   
   // Attendance tracking state
@@ -99,11 +102,11 @@ export default function FacultyPortal() {
 
           <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs">
-              SS
+              {user?.fullName?.charAt(0) || 'F'}
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-900">Siddharth Sir</p>
-              <p className="text-[9px] text-slate-555">Chief Polity Mentor</p>
+              <p className="text-xs font-bold text-slate-900">{user?.fullName || 'Faculty Member'}</p>
+              <p className="text-[9px] text-[#F59E0B] font-bold">Chief Mentor</p>
             </div>
           </div>
 
@@ -127,11 +130,17 @@ export default function FacultyPortal() {
         </div>
 
         {/* Footer */}
-        <div className="pt-6 border-t border-slate-200 flex justify-between items-center mt-8">
+        <div className="pt-6 border-t border-slate-200 flex flex-col gap-2 mt-8">
           <Link href="/" className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-2">
-            <LogOut className="w-4 h-4" />
             <span>Portal Home</span>
           </Link>
+          <button 
+            onClick={logout} 
+            className="text-xs font-bold text-slate-500 hover:text-red-650 flex items-center gap-2 text-left"
+          >
+            <LogOut className="w-4 h-4 text-red-500" />
+            <span>Logout</span>
+          </button>
         </div>
       </aside>
 
@@ -142,7 +151,7 @@ export default function FacultyPortal() {
         <div className="flex justify-between items-center">
           <div>
             <span className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Faculty Portal</span>
-            <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">Hello, Siddharth Sir</h2>
+            <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">Hello, {user?.fullName || 'Faculty Member'}</h2>
           </div>
         </div>
 
@@ -172,6 +181,31 @@ export default function FacultyPortal() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="pt-6">
+              <SyllabusEditor
+                courseId="bpsc-foundation"
+                accessToken=""
+                initialSyllabus={[
+                  {
+                    chapter: 'Chapter 1: Foundational Concepts & Strategy',
+                    topics: [
+                      'Micro-Syllabus Analysis & Strategy Planning',
+                      'Strategic Reading of Bihar Newspapers',
+                      'NCERT Integration Workflow'
+                    ]
+                  },
+                  {
+                    chapter: 'Chapter 2: Bihar Freedom Struggles',
+                    topics: [
+                      'Revolt of 1857 in Bihar (Kunwar Singh role)',
+                      'Santhal rebellion of 1855',
+                      'Champaran Satyagraha details'
+                    ]
+                  }
+                ]}
+              />
             </div>
           </div>
         )}

@@ -75,8 +75,11 @@ class FinalAttemptDB {
   }
 
   public async getCourses(): Promise<Course[]> {
-    const data = await this.apiFetch('/api/courses');
-    return data || courseData;
+    const res = await this.apiFetch('/api/lms/courses');
+    if (res && res.success && Array.isArray(res.data)) {
+      return res.data;
+    }
+    return courseData;
   }
 
   public async getCourseById(id: string): Promise<Course | undefined> {

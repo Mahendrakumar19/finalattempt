@@ -23,7 +23,7 @@ import {
   BookOpen
 } from 'lucide-react';
 
-type AdminTab = 'Dashboard' | 'Settings' | 'Leads' | 'Faculty' | 'Results' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Moodle Sync';
+type AdminTab = 'Dashboard' | 'Settings' | 'Leads' | 'Faculty' | 'Results' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Courses';
 
 interface SiteSettings {
   heroTitle: string;
@@ -424,16 +424,23 @@ export default function AdminPortal() {
         </div>
 
         {/* Port Link */}
-        <div className="pt-6 border-t border-slate-200 mt-8">
+        <div className="pt-6 border-t border-slate-200 mt-8 flex flex-col gap-2">
           <a 
             href="http://localhost:3000" 
-            target="_blank"
-            rel="noreferrer"
             className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-2"
           >
-            <LogOut className="w-4 h-4" />
             <span>Launch Web Site</span>
           </a>
+          <button 
+            onClick={() => {
+              localStorage.removeItem('auth-storage'); // Clears Zustand auth store persisted state
+              window.location.href = 'http://localhost:3000/auth/login';
+            }} 
+            className="text-xs font-bold text-slate-500 hover:text-red-650 flex items-center gap-2 text-left"
+          >
+            <LogOut className="w-4 h-4 text-red-500" />
+            <span>Logout</span>
+          </button>
         </div>
       </aside>
 

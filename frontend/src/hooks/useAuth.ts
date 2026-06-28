@@ -1,0 +1,87 @@
+'use client';
+
+import { useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/stores/authStore';
+import { refreshAccessToken, logoutUser } from '@/services/auth';
+
+// Interval for refreshing access token (14 min — just before 15 min expiry)
+const REFRESH_INTERVAL_MS = 14 * 60 * 1000;
+
+export function useAuth() {
+  const { user, accessToken, isLoading, isAuthenticated, setAuth, clearAuth, setLoading } = useAuthStore();
+  const router = useRouter();
+
+  // Silently refresh access token using refresh cookie
+  const refresh = useCallback(async () => {
+    const res = await refreshAccessToken();
+    if (res.success && res.data) {
+      setAuth(res.data.user, res.data.accessToken);
+      return res.data.accessToken as string;
+    } else {
+      clearAuth();
+      return null;
+    }
+  }, [setAuth, clearAuth]);
+
+  // On mount: attempt silent token refresh to restore session
+  useEffect(() => {
+    let mounted = true;
+
+    const init = async () => {
+      if (accessToken && user) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      const res = await refreshAccessToken();
+      if (mounted) {
+        if (res.success && res.data) {
+          setAuth(res.data.user, res.data.accessToken);
+        } else {
+          clearAuth();
+        }
+      }
+    };
+
+    init();
+    return () => { mounted = false; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Set up periodic token refresh
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      refresh();
+    }, REFRESH_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, refresh]);
+
+  // Logout function
+  const logout = useCallback(async () => {
+    if (accessToken) {
+      await logoutUser(accessToken);
+    }
+    clearAuth();
+    router.push('/auth/login');
+  }, [accessToken, clearAuth, router]);
+
+  // Require auth guard — redirect if not authenticated after loading
+  const requireAuth = useCallback((redirectTo = '/auth/login') => {
+    if (!isLoading && !isAuthenticated) {
+      router.push(`${redirectTo}?redirect=${encodeURIComponent(window.location.pathname)}`);
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  return {
+    user,
+    accessToken,
+    isLoading,
+    isAuthenticated,
+    logout,
+    refresh,
+    requireAuth
+  };
+}

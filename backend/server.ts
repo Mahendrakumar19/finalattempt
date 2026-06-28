@@ -1,16 +1,71 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import { db } from './db';
+
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import chatsRouter from './routes/chats';
+import { lmsDB } from './db';
+
+// Import new LMS route modules
+import authRouter from './routes/auth';
+import lmsRouter from './routes/lms';
+import paymentsRouter from './routes/payments';
+import quizzesRouter from './routes/quizzes';
+import facultiesRouter from './routes/faculties';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ─── Security middleware ───────────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow CDN resources
+  contentSecurityPolicy: false // Disable inline CSP — Next.js handles this
+}));
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    process.env.ADMIN_URL || 'http://localhost:3001'
+  ],
   credentials: true
 }));
 
-app.use(express.json());
+app.use(cookieParser());
+app.use(express.json({ limit: '5mb' }));
+
+// General API rate limit (not on auth routes — those have their own limiter)
+const generalLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests. Please slow down.', code: 'RATE_LIMIT' }
+});
+app.use('/api/', generalLimiter);
+
+// ─── Route mounts ──────────────────────────────────────────────────────────
+app.use('/api/auth', authRouter);
+app.use('/api/lms', lmsRouter);
+app.use('/api/payments', paymentsRouter);
+app.use('/api/quizzes', quizzesRouter);
+app.use('/api/chats', chatsRouter);
+app.use('/api/faculty', facultiesRouter);
+
+// Swagger UI 
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./swagger";
+
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec)
+);
 
 // API healthcheck
 app.get('/api/health', (req, res) => {
@@ -275,50 +330,70 @@ app.post('/api/student/progress', async (req, res) => {
   }
 });
 
-// QUERIES
-app.get('/api/queries', async (req, res) => {
+// SETTINGS
+app.get('/api/settings', async (req, res) => {
   try {
-    const list = await db.getQueries();
-    res.json(list);
+    const settings = await db.getSettings();
+    res.json(settings);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-app.post('/api/queries', async (req, res) => {
-  const { studentName, subject, text } = req.body;
+app.put('/api/settings', async (req, res) => {
   try {
-    const q = await db.createQuery(studentName, subject, text);
-    res.json(q);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/queries/:id/reply', async (req, res) => {
-  try {
-    const ok = await db.replyQuery(req.params.id, req.body.replyText);
+    const ok = await db.updateSettings(req.body);
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// MOODLE SYNC
-app.post('/api/sync', async (req, res) => {
-  try {
-    res.json({
-      status: 'success',
-      timestamp: new Date().toISOString(),
-      syncedCourses: 6,
-      syncedSections: 18,
-      syncedLessons: 30
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+
+
+// Create HTTP and Socket.io Servers
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      process.env.FRONTEND_URL || 'http://localhost:3000'
+    ],
+    credentials: true
   }
 });
 
-app.listen(PORT, () => {
+io.on('connection', (socket) => {
+  console.log(`[Socket] Student connected: ${socket.id}`);
+
+  // Join designated channel room (general discussion or doubts)
+  socket.on('join_room', (roomId) => {
+    socket.join(roomId);
+    console.log(`[Socket] Client ${socket.id} joined chat room: ${roomId}`);
+  });
+
+  // Real-time message exchange and database persistence
+  socket.on('send_message', async (data: { roomId: string; senderId: string; messageText: string }) => {
+    const { roomId, senderId, messageText } = data;
+    try {
+      // Save message to database and retrieve full payload (joins details)
+      const savedMsg = await lmsDB.saveChatMessage(roomId, senderId, messageText);
+      // Dispatch in real-time to everyone in the room
+      io.to(roomId).emit('new_message', savedMsg);
+    } catch (err) {
+      console.error('[Socket] Chat delivery failed:', err);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`[Socket] Student disconnected: ${socket.id}`);
+  });
+});
+
+httpServer.listen(PORT, () => {
   console.log(`Unified Backend Server listening on port ${PORT}`);
+  console.log(`Auth routes: POST /api/auth/register | /api/auth/login | /api/auth/refresh`);
+  console.log(`LMS  routes: GET  /api/lms/courses   | /api/lms/enrollments/me`);
+  console.log(`Real-Time Mentorship Socket.io Server active.`);
 });
