@@ -40,9 +40,11 @@ export function useAuth() {
           setAuth(res.data.user, res.data.accessToken);
         } else {
           clearAuth();
+          setLoading(false);
         }
       }
     };
+
 
     init();
     return () => { mounted = false; };
