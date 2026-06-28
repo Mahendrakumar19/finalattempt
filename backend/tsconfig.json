@@ -5,11 +5,14 @@
     "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "..",
+    "ignoreDeprecations": "5.0",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
+
+
   },
   "include": [
     "**/*.ts",
