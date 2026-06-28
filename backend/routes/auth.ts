@@ -69,13 +69,15 @@ const ResetPasswordSchema = z.object({
 // ─────────────────────────── Helpers ─────────────────────────────────────────
 
 function cookieOptions() {
+  const isProd = process.env.NODE_ENV === 'production' || !process.env.DB_HOST?.includes('localhost') && !process.env.DB_HOST?.includes('127.0.0.1');
   return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
+    secure: true, // Must be true for SameSite=None cross-origin cookies to write on Vercel
+    sameSite: 'none' as const, // Allow cross-site cookies
     maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days in ms
   };
 }
+
 
 async function issueTokens(res: Response, user: { id: string; email: string; role: string }) {
   const sessionId = generateSessionId();
