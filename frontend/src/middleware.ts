@@ -4,14 +4,13 @@ import type { NextRequest } from 'next/server';
 // Routes that require authentication
 const PROTECTED_PREFIXES = ['/student', '/faculty/dashboard'];
 
-// Routes only accessible when NOT authenticated (redirect to dashboard if logged in)
+// Routes only accessible when NOT authenticated
 const AUTH_ROUTES = ['/auth/login', '/auth/register'];
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Check for refresh token cookie to determine auth status
-  // (Access tokens are in-memory; we use the presence of the refresh token as a gate)
+  // Gate using the presence of the refresh token cookie
   const hasRefreshToken = request.cookies.has('refreshToken');
 
   // Redirect to login if trying to access protected routes without auth
