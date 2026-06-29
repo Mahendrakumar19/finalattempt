@@ -32,9 +32,10 @@ export default function RootLayout({
       className={`${plusJakartaSans.variable} ${inter.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-body bg-[#070A13] text-[#F8FAFC]">
+      <body className="min-h-full flex flex-col font-body bg-white text-black">
         <main className="flex-grow">{children}</main>
       </body>
+
     </html>
   );
 }

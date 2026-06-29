@@ -91,6 +91,28 @@ interface ResourceDownload {
   url: string;
 }
 
+interface Course {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  fee: number | string;
+  duration: string;
+  schedule: string;
+  isPublished: boolean;
+}
+
+interface UserProfile {
+  id: string;
+  fullName: string;
+  email: string;
+  mobile?: string;
+  role: 'student' | 'faculty' | 'admin';
+  isActive: boolean;
+  createdAt: string;
+}
+
+
 export default function AdminPortal() {
   const [activeTab, setActiveTab] = useState<AdminTab>('Dashboard');
   const [loading, setLoading] = useState(true);
@@ -109,6 +131,8 @@ export default function AdminPortal() {
   const [caList, setCaList] = useState<CurrentAffairArticle[]>([]);
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
   const [resourcesList, setResourcesList] = useState<ResourceDownload[]>([]);
+  const [usersList, setUsersList] = useState<UserProfile[]>([]);
+  const [coursesList, setCoursesList] = useState<Course[]>([]);
 
   // Modals visibility states
   const [activeModal, setActiveModal] = useState<{ type: 'add' | 'edit'; index?: number } | null>(null);
@@ -119,6 +143,9 @@ export default function AdminPortal() {
   const [caForm, setCaForm] = useState<CurrentAffairArticle>({ id: '', title: '', category: 'National', publishDate: '', summary: '', content: '' });
   const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '' });
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '' });
+  const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'LMS Program', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
+  const [userForm, setUserForm] = useState<UserProfile>({ id: '', fullName: '', email: '', mobile: '', role: 'student', isActive: true, createdAt: '' });
+
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -154,7 +181,19 @@ export default function AdminPortal() {
       const rRes = await fetch(`${BACKEND_URL}/api/resources`);
       if (rRes.ok) setResourcesList(await rRes.json());
 
+      // 8. LMS Courses
+      const cRes = await fetch(`${BACKEND_URL}/api/lms/courses`);
+      if (cRes.ok) {
+        const cData = await cRes.json();
+        if (cData.success && cData.data) setCoursesList(cData.data);
+      }
+
+      // 9. Users check list
+      const uRes = await fetch(`${BACKEND_URL}/api/auth/users`);
+      if (uRes.ok) setUsersList(await uRes.json());
+
       setBackendOffline(false);
+
     } catch (err) {
       console.warn('Backend server offline. Running in mock offline mode:', err);
       setBackendOffline(true);
@@ -368,6 +407,44 @@ export default function AdminPortal() {
     }
   };
 
+  // COURSES CRUD
+  const handleSaveCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (activeModal?.type === 'add') {
+      const newCourse = { ...courseForm };
+      setCoursesList(prev => [...prev, newCourse]);
+      if (!backendOffline) {
+        await fetch(`${BACKEND_URL}/api/lms/courses`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newCourse)
+        });
+      }
+    }
+    setActiveModal(null);
+  };
+
+  // USERS CRUD
+  const handleToggleUserStatus = async (id: string, currentStatus: boolean) => {
+    const nextStatus = !currentStatus;
+    setUsersList(prev => prev.map(u => u.id === id ? { ...u, isActive: nextStatus } : u));
+    if (!backendOffline) {
+      await fetch(`${BACKEND_URL}/api/auth/users/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: nextStatus })
+      });
+    }
+  };
+
+  const handleDeleteUser = async (id: string) => {
+    setUsersList(prev => prev.filter(u => u.id !== id));
+    if (!backendOffline) {
+      await fetch(`${BACKEND_URL}/api/auth/users/${id}`, { method: 'DELETE' });
+    }
+  };
+
+
   const sidebarLinks: { name: AdminTab; icon: any }[] = [
     { name: 'Dashboard', icon: LayoutDashboard },
     { name: 'Settings', icon: Settings },
@@ -376,8 +453,10 @@ export default function AdminPortal() {
     { name: 'Results', icon: Award },
     { name: 'Current Affairs', icon: FileText },
     { name: 'Blogs', icon: Bookmark },
-    { name: 'Resources', icon: BookOpen }
+    { name: 'Resources', icon: BookOpen },
+    { name: 'Courses', icon: BookOpen }
   ];
+
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col md:flex-row antialiased font-sans relative overflow-hidden">
@@ -553,62 +632,118 @@ export default function AdminPortal() {
 
         {/* TAB 3: LEADS */}
         {activeTab === 'Leads' && (
-          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
-            <h3 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-3">
-              Strategy Booking Enquiries
-            </h3>
-            
-            {leadsList.length > 0 ? (
+          <div className="space-y-8">
+            <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
+              <h3 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-3">
+                Strategy Booking Enquiries
+              </h3>
+              
+              {leadsList.length > 0 ? (
+                <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white/50">
+                  <table className="w-full text-xs text-left border-collapse">
+                    <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200">
+                      <tr>
+                        <th className="p-4">Name</th>
+                        <th className="p-4">Mobile</th>
+                        <th className="p-4">Target Course</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 text-slate-700">
+                      {leadsList.map((lead) => (
+                        <tr key={lead.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-4 font-bold text-slate-900">{lead.fullName}</td>
+                          <td className="p-4">{lead.mobile}</td>
+                          <td className="p-4 text-blue-600 font-semibold">{lead.targetExam}</td>
+                          <td className="p-4">
+                            <span className={`px-2.5 py-0.5 rounded-full font-bold text-[9px] uppercase border ${
+                              lead.status === 'Enrolled' 
+                                ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
+                                : lead.status === 'Contacted' 
+                                ? 'bg-blue-50 border-blue-200 text-blue-600' 
+                                : 'bg-amber-50 border-amber-200 text-amber-600'
+                            }`}>
+                              {lead.status}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <select
+                              value={lead.status}
+                              onChange={(e) => handleUpdateLeadStatus(lead.id, e.target.value)}
+                              className="bg-slate-50 text-slate-800 border border-slate-200 rounded-lg px-2.5 py-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-red-500"
+                            >
+                              <option value="New">New</option>
+                              <option value="Contacted">Contacted</option>
+                              <option value="Enrolled">Enrolled</option>
+                              <option value="Junk">Junk</option>
+                            </select>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-slate-500 text-xs">No registration leads found.</p>
+              )}
+            </div>
+
+            {/* LMS User Profiles Administration Panel */}
+            <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
+              <h3 className="font-heading font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-3">
+                LMS User Information & Accounts
+              </h3>
+
               <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white/50">
                 <table className="w-full text-xs text-left border-collapse">
                   <thead className="bg-slate-50 text-slate-500 uppercase font-bold text-[10px] tracking-wider border-b border-slate-200">
                     <tr>
-                      <th className="p-4">Name</th>
-                      <th className="p-4">Mobile</th>
-                      <th className="p-4">Target Course</th>
+                      <th className="p-4">Full Name</th>
+                      <th className="p-4">Email Address</th>
+                      <th className="p-4">Role</th>
                       <th className="p-4">Status</th>
-                      <th className="p-4">Action</th>
+                      <th className="p-4">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-slate-700">
-                    {leadsList.map((lead) => (
-                      <tr key={lead.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="p-4 font-bold text-slate-900">{lead.fullName}</td>
-                        <td className="p-4">{lead.mobile}</td>
-                        <td className="p-4 text-blue-600 font-semibold">{lead.targetExam}</td>
+                    {usersList.map((usr) => (
+                      <tr key={usr.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-4 font-bold text-slate-900">{usr.fullName}</td>
+                        <td className="p-4 font-mono">{usr.email}</td>
+                        <td className="p-4 capitalize font-semibold">{usr.role}</td>
                         <td className="p-4">
                           <span className={`px-2.5 py-0.5 rounded-full font-bold text-[9px] uppercase border ${
-                            lead.status === 'Enrolled' 
+                            usr.isActive 
                               ? 'bg-emerald-50 border-emerald-200 text-emerald-600' 
-                              : lead.status === 'Contacted' 
-                              ? 'bg-blue-50 border-blue-200 text-blue-600' 
-                              : 'bg-amber-50 border-amber-200 text-amber-600'
+                              : 'bg-red-50 border-red-200 text-red-600'
                           }`}>
-                            {lead.status}
+                            {usr.isActive ? 'Active' : 'Suspended'}
                           </span>
                         </td>
-                        <td className="p-4">
-                          <select
-                            value={lead.status}
-                            onChange={(e) => handleUpdateLeadStatus(lead.id, e.target.value)}
-                            className="bg-slate-50 text-slate-800 border border-slate-200 rounded-lg px-2.5 py-1 text-[10px] focus:outline-none focus:ring-1 focus:ring-red-500"
+                        <td className="p-4 flex gap-2">
+                          <button
+                            onClick={() => handleToggleUserStatus(usr.id, usr.isActive)}
+                            className="px-2 py-1 bg-slate-100 border border-slate-200 hover:bg-slate-200 rounded-lg text-[10px] font-bold text-slate-800 transition-colors"
                           >
-                            <option value="New">New</option>
-                            <option value="Contacted">Contacted</option>
-                            <option value="Enrolled">Enrolled</option>
-                            <option value="Junk">Junk</option>
-                          </select>
+                            {usr.isActive ? 'Suspend' : 'Activate'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(usr.id)}
+                            className="p-1 bg-red-50 border border-red-150 rounded-lg hover:bg-red-650 hover:text-white text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            ) : (
-              <p className="text-slate-500 text-xs">No registration leads found.</p>
-            )}
+            </div>
           </div>
         )}
+
 
         {/* TAB 4: FACULTY */}
         {activeTab === 'Faculty' && (
@@ -1162,7 +1297,6 @@ export default function AdminPortal() {
                 </div>
               ))}
             </div>
-
             {/* Modal add/edit Resource */}
             {activeModal && activeTab === 'Resources' && (
               <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
@@ -1214,6 +1348,109 @@ export default function AdminPortal() {
                     </button>
                     <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors">
                       Save Resource
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 9: COURSES */}
+        {activeTab === 'Courses' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="font-heading font-extrabold text-sm text-slate-900">Manage Courses</h3>
+              <button 
+                onClick={() => {
+                  setCourseForm({ id: `course-${Date.now()}`, title: '', category: 'LMS Program', description: '', fee: 99900, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
+                  setActiveModal({ type: 'add' });
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-sm transition-transform hover:scale-[1.01]"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create LMS Course</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {coursesList.map((course) => (
+                <div key={course.id} className="bg-white/70 backdrop-blur-md p-5 rounded-3xl border border-slate-200/80 flex flex-col justify-between shadow-xs space-y-3">
+                  <div>
+                    <h4 className="font-heading font-bold text-xs text-slate-900 leading-tight">{course.title}</h4>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">{course.category} &bull; {course.duration}</p>
+                    <p className="text-slate-600 text-[11px] leading-relaxed mt-2">{course.description}</p>
+                  </div>
+                  <div className="flex justify-between items-center border-t border-slate-100 pt-3">
+                    <span className="text-xs font-bold text-slate-900">{typeof course.fee === 'number' ? `₹${(course.fee / 100).toLocaleString('en-IN')}` : course.fee}</span>
+                    <span className={`px-2 py-0.5 text-[9px] font-bold rounded-full ${course.isPublished ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                      {course.isPublished ? 'Active' : 'Draft'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Modal add/edit Course */}
+            {activeModal && activeTab === 'Courses' && (
+              <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <form onSubmit={handleSaveCourse} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
+                  <h3 className="font-heading font-extrabold text-sm text-slate-900">
+                    Create LMS Course
+                  </h3>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase">Course ID (Slug)</label>
+                    <input 
+                      type="text" required value={courseForm.id} 
+                      onChange={(e) => setCourseForm({ ...courseForm, id: e.target.value })}
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase">Course Title</label>
+                    <input 
+                      type="text" required value={courseForm.title} 
+                      onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase">Description</label>
+                    <textarea 
+                      required value={courseForm.description} 
+                      onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500 min-h-20"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Fee (in Paise)</label>
+                      <input 
+                        type="number" required value={courseForm.fee} 
+                        onChange={(e) => setCourseForm({ ...courseForm, fee: Number(e.target.value) })}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Duration</label>
+                      <input 
+                        type="text" required value={courseForm.duration} 
+                        onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-xl focus:outline-none focus:border-red-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors">
+                      Cancel
+                    </button>
+                    <button type="submit" className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors">
+                      Save Course
                     </button>
                   </div>
                 </form>
