@@ -20,6 +20,10 @@ import facultiesRouter from './routes/faculties';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust reverse proxy header (Render, Heroku, Vercel, etc.)
+app.set('trust proxy', 1);
+
+
 // ─── Security middleware ───────────────────────────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow CDN resources
