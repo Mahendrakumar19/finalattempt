@@ -58,6 +58,17 @@ const generalLimiter = rateLimit({
 });
 app.use('/api/', generalLimiter);
 
+// Simple Request Logger Middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[Backend API] ${req.method} ${req.originalUrl} - ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
+
+
 // ─── Route mounts ──────────────────────────────────────────────────────────
 app.use('/api/auth', authRouter);
 app.use('/api/lms', lmsRouter);
