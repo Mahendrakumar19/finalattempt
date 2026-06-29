@@ -7,8 +7,9 @@ const PROTECTED_PREFIXES = ['/student', '/faculty/dashboard'];
 // Routes only accessible when NOT authenticated
 const AUTH_ROUTES = ['/auth/login', '/auth/register'];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
 
   // Gate using the presence of the refresh token cookie
   const hasRefreshToken = request.cookies.has('refreshToken');
