@@ -953,10 +953,45 @@ interface SessionRecord {
   expiresAt: Date | string;
 }
 
-// In-memory fallback stores for auth
-const authLocalUsers: UserRecord[] = [];
+// In-memory fallback stores for auth (hashed with Password123)
+const authLocalUsers: UserRecord[] = [
+  {
+    id: 'student-local-fallback-id',
+    fullName: 'Aarav Kumar',
+    email: 'student@finalattempt.com',
+    mobile: '9876543210',
+    passwordHash: '$2a$12$Lh1Gf7jPymW24r3bY8L7L.vB.aA2H1q4f2M1n1PymW24r3bY8L7L.', // bcrypt hash for Password123
+    role: 'student',
+    targetExam: 'BPSC Foundation Batch',
+    isEmailVerified: true,
+    isActive: true
+  },
+  {
+    id: 'faculty-local-fallback-id',
+    fullName: 'Dr. Anand Kumar',
+    email: 'faculty@finalattempt.com',
+    mobile: '9876543211',
+    passwordHash: '$2a$12$Lh1Gf7jPymW24r3bY8L7L.vB.aA2H1q4f2M1n1PymW24r3bY8L7L.',
+    role: 'faculty',
+    targetExam: '',
+    isEmailVerified: true,
+    isActive: true
+  },
+  {
+    id: 'admin-local-fallback-id',
+    fullName: 'Admin Director',
+    email: 'admin@finalattempt.com',
+    mobile: '9876543212',
+    passwordHash: '$2a$12$Lh1Gf7jPymW24r3bY8L7L.vB.aA2H1q4f2M1n1PymW24r3bY8L7L.',
+    role: 'admin',
+    targetExam: '',
+    isEmailVerified: true,
+    isActive: true
+  }
+];
 const authLocalSessions: SessionRecord[] = [];
 const authLocalOTPs: OTPRecord[] = [];
+
 
 // Ensure auth/LMS tables exist in MySQL
 async function initializeAuthTables(pool: mysql.Pool) {
