@@ -979,7 +979,7 @@ const authLocalUsers: UserRecord[] = [
     fullName: 'Aarav Kumar',
     email: 'student@finalattempt.com',
     mobile: '9876543210',
-    passwordHash: '$2a$12$Lh1Gf7jPymW24r3bY8L7L.vB.aA2H1q4f2M1n1PymW24r3bY8L7L.', // bcrypt hash for Password123
+    passwordHash: '$2b$10$34jXxZaMx7fRqxmuqE1b9u7b5y1g8nbm890xKxqvKOgwSdZE/MPrm', // bcrypt hash for Password123
     role: 'student',
     targetExam: 'BPSC Foundation Batch',
     isEmailVerified: true,
@@ -990,7 +990,7 @@ const authLocalUsers: UserRecord[] = [
     fullName: 'Dr. Anand Kumar',
     email: 'faculty@finalattempt.com',
     mobile: '9876543211',
-    passwordHash: '$2a$12$Lh1Gf7jPymW24r3bY8L7L.vB.aA2H1q4f2M1n1PymW24r3bY8L7L.',
+    passwordHash: '$2b$10$34jXxZaMx7fRqxmuqE1b9u7b5y1g8nbm890xKxqvKOgwSdZE/MPrm',
     role: 'faculty',
     targetExam: '',
     isEmailVerified: true,
@@ -1001,13 +1001,14 @@ const authLocalUsers: UserRecord[] = [
     fullName: 'Admin Director',
     email: 'admin@finalattempt.com',
     mobile: '9876543212',
-    passwordHash: '$2a$12$Lh1Gf7jPymW24r3bY8L7L.vB.aA2H1q4f2M1n1PymW24r3bY8L7L.',
+    passwordHash: '$2b$10$34jXxZaMx7fRqxmuqE1b9u7b5y1g8nbm890xKxqvKOgwSdZE/MPrm',
     role: 'admin',
     targetExam: '',
     isEmailVerified: true,
     isActive: true
   }
 ];
+
 const authLocalSessions: SessionRecord[] = [];
 const authLocalOTPs: OTPRecord[] = [];
 
