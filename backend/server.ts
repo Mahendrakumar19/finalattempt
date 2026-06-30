@@ -350,24 +350,8 @@ app.post('/api/student/progress', async (req, res) => {
   }
 });
 
-// SETTINGS
-app.get('/api/settings', async (req, res) => {
-  try {
-    const settings = await db.getSettings();
-    res.json(settings);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
-app.put('/api/settings', async (req, res) => {
-  try {
-    const ok = await db.updateSettings(req.body);
-    res.json({ success: ok });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
+
 
 
 

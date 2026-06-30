@@ -1618,7 +1618,16 @@ class LmsDB {
         throw err;
       }
     }
+    if (!courseData.some(c => c.id === data.id)) {
+      courseData.push({
+        ...data,
+        syllabus: typeof data.syllabus === 'string' ? JSON.parse(data.syllabus) : data.syllabus || [],
+        features: typeof data.features === 'string' ? JSON.parse(data.features) : data.features || [],
+        faq: typeof data.faq === 'string' ? JSON.parse(data.faq) : data.faq || []
+      });
+    }
     return data;
+
   }
 
 
