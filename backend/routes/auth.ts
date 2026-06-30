@@ -489,4 +489,40 @@ router.post('/reset-password', authLimiter, async (req: Request, res: Response) 
   }
 });
 
+// ─── ADMIN: Get All Users ───────────────────────────────────────────────────
+router.get('/users', async (req: Request, res: Response) => {
+  try {
+    const list = await authDB.getUsers();
+    // Exclude password hashes for security
+    const sanitized = list.map(({ passwordHash, ...rest }) => rest);
+    res.json(sanitized);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── ADMIN: Toggle User Active/Suspended ─────────────────────────────────────
+router.put('/users/:id/status', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { isActive } = req.body;
+  try {
+    const ok = await authDB.updateUserActiveStatus(id, isActive);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── ADMIN: Delete User Profile ──────────────────────────────────────────────
+router.delete('/users/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const ok = await authDB.deleteUser(id);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;
+

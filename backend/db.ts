@@ -309,7 +309,7 @@ async function initializeMySQLTables(pool: mysql.Pool) {
 
 if (useRealDB) {
   try {
-    mysqlPool = mysql.createPool({
+    const tempPool = mysql.createPool({
       ...dbConfig,
       waitForConnections: true,
       connectionLimit: 10,
@@ -317,14 +317,33 @@ if (useRealDB) {
       enableKeepAlive: true,
       keepAliveInitialDelay: 10000 // 10 seconds delay
     });
-    console.log('MySQL Database connection pool initialized successfully.');
-    // Run schema creation in background asynchronously
-    initializeMySQLTables(mysqlPool);
-  } catch (error) {
-    console.error('MySQL connection failed, falling back to local storage file:', error);
+
+    // Test connection synchronously during pool startup (with a short timeout fallback check)
+    console.log('Testing MySQL Database connection...');
+    
+    // Asynchronously verify connection and initialize tables
+    tempPool.getConnection()
+      .then(async (connection) => {
+        console.log('MySQL Database connection verified successfully.');
+        mysqlPool = tempPool;
+        connection.release();
+        
+        // Run schema tables setup
+        await initializeMySQLTables(tempPool);
+        await initializeAuthTables(tempPool);
+      })
+      .catch((err) => {
+        console.error('MySQL connection validation failed. Falling back to local store file:', err.message);
+        mysqlPool = null;
+        tempPool.end().catch(() => {});
+      });
+
+  } catch (error: any) {
+    console.error('MySQL connection pool setup failed:', error.message);
     mysqlPool = null;
   }
 }
+
 
 class BackendDB {
   private localStore: LocalDBStore = {
@@ -1307,16 +1326,48 @@ async function initializeAuthTables(pool: mysql.Pool) {
   }
 }
 
-// Call initializeAuthTables if we have a MySQL pool
-if (mysqlPool) {
-  initializeAuthTables(mysqlPool);
-}
+
 
 // ─────────────────────────── AuthDB Class ────────────────────────────────────
 
 class AuthDB {
+  async getUsers(): Promise<UserRecord[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM users ORDER BY createdAt DESC');
+        return rows.map((r: any) => ({ ...r, isEmailVerified: !!r.isEmailVerified, isActive: !!r.isActive }));
+      } catch (err) { console.error('[AuthDB] getUsers MySQL error:', err); }
+    }
+    return authLocalUsers;
+  }
+
+  async updateUserActiveStatus(userId: string, isActive: boolean): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('UPDATE users SET isActive = ? WHERE id = ?', [isActive ? 1 : 0, userId]);
+        return true;
+      } catch (err) { console.error('[AuthDB] updateUserActiveStatus MySQL error:', err); }
+    }
+    const u = authLocalUsers.find(user => user.id === userId);
+    if (u) { u.isActive = isActive; return true; }
+    return false;
+  }
+
+  async deleteUser(userId: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM users WHERE id = ?', [userId]);
+        return true;
+      } catch (err) { console.error('[AuthDB] deleteUser MySQL error:', err); }
+    }
+    const idx = authLocalUsers.findIndex(user => user.id === userId);
+    if (idx >= 0) { authLocalUsers.splice(idx, 1); return true; }
+    return false;
+  }
+
   // ── Users ──────────────────────────────────────────────────────────────────
   async createUser(user: UserRecord): Promise<UserRecord> {
+
     if (mysqlPool) {
       try {
         await mysqlPool.query(
