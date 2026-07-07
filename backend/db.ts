@@ -106,6 +106,9 @@ interface LocalDBStore {
   blogs: BlogItem[];
   resources: ResourceDownload[];
   settings: SiteSettings;
+  courses: any[];
+  sections: any[];
+  lessons: any[];
 }
 
 export let mysqlPool: mysql.Pool | null = null;
@@ -370,7 +373,17 @@ class BackendDB {
       heroTitle: '72nd BPSC Preparation Starts Here',
       heroSubtitle: 'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
       tagline: 'One Mentor. One Strategy. One Final Attempt.'
-    }
+    },
+    courses: [...courseData],
+    sections: [
+      { id: 'sect-bpsc-foundation-1', courseId: 'bpsc-foundation', title: 'Foundational Concepts & Strategy', orderIndex: 1, isPublished: 1 },
+      { id: 'sect-bpsc-foundation-2', courseId: 'bpsc-foundation', title: 'Core Syllabus Depth Integration', orderIndex: 2, isPublished: 1 },
+      { id: 'sect-bpsc-foundation-3', courseId: 'bpsc-foundation', title: 'Mock Tests & Essay Mentorship', orderIndex: 3, isPublished: 1 }
+    ],
+    lessons: [
+      { id: 'les-bpsc-foundation-1-1', sectionId: 'sect-bpsc-foundation-1', courseId: 'bpsc-foundation', title: 'Introduction & Micro-Syllabus Analysis', type: 'video', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', duration: '45 mins', durationSeconds: 2700, orderIndex: 1, isFree: 1, isPublished: 1 },
+      { id: 'les-bpsc-foundation-1-2', sectionId: 'sect-bpsc-foundation-1', courseId: 'bpsc-foundation', title: 'Strategic Reading of Newspapers', type: 'video', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', duration: '60 mins', durationSeconds: 3600, orderIndex: 2, isFree: 0, isPublished: 1 }
+    ]
   };
 
   constructor() {
@@ -1573,12 +1586,11 @@ class LmsDB {
           syllabus: typeof r.syllabus === 'string' ? JSON.parse(r.syllabus) : r.syllabus,
           features: typeof r.features === 'string' ? JSON.parse(r.features) : r.features,
           faq:      typeof r.faq      === 'string' ? JSON.parse(r.faq)      : r.faq,
-          // Format fee back for UI
           fee: `₹${(r.fee / 100 || r.fee).toLocaleString('en-IN')}`
         }));
       } catch (err) { console.error('[LmsDB] getCourses MySQL error:', err); }
     }
-    return courseData;
+    return db.localStore.courses;
   }
 
   async getCourseById(id: string): Promise<any | null> {
@@ -1596,9 +1608,8 @@ class LmsDB {
         };
       } catch (err) { console.error('[LmsDB] getCourseById MySQL error:', err); }
     }
-    return courseData.find(c => c.id === id) || null;
+    return db.localStore.courses.find(c => c.id === id) || null;
   }
-
 
   async createCourse(data: any): Promise<any> {
     const slug = data.slug || data.title?.toLowerCase()?.replace(/[^a-z0-9]+/g, '-') || `course-${Date.now()}`;
@@ -1623,13 +1634,14 @@ class LmsDB {
       }
     }
 
-    if (!courseData.some(c => c.id === data.id)) {
-      courseData.push({
+    if (!db.localStore.courses.some(c => c.id === data.id)) {
+      db.localStore.courses.push({
         ...data,
         syllabus: typeof data.syllabus === 'string' ? JSON.parse(data.syllabus) : data.syllabus || [],
         features: typeof data.features === 'string' ? JSON.parse(data.features) : data.features || [],
         faq: typeof data.faq === 'string' ? JSON.parse(data.faq) : data.faq || []
       });
+      db.saveLocalData();
     }
     return data;
   }
@@ -1655,9 +1667,10 @@ class LmsDB {
         throw err;
       }
     }
-    const idx = courseData.findIndex(c => c.id === id);
+    const idx = db.localStore.courses.findIndex(c => c.id === id);
     if (idx >= 0) {
-      courseData[idx] = { ...courseData[idx], ...updates };
+      db.localStore.courses[idx] = { ...db.localStore.courses[idx], ...updates };
+      db.saveLocalData();
       return true;
     }
     return false;
@@ -1673,9 +1686,10 @@ class LmsDB {
         throw err;
       }
     }
-    const idx = courseData.findIndex(c => c.id === id);
+    const idx = db.localStore.courses.findIndex(c => c.id === id);
     if (idx >= 0) {
-      courseData.splice(idx, 1);
+      db.localStore.courses.splice(idx, 1);
+      db.saveLocalData();
       return true;
     }
     return false;
@@ -1695,6 +1709,8 @@ class LmsDB {
         throw err;
       }
     }
+    db.localStore.sections.push({ ...data, isPublished: 1 });
+    db.saveLocalData();
     return data;
   }
 
@@ -1707,6 +1723,12 @@ class LmsDB {
         console.error('[LmsDB] updateSection MySQL error:', err);
         throw err;
       }
+    }
+    const idx = db.localStore.sections.findIndex(s => s.id === id);
+    if (idx >= 0) {
+      db.localStore.sections[idx].title = title;
+      db.saveLocalData();
+      return true;
     }
     return true;
   }
@@ -1721,12 +1743,14 @@ class LmsDB {
         throw err;
       }
     }
+    const idx = db.localStore.sections.findIndex(s => s.id === id);
+    if (idx >= 0) {
+      db.localStore.sections.splice(idx, 1);
+      db.saveLocalData();
+    }
     return true;
   }
 
-
-
-  // ── Sections ───────────────────────────────────────────────────────────────
   async getSectionsByCourseId(courseId: string): Promise<any[]> {
     if (mysqlPool) {
       try {
@@ -1736,11 +1760,7 @@ class LmsDB {
         return rows;
       } catch (err) { console.error('[LmsDB] getSections MySQL error:', err); }
     }
-    return [
-      { id: `sect-${courseId}-1`, courseId, title: 'Foundational Concepts & Strategy', orderIndex: 1 },
-      { id: `sect-${courseId}-2`, courseId, title: 'Core Syllabus Depth Integration', orderIndex: 2 },
-      { id: `sect-${courseId}-3`, courseId, title: 'Mock Tests & Essay Mentorship', orderIndex: 3 }
-    ];
+    return db.localStore.sections.filter(s => s.courseId === courseId);
   }
 
   // ── Lessons ────────────────────────────────────────────────────────────────
@@ -1753,14 +1773,7 @@ class LmsDB {
         return rows.map((r: any) => ({ ...r, isFree: !!r.isFree }));
       } catch (err) { console.error('[LmsDB] getLessons MySQL error:', err); }
     }
-    // Fallback mock lessons
-    const parts = sectionId.split('-');
-    const order = parts[parts.length - 1];
-    const courseId = parts.slice(1, -1).join('-');
-    return [
-      { id: `les-${courseId}-${order}-1`, sectionId, title: 'Introduction & Micro-Syllabus Analysis', type: 'video', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', duration: '45 mins', durationSeconds: 2700, orderIndex: 1, isFree: order === '1' },
-      { id: `les-${courseId}-${order}-2`, sectionId, title: 'Strategic Reading of Newspapers', type: 'video', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', duration: '60 mins', durationSeconds: 3600, orderIndex: 2, isFree: false }
-    ];
+    return db.localStore.lessons.filter(l => l.sectionId === sectionId);
   }
 
   async createLesson(data: { id: string; sectionId: string; courseId: string; title: string; type: string; videoUrl: string; duration: string; durationSeconds: number; orderIndex: number; isFree: number; isPublished: number }): Promise<any> {
@@ -1781,6 +1794,8 @@ class LmsDB {
         throw err;
       }
     }
+    db.localStore.lessons.push(data);
+    db.saveLocalData();
     return data;
   }
 
@@ -1793,6 +1808,11 @@ class LmsDB {
         console.error('[LmsDB] deleteLesson MySQL error:', err);
         throw err;
       }
+    }
+    const idx = db.localStore.lessons.findIndex(l => l.id === id);
+    if (idx >= 0) {
+      db.localStore.lessons.splice(idx, 1);
+      db.saveLocalData();
     }
     return true;
   }
