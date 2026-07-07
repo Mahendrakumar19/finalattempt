@@ -315,8 +315,11 @@ if (useRealDB) {
       connectionLimit: 10,
       queueLimit: 0,
       enableKeepAlive: true,
-      keepAliveInitialDelay: 10000 // 10 seconds delay
+      keepAliveInitialDelay: 10000, // 10 seconds delay
+      connectTimeout: 3000 // 3 seconds timeout to trigger immediate fallback if port blocked
     });
+
+
 
     // Test connection synchronously during pool startup (with a short timeout fallback check)
     console.log('Testing MySQL Database connection...');
@@ -1598,13 +1601,14 @@ class LmsDB {
 
 
   async createCourse(data: any): Promise<any> {
+    const slug = data.slug || data.title?.toLowerCase()?.replace(/[^a-z0-9]+/g, '-') || `course-${Date.now()}`;
     if (mysqlPool) {
       try {
         await mysqlPool.query(
           `INSERT INTO lms_courses (id, title, slug, category, description, fee, duration, schedule, enrolledCount, syllabus, features, faq, isPublished)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
           [
-            data.id, data.title, data.slug, data.category, data.description,
+            data.id, data.title, slug, data.category, data.description,
             data.fee || 0, data.duration || '', data.schedule || '',
             JSON.stringify(data.syllabus || []),
             JSON.stringify(data.features || []),
@@ -1618,6 +1622,7 @@ class LmsDB {
         throw err;
       }
     }
+
     if (!courseData.some(c => c.id === data.id)) {
       courseData.push({
         ...data,
@@ -1627,8 +1632,98 @@ class LmsDB {
       });
     }
     return data;
-
   }
+
+  async updateCourse(id: string, updates: any): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const fields: string[] = [];
+        const vals: any[] = [];
+        if (updates.title !== undefined) { fields.push('title = ?'); vals.push(updates.title); }
+        if (updates.description !== undefined) { fields.push('description = ?'); vals.push(updates.description); }
+        if (updates.category !== undefined) { fields.push('category = ?'); vals.push(updates.category); }
+        if (updates.fee !== undefined) { fields.push('fee = ?'); vals.push(updates.fee); }
+        if (updates.duration !== undefined) { fields.push('duration = ?'); vals.push(updates.duration); }
+        if (updates.schedule !== undefined) { fields.push('schedule = ?'); vals.push(updates.schedule); }
+        if (updates.isPublished !== undefined) { fields.push('isPublished = ?'); vals.push(updates.isPublished ? 1 : 0); }
+        if (fields.length === 0) return true;
+        vals.push(id);
+        await mysqlPool.query(`UPDATE lms_courses SET ${fields.join(', ')} WHERE id = ?`, vals);
+        return true;
+      } catch (err) {
+        console.error('[LmsDB] updateCourse MySQL error:', err);
+        throw err;
+      }
+    }
+    const idx = courseData.findIndex(c => c.id === id);
+    if (idx >= 0) {
+      courseData[idx] = { ...courseData[idx], ...updates };
+      return true;
+    }
+    return false;
+  }
+
+  async deleteCourse(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM lms_courses WHERE id = ?', [id]);
+        return true;
+      } catch (err) {
+        console.error('[LmsDB] deleteCourse MySQL error:', err);
+        throw err;
+      }
+    }
+    const idx = courseData.findIndex(c => c.id === id);
+    if (idx >= 0) {
+      courseData.splice(idx, 1);
+      return true;
+    }
+    return false;
+  }
+
+  // ── Sections ───────────────────────────────────────────────────────────────
+  async createSection(data: { id: string; courseId: string; title: string; orderIndex: number }): Promise<any> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO lms_sections (id, courseId, title, orderIndex, isPublished) VALUES (?, ?, ?, ?, 1)',
+          [data.id, data.courseId, data.title, data.orderIndex]
+        );
+        return data;
+      } catch (err) {
+        console.error('[LmsDB] createSection MySQL error:', err);
+        throw err;
+      }
+    }
+    return data;
+  }
+
+  async updateSection(id: string, title: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('UPDATE lms_sections SET title = ? WHERE id = ?', [title, id]);
+        return true;
+      } catch (err) {
+        console.error('[LmsDB] updateSection MySQL error:', err);
+        throw err;
+      }
+    }
+    return true;
+  }
+
+  async deleteSection(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM lms_sections WHERE id = ?', [id]);
+        return true;
+      } catch (err) {
+        console.error('[LmsDB] deleteSection MySQL error:', err);
+        throw err;
+      }
+    }
+    return true;
+  }
+
 
 
   // ── Sections ───────────────────────────────────────────────────────────────
@@ -1666,6 +1761,40 @@ class LmsDB {
       { id: `les-${courseId}-${order}-1`, sectionId, title: 'Introduction & Micro-Syllabus Analysis', type: 'video', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', duration: '45 mins', durationSeconds: 2700, orderIndex: 1, isFree: order === '1' },
       { id: `les-${courseId}-${order}-2`, sectionId, title: 'Strategic Reading of Newspapers', type: 'video', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', duration: '60 mins', durationSeconds: 3600, orderIndex: 2, isFree: false }
     ];
+  }
+
+  async createLesson(data: { id: string; sectionId: string; courseId: string; title: string; type: string; videoUrl: string; duration: string; durationSeconds: number; orderIndex: number; isFree: number; isPublished: number }): Promise<any> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO lms_lessons (id, sectionId, courseId, title, type, videoUrl, duration, durationSeconds, orderIndex, isFree, isPublished)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            data.id, data.sectionId, data.courseId, data.title, data.type,
+            data.videoUrl, data.duration, data.durationSeconds, data.orderIndex,
+            data.isFree, data.isPublished
+          ]
+        );
+        return data;
+      } catch (err) {
+        console.error('[LmsDB] createLesson MySQL error:', err);
+        throw err;
+      }
+    }
+    return data;
+  }
+
+  async deleteLesson(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM lms_lessons WHERE id = ?', [id]);
+        return true;
+      } catch (err) {
+        console.error('[LmsDB] deleteLesson MySQL error:', err);
+        throw err;
+      }
+    }
+    return true;
   }
 
   // ── Enrollments ────────────────────────────────────────────────────────────
