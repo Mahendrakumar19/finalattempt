@@ -4,11 +4,11 @@
   --font-heading: var(--font-heading), sans-serif;
   --font-body: var(--font-body), sans-serif;
   
-  --color-brand-primary: #0F172A;
-  --color-brand-secondary: #1E40AF;
-  --color-brand-accent: #F59E0B;
-  --color-brand-success: #22C55E;
-  --color-brand-neutral: #F8FAFC;
+  --color-brand-primary: #000000;
+  --color-brand-secondary: #000000;
+  --color-brand-accent: #000000;
+  --color-brand-success: #16A34A;
+  --color-brand-neutral: #FFFFFF;
   
   --animate-shimmer: shimmer 2.5s infinite linear;
   --animate-float: float 6s ease-in-out infinite;
@@ -35,8 +35,8 @@
 
 body {
   font-family: var(--font-body);
-  background-color: #F8FAFC;
-  color: #0F172A;
+  background-color: #FFFFFF;
+  color: #000000;
   overflow-x: hidden;
 }
 
