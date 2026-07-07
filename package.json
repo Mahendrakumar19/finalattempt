@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "install-all": "npm install --prefix frontend && npm install --prefix admin && npm install --prefix backend",
-    "dev": "npx concurrently -k -p \"[{name}]\" -n \"Frontend,Admin,Backend\" -c \"blue.bold,red.bold,yellow.bold\" \"npm run dev --prefix frontend\" \"npm run dev --prefix admin\" \"npm run dev --prefix backend\""
+    "dev": "npx concurrently -k -p \"[{name}]\" -n \"Frontend,Backend\" -c \"blue.bold,yellow.bold\" \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\""
   },
   "devDependencies": {
     "@types/swagger-ui-express": "^4.1.8",
