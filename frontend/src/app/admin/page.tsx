@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   LayoutDashboard, 
   Users, 
@@ -131,6 +132,7 @@ export default function AdminPortal() {
   const [resourcesList, setResourcesList] = useState<ResourceDownload[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [coursesList, setCoursesList] = useState<Course[]>([]);
+  const [editMode, setEditMode] = useState(false);
 
   // Modals visibility states
   const [activeModal, setActiveModal] = useState<{ type: 'add' | 'edit'; index?: number } | null>(null);
@@ -399,44 +401,45 @@ export default function AdminPortal() {
 
   if (!adminToken) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex items-center justify-center p-6">
-        <form onSubmit={handleAdminLogin} className="w-full max-w-sm bg-white/80 backdrop-blur-md border border-slate-200 p-8 space-y-6 shadow-xl rounded-3xl">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #020617 0%, #0F172A 100%)' }}>
+        <form onSubmit={handleAdminLogin} className="w-full max-w-sm bg-slate-900/80 backdrop-blur-md border border-white/10 p-8 space-y-6 shadow-2xl rounded-3xl">
           <div className="space-y-1">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900">Final Attempt</h1>
-            <p className="text-xs text-slate-500">Administration Console Sign-In</p>
+            <h1 className="text-xl font-heading font-extrabold tracking-tight text-white">Final Attempt <span className="text-amber-400">IAS</span></h1>
+            <p className="text-xs text-slate-400">Administration Console Sign-In</p>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Email Address</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Address</label>
               <input 
                 type="email" 
                 required 
                 placeholder="admin@finalattempt.com" 
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl outline-none focus:border-slate-400 transition-colors"
+                className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/60 text-white placeholder:text-slate-600 text-xs rounded-2xl outline-none focus:border-amber-500/50 transition-colors"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Password</label>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</label>
               <input 
                 type="password" 
                 required 
                 placeholder="••••••••" 
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl outline-none focus:border-slate-400 transition-colors"
+                className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/60 text-white placeholder:text-slate-600 text-xs rounded-2xl outline-none focus:border-amber-500/50 transition-colors"
               />
             </div>
           </div>
 
-          {authError && <p className="text-xs text-red-600 font-semibold">{authError}</p>}
+          {authError && <p className="text-xs text-red-400 font-semibold">{authError}</p>}
 
           <button 
             type="submit" 
-            className="w-full py-3 bg-slate-900 text-white hover:bg-slate-800 transition-colors font-bold text-xs rounded-2xl shadow-lg shadow-slate-900/10"
+            className="w-full py-3 text-white transition-all font-bold text-xs rounded-2xl shadow-lg hover:-translate-y-0.5"
+            style={{ background: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)', boxShadow: '0 4px 24px rgba(217,119,6,0.25)' }}
           >
             Authenticate
           </button>
@@ -446,16 +449,16 @@ export default function AdminPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col lg:flex-row">
+    <div className="min-h-screen text-slate-900 font-body flex flex-col lg:flex-row" style={{ background: '#FFFBF2' }}>
       {/* SIDEBAR PANEL */}
-      <aside className="w-full lg:w-64 bg-white border-b lg:border-b-0 lg:border-r border-slate-250 flex flex-col justify-between shrink-0">
+      <aside className="w-full lg:w-64 border-b lg:border-b-0 lg:border-r flex flex-col justify-between shrink-0" style={{ background: '#FFFBF2', borderColor: 'rgba(245,158,11,0.15)' }}>
         <div className="p-6 space-y-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-slate-900" />
-              <span className="font-extrabold text-sm uppercase tracking-wider">CMS Master</span>
+              <Database className="w-5 h-5 text-amber-600" />
+              <span className="font-heading font-extrabold text-sm uppercase tracking-wider text-slate-900">CMS Master</span>
             </div>
-            <span className="bg-red-50 text-red-600 text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-red-200">
+            <span className="bg-amber-500/10 text-amber-700 text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-amber-500/20">
               Admin
             </span>
           </div>
@@ -477,9 +480,10 @@ export default function AdminPortal() {
                 onClick={() => setActiveTab(tab.id as AdminTab)}
                 className={`flex items-center gap-3 px-4 py-3 text-xs font-bold transition-all text-left rounded-2xl border ${
                   activeTab === tab.id 
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-md' 
-                    : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 border-transparent'
+                    ? 'text-white border-amber-600 shadow-md' 
+                    : 'text-slate-600 hover:bg-amber-500/10 hover:text-amber-800 border-transparent'
                 }`}
+                style={activeTab === tab.id ? { background: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)', borderColor: '#D97706' } : {}}
               >
                 <tab.icon className="w-4 h-4" />
                 <span>{tab.id}</span>
@@ -488,12 +492,12 @@ export default function AdminPortal() {
           </nav>
         </div>
 
-        <div className="p-6 border-t border-slate-150">
+        <div className="p-6 border-t" style={{ borderColor: 'rgba(245,158,11,0.15)' }}>
           <button 
             onClick={handleAdminLogout}
-            className="text-xs font-bold text-slate-500 hover:text-red-600 flex items-center gap-2 text-left"
+            className="text-xs font-bold text-slate-500 hover:text-amber-600 flex items-center gap-2 text-left"
           >
-            <LogOut className="w-4 h-4 text-red-500" />
+            <LogOut className="w-4 h-4 text-amber-600" />
             <span>Logout</span>
           </button>
         </div>
@@ -504,14 +508,15 @@ export default function AdminPortal() {
         {/* TOP STATUS */}
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div>
-            <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider">CMS Console</span>
+            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">CMS Console</span>
             <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">{activeTab} Editor</h2>
           </div>
 
           <div className="flex items-center gap-4">
             <button 
               onClick={fetchCMSData}
-              className="p-2.5 bg-white border border-slate-200 hover:bg-slate-50 transition-colors rounded-2xl shadow-sm text-slate-700"
+              className="p-2.5 bg-white border hover:bg-amber-50/60 transition-colors rounded-2xl shadow-sm text-slate-700"
+              style={{ borderColor: 'rgba(245,158,11,0.15)' }}
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -1230,18 +1235,42 @@ export default function AdminPortal() {
         {/* TAB 9: COURSES */}
         {activeTab === 'Courses' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="font-extrabold text-sm text-slate-900">Manage Courses</h3>
-              <button 
-                onClick={() => {
-                  setCourseForm({ id: `course-${Date.now()}`, title: '', category: 'LMS Program', description: '', fee: 99900, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
-                  setActiveModal({ type: 'add' });
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs animate-in shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Create LMS Course</span>
-              </button>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/70 backdrop-blur-md p-4 rounded-3xl border border-slate-200 shadow-xs">
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Manage Courses</h3>
+                <p className="text-[10px] text-slate-500 font-medium">Configure programs, syllabus contents, and lecture materials.</p>
+              </div>
+              <div className="flex items-center gap-6">
+                {/* Moodle style Edit Mode switch */}
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-655">Edit Mode</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditMode(!editMode)}
+                    className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300 focus:outline-none ${
+                      editMode ? 'bg-slate-900' : 'bg-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${
+                        editMode ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+                {editMode && (
+                  <button 
+                    onClick={() => {
+                      setCourseForm({ id: `course-${Date.now()}`, title: '', category: 'LMS Program', description: '', fee: 99900, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
+                      setActiveModal({ type: 'add' });
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs animate-in shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create LMS Course</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1249,82 +1278,97 @@ export default function AdminPortal() {
                 <div key={course.id} className="p-6 bg-white border border-slate-200 flex flex-col justify-between space-y-4 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
                   <div>
                     <div className="flex justify-between items-start gap-4">
-                      <h4 className="font-bold text-sm text-slate-900 leading-tight">{course.title}</h4>
-                      <div className="flex gap-2">
-                        <button 
-                          onClick={() => {
-                            setCourseForm(course);
-                            setActiveModal({ type: 'edit', index: idx });
-                          }}
-                          className="p-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-650"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button 
+                      <Link href={`/courses/${course.id}`} className="hover:underline">
+                        <h4 className="font-bold text-sm text-slate-900 leading-tight">{course.title}</h4>
+                      </Link>
+                      {editMode && (
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => {
+                              setCourseForm(course);
+                              setActiveModal({ type: 'edit', index: idx });
+                            }}
+                            className="p-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-655"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={async () => {
+                              if (window.confirm('Delete this course?')) {
+                                setCoursesList(prev => prev.filter(c => c.id !== course.id));
+                                await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}`, { method: 'DELETE' });
+                              }
+                            }}
+                            className="p-1.5 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">{course.category} &bull; {course.duration}</p>
+                      <Link 
+                        href={`/admin/courses/${course.id}`}
+                        className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-[10px] flex items-center gap-1 transition-all"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Open Editor</span>
+                      </Link>
+                    </div>
+                    <p className="text-slate-650 text-xs leading-relaxed mt-2">{course.description}</p>
+                  </div>
+
+                  {/* Add sections and video lessons shortcut - Only render inside edit mode */}
+                  {editMode && (
+                    <div className="pt-3 border-t border-slate-100 space-y-2">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Curriculum Builder</p>
+                      <div className="flex flex-col gap-1.5">
+                        <button
                           onClick={async () => {
-                            if (window.confirm('Delete this course?')) {
-                              setCoursesList(prev => prev.filter(c => c.id !== course.id));
-                              await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}`, { method: 'DELETE' });
+                            const title = window.prompt('Enter Section/Chapter Title:');
+                            if (title) {
+                              await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}/sections`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ title })
+                              });
+                              alert('Chapter created successfully!');
                             }
                           }}
-                          className="p-1.5 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500 transition-colors"
+                          className="w-full text-left px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-700 rounded-xl flex items-center gap-1.5 transition-colors"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Plus className="w-3 h-3 text-slate-500" /> Add Chapter/Section
+                        </button>
+
+                        <button
+                          onClick={async () => {
+                            const title = window.prompt('Enter Lecture Video Title:');
+                            const videoUrl = window.prompt('Enter Cloudinary/Video URL:', 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4');
+                            if (title && videoUrl) {
+                              const secRes = await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}/sections`);
+                              const secData = await secRes.json();
+                              const sections = secData.data?.sections || secData.data || [];
+                              if (sections.length === 0) {
+                                alert('Please create a Chapter/Section first!');
+                                    return;
+                              }
+                              const targetSectionId = sections[0].id;
+                              await fetch(`${BACKEND_URL}/api/lms/sections/${targetSectionId}/lessons`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ courseId: course.id, title, videoUrl, duration: '10 mins' })
+                              });
+                              alert('Lecture Video Added successfully!');
+                            }
+                          }}
+                          className="w-full text-left px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-700 rounded-xl flex items-center gap-1.5 transition-colors"
+                        >
+                          <Plus className="w-3 h-3 text-slate-500" /> Add Lecture Video (to first section)
                         </button>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 uppercase font-bold mt-1">{course.category} &bull; {course.duration}</p>
-                    <p className="text-slate-600 text-xs leading-relaxed mt-2">{course.description}</p>
-                  </div>
-
-                  {/* Add sections and video lessons shortcut */}
-                  <div className="pt-3 border-t border-slate-100 space-y-2">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Curriculum Builder</p>
-                    <div className="flex flex-col gap-1.5">
-                      <button
-                        onClick={async () => {
-                          const title = window.prompt('Enter Section/Chapter Title:');
-                          if (title) {
-                            await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}/sections`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ title })
-                            });
-                            alert('Chapter created successfully!');
-                          }
-                        }}
-                        className="w-full text-left px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-700 rounded-xl flex items-center gap-1.5 transition-colors"
-                      >
-                        <Plus className="w-3 h-3 text-slate-500" /> Add Chapter/Section
-                      </button>
-
-                      <button
-                        onClick={async () => {
-                          const title = window.prompt('Enter Lecture Video Title:');
-                          const videoUrl = window.prompt('Enter Cloudinary/Video URL:', 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4');
-                          if (title && videoUrl) {
-                            const secRes = await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}/sections`);
-                            const secData = await secRes.json();
-                            const sections = secData.data?.sections || secData.data || [];
-                            if (sections.length === 0) {
-                              alert('Please create a Chapter/Section first!');
-                              return;
-                            }
-                            const targetSectionId = sections[0].id;
-                            await fetch(`${BACKEND_URL}/api/lms/sections/${targetSectionId}/lessons`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ courseId: course.id, title, videoUrl, duration: '10 mins' })
-                            });
-                            alert('Lecture Video Added successfully!');
-                          }
-                        }}
-                        className="w-full text-left px-3 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[10px] font-bold text-slate-700 rounded-xl flex items-center gap-1.5 transition-colors"
-                      >
-                        <Plus className="w-3 h-3 text-slate-500" /> Add Lecture Video (to first section)
-                      </button>
-                    </div>
-                  </div>
+                  )}
 
                   <div className="flex justify-between items-center border-t border-slate-100 pt-3">
                     <span className="text-xs font-bold text-slate-900">{typeof course.fee === 'number' ? `₹${(course.fee / 100).toLocaleString('en-IN')}` : course.fee}</span>
@@ -1334,6 +1378,7 @@ export default function AdminPortal() {
                       <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Published</span>
                       <button
                         type="button"
+                        disabled={!editMode}
                         onClick={async () => {
                           const nextPub = !course.isPublished;
                           setCoursesList(prev => prev.map(c => c.id === course.id ? { ...c, isPublished: nextPub } : c));
@@ -1343,9 +1388,9 @@ export default function AdminPortal() {
                             body: JSON.stringify({ isPublished: nextPub })
                           });
                         }}
-                        className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300 focus:outline-none ${
+                        className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-all duration-300 focus:outline-none ${
                           course.isPublished ? 'bg-emerald-500' : 'bg-slate-350'
-                        }`}
+                        } ${!editMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <div
                           className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${
@@ -1358,7 +1403,6 @@ export default function AdminPortal() {
                 </div>
               ))}
             </div>
-
             {/* Modal add/edit Course */}
             {activeModal && activeTab === 'Courses' && (
               <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">

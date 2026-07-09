@@ -69,11 +69,12 @@ const ResetPasswordSchema = z.object({
 // ─────────────────────────── Helpers ─────────────────────────────────────────
 
 function cookieOptions() {
-  const isProd = process.env.NODE_ENV === 'production' || (!process.env.DB_HOST?.includes('localhost') && !process.env.DB_HOST?.includes('127.0.0.1'));
+  // Use NODE_ENV, NOT DB_HOST — a remote DB doesn't mean we're serving HTTPS
+  const isProd = process.env.NODE_ENV === 'production';
   return {
     httpOnly: true,
-    secure: isProd, // Must be false for local http://localhost, true for https
-    sameSite: isProd ? 'none' as const : 'lax' as const, // SameSite none requires https (secure)
+    secure: isProd,              // false on localhost http, true only when deployed over https
+    sameSite: isProd ? 'none' as const : 'lax' as const,
     maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days in ms
   };
 }

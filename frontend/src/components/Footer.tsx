@@ -17,12 +17,12 @@ export default function Footer() {
           {/* Logo & Description */}
           <div className="lg:col-span-2 space-y-6">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-extrabold text-lg border border-blue-500 shadow-md">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold text-lg shadow-md" style={{ background: 'linear-gradient(135deg, #0F172A, #1E3A8A)', border: '1px solid rgba(245,158,11,0.4)' }}>
                 FA
               </div>
               <div className="flex flex-col">
                 <span className="font-heading font-extrabold text-lg tracking-tight text-white">
-                  FINAL ATTEMPT <span className="text-blue-500">IAS</span>
+                  FINAL ATTEMPT <span className="text-amber-400">IAS</span>
                 </span>
                 <span className="text-[10px] text-slate-500 font-semibold tracking-wider uppercase -mt-1">
                   One Mentor. One Strategy.
@@ -78,19 +78,19 @@ export default function Footer() {
             <h4 className="font-heading text-white font-bold text-sm uppercase tracking-wider mb-6">Contact Us</h4>
             <ul className="space-y-4 text-sm">
               <li className="flex items-start gap-3">
-                <PhoneCall className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                <PhoneCall className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                 <a href="tel:+919113131819" className="hover:text-white transition-colors font-semibold text-white">
                   +91 91131 31819
                 </a>
               </li>
               <li className="flex items-start gap-3">
-                <Mail className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                <Mail className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                 <a href="mailto:info@finalattemptias.com" className="hover:text-white transition-colors">
                   info@finalattemptias.com
                 </a>
               </li>
               <li className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                <MapPin className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                 <span>
                   Boring Road, Patna,<br />
                   Bihar - 860001

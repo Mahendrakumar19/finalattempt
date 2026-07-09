@@ -36,6 +36,17 @@ async function apiFetch<T>(
   }
 }
 
+// ─── Singleton Refresh Guard ──────────────────────────────────────────────────
+// Prevents multiple simultaneous refresh calls (race condition that breaks session rotation)
+let _refreshPromise: Promise<ApiResponse<{ accessToken: string; user: any }>> | null = null;
+
+function singletonRefresh(): Promise<ApiResponse<{ accessToken: string; user: any }>> {
+  if (_refreshPromise) return _refreshPromise;
+  _refreshPromise = apiFetch<{ accessToken: string; user: any }>('/api/auth/refresh', { method: 'POST' })
+    .finally(() => { _refreshPromise = null; });
+  return _refreshPromise;
+}
+
 // ─── Register ────────────────────────────────────────────────────────────────
 export async function registerUser(payload: {
   fullName: string;
@@ -76,7 +87,7 @@ export async function verifyOTP(identifier: string, type: 'email' | 'mobile', ot
 
 // ─── Refresh Token ───────────────────────────────────────────────────────────
 export async function refreshAccessToken() {
-  return apiFetch<{ accessToken: string; user: any }>('/api/auth/refresh', { method: 'POST' });
+  return singletonRefresh();
 }
 
 // ─── Logout ──────────────────────────────────────────────────────────────────

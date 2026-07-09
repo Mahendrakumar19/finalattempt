@@ -4,12 +4,21 @@
   --font-heading: var(--font-heading), sans-serif;
   --font-body: var(--font-body), sans-serif;
   
-  --color-brand-primary: #000000;
-  --color-brand-secondary: #000000;
-  --color-brand-accent: #000000;
-  --color-brand-success: #16A34A;
-  --color-brand-neutral: #FFFFFF;
-  
+  /* ═══════════════════════════════════════════════════════════
+     BRAND PALETTE — Dark Navy + Saffron/Gold (Indian EdTech)
+     Primary   = Deep Navy    #0F172A  (authority, trust)
+     Secondary = Royal Blue   #1E3A8A  (knowledge, depth)
+     Accent    = Saffron Gold #F59E0B  (aspiration, energy)
+     Success   = Emerald      #10B981  (progress, achievement)
+     Neutral   = Warm White   #FFFBF2  (parchment-warm background)
+     ═══════════════════════════════════════════════════════════ */
+  --color-brand-primary:   #0F172A;
+  --color-brand-secondary: #1E3A8A;
+  --color-brand-accent:    #F59E0B;
+  --color-brand-gold:      #D97706;
+  --color-brand-success:   #10B981;
+  --color-brand-neutral:   #FFFBF2;
+
   --animate-shimmer: shimmer 2.5s infinite linear;
   --animate-float: float 6s ease-in-out infinite;
   --animate-marquee: marquee 30s linear infinite;
@@ -35,36 +44,47 @@
 
 body {
   font-family: var(--font-body);
-  background-color: #FFFFFF;
-  color: #000000;
+  background-color: #FFFBF2;
+  color: #0F172A;
   overflow-x: hidden;
 }
 
-/* Custom Scrollbar for premium experience */
+/* ── Custom Scrollbar ── */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #F1F5F9;
+  background: #FEF3C7;
 }
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #D97706;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #B45309;
 }
 
-/* Premium micro-shadows & glassmorphism */
+/* ── Glass panels ── */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 251, 242, 0.75);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(245, 158, 11, 0.15);
 }
 
 .glass-panel-dark {
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(15, 23, 42, 0.90);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.12);
+}
+
+/* ── Saffron accent glow utility ── */
+.glow-gold {
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.25);
+}
+
+/* ── Selection highlight ── */
+::selection {
+  background-color: #FCD34D;
+  color: #0F172A;
 }

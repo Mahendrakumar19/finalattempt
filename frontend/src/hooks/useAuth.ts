@@ -24,27 +24,23 @@ export function useAuth() {
     }
   }, [setAuth, clearAuth]);
 
-  // On mount: attempt silent token refresh to restore session
+  // On mount: ALWAYS attempt silent token refresh via HttpOnly cookie.
+  // This ensures we never use an expired access token stored in localStorage.
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
 
     const init = async () => {
-      if (accessToken && user) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
       const res = await refreshAccessToken();
       if (mounted) {
         if (res.success && res.data) {
           setAuth(res.data.user, res.data.accessToken);
         } else {
+          // Refresh failed (no cookie or session expired) — clear any stale state
           clearAuth();
-          setLoading(false);
         }
       }
     };
-
 
     init();
     return () => { mounted = false; };

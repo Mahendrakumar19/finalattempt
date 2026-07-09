@@ -229,7 +229,95 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       )
     `);
 
+    // 10. LMS Quizzes
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lms_quizzes (
+        id VARCHAR(255) PRIMARY KEY,
+        courseId VARCHAR(255) NOT NULL,
+        lessonId VARCHAR(255),
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        timeLimitMins INT DEFAULT 30,
+        passingScore DECIMAL(5,2) DEFAULT 40.00,
+        isPublished TINYINT(1) DEFAULT 1,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_quiz_course (courseId),
+        INDEX idx_quiz_lesson (lessonId)
+      )
+    `);
+
+    // 11. LMS Questions
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lms_questions (
+        id VARCHAR(255) PRIMARY KEY,
+        quizId VARCHAR(255) NOT NULL,
+        questionText TEXT NOT NULL,
+        optionA TEXT NOT NULL,
+        optionB TEXT NOT NULL,
+        optionC TEXT NOT NULL,
+        optionD TEXT NOT NULL,
+        correctAnswer CHAR(1) NOT NULL,
+        explanation TEXT,
+        marks DECIMAL(5,2) DEFAULT 1.00,
+        negativeMarks DECIMAL(5,2) DEFAULT 0.33,
+        orderIndex INT DEFAULT 1,
+        INDEX idx_question_quiz (quizId)
+      )
+    `);
+
+    // 12. LMS Quiz Attempts
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lms_quiz_attempts (
+        id VARCHAR(255) PRIMARY KEY,
+        userId VARCHAR(255) NOT NULL,
+        quizId VARCHAR(255) NOT NULL,
+        answers JSON,
+        score DECIMAL(8,2) DEFAULT 0,
+        maxScore DECIMAL(8,2) DEFAULT 0,
+        passed TINYINT(1) DEFAULT 0,
+        timeTakenSecs INT DEFAULT 0,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_attempt_user (userId),
+        INDEX idx_attempt_quiz (quizId)
+      )
+    `);
+
+    // 13. LMS Assignments
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lms_assignments (
+        id VARCHAR(255) PRIMARY KEY,
+        courseId VARCHAR(255) NOT NULL,
+        lessonId VARCHAR(255),
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        dueDate VARCHAR(100),
+        maxMarks INT DEFAULT 100,
+        submissionType VARCHAR(50) DEFAULT 'pdf',
+        isPublished TINYINT(1) DEFAULT 1,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_assign_course (courseId),
+        INDEX idx_assign_lesson (lessonId)
+      )
+    `);
+
+    // 14. LMS Assignment Submissions
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lms_assignment_submissions (
+        id VARCHAR(255) PRIMARY KEY,
+        userId VARCHAR(255) NOT NULL,
+        assignmentId VARCHAR(255) NOT NULL,
+        submissionUrl TEXT,
+        submissionText TEXT,
+        submittedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        grade INT,
+        feedback TEXT,
+        INDEX idx_submission_user (userId),
+        INDEX idx_submission_assignment (assignmentId)
+      )
+    `);
+
     console.log('MySQL Database tables initialized successfully.');
+
     
     // Seed settings table if empty
     const [settingsRows]: any = await pool.query('SELECT COUNT(*) as count FROM settings');
@@ -318,8 +406,10 @@ if (useRealDB) {
       connectionLimit: 10,
       queueLimit: 0,
       enableKeepAlive: true,
-      keepAliveInitialDelay: 10000, // 10 seconds delay
-      connectTimeout: 3000 // 3 seconds timeout to trigger immediate fallback if port blocked
+      keepAliveInitialDelay: 30000,   // Send keepAlive every 30s to prevent idle disconnects
+      connectTimeout: 10000,          // 10s connect timeout for remote Hostinger host
+      idleTimeout: 0,                 // Never let idle connections expire
+      charset: 'utf8mb4'
     });
 
 
@@ -352,7 +442,7 @@ if (useRealDB) {
 
 
 class BackendDB {
-  private localStore: LocalDBStore = {
+  public localStore: LocalDBStore = {
     leads: [
       { id: 'lead-1', fullName: 'Aman Kumar', mobile: '9123456780', targetExam: 'BPSC Target Batch', status: 'New', createdAt: new Date().toISOString() },
       { id: 'lead-2', fullName: 'Priya Singh', mobile: '9876543210', targetExam: 'UPSC Mentorship', status: 'Contacted', createdAt: new Date().toISOString() },
@@ -410,7 +500,7 @@ class BackendDB {
     }
   }
 
-  private saveLocalData() {
+  public saveLocalData() {
     fs.writeFileSync(JSON_DB_PATH, JSON.stringify(this.localStore, null, 2), 'utf-8');
   }
 
@@ -505,8 +595,11 @@ class BackendDB {
   public async getFaculty(): Promise<FacultyMember[]> {
     if (mysqlPool) {
       try {
-        const [rows] = await mysqlPool.query('SELECT * FROM faculty');
-        return rows as FacultyMember[];
+        const [rows]: any = await mysqlPool.query('SELECT * FROM faculty');
+        return rows.map((r: any) => ({
+          ...r,
+          demoLectures: typeof r.demoLectures === 'string' ? JSON.parse(r.demoLectures) : r.demoLectures || []
+        }));
       } catch (err) {
         console.error('MySQL query error, using local fallback:', err);
       }
@@ -1496,8 +1589,13 @@ class AuthDB {
       try {
         await mysqlPool.query('DELETE FROM user_sessions WHERE id = ?', [sessionId]);
         return;
-      } catch (err) { console.error('[AuthDB] deleteSession MySQL error:', err); }
+      } catch (err) {
+        // ECONNRESET / MySQL dropped — degrade gracefully, do NOT throw
+        // This prevents auth refresh from failing mid-rotation
+        console.warn('[AuthDB] deleteSession MySQL unavailable, using local fallback:', (err as any).code || (err as any).message);
+      }
     }
+    // Always clean local store too
     const idx = authLocalSessions.findIndex(s => s.id === sessionId);
     if (idx >= 0) authLocalSessions.splice(idx, 1);
   }
@@ -1588,7 +1686,10 @@ class LmsDB {
           faq:      typeof r.faq      === 'string' ? JSON.parse(r.faq)      : r.faq,
           fee: `₹${(r.fee / 100 || r.fee).toLocaleString('en-IN')}`
         }));
-      } catch (err) { console.error('[LmsDB] getCourses MySQL error:', err); }
+      } catch (err) { 
+        console.error('[LmsDB] getCourses MySQL error, serving local fallback:', err); 
+        return db.localStore.courses;
+      }
     }
     return db.localStore.courses;
   }
@@ -1606,7 +1707,10 @@ class LmsDB {
           faq:      typeof r.faq      === 'string' ? JSON.parse(r.faq)      : r.faq,
           fee: `₹${(r.fee).toLocaleString('en-IN')}`
         };
-      } catch (err) { console.error('[LmsDB] getCourseById MySQL error:', err); }
+      } catch (err) { 
+        console.error('[LmsDB] getCourseById MySQL error, serving local fallback:', err); 
+        return db.localStore.courses.find(c => c.id === id) || null;
+      }
     }
     return db.localStore.courses.find(c => c.id === id) || null;
   }
@@ -1695,7 +1799,6 @@ class LmsDB {
     return false;
   }
 
-  // ── Sections ───────────────────────────────────────────────────────────────
   async createSection(data: { id: string; courseId: string; title: string; orderIndex: number }): Promise<any> {
     if (mysqlPool) {
       try {
@@ -1705,8 +1808,7 @@ class LmsDB {
         );
         return data;
       } catch (err) {
-        console.error('[LmsDB] createSection MySQL error:', err);
-        throw err;
+        console.error('[LmsDB] createSection MySQL error, falling back to local storage:', err);
       }
     }
     db.localStore.sections.push({ ...data, isPublished: 1 });
@@ -1720,8 +1822,7 @@ class LmsDB {
         await mysqlPool.query('UPDATE lms_sections SET title = ? WHERE id = ?', [title, id]);
         return true;
       } catch (err) {
-        console.error('[LmsDB] updateSection MySQL error:', err);
-        throw err;
+        console.error('[LmsDB] updateSection MySQL error, falling back to local storage:', err);
       }
     }
     const idx = db.localStore.sections.findIndex(s => s.id === id);
@@ -1739,8 +1840,7 @@ class LmsDB {
         await mysqlPool.query('DELETE FROM lms_sections WHERE id = ?', [id]);
         return true;
       } catch (err) {
-        console.error('[LmsDB] deleteSection MySQL error:', err);
-        throw err;
+        console.error('[LmsDB] deleteSection MySQL error, falling back to local storage:', err);
       }
     }
     const idx = db.localStore.sections.findIndex(s => s.id === id);
@@ -1790,8 +1890,7 @@ class LmsDB {
         );
         return data;
       } catch (err) {
-        console.error('[LmsDB] createLesson MySQL error:', err);
-        throw err;
+        console.error('[LmsDB] createLesson MySQL error, falling back to local storage:', err);
       }
     }
     db.localStore.lessons.push(data);
@@ -1805,13 +1904,32 @@ class LmsDB {
         await mysqlPool.query('DELETE FROM lms_lessons WHERE id = ?', [id]);
         return true;
       } catch (err) {
-        console.error('[LmsDB] deleteLesson MySQL error:', err);
-        throw err;
+        console.error('[LmsDB] deleteLesson MySQL error, falling back to local storage:', err);
       }
     }
     const idx = db.localStore.lessons.findIndex(l => l.id === id);
     if (idx >= 0) {
       db.localStore.lessons.splice(idx, 1);
+      db.saveLocalData();
+    }
+    return true;
+  }
+
+  async updateLesson(id: string, data: { title: string; videoUrl: string; duration: string }): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'UPDATE lms_lessons SET title = ?, videoUrl = ?, duration = ? WHERE id = ?',
+          [data.title, data.videoUrl, data.duration, id]
+        );
+        return true;
+      } catch (err) {
+        console.error('[LmsDB] updateLesson MySQL error, falling back to local storage:', err);
+      }
+    }
+    const idx = db.localStore.lessons.findIndex(l => l.id === id);
+    if (idx >= 0) {
+      db.localStore.lessons[idx] = { ...db.localStore.lessons[idx], ...data };
       db.saveLocalData();
     }
     return true;
@@ -1924,96 +2042,6 @@ class LmsDB {
     return true;
   }
 
-  // ── Quizzes ────────────────────────────────────────────────────────────────
-  async getQuizzesByCourseId(courseId: string): Promise<any[]> {
-    if (mysqlPool) {
-      try {
-        const [rows]: any = await mysqlPool.query(
-          'SELECT * FROM lms_quizzes WHERE courseId = ? AND isPublished = 1 ORDER BY createdAt DESC', [courseId]
-        );
-        return rows;
-      } catch (err) { console.error('[LmsDB] getQuizzesByCourseId MySQL error:', err); }
-    }
-    return [];
-  }
-
-  async getQuizById(id: string): Promise<any | null> {
-    if (mysqlPool) {
-      try {
-        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quizzes WHERE id = ? LIMIT 1', [id]);
-        return rows && rows.length > 0 ? rows[0] : null;
-      } catch (err) { console.error('[LmsDB] getQuizById MySQL error:', err); }
-    }
-    return null;
-  }
-
-  async getQuestionsByQuizId(quizId: string): Promise<any[]> {
-    if (mysqlPool) {
-      try {
-        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quiz_questions WHERE quizId = ?', [quizId]);
-        return rows;
-      } catch (err) { console.error('[LmsDB] getQuestionsByQuizId MySQL error:', err); }
-    }
-    return [];
-  }
-
-  async submitQuizAttempt(userId: string, quizId: string, answers: any, score: number, maxScore: number, passed: boolean, timeTakenSecs: number): Promise<any> {
-    const { v4: uuid } = await import('uuid');
-    const id = uuid();
-    const attempt = {
-      id,
-      userId,
-      quizId,
-      answers: JSON.stringify(answers),
-      score,
-      maxScore,
-      passed: passed ? 1 : 0,
-      timeTakenSecs,
-      submittedAt: new Date()
-    };
-
-    if (mysqlPool) {
-      try {
-        await mysqlPool.query(
-          'INSERT INTO lms_quiz_attempts (id, userId, quizId, answers, score, maxScore, passed, timeTakenSecs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [attempt.id, attempt.userId, attempt.quizId, attempt.answers, attempt.score, attempt.maxScore, attempt.passed, attempt.timeTakenSecs]
-        );
-        return { ...attempt, passed: !!attempt.passed };
-      } catch (err) { console.error('[LmsDB] submitQuizAttempt MySQL error:', err); }
-    }
-    return attempt;
-  }
-
-  async getQuizAttempts(userId: string, quizId: string): Promise<any[]> {
-    if (mysqlPool) {
-      try {
-        const [rows]: any = await mysqlPool.query(
-          'SELECT * FROM lms_quiz_attempts WHERE userId = ? AND quizId = ? ORDER BY submittedAt DESC', [userId, quizId]
-        );
-        return rows.map((r: any) => ({ ...r, passed: !!r.passed, answers: typeof r.answers === 'string' ? JSON.parse(r.answers) : r.answers }));
-      } catch (err) { console.error('[LmsDB] getQuizAttempts MySQL error:', err); }
-    }
-    return [];
-  }
-
-  async getLeaderboard(quizId: string): Promise<any[]> {
-    if (mysqlPool) {
-      try {
-        const [rows]: any = await mysqlPool.query(
-          `SELECT a.score, a.timeTakenSecs, a.submittedAt, u.fullName
-           FROM lms_quiz_attempts a
-           JOIN users u ON u.id = a.userId
-           WHERE a.quizId = ?
-           ORDER BY a.score DESC, a.timeTakenSecs ASC
-           LIMIT 10`,
-          [quizId]
-        );
-        return rows;
-      } catch (err) { console.error('[LmsDB] getLeaderboard MySQL error:', err); }
-    }
-    return [];
-  }
-
   // ── Chat Helpers ───────────────────────────────────────────────────────────
   async getChatRoomsByCourseId(courseId: string): Promise<any[]> {
     if (mysqlPool) {
@@ -2077,6 +2105,295 @@ class LmsDB {
       } catch (err) { console.error('[LmsDB] saveChatMessage MySQL error:', err); }
     }
     return msg;
+  }
+
+  // ── Quiz Methods ──────────────────────────────────────────────────────────
+  async createQuiz(data: any): Promise<any> {
+    const { v4: uuid } = await import('uuid');
+    const id = data.id || `quiz-${Date.now()}`;
+    const quiz = {
+      id,
+      courseId: data.courseId,
+      lessonId: data.lessonId || null,
+      title: data.title,
+      description: data.description || '',
+      timeLimitMins: Number(data.timeLimitMins || 30),
+      passingScore: Number(data.passingScore || 40.00),
+      isPublished: data.isPublished ? 1 : 0
+    };
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO lms_quizzes (id, courseId, lessonId, title, description, timeLimitMins, passingScore, isPublished) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [quiz.id, quiz.courseId, quiz.lessonId, quiz.title, quiz.description, quiz.timeLimitMins, quiz.passingScore, quiz.isPublished]
+        );
+        return quiz;
+      } catch (err) { console.error('[LmsDB] createQuiz MySQL error:', err); }
+    }
+    // Mock local store update
+    if (!db.localStore.courses) db.localStore.courses = [];
+    return quiz;
+  }
+
+  async updateQuiz(id: string, data: any): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'UPDATE lms_quizzes SET title = ?, description = ?, timeLimitMins = ?, passingScore = ?, isPublished = ? WHERE id = ?',
+          [data.title, data.description, Number(data.timeLimitMins || 30), Number(data.passingScore || 40.00), data.isPublished ? 1 : 0, id]
+        );
+        return true;
+      } catch (err) { console.error('[LmsDB] updateQuiz MySQL error:', err); }
+    }
+    return true;
+  }
+
+  async deleteQuiz(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM lms_quizzes WHERE id = ?', [id]);
+        await mysqlPool.query('DELETE FROM lms_questions WHERE quizId = ?', [id]);
+        return true;
+      } catch (err) { console.error('[LmsDB] deleteQuiz MySQL error:', err); }
+    }
+    return true;
+  }
+
+  async getQuizById(id: string): Promise<any | null> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quizzes WHERE id = ? LIMIT 1', [id]);
+        return rows && rows.length > 0 ? rows[0] : null;
+      } catch (err) { console.error('[LmsDB] getQuizById MySQL error:', err); }
+    }
+    return null;
+  }
+
+  async getQuizzesByCourseId(courseId: string): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quizzes WHERE courseId = ? ORDER BY createdAt DESC', [courseId]);
+        return rows;
+      } catch (err) { console.error('[LmsDB] getQuizzesByCourseId MySQL error:', err); }
+    }
+    return [];
+  }
+
+  // ── Question Methods ──────────────────────────────────────────────────────
+  async createQuestion(data: any): Promise<any> {
+    const { v4: uuid } = await import('uuid');
+    const id = data.id || `q-${Date.now()}`;
+    const question = {
+      id,
+      quizId: data.quizId,
+      questionText: data.questionText,
+      optionA: data.optionA,
+      optionB: data.optionB,
+      optionC: data.optionC,
+      optionD: data.optionD,
+      correctAnswer: data.correctAnswer,
+      explanation: data.explanation || '',
+      marks: Number(data.marks || 1.00),
+      negativeMarks: Number(data.negativeMarks || 0.33),
+      orderIndex: Number(data.orderIndex || 1)
+    };
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO lms_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation, marks, negativeMarks, orderIndex) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [question.id, question.quizId, question.questionText, question.optionA, question.optionB, question.optionC, question.optionD, question.correctAnswer, question.explanation, question.marks, question.negativeMarks, question.orderIndex]
+        );
+        return question;
+      } catch (err) { console.error('[LmsDB] createQuestion MySQL error:', err); }
+    }
+    return question;
+  }
+
+  async updateQuestion(id: string, data: any): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'UPDATE lms_questions SET questionText = ?, optionA = ?, optionB = ?, optionC = ?, optionD = ?, correctAnswer = ?, explanation = ?, marks = ?, negativeMarks = ? WHERE id = ?',
+          [data.questionText, data.optionA, data.optionB, data.optionC, data.optionD, data.correctAnswer, data.explanation, Number(data.marks || 1.00), Number(data.negativeMarks || 0.33), id]
+        );
+        return true;
+      } catch (err) { console.error('[LmsDB] updateQuestion MySQL error:', err); }
+    }
+    return true;
+  }
+
+  async deleteQuestion(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM lms_questions WHERE id = ?', [id]);
+        return true;
+      } catch (err) { console.error('[LmsDB] deleteQuestion MySQL error:', err); }
+    }
+    return true;
+  }
+
+  async getQuestionsByQuizId(quizId: string): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_questions WHERE quizId = ? ORDER BY orderIndex ASC', [quizId]);
+        return rows;
+      } catch (err) { console.error('[LmsDB] getQuestionsByQuizId MySQL error:', err); }
+    }
+    return [];
+  }
+
+  // ── Assignment Methods ────────────────────────────────────────────────────
+  async createAssignment(data: any): Promise<any> {
+    const { v4: uuid } = await import('uuid');
+    const id = data.id || `assign-${Date.now()}`;
+    const assign = {
+      id,
+      courseId: data.courseId,
+      lessonId: data.lessonId || null,
+      title: data.title,
+      description: data.description || '',
+      dueDate: data.dueDate || '',
+      maxMarks: Number(data.maxMarks || 100),
+      submissionType: data.submissionType || 'pdf',
+      isPublished: data.isPublished ? 1 : 0
+    };
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO lms_assignments (id, courseId, lessonId, title, description, dueDate, maxMarks, submissionType, isPublished) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [assign.id, assign.courseId, assign.lessonId, assign.title, assign.description, assign.dueDate, assign.maxMarks, assign.submissionType, assign.isPublished]
+        );
+        return assign;
+      } catch (err) { console.error('[LmsDB] createAssignment MySQL error:', err); }
+    }
+    return assign;
+  }
+
+  async updateAssignment(id: string, data: any): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'UPDATE lms_assignments SET title = ?, description = ?, dueDate = ?, maxMarks = ?, submissionType = ?, isPublished = ? WHERE id = ?',
+          [data.title, data.description, data.dueDate, Number(data.maxMarks || 100), data.submissionType, data.isPublished ? 1 : 0, id]
+        );
+        return true;
+      } catch (err) { console.error('[LmsDB] updateAssignment MySQL error:', err); }
+    }
+    return true;
+  }
+
+  async deleteAssignment(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM lms_assignments WHERE id = ?', [id]);
+        await mysqlPool.query('DELETE FROM lms_assignment_submissions WHERE assignmentId = ?', [id]);
+        return true;
+      } catch (err) { console.error('[LmsDB] deleteAssignment MySQL error:', err); }
+    }
+    return true;
+  }
+
+  async getAssignmentsByCourseId(courseId: string): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_assignments WHERE courseId = ? ORDER BY createdAt DESC', [courseId]);
+        return rows;
+      } catch (err) { console.error('[LmsDB] getAssignmentsByCourseId MySQL error:', err); }
+    }
+    return [];
+  }
+
+  async submitAssignmentResponse(userId: string, assignmentId: string, submissionUrl: string, submissionText: string): Promise<any> {
+    const { v4: uuid } = await import('uuid');
+    const id = uuid();
+    const sub = { id, userId, assignmentId, submissionUrl, submissionText, submittedAt: new Date() };
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO lms_assignment_submissions (id, userId, assignmentId, submissionUrl, submissionText) VALUES (?, ?, ?, ?, ?)',
+          [id, userId, assignmentId, submissionUrl || null, submissionText || null]
+        );
+        return sub;
+      } catch (err) { console.error('[LmsDB] submitAssignmentResponse MySQL error:', err); }
+    }
+    return sub;
+  }
+
+  async getAssignmentSubmissions(assignmentId: string): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          `SELECT s.*, u.fullName, u.email
+           FROM lms_assignment_submissions s
+           JOIN users u ON u.id = s.userId
+           WHERE s.assignmentId = ?
+           ORDER BY s.submittedAt DESC`,
+          [assignmentId]
+        );
+        return rows;
+      } catch (err) { console.error('[LmsDB] getAssignmentSubmissions MySQL error:', err); }
+    }
+    return [];
+  }
+
+  async submitQuizAttempt(userId: string, quizId: string, answers: any, score: number, maxScore: number, passed: boolean, timeTakenSecs: number): Promise<any> {
+    const { v4: uuid } = await import('uuid');
+    const id = uuid();
+    const attempt = {
+      id,
+      userId,
+      quizId,
+      answers: JSON.stringify(answers),
+      score,
+      maxScore,
+      passed: passed ? 1 : 0,
+      timeTakenSecs,
+      submittedAt: new Date()
+    };
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO lms_quiz_attempts (id, userId, quizId, answers, score, maxScore, passed, timeTakenSecs) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [attempt.id, attempt.userId, attempt.quizId, attempt.answers, attempt.score, attempt.maxScore, attempt.passed, attempt.timeTakenSecs]
+        );
+        return { ...attempt, passed: !!attempt.passed };
+      } catch (err) { console.error('[LmsDB] submitQuizAttempt MySQL error:', err); }
+    }
+    return attempt;
+  }
+
+  async getQuizAttempts(userId: string, quizId: string): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          'SELECT * FROM lms_quiz_attempts WHERE userId = ? AND quizId = ? ORDER BY submittedAt DESC', [userId, quizId]
+        );
+        return rows.map((r: any) => ({ ...r, passed: !!r.passed, answers: typeof r.answers === 'string' ? JSON.parse(r.answers) : r.answers }));
+      } catch (err) { console.error('[LmsDB] getQuizAttempts MySQL error:', err); }
+    }
+    return [];
+  }
+
+  async getLeaderboard(quizId: string): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          `SELECT a.score, a.timeTakenSecs, a.submittedAt, u.fullName
+           FROM lms_quiz_attempts a
+           JOIN users u ON u.id = a.userId
+           WHERE a.quizId = ?
+           ORDER BY a.score DESC, a.timeTakenSecs ASC
+           LIMIT 10`,
+          [quizId]
+        );
+        return rows;
+      } catch (err) { console.error('[LmsDB] getLeaderboard MySQL error:', err); }
+    }
+    return [];
   }
 
   // ── Analytics & Performance Metrics ────────────────────────────────────────
