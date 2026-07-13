@@ -17,8 +17,12 @@ export default function Footer() {
           {/* Logo & Description */}
           <div className="lg:col-span-2 space-y-6">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-extrabold text-lg shadow-md" style={{ background: 'linear-gradient(135deg, #0F172A, #1E3A8A)', border: '1px solid rgba(245,158,11,0.4)' }}>
-                FA
+              <div className="relative w-10 h-10 shrink-0">
+                <img
+                  src="/lightlogo.png"
+                  alt="FA Logo"
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="font-heading font-extrabold text-lg tracking-tight text-white">
@@ -56,7 +60,7 @@ export default function Footer() {
               <li><Link href="/about" className="hover:text-white transition-colors">About Us</Link></li>
               <li><Link href="/courses" className="hover:text-white transition-colors">Courses</Link></li>
               <li><Link href="/current-affairs" className="hover:text-white transition-colors">Current Affairs</Link></li>
-              <li><Link href="/results" className="hover:text-white transition-colors">Results</Link></li>
+              <li><Link href="/achievers" className="hover:text-white transition-colors">Achievers</Link></li>
               <li><Link href="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
             </ul>
           </div>

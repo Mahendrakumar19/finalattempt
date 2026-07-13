@@ -36,8 +36,14 @@ export function useAuth() {
         if (res.success && res.data) {
           setAuth(res.data.user, res.data.accessToken);
         } else {
-          // Refresh failed (no cookie or session expired) — clear any stale state
-          clearAuth();
+          // If we already have a valid local token, do NOT log the user out on startup refresh failure
+          // because it might be a transient connection issue or cookie restriction on localhost.
+          const storedToken = useAuthStore.getState().accessToken;
+          if (!storedToken) {
+            clearAuth();
+          } else {
+            setLoading(false);
+          }
         }
       }
     };

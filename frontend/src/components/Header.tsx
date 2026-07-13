@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, ChevronDown, Phone, User, MapPin, Sparkles, LogOut, ArrowRight } from 'lucide-react';
+import { Menu, X, ChevronDown, Phone, User, MapPin, Sparkles, LogOut, ArrowRight, Sun, Moon } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/context/ThemeContext';
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,6 +13,7 @@ export default function Header() {
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -30,15 +32,13 @@ export default function Header() {
     { name: 'Home', href: '/' },
     { name: 'About Us', href: '/about' },
     {
-      name: 'Courses',
-      href: '/courses',
+      name: 'BPSC',
+      href: '#',
       dropdown: [
-        { name: '70th BPSC Foundation', href: '/courses/bpsc-foundation' },
-        { name: 'BPSC Prelims Test Series', href: '/courses/prelims-test-series' },
-        { name: 'Mains Answer Writing', href: '/courses/mains-answer-writing' },
+        { name: 'Courses', href: '/courses' },
+        { name: 'Test Series', href: '/courses#test-series' },
       ]
     },
-    { name: 'Test Series', href: '/courses#test-series' },
     { name: 'Study Material', href: '/resources' },
     { name: 'Blogs', href: '/blog' },
     { name: 'Career', href: '/about#career' },
@@ -46,7 +46,7 @@ export default function Header() {
   ];
 
   return (
-    <header className="w-full z-50 sticky top-0 bg-white border-b border-slate-100 shadow-sm">
+    <header className="w-full z-50 sticky top-0 border-b border-slate-100 shadow-sm transition-colors duration-200" style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--card-border)' }}>
       {/* Upper Ticker Bar matching wireframe scheme */}
       <div className="w-full bg-[#0F172A] text-slate-300 py-2 px-4 sm:px-6 lg:px-8 text-xs flex justify-between items-center border-b border-slate-800">
         <div className="flex items-center gap-6">
@@ -60,15 +60,28 @@ export default function Header() {
           </a>
         </div>
         <div className="flex items-center gap-6">
-          <Link href="/auth/login" className="hover:text-white transition-colors flex items-center gap-1.5">
+          <Link href="/auth/login/student" className="hover:text-white transition-colors flex items-center gap-1.5 font-bold">
             <span>👤</span>
-            <span>Student Login (Moodle)</span>
+            <span>Student Login</span>
           </Link>
-          <span className="text-slate-700">|</span>
-          <Link href="/auth/login" className="hover:text-white transition-colors flex items-center gap-1.5">
-            <span>🔒</span>
-            <span>Admin Login</span>
-          </Link>
+          <span className="text-slate-750">|</span>
+          <button 
+            onClick={toggleTheme} 
+            className="hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun className="w-3.5 h-3.5 text-amber-500" />
+                <span>Light Mode</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-3.5 h-3.5 text-slate-400" />
+                <span>Dark Mode</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -77,16 +90,26 @@ export default function Header() {
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-[#0F172A] font-extrabold text-base border-2 border-[#1E3A8A] shadow-sm relative overflow-hidden shrink-0">
-              {/* FA emblem style */}
-              <span className="z-10 font-black tracking-tighter text-[#1E3A8A]">FA</span>
-              <div className="absolute top-0 right-0 w-2 h-2 bg-[#F59E0B] rounded-full" />
+            <div className="relative w-12 h-12 shrink-0">
+              {mounted ? (
+                <img
+                  src={theme === 'dark' ? '/lightlogo.png' : '/darklogo.png'}
+                  alt="FA Logo"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <img
+                  src="/darklogo.png"
+                  alt="FA Logo"
+                  className="w-full h-full object-contain"
+                />
+              )}
             </div>
             <div className="flex flex-col">
-              <span className="font-heading font-black text-xl tracking-tight text-[#0F172A] leading-none">
+              <span className="font-heading font-black text-xl tracking-tight text-[var(--text-color)] leading-none">
                 FINAL ATTEMPT
               </span>
-              <span className="text-[10px] text-slate-500 font-bold tracking-wide mt-1">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-wide mt-1">
                 Your <span className="text-[#F59E0B]">Final Step</span> Toward Success.........
               </span>
             </div>

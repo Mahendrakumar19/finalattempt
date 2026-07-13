@@ -10,7 +10,7 @@ import {
 interface Lesson {
   id: string;
   title: string;
-  type: 'video' | 'quiz' | 'assignment';
+  type: string;
   videoUrl?: string;
   duration: string;
   isFree?: boolean;
@@ -85,6 +85,11 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [assignmentForm, setAssignmentForm] = useState<Partial<Assignment>>({ title: '', description: '', dueDate: '', maxMarks: 100, submissionType: 'pdf' });
 
+  const [showLessonModal, setShowLessonModal] = useState(false);
+  const [lessonForm, setLessonForm] = useState({ id: '', sectionId: '', title: '', type: 'video', videoUrl: '', duration: '15 mins' });
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   useEffect(() => {
     fetchCourseDetails();
   }, [courseId]);
@@ -157,18 +162,69 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   };
 
   // Lesson CRUD
-  const handleAddLesson = async (sectionId: string) => {
-    const title = window.prompt('Enter Lecture Title:');
-    const videoUrl = window.prompt('Enter Video URL:', 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4');
-    if (!title) return;
+  const handleAddLesson = (sectionId: string) => {
+    setLessonForm({ id: '', sectionId, title: '', type: 'video', videoUrl: '', duration: '15 mins' });
+    setShowLessonModal(true);
+  };
+
+  const handleSaveLesson = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const res = await fetch(`${BACKEND_URL}/api/lms/sections/${sectionId}/lessons`, {
-        method: 'POST',
+      const method = lessonForm.id ? 'PUT' : 'POST';
+      const endpoint = lessonForm.id 
+        ? `${BACKEND_URL}/api/lms/lessons/${lessonForm.id}` 
+        : `${BACKEND_URL}/api/lms/sections/${lessonForm.sectionId}/lessons`;
+
+      const res = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId, title, type: 'video', videoUrl, duration: '15 mins' })
+        body: JSON.stringify({
+          courseId,
+          title: lessonForm.title,
+          type: lessonForm.type,
+          videoUrl: lessonForm.videoUrl,
+          duration: lessonForm.duration
+        })
       });
-      if (res.ok) fetchCourseDetails();
+      if (res.ok) {
+        setShowLessonModal(false);
+        fetchCourseDetails();
+      }
     } catch (err) { console.error(err); }
+  };
+
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadProgress(15);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'ml_default');
+      
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dku1pxh1y';
+      setUploadProgress(40);
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      setUploadProgress(80);
+      const data = await res.json();
+      if (data.secure_url) {
+        setLessonForm(prev => ({ ...prev, videoUrl: data.secure_url }));
+        setUploadProgress(100);
+        alert('File uploaded successfully! URL set.');
+      } else {
+        alert('Upload failed: ' + (data.error?.message || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Upload failed. Check network or verify Cloudinary presets.');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const handleDeleteLesson = async (lessonId: string) => {
@@ -387,25 +443,48 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                           No lecture contents inside this chapter.
                         </div>
                       ) : (
-                        sec.lessons.map(les => (
-                          <div key={les.id} className="py-3 flex justify-between items-center">
-                            <div className="flex items-center gap-3">
-                              <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
-                                <Play className="w-3.5 h-3.5 fill-current" />
+                        sec.lessons.map(les => {
+                          const isVideo = les.type !== 'pdf' && les.type !== 'resource';
+                          return (
+                            <div key={les.id} className="py-3 flex justify-between items-center">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                                  isVideo ? 'bg-amber-500/10 text-amber-600' : 'bg-blue-500/10 text-blue-600'
+                                }`}>
+                                  {isVideo ? <Play className="w-3.5 h-3.5 fill-current" /> : <FileText className="w-3.5 h-3.5" />}
+                                </div>
+                                <div>
+                                  <p className="text-xs font-semibold text-slate-800">{les.title}</p>
+                                  <p className="text-[10px] text-slate-400 mt-0.5">{les.duration} &bull; <span className="uppercase text-[9px] font-bold text-slate-450">{les.type || 'video'}</span></p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-xs font-semibold text-slate-800">{les.title}</p>
-                                <p className="text-[10px] text-slate-400 mt-0.5">{les.duration}</p>
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={() => {
+                                    setLessonForm({
+                                      id: les.id,
+                                      sectionId: sec.id,
+                                      title: les.title,
+                                      type: les.type || 'video',
+                                      videoUrl: les.videoUrl || '',
+                                      duration: les.duration || '15 mins'
+                                    });
+                                    setShowLessonModal(true);
+                                  }}
+                                  className="p-1.5 border border-slate-200 bg-white rounded-lg text-slate-550 hover:bg-slate-100 transition-colors"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteLesson(les.id)}
+                                  className="p-1.5 border border-slate-200 bg-white rounded-lg hover:bg-red-50 text-red-500 transition-colors"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               </div>
                             </div>
-                            <button 
-                              onClick={() => handleDeleteLesson(les.id)}
-                              className="p-1.5 border border-slate-200 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))
+                          );
+                        })
                       )}
                     </div>
 
@@ -821,6 +900,84 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setShowAssignmentModal(false)} className="px-4 py-2 border rounded-xl text-xs font-semibold">Cancel</button>
               <button type="submit" className="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold">Save Assignment</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ── Lesson Modal ── */}
+      {showLessonModal && (
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleSaveLesson} className="w-full max-w-md bg-white rounded-3xl border border-slate-200 p-6 space-y-4 shadow-xl">
+            <h3 className="font-bold text-sm text-slate-900">{lessonForm.id ? 'Edit Course Lesson / Lecture' : 'Add Course Lesson / Lecture'}</h3>
+            
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold text-slate-400 uppercase">Lesson Title</label>
+              <input 
+                type="text" required value={lessonForm.title} 
+                onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs outline-none text-slate-900 bg-white"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold text-slate-400 uppercase">Content Type</label>
+                <select 
+                  value={lessonForm.type} 
+                  onChange={(e) => setLessonForm({ ...lessonForm, type: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white text-slate-900"
+                >
+                  <option value="video">Video Lecture</option>
+                  <option value="pdf">PDF Document / Notes</option>
+                  <option value="resource">Study Resource / Link</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold text-slate-400 uppercase">Duration / Size</label>
+                <input 
+                  type="text" required value={lessonForm.duration} 
+                  onChange={(e) => setLessonForm({ ...lessonForm, duration: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs outline-none text-slate-900 bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold text-slate-400 uppercase">File Link / Video or Document URL</label>
+              <input 
+                type="text" required value={lessonForm.videoUrl} 
+                onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
+                placeholder="https://... or paste Youtube link"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs outline-none text-slate-900 bg-white"
+              />
+            </div>
+
+            {/* Cloudinary File Upload Input Option */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Direct Upload to Cloudinary</span>
+              <input 
+                type="file" 
+                onChange={handleUploadFile}
+                disabled={uploading}
+                className="block w-full text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              {uploading && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[9px] text-slate-450 font-bold">
+                    <span>Uploading file...</span>
+                    <span>{uploadProgress}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                    <div className="bg-blue-600 h-full rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setShowLessonModal(false)} className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-700">Cancel</button>
+              <button type="submit" className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold">Save Lesson</button>
             </div>
           </form>
         </div>

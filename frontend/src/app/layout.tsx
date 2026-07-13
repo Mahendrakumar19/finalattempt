@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { ThemeProvider } from "@/context/ThemeContext";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-heading",
@@ -42,9 +43,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-body bg-brand-neutral text-brand-primary">
-        <Header />
-        <main className="flex-grow">{children}</main>
-        <Footer />
+        <ThemeProvider>
+          <Header />
+          <main className="flex-grow">{children}</main>
+          <Footer />
+        </ThemeProvider>
       </body>
     </html>
   );

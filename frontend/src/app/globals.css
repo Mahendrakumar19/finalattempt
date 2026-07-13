@@ -40,13 +40,29 @@
 :root {
   --font-heading: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Inter', sans-serif;
+  --bg-color: #FFFBF2;
+  --text-color: #0F172A;
+  --card-bg: #FFFFFF;
+  --card-border: #E2E8F0;
+  --header-bg: #FFFFFF;
+}
+
+/* Midnight blue/black mixed theme for dark mode */
+html.dark {
+  --bg-color: #080D1A;
+  --text-color: #F8FAFC;
+  --card-bg: #0F172A;
+  --card-border: rgba(255, 255, 255, 0.08);
+  --header-bg: #000000;
 }
 
 body {
   font-family: var(--font-body);
-  background-color: #FFFBF2;
-  color: #0F172A;
+  background-color: var(--bg-color);
+  color: var(--text-color);
   overflow-x: hidden;
+  font-size: 1.05rem; /* slightly increased font size */
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* ── Custom Scrollbar ── */
@@ -56,6 +72,9 @@ body {
 }
 ::-webkit-scrollbar-track {
   background: #FEF3C7;
+}
+html.dark ::-webkit-scrollbar-track {
+  background: #000000;
 }
 ::-webkit-scrollbar-thumb {
   background: #D97706;
@@ -70,6 +89,10 @@ body {
   background: rgba(255, 251, 242, 0.75);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(245, 158, 11, 0.15);
+}
+.dark .glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-panel-dark {
@@ -87,4 +110,145 @@ body {
 ::selection {
   background-color: #FCD34D;
   color: #0F172A;
+}
+
+/* ── Dark Mode Class Overrides ── */
+
+/* Background colors */
+html.dark .bg-white,
+html.dark .bg-slate-50,
+html.dark .bg-slate-100 {
+  background-color: var(--card-bg) !important;
+}
+
+html.dark .bg-slate-200,
+html.dark .bg-gray-100,
+html.dark .bg-gray-200 {
+  background-color: rgba(255,255,255,0.04) !important;
+}
+
+html.dark .bg-slate-800,
+html.dark .bg-gray-800 {
+  background-color: #0d1627 !important;
+}
+
+html.dark .bg-slate-900,
+html.dark .bg-gray-900 {
+  background-color: #080d1a !important;
+}
+
+/* Text colors */
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-950,
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-black,
+html.dark .text-brand-primary {
+  color: var(--text-color) !important;
+}
+
+html.dark .text-slate-700,
+html.dark .text-slate-600,
+html.dark .text-gray-700,
+html.dark .text-gray-600 {
+  color: #CBD5E1 !important;
+}
+
+html.dark .text-slate-500,
+html.dark .text-slate-400,
+html.dark .text-gray-500,
+html.dark .text-gray-400 {
+  color: #94A3B8 !important;
+}
+
+html.dark .text-slate-300,
+html.dark .text-gray-300 {
+  color: #64748B !important;
+}
+
+/* Borders */
+html.dark .border-slate-100,
+html.dark .border-slate-150,
+html.dark .border-slate-200,
+html.dark .border-slate-250,
+html.dark .border-gray-100,
+html.dark .border-gray-200 {
+  border-color: var(--card-border) !important;
+}
+
+html.dark .border-slate-300,
+html.dark .border-gray-300 {
+  border-color: rgba(255,255,255,0.12) !important;
+}
+
+html.dark .divide-slate-100,
+html.dark .divide-slate-200 > * + * {
+  border-color: var(--card-border) !important;
+}
+
+/* Header */
+html.dark header {
+  background-color: var(--header-bg) !important;
+  border-color: var(--card-border) !important;
+}
+
+/* Form inputs / selects / textareas */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  color: #F8FAFC !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #475569 !important;
+}
+
+/* Table rows */
+html.dark table,
+html.dark thead,
+html.dark tbody {
+  background-color: transparent !important;
+}
+
+html.dark tr:hover {
+  background-color: rgba(255,255,255,0.03) !important;
+}
+
+html.dark th,
+html.dark td {
+  border-color: var(--card-border) !important;
+  color: var(--text-color) !important;
+}
+
+html.dark thead tr {
+  background-color: rgba(255,255,255,0.03) !important;
+}
+
+/* Cards / Panels */
+html.dark .shadow-sm,
+html.dark .shadow-md {
+  box-shadow: 0 1px 8px rgba(0,0,0,0.5) !important;
+}
+
+/* Badges / Pills */
+html.dark .rounded-full.bg-slate-100,
+html.dark .rounded-full.bg-slate-50 {
+  background-color: rgba(255,255,255,0.08) !important;
+  color: #CBD5E1 !important;
+}
+
+/* Ring/focus glow in dark */
+html.dark .focus\:ring-2:focus,
+html.dark .focus\:border-amber-400:focus {
+  border-color: #F59E0B !important;
+  box-shadow: 0 0 0 3px rgba(245,158,11,0.2) !important;
+}
+
+/* Scrollbar in dark */
+html.dark ::-webkit-scrollbar-track {
+  background: #0d1627;
 }

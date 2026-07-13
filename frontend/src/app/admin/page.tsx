@@ -23,6 +23,7 @@ import {
   Bookmark,
   BookOpen
 } from 'lucide-react';
+import RichTextEditor from '@/components/RichTextEditor';
 
 type AdminTab = 'Dashboard' | 'Settings' | 'Leads' | 'Faculty' | 'Results' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Courses';
 
@@ -30,6 +31,7 @@ interface SiteSettings {
   heroTitle: string;
   heroSubtitle: string;
   tagline: string;
+  heroImageUrl?: string;
 }
 
 interface Lead {
@@ -122,8 +124,10 @@ export default function AdminPortal() {
   const [settings, setSettings] = useState<SiteSettings>({
     heroTitle: '72nd BPSC Preparation Starts Here',
     heroSubtitle: 'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
-    tagline: 'One Mentor. One Strategy. One Final Attempt.'
+    tagline: 'One Mentor. One Strategy. One Final Attempt.',
+    heroImageUrl: ''
   });
+  const [heroUploading, setHeroUploading] = useState(false);
   const [leadsList, setLeadsList] = useState<Lead[]>([]);
   const [facultyList, setFacultyList] = useState<FacultyMember[]>([]);
   const [resultsList, setResultsList] = useState<ResultTopper[]>([]);
@@ -171,6 +175,7 @@ export default function AdminPortal() {
   const [caForm, setCaForm] = useState<CurrentAffairArticle>({ id: '', title: '', category: 'National', publishDate: '', summary: '', content: '' });
   const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '' });
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '' });
+  const [resourceUploading, setResourceUploading] = useState(false);
   const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'LMS Program', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -241,6 +246,33 @@ export default function AdminPortal() {
       if (res.ok) alert('Settings saved successfully!');
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHeroUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'ml_default');
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dku1pxh1y';
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.secure_url) {
+        setSettings(prev => ({ ...prev, heroImageUrl: data.secure_url }));
+      } else {
+        alert('Upload failed: ' + (data.error?.message || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Image upload failed. Check network/Cloudinary preset.');
+    } finally {
+      setHeroUploading(false);
     }
   };
 
@@ -455,10 +487,21 @@ export default function AdminPortal() {
         <div className="p-6 space-y-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-amber-600" />
-              <span className="font-heading font-extrabold text-sm uppercase tracking-wider text-slate-900">CMS Master</span>
+              <div className="w-6 h-6 relative shrink-0">
+                <img
+                  src="/darklogo.png"
+                  alt="FA Logo"
+                  className="w-full h-full object-contain dark:hidden"
+                />
+                <img
+                  src="/lightlogo.png"
+                  alt="FA Logo"
+                  className="w-full h-full object-contain hidden dark:block"
+                />
+              </div>
+              <span className="font-heading font-extrabold text-sm uppercase tracking-wider text-slate-900 dark:text-white">CMS Master</span>
             </div>
-            <span className="bg-amber-500/10 text-amber-700 text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-amber-500/20">
+            <span className="bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-amber-500/20">
               Admin
             </span>
           </div>
@@ -562,46 +605,128 @@ export default function AdminPortal() {
         {/* TAB 2: SETTINGS */}
         {activeTab === 'Settings' && (
           <div className="p-6 bg-white border border-slate-200 max-w-2xl rounded-3xl shadow-sm">
-            <form onSubmit={handleSaveSettings} className="space-y-5">
+            <form onSubmit={handleSaveSettings} className="space-y-6">
               <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-3">
                 Homepage Hero Configurations
               </h3>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Main Tagline</label>
-                <input
-                  type="text"
-                  value={settings.tagline}
-                  onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
-                  className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-250 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                />
+              {/* ── Hero Background Image ─────────────────────────── */}
+              <div className="space-y-3">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-5 6 7"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+                  Hero Background Image
+                </label>
+
+                {/* Live Preview */}
+                <div className="relative w-full h-32 rounded-2xl overflow-hidden bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center">
+                  {settings.heroImageUrl ? (
+                    <>
+                      <img
+                        src={settings.heroImageUrl}
+                        alt="Hero Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = ''; }}
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <span className="text-white text-[10px] font-bold bg-black/60 px-3 py-1 rounded-full">Current Hero Image</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center">
+                      <svg className="w-8 h-8 text-slate-300 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-5 6 7"/></svg>
+                      <p className="text-[10px] text-slate-400 font-semibold">No custom image — using default</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Button */}
+                <div className="flex items-center gap-3">
+                  <label className={`relative flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed rounded-2xl cursor-pointer transition-all text-xs font-semibold
+                    ${heroUploading ? 'border-amber-300 bg-amber-50 text-amber-600' : 'border-slate-300 hover:border-amber-400 hover:bg-amber-50 text-slate-600 hover:text-amber-600'}`}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      onChange={handleHeroImageUpload}
+                      disabled={heroUploading}
+                    />
+                    {heroUploading ? (
+                      <>
+                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75"/></svg>
+                        Uploading to Cloudinary…
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        Upload Image File
+                      </>
+                    )}
+                  </label>
+
+                  {settings.heroImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setSettings(prev => ({ ...prev, heroImageUrl: '' }))}
+                      className="px-3 py-2.5 text-[10px] font-bold text-red-500 border border-red-200 rounded-2xl hover:bg-red-50 transition-colors"
+                    >
+                      Reset to Default
+                    </button>
+                  )}
+                </div>
+
+                {/* Direct URL Input */}
+                <div className="space-y-1">
+                  <label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">— or paste image URL directly —</label>
+                  <input
+                    type="url"
+                    placeholder="https://example.com/your-hero-image.jpg"
+                    value={settings.heroImageUrl || ''}
+                    onChange={(e) => setSettings(prev => ({ ...prev, heroImageUrl: e.target.value }))}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none text-slate-900 font-mono placeholder:font-sans placeholder:text-slate-300"
+                  />
+                  <p className="text-[9px] text-slate-400 font-medium">
+                    Accepts any publicly accessible image URL. Leave empty to use the default Bihar Vidhan Sabha image.
+                  </p>
+                </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hero Main Title</label>
-                <input
-                  type="text"
-                  value={settings.heroTitle}
-                  onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
-                  className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-250 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                />
-              </div>
+              <div className="border-t border-slate-100 pt-5 space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Main Tagline</label>
+                  <input
+                    type="text"
+                    value={settings.tagline}
+                    onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                  />
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hero Subtitle</label>
-                <textarea
-                  value={settings.heroSubtitle}
-                  rows={3}
-                  onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
-                  className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-250 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hero Main Title</label>
+                  <input
+                    type="text"
+                    value={settings.heroTitle}
+                    onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hero Subtitle</label>
+                  <textarea
+                    value={settings.heroSubtitle}
+                    rows={3}
+                    onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                  />
+                </div>
               </div>
 
               <button 
                 type="submit" 
-                className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase rounded-2xl shadow-md transition-all"
+                className="w-full px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase rounded-2xl shadow-md transition-all"
               >
-                Save configurations
+                💾 Save All Configurations
               </button>
             </form>
           </div>
@@ -1107,10 +1232,9 @@ export default function AdminPortal() {
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">Content</label>
-                    <textarea 
-                      rows={8} required value={blogForm.content} 
-                      onChange={(e) => setBlogForm({ ...blogForm, content: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs font-mono focus:border-slate-400 outline-none"
+                    <RichTextEditor 
+                      value={blogForm.content || ''} 
+                      onChange={(html) => setBlogForm({ ...blogForm, content: html })}
                     />
                   </div>
 
@@ -1176,46 +1300,126 @@ export default function AdminPortal() {
             {/* Modal add/edit Resource */}
             {activeModal && activeTab === 'Resources' && (
               <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <form onSubmit={handleSaveResource} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
+                <form onSubmit={handleSaveResource} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl">
                   <h3 className="font-extrabold text-sm text-slate-900">
                     {activeModal.type === 'add' ? 'Add Study Resource' : 'Edit Study Resource'}
                   </h3>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Resource Title</label>
-                    <input 
-                      type="text" required value={resourceForm.title} 
-                      onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                    />
+                  {/* ── File Upload ───────────────────────────────────── */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                      <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                      Upload File to Server
+                    </label>
+
+                    <label className={`relative flex flex-col items-center justify-center gap-2 px-4 py-5 border-2 border-dashed rounded-2xl cursor-pointer transition-all
+                      ${resourceUploading ? 'border-blue-300 bg-blue-50' : 'border-slate-200 hover:border-blue-400 hover:bg-blue-50/50'}`}>
+                      <input
+                        type="file"
+                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt,.mp4,.webm,.jpg,.jpeg,.png"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        disabled={resourceUploading}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setResourceUploading(true);
+                          try {
+                            const fd = new FormData();
+                            fd.append('file', file);
+                            const res = await fetch(`${BACKEND_URL}/api/upload`, { method: 'POST', body: fd });
+                            const data = await res.json();
+                            if (data.success && data.url) {
+                              const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                              const ext = file.name.split('.').pop()?.toUpperCase() || 'FILE';
+                              setResourceForm(prev => ({
+                                ...prev,
+                                url: data.url,
+                                size: `${sizeMB} MB`,
+                                type: ext,
+                                title: prev.title || file.name.replace(/\.[^.]+$/, '')
+                              }));
+                            } else {
+                              alert('Upload failed: ' + (data.error || 'Unknown error'));
+                            }
+                          } catch (err) {
+                            console.error(err);
+                            alert('Upload failed. Is the backend running?');
+                          } finally {
+                            setResourceUploading(false);
+                          }
+                        }}
+                      />
+                      {resourceUploading ? (
+                        <>
+                          <svg className="w-5 h-5 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75"/></svg>
+                          <span className="text-xs text-blue-600 font-semibold">Uploading file to server…</span>
+                        </>
+                      ) : resourceForm.url && resourceForm.url.includes('/api/files/') ? (
+                        <>
+                          <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M5 13l4 4L19 7"/></svg>
+                          <span className="text-xs text-emerald-600 font-semibold">File uploaded! Click to replace.</span>
+                          <a href={resourceForm.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 underline" onClick={e => e.stopPropagation()}>Preview file ↗</a>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                          <span className="text-xs text-slate-500 font-semibold">Click or drag file here to upload</span>
+                          <span className="text-[10px] text-slate-400">PDF, DOC, PPT, XLS, ZIP, MP4, images — max 500MB</span>
+                        </>
+                      )}
+                    </label>
+
+                    <p className="text-[9px] text-slate-400 font-medium">Files are stored on the backend server and served at <code className="font-mono">/api/files/filename</code></p>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="border-t border-slate-100 pt-3 space-y-3">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">File Size</label>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Resource Title</label>
                       <input 
-                        type="text" required value={resourceForm.size} 
-                        onChange={(e) => setResourceForm({ ...resourceForm, size: e.target.value })}
+                        type="text" required value={resourceForm.title} 
+                        onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        placeholder="e.g. BPSC Polity Notes 2025"
                       />
                     </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Type</label>
-                      <input 
-                        type="text" required value={resourceForm.type} 
-                        onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                      />
-                    </div>
-                  </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Download URL</label>
-                    <input 
-                      type="text" required value={resourceForm.url} 
-                      onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                    />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">File Size</label>
+                        <input 
+                          type="text" value={resourceForm.size} 
+                          onChange={(e) => setResourceForm({ ...resourceForm, size: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                          placeholder="Auto-filled on upload"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Type</label>
+                        <select
+                          value={resourceForm.type}
+                          onChange={(e) => setResourceForm({ ...resourceForm, type: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        >
+                          <option>PDF</option>
+                          <option>DOC</option>
+                          <option>PPT</option>
+                          <option>XLS</option>
+                          <option>ZIP</option>
+                          <option>MP4</option>
+                          <option>Notes</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Download URL (auto-filled on upload)</label>
+                      <input 
+                        type="text" value={resourceForm.url} 
+                        onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none font-mono"
+                        placeholder="Auto-filled after upload, or paste external URL"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">

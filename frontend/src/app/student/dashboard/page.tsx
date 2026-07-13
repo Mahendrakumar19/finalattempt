@@ -71,8 +71,12 @@ export default function LMSDashboard() {
         {/* Logo */}
         <div className="p-5 border-b border-white/[0.06]">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-              <Sparkles className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 relative shrink-0">
+              <img
+                src="/lightlogo.png"
+                alt="FA Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <p className="text-white font-bold text-sm leading-none">Final Attempt</p>

@@ -132,9 +132,12 @@ export default function RegisterPage() {
 
             {/* Logo */}
             <div className="flex items-center gap-2 mb-8">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shadow-md"
-                style={{ background: 'linear-gradient(135deg, #0F172A, #1E3A8A)', border: '1px solid rgba(245,158,11,0.4)' }}>
-                <Sparkles className="w-4 h-4 text-amber-400" />
+              <div className="relative w-8 h-8 shrink-0">
+                <img
+                  src="/lightlogo.png"
+                  alt="FA Logo"
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="text-white font-bold text-sm tracking-tight">Final Attempt <span className="text-amber-400">IAS</span></span>
             </div>
@@ -181,9 +184,12 @@ export default function RegisterPage() {
 
             {/* Mobile logo */}
             <div className="flex lg:hidden items-center gap-2 mb-6">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, #0F172A, #1E3A8A)', border: '1px solid rgba(245,158,11,0.4)' }}>
-                <Sparkles className="w-4 h-4 text-amber-400" />
+              <div className="relative w-8 h-8 shrink-0">
+                <img
+                  src="/lightlogo.png"
+                  alt="FA Logo"
+                  className="w-full h-full object-contain"
+                />
               </div>
               <span className="text-white font-bold tracking-tight">Final Attempt <span className="text-amber-400">IAS</span></span>
             </div>

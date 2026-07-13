@@ -94,6 +94,7 @@ export interface SiteSettings {
   heroTitle: string;
   heroSubtitle: string;
   tagline: string;
+  heroImageUrl?: string;
 }
 
 interface LocalDBStore {
@@ -123,9 +124,14 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         id INT PRIMARY KEY DEFAULT 1,
         heroTitle TEXT,
         heroSubtitle TEXT,
-        tagline TEXT
+        tagline TEXT,
+        heroImageUrl TEXT
       )
     `);
+    // Add heroImageUrl column if it doesn't exist (for existing DBs)
+    try {
+      await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS heroImageUrl TEXT');
+    } catch (_) { /* column already exists */ }
     
     // 2. Leads
     await pool.query(`
@@ -462,7 +468,8 @@ class BackendDB {
     settings: {
       heroTitle: '72nd BPSC Preparation Starts Here',
       heroSubtitle: 'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
-      tagline: 'One Mentor. One Strategy. One Final Attempt.'
+      tagline: 'One Mentor. One Strategy. One Final Attempt.',
+      heroImageUrl: ''
     },
     courses: [...courseData],
     sections: [
@@ -521,8 +528,11 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO settings (id, heroTitle, heroSubtitle, tagline) VALUES (1, ?, ?, ?) ON DUPLICATE KEY UPDATE heroTitle = ?, heroSubtitle = ?, tagline = ?',
-          [settings.heroTitle, settings.heroSubtitle, settings.tagline, settings.heroTitle, settings.heroSubtitle, settings.tagline]
+          'INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, heroImageUrl) VALUES (1, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE heroTitle = ?, heroSubtitle = ?, tagline = ?, heroImageUrl = ?',
+          [
+            settings.heroTitle, settings.heroSubtitle, settings.tagline, settings.heroImageUrl ?? null,
+            settings.heroTitle, settings.heroSubtitle, settings.tagline, settings.heroImageUrl ?? null
+          ]
         );
         return true;
       } catch (err) {
@@ -1144,6 +1154,19 @@ async function initializeAuthTables(pool: mysql.Pool) {
         lastLoginAt      DATETIME
       )
     `);
+
+    // Seed default users if table is empty
+    const [userCount]: any = await pool.query('SELECT COUNT(*) as count FROM users');
+    if (userCount[0].count === 0) {
+      for (const u of authLocalUsers) {
+        await pool.query(
+          `INSERT INTO users (id, fullName, email, mobile, passwordHash, role, targetExam, isEmailVerified, isActive)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+          [u.id, u.fullName, u.email, u.mobile, u.passwordHash, u.role, u.targetExam, u.isEmailVerified ? 1 : 0]
+        );
+      }
+      console.log('Seeded default auth users table.');
+    }
 
     // User Sessions (refresh tokens)
     await pool.query(`

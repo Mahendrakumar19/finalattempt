@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Search, Calendar, ChevronRight, FileText, Share2, Printer } from 'lucide-react';
 import { db, fallbackCurrentAffairs } from '@/services/db';
 
-type CategoryType = 'All' | 'National' | 'International' | 'Economy' | 'Environment' | 'Science' | 'Bihar Special';
+type CategoryType = 'All' | 'Bihar' | 'National' | 'International';
 
 export default function CurrentAffairs() {
   const [articlesList, setArticlesList] = useState<any[]>(fallbackCurrentAffairs);
@@ -26,10 +26,17 @@ export default function CurrentAffairs() {
     loadArticles();
   }, []);
 
-  const categories: CategoryType[] = ['All', 'National', 'International', 'Economy', 'Environment', 'Science', 'Bihar Special'];
+  const categories: CategoryType[] = ['All', 'Bihar', 'National', 'International'];
 
   const filteredArticles = articlesList.filter(article => {
-    const category = article.category || '';
+    let category = article.category || '';
+    if (category === 'Bihar Special') {
+      category = 'Bihar';
+    }
+
+    const isTargetCategory = category === 'Bihar' || category === 'National' || category === 'International';
+    if (!isTargetCategory) return false;
+
     const title = article.title || '';
     const summary = article.summary || '';
     const matchesCategory = selectedCategory === 'All' || category === selectedCategory;
@@ -39,6 +46,7 @@ export default function CurrentAffairs() {
   });
 
   const selectedArticle = articlesList.find(a => a.id === selectedArticleId) || filteredArticles[0];
+
 
   return (
     <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
@@ -103,7 +111,7 @@ export default function CurrentAffairs() {
                 }`}
               >
                 <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
-                  <span className="text-blue-600">{article.category}</span>
+                  <span className="text-blue-600">{article.category === 'Bihar Special' ? 'Bihar' : article.category}</span>
                   <span>{article.publishDate}</span>
                 </div>
                 <h4 className="font-heading font-extrabold text-xs text-brand-primary leading-snug">
@@ -123,7 +131,7 @@ export default function CurrentAffairs() {
                 <div className="flex justify-between items-center border-b border-slate-100 pb-4">
                   <div className="space-y-1">
                     <span className="px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-100 text-[10px] font-bold text-blue-800 uppercase tracking-wider">
-                      {selectedArticle.category}
+                      {selectedArticle.category === 'Bihar Special' ? 'Bihar' : selectedArticle.category}
                     </span>
                     <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold pt-1">
                       <Calendar className="w-3.5 h-3.5" />

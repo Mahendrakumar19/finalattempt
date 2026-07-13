@@ -31,7 +31,8 @@ export default function Home() {
   const [heroSettings, setHeroSettings] = useState({
     heroTitle: 'Dream BPSC. Achieve Success.',
     heroSubtitle: 'The right guidance today, leads to a better tomorrow.',
-    tagline: 'Your Final Step Toward Success..........'
+    tagline: 'Your Final Step Toward Success..........',
+    heroImageUrl: ''
   });
   const [liveCourses, setLiveCourses] = useState<any[]>([]);
   const [formSuccess, setFormSuccess] = useState(false);
@@ -87,7 +88,7 @@ export default function Home() {
     <div className="w-full flex flex-col min-h-screen bg-slate-50/50">
       
       {/* 1. HERO SECTION WITH EXACT WIREFRAME BACKDROP EFFECTS */}
-      <section className="relative pt-12 pb-20 overflow-hidden bg-white">
+      <section className="relative pt-12 pb-20 overflow-hidden bg-[var(--bg-color)]">
         
         {/* Soft Radial Glow backdrop */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full opacity-[0.06] blur-[130px] pointer-events-none"
@@ -105,22 +106,23 @@ export default function Home() {
 
         {/* Full Wide Blended Background Image (matching mockup exactly) */}
         <div className="absolute inset-0 z-0 flex items-center justify-center opacity-95 pointer-events-none">
-          <div className="relative w-full h-full max-w-7xl mx-auto">
+          <div className="relative w-full h-full">
             {/* Vidhan Sabha Image stretched in the center and blended */}
-            <div className="absolute inset-y-0 left-[20%] right-[20%] z-0">
+            <div className="absolute inset-0 z-0">
               <img 
-                src="/vidhan_sabha.png" 
+                src={heroSettings.heroImageUrl || "https://upload.wikimedia.org/wikipedia/commons/f/f6/Front_view_of_bihar_vidhan_sabha.jpg"}
                 alt="Bihar Vidhan Sabha Patna Secretariat" 
+                referrerPolicy="no-referrer"
                 className="w-full h-full object-cover opacity-90"
               />
             </div>
-            {/* Radial mask that fades the image into the white left text area */}
-            <div className="absolute inset-y-0 left-0 w-[45%] bg-gradient-to-r from-white via-white/95 to-transparent z-10" />
-            {/* Radial mask that fades the image into the white right list area */}
-            <div className="absolute inset-y-0 right-0 w-[45%] bg-gradient-to-l from-white via-white/90 to-transparent z-10" />
+            {/* Radial mask that fades the image into the background left text area */}
+            <div className="absolute inset-y-0 left-0 w-[50%] bg-gradient-to-r from-[var(--bg-color)] via-[var(--bg-color)]/95 to-transparent z-10" />
+            {/* Radial mask that fades the image into the background right list area */}
+            <div className="absolute inset-y-0 right-0 w-[50%] bg-gradient-to-l from-[var(--bg-color)] via-[var(--bg-color)]/90 to-transparent z-10" />
             {/* Soft top and bottom vignetting to blend with Header and Stats bar */}
-            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white to-transparent z-10" />
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white to-transparent z-10" />
+            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[var(--bg-color)] to-transparent z-10" />
+            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg-color)] to-transparent z-10" />
           </div>
         </div>
 
@@ -129,14 +131,14 @@ export default function Home() {
             
             {/* Left Content */}
             <div className="lg:col-span-4 space-y-6 pt-6">
-              <h1 className="text-4xl sm:text-5xl lg:text-6.5xl font-heading font-black text-[#0F172A] tracking-tight leading-tight">
-                Dream <span className="text-[#1E3A8A]">BPSC</span>.<br />
+              <h1 className="text-4xl sm:text-5xl lg:text-6.5xl font-heading font-black tracking-tight leading-tight" style={{ color: 'var(--text-color)' }}>
+                Dream <span className="text-[#1E3A8A] dark:text-blue-400">BPSC</span>.<br />
                 Achieve <span className="text-[#F59E0B]">Success</span>.
               </h1>
               
-              <p className="text-base sm:text-lg text-slate-650 font-bold leading-relaxed max-w-sm">
+              <p className="text-base sm:text-lg text-slate-700 dark:text-slate-300 font-bold leading-relaxed max-w-sm">
                 The right guidance today,<br />
-                leads to a <span className="text-[#1E3A8A] font-black">better tomorrow.</span>
+                leads to a <span className="text-[#1E3A8A] dark:text-blue-400 font-black">better tomorrow.</span>
               </p>
 
               <div className="flex flex-wrap gap-4 pt-2">

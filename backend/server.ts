@@ -16,6 +16,7 @@ import lmsRouter from './routes/lms';
 import paymentsRouter from './routes/payments';
 import quizzesRouter from './routes/quizzes';
 import facultiesRouter from './routes/faculties';
+import uploadsRouter from './routes/uploads';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -31,22 +32,44 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://finalttempt-tau.vercel.app',
-    'https://finalattempt-tau.vercel.app',
-    'https://finalattempt-t7n6.vercel.app',
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    process.env.ADMIN_URL || 'http://localhost:3001'
-  ],
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    const cleanFrontend = (process.env.FRONTEND_URL || '').trim();
+    const cleanAdmin = (process.env.ADMIN_URL || '').trim();
 
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://finalttempt-tau.vercel.app',
+      'https://finalattempt-tau.vercel.app',
+      'https://finalattempt-t7n6.vercel.app'
+    ];
+    if (cleanFrontend) allowedOrigins.push(cleanFrontend);
+    if (cleanAdmin) allowedOrigins.push(cleanAdmin);
+
+    const isAllowed = allowedOrigins.includes(origin) || 
+                      origin.startsWith('http://localhost:') || 
+                      origin.includes('vercel.app') || 
+                      origin.includes('finalattempt') || 
+                      origin.includes('finalttempt');
+
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS Blocked] Origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
 
 app.use(cookieParser());
-app.use(express.json({ limit: '5mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // General API rate limit (not on auth routes — those have their own limiter)
 const generalLimiter = rateLimit({
@@ -76,6 +99,7 @@ app.use('/api/payments', paymentsRouter);
 app.use('/api/quizzes', quizzesRouter);
 app.use('/api/chats', chatsRouter);
 app.use('/api/faculty', facultiesRouter);
+app.use('/api', uploadsRouter); // file upload + serve
 
 // Swagger UI 
 import swaggerUi from "swagger-ui-express";
@@ -359,11 +383,23 @@ app.post('/api/student/progress', async (req, res) => {
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      process.env.FRONTEND_URL || 'http://localhost:3000'
-    ],
+    origin: (origin, callback) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      const cleanFrontend = (process.env.FRONTEND_URL || '').trim();
+      const isAllowed = origin.startsWith('http://localhost:') || 
+                        origin.includes('vercel.app') || 
+                        origin.includes('finalattempt') ||
+                        origin.includes('finalttempt') ||
+                        (cleanFrontend && origin === cleanFrontend);
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true
   }
 });

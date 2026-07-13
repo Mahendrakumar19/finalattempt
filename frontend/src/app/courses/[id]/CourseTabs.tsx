@@ -33,13 +33,18 @@ interface CourseTabsProps {
   onRefresh?: () => void;
 }
 
+import { useAuth } from '@/hooks/useAuth';
+
 export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsProps) {
+  const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'Overview' | 'Syllabus' | 'Faculty' | 'Demo' | 'FAQ'>('Overview');
   const [playingVideo, setPlayingVideo] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // Moodle-style Edit Mode toggle inside detail page
   const [editMode, setEditMode] = useState(false);
+  const canEdit = isAuthenticated && (user?.role === 'admin' || user?.role === 'faculty');
+
 
   // Dynamic lists from backend
   const [sections, setSections] = useState<any[]>([]);
@@ -54,6 +59,16 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
     'Demo',
     'FAQ'
   ];
+
+  const getYoutubeEmbedUrl = (url: string): string | null => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}?autoplay=1&rel=0`;
+    }
+    return null;
+  };
 
   // Fetch sections and lessons for this course
   const fetchCurriculum = async () => {
@@ -200,23 +215,25 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
           <h3 className="font-extrabold text-sm text-slate-900 leading-tight">Curriculum & Study Guides</h3>
         </div>
 
-        {/* Edit mode toggle */}
-        <div className="flex items-center gap-2.5 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-2xs">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Edit Mode</span>
-          <button
-            type="button"
-            onClick={() => setEditMode(!editMode)}
-            className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300 focus:outline-none ${
-              editMode ? 'bg-slate-900' : 'bg-slate-300'
-            }`}
-          >
-            <div
-              className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${
-                editMode ? 'translate-x-5' : 'translate-x-0'
+        {/* Edit mode toggle - only shown to admin/faculty */}
+        {canEdit && (
+          <div className="flex items-center gap-2.5 bg-white px-4 py-2 rounded-2xl border border-slate-100 shadow-2xs">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Edit Mode</span>
+            <button
+              type="button"
+              onClick={() => setEditMode(!editMode)}
+              className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300 focus:outline-none ${
+                editMode ? 'bg-slate-900' : 'bg-slate-300'
               }`}
-            />
-          </button>
-        </div>
+            >
+              <div
+                className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${
+                  editMode ? 'translate-x-5' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tabs navigation */}
@@ -419,19 +436,34 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
             </div>
 
             {/* Video Player Modal */}
-            {playingVideo && (
-              <div className="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-3xl overflow-hidden max-w-2xl w-full p-4 space-y-4">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                    <h4 className="font-heading font-extrabold text-sm text-slate-950">Demo Lecture Player</h4>
-                    <button onClick={() => setPlayingVideo(null)} className="text-slate-400 hover:text-slate-950 text-xs font-bold">
-                      Close
-                    </button>
+            {playingVideo && (() => {
+              const youtubeEmbed = getYoutubeEmbedUrl(playingVideo);
+              return (
+                <div className="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl overflow-hidden max-w-2xl w-full p-4 space-y-4 shadow-2xl">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                      <h4 className="font-heading font-extrabold text-sm text-slate-950">Video Lecture Player</h4>
+                      <button onClick={() => setPlayingVideo(null)} className="text-slate-400 hover:text-slate-950 text-xs font-bold cursor-pointer">
+                        Close
+                      </button>
+                    </div>
+                    <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black">
+                      {youtubeEmbed ? (
+                        <iframe
+                          src={youtubeEmbed}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        />
+                      ) : (
+                        <video controls className="w-full h-full" src={playingVideo} autoPlay />
+                      )}
+                    </div>
                   </div>
-                  <video controls className="w-full rounded-2xl aspect-video bg-black" src={playingVideo} autoPlay />
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 
