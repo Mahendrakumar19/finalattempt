@@ -24,9 +24,15 @@ export function useAuth() {
     }
   }, [setAuth, clearAuth]);
 
-  // On mount: ALWAYS attempt silent token refresh via HttpOnly cookie.
+  // On mount: attempt silent token refresh via HttpOnly cookie if not authenticated.
   // This ensures we never use an expired access token stored in localStorage.
   useEffect(() => {
+    // Prevent infinite loop: if already authenticated, do not set loading or refresh again
+    if (useAuthStore.getState().isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     let mounted = true;
     setLoading(true);
 

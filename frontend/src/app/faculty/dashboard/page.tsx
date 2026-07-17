@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import SyllabusEditor from '@/components/faculty/SyllabusEditor';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,8 +22,24 @@ import {
 type FacultyTab = 'Classes' | 'Attendance' | 'Evaluation' | 'Queries' | 'Student Tracking';
 
 export default function FacultyPortal() {
-  const { logout, user } = useAuth();
+  const { logout, user, isLoading, requireAuth } = useAuth();
   const [activeTab, setActiveTab] = useState<FacultyTab>('Classes');
+
+  // Authentication guard
+  useEffect(() => {
+    requireAuth('/auth/login/faculty');
+  }, [requireAuth, isLoading]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Verifying Session...</p>
+        </div>
+      </div>
+    );
+  }
   
   // Attendance tracking state
   const [attendanceList, setAttendanceList] = useState([

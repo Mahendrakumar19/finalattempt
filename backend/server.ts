@@ -32,37 +32,9 @@ app.use(helmet({
 }));
 
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-    const cleanFrontend = (process.env.FRONTEND_URL || '').trim();
-    const cleanAdmin = (process.env.ADMIN_URL || '').trim();
-
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'https://finalttempt-tau.vercel.app',
-      'https://finalattempt-tau.vercel.app',
-      'https://finalattempt-t7n6.vercel.app'
-    ];
-    if (cleanFrontend) allowedOrigins.push(cleanFrontend);
-    if (cleanAdmin) allowedOrigins.push(cleanAdmin);
-
-    const isAllowed = allowedOrigins.includes(origin) || 
-                      origin.startsWith('http://localhost:') || 
-                      origin.includes('vercel.app') || 
-                      origin.includes('finalattempt') || 
-                      origin.includes('finalttempt');
-
-    if (isAllowed) {
-      callback(null, true);
-    } else {
-      console.warn(`[CORS Blocked] Origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: process.env.USE_LOCAL_DB === 'true' 
+    ? ['http://localhost:3000', 'http://localhost:3001'] // Local development
+    : true, // Production (allow all or configure specific domains)
   credentials: true
 }));
 

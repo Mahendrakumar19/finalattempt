@@ -18,7 +18,7 @@ const dbConfig = {
   port: Number(process.env.DB_PORT || '3306')
 };
 
-const useRealDB = !!(dbConfig.host && dbConfig.user && dbConfig.database);
+const useRealDB = process.env.USE_LOCAL_DB !== 'true' && !!(dbConfig.host && dbConfig.user && dbConfig.database);
 const JSON_DB_PATH = path.join(__dirname, 'database_store.json');
 
 export interface Lead {
@@ -110,9 +110,19 @@ interface LocalDBStore {
   courses: any[];
   sections: any[];
   lessons: any[];
+  users?: any[];
+  sessions?: any[];
+  otps?: any[];
 }
 
 export let mysqlPool: mysql.Pool | null = null;
+
+export function handlePoolDegrade(err: any) {
+  if (err && (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.fatal)) {
+    console.warn('[MySQL Pool] Degrading to local store fallback permanently due to query error:', err.code);
+    mysqlPool = null;
+  }
+}
 
 async function initializeMySQLTables(pool: mysql.Pool) {
   try {
@@ -404,21 +414,37 @@ async function initializeMySQLTables(pool: mysql.Pool) {
   }
 }
 
+// Global safety handlers for unhandled errors/rejections (prevent crashes on remote MySQL dropouts)
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION] Gracefully caught error to prevent server crash:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[UNHANDLED REJECTION] Gracefully caught promise rejection:', reason);
+});
+
 if (useRealDB) {
   try {
     const tempPool = mysql.createPool({
       ...dbConfig,
       waitForConnections: true,
       connectionLimit: 10,
+      maxIdle: 10,                    // Max idle connections
+      idleTimeout: 10000,             // Close idle connections after 10s (Hostinger drops them anyway)
       queueLimit: 0,
       enableKeepAlive: true,
-      keepAliveInitialDelay: 30000,   // Send keepAlive every 30s to prevent idle disconnects
+      keepAliveInitialDelay: 10000,   // Ping every 10s to keep connection alive
       connectTimeout: 10000,          // 10s connect timeout for remote Hostinger host
-      idleTimeout: 0,                 // Never let idle connections expire
       charset: 'utf8mb4'
     });
 
-
+    // Handle connection pool errors (prevent crash on ECONNRESET / MySQL drops)
+    (tempPool as any).on('error', (err: any) => {
+      console.warn('[MySQL Pool Error] Connection pool encountered error:', err.code || err.message);
+      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.fatal) {
+        console.warn('[MySQL Pool] Degrading to local store fallback permanently for this process run due to connection error.');
+        mysqlPool = null;
+      }
+    });
 
     // Test connection synchronously during pool startup (with a short timeout fallback check)
     console.log('Testing MySQL Database connection...');
@@ -480,7 +506,10 @@ class BackendDB {
     lessons: [
       { id: 'les-bpsc-foundation-1-1', sectionId: 'sect-bpsc-foundation-1', courseId: 'bpsc-foundation', title: 'Introduction & Micro-Syllabus Analysis', type: 'video', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', duration: '45 mins', durationSeconds: 2700, orderIndex: 1, isFree: 1, isPublished: 1 },
       { id: 'les-bpsc-foundation-1-2', sectionId: 'sect-bpsc-foundation-1', courseId: 'bpsc-foundation', title: 'Strategic Reading of Newspapers', type: 'video', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', duration: '60 mins', durationSeconds: 3600, orderIndex: 2, isFree: 0, isPublished: 1 }
-    ]
+    ],
+    users: [],
+    sessions: [],
+    otps: []
   };
 
   constructor() {
@@ -496,13 +525,25 @@ class BackendDB {
           ...this.localStore,
           ...parsed
         };
-        // Save the merged data back to the file so it becomes complete
+        // Seed default users if empty
+        if (!this.localStore.users || this.localStore.users.length === 0) {
+          this.localStore.users = [...authLocalUsers];
+        }
+        if (!this.localStore.sessions) this.localStore.sessions = [];
+        if (!this.localStore.otps) this.localStore.otps = [];
+        // Save back
         this.saveLocalData();
       } catch (e) {
         console.error('Failed reading database_store.json, creating new file.');
+        this.localStore.users = [...authLocalUsers];
+        this.localStore.sessions = [];
+        this.localStore.otps = [];
         this.saveLocalData();
       }
     } else {
+      this.localStore.users = [...authLocalUsers];
+      this.localStore.sessions = [];
+      this.localStore.otps = [];
       this.saveLocalData();
     }
   }
@@ -1050,7 +1091,6 @@ class BackendDB {
   }
 }
 
-export const db = new BackendDB();
 
 // ═════════════════════════════════════════════════════════════════════════════
 //  AUTH DATABASE — users, sessions, OTP verifications
@@ -1471,7 +1511,7 @@ class AuthDB {
         return rows.map((r: any) => ({ ...r, isEmailVerified: !!r.isEmailVerified, isActive: !!r.isActive }));
       } catch (err) { console.error('[AuthDB] getUsers MySQL error:', err); }
     }
-    return authLocalUsers;
+    return db.localStore.users || [];
   }
 
   async updateUserActiveStatus(userId: string, isActive: boolean): Promise<boolean> {
@@ -1481,8 +1521,12 @@ class AuthDB {
         return true;
       } catch (err) { console.error('[AuthDB] updateUserActiveStatus MySQL error:', err); }
     }
-    const u = authLocalUsers.find(user => user.id === userId);
-    if (u) { u.isActive = isActive; return true; }
+    const u = (db.localStore.users || []).find(user => user.id === userId);
+    if (u) { 
+      u.isActive = isActive; 
+      db.saveLocalData();
+      return true; 
+    }
     return false;
   }
 
@@ -1493,8 +1537,12 @@ class AuthDB {
         return true;
       } catch (err) { console.error('[AuthDB] deleteUser MySQL error:', err); }
     }
-    const idx = authLocalUsers.findIndex(user => user.id === userId);
-    if (idx >= 0) { authLocalUsers.splice(idx, 1); return true; }
+    const idx = (db.localStore.users || []).findIndex(user => user.id === userId);
+    if (idx >= 0) { 
+      db.localStore.users!.splice(idx, 1); 
+      db.saveLocalData();
+      return true; 
+    }
     return false;
   }
 
@@ -1513,7 +1561,9 @@ class AuthDB {
         return user;
       } catch (err) { console.error('[AuthDB] createUser MySQL error:', err); }
     }
-    authLocalUsers.push(user);
+    if (!db.localStore.users) db.localStore.users = [];
+    db.localStore.users.push(user);
+    db.saveLocalData();
     return user;
   }
 
@@ -1525,7 +1575,7 @@ class AuthDB {
         return null;
       } catch (err) { console.error('[AuthDB] findUserByEmail MySQL error:', err); }
     }
-    return authLocalUsers.find(u => u.email === email) || null;
+    return (db.localStore.users || []).find(u => u.email === email) || null;
   }
 
   async findUserByMobile(mobile: string): Promise<UserRecord | null> {
@@ -1536,7 +1586,7 @@ class AuthDB {
         return null;
       } catch (err) { console.error('[AuthDB] findUserByMobile MySQL error:', err); }
     }
-    return authLocalUsers.find(u => u.mobile === mobile) || null;
+    return (db.localStore.users || []).find(u => u.mobile === mobile) || null;
   }
 
   async findUserById(id: string): Promise<UserRecord | null> {
@@ -1547,7 +1597,7 @@ class AuthDB {
         return null;
       } catch (err) { console.error('[AuthDB] findUserById MySQL error:', err); }
     }
-    return authLocalUsers.find(u => u.id === id) || null;
+    return (db.localStore.users || []).find(u => u.id === id) || null;
   }
 
   async verifyUserEmail(userId: string): Promise<void> {
@@ -1557,8 +1607,11 @@ class AuthDB {
         return;
       } catch (err) { console.error('[AuthDB] verifyUserEmail MySQL error:', err); }
     }
-    const u = authLocalUsers.find(u => u.id === userId);
-    if (u) u.isEmailVerified = true;
+    const u = (db.localStore.users || []).find(u => u.id === userId);
+    if (u) {
+      u.isEmailVerified = true;
+      db.saveLocalData();
+    }
   }
 
   async updatePassword(userId: string, passwordHash: string): Promise<void> {
@@ -1568,8 +1621,11 @@ class AuthDB {
         return;
       } catch (err) { console.error('[AuthDB] updatePassword MySQL error:', err); }
     }
-    const u = authLocalUsers.find(u => u.id === userId);
-    if (u) u.passwordHash = passwordHash;
+    const u = (db.localStore.users || []).find(u => u.id === userId);
+    if (u) {
+      u.passwordHash = passwordHash;
+      db.saveLocalData();
+    }
   }
 
   async updateLastLogin(userId: string): Promise<void> {
@@ -1591,7 +1647,9 @@ class AuthDB {
         return;
       } catch (err) { console.error('[AuthDB] createSession MySQL error:', err); }
     }
-    authLocalSessions.push({ id: sessionId, userId, refreshToken, expiresAt });
+    if (!db.localStore.sessions) db.localStore.sessions = [];
+    db.localStore.sessions.push({ id: sessionId, userId, refreshToken, expiresAt });
+    db.saveLocalData();
   }
 
   async findSession(userId: string, sessionId: string): Promise<SessionRecord | null> {
@@ -1604,7 +1662,7 @@ class AuthDB {
         return rows && rows.length > 0 ? rows[0] : null;
       } catch (err) { console.error('[AuthDB] findSession MySQL error:', err); }
     }
-    return authLocalSessions.find(s => s.id === sessionId && s.userId === userId) || null;
+    return (db.localStore.sessions || []).find(s => s.id === sessionId && s.userId === userId) || null;
   }
 
   async deleteSession(sessionId: string): Promise<void> {
@@ -1619,8 +1677,11 @@ class AuthDB {
       }
     }
     // Always clean local store too
-    const idx = authLocalSessions.findIndex(s => s.id === sessionId);
-    if (idx >= 0) authLocalSessions.splice(idx, 1);
+    const idx = (db.localStore.sessions || []).findIndex(s => s.id === sessionId);
+    if (idx >= 0) {
+      db.localStore.sessions!.splice(idx, 1);
+      db.saveLocalData();
+    }
   }
 
   async deleteAllUserSessions(userId: string): Promise<void> {
@@ -1630,9 +1691,9 @@ class AuthDB {
         return;
       } catch (err) { console.error('[AuthDB] deleteAllUserSessions MySQL error:', err); }
     }
-    const filtered = authLocalSessions.filter(s => s.userId !== userId);
-    authLocalSessions.length = 0;
-    authLocalSessions.push(...filtered);
+    const filtered = (db.localStore.sessions || []).filter(s => s.userId !== userId);
+    db.localStore.sessions = filtered;
+    db.saveLocalData();
   }
 
   // ── OTP ────────────────────────────────────────────────────────────────────
@@ -1648,7 +1709,9 @@ class AuthDB {
         return;
       } catch (err) { console.error('[AuthDB] createOTP MySQL error:', err); }
     }
-    authLocalOTPs.push({ id, identifier, type, otpHash, purpose, expiresAt, attempts: 0, usedAt: null });
+    if (!db.localStore.otps) db.localStore.otps = [];
+    db.localStore.otps.push({ id, identifier, type, otpHash, purpose, expiresAt, attempts: 0, usedAt: null });
+    db.saveLocalData();
   }
 
   async getLatestOTP(identifier: string, type: 'email' | 'mobile', purpose: 'login' | 'register' | 'reset' | 'verify'): Promise<OTPRecord | null> {
@@ -1661,7 +1724,7 @@ class AuthDB {
         return rows && rows.length > 0 ? rows[0] : null;
       } catch (err) { console.error('[AuthDB] getLatestOTP MySQL error:', err); }
     }
-    return authLocalOTPs.filter(o => o.identifier === identifier && o.type === type && o.purpose === purpose && !o.usedAt).pop() || null;
+    return (db.localStore.otps || []).filter(o => o.identifier === identifier && o.type === type && o.purpose === purpose && !o.usedAt).pop() || null;
   }
 
   async incrementOTPAttempts(otpId: string): Promise<void> {
@@ -1671,8 +1734,11 @@ class AuthDB {
         return;
       } catch (err) { /* non-critical */ }
     }
-    const rec = authLocalOTPs.find(o => o.id === otpId);
-    if (rec) rec.attempts++;
+    const rec = (db.localStore.otps || []).find(o => o.id === otpId);
+    if (rec) {
+      rec.attempts++;
+      db.saveLocalData();
+    }
   }
 
   async markOTPUsed(otpId: string): Promise<void> {
@@ -1682,11 +1748,15 @@ class AuthDB {
         return;
       } catch (err) { /* non-critical */ }
     }
-    const rec = authLocalOTPs.find(o => o.id === otpId);
-    if (rec) rec.usedAt = new Date();
+    const rec = (db.localStore.otps || []).find(o => o.id === otpId);
+    if (rec) {
+      rec.usedAt = new Date();
+      db.saveLocalData();
+    }
   }
 }
 
+export const db = new BackendDB();
 export const authDB = new AuthDB();
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1711,6 +1781,7 @@ class LmsDB {
         }));
       } catch (err) { 
         console.error('[LmsDB] getCourses MySQL error, serving local fallback:', err); 
+        handlePoolDegrade(err);
         return db.localStore.courses;
       }
     }

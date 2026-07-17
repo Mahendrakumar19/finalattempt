@@ -1,25 +1,30 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function FacultyLayout({ children }: { children: React.ReactNode }) {
   const { isLoading, isAuthenticated, user } = useAuth();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isLoading) {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && !isLoading) {
       if (!isAuthenticated) {
-        router.replace('/auth/login?redirect=/faculty/dashboard');
+        router.replace('/auth/login/faculty?redirect=/faculty/dashboard');
       } else if (user && user.role !== 'faculty' && user.role !== 'admin') {
         // Redirection check for non-faculty members trying to access instructor endpoints
         router.replace('/student/dashboard');
       }
     }
-  }, [isLoading, isAuthenticated, user, router]);
+  }, [mounted, isLoading, isAuthenticated, user, router]);
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">

@@ -1,20 +1,25 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const { isLoading, isAuthenticated } = useAuth();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace('/auth/login?redirect=/student/dashboard');
-    }
-  }, [isLoading, isAuthenticated, router]);
+    setMounted(true);
+  }, []);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (mounted && !isLoading && !isAuthenticated) {
+      router.replace('/auth/login/student?redirect=/student/dashboard');
+    }
+  }, [mounted, isLoading, isAuthenticated, router]);
+
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">

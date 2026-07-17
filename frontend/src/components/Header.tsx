@@ -93,7 +93,7 @@ export default function Header() {
             <div className="relative w-12 h-12 shrink-0">
               {mounted ? (
                 <img
-                  src={theme === 'dark' ? '/lightlogo.png' : '/darklogo.png'}
+                  src={theme === 'dark' ? '/darklogo.png' : '/lightlogo.png'}
                   alt="FA Logo"
                   className="w-full h-full object-contain"
                 />
