@@ -28,21 +28,15 @@ export default function Header() {
     setActiveDropdown(activeDropdown === name ? null : name);
   };
 
-  const navLinks = [
+  const navLinks: { name: string; href: string; dropdown?: any[] }[] = [
     { name: 'Home', href: '/' },
-    { name: 'About Us', href: '/about' },
-    {
-      name: 'BPSC',
-      href: '#',
-      dropdown: [
-        { name: 'Courses', href: '/courses' },
-        { name: 'Test Series', href: '/courses#test-series' },
-      ]
-    },
+    { name: 'Courses', href: '/courses' },
+    { name: 'Test Series', href: '/test-series' },
+    { name: 'Current Affairs', href: '/current-affairs' },
+    { name: 'PYQs', href: '/pyq' },
     { name: 'Study Material', href: '/resources' },
     { name: 'Blogs', href: '/blog' },
-    { name: 'Career', href: '/about#career' },
-    { name: 'Contact Us', href: '/contact' }
+    { name: 'About & Contact', href: '/about' }
   ];
 
   return (
@@ -50,13 +44,13 @@ export default function Header() {
       {/* Upper Ticker Bar matching wireframe scheme */}
       <div className="w-full bg-[#0F172A] text-slate-300 py-2 px-4 sm:px-6 lg:px-8 text-xs flex justify-between items-center border-b border-slate-800">
         <div className="flex items-center gap-6">
-          <a href="mailto:info@finalattemptias.com" className="hover:text-white transition-colors flex items-center gap-1.5">
+          <a href="mailto:enquiry@finalattemptias.com" className="hover:text-white transition-colors flex items-center gap-1.5">
             <span className="font-semibold text-amber-500">✉</span>
-            <span>info@finalattemptias.com</span>
+            <span>enquiry@finalattemptias.com</span>
           </a>
-          <a href="tel:+919817304845" className="hover:text-white transition-colors flex items-center gap-1.5">
+          <a href="tel:+919709992093" className="hover:text-white transition-colors flex items-center gap-1.5">
             <span className="font-semibold text-amber-500">📞</span>
-            <span>+91 98173 04845</span>
+            <span>+91 97099 92093</span>
           </a>
         </div>
         <div className="flex items-center gap-6">
@@ -65,8 +59,8 @@ export default function Header() {
             <span>Student Login</span>
           </Link>
           <span className="text-slate-750">|</span>
-          <button 
-            onClick={toggleTheme} 
+          <button
+            onClick={toggleTheme}
             className="hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
             aria-label="Toggle theme"
           >
@@ -89,29 +83,20 @@ export default function Header() {
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="relative w-12 h-12 shrink-0">
-              {mounted ? (
-                <img
-                  src={theme === 'dark' ? '/darklogo.png' : '/lightlogo.png'}
-                  alt="FA Logo"
-                  className="w-full h-full object-contain"
-                />
-              ) : (
-                <img
-                  src="/darklogo.png"
-                  alt="FA Logo"
-                  className="w-full h-full object-contain"
-                />
-              )}
-            </div>
-            <div className="flex flex-col">
-              <span className="font-heading font-black text-xl tracking-tight text-[var(--text-color)] leading-none">
-                FINAL ATTEMPT
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-wide mt-1">
-                Your <span className="text-[#F59E0B]">Final Step</span> Toward Success.........
-              </span>
+          <Link href="/" className="flex items-center group">
+            <div className="relative w-48 h-12 shrink-0">
+              {/* Light Theme Logo */}
+              <img
+                src="/lightlogofull.png"
+                alt="Final Attempt"
+                className="w-full h-full object-contain logo-light"
+              />
+              {/* Dark Theme Logo */}
+              <img
+                src="/darklogofull.png"
+                alt="Final Attempt"
+                className="w-full h-full object-contain logo-dark"
+              />
             </div>
           </Link>
 
@@ -120,17 +105,16 @@ export default function Header() {
             {navLinks.map((link) => {
               const isDropdownActive = mounted && pathname.startsWith(link.href) && link.href !== '/';
               const isLinkActive = mounted && pathname === link.href;
-              
+
               return (
                 <div key={link.name} className="relative group/nav">
                   {link.dropdown ? (
                     <button
                       onClick={() => toggleDropdown(link.name)}
-                      className={`flex items-center gap-1 px-3 py-2 text-sm font-bold transition-all ${
-                        isDropdownActive 
-                          ? 'text-[#F59E0B]' 
+                      className={`flex items-center gap-1 px-3 py-2 text-sm font-bold transition-all ${isDropdownActive
+                          ? 'text-[#F59E0B]'
                           : 'text-slate-700 hover:text-[#F59E0B]'
-                      }`}
+                        }`}
                     >
                       <span>{link.name}</span>
                       <ChevronDown className="w-4 h-4 text-slate-400 group-hover/nav:rotate-180 transition-transform duration-300" />
@@ -138,11 +122,10 @@ export default function Header() {
                   ) : (
                     <Link
                       href={link.href}
-                      className={`px-3 py-2 text-sm font-bold transition-all relative ${
-                        isLinkActive 
-                          ? 'text-[#F59E0B] after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:bg-[#F59E0B]' 
+                      className={`px-3 py-2 text-sm font-bold transition-all relative ${isLinkActive
+                          ? 'text-[#F59E0B] after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:bg-[#F59E0B]'
                           : 'text-slate-700 hover:text-[#F59E0B]'
-                      }`}
+                        }`}
                     >
                       {link.name}
                     </Link>

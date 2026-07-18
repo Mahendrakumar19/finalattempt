@@ -28,7 +28,7 @@ export default function BiharSpecialResources() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12 bg-[#FFFBF2]">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12 bg-[var(--bg-color)]">
       {/* Back button */}
       <div>
         <Link 

@@ -21,17 +21,20 @@ import {
   Award,
   FileText,
   Bookmark,
-  BookOpen
+  BookOpen,
+  Layers
 } from 'lucide-react';
 import RichTextEditor from '@/components/RichTextEditor';
+import { db } from '@/services/db';
 
-type AdminTab = 'Dashboard' | 'Settings' | 'Leads' | 'Faculty' | 'Results' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Courses';
+type AdminTab = 'Dashboard' | 'Settings' | 'Leads' | 'Faculty' | 'Results' | 'Current Affairs' | 'Dynamic Current Affairs' | 'Blogs' | 'Resources' | 'Courses';
 
 interface SiteSettings {
   heroTitle: string;
   heroSubtitle: string;
   tagline: string;
   heroImageUrl?: string;
+  visitorsCount?: number;
 }
 
 interface Lead {
@@ -70,10 +73,15 @@ interface ResultTopper {
 interface CurrentAffairArticle {
   id: string;
   title: string;
-  category: 'National' | 'International' | 'Economy' | 'Environment' | 'Science' | 'Bihar Special';
+  category: string;
   publishDate: string;
   summary: string;
   content: string;
+  relevance?: string;
+  context?: string;
+  analysis?: string;
+  wayForward?: string;
+  practiceQuestion?: string;
 }
 
 interface BlogItem {
@@ -83,6 +91,10 @@ interface BlogItem {
   readTime: string;
   category: string;
   content: string;
+  seoTitle?: string;
+  seoKeywords?: string;
+  seoDescription?: string;
+  blurb?: string;
 }
 
 interface ResourceDownload {
@@ -138,6 +150,14 @@ export default function AdminPortal() {
   const [coursesList, setCoursesList] = useState<Course[]>([]);
   const [editMode, setEditMode] = useState(false);
 
+  // Dynamic Current Affairs states
+  const [dynamicEditionsList, setDynamicEditionsList] = useState<any[]>([]);
+  const [editingEdition, setEditingEdition] = useState<any | null>(null);
+  const [editingArticle, setEditingArticle] = useState<any | null>(null);
+  const [activeArticleCategory, setActiveArticleCategory] = useState<'NATIONAL' | 'INTERNATIONAL' | 'BIHAR'>('NATIONAL');
+  const [isEditionModalOpen, setIsEditionModalOpen] = useState(false);
+  const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
+
   // Modals visibility states
   const [activeModal, setActiveModal] = useState<{ type: 'add' | 'edit'; index?: number } | null>(null);
 
@@ -172,8 +192,8 @@ export default function AdminPortal() {
   // Form states for CRUD operations
   const [facultyForm, setFacultyForm] = useState<FacultyMember>({ id: '', name: '', role: '', experience: '', avatar: '', bio: '', demoLectures: [] });
   const [resultForm, setResultForm] = useState<ResultTopper>({ id: '', name: '', rank: '', exam: '', course: '', service: '', district: '', photo: '', year: 2026, story: '' });
-  const [caForm, setCaForm] = useState<CurrentAffairArticle>({ id: '', title: '', category: 'National', publishDate: '', summary: '', content: '' });
-  const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '' });
+  const [caForm, setCaForm] = useState<CurrentAffairArticle>({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
+  const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '' });
   const [resourceUploading, setResourceUploading] = useState(false);
   const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'LMS Program', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
@@ -221,6 +241,12 @@ export default function AdminPortal() {
       // 9. Users check list
       const uRes = await fetch(`${BACKEND_URL}/api/auth/users`);
       if (uRes.ok) setUsersList(await uRes.json());
+
+      // 10. Dynamic Current Affairs
+      const dynRes = await fetch(`${BACKEND_URL}/api/dynamic-current-affairs/editions?includeDrafts=true`);
+      if (dynRes.ok) {
+        setDynamicEditionsList(await dynRes.json());
+      }
 
       setBackendOffline(false);
     } catch (err) {
@@ -376,6 +402,106 @@ export default function AdminPortal() {
     await fetch(`${BACKEND_URL}/api/current-affairs/${id}`, { method: 'DELETE' });
   };
 
+  // Dynamic Current Affairs handlers
+  const handleSaveDynamicEdition = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEdition.publishDate) {
+      alert('Date is required.');
+      return;
+    }
+    
+    const ok = await db.saveDynamicCurrentAffairsEdition(editingEdition);
+    if (ok) {
+      alert('Daily edition saved successfully!');
+      setIsEditionModalOpen(false);
+      const list = await db.getDynamicCurrentAffairsEditions(true);
+      setDynamicEditionsList(list);
+    } else {
+      alert('Failed to save edition.');
+    }
+  };
+
+  const handleDeleteDynamicEdition = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this Daily Edition and all its aggregated articles?')) return;
+    const ok = await db.deleteDynamicCurrentAffairsEdition(id);
+    if (ok) {
+      setDynamicEditionsList(prev => prev.filter(e => e.id !== id));
+    } else {
+      alert('Failed to delete edition.');
+    }
+  };
+
+  const handleAddArticleToEdition = (category: 'NATIONAL' | 'INTERNATIONAL' | 'BIHAR') => {
+    setActiveArticleCategory(category);
+    setEditingArticle({
+      id: '',
+      slug: '',
+      title: '',
+      summary: '',
+      category,
+      publishStatus: 'PUBLISHED',
+      publishedDate: editingEdition.publishDate || '',
+      readingTime: '5 min read',
+      importance: 'MEDIUM',
+      content: '',
+      whyInNews: '',
+      context: '',
+      background: '',
+      keyHighlights: '',
+      importantFacts: '',
+      examRelevance: '',
+      previousContext: '',
+      wayForward: '',
+      keyTakeaways: '',
+      seo: { canonicalUrl: '', seoTitle: '', seoDescription: '', seoKeywords: '' },
+      subjects: [],
+      exams: [],
+      tags: [],
+      media: []
+    });
+    setIsArticleModalOpen(true);
+  };
+
+  const handleSaveArticleToEdition = () => {
+    if (!editingArticle.title || !editingArticle.summary) {
+      alert('Title and Summary are required.');
+      return;
+    }
+    
+    const articles = [...(editingEdition.articles || [])];
+    const artIdx = articles.findIndex(a => a.id === editingArticle.id && editingArticle.id !== '');
+    
+    const slugifiedTitle = editingArticle.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const finalSlug = editingArticle.slug || `${editingEdition.publishDate}-${editingArticle.category.toLowerCase()}-${slugifiedTitle}`;
+    
+    const nextArt = {
+      ...editingArticle,
+      id: editingArticle.id || `art-${Date.now()}`,
+      slug: finalSlug,
+      publishedDate: editingEdition.publishDate
+    };
+    
+    if (artIdx >= 0) {
+      articles[artIdx] = nextArt;
+    } else {
+      articles.push(nextArt);
+    }
+    
+    setEditingEdition({
+      ...editingEdition,
+      articles
+    });
+    setIsArticleModalOpen(false);
+  };
+
+  const handleDeleteArticleFromEdition = (artId: string) => {
+    if (!window.confirm('Remove this article from layout?')) return;
+    setEditingEdition({
+      ...editingEdition,
+      articles: (editingEdition.articles || []).filter((a: any) => a.id !== artId)
+    });
+  };
+
   const handleSaveBlog = async (e: React.FormEvent) => {
     e.preventDefault();
     if (activeModal?.type === 'add') {
@@ -486,20 +612,20 @@ export default function AdminPortal() {
       <aside className="w-full lg:w-64 border-b lg:border-b-0 lg:border-r flex flex-col justify-between shrink-0" style={{ background: '#FFFBF2', borderColor: 'rgba(245,158,11,0.15)' }}>
         <div className="p-6 space-y-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 relative shrink-0">
+            <div className="flex flex-col gap-1">
+              <div className="relative w-40 h-10 shrink-0">
                 <img
-                  src="/darklogo.png"
-                  alt="FA Logo"
-                  className="w-full h-full object-contain dark:hidden"
+                  src="/lightlogofull.png"
+                  alt="Final Attempt"
+                  className="w-full h-full object-contain logo-light"
                 />
                 <img
-                  src="/lightlogo.png"
-                  alt="FA Logo"
-                  className="w-full h-full object-contain hidden dark:block"
+                  src="/darklogofull.png"
+                  alt="Final Attempt"
+                  className="w-full h-full object-contain logo-dark"
                 />
               </div>
-              <span className="font-heading font-extrabold text-sm uppercase tracking-wider text-slate-900 dark:text-white">CMS Master</span>
+              <span className="font-heading font-extrabold text-[10px] uppercase tracking-wider text-slate-500 pl-1">CMS Master</span>
             </div>
             <span className="bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-amber-500/20">
               Admin
@@ -515,6 +641,7 @@ export default function AdminPortal() {
               { id: 'Faculty', icon: Briefcase },
               { id: 'Results', icon: Award },
               { id: 'Current Affairs', icon: FileText },
+              { id: 'Dynamic Current Affairs', icon: Layers },
               { id: 'Blogs', icon: Bookmark },
               { id: 'Resources', icon: Database }
             ].map((tab) => (
@@ -1034,7 +1161,7 @@ export default function AdminPortal() {
               <h3 className="font-extrabold text-sm text-slate-900">Current Affairs Articles</h3>
               <button 
                 onClick={() => {
-                  setCaForm({ id: '', title: '', category: 'National', publishDate: '', summary: '', content: '' });
+                  setCaForm({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
                   setActiveModal({ type: 'add' });
                 }}
                 className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm"
@@ -1102,32 +1229,72 @@ export default function AdminPortal() {
                         onChange={(e) => setCaForm({ ...caForm, category: e.target.value as any })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       >
-                        <option>National</option>
-                        <option>International</option>
-                        <option>Economy</option>
-                        <option>Environment</option>
-                        <option>Science</option>
+                        <option>GS Paper I</option>
+                        <option>GS Paper II</option>
+                        <option>GS Paper III</option>
                         <option>Bihar Special</option>
+                        <option>Editorials</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Short Summary</label>
-                    <textarea 
-                      rows={2} required value={caForm.summary} 
-                      onChange={(e) => setCaForm({ ...caForm, summary: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                    />
-                  </div>
+                  <div className="max-h-[50vh] overflow-y-auto space-y-4 pr-1">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Relevance (GS Syllabus Mapping)</label>
+                      <input 
+                        type="text" value={caForm.relevance || ''} 
+                        onChange={(e) => setCaForm({ ...caForm, relevance: e.target.value })}
+                        placeholder="e.g. GS Paper II: Constitutional Autonomy..."
+                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                      />
+                    </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Article Content</label>
-                    <textarea 
-                      rows={8} required value={caForm.content} 
-                      onChange={(e) => setCaForm({ ...caForm, content: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs font-mono focus:border-slate-400 outline-none"
-                    />
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Why in News? (Context)</label>
+                      <textarea 
+                        rows={2} value={caForm.context || ''} 
+                        onChange={(e) => setCaForm({ ...caForm, context: e.target.value })}
+                        placeholder="Explain the background trigger context..."
+                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Short Summary (Blurb)</label>
+                      <textarea 
+                        rows={2} required value={caForm.summary} 
+                        onChange={(e) => setCaForm({ ...caForm, summary: e.target.value })}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Article Content (Rich Editor)</label>
+                      <RichTextEditor
+                        value={caForm.content || ''}
+                        onChange={(html) => setCaForm({ ...caForm, content: html })}
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Way Forward (Recommendations)</label>
+                      <textarea 
+                        rows={2} value={caForm.wayForward || ''} 
+                        onChange={(e) => setCaForm({ ...caForm, wayForward: e.target.value })}
+                        placeholder="Provide closing policy recommendation details..."
+                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Practice Question (Mains/MCQ Challenge)</label>
+                      <textarea 
+                        rows={2} value={caForm.practiceQuestion || ''} 
+                        onChange={(e) => setCaForm({ ...caForm, practiceQuestion: e.target.value })}
+                        placeholder="Enter the practice question based on this article..."
+                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">
@@ -1144,6 +1311,371 @@ export default function AdminPortal() {
           </div>
         )}
 
+        {/* TAB 6b: DYNAMIC CURRENT AFFAIRS */}
+        {activeTab === 'Dynamic Current Affairs' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Dynamic Current Affairs editions</h3>
+              <button 
+                onClick={() => {
+                  setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: '', articles: [] });
+                  setIsEditionModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create Daily Edition</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dynamicEditionsList.map((ed) => {
+                const natCount = ed.articles?.filter((a: any) => a.category === 'NATIONAL').length || 0;
+                const intCount = ed.articles?.filter((a: any) => a.category === 'INTERNATIONAL').length || 0;
+                const bihCount = ed.articles?.filter((a: any) => a.category === 'BIHAR').length || 0;
+                
+                return (
+                  <div key={ed.id} className="p-5 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/[0.06] rounded-3xl shadow-sm flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+                        <span>DATE: {ed.publishDate}</span>
+                        <span className="text-amber-500">{ed.articles?.length || 0} ARTICLES</span>
+                      </div>
+                      <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Daily Edition Summary</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{ed.summary || 'No summary overview provided.'}</p>
+                      
+                      <div className="flex gap-2 pt-2 text-[10px] font-semibold text-slate-500">
+                        <span className="bg-amber-500/5 text-amber-600 px-2 py-0.5 rounded-lg">Nat ({natCount})</span>
+                        <span className="bg-indigo-500/5 text-indigo-600 px-2 py-0.5 rounded-lg">Int ({intCount})</span>
+                        <span className="bg-emerald-500/5 text-emerald-600 px-2 py-0.5 rounded-lg">Bihar ({bihCount})</span>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 border-t border-slate-50 dark:border-white/[0.02] pt-4 mt-2">
+                      <button 
+                        onClick={() => {
+                          setEditingEdition(ed);
+                          setIsEditionModalOpen(true);
+                        }}
+                        className="flex-1 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 font-bold text-xs cursor-pointer flex justify-center items-center gap-1"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Edit Edition</span>
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteDynamicEdition(ed.id)}
+                        className="p-2 border border-red-150 rounded-xl hover:bg-red-500 hover:text-white text-red-500 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Daily Edition Designer Modal */}
+            {isEditionModalOpen && editingEdition && (
+              <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl relative">
+                  <div className="flex justify-between items-center border-b pb-4">
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                      {editingEdition.id ? 'Edit Daily Current Affairs Edition' : 'Create Daily Current Affairs Edition'}
+                    </h3>
+                    <button 
+                      type="button" onClick={() => setIsEditionModalOpen(false)}
+                      className="text-slate-400 hover:text-slate-650 cursor-pointer font-bold text-sm"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveDynamicEdition} className="space-y-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Date <span className="text-red-500">*</span></label>
+                        <input 
+                          type="date" required value={editingEdition.publishDate}
+                          onChange={(e) => setEditingEdition({ ...editingEdition, publishDate: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Edition Summary Brief</label>
+                        <input 
+                          type="text" value={editingEdition.summary || ''}
+                          onChange={(e) => setEditingEdition({ ...editingEdition, summary: e.target.value })}
+                          placeholder="Quick summary summary mapping the day's highlights..."
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* CATEGORY COLUMNS */}
+                    <div className="space-y-6 pt-4 border-t">
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Edition Article Layout</h4>
+                      
+                      {(['BIHAR', 'NATIONAL', 'INTERNATIONAL'] as const).map(cat => {
+                        const catArticles = (editingEdition.articles || []).filter((a: any) => a.category === cat);
+                        return (
+                          <div key={cat} className="p-4 bg-slate-50 dark:bg-slate-950/20 rounded-2xl space-y-3 border border-slate-100 dark:border-white/[0.04]">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-350">{cat} Section ({catArticles.length})</span>
+                              <button
+                                type="button" onClick={() => handleAddArticleToEdition(cat)}
+                                className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-bold rounded-lg cursor-pointer"
+                              >
+                                + Add {cat === 'BIHAR' ? 'Bihar' : cat === 'NATIONAL' ? 'National' : 'International'} Article
+                              </button>
+                            </div>
+
+                            <div className="space-y-2">
+                              {catArticles.length === 0 ? (
+                                <p className="text-[10px] text-slate-450 italic">No articles mapped in this category yet.</p>
+                              ) : (
+                                catArticles.map((art: any) => (
+                                  <div key={art.id} className="flex justify-between items-center p-3 bg-white dark:bg-slate-900 border border-slate-150 dark:border-white/[0.04] rounded-xl">
+                                    <div>
+                                      <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">{art.title}</h5>
+                                      <span className="text-[9px] font-semibold text-slate-400">{art.importance} Importance &bull; {art.readingTime}</span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="button" onClick={() => {
+                                          setEditingArticle(art);
+                                          setIsArticleModalOpen(true);
+                                        }}
+                                        className="p-1.5 border border-slate-250 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
+                                      >
+                                        <Edit3 className="w-3 h-3" />
+                                      </button>
+                                      <button
+                                        type="button" onClick={() => handleDeleteArticleFromEdition(art.id)}
+                                        className="p-1.5 border border-red-200 rounded-lg hover:bg-red-50 text-red-500 cursor-pointer"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                      <button 
+                        type="button" onClick={() => setIsEditionModalOpen(false)}
+                        className="px-4 py-2 border border-slate-300 text-slate-700 dark:text-slate-350 text-xs font-semibold rounded-2xl cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="submit" 
+                        className="px-6 py-2 bg-slate-900 hover:bg-slate-850 dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 text-white text-xs font-bold rounded-2xl cursor-pointer"
+                      >
+                        Publish Daily Edition
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic Article Creator Sub-Modal */}
+            {isArticleModalOpen && editingArticle && (
+              <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 rounded-3xl max-w-3xl w-full max-h-[85vh] overflow-y-auto space-y-6 shadow-2xl relative">
+                  <div className="flex justify-between items-center border-b pb-4">
+                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                      Add / Edit Article ({activeArticleCategory})
+                    </h3>
+                    <button 
+                      type="button" onClick={() => setIsArticleModalOpen(false)}
+                      className="text-slate-400 hover:text-slate-650 cursor-pointer font-bold text-xs"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Basic Meta */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Article Title <span className="text-red-500">*</span></label>
+                        <input 
+                          type="text" required value={editingArticle.title}
+                          onChange={(e) => setEditingArticle({ ...editingArticle, title: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">URL Slug (leave empty to auto-generate)</label>
+                        <input 
+                          type="text" value={editingArticle.slug || ''}
+                          onChange={(e) => setEditingArticle({ ...editingArticle, slug: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Importance</label>
+                        <select 
+                          value={editingArticle.importance}
+                          onChange={(e) => setEditingArticle({ ...editingArticle, importance: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        >
+                          <option>HIGH</option>
+                          <option>MEDIUM</option>
+                          <option>LOW</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Reading Time</label>
+                        <input 
+                          type="text" value={editingArticle.readingTime}
+                          onChange={(e) => setEditingArticle({ ...editingArticle, readingTime: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Status</label>
+                        <select 
+                          value={editingArticle.publishStatus}
+                          onChange={(e) => setEditingArticle({ ...editingArticle, publishStatus: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        >
+                          <option>PUBLISHED</option>
+                          <option>DRAFT</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Executive Summary */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Executive Summary (Short Blurb) <span className="text-red-500">*</span></label>
+                      <textarea 
+                        rows={2} required value={editingArticle.summary}
+                        onChange={(e) => setEditingArticle({ ...editingArticle, summary: e.target.value })}
+                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                      />
+                    </div>
+
+                    {/* EDITORIAL CONTENT FIELD */}
+                    <div className="border-t pt-4 space-y-4">
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Article Content</h4>
+                      
+                      <div className="space-y-1.5">
+                        <RichTextEditor 
+                          value={editingArticle.content || ''} 
+                          onChange={(html) => setEditingArticle({ ...editingArticle, content: html })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* METADATA FILTERS INPUTS */}
+                    <div className="border-t pt-4 space-y-4">
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Metadata Parameters</h4>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Subjects (comma separated)</label>
+                          <input 
+                            type="text" value={editingArticle.subjects?.join(', ') || ''}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, subjects: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                            placeholder="Polity, Economy..."
+                            className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Exams (comma separated)</label>
+                          <input 
+                            type="text" value={editingArticle.exams?.join(', ') || ''}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, exams: e.target.value.split(',').map(ex => ex.trim()).filter(Boolean) })}
+                            placeholder="UPSC, BPSC..."
+                            className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Tags (comma separated)</label>
+                          <input 
+                            type="text" value={editingArticle.tags?.join(', ') || ''}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+                            placeholder="governance, budget..."
+                            className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SEO FIELDS */}
+                    <div className="border-t pt-4 space-y-4">
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">SEO Parameters</h4>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Title</label>
+                          <input 
+                            type="text" value={editingArticle.seo?.seoTitle || ''}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, seo: { ...editingArticle.seo, seoTitle: e.target.value } })}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Canonical URL</label>
+                          <input 
+                            type="text" value={editingArticle.seo?.canonicalUrl || ''}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, seo: { ...editingArticle.seo, canonicalUrl: e.target.value } })}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Keywords</label>
+                          <input 
+                            type="text" value={editingArticle.seo?.seoKeywords || ''}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, seo: { ...editingArticle.seo, seoKeywords: e.target.value } })}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Description</label>
+                          <input 
+                            type="text" value={editingArticle.seo?.seoDescription || ''}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, seo: { ...editingArticle.seo, seoDescription: e.target.value } })}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                      <button 
+                        type="button" onClick={() => setIsArticleModalOpen(false)}
+                        className="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-2xl cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button 
+                        type="button" onClick={handleSaveArticleToEdition}
+                        className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl cursor-pointer"
+                      >
+                        Save Article
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* TAB 7: BLOGS */}
         {activeTab === 'Blogs' && (
           <div className="space-y-6">
@@ -1151,7 +1683,7 @@ export default function AdminPortal() {
               <h3 className="font-extrabold text-sm text-slate-900">Blog Strategy Posts</h3>
               <button 
                 onClick={() => {
-                  setBlogForm({ id: '', title: '', publishDate: '', readTime: '5 min read', category: 'Strategy', content: '' });
+                  setBlogForm({ id: '', title: '', publishDate: '', readTime: '5 min read', category: 'Strategy', content: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
                   setActiveModal({ type: 'add' });
                 }}
                 className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-855 text-white font-bold rounded-2xl text-xs shadow-sm"
@@ -1202,41 +1734,84 @@ export default function AdminPortal() {
                     {activeModal.type === 'add' ? 'Create Blog Post' : 'Edit Blog Post'}
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="max-h-[50vh] overflow-y-auto space-y-4 pr-1">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Post Title</label>
+                        <input 
+                          type="text" required value={blogForm.title} 
+                          onChange={(e) => setBlogForm({ ...blogForm, title: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Category</label>
+                        <input 
+                          type="text" required value={blogForm.category} 
+                          onChange={(e) => setBlogForm({ ...blogForm, category: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Read Time</label>
+                        <input 
+                          type="text" required value={blogForm.readTime} 
+                          onChange={(e) => setBlogForm({ ...blogForm, readTime: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Target Title</label>
+                        <input 
+                          type="text" value={blogForm.seoTitle || ''} 
+                          onChange={(e) => setBlogForm({ ...blogForm, seoTitle: e.target.value })}
+                          placeholder="Meta title for Google results..."
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Post Title</label>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Keywords (Comma Separated)</label>
                       <input 
-                        type="text" required value={blogForm.title} 
-                        onChange={(e) => setBlogForm({ ...blogForm, title: e.target.value })}
+                        type="text" value={blogForm.seoKeywords || ''} 
+                        onChange={(e) => setBlogForm({ ...blogForm, seoKeywords: e.target.value })}
+                        placeholder="e.g. BPSC Polity notes, Article 356 Mains analysis"
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
                     </div>
+
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Category</label>
-                      <input 
-                        type="text" required value={blogForm.category} 
-                        onChange={(e) => setBlogForm({ ...blogForm, category: e.target.value })}
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Meta Description</label>
+                      <textarea 
+                        rows={2} value={blogForm.seoDescription || ''} 
+                        onChange={(e) => setBlogForm({ ...blogForm, seoDescription: e.target.value })}
+                        placeholder="Search result snippet summary description..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
                     </div>
-                  </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Read Time</label>
-                    <input 
-                      type="text" required value={blogForm.readTime} 
-                      onChange={(e) => setBlogForm({ ...blogForm, readTime: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                    />
-                  </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Blurb (Short Intro Summary)</label>
+                      <textarea 
+                        rows={2} value={blogForm.blurb || ''} 
+                        onChange={(e) => setBlogForm({ ...blogForm, blurb: e.target.value })}
+                        placeholder="Short introductory summary snippet..."
+                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                      />
+                    </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Content</label>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Content</label>
                     <RichTextEditor 
                       value={blogForm.content || ''} 
                       onChange={(html) => setBlogForm({ ...blogForm, content: html })}
                     />
                   </div>
+                </div>
 
                   <div className="flex justify-end gap-3 pt-2">
                     <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-2xl">

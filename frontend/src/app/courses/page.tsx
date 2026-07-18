@@ -6,7 +6,7 @@ import { Search, SlidersHorizontal, BookOpen, Clock, Calendar } from 'lucide-rea
 import { db } from '@/services/db';
 import { courseData } from '@/services/seedData';
 
-type CategoryType = 'All' | 'UPSC' | 'BPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview';
+type CategoryType = 'All' | 'UPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview';
 
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('All');
@@ -29,7 +29,7 @@ export default function Courses() {
 
   // FUTURE USE: UPSC Category is commented out for frontend display as the platform is currently not focusing on UPSC.
   // const categories: CategoryType[] = ['All', 'UPSC', 'BPSC', 'Foundation', 'Prelims', 'Mains', 'Interview'];
-  const categories: CategoryType[] = ['All', 'BPSC', 'Foundation', 'Prelims', 'Mains', 'Interview'];
+  const categories: CategoryType[] = ['All', 'Foundation', 'Prelims', 'Mains', 'Interview'];
 
   const filteredCourses = coursesList.filter(course => {
     // FUTURE USE: Hide UPSC courses from active view as we are currently focusing only on BPSC.

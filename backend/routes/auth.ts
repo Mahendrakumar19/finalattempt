@@ -420,6 +420,23 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// ─────────────────────────── PUT /api/auth/profile ───────────────────────────
+
+router.put('/profile', authenticate, async (req: AuthRequest, res: Response) => {
+  const { fullName, mobile, targetExam, avatarUrl } = req.body;
+  if (!fullName) {
+    res.status(400).json({ success: false, error: 'Full name is required.' });
+    return;
+  }
+
+  try {
+    await authDB.updateProfile(req.user!.userId, { fullName, mobile, targetExam, avatarUrl });
+    res.json({ success: true, message: 'Profile updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to update profile.' });
+  }
+});
+
 // ─────────────────────────── POST /api/auth/forgot-password ──────────────────
 
 router.post('/forgot-password', authLimiter, async (req: Request, res: Response) => {

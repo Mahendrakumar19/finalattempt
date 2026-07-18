@@ -56,6 +56,19 @@ html.dark {
   --header-bg: #000000;
 }
 
+.logo-light {
+  display: block !important;
+}
+.logo-dark {
+  display: none !important;
+}
+html.dark .logo-light {
+  display: none !important;
+}
+html.dark .logo-dark {
+  display: block !important;
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--bg-color);
@@ -101,9 +114,120 @@ html.dark ::-webkit-scrollbar-track {
   border: 1px solid rgba(245, 158, 11, 0.12);
 }
 
-/* ── Saffron accent glow utility ── */
+/* ── Glow & Hover Utilities ── */
 .glow-gold {
-  box-shadow: 0 0 24px rgba(245, 158, 11, 0.25);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.18);
+}
+
+.glow-premium {
+  box-shadow: 0 0 28px rgba(245, 158, 11, 0.25);
+  transition: box-shadow 0.3s ease-in-out;
+}
+.glow-premium:hover {
+  box-shadow: 0 0 35px rgba(245, 158, 11, 0.4);
+}
+
+.hover-lift {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -10px rgba(15, 23, 42, 0.15);
+}
+html.dark .hover-lift:hover {
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Standardized Premium Design System Buttons ── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 12px;
+  background-color: #0F172A;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+.btn-primary:hover {
+  background-color: #1E293B;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.25);
+}
+html.dark .btn-primary {
+  background-color: #F59E0B !important;
+  color: #0F172A !important;
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2);
+}
+html.dark .btn-primary:hover {
+  background-color: #D97706 !important;
+  box-shadow: 0 6px 14px rgba(245, 158, 11, 0.35);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 12px;
+  background-color: #F59E0B;
+  color: #0F172A !important;
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.15);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+.btn-secondary:hover {
+  background-color: #D97706;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(245, 158, 11, 0.25);
+}
+html.dark .btn-secondary {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #F8FAFC !important;
+  box-shadow: none;
+}
+html.dark .btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 12px;
+  border: 1.5px solid #E2E8F0;
+  background-color: transparent;
+  color: #0F172A !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+.btn-outline:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+  transform: translateY(-1px);
+}
+html.dark .btn-outline {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: #F8FAFC !important;
+}
+html.dark .btn-outline:hover {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
 }
 
 /* ── Selection highlight ── */
@@ -137,6 +261,10 @@ html.dark .bg-gray-900 {
   background-color: #080d1a !important;
 }
 
+html.dark .bg-brand-primary {
+  background-color: #1E3A8A !important;
+}
+
 /* Text colors */
 html.dark .text-slate-900,
 html.dark .text-slate-800,
@@ -164,7 +292,7 @@ html.dark .text-gray-400 {
 
 html.dark .text-slate-300,
 html.dark .text-gray-300 {
-  color: #64748B !important;
+  color: #E2E8F0 !important;
 }
 
 /* Borders */

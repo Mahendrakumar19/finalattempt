@@ -52,7 +52,7 @@ export default function ReturnRefundPage() {
             If you have any questions about our Returns and Refunds Policy, please contact us:
           </p>
           <ul className="list-disc pl-6 space-y-2 mt-4">
-            <li>By email: <a href="mailto:info@nighwantech.com" className="text-primary hover:underline">info@nighwantech.com</a></li>
+            <li>By email: <a href="mailto:enquiry@nighwantech.com" className="text-primary hover:underline">enquiry@nighwantech.com</a></li>
             <li>By WhatsApp: <a href="https://wa.me/918092225777" className="text-primary hover:underline">+91 80922 25777</a></li>
           </ul>
         </div>

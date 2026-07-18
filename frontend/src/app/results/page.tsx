@@ -11,7 +11,7 @@ export default function ResultsRedirect() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FFFBF2]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)]">
       <p className="text-slate-500 text-sm">Redirecting to achievers...</p>
     </div>
   );

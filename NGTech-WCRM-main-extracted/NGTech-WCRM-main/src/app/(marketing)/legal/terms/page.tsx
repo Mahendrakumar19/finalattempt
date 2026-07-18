@@ -91,11 +91,11 @@ export default function TermsOfServicePage() {
           <h2 className="text-2xl font-bold mt-10 mb-4 text-foreground">7. Contact Information</h2>
           <div className="mt-6 p-6 rounded-2xl bg-muted/50 border border-border/50">
             <p className="font-semibold text-foreground mb-1">NG Technology Pvt. Ltd.</p>
-            <p className="text-muted-foreground mb-1">Email: <a href="mailto:info@nighwantech.com" className="text-primary hover:underline">info@nighwantech.com</a></p>
+            <p className="text-muted-foreground mb-1">Email: <a href="mailto:enquiry@nighwantech.com" className="text-primary hover:underline">enquiry@nighwantech.com</a></p>
             <p className="text-muted-foreground">Phone: <a href="https://wa.me/918092225777" className="text-primary hover:underline">+91 8092225777</a></p>
           </div>
         </div>
-        
+
         <div className="mt-12 text-center">
           <Link href="/" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
             &larr; Back to Home

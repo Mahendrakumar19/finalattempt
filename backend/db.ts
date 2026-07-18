@@ -66,10 +66,72 @@ export interface ResultTopper {
 export interface CurrentAffairArticle {
   id: string;
   title: string;
-  category: 'National' | 'International' | 'Economy' | 'Environment' | 'Science' | 'Bihar Special';
+  category: string;
   publishDate: string;
   summary: string;
   content: string;
+  relevance?: string;
+  context?: string;
+  analysis?: string;
+  wayForward?: string;
+  practiceQuestion?: string;
+}
+
+export interface DynamicCurrentAffairSeo {
+  id?: string;
+  canonicalUrl?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+}
+
+export interface DynamicCurrentAffairMedia {
+  id?: string;
+  type: 'COVER' | 'FEATURED' | 'INLINE';
+  url: string;
+}
+
+export interface DynamicCurrentAffairArticle {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  category: 'NATIONAL' | 'INTERNATIONAL' | 'BIHAR';
+  publishStatus: 'DRAFT' | 'PUBLISHED';
+  publishedDate: string;
+  readingTime: string;
+  importance: 'HIGH' | 'MEDIUM' | 'LOW';
+  content?: string;
+  
+  // Editorial template fields
+  whyInNews?: string;
+  context?: string;
+  background?: string;
+  keyHighlights?: string;
+  importantFacts?: string;
+  examRelevance?: string;
+  previousContext?: string;
+  wayForward?: string;
+  keyTakeaways?: string;
+  
+  editionId: string;
+  seo?: DynamicCurrentAffairSeo;
+  media?: DynamicCurrentAffairMedia[];
+  subjects?: string[]; // Array of subject names
+  exams?: string[];    // Array of exam names
+  tags?: string[];     // Array of tag names
+  
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DynamicCurrentAffairEdition {
+  id: string;
+  publishDate: string; // YYYY-MM-DD
+  summary?: string;
+  articles?: DynamicCurrentAffairArticle[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BlogItem {
@@ -79,6 +141,10 @@ export interface BlogItem {
   readTime: string;
   category: string;
   content: string;
+  seoTitle?: string;
+  seoKeywords?: string;
+  seoDescription?: string;
+  blurb?: string;
 }
 
 export interface ResourceDownload {
@@ -95,6 +161,7 @@ export interface SiteSettings {
   heroSubtitle: string;
   tagline: string;
   heroImageUrl?: string;
+  visitorsCount?: number;
 }
 
 interface LocalDBStore {
@@ -113,6 +180,7 @@ interface LocalDBStore {
   users?: any[];
   sessions?: any[];
   otps?: any[];
+  dynamicCurrentAffairEditions?: DynamicCurrentAffairEdition[];
 }
 
 export let mysqlPool: mysql.Pool | null = null;
@@ -135,12 +203,16 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         heroTitle TEXT,
         heroSubtitle TEXT,
         tagline TEXT,
-        heroImageUrl TEXT
+        heroImageUrl TEXT,
+        visitorsCount INT DEFAULT 0
       )
     `);
-    // Add heroImageUrl column if it doesn't exist (for existing DBs)
+    // Add columns if they don't exist (for existing DBs)
     try {
       await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS heroImageUrl TEXT');
+    } catch (_) { /* column already exists */ }
+    try {
+      await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS visitorsCount INT DEFAULT 0');
     } catch (_) { /* column already exists */ }
     
     // 2. Leads
@@ -193,9 +265,152 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         category VARCHAR(100) NOT NULL,
         publishDate VARCHAR(100) NOT NULL,
         summary TEXT,
-        content TEXT
+        content TEXT,
+        relevance TEXT,
+        context TEXT,
+        analysis TEXT,
+        wayForward TEXT,
+        practiceQuestion TEXT
       )
     `);
+    try {
+      await pool.query('ALTER TABLE current_affairs ADD COLUMN IF NOT EXISTS relevance TEXT');
+      await pool.query('ALTER TABLE current_affairs ADD COLUMN IF NOT EXISTS context TEXT');
+      await pool.query('ALTER TABLE current_affairs ADD COLUMN IF NOT EXISTS analysis TEXT');
+      await pool.query('ALTER TABLE current_affairs ADD COLUMN IF NOT EXISTS wayForward TEXT');
+      await pool.query('ALTER TABLE current_affairs ADD COLUMN IF NOT EXISTS practiceQuestion TEXT');
+    } catch (_) {}
+
+    // 5b. Dynamic Current Affairs System Tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affair_editions (
+        id VARCHAR(255) PRIMARY KEY,
+        publishDate VARCHAR(100) UNIQUE NOT NULL,
+        summary TEXT,
+        createdAt VARCHAR(255) NOT NULL,
+        updatedAt VARCHAR(255) NOT NULL
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affair_seo (
+        id VARCHAR(255) PRIMARY KEY,
+        canonicalUrl TEXT,
+        seoTitle VARCHAR(255),
+        seoDescription TEXT,
+        seoKeywords TEXT
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affair_articles (
+        id VARCHAR(255) PRIMARY KEY,
+        slug VARCHAR(255) UNIQUE NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        summary TEXT NOT NULL,
+        category VARCHAR(100) NOT NULL,
+        publishStatus VARCHAR(50) DEFAULT 'DRAFT',
+        publishedDate VARCHAR(100) NOT NULL,
+        readingTime VARCHAR(100) DEFAULT '5 min read',
+        importance VARCHAR(50) DEFAULT 'MEDIUM',
+        whyInNews TEXT,
+        context TEXT,
+        background TEXT,
+        keyHighlights TEXT,
+        importantFacts TEXT,
+        examRelevance TEXT,
+        previousContext TEXT,
+        wayForward TEXT,
+        keyTakeaways TEXT,
+        editionId VARCHAR(255) NOT NULL,
+        seoId VARCHAR(255),
+        content TEXT,
+        createdAt VARCHAR(255) NOT NULL,
+        updatedAt VARCHAR(255) NOT NULL,
+        FOREIGN KEY (editionId) REFERENCES current_affair_editions(id) ON DELETE CASCADE,
+        FOREIGN KEY (seoId) REFERENCES current_affair_seo(id) ON DELETE SET NULL
+      )
+    `);
+    try {
+      await pool.query('ALTER TABLE current_affair_articles ADD COLUMN IF NOT EXISTS content TEXT');
+    } catch (_) {}
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affair_subjects (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) UNIQUE NOT NULL
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affair_exams (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) UNIQUE NOT NULL
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affair_tags (
+        id VARCHAR(255) PRIMARY KEY,
+        name VARCHAR(255) UNIQUE NOT NULL
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affair_media (
+        id VARCHAR(255) PRIMARY KEY,
+        type VARCHAR(100) NOT NULL,
+        url TEXT NOT NULL,
+        articleId VARCHAR(255) NOT NULL,
+        FOREIGN KEY (articleId) REFERENCES current_affair_articles(id) ON DELETE CASCADE
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affair_article_subjects (
+        articleId VARCHAR(255) NOT NULL,
+        subjectId VARCHAR(255) NOT NULL,
+        PRIMARY KEY (articleId, subjectId),
+        FOREIGN KEY (articleId) REFERENCES current_affair_articles(id) ON DELETE CASCADE,
+        FOREIGN KEY (subjectId) REFERENCES current_affair_subjects(id) ON DELETE CASCADE
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affair_article_exams (
+        articleId VARCHAR(255) NOT NULL,
+        examId VARCHAR(255) NOT NULL,
+        PRIMARY KEY (articleId, examId),
+        FOREIGN KEY (articleId) REFERENCES current_affair_articles(id) ON DELETE CASCADE,
+        FOREIGN KEY (examId) REFERENCES current_affair_exams(id) ON DELETE CASCADE
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS current_affair_article_tags (
+        articleId VARCHAR(255) NOT NULL,
+        tagId VARCHAR(255) NOT NULL,
+        PRIMARY KEY (articleId, tagId),
+        FOREIGN KEY (articleId) REFERENCES current_affair_articles(id) ON DELETE CASCADE,
+        FOREIGN KEY (tagId) REFERENCES current_affair_tags(id) ON DELETE CASCADE
+      )
+    `);
+
+    // Seed default subjects
+    const defaultSubjects = ['Polity', 'Economy', 'Geography', 'History', 'Environment', 'Science & Technology', 'Agriculture', 'Culture', 'Governance', 'International Relations'];
+    for (const sub of defaultSubjects) {
+      try {
+        await pool.query('INSERT IGNORE INTO current_affair_subjects (id, name) VALUES (?, ?)', [`sub-${sub.toLowerCase().replace(/[^a-z0-9]/g, '-')}`, sub]);
+      } catch (_) {}
+    }
+
+    // Seed default exams
+    const defaultExams = ['UPSC', 'BPSC', 'BSSC', 'SSC', 'Railway'];
+    for (const ex of defaultExams) {
+      try {
+        await pool.query('INSERT IGNORE INTO current_affair_exams (id, name) VALUES (?, ?)', [`ex-${ex.toLowerCase()}`, ex]);
+      } catch (_) {}
+    }
     
     // 6. Blogs
     await pool.query(`
@@ -205,9 +420,19 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         publishDate VARCHAR(100) NOT NULL,
         readTime VARCHAR(100) NOT NULL,
         category VARCHAR(100) NOT NULL,
-        content TEXT
+        content TEXT,
+        seoTitle VARCHAR(255),
+        seoKeywords TEXT,
+        seoDescription TEXT,
+        blurb TEXT
       )
     `);
+    try {
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS seoTitle VARCHAR(255)');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS seoKeywords TEXT');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS seoDescription TEXT');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS blurb TEXT');
+    } catch (_) {}
     
     // 7. Resources
     await pool.query(`
@@ -509,7 +734,8 @@ class BackendDB {
     ],
     users: [],
     sessions: [],
-    otps: []
+    otps: [],
+    dynamicCurrentAffairEditions: []
   };
 
   constructor() {
@@ -580,9 +806,34 @@ class BackendDB {
         console.error('MySQL update error, using local fallback:', err);
       }
     }
-    this.localStore.settings = settings;
+    this.localStore.settings = {
+      ...this.localStore.settings,
+      heroTitle: settings.heroTitle,
+      heroSubtitle: settings.heroSubtitle,
+      tagline: settings.tagline,
+      heroImageUrl: settings.heroImageUrl
+    };
     this.saveLocalData();
     return true;
+  }
+
+  public async getAndIncrementVisitorCount(): Promise<number> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, visitorsCount) VALUES (1, "", "", "", 1) ON DUPLICATE KEY UPDATE visitorsCount = visitorsCount + 1'
+        );
+        const [rows]: any = await mysqlPool.query('SELECT visitorsCount FROM settings WHERE id = 1');
+        if (rows && rows.length > 0) return Number(rows[0].visitorsCount || 0);
+      } catch (err) {
+        console.error('[BackendDB] MySQL visitor count error, using local fallback:', err);
+      }
+    }
+    const current = this.localStore.settings.visitorsCount || 0;
+    const nextVal = current + 1;
+    this.localStore.settings.visitorsCount = nextVal;
+    this.saveLocalData();
+    return nextVal;
   }
 
   // LEADS
@@ -800,8 +1051,11 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO current_affairs (id, title, category, publishDate, summary, content) VALUES (?, ?, ?, ?, ?, ?)',
-          [item.id, item.title, item.category, item.publishDate, item.summary, item.content]
+          'INSERT INTO current_affairs (id, title, category, publishDate, summary, content, relevance, context, analysis, wayForward, practiceQuestion) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            item.id, item.title, item.category, item.publishDate, item.summary, item.content,
+            item.relevance ?? null, item.context ?? null, item.analysis ?? null, item.wayForward ?? null, item.practiceQuestion ?? null
+          ]
         );
         return item;
       } catch (err) {
@@ -817,8 +1071,11 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query(
-          'UPDATE current_affairs SET title = ?, category = ?, publishDate = ?, summary = ?, content = ? WHERE id = ?',
-          [updated.title, updated.category, updated.publishDate, updated.summary, updated.content, id]
+          'UPDATE current_affairs SET title = ?, category = ?, publishDate = ?, summary = ?, content = ?, relevance = ?, context = ?, analysis = ?, wayForward = ?, practiceQuestion = ? WHERE id = ?',
+          [
+            updated.title, updated.category, updated.publishDate, updated.summary, updated.content,
+            updated.relevance ?? null, updated.context ?? null, updated.analysis ?? null, updated.wayForward ?? null, updated.practiceQuestion ?? null, id
+          ]
         );
         return result.affectedRows > 0;
       } catch (err) {
@@ -852,6 +1109,366 @@ class BackendDB {
     return false;
   }
 
+  // DYNAMIC CURRENT AFFAIRS SYSTEM METHODS
+  public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
+    if (mysqlPool) {
+      try {
+        const [editionsRows]: any = await mysqlPool.query('SELECT * FROM current_affair_editions ORDER BY publishDate DESC');
+        const editions: DynamicCurrentAffairEdition[] = [];
+        
+        for (const edRow of editionsRows) {
+          const statusFilter = includeDrafts ? '' : "AND publishStatus = 'PUBLISHED'";
+          const [articlesRows]: any = await mysqlPool.query(
+            `SELECT * FROM current_affair_articles WHERE editionId = ? ${statusFilter} ORDER BY createdAt DESC`,
+            [edRow.id]
+          );
+          
+          const articles: DynamicCurrentAffairArticle[] = [];
+          for (const artRow of articlesRows) {
+            // SEO
+            let seo: DynamicCurrentAffairSeo = {};
+            if (artRow.seoId) {
+              const [seoRows]: any = await mysqlPool.query('SELECT * FROM current_affair_seo WHERE id = ?', [artRow.seoId]);
+              if (seoRows.length > 0) seo = seoRows[0];
+            }
+            
+            // Subjects
+            const [subRows]: any = await mysqlPool.query(
+              'SELECT name FROM current_affair_subjects s JOIN current_affair_article_subjects asub ON s.id = asub.subjectId WHERE asub.articleId = ?',
+              [artRow.id]
+            );
+            
+            // Exams
+            const [exRows]: any = await mysqlPool.query(
+              'SELECT name FROM current_affair_exams e JOIN current_affair_article_exams aex ON e.id = aex.examId WHERE aex.articleId = ?',
+              [artRow.id]
+            );
+            
+            // Tags
+            const [tagRows]: any = await mysqlPool.query(
+              'SELECT name FROM current_affair_tags t JOIN current_affair_article_tags atg ON t.id = atg.tagId WHERE atg.articleId = ?',
+              [artRow.id]
+            );
+            
+            // Media
+            const [medRows]: any = await mysqlPool.query(
+              'SELECT type, url FROM current_affair_media WHERE articleId = ?',
+              [artRow.id]
+            );
+            
+            articles.push({
+              ...artRow,
+              seo,
+              media: medRows,
+              subjects: subRows.map((s: any) => s.name),
+              exams: exRows.map((e: any) => e.name),
+              tags: tagRows.map((t: any) => t.name)
+            });
+          }
+          
+          editions.push({
+            ...edRow,
+            articles
+          });
+        }
+        return editions;
+      } catch (err) {
+        console.error('[BackendDB] getDynamicCurrentAffairsEditions error:', err);
+      }
+    }
+    
+    // Local Store Fallback
+    const storeEditions = this.localStore.dynamicCurrentAffairEditions || [];
+    if (includeDrafts) return storeEditions;
+    
+    return storeEditions.map(ed => ({
+      ...ed,
+      articles: (ed.articles || []).filter(a => a.publishStatus === 'PUBLISHED')
+    })).filter(ed => (ed.articles || []).length > 0);
+  }
+
+  public async getDynamicCurrentAffairsEditionByDate(date: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition | null> {
+    const editions = await this.getDynamicCurrentAffairsEditions(includeDrafts);
+    return editions.find(e => e.publishDate === date) || null;
+  }
+
+  public async getDynamicCurrentAffairArticle(slug: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairArticle | null> {
+    const editions = await this.getDynamicCurrentAffairsEditions(includeDrafts);
+    for (const ed of editions) {
+      if (ed.articles) {
+        const found = ed.articles.find(a => a.slug === slug);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  public async createOrUpdateDynamicCurrentAffairEdition(edition: DynamicCurrentAffairEdition): Promise<boolean> {
+    const timestamp = new Date().toISOString();
+    const edId = edition.id || `edition-${Date.now()}`;
+    const edDate = edition.publishDate; // YYYY-MM-DD
+    
+    if (mysqlPool) {
+      const conn = await mysqlPool.getConnection();
+      try {
+        await conn.beginTransaction();
+        
+        // 1. Insert or update edition
+        await conn.query(
+          'INSERT INTO current_affair_editions (id, publishDate, summary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE summary = ?, updatedAt = ?',
+          [edId, edDate, edition.summary ?? null, timestamp, timestamp, edition.summary ?? null, timestamp]
+        );
+        
+        if (edition.articles) {
+          for (const art of edition.articles) {
+            const artId = art.id || `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+            const artSlug = art.slug || `${edDate}-${art.category.toLowerCase()}-${art.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+            
+            // 2. SEO
+            let seoId = null;
+            if (art.seo) {
+              seoId = art.seo.id || `seo-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+              await conn.query(
+                'INSERT INTO current_affair_seo (id, canonicalUrl, seoTitle, seoDescription, seoKeywords) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE canonicalUrl = ?, seoTitle = ?, seoDescription = ?, seoKeywords = ?',
+                [seoId, art.seo.canonicalUrl ?? null, art.seo.seoTitle ?? null, art.seo.seoDescription ?? null, art.seo.seoKeywords ?? null, art.seo.canonicalUrl ?? null, art.seo.seoTitle ?? null, art.seo.seoDescription ?? null, art.seo.seoKeywords ?? null]
+              );
+            }
+            
+            // 3. Article
+            await conn.query(
+              `INSERT INTO current_affair_articles (
+                id, slug, title, summary, category, publishStatus, publishedDate, readingTime, importance,
+                whyInNews, context, background, keyHighlights, importantFacts, examRelevance, previousContext, wayForward, keyTakeaways,
+                editionId, seoId, content, createdAt, updatedAt
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON DUPLICATE KEY UPDATE
+                title = ?, summary = ?, category = ?, publishStatus = ?, publishedDate = ?, readingTime = ?, importance = ?,
+                whyInNews = ?, context = ?, background = ?, keyHighlights = ?, importantFacts = ?, examRelevance = ?, previousContext = ?, wayForward = ?, keyTakeaways = ?,
+                seoId = ?, content = ?, updatedAt = ?`,
+              [
+                artId, artSlug, art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
+                art.whyInNews ?? null, art.context ?? null, art.background ?? null, art.keyHighlights ?? null, art.importantFacts ?? null, art.examRelevance ?? null, art.previousContext ?? null, art.wayForward ?? null, art.keyTakeaways ?? null,
+                edId, seoId, art.content ?? null, timestamp, timestamp,
+                art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
+                art.whyInNews ?? null, art.context ?? null, art.background ?? null, art.keyHighlights ?? null, art.importantFacts ?? null, art.examRelevance ?? null, art.previousContext ?? null, art.wayForward ?? null, art.keyTakeaways ?? null,
+                seoId, art.content ?? null, timestamp
+              ]
+            );
+            
+            // Clear joins
+            await conn.query('DELETE FROM current_affair_article_subjects WHERE articleId = ?', [artId]);
+            await conn.query('DELETE FROM current_affair_article_exams WHERE articleId = ?', [artId]);
+            await conn.query('DELETE FROM current_affair_article_tags WHERE articleId = ?', [artId]);
+            await conn.query('DELETE FROM current_affair_media WHERE articleId = ?', [artId]);
+            
+            // Re-insert subjects
+            if (art.subjects) {
+              for (const subName of art.subjects) {
+                const subId = `sub-${subName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+                await conn.query('INSERT IGNORE INTO current_affair_subjects (id, name) VALUES (?, ?)', [subId, subName]);
+                const [subRow]: any = await conn.query('SELECT id FROM current_affair_subjects WHERE name = ?', [subName]);
+                if (subRow.length > 0) {
+                  await conn.query('INSERT IGNORE INTO current_affair_article_subjects (articleId, subjectId) VALUES (?, ?)', [artId, subRow[0].id]);
+                }
+              }
+            }
+            
+            // Re-insert exams
+            if (art.exams) {
+              for (const exName of art.exams) {
+                const exId = `ex-${exName.toLowerCase()}`;
+                await conn.query('INSERT IGNORE INTO current_affair_exams (id, name) VALUES (?, ?)', [exId, exName]);
+                const [exRow]: any = await conn.query('SELECT id FROM current_affair_exams WHERE name = ?', [exName]);
+                if (exRow.length > 0) {
+                  await conn.query('INSERT IGNORE INTO current_affair_article_exams (articleId, examId) VALUES (?, ?)', [artId, exRow[0].id]);
+                }
+              }
+            }
+            
+            // Re-insert tags
+            if (art.tags) {
+              for (const tagName of art.tags) {
+                const tagId = `tag-${tagName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+                await conn.query('INSERT IGNORE INTO current_affair_tags (id, name) VALUES (?, ?)', [tagId, tagName]);
+                const [tagRow]: any = await conn.query('SELECT id FROM current_affair_tags WHERE name = ?', [tagName]);
+                if (tagRow.length > 0) {
+                  await conn.query('INSERT IGNORE INTO current_affair_article_tags (articleId, tagId) VALUES (?, ?)', [artId, tagRow[0].id]);
+                }
+              }
+            }
+            
+            // Re-insert media
+            if (art.media) {
+              for (const med of art.media) {
+                const medId = med.id || `med-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                await conn.query('INSERT INTO current_affair_media (id, type, url, articleId) VALUES (?, ?, ?, ?)', [medId, med.type, med.url, artId]);
+              }
+            }
+          }
+        }
+        
+        await conn.commit();
+        conn.release();
+        return true;
+      } catch (err) {
+        await conn.rollback();
+        conn.release();
+        console.error('[BackendDB] createOrUpdateDynamicCurrentAffairEdition error:', err);
+      }
+    }
+    
+    // Local fallback
+    if (!this.localStore.dynamicCurrentAffairEditions) this.localStore.dynamicCurrentAffairEditions = [];
+    const editions = this.localStore.dynamicCurrentAffairEditions;
+    
+    const existingEdIdx = editions.findIndex(e => e.id === edId || e.publishDate === edDate);
+    
+    const newArticles = (edition.articles || []).map(art => {
+      const artId = art.id || `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+      const artSlug = art.slug || `${edDate}-${art.category.toLowerCase()}-${art.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+      return {
+        ...art,
+        id: artId,
+        slug: artSlug,
+        editionId: edId,
+        createdAt: art.createdAt || timestamp,
+        updatedAt: timestamp
+      };
+    });
+    
+    const nextEd: DynamicCurrentAffairEdition = {
+      ...edition,
+      id: edId,
+      publishDate: edDate,
+      articles: newArticles,
+      createdAt: edition.createdAt || timestamp,
+      updatedAt: timestamp
+    };
+    
+    if (existingEdIdx >= 0) {
+      editions[existingEdIdx] = nextEd;
+    } else {
+      editions.unshift(nextEd);
+    }
+    
+    this.saveLocalData();
+    return true;
+  }
+
+  public async deleteDynamicCurrentAffairArticle(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query('DELETE FROM current_affair_articles WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('[BackendDB] deleteDynamicCurrentAffairArticle error:', err);
+      }
+    }
+    
+    const editions = this.localStore.dynamicCurrentAffairEditions || [];
+    for (const ed of editions) {
+      if (ed.articles) {
+        const idx = ed.articles.findIndex(a => a.id === id);
+        if (idx >= 0) {
+          ed.articles.splice(idx, 1);
+          this.saveLocalData();
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public async deleteDynamicCurrentAffairEdition(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query('DELETE FROM current_affair_editions WHERE id = ?', [id]);
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('[BackendDB] deleteDynamicCurrentAffairEdition error:', err);
+      }
+    }
+    
+    const editions = this.localStore.dynamicCurrentAffairEditions || [];
+    const idx = editions.findIndex(e => e.id === id);
+    if (idx >= 0) {
+      editions.splice(idx, 1);
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
+  public async getDynamicCurrentAffairsSearch(params: {
+    keyword?: string;
+    category?: string;
+    subject?: string;
+    exam?: string;
+    month?: string;
+    year?: string;
+    date?: string;
+    tag?: string;
+  }): Promise<DynamicCurrentAffairArticle[]> {
+    const editions = await this.getDynamicCurrentAffairsEditions(false);
+    let allArticles: DynamicCurrentAffairArticle[] = [];
+    for (const ed of editions) {
+      if (ed.articles) {
+        allArticles.push(...ed.articles);
+      }
+    }
+    
+    return allArticles.filter(art => {
+      if (params.keyword) {
+        const kw = params.keyword.toLowerCase();
+        const matchesTitle = art.title.toLowerCase().includes(kw);
+        const matchesSummary = art.summary.toLowerCase().includes(kw);
+        const matchesContent = (art.content || '').toLowerCase().includes(kw);
+        const matchesWhy = (art.whyInNews || '').toLowerCase().includes(kw);
+        const matchesHighlights = (art.keyHighlights || '').toLowerCase().includes(kw);
+        if (!matchesTitle && !matchesSummary && !matchesContent && !matchesWhy && !matchesHighlights) return false;
+      }
+      
+      if (params.category && params.category !== 'All') {
+        if (art.category.toUpperCase() !== params.category.toUpperCase()) return false;
+      }
+      
+      if (params.subject && params.subject !== 'All') {
+        if (!art.subjects || !art.subjects.includes(params.subject)) return false;
+      }
+      
+      if (params.exam && params.exam !== 'All') {
+        if (!art.exams || !art.exams.includes(params.exam)) return false;
+      }
+      
+      if (params.date) {
+        if (art.publishedDate !== params.date) return false;
+      }
+      
+      if (params.month) {
+        const monthsMap: Record<string, string> = {
+          january: '01', february: '02', march: '03', april: '04', may: '05', june: '06',
+          july: '07', august: '08', september: '09', october: '10', november: '11', december: '12'
+        };
+        const targetMonth = monthsMap[params.month.toLowerCase()];
+        if (targetMonth) {
+          const parts = art.publishedDate.split('-');
+          if (parts[1] !== targetMonth) return false;
+        }
+      }
+      
+      if (params.year) {
+        const parts = art.publishedDate.split('-');
+        if (parts[0] !== params.year) return false;
+      }
+      
+      if (params.tag) {
+        if (!art.tags || !art.tags.map(t => t.toLowerCase()).includes(params.tag.toLowerCase())) return false;
+      }
+      
+      return true;
+    });
+  }
+
   // BLOGS
   public async getBlogs(): Promise<BlogItem[]> {
     if (mysqlPool) {
@@ -869,8 +1486,11 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO blogs (id, title, publishDate, readTime, category, content) VALUES (?, ?, ?, ?, ?, ?)',
-          [item.id, item.title, item.publishDate, item.readTime, item.category, item.content]
+          'INSERT INTO blogs (id, title, publishDate, readTime, category, content, seoTitle, seoKeywords, seoDescription, blurb) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            item.id, item.title, item.publishDate, item.readTime, item.category, item.content,
+            item.seoTitle ?? null, item.seoKeywords ?? null, item.seoDescription ?? null, item.blurb ?? null
+          ]
         );
         return item;
       } catch (err) {
@@ -886,8 +1506,11 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query(
-          'UPDATE blogs SET title = ?, publishDate = ?, readTime = ?, category = ?, content = ? WHERE id = ?',
-          [updated.title, updated.publishDate, updated.readTime, updated.category, updated.content, id]
+          'UPDATE blogs SET title = ?, publishDate = ?, readTime = ?, category = ?, content = ?, seoTitle = ?, seoKeywords = ?, seoDescription = ?, blurb = ? WHERE id = ?',
+          [
+            updated.title, updated.publishDate, updated.readTime, updated.category, updated.content,
+            updated.seoTitle ?? null, updated.seoKeywords ?? null, updated.seoDescription ?? null, updated.blurb ?? null, id
+          ]
         );
         return result.affectedRows > 0;
       } catch (err) {
@@ -1624,6 +2247,26 @@ class AuthDB {
     const u = (db.localStore.users || []).find(u => u.id === userId);
     if (u) {
       u.passwordHash = passwordHash;
+      db.saveLocalData();
+    }
+  }
+
+  async updateProfile(userId: string, data: { fullName: string; mobile?: string; targetExam?: string; avatarUrl?: string }): Promise<void> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          'UPDATE users SET fullName = ?, mobile = ?, targetExam = ?, avatarUrl = ? WHERE id = ?',
+          [data.fullName, data.mobile || null, data.targetExam || null, data.avatarUrl || null, userId]
+        );
+        return;
+      } catch (err) { console.error('[AuthDB] updateProfile MySQL error:', err); }
+    }
+    const u = (db.localStore.users || []).find(user => user.id === userId);
+    if (u) {
+      u.fullName = data.fullName;
+      if (data.mobile !== undefined) u.mobile = data.mobile;
+      if (data.targetExam !== undefined) u.targetExam = data.targetExam;
+      if (data.avatarUrl !== undefined) u.avatarUrl = data.avatarUrl;
       db.saveLocalData();
     }
   }

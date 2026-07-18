@@ -38,6 +38,63 @@ export interface CourseProgress {
   updatedAt: string;
 }
 
+export interface DynamicCurrentAffairSeo {
+  id?: string;
+  canonicalUrl?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
+}
+
+export interface DynamicCurrentAffairMedia {
+  id?: string;
+  type: 'COVER' | 'FEATURED' | 'INLINE';
+  url: string;
+}
+
+export interface DynamicCurrentAffairArticle {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  category: 'NATIONAL' | 'INTERNATIONAL' | 'BIHAR';
+  publishStatus: 'DRAFT' | 'PUBLISHED';
+  publishedDate: string;
+  readingTime: string;
+  importance: 'HIGH' | 'MEDIUM' | 'LOW';
+  content?: string;
+  
+  // Editorial template fields
+  whyInNews?: string;
+  context?: string;
+  background?: string;
+  keyHighlights?: string;
+  importantFacts?: string;
+  examRelevance?: string;
+  previousContext?: string;
+  wayForward?: string;
+  keyTakeaways?: string;
+  
+  editionId: string;
+  seo?: DynamicCurrentAffairSeo;
+  media?: DynamicCurrentAffairMedia[];
+  subjects?: string[]; // Array of subject names
+  exams?: string[];    // Array of exam names
+  tags?: string[];     // Array of tag names
+  
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DynamicCurrentAffairEdition {
+  id: string;
+  publishDate: string; // YYYY-MM-DD
+  summary?: string;
+  articles?: DynamicCurrentAffairArticle[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Lead {
   id: string;
   fullName: string;
@@ -47,7 +104,18 @@ export interface Lead {
   status: string;
   createdAt: string;
 }
-
+export interface ResultTopper {
+  id: string;
+  name: string;
+  rank: string;
+  exam: string;
+  course: string;
+  service: string;
+  district: string;
+  photo: string;
+  year: number;
+  story: string;
+}
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 
@@ -179,7 +247,7 @@ class FinalAttemptDB {
     return data || facultyData;
   }
 
-  public async getResults() {
+  public async getResults(): Promise<ResultTopper[]> {
     const data = await this.apiFetch('/api/results');
     return data || resultData;
   }
@@ -207,6 +275,51 @@ class FinalAttemptDB {
       syncedCourses: courseData.length,
       syncedLessons: 12
     };
+  }
+
+  // Dynamic Current Affairs API calls
+  public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
+    const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}`);
+    return data || [];
+  }
+
+  public async getDynamicCurrentAffairsEditionByDate(date: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition | null> {
+    const data = await this.apiFetch(`/api/dynamic-current-affairs/daily/${date}?includeDrafts=${includeDrafts}`);
+    return data || null;
+  }
+
+  public async getDynamicCurrentAffairArticle(slug: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairArticle | null> {
+    const data = await this.apiFetch(`/api/dynamic-current-affairs/article/${slug}?includeDrafts=${includeDrafts}`);
+    return data || null;
+  }
+
+  public async getDynamicCurrentAffairsSearch(params: Record<string, string>): Promise<DynamicCurrentAffairArticle[]> {
+    const qs = new URLSearchParams(params).toString();
+    const data = await this.apiFetch(`/api/dynamic-current-affairs/search?${qs}`);
+    return data || [];
+  }
+
+  public async saveDynamicCurrentAffairsEdition(edition: DynamicCurrentAffairEdition): Promise<boolean> {
+    const data = await this.apiFetch('/api/admin/dynamic-current-affairs/edition', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(edition)
+    });
+    return data?.success || false;
+  }
+
+  public async deleteDynamicCurrentAffairsEdition(id: string): Promise<boolean> {
+    const data = await this.apiFetch(`/api/admin/dynamic-current-affairs/edition/${id}`, {
+      method: 'DELETE'
+    });
+    return data?.success || false;
+  }
+
+  public async deleteDynamicCurrentAffairsArticle(id: string): Promise<boolean> {
+    const data = await this.apiFetch(`/api/admin/dynamic-current-affairs/article/${id}`, {
+      method: 'DELETE'
+    });
+    return data?.success || false;
   }
 }
 

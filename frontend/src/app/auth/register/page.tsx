@@ -131,15 +131,14 @@ export default function RegisterPage() {
             style={{ background: 'rgba(15,23,42,0.92)', backdropFilter: 'blur(24px)', borderColor: 'rgba(245,158,11,0.12)' }}>
 
             {/* Logo */}
-            <div className="flex items-center gap-2 mb-8">
-              <div className="relative w-8 h-8 shrink-0">
+            <div className="flex items-center mb-8">
+              <div className="relative w-40 h-10 shrink-0">
                 <img
-                  src="/lightlogo.png"
-                  alt="FA Logo"
+                  src="/darklogofull.png"
+                  alt="Final Attempt"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <span className="text-white font-bold text-sm tracking-tight">Final Attempt <span className="text-amber-400">IAS</span></span>
             </div>
 
             <h2 className="text-xl font-bold text-white mb-2">Start Your Journey</h2>
@@ -183,15 +182,14 @@ export default function RegisterPage() {
             style={{ background: 'rgba(2,6,23,0.90)', backdropFilter: 'blur(32px)' }}>
 
             {/* Mobile logo */}
-            <div className="flex lg:hidden items-center gap-2 mb-6">
-              <div className="relative w-8 h-8 shrink-0">
+            <div className="flex lg:hidden items-center mb-6">
+              <div className="relative w-40 h-10 shrink-0">
                 <img
-                  src="/lightlogo.png"
-                  alt="FA Logo"
+                  src="/darklogofull.png"
+                  alt="Final Attempt"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <span className="text-white font-bold tracking-tight">Final Attempt <span className="text-amber-400">IAS</span></span>
             </div>
 
             <h2 className="text-2xl font-bold text-white mb-1">Create your account</h2>

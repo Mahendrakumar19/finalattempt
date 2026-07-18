@@ -100,6 +100,14 @@ export async function getProfile(accessToken: string) {
   return apiFetch<any>('/api/auth/me', {}, accessToken);
 }
 
+// ─── Update Profile ──────────────────────────────────────────────────────────
+export async function updateProfile(accessToken: string, payload: { fullName: string; mobile?: string; targetExam?: string; avatarUrl?: string }) {
+  return apiFetch<any>('/api/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }, accessToken);
+}
+
 // ─── Forgot Password ─────────────────────────────────────────────────────────
 export async function forgotPassword(email: string) {
   return apiFetch('/api/auth/forgot-password', {

@@ -107,6 +107,15 @@ app.put('/api/settings', async (req, res) => {
   }
 });
 
+app.post('/api/visitors/increment', async (req, res) => {
+  try {
+    const count = await db.getAndIncrementVisitorCount();
+    res.json({ success: true, visitorsCount: count });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // LEADS
 app.get('/api/leads', async (req, res) => {
   try {
@@ -246,6 +255,73 @@ app.put('/api/current-affairs/:id', async (req, res) => {
 app.delete('/api/current-affairs/:id', async (req, res) => {
   try {
     const ok = await db.deleteCurrentAffair(req.params.id);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DYNAMIC CURRENT AFFAIRS SYSTEM API ROUTES
+app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
+  try {
+    const includeDrafts = req.query.includeDrafts === 'true';
+    const list = await db.getDynamicCurrentAffairsEditions(includeDrafts);
+    res.json(list);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/dynamic-current-affairs/daily/:date', async (req, res) => {
+  try {
+    const includeDrafts = req.query.includeDrafts === 'true';
+    const edition = await db.getDynamicCurrentAffairsEditionByDate(req.params.date, includeDrafts);
+    res.json(edition);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/dynamic-current-affairs/article/:slug', async (req, res) => {
+  try {
+    const includeDrafts = req.query.includeDrafts === 'true';
+    const article = await db.getDynamicCurrentAffairArticle(req.params.slug, includeDrafts);
+    res.json(article);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/dynamic-current-affairs/search', async (req, res) => {
+  try {
+    const results = await db.getDynamicCurrentAffairsSearch(req.query);
+    res.json(results);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/admin/dynamic-current-affairs/edition', async (req, res) => {
+  try {
+    const ok = await db.createOrUpdateDynamicCurrentAffairEdition(req.body);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/dynamic-current-affairs/edition/:id', async (req, res) => {
+  try {
+    const ok = await db.deleteDynamicCurrentAffairEdition(req.params.id);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/dynamic-current-affairs/article/:id', async (req, res) => {
+  try {
+    const ok = await db.deleteDynamicCurrentAffairArticle(req.params.id);
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

@@ -35,7 +35,7 @@ export default function PrivacyPolicyPage() {
       <section className="container mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-border/40 bg-card/50 backdrop-blur-sm p-8 sm:p-12 shadow-2xl shadow-primary/5 prose prose-slate dark:prose-invert max-w-none">
           <p className="lead text-xl text-muted-foreground/90">
-            At NG Technology Pvt. Ltd. ("we," "us," or "our"), we respect your privacy and are committed to protecting the personal information you share with us through our WhatsApp CRM platform (the "Service"). 
+            At NG Technology Pvt. Ltd. ("we," "us," or "our"), we respect your privacy and are committed to protecting the personal information you share with us through our WhatsApp CRM platform (the "Service").
           </p>
 
           <h2 className="text-2xl font-bold mt-10 mb-4 text-foreground">1. Information We Collect</h2>
@@ -85,11 +85,11 @@ export default function PrivacyPolicyPage() {
           </p>
           <div className="mt-6 p-6 rounded-2xl bg-muted/50 border border-border/50">
             <p className="font-semibold text-foreground mb-1">NG Technology Pvt. Ltd.</p>
-            <p className="text-muted-foreground mb-1">Email: <a href="mailto:info@nighwantech.com" className="text-primary hover:underline">info@nighwantech.com</a></p>
+            <p className="text-muted-foreground mb-1">Email: <a href="mailto:enquiry@nighwantech.com" className="text-primary hover:underline">enquiry@nighwantech.com</a></p>
             <p className="text-muted-foreground">Phone: <a href="https://wa.me/918092225777" className="text-primary hover:underline">+91 8092225777</a></p>
           </div>
         </div>
-        
+
         <div className="mt-12 text-center">
           <Link href="/" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">
             &larr; Back to Home

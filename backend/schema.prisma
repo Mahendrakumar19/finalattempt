@@ -1,0 +1,97 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum CurrentAffairCategory {
+  NATIONAL
+  INTERNATIONAL
+  BIHAR
+}
+
+model CurrentAffairEdition {
+  id           String                 @id @default(uuid())
+  publishDate  DateTime               @unique // Unique date (e.g. 2026-07-17)
+  summary      String?                @db.Text
+  articles     CurrentAffairArticle[]
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+}
+
+model CurrentAffairArticle {
+  id               String               @id @default(uuid())
+  slug             String               @unique
+  title            String
+  summary          String               @db.Text
+  category         CurrentAffairCategory
+  publishStatus    String               @default("DRAFT") // DRAFT, PUBLISHED
+  publishedDate    DateTime
+  readingTime      String               @default("5 min read")
+  importance       String               @default("MEDIUM") // HIGH, MEDIUM, LOW
+  content          String?              @db.Text
+  
+  // Editorial template fields
+  whyInNews        String?              @db.Text
+  context          String?              @db.Text
+  background       String?              @db.Text
+  keyHighlights    String?              @db.Text
+  importantFacts   String?              @db.Text
+  examRelevance    String?              @db.Text
+  previousContext  String?              @db.Text
+  wayForward       String?              @db.Text
+  keyTakeaways     String?              @db.Text
+  
+  // Dynamic relations
+  editionId        String
+  edition          CurrentAffairEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
+  
+  seoId            String?              @unique
+  seo              CurrentAffairSeo?    @relation(fields: [seoId], references: [id])
+  
+  subjects         CurrentAffairSubject[]
+  exams            CurrentAffairExam[]
+  tags             CurrentAffairTag[]
+  media            CurrentAffairMedia[]
+  
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+}
+
+model CurrentAffairSubject {
+  id        String                 @id @default(uuid())
+  name      String                 @unique // Polity, Economy, etc.
+  articles  CurrentAffairArticle[]
+}
+
+model CurrentAffairExam {
+  id        String                 @id @default(uuid())
+  name      String                 @unique // UPSC, BPSC, etc.
+  articles  CurrentAffairArticle[]
+}
+
+model CurrentAffairTag {
+  id        String                 @id @default(uuid())
+  name      String                 @unique
+  articles  CurrentAffairArticle[]
+}
+
+model CurrentAffairMedia {
+  id        String                 @id @default(uuid())
+  type      String                 // COVER, FEATURED, INLINE
+  url       String                 @db.Text
+  articleId String
+  article   CurrentAffairArticle   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+}
+
+model CurrentAffairSeo {
+  id             String                @id @default(uuid())
+  canonicalUrl   String?               @db.Text
+  seoTitle       String?
+  seoDescription String?               @db.Text
+  seoKeywords    String?               @db.Text
+  article        CurrentAffairArticle?
+}

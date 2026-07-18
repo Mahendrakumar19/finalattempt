@@ -25,6 +25,7 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { db, fallbackResults, fallbackCurrentAffairs } from '@/services/db';
+import TestimonialCarousel from '@/components/TestimonialCarousel';
 
 export default function Home() {
   // Real-time dynamic states
@@ -85,7 +86,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="w-full flex flex-col min-h-screen bg-slate-50/50">
+    <div className="w-full flex flex-col min-h-screen bg-[var(--bg-color)]">
       
       {/* 1. HERO SECTION WITH EXACT WIREFRAME BACKDROP EFFECTS */}
       <section className="relative pt-12 pb-20 overflow-hidden bg-[var(--bg-color)]">
@@ -131,20 +132,23 @@ export default function Home() {
             
             {/* Left Content */}
             <div className="lg:col-span-4 space-y-6 pt-6">
+              {heroSettings.tagline && (
+                <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
+                  {heroSettings.tagline}
+                </span>
+              )}
               <h1 className="text-4xl sm:text-5xl lg:text-6.5xl font-heading font-black tracking-tight leading-tight" style={{ color: 'var(--text-color)' }}>
-                Dream <span className="text-[#1E3A8A] dark:text-blue-400">BPSC</span>.<br />
-                Achieve <span className="text-[#F59E0B]">Success</span>.
+                {heroSettings.heroTitle}
               </h1>
               
-              <p className="text-base sm:text-lg text-slate-700 dark:text-slate-300 font-bold leading-relaxed max-w-sm">
-                The right guidance today,<br />
-                leads to a <span className="text-[#1E3A8A] dark:text-blue-400 font-black">better tomorrow.</span>
+              <p className="text-base sm:text-lg text-slate-700 dark:text-slate-300 font-semibold leading-relaxed max-w-sm">
+                {heroSettings.heroSubtitle}
               </p>
 
               <div className="flex flex-wrap gap-4 pt-2">
                 <Link
                   href="/courses"
-                  className="px-6 py-3 bg-[#0F172A] hover:bg-slate-800 text-white font-bold rounded-xl transition-all shadow-md flex items-center gap-2 hover:scale-[1.02]"
+                  className="btn-primary flex items-center gap-2"
                 >
                   <span>Explore Courses</span>
                   <ArrowRight className="w-4 h-4" />
@@ -152,9 +156,9 @@ export default function Home() {
                 
                 <a
                   href="#book-session"
-                  className="px-6 py-3 bg-white hover:bg-slate-50 text-slate-900 border border-slate-200 font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 hover:scale-[1.02]"
+                  className="btn-outline flex items-center gap-2"
                 >
-                  <Play className="w-4 h-4 text-[#1E3A8A] fill-[#1E3A8A]" />
+                  <Play className="w-4 h-4 text-[#1E3A8A] fill-[#1E3A8A] dark:text-amber-500 dark:fill-amber-500" />
                   <span>Watch Intro Video</span>
                 </a>
               </div>
@@ -313,8 +317,27 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 3.5 PREMIUM TESTIMONIALS SECTION */}
+      <section className="py-20 bg-gradient-to-b from-[var(--bg-color)] to-slate-50 border-t border-slate-100 overflow-hidden">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+          <div className="text-center max-w-2xl mx-auto space-y-4">
+            <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
+              Success Stories
+            </span>
+            <h3 className="text-3xl font-heading font-black text-slate-900 leading-tight">
+              Aspirants to Officers: Our Hall of Fame
+            </h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Hear from our selected toppers about how our personalized micro-scheduling and answer evaluation changed their preparation journey.
+            </p>
+          </div>
+
+          <TestimonialCarousel />
+        </div>
+      </section>
+
       {/* 4. STRATEGY LEAD CAPTURE FORM */}
-      <section id="book-session" className="py-16 bg-slate-50 border-t border-slate-100">
+      <section id="book-session" className="py-16 bg-[var(--bg-color)] border-t border-slate-100 dark:border-white/[0.06]">
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-100 shadow-sm relative overflow-hidden">
             <div className="text-center space-y-4 mb-8">
@@ -383,7 +406,7 @@ export default function Home() {
                       <ChevronRight className="w-4 h-4" />
                     </button>
                     <a
-                      href="https://wa.me/919113131819"
+                      href="https://wa.me/919709992093"
                       target="_blank"
                       rel="noreferrer"
                       className="flex items-center justify-center gap-2 px-4 py-3 bg-[#22C55E] hover:bg-green-600 text-white font-bold rounded-xl text-xs transition-all shadow-md hover:-translate-y-0.5"

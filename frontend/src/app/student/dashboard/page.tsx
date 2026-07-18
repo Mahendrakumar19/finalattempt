@@ -86,18 +86,15 @@ export default function LMSDashboard() {
       <aside className="hidden lg:flex w-64 flex-col bg-slate-900/80 border-r border-white/[0.06] h-screen sticky top-0">
         {/* Logo */}
         <div className="p-5 border-b border-white/[0.06]">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 relative shrink-0">
+          <Link href="/" className="flex flex-col gap-1">
+            <div className="w-40 h-10 relative shrink-0">
               <img
-                src="/lightlogo.png"
-                alt="FA Logo"
+                src="/darklogofull.png"
+                alt="Final Attempt"
                 className="w-full h-full object-contain"
               />
             </div>
-            <div>
-              <p className="text-white font-bold text-sm leading-none">Final Attempt</p>
-              <p className="text-slate-500 text-[10px] mt-0.5">Student Portal</p>
-            </div>
+            <span className="text-slate-500 text-[9px] font-bold uppercase tracking-wider pl-1">Student Portal</span>
           </Link>
         </div>
 

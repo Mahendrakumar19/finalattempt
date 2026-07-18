@@ -23,7 +23,7 @@ export default function ContactPage() {
           {/* Contact Information */}
           <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
             <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
-            
+
             <div className="space-y-6 text-muted-foreground">
               <div className="flex items-start gap-4">
                 <div className="bg-primary/10 p-3 rounded-full text-primary shrink-0">
@@ -32,7 +32,7 @@ export default function ContactPage() {
                 <div>
                   <h3 className="font-semibold text-foreground">Email</h3>
                   <p className="mt-1">For general inquiries and support.</p>
-                  <a href="mailto:info@nighwantech.com" className="text-primary hover:underline mt-2 inline-block font-medium">info@nighwantech.com</a>
+                  <a href="mailto:enquiry@nighwantech.com" className="text-primary hover:underline mt-2 inline-block font-medium">enquiry@nighwantech.com</a>
                 </div>
               </div>
 

@@ -81,26 +81,23 @@ export default function PricingPage() {
               <div className="relative inline-flex items-center rounded-full border border-border/40 bg-card/50 backdrop-blur-sm p-1">
                 <button
                   onClick={() => setIsAnnual(false)}
-                  className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${
-                    !isAnnual
+                  className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${!isAnnual
                       ? 'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20'
                       : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                    }`}
                 >
                   Monthly
                 </button>
                 <button
                   onClick={() => setIsAnnual(true)}
-                  className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
-                    isAnnual
+                  className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${isAnnual
                       ? 'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md shadow-primary/20'
                       : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                    }`}
                 >
                   Annually
-                  <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold tracking-wide ${
-                    isAnnual ? 'bg-white/20 text-primary-foreground' : 'bg-emerald-500/15 text-emerald-400'
-                  }`}>Save 20%</span>
+                  <span className={`text-[10px] uppercase px-2 py-0.5 rounded-full font-bold tracking-wide ${isAnnual ? 'bg-white/20 text-primary-foreground' : 'bg-emerald-500/15 text-emerald-400'
+                    }`}>Save 20%</span>
                 </button>
               </div>
             </div>
@@ -155,11 +152,10 @@ export default function PricingPage() {
                 return (
                   <div
                     key={plan.id}
-                    className={`relative flex flex-col rounded-2xl p-[1px] transition-all duration-300 hover:-translate-y-2 ${
-                      isPopular
+                    className={`relative flex flex-col rounded-2xl p-[1px] transition-all duration-300 hover:-translate-y-2 ${isPopular
                         ? 'bg-gradient-to-b from-primary/60 via-primary/20 to-transparent shadow-2xl shadow-primary/15 hover:shadow-primary/25'
                         : 'bg-gradient-to-b from-border/30 to-transparent hover:from-primary/20 hover:shadow-xl hover:shadow-primary/5'
-                    }`}
+                      }`}
                   >
                     <div className="flex flex-col flex-1 rounded-[15px] bg-card/90 backdrop-blur-sm p-7">
                       {/* Popular badge */}
@@ -206,13 +202,12 @@ export default function PricingPage() {
                       <Link
                         href={buttonLink}
                         target={isCustom ? "_blank" : "_self"}
-                        className={`mb-7 w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap ${
-                          isPopular
+                        className={`mb-7 w-full flex justify-center items-center gap-2 py-2.5 px-4 rounded-full text-sm font-semibold transition-all duration-300 whitespace-nowrap ${isPopular
                             ? 'bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02]'
                             : isCustom
                               ? 'bg-[#25D366] text-white hover:bg-[#20bd5a] shadow-lg shadow-[#25D366]/20 hover:shadow-xl hover:shadow-[#25D366]/25 hover:scale-[1.02]'
                               : 'bg-muted/60 text-foreground hover:bg-primary hover:text-primary-foreground hover:shadow-lg hover:shadow-primary/20 hover:scale-[1.02]'
-                        }`}
+                          }`}
                       >
                         {isCustom && <MessageCircle className="h-4 w-4 shrink-0" />}
                         {buttonText}
@@ -245,17 +240,17 @@ export default function PricingPage() {
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 blur-[150px] rounded-full" />
         </div>
-        
+
         <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-start">
-            
+
             {/* Left side: FAQs (Spans 7 cols) */}
             <div className="lg:col-span-7">
               <div className="mb-10">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary mb-3">FAQ</p>
                 <h2 className="text-3xl font-bold text-foreground">Frequently Asked Questions</h2>
               </div>
-    
+
               <div className="space-y-3">
                 {faqs.map((faq, i) => (
                   <div
@@ -268,15 +263,13 @@ export default function PricingPage() {
                     >
                       <h4 className="text-sm font-semibold text-foreground pr-4">{faq.q}</h4>
                       <ChevronDown
-                        className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-300 ${
-                          openFaq === i ? 'rotate-180' : ''
-                        }`}
+                        className={`h-4 w-4 text-muted-foreground shrink-0 transition-transform duration-300 ${openFaq === i ? 'rotate-180' : ''
+                          }`}
                       />
                     </button>
                     <div
-                      className={`overflow-hidden transition-all duration-300 ${
-                        openFaq === i ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
-                      }`}
+                      className={`overflow-hidden transition-all duration-300 ${openFaq === i ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+                        }`}
                     >
                       <p className="px-5 pb-5 text-sm text-muted-foreground/70 leading-relaxed">{faq.a}</p>
                     </div>
@@ -291,29 +284,29 @@ export default function PricingPage() {
                 <div className="rounded-3xl bg-card/80 backdrop-blur-xl p-8 lg:p-10 relative overflow-hidden h-full">
                   {/* Decorative corner glow */}
                   <div className="absolute -right-16 -top-16 w-32 h-32 bg-primary/20 blur-[50px] rounded-full pointer-events-none" />
-                  
+
                   <div className="relative z-10">
                     <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary mb-6">
                       <MessageCircle className="h-6 w-6" />
                     </div>
-                    
+
                     <h3 className="text-2xl font-bold text-foreground mb-3">Still have questions?</h3>
                     <p className="text-sm text-muted-foreground/80 mb-8 leading-relaxed">
                       Can't find the answer you're looking for? Our friendly team is here to help you choose the right plan.
                     </p>
-                    
+
                     <div className="flex flex-col gap-3">
-                      <a 
-                        href="https://wa.me/918092225777" 
-                        target="_blank" 
+                      <a
+                        href="https://wa.me/918092225777"
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366]/10 px-5 py-3.5 text-[#25D366] hover:bg-[#25D366] hover:text-white transition-all duration-300 font-semibold border border-[#25D366]/20 shadow-sm"
                       >
                         <MessageCircle className="w-4 h-4" />
                         Chat on WhatsApp
                       </a>
-                      <a 
-                        href="mailto:info@nighwantech.com" 
+                      <a
+                        href="mailto:enquiry@nighwantech.com"
                         className="w-full flex items-center justify-center gap-2 rounded-xl bg-muted/50 border border-border/40 px-5 py-3.5 text-foreground hover:bg-muted transition-all duration-300 font-semibold shadow-sm hover:border-primary/20"
                       >
                         Email Support
