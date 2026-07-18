@@ -128,7 +128,7 @@ export default function AboutAndContact() {
                   <Mail className="w-5 h-5 text-slate-450 shrink-0 mt-0.5" />
                   <div>
                     <p className="font-bold text-slate-900 dark:text-white">Email Address</p>
-                    <p className="mt-0.5 text-slate-500">info@finalattemptias.com</p>
+                    <p className="mt-0.5 text-slate-500">enquiry@finalattemptias.com</p>
                   </div>
                 </div>
               </div>

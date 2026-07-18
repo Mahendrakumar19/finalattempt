@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
   LogOut,
   RefreshCw,
   TrendingUp,
@@ -22,12 +22,17 @@ import {
   FileText,
   Bookmark,
   BookOpen,
-  Layers
+  Layers,
+  FolderOpen
 } from 'lucide-react';
 import RichTextEditor from '@/components/RichTextEditor';
+import MediaDashboard from '@/components/MediaDashboard';
+import MediaPicker from '@/components/MediaPicker';
+import SyllabusStrategyCMS from '@/components/SyllabusStrategyCMS';
+import PYQsManagerCMS from '@/components/PYQsManagerCMS';
 import { db } from '@/services/db';
 
-type AdminTab = 'Dashboard' | 'Settings' | 'Leads' | 'Faculty' | 'Results' | 'Current Affairs' | 'Dynamic Current Affairs' | 'Blogs' | 'Resources' | 'Courses';
+type AdminTab = 'Dashboard' | 'Settings' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy CMS' | 'Values CMS' | 'Leads' | 'Faculty' | 'Results' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Courses';
 
 interface SiteSettings {
   heroTitle: string;
@@ -157,9 +162,14 @@ export default function AdminPortal() {
   const [activeArticleCategory, setActiveArticleCategory] = useState<'NATIONAL' | 'INTERNATIONAL' | 'BIHAR'>('NATIONAL');
   const [isEditionModalOpen, setIsEditionModalOpen] = useState(false);
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
+  const [caSubTab, setCaSubTab] = useState<'daily' | 'mains'>('daily');
 
   // Modals visibility states
   const [activeModal, setActiveModal] = useState<{ type: 'add' | 'edit'; index?: number } | null>(null);
+
+  // YouTube Sync Console States
+  const [youtubeStatus, setYoutubeStatus] = useState<any>({ lastSyncTime: null, videosSynced: 0, status: 'IDLE', error: null });
+  const [syncingYoutube, setSyncingYoutube] = useState(false);
 
   // Simple Local Storage Auth check for Admin Portal
   const [adminToken, setAdminToken] = useState<string | null>(null);
@@ -248,6 +258,10 @@ export default function AdminPortal() {
         setDynamicEditionsList(await dynRes.json());
       }
 
+      // 11. YouTube Sync Status
+      const ytStatus = await db.getYoutubeSyncStatus();
+      if (ytStatus) setYoutubeStatus(ytStatus);
+
       setBackendOffline(false);
     } catch (err) {
       console.warn('Backend server offline. Running in mock offline mode:', err);
@@ -275,31 +289,43 @@ export default function AdminPortal() {
     }
   };
 
-  const handleHeroImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setHeroUploading(true);
+  const handleTriggerYoutubeSync = async () => {
+    if (!adminToken) return;
+    setSyncingYoutube(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'ml_default');
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dku1pxh1y';
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      if (data.secure_url) {
-        setSettings(prev => ({ ...prev, heroImageUrl: data.secure_url }));
+      const res = await db.triggerYoutubeSync(adminToken);
+      if (res.success) {
+        alert(`YouTube synchronization successful! Synced ${res.syncedCount || 0} videos.`);
+        // Reload status
+        const ytStatus = await db.getYoutubeSyncStatus();
+        if (ytStatus) setYoutubeStatus(ytStatus);
       } else {
-        alert('Upload failed: ' + (data.error?.message || 'Unknown error'));
+        alert('YouTube Sync Failed: ' + (res.error || 'Unknown error'));
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Image upload failed. Check network/Cloudinary preset.');
+      alert('Error triggering YouTube synchronization.');
     } finally {
-      setHeroUploading(false);
+      setSyncingYoutube(false);
     }
+  };
+
+  const [mediaPickerConfig, setMediaPickerConfig] = useState<{
+    isOpen: boolean;
+    field: string;
+    allowedTypes?: string[];
+  }>({ isOpen: false, field: '' });
+
+  const handleSelectMedia = (url: string, item: any) => {
+    const { field } = mediaPickerConfig;
+    if (field === 'heroImageUrl') {
+      setSettings(prev => ({ ...prev, heroImageUrl: url }));
+    } else if (field === 'resultPhoto') {
+      setResultForm(prev => ({ ...prev, photo: url }));
+    } else if (field === 'facultyAvatar') {
+      setFacultyForm(prev => ({ ...prev, avatar: url }));
+    }
+    setMediaPickerConfig({ isOpen: false, field: '' });
   };
 
   const handleToggleUserStatus = async (id: string, currentStatus: boolean) => {
@@ -409,7 +435,7 @@ export default function AdminPortal() {
       alert('Date is required.');
       return;
     }
-    
+
     const ok = await db.saveDynamicCurrentAffairsEdition(editingEdition);
     if (ok) {
       alert('Daily edition saved successfully!');
@@ -467,26 +493,26 @@ export default function AdminPortal() {
       alert('Title and Summary are required.');
       return;
     }
-    
+
     const articles = [...(editingEdition.articles || [])];
     const artIdx = articles.findIndex(a => a.id === editingArticle.id && editingArticle.id !== '');
-    
+
     const slugifiedTitle = editingArticle.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const finalSlug = editingArticle.slug || `${editingEdition.publishDate}-${editingArticle.category.toLowerCase()}-${slugifiedTitle}`;
-    
+
     const nextArt = {
       ...editingArticle,
       id: editingArticle.id || `art-${Date.now()}`,
       slug: finalSlug,
       publishedDate: editingEdition.publishDate
     };
-    
+
     if (artIdx >= 0) {
       articles[artIdx] = nextArt;
     } else {
       articles.push(nextArt);
     }
-    
+
     setEditingEdition({
       ...editingEdition,
       articles
@@ -569,10 +595,10 @@ export default function AdminPortal() {
           <div className="space-y-4">
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Address</label>
-              <input 
-                type="email" 
-                required 
-                placeholder="admin@finalattempt.com" 
+              <input
+                type="email"
+                required
+                placeholder="admin@finalattempt.com"
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/60 text-white placeholder:text-slate-600 text-xs rounded-2xl outline-none focus:border-amber-500/50 transition-colors"
@@ -581,10 +607,10 @@ export default function AdminPortal() {
 
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password</label>
-              <input 
-                type="password" 
-                required 
-                placeholder="••••••••" 
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-800/60 border border-slate-700/60 text-white placeholder:text-slate-600 text-xs rounded-2xl outline-none focus:border-amber-500/50 transition-colors"
@@ -594,8 +620,8 @@ export default function AdminPortal() {
 
           {authError && <p className="text-xs text-red-400 font-semibold">{authError}</p>}
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="w-full py-3 text-white transition-all font-bold text-xs rounded-2xl shadow-lg hover:-translate-y-0.5"
             style={{ background: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)', boxShadow: '0 4px 24px rgba(217,119,6,0.25)' }}
           >
@@ -615,44 +641,40 @@ export default function AdminPortal() {
             <div className="flex flex-col gap-1">
               <div className="relative w-40 h-10 shrink-0">
                 <img
-                  src="/lightlogofull.png"
+                  src="/darklogofull.png"
                   alt="Final Attempt"
                   className="w-full h-full object-contain logo-light"
                 />
-                <img
-                  src="/darklogofull.png"
-                  alt="Final Attempt"
-                  className="w-full h-full object-contain logo-dark"
-                />
+
               </div>
-              <span className="font-heading font-extrabold text-[10px] uppercase tracking-wider text-slate-500 pl-1">CMS Master</span>
+              {/* <span className="font-heading font-extrabold text-[10px] uppercase tracking-wider text-slate-500 pl-1">CMS Master</span> */}
             </div>
-            <span className="bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[9px] font-bold uppercase tracking-widest px-2.5 py-0.5 rounded-full border border-amber-500/20">
-              Admin
-            </span>
           </div>
 
           <nav className="flex flex-col gap-1.5">
             {[
               { id: 'Dashboard', icon: LayoutDashboard },
               { id: 'Settings', icon: Settings },
+              { id: 'Media Library', icon: FolderOpen },
+              { id: 'Exams & Syllabus', icon: Layers },
+              { id: 'PYQs Manager', icon: FileText },
+              { id: 'Strategy CMS', icon: Bookmark },
+              { id: 'Values CMS', icon: Database },
               { id: 'Courses', icon: BookOpen },
               { id: 'Leads', icon: Users },
               { id: 'Faculty', icon: Briefcase },
               { id: 'Results', icon: Award },
               { id: 'Current Affairs', icon: FileText },
-              { id: 'Dynamic Current Affairs', icon: Layers },
               { id: 'Blogs', icon: Bookmark },
               { id: 'Resources', icon: Database }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as AdminTab)}
-                className={`flex items-center gap-3 px-4 py-3 text-xs font-bold transition-all text-left rounded-2xl border ${
-                  activeTab === tab.id 
-                    ? 'text-white border-amber-600 shadow-md' 
+                className={`flex items-center gap-3 px-4 py-3 text-xs font-bold transition-all text-left rounded-2xl border ${activeTab === tab.id
+                    ? 'text-white border-amber-600 shadow-md'
                     : 'text-slate-600 hover:bg-amber-500/10 hover:text-amber-800 border-transparent'
-                }`}
+                  }`}
                 style={activeTab === tab.id ? { background: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)', borderColor: '#D97706' } : {}}
               >
                 <tab.icon className="w-4 h-4" />
@@ -663,7 +685,7 @@ export default function AdminPortal() {
         </div>
 
         <div className="p-6 border-t" style={{ borderColor: 'rgba(245,158,11,0.15)' }}>
-          <button 
+          <button
             onClick={handleAdminLogout}
             className="text-xs font-bold text-slate-500 hover:text-amber-600 flex items-center gap-2 text-left"
           >
@@ -683,7 +705,7 @@ export default function AdminPortal() {
           </div>
 
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={fetchCMSData}
               className="p-2.5 bg-white border hover:bg-amber-50/60 transition-colors rounded-2xl shadow-sm text-slate-700"
               style={{ borderColor: 'rgba(245,158,11,0.15)' }}
@@ -740,7 +762,7 @@ export default function AdminPortal() {
               {/* ── Hero Background Image ─────────────────────────── */}
               <div className="space-y-3">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-5 6 7"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+                  <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9l4-4 4 4 4-5 6 7" /><circle cx="8.5" cy="8.5" r="1.5" /></svg>
                   Hero Background Image
                 </label>
 
@@ -760,35 +782,22 @@ export default function AdminPortal() {
                     </>
                   ) : (
                     <div className="text-center">
-                      <svg className="w-8 h-8 text-slate-300 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-5 6 7"/></svg>
+                      <svg className="w-8 h-8 text-slate-300 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9l4-4 4 4 4-5 6 7" /></svg>
                       <p className="text-[10px] text-slate-400 font-semibold">No custom image — using default</p>
                     </div>
                   )}
                 </div>
 
-                {/* Upload Button */}
+                {/* Media Library Selector */}
                 <div className="flex items-center gap-3">
-                  <label className={`relative flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed rounded-2xl cursor-pointer transition-all text-xs font-semibold
-                    ${heroUploading ? 'border-amber-300 bg-amber-50 text-amber-600' : 'border-slate-300 hover:border-amber-400 hover:bg-amber-50 text-slate-600 hover:text-amber-600'}`}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      onChange={handleHeroImageUpload}
-                      disabled={heroUploading}
-                    />
-                    {heroUploading ? (
-                      <>
-                        <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75"/></svg>
-                        Uploading to Cloudinary…
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                        Upload Image File
-                      </>
-                    )}
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setMediaPickerConfig({ isOpen: true, field: 'heroImageUrl', allowedTypes: ['IMAGE'] })}
+                    className="relative flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50 text-slate-600 hover:text-amber-600 rounded-2xl cursor-pointer transition-all text-xs font-semibold"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5" />
+                    Choose from Media Library
+                  </button>
 
                   {settings.heroImageUrl && (
                     <button
@@ -812,7 +821,7 @@ export default function AdminPortal() {
                     className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none text-slate-900 font-mono placeholder:font-sans placeholder:text-slate-300"
                   />
                   <p className="text-[9px] text-slate-400 font-medium">
-                    Accepts any publicly accessible image URL. Leave empty to use the default Bihar Vidhan Sabha image.
+                    Accepts any publicly accessible image URL. To add multiple images for the slider, paste their URLs separated by commas (e.g. url1, url2, url3). Leave empty to use the default.
                   </p>
                 </div>
               </div>
@@ -849,13 +858,107 @@ export default function AdminPortal() {
                 </div>
               </div>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="w-full px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase rounded-2xl shadow-md transition-all"
               >
                 💾 Save All Configurations
               </button>
             </form>
+
+            {/* YouTube Synchronizer Dashboard */}
+            <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6 mt-8">
+              <div className="border-b border-slate-100 pb-4 space-y-1">
+                <h3 className="font-heading font-extrabold text-sm text-slate-900">YouTube Channel Automatic Sync</h3>
+                <p className="text-[10px] text-slate-500 font-medium">
+                  Direct connection with YouTube Data API v3. Synchronizes content from `@finalattemptofficial` every 30 minutes.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-1">
+                  <span className="block text-[9px] uppercase font-bold text-slate-400">Last Sync Time</span>
+                  <span className="text-xs font-bold text-slate-800">
+                    {youtubeStatus.lastSyncTime ? youtubeStatus.lastSyncTime : 'Never Synced'}
+                  </span>
+                </div>
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-1">
+                  <span className="block text-[9px] uppercase font-bold text-slate-400">Videos Synced</span>
+                  <span className="text-xs font-bold text-slate-800">{youtubeStatus.videosSynced}</span>
+                </div>
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-1">
+                  <span className="block text-[9px] uppercase font-bold text-slate-400">Sync Status</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${youtubeStatus.status === 'SUCCESS'
+                      ? 'bg-emerald-50 text-emerald-705 border-emerald-200'
+                      : youtubeStatus.status === 'FAILURE'
+                        ? 'bg-red-50 text-red-705 border-red-200'
+                        : 'bg-blue-50 text-blue-705 border-blue-200'
+                    }`}>
+                    {youtubeStatus.status}
+                  </span>
+                </div>
+              </div>
+
+              {youtubeStatus.error && (
+                <div className="p-4 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-medium space-y-1">
+                  <span className="block text-[9px] uppercase font-bold text-red-500">Last Execution Error</span>
+                  <p>{youtubeStatus.error}</p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                disabled={syncingYoutube}
+                onClick={handleTriggerYoutubeSync}
+                className="px-6 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-slate-950 font-bold text-xs uppercase rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer w-full md:w-auto"
+              >
+                {syncingYoutube ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    <span>Synchronizing YouTube...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔄 Sync YouTube Now</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: MEDIA LIBRARY */}
+        {activeTab === 'Media Library' && (
+          <div className="space-y-6">
+            <MediaDashboard />
+          </div>
+        )}
+
+        {/* TAB: EXAMS & SYLLABUS */}
+        {activeTab === 'Exams & Syllabus' && (
+          <div className="space-y-6">
+            <SyllabusStrategyCMS defaultTab="exams" />
+          </div>
+        )}
+
+        {/* TAB: PYQS MANAGER */}
+        {activeTab === 'PYQs Manager' && (
+          <div className="space-y-6">
+            <PYQsManagerCMS />
+          </div>
+        )}
+
+        {/* TAB: STRATEGY CMS */}
+        {activeTab === 'Strategy CMS' && (
+          <div className="space-y-6">
+            <SyllabusStrategyCMS defaultTab="strategy" />
+          </div>
+        )}
+
+        {/* TAB: VALUES CMS */}
+        {activeTab === 'Values CMS' && (
+          <div className="space-y-6">
+            <SyllabusStrategyCMS defaultTab="values" />
           </div>
         )}
 
@@ -901,7 +1004,7 @@ export default function AdminPortal() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="font-extrabold text-sm text-slate-900">Faculty Profiles</h3>
-              <button 
+              <button
                 onClick={() => {
                   setFacultyForm({ id: '', name: '', role: '', experience: '', avatar: '', bio: '', demoLectures: [] });
                   setActiveModal({ type: 'add' });
@@ -928,7 +1031,7 @@ export default function AdminPortal() {
                   </div>
 
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       onClick={() => {
                         setFacultyForm(fac);
                         setActiveModal({ type: 'edit', index: idx });
@@ -937,7 +1040,7 @@ export default function AdminPortal() {
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteFaculty(fac.id)}
                       className="p-2 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500"
                     >
@@ -955,11 +1058,11 @@ export default function AdminPortal() {
                   <h3 className="font-extrabold text-sm text-slate-900">
                     {activeModal.type === 'add' ? 'Add New Faculty Member' : 'Edit Faculty Member'}
                   </h3>
-                  
+
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">Name</label>
-                    <input 
-                      type="text" required value={facultyForm.name} 
+                    <input
+                      type="text" required value={facultyForm.name}
                       onChange={(e) => setFacultyForm({ ...facultyForm, name: e.target.value })}
                       className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                     />
@@ -967,17 +1070,26 @@ export default function AdminPortal() {
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">Role/Specialty</label>
-                    <input 
-                      type="text" required value={facultyForm.role} 
+                    <input
+                      type="text" required value={facultyForm.role}
                       onChange={(e) => setFacultyForm({ ...facultyForm, role: e.target.value })}
                       className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Avatar URL</label>
-                    <input 
-                      type="text" value={facultyForm.avatar} 
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Avatar URL</label>
+                      <button
+                        type="button"
+                        onClick={() => setMediaPickerConfig({ isOpen: true, field: 'facultyAvatar', allowedTypes: ['IMAGE'] })}
+                        className="text-[10px] text-amber-650 hover:underline font-bold"
+                      >
+                        Choose from Media
+                      </button>
+                    </div>
+                    <input
+                      type="text" value={facultyForm.avatar}
                       onChange={(e) => setFacultyForm({ ...facultyForm, avatar: e.target.value })}
                       className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                     />
@@ -985,8 +1097,8 @@ export default function AdminPortal() {
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">Short Biography</label>
-                    <textarea 
-                      rows={3} required value={facultyForm.bio} 
+                    <textarea
+                      rows={3} required value={facultyForm.bio}
                       onChange={(e) => setFacultyForm({ ...facultyForm, bio: e.target.value })}
                       className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                     />
@@ -1011,7 +1123,7 @@ export default function AdminPortal() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="font-extrabold text-sm text-slate-900">Toppers Hall of Fame</h3>
-              <button 
+              <button
                 onClick={() => {
                   setResultForm({ id: '', name: '', rank: '', exam: '', course: '', service: '', district: '', photo: '', year: 2026, story: '' });
                   setActiveModal({ type: 'add' });
@@ -1044,7 +1156,7 @@ export default function AdminPortal() {
                       <td className="p-4">{item.service}</td>
                       <td className="p-4">{item.district}</td>
                       <td className="p-4 flex gap-2">
-                        <button 
+                        <button
                           onClick={() => {
                             setResultForm(item);
                             setActiveModal({ type: 'edit', index: idx });
@@ -1053,7 +1165,7 @@ export default function AdminPortal() {
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteResult(item.id)}
                           className="p-1.5 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500"
                         >
@@ -1077,16 +1189,16 @@ export default function AdminPortal() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Name</label>
-                      <input 
-                        type="text" required value={resultForm.name} 
+                      <input
+                        type="text" required value={resultForm.name}
                         onChange={(e) => setResultForm({ ...resultForm, name: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Rank (e.g. AIR 23)</label>
-                      <input 
-                        type="text" required value={resultForm.rank} 
+                      <input
+                        type="text" required value={resultForm.rank}
                         onChange={(e) => setResultForm({ ...resultForm, rank: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
@@ -1096,16 +1208,16 @@ export default function AdminPortal() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Exam</label>
-                      <input 
-                        type="text" required value={resultForm.exam} 
+                      <input
+                        type="text" required value={resultForm.exam}
                         onChange={(e) => setResultForm({ ...resultForm, exam: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Service Allocated</label>
-                      <input 
-                        type="text" required value={resultForm.service} 
+                      <input
+                        type="text" required value={resultForm.service}
                         onChange={(e) => setResultForm({ ...resultForm, service: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
@@ -1115,16 +1227,25 @@ export default function AdminPortal() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">District</label>
-                      <input 
-                        type="text" required value={resultForm.district} 
+                      <input
+                        type="text" required value={resultForm.district}
                         onChange={(e) => setResultForm({ ...resultForm, district: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Photo URL</label>
-                      <input 
-                        type="text" value={resultForm.photo} 
+                      <div className="flex justify-between items-center">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Photo URL</label>
+                        <button
+                          type="button"
+                          onClick={() => setMediaPickerConfig({ isOpen: true, field: 'resultPhoto', allowedTypes: ['IMAGE'] })}
+                          className="text-[10px] text-amber-650 hover:underline font-bold"
+                        >
+                          Choose from Media
+                        </button>
+                      </div>
+                      <input
+                        type="text" value={resultForm.photo}
                         onChange={(e) => setResultForm({ ...resultForm, photo: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
@@ -1133,8 +1254,8 @@ export default function AdminPortal() {
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">Topper Story</label>
-                    <textarea 
-                      rows={3} value={resultForm.story} 
+                    <textarea
+                      rows={3} value={resultForm.story}
                       onChange={(e) => setResultForm({ ...resultForm, story: e.target.value })}
                       className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                     />
@@ -1154,58 +1275,156 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* TAB 6: CURRENT AFFAIRS */}
+        {/* TAB 6: CURRENT AFFAIRS (UNIFIED & FEATURE-RICH) */}
         {activeTab === 'Current Affairs' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="font-extrabold text-sm text-slate-900">Current Affairs Articles</h3>
-              <button 
-                onClick={() => {
-                  setCaForm({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
-                  setActiveModal({ type: 'add' });
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm"
+            {/* Sub-tabs Selector */}
+            <div className="flex gap-2 bg-slate-100/85 dark:bg-white/[0.02] p-1.5 rounded-2xl max-w-lg">
+              <button
+                type="button"
+                onClick={() => setCaSubTab('daily')}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  caSubTab === 'daily'
+                    ? 'bg-amber-500 text-slate-950 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
               >
-                <Plus className="w-4 h-4" />
-                <span>Add Article</span>
+                📅 Daily Digest Editions (Bihar, National, International)
+              </button>
+              <button
+                type="button"
+                onClick={() => setCaSubTab('mains')}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  caSubTab === 'mains'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                📝 Mains & GS Papers Articles
               </button>
             </div>
 
-            <div className="space-y-4">
-              {caList.map((article, idx) => (
-                <div key={article.id} className="p-5 bg-white border border-slate-200 flex justify-between items-start rounded-3xl shadow-sm">
-                  <div className="space-y-2">
-                    <div className="flex gap-2 items-center text-[10px] font-bold text-slate-500">
-                      <span className="text-blue-600">{article.category}</span>
-                      <span>&bull;</span>
-                      <span>{article.publishDate}</span>
-                    </div>
-                    <h4 className="font-bold text-sm text-slate-900">{article.title}</h4>
-                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{article.summary}</p>
+            {caSubTab === 'daily' ? (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Daily Digest Editions</h3>
+                    <p className="text-[10px] text-slate-500">Add or edit multi-column daily current affairs feeds for students.</p>
                   </div>
-
-                  <div className="flex gap-2 shrink-0 ml-4">
-                    <button 
-                      onClick={() => {
-                        setCaForm(article);
-                        setActiveModal({ type: 'edit', index: idx });
-                      }}
-                      className="p-2 border border-slate-200 rounded-xl hover:bg-slate-55 text-slate-600"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteCA(article.id)}
-                      className="p-2 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: '', articles: [] });
+                      setIsEditionModalOpen(true);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Create Daily Edition</span>
+                  </button>
                 </div>
-              ))}
-            </div>
 
-            {/* Modal add/edit CA */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {dynamicEditionsList.map((ed) => {
+                    const natCount = ed.articles?.filter((a: any) => a.category === 'NATIONAL').length || 0;
+                    const intCount = ed.articles?.filter((a: any) => a.category === 'INTERNATIONAL').length || 0;
+                    const bihCount = ed.articles?.filter((a: any) => a.category === 'BIHAR').length || 0;
+
+                    return (
+                      <div key={ed.id} className="p-5 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/[0.06] rounded-3xl shadow-sm flex flex-col justify-between space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
+                            <span>DATE: {ed.publishDate}</span>
+                            <span className="text-amber-500">{ed.articles?.length || 0} ARTICLES</span>
+                          </div>
+                          <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Daily Edition Summary</h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{ed.summary || 'No summary overview provided.'}</p>
+
+                          <div className="flex gap-2 pt-2 text-[10px] font-semibold text-slate-500">
+                            <span className="bg-amber-500/5 text-amber-600 px-2 py-0.5 rounded-lg">Nat ({natCount})</span>
+                            <span className="bg-indigo-500/5 text-indigo-600 px-2 py-0.5 rounded-lg">Int ({intCount})</span>
+                            <span className="bg-emerald-500/5 text-emerald-600 px-2 py-0.5 rounded-lg">Bihar ({bihCount})</span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 border-t border-slate-50 dark:border-white/[0.02] pt-4 mt-2">
+                          <button
+                            onClick={() => {
+                              setEditingEdition(ed);
+                              setIsEditionModalOpen(true);
+                            }}
+                            className="flex-1 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 font-bold text-xs cursor-pointer flex justify-center items-center gap-1"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Edit Edition</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteDynamicEdition(ed.id)}
+                            className="p-2 border border-red-150 rounded-xl hover:bg-red-500 hover:text-white text-red-500 cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6 animate-in fade-in duration-200">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Current Affairs GS/Mains Articles</h3>
+                    <p className="text-[10px] text-slate-500">Publish descriptive topic analyses, editorials, and GS syllabus-aligned articles.</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setCaForm({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
+                      setActiveModal({ type: 'add' });
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Article</span>
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {caList.map((article, idx) => (
+                    <div key={article.id} className="p-5 bg-white border border-slate-200 flex justify-between items-start rounded-3xl shadow-sm">
+                      <div className="space-y-2">
+                        <div className="flex gap-2 items-center text-[10px] font-bold text-slate-500">
+                          <span className="text-blue-600">{article.category}</span>
+                          <span>&bull;</span>
+                          <span>{article.publishDate}</span>
+                        </div>
+                        <h4 className="font-bold text-sm text-slate-900">{article.title}</h4>
+                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{article.summary}</p>
+                      </div>
+
+                      <div className="flex gap-2 shrink-0 ml-4">
+                        <button
+                          onClick={() => {
+                            setCaForm(article);
+                            setActiveModal({ type: 'edit', index: idx });
+                          }}
+                          className="p-2 border border-slate-200 rounded-xl hover:bg-slate-55 text-slate-600"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCA(article.id)}
+                          className="p-2 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Modal add/edit CA (Mains GS Articles) */}
             {activeModal && activeTab === 'Current Affairs' && (
               <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <form onSubmit={handleSaveCA} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-xl w-full space-y-4 shadow-2xl">
@@ -1216,16 +1435,16 @@ export default function AdminPortal() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Article Title</label>
-                      <input 
-                        type="text" required value={caForm.title} 
+                      <input
+                        type="text" required value={caForm.title}
                         onChange={(e) => setCaForm({ ...caForm, title: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Category</label>
-                      <select 
-                        value={caForm.category} 
+                      <select
+                        value={caForm.category}
                         onChange={(e) => setCaForm({ ...caForm, category: e.target.value as any })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       >
@@ -1241,8 +1460,8 @@ export default function AdminPortal() {
                   <div className="max-h-[50vh] overflow-y-auto space-y-4 pr-1">
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Relevance (GS Syllabus Mapping)</label>
-                      <input 
-                        type="text" value={caForm.relevance || ''} 
+                      <input
+                        type="text" value={caForm.relevance || ''}
                         onChange={(e) => setCaForm({ ...caForm, relevance: e.target.value })}
                         placeholder="e.g. GS Paper II: Constitutional Autonomy..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1251,8 +1470,8 @@ export default function AdminPortal() {
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Why in News? (Context)</label>
-                      <textarea 
-                        rows={2} value={caForm.context || ''} 
+                      <textarea
+                        rows={2} value={caForm.context || ''}
                         onChange={(e) => setCaForm({ ...caForm, context: e.target.value })}
                         placeholder="Explain the background trigger context..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1261,8 +1480,8 @@ export default function AdminPortal() {
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Short Summary (Blurb)</label>
-                      <textarea 
-                        rows={2} required value={caForm.summary} 
+                      <textarea
+                        rows={2} required value={caForm.summary}
                         onChange={(e) => setCaForm({ ...caForm, summary: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
@@ -1278,8 +1497,8 @@ export default function AdminPortal() {
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Way Forward (Recommendations)</label>
-                      <textarea 
-                        rows={2} value={caForm.wayForward || ''} 
+                      <textarea
+                        rows={2} value={caForm.wayForward || ''}
                         onChange={(e) => setCaForm({ ...caForm, wayForward: e.target.value })}
                         placeholder="Provide closing policy recommendation details..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1288,8 +1507,8 @@ export default function AdminPortal() {
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Practice Question (Mains/MCQ Challenge)</label>
-                      <textarea 
-                        rows={2} value={caForm.practiceQuestion || ''} 
+                      <textarea
+                        rows={2} value={caForm.practiceQuestion || ''}
                         onChange={(e) => setCaForm({ ...caForm, practiceQuestion: e.target.value })}
                         placeholder="Enter the practice question based on this article..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1308,71 +1527,6 @@ export default function AdminPortal() {
                 </form>
               </div>
             )}
-          </div>
-        )}
-
-        {/* TAB 6b: DYNAMIC CURRENT AFFAIRS */}
-        {activeTab === 'Dynamic Current Affairs' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Dynamic Current Affairs editions</h3>
-              <button 
-                onClick={() => {
-                  setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: '', articles: [] });
-                  setIsEditionModalOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Create Daily Edition</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {dynamicEditionsList.map((ed) => {
-                const natCount = ed.articles?.filter((a: any) => a.category === 'NATIONAL').length || 0;
-                const intCount = ed.articles?.filter((a: any) => a.category === 'INTERNATIONAL').length || 0;
-                const bihCount = ed.articles?.filter((a: any) => a.category === 'BIHAR').length || 0;
-                
-                return (
-                  <div key={ed.id} className="p-5 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/[0.06] rounded-3xl shadow-sm flex flex-col justify-between space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
-                        <span>DATE: {ed.publishDate}</span>
-                        <span className="text-amber-500">{ed.articles?.length || 0} ARTICLES</span>
-                      </div>
-                      <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Daily Edition Summary</h4>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{ed.summary || 'No summary overview provided.'}</p>
-                      
-                      <div className="flex gap-2 pt-2 text-[10px] font-semibold text-slate-500">
-                        <span className="bg-amber-500/5 text-amber-600 px-2 py-0.5 rounded-lg">Nat ({natCount})</span>
-                        <span className="bg-indigo-500/5 text-indigo-600 px-2 py-0.5 rounded-lg">Int ({intCount})</span>
-                        <span className="bg-emerald-500/5 text-emerald-600 px-2 py-0.5 rounded-lg">Bihar ({bihCount})</span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 border-t border-slate-50 dark:border-white/[0.02] pt-4 mt-2">
-                      <button 
-                        onClick={() => {
-                          setEditingEdition(ed);
-                          setIsEditionModalOpen(true);
-                        }}
-                        className="flex-1 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-700 font-bold text-xs cursor-pointer flex justify-center items-center gap-1"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Edit Edition</span>
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteDynamicEdition(ed.id)}
-                        className="p-2 border border-red-150 rounded-xl hover:bg-red-500 hover:text-white text-red-500 cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
 
             {/* Daily Edition Designer Modal */}
             {isEditionModalOpen && editingEdition && (
@@ -1382,7 +1536,7 @@ export default function AdminPortal() {
                     <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
                       {editingEdition.id ? 'Edit Daily Current Affairs Edition' : 'Create Daily Current Affairs Edition'}
                     </h3>
-                    <button 
+                    <button
                       type="button" onClick={() => setIsEditionModalOpen(false)}
                       className="text-slate-400 hover:text-slate-650 cursor-pointer font-bold text-sm"
                     >
@@ -1394,7 +1548,7 @@ export default function AdminPortal() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Date <span className="text-red-500">*</span></label>
-                        <input 
+                        <input
                           type="date" required value={editingEdition.publishDate}
                           onChange={(e) => setEditingEdition({ ...editingEdition, publishDate: e.target.value })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1402,7 +1556,7 @@ export default function AdminPortal() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Edition Summary Brief</label>
-                        <input 
+                        <input
                           type="text" value={editingEdition.summary || ''}
                           onChange={(e) => setEditingEdition({ ...editingEdition, summary: e.target.value })}
                           placeholder="Quick summary summary mapping the day's highlights..."
@@ -1414,7 +1568,7 @@ export default function AdminPortal() {
                     {/* CATEGORY COLUMNS */}
                     <div className="space-y-6 pt-4 border-t">
                       <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Edition Article Layout</h4>
-                      
+
                       {(['BIHAR', 'NATIONAL', 'INTERNATIONAL'] as const).map(cat => {
                         const catArticles = (editingEdition.articles || []).filter((a: any) => a.category === cat);
                         return (
@@ -1466,14 +1620,14 @@ export default function AdminPortal() {
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t">
-                      <button 
+                      <button
                         type="button" onClick={() => setIsEditionModalOpen(false)}
                         className="px-4 py-2 border border-slate-300 text-slate-700 dark:text-slate-350 text-xs font-semibold rounded-2xl cursor-pointer"
                       >
                         Cancel
                       </button>
-                      <button 
-                        type="submit" 
+                      <button
+                        type="submit"
                         className="px-6 py-2 bg-slate-900 hover:bg-slate-850 dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 text-white text-xs font-bold rounded-2xl cursor-pointer"
                       >
                         Publish Daily Edition
@@ -1492,7 +1646,7 @@ export default function AdminPortal() {
                     <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
                       Add / Edit Article ({activeArticleCategory})
                     </h3>
-                    <button 
+                    <button
                       type="button" onClick={() => setIsArticleModalOpen(false)}
                       className="text-slate-400 hover:text-slate-650 cursor-pointer font-bold text-xs"
                     >
@@ -1505,7 +1659,7 @@ export default function AdminPortal() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Article Title <span className="text-red-500">*</span></label>
-                        <input 
+                        <input
                           type="text" required value={editingArticle.title}
                           onChange={(e) => setEditingArticle({ ...editingArticle, title: e.target.value })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1513,7 +1667,7 @@ export default function AdminPortal() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">URL Slug (leave empty to auto-generate)</label>
-                        <input 
+                        <input
                           type="text" value={editingArticle.slug || ''}
                           onChange={(e) => setEditingArticle({ ...editingArticle, slug: e.target.value })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1524,7 +1678,7 @@ export default function AdminPortal() {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Importance</label>
-                        <select 
+                        <select
                           value={editingArticle.importance}
                           onChange={(e) => setEditingArticle({ ...editingArticle, importance: e.target.value })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1536,7 +1690,7 @@ export default function AdminPortal() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Reading Time</label>
-                        <input 
+                        <input
                           type="text" value={editingArticle.readingTime}
                           onChange={(e) => setEditingArticle({ ...editingArticle, readingTime: e.target.value })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1544,7 +1698,7 @@ export default function AdminPortal() {
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Status</label>
-                        <select 
+                        <select
                           value={editingArticle.publishStatus}
                           onChange={(e) => setEditingArticle({ ...editingArticle, publishStatus: e.target.value })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1558,7 +1712,7 @@ export default function AdminPortal() {
                     {/* Executive Summary */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Executive Summary (Short Blurb) <span className="text-red-500">*</span></label>
-                      <textarea 
+                      <textarea
                         rows={2} required value={editingArticle.summary}
                         onChange={(e) => setEditingArticle({ ...editingArticle, summary: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1568,10 +1722,10 @@ export default function AdminPortal() {
                     {/* EDITORIAL CONTENT FIELD */}
                     <div className="border-t pt-4 space-y-4">
                       <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Article Content</h4>
-                      
+
                       <div className="space-y-1.5">
-                        <RichTextEditor 
-                          value={editingArticle.content || ''} 
+                        <RichTextEditor
+                          value={editingArticle.content || ''}
                           onChange={(html) => setEditingArticle({ ...editingArticle, content: html })}
                         />
                       </div>
@@ -1580,11 +1734,11 @@ export default function AdminPortal() {
                     {/* METADATA FILTERS INPUTS */}
                     <div className="border-t pt-4 space-y-4">
                       <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Metadata Parameters</h4>
-                      
+
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">Subjects (comma separated)</label>
-                          <input 
+                          <input
                             type="text" value={editingArticle.subjects?.join(', ') || ''}
                             onChange={(e) => setEditingArticle({ ...editingArticle, subjects: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                             placeholder="Polity, Economy..."
@@ -1593,7 +1747,7 @@ export default function AdminPortal() {
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">Exams (comma separated)</label>
-                          <input 
+                          <input
                             type="text" value={editingArticle.exams?.join(', ') || ''}
                             onChange={(e) => setEditingArticle({ ...editingArticle, exams: e.target.value.split(',').map(ex => ex.trim()).filter(Boolean) })}
                             placeholder="UPSC, BPSC..."
@@ -1602,7 +1756,7 @@ export default function AdminPortal() {
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">Tags (comma separated)</label>
-                          <input 
+                          <input
                             type="text" value={editingArticle.tags?.join(', ') || ''}
                             onChange={(e) => setEditingArticle({ ...editingArticle, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
                             placeholder="governance, budget..."
@@ -1615,11 +1769,11 @@ export default function AdminPortal() {
                     {/* SEO FIELDS */}
                     <div className="border-t pt-4 space-y-4">
                       <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">SEO Parameters</h4>
-                      
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Title</label>
-                          <input 
+                          <input
                             type="text" value={editingArticle.seo?.seoTitle || ''}
                             onChange={(e) => setEditingArticle({ ...editingArticle, seo: { ...editingArticle.seo, seoTitle: e.target.value } })}
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1627,7 +1781,7 @@ export default function AdminPortal() {
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">Canonical URL</label>
-                          <input 
+                          <input
                             type="text" value={editingArticle.seo?.canonicalUrl || ''}
                             onChange={(e) => setEditingArticle({ ...editingArticle, seo: { ...editingArticle.seo, canonicalUrl: e.target.value } })}
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1638,7 +1792,7 @@ export default function AdminPortal() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Keywords</label>
-                          <input 
+                          <input
                             type="text" value={editingArticle.seo?.seoKeywords || ''}
                             onChange={(e) => setEditingArticle({ ...editingArticle, seo: { ...editingArticle.seo, seoKeywords: e.target.value } })}
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1646,7 +1800,7 @@ export default function AdminPortal() {
                         </div>
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Description</label>
-                          <input 
+                          <input
                             type="text" value={editingArticle.seo?.seoDescription || ''}
                             onChange={(e) => setEditingArticle({ ...editingArticle, seo: { ...editingArticle.seo, seoDescription: e.target.value } })}
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1656,13 +1810,13 @@ export default function AdminPortal() {
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t">
-                      <button 
+                      <button
                         type="button" onClick={() => setIsArticleModalOpen(false)}
                         className="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-2xl cursor-pointer"
                       >
                         Cancel
                       </button>
-                      <button 
+                      <button
                         type="button" onClick={handleSaveArticleToEdition}
                         className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl cursor-pointer"
                       >
@@ -1681,7 +1835,7 @@ export default function AdminPortal() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="font-extrabold text-sm text-slate-900">Blog Strategy Posts</h3>
-              <button 
+              <button
                 onClick={() => {
                   setBlogForm({ id: '', title: '', publishDate: '', readTime: '5 min read', category: 'Strategy', content: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
                   setActiveModal({ type: 'add' });
@@ -1706,7 +1860,7 @@ export default function AdminPortal() {
                   </div>
 
                   <div className="flex gap-2 shrink-0 ml-4">
-                    <button 
+                    <button
                       onClick={() => {
                         setBlogForm(post);
                         setActiveModal({ type: 'edit', index: idx });
@@ -1715,7 +1869,7 @@ export default function AdminPortal() {
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteBlog(post.id)}
                       className="p-2 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500"
                     >
@@ -1738,16 +1892,16 @@ export default function AdminPortal() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Post Title</label>
-                        <input 
-                          type="text" required value={blogForm.title} 
+                        <input
+                          type="text" required value={blogForm.title}
                           onChange={(e) => setBlogForm({ ...blogForm, title: e.target.value })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                         />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Category</label>
-                        <input 
-                          type="text" required value={blogForm.category} 
+                        <input
+                          type="text" required value={blogForm.category}
                           onChange={(e) => setBlogForm({ ...blogForm, category: e.target.value })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                         />
@@ -1757,16 +1911,16 @@ export default function AdminPortal() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Read Time</label>
-                        <input 
-                          type="text" required value={blogForm.readTime} 
+                        <input
+                          type="text" required value={blogForm.readTime}
                           onChange={(e) => setBlogForm({ ...blogForm, readTime: e.target.value })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                         />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Target Title</label>
-                        <input 
-                          type="text" value={blogForm.seoTitle || ''} 
+                        <input
+                          type="text" value={blogForm.seoTitle || ''}
                           onChange={(e) => setBlogForm({ ...blogForm, seoTitle: e.target.value })}
                           placeholder="Meta title for Google results..."
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1776,8 +1930,8 @@ export default function AdminPortal() {
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Keywords (Comma Separated)</label>
-                      <input 
-                        type="text" value={blogForm.seoKeywords || ''} 
+                      <input
+                        type="text" value={blogForm.seoKeywords || ''}
                         onChange={(e) => setBlogForm({ ...blogForm, seoKeywords: e.target.value })}
                         placeholder="e.g. BPSC Polity notes, Article 356 Mains analysis"
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1786,8 +1940,8 @@ export default function AdminPortal() {
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">SEO Meta Description</label>
-                      <textarea 
-                        rows={2} value={blogForm.seoDescription || ''} 
+                      <textarea
+                        rows={2} value={blogForm.seoDescription || ''}
                         onChange={(e) => setBlogForm({ ...blogForm, seoDescription: e.target.value })}
                         placeholder="Search result snippet summary description..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1796,8 +1950,8 @@ export default function AdminPortal() {
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Blurb (Short Intro Summary)</label>
-                      <textarea 
-                        rows={2} value={blogForm.blurb || ''} 
+                      <textarea
+                        rows={2} value={blogForm.blurb || ''}
                         onChange={(e) => setBlogForm({ ...blogForm, blurb: e.target.value })}
                         placeholder="Short introductory summary snippet..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
@@ -1806,12 +1960,12 @@ export default function AdminPortal() {
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Content</label>
-                    <RichTextEditor 
-                      value={blogForm.content || ''} 
-                      onChange={(html) => setBlogForm({ ...blogForm, content: html })}
-                    />
+                      <RichTextEditor
+                        value={blogForm.content || ''}
+                        onChange={(html) => setBlogForm({ ...blogForm, content: html })}
+                      />
+                    </div>
                   </div>
-                </div>
 
                   <div className="flex justify-end gap-3 pt-2">
                     <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-2xl">
@@ -1832,7 +1986,7 @@ export default function AdminPortal() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="font-extrabold text-sm text-slate-900">Free Resources Downloads</h3>
-              <button 
+              <button
                 onClick={() => {
                   setResourceForm({ id: '', title: '', size: '2.5 MB', type: 'PDF', downloadCount: 0, url: '#' });
                   setActiveModal({ type: 'add' });
@@ -1853,7 +2007,7 @@ export default function AdminPortal() {
                   </div>
 
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       onClick={() => {
                         setResourceForm(res);
                         setActiveModal({ type: 'edit', index: idx });
@@ -1862,7 +2016,7 @@ export default function AdminPortal() {
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteResource(res.id)}
                       className="p-1.5 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500"
                     >
@@ -1883,7 +2037,7 @@ export default function AdminPortal() {
                   {/* ── File Upload ───────────────────────────────────── */}
                   <div className="space-y-2">
                     <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                      <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                      <svg className="w-3 h-3 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                       Upload File to Server
                     </label>
 
@@ -1926,18 +2080,18 @@ export default function AdminPortal() {
                       />
                       {resourceUploading ? (
                         <>
-                          <svg className="w-5 h-5 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75"/></svg>
+                          <svg className="w-5 h-5 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" /><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" className="opacity-75" /></svg>
                           <span className="text-xs text-blue-600 font-semibold">Uploading file to server…</span>
                         </>
                       ) : resourceForm.url && resourceForm.url.includes('/api/files/') ? (
                         <>
-                          <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M5 13l4 4L19 7"/></svg>
+                          <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path d="M5 13l4 4L19 7" /></svg>
                           <span className="text-xs text-emerald-600 font-semibold">File uploaded! Click to replace.</span>
                           <a href={resourceForm.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 underline" onClick={e => e.stopPropagation()}>Preview file ↗</a>
                         </>
                       ) : (
                         <>
-                          <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                          <svg className="w-6 h-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                           <span className="text-xs text-slate-500 font-semibold">Click or drag file here to upload</span>
                           <span className="text-[10px] text-slate-400">PDF, DOC, PPT, XLS, ZIP, MP4, images — max 500MB</span>
                         </>
@@ -1950,8 +2104,8 @@ export default function AdminPortal() {
                   <div className="border-t border-slate-100 pt-3 space-y-3">
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Resource Title</label>
-                      <input 
-                        type="text" required value={resourceForm.title} 
+                      <input
+                        type="text" required value={resourceForm.title}
                         onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                         placeholder="e.g. BPSC Polity Notes 2025"
@@ -1961,8 +2115,8 @@ export default function AdminPortal() {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">File Size</label>
-                        <input 
-                          type="text" value={resourceForm.size} 
+                        <input
+                          type="text" value={resourceForm.size}
                           onChange={(e) => setResourceForm({ ...resourceForm, size: e.target.value })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                           placeholder="Auto-filled on upload"
@@ -1988,8 +2142,8 @@ export default function AdminPortal() {
 
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Download URL (auto-filled on upload)</label>
-                      <input 
-                        type="text" value={resourceForm.url} 
+                      <input
+                        type="text" value={resourceForm.url}
                         onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none font-mono"
                         placeholder="Auto-filled after upload, or paste external URL"
@@ -2026,19 +2180,17 @@ export default function AdminPortal() {
                   <button
                     type="button"
                     onClick={() => setEditMode(!editMode)}
-                    className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300 focus:outline-none ${
-                      editMode ? 'bg-slate-900' : 'bg-slate-300'
-                    }`}
+                    className={`w-11 h-6 flex items-center rounded-full p-0.5 transition-colors duration-300 focus:outline-none ${editMode ? 'bg-slate-900' : 'bg-slate-300'
+                      }`}
                   >
                     <div
-                      className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${
-                        editMode ? 'translate-x-5' : 'translate-x-0'
-                      }`}
+                      className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${editMode ? 'translate-x-5' : 'translate-x-0'
+                        }`}
                     />
                   </button>
                 </div>
                 {editMode && (
-                  <button 
+                  <button
                     onClick={() => {
                       setCourseForm({ id: `course-${Date.now()}`, title: '', category: 'LMS Program', description: '', fee: 99900, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
                       setActiveModal({ type: 'add' });
@@ -2062,7 +2214,7 @@ export default function AdminPortal() {
                       </Link>
                       {editMode && (
                         <div className="flex gap-2">
-                          <button 
+                          <button
                             onClick={() => {
                               setCourseForm(course);
                               setActiveModal({ type: 'edit', index: idx });
@@ -2071,7 +2223,7 @@ export default function AdminPortal() {
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
-                          <button 
+                          <button
                             onClick={async () => {
                               if (window.confirm('Delete this course?')) {
                                 setCoursesList(prev => prev.filter(c => c.id !== course.id));
@@ -2087,7 +2239,7 @@ export default function AdminPortal() {
                     </div>
                     <div className="flex justify-between items-center mt-1">
                       <p className="text-[10px] text-slate-400 uppercase font-bold">{course.category} &bull; {course.duration}</p>
-                      <Link 
+                      <Link
                         href={`/admin/courses/${course.id}`}
                         className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-[10px] flex items-center gap-1 transition-all"
                       >
@@ -2130,7 +2282,7 @@ export default function AdminPortal() {
                               const sections = secData.data?.sections || secData.data || [];
                               if (sections.length === 0) {
                                 alert('Please create a Chapter/Section first!');
-                                    return;
+                                return;
                               }
                               const targetSectionId = sections[0].id;
                               await fetch(`${BACKEND_URL}/api/lms/sections/${targetSectionId}/lessons`, {
@@ -2151,7 +2303,7 @@ export default function AdminPortal() {
 
                   <div className="flex justify-between items-center border-t border-slate-100 pt-3">
                     <span className="text-xs font-bold text-slate-900">{typeof course.fee === 'number' ? `₹${(course.fee / 100).toLocaleString('en-IN')}` : course.fee}</span>
-                    
+
                     {/* iOS Designer Switch Toggle */}
                     <div className="flex items-center gap-2">
                       <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Published</span>
@@ -2167,14 +2319,12 @@ export default function AdminPortal() {
                             body: JSON.stringify({ isPublished: nextPub })
                           });
                         }}
-                        className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-all duration-300 focus:outline-none ${
-                          course.isPublished ? 'bg-emerald-500' : 'bg-slate-350'
-                        } ${!editMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-all duration-300 focus:outline-none ${course.isPublished ? 'bg-emerald-500' : 'bg-slate-350'
+                          } ${!editMode ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         <div
-                          className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${
-                            course.isPublished ? 'translate-x-4' : 'translate-x-0'
-                          }`}
+                          className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${course.isPublished ? 'translate-x-4' : 'translate-x-0'
+                            }`}
                         />
                       </button>
                     </div>
@@ -2211,8 +2361,8 @@ export default function AdminPortal() {
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">Course ID (Slug)</label>
-                    <input 
-                      type="text" required value={courseForm.id} 
+                    <input
+                      type="text" required value={courseForm.id}
                       disabled={activeModal.type === 'edit'}
                       onChange={(e) => setCourseForm({ ...courseForm, id: e.target.value })}
                       className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 disabled:opacity-50"
@@ -2221,8 +2371,8 @@ export default function AdminPortal() {
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">Course Title</label>
-                    <input 
-                      type="text" required value={courseForm.title} 
+                    <input
+                      type="text" required value={courseForm.title}
                       onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
                       className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400"
                     />
@@ -2230,8 +2380,8 @@ export default function AdminPortal() {
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">Description</label>
-                    <textarea 
-                      required value={courseForm.description} 
+                    <textarea
+                      required value={courseForm.description}
                       onChange={(e) => setCourseForm({ ...courseForm, description: e.target.value })}
                       className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 min-h-20"
                     />
@@ -2240,16 +2390,16 @@ export default function AdminPortal() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Fee (in Paise)</label>
-                      <input 
-                        type="number" required value={courseForm.fee} 
+                      <input
+                        type="number" required value={courseForm.fee}
                         onChange={(e) => setCourseForm({ ...courseForm, fee: Number(e.target.value) })}
                         className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Duration</label>
-                      <input 
-                        type="text" required value={courseForm.duration} 
+                      <input
+                        type="text" required value={courseForm.duration}
                         onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })}
                         className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400"
                       />
@@ -2270,6 +2420,14 @@ export default function AdminPortal() {
           </div>
         )}
       </main>
+
+      {mediaPickerConfig.isOpen && (
+        <MediaPicker
+          allowedTypes={mediaPickerConfig.allowedTypes}
+          onSelect={handleSelectMedia}
+          onClose={() => setMediaPickerConfig({ isOpen: false, field: '' })}
+        />
+      )}
     </div>
   );
 }

@@ -1518,7 +1518,7 @@ export default function AdminPortal() {
                       <button
                         onClick={async () => {
                           const title = window.prompt('Enter Lecture Video Title:');
-                          const videoUrl = window.prompt('Enter Cloudinary/Video URL:', 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4');
+                          const videoUrl = window.prompt('Enter Media/Video URL:', 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4');
                           if (title && videoUrl) {
                             if (!backendOffline) {
                               // Auto fetch sections list first

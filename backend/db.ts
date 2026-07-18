@@ -181,6 +181,8 @@ interface LocalDBStore {
   sessions?: any[];
   otps?: any[];
   dynamicCurrentAffairEditions?: DynamicCurrentAffairEdition[];
+  youtubeVideos?: any[];
+  youtubeSyncLogs?: any[];
 }
 
 export let mysqlPool: mysql.Pool | null = null;
@@ -557,6 +559,31 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       )
     `);
 
+    // 15. YouTube Videos Cached Metadata Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS youtube_videos (
+        youtubeVideoId VARCHAR(100) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        thumbnail TEXT,
+        duration VARCHAR(50),
+        publishedAt VARCHAR(100) NOT NULL,
+        channelTitle VARCHAR(255) NOT NULL,
+        createdAt VARCHAR(255) NOT NULL
+      )
+    `);
+
+    // 16. YouTube Synchronization Execution Logs Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS youtube_sync_logs (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        syncTime VARCHAR(255) NOT NULL,
+        videosSynced INT NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        error TEXT
+      )
+    `);
+
     console.log('MySQL Database tables initialized successfully.');
 
     
@@ -735,7 +762,9 @@ class BackendDB {
     users: [],
     sessions: [],
     otps: [],
-    dynamicCurrentAffairEditions: []
+    dynamicCurrentAffairEditions: [],
+    youtubeVideos: [],
+    youtubeSyncLogs: []
   };
 
   constructor() {
@@ -834,6 +863,125 @@ class BackendDB {
     this.localStore.settings.visitorsCount = nextVal;
     this.saveLocalData();
     return nextVal;
+  }
+
+  // YOUTUBE INTEGRATION METHODS
+  public async getYoutubeVideos(limit: number = 9, page: number = 1, search: string = ''): Promise<{ videos: any[], total: number }> {
+    const offset = (page - 1) * limit;
+    if (mysqlPool) {
+      try {
+        let query = 'SELECT * FROM youtube_videos';
+        let countQuery = 'SELECT COUNT(*) as count FROM youtube_videos';
+        const params: any[] = [];
+        
+        if (search) {
+          query += ' WHERE title LIKE ? OR description LIKE ?';
+          countQuery += ' WHERE title LIKE ? OR description LIKE ?';
+          const searchParam = `%${search}%`;
+          params.push(searchParam, searchParam);
+        }
+        
+        query += ' ORDER BY publishedAt DESC LIMIT ? OFFSET ?';
+        const queryParams = [...params, limit, offset];
+        
+        const [rows]: any = await mysqlPool.query(query, queryParams);
+        const [countRows]: any = await mysqlPool.query(countQuery, params);
+        const total = countRows[0]?.count || 0;
+        
+        return { videos: rows, total };
+      } catch (err) {
+        console.error('MySQL getYoutubeVideos error:', err);
+      }
+    }
+    
+    // Fallback to memory localStore
+    if (!this.localStore.youtubeVideos) this.localStore.youtubeVideos = [];
+    let filtered = this.localStore.youtubeVideos;
+    if (search) {
+      const kw = search.toLowerCase();
+      filtered = filtered.filter(v => 
+        v.title.toLowerCase().includes(kw) || 
+        (v.description || '').toLowerCase().includes(kw)
+      );
+    }
+    // Sort by publishedAt DESC
+    filtered.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+    const total = filtered.length;
+    const sliced = filtered.slice(offset, offset + limit);
+    return { videos: sliced, total };
+  }
+
+  public async upsertYoutubeVideo(video: any): Promise<boolean> {
+    const now = new Date().toISOString();
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(`
+          INSERT INTO youtube_videos (youtubeVideoId, title, description, thumbnail, duration, publishedAt, channelTitle, createdAt)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            title = VALUES(title),
+            description = VALUES(description),
+            thumbnail = VALUES(thumbnail),
+            duration = VALUES(duration),
+            publishedAt = VALUES(publishedAt),
+            channelTitle = VALUES(channelTitle)
+        `, [
+          video.youtubeVideoId, video.title, video.description, video.thumbnail,
+          video.duration, video.publishedAt, video.channelTitle, now
+        ]);
+        return true;
+      } catch (err) {
+        console.error('MySQL upsertYoutubeVideo error:', err);
+      }
+    }
+    
+    // Fallback
+    if (!this.localStore.youtubeVideos) this.localStore.youtubeVideos = [];
+    const idx = this.localStore.youtubeVideos.findIndex(v => v.youtubeVideoId === video.youtubeVideoId);
+    if (idx >= 0) {
+      this.localStore.youtubeVideos[idx] = { ...this.localStore.youtubeVideos[idx], ...video };
+    } else {
+      this.localStore.youtubeVideos.push({ ...video, createdAt: now });
+    }
+    this.saveLocalData();
+    return true;
+  }
+
+  public async logYoutubeSync(videosSynced: number, status: string, error: string | null): Promise<boolean> {
+    const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(`
+          INSERT INTO youtube_sync_logs (syncTime, videosSynced, status, error)
+          VALUES (?, ?, ?, ?)
+        `, [now, videosSynced, status, error]);
+        return true;
+      } catch (err) {
+        console.error('MySQL logYoutubeSync error:', err);
+      }
+    }
+    // Fallback
+    if (!this.localStore.youtubeSyncLogs) this.localStore.youtubeSyncLogs = [];
+    this.localStore.youtubeSyncLogs.push({ syncTime: now, videosSynced, status, error });
+    if (this.localStore.youtubeSyncLogs.length > 50) {
+      this.localStore.youtubeSyncLogs.shift();
+    }
+    this.saveLocalData();
+    return true;
+  }
+
+  public async getLastSyncLog(): Promise<any | null> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM youtube_sync_logs ORDER BY id DESC LIMIT 1');
+        if (rows && rows.length > 0) return rows[0];
+        return null;
+      } catch (err) {
+        console.error('MySQL getLastSyncLog error:', err);
+      }
+    }
+    if (!this.localStore.youtubeSyncLogs || this.localStore.youtubeSyncLogs.length === 0) return null;
+    return this.localStore.youtubeSyncLogs[this.localStore.youtubeSyncLogs.length - 1];
   }
 
   // LEADS

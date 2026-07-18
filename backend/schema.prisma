@@ -1,97 +1,692 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
+model blogs {
+  id             String  @id @db.VarChar(255)
+  title          String  @db.VarChar(255)
+  publishDate    String  @db.VarChar(100)
+  readTime       String  @db.VarChar(100)
+  category       String  @db.VarChar(100)
+  content        String? @db.Text
+  seoTitle       String? @db.VarChar(255)
+  seoKeywords    String? @db.Text
+  seoDescription String? @db.Text
+  blurb          String? @db.Text
 }
 
-enum CurrentAffairCategory {
-  NATIONAL
-  INTERNATIONAL
-  BIHAR
+model course_progress {
+  studentId String   @db.VarChar(255)
+  courseId  String?  @db.VarChar(255)
+  lessonId  String   @db.VarChar(255)
+  completed Boolean? @default(false)
+  updatedAt String?  @db.VarChar(255)
+
+  @@id([studentId, lessonId])
 }
 
-model CurrentAffairEdition {
-  id           String                 @id @default(uuid())
-  publishDate  DateTime               @unique // Unique date (e.g. 2026-07-17)
-  summary      String?                @db.Text
-  articles     CurrentAffairArticle[]
-  createdAt    DateTime               @default(now())
-  updatedAt    DateTime               @updatedAt
+model current_affair_article_exams {
+  articleId               String                  @db.VarChar(255)
+  examId                  String                  @db.VarChar(255)
+  current_affair_articles current_affair_articles @relation(fields: [articleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "current_affair_article_exams_ibfk_1")
+  current_affair_exams    current_affair_exams    @relation(fields: [examId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "current_affair_article_exams_ibfk_2")
+
+  @@id([articleId, examId])
+  @@index([examId], map: "examId")
 }
 
-model CurrentAffairArticle {
-  id               String               @id @default(uuid())
-  slug             String               @unique
-  title            String
-  summary          String               @db.Text
-  category         CurrentAffairCategory
-  publishStatus    String               @default("DRAFT") // DRAFT, PUBLISHED
-  publishedDate    DateTime
-  readingTime      String               @default("5 min read")
-  importance       String               @default("MEDIUM") // HIGH, MEDIUM, LOW
-  content          String?              @db.Text
-  
-  // Editorial template fields
-  whyInNews        String?              @db.Text
-  context          String?              @db.Text
-  background       String?              @db.Text
-  keyHighlights    String?              @db.Text
-  importantFacts   String?              @db.Text
-  examRelevance    String?              @db.Text
-  previousContext  String?              @db.Text
-  wayForward       String?              @db.Text
-  keyTakeaways     String?              @db.Text
-  
-  // Dynamic relations
-  editionId        String
-  edition          CurrentAffairEdition @relation(fields: [editionId], references: [id], onDelete: Cascade)
-  
-  seoId            String?              @unique
-  seo              CurrentAffairSeo?    @relation(fields: [seoId], references: [id])
-  
-  subjects         CurrentAffairSubject[]
-  exams            CurrentAffairExam[]
-  tags             CurrentAffairTag[]
-  media            CurrentAffairMedia[]
-  
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+model current_affair_article_subjects {
+  articleId               String                  @db.VarChar(255)
+  subjectId               String                  @db.VarChar(255)
+  current_affair_articles current_affair_articles @relation(fields: [articleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "current_affair_article_subjects_ibfk_1")
+  current_affair_subjects current_affair_subjects @relation(fields: [subjectId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "current_affair_article_subjects_ibfk_2")
+
+  @@id([articleId, subjectId])
+  @@index([subjectId], map: "subjectId")
 }
 
-model CurrentAffairSubject {
-  id        String                 @id @default(uuid())
-  name      String                 @unique // Polity, Economy, etc.
-  articles  CurrentAffairArticle[]
+model current_affair_article_tags {
+  articleId               String                  @db.VarChar(255)
+  tagId                   String                  @db.VarChar(255)
+  current_affair_articles current_affair_articles @relation(fields: [articleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "current_affair_article_tags_ibfk_1")
+  current_affair_tags     current_affair_tags     @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "current_affair_article_tags_ibfk_2")
+
+  @@id([articleId, tagId])
+  @@index([tagId], map: "tagId")
 }
 
-model CurrentAffairExam {
-  id        String                 @id @default(uuid())
-  name      String                 @unique // UPSC, BPSC, etc.
-  articles  CurrentAffairArticle[]
+model current_affair_articles {
+  id                              String                            @id @db.VarChar(255)
+  slug                            String                            @unique(map: "slug") @db.VarChar(255)
+  title                           String                            @db.VarChar(255)
+  summary                         String                            @db.Text
+  category                        String                            @db.VarChar(100)
+  publishStatus                   String?                           @default("DRAFT") @db.VarChar(50)
+  publishedDate                   String                            @db.VarChar(100)
+  readingTime                     String?                           @default("5 min read") @db.VarChar(100)
+  importance                      String?                           @default("MEDIUM") @db.VarChar(50)
+  whyInNews                       String?                           @db.Text
+  context                         String?                           @db.Text
+  background                      String?                           @db.Text
+  keyHighlights                   String?                           @db.Text
+  importantFacts                  String?                           @db.Text
+  examRelevance                   String?                           @db.Text
+  previousContext                 String?                           @db.Text
+  wayForward                      String?                           @db.Text
+  keyTakeaways                    String?                           @db.Text
+  editionId                       String                            @db.VarChar(255)
+  seoId                           String?                           @db.VarChar(255)
+  createdAt                       String                            @db.VarChar(255)
+  updatedAt                       String                            @db.VarChar(255)
+  content                         String?                           @db.Text
+  current_affair_article_exams    current_affair_article_exams[]
+  current_affair_article_subjects current_affair_article_subjects[]
+  current_affair_article_tags     current_affair_article_tags[]
+  current_affair_editions         current_affair_editions           @relation(fields: [editionId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "current_affair_articles_ibfk_1")
+  current_affair_seo              current_affair_seo?               @relation(fields: [seoId], references: [id], onUpdate: Restrict, map: "current_affair_articles_ibfk_2")
+  current_affair_media            current_affair_media[]
+
+  @@index([editionId], map: "editionId")
+  @@index([seoId], map: "seoId")
 }
 
-model CurrentAffairTag {
-  id        String                 @id @default(uuid())
-  name      String                 @unique
-  articles  CurrentAffairArticle[]
+model current_affair_editions {
+  id                      String                    @id @db.VarChar(255)
+  publishDate             String                    @unique(map: "publishDate") @db.VarChar(100)
+  summary                 String?                   @db.Text
+  createdAt               String                    @db.VarChar(255)
+  updatedAt               String                    @db.VarChar(255)
+  current_affair_articles current_affair_articles[]
 }
 
-model CurrentAffairMedia {
-  id        String                 @id @default(uuid())
-  type      String                 // COVER, FEATURED, INLINE
-  url       String                 @db.Text
-  articleId String
-  article   CurrentAffairArticle   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+model current_affair_exams {
+  id                           String                         @id @db.VarChar(255)
+  name                         String                         @unique(map: "name") @db.VarChar(255)
+  current_affair_article_exams current_affair_article_exams[]
 }
 
-model CurrentAffairSeo {
-  id             String                @id @default(uuid())
-  canonicalUrl   String?               @db.Text
-  seoTitle       String?
-  seoDescription String?               @db.Text
-  seoKeywords    String?               @db.Text
-  article        CurrentAffairArticle?
+model current_affair_media {
+  id                      String                  @id @db.VarChar(255)
+  type                    String                  @db.VarChar(100)
+  url                     String                  @db.Text
+  articleId               String                  @db.VarChar(255)
+  current_affair_articles current_affair_articles @relation(fields: [articleId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "current_affair_media_ibfk_1")
+
+  @@index([articleId], map: "articleId")
 }
+
+model current_affair_seo {
+  id                      String                    @id @db.VarChar(255)
+  canonicalUrl            String?                   @db.Text
+  seoTitle                String?                   @db.VarChar(255)
+  seoDescription          String?                   @db.Text
+  seoKeywords             String?                   @db.Text
+  current_affair_articles current_affair_articles[]
+}
+
+model current_affair_subjects {
+  id                              String                            @id @db.VarChar(255)
+  name                            String                            @unique(map: "name") @db.VarChar(255)
+  current_affair_article_subjects current_affair_article_subjects[]
+}
+
+model current_affair_tags {
+  id                          String                        @id @db.VarChar(255)
+  name                        String                        @unique(map: "name") @db.VarChar(255)
+  current_affair_article_tags current_affair_article_tags[]
+}
+
+model current_affairs {
+  id               String  @id @db.VarChar(255)
+  title            String  @db.VarChar(255)
+  category         String  @db.VarChar(100)
+  publishDate      String  @db.VarChar(100)
+  summary          String? @db.Text
+  content          String? @db.Text
+  relevance        String? @db.Text
+  context          String? @db.Text
+  analysis         String? @db.Text
+  wayForward       String? @db.Text
+  practiceQuestion String? @db.Text
+}
+
+model faculty {
+  id           String  @id @db.VarChar(255)
+  name         String  @db.VarChar(255)
+  role         String  @db.VarChar(255)
+  experience   String  @db.VarChar(255)
+  avatar       String? @db.Text
+  bio          String? @db.Text
+  demoLectures String? @db.Text
+}
+
+model leads {
+  id         String  @id @db.VarChar(255)
+  fullName   String  @db.VarChar(255)
+  mobile     String  @db.VarChar(50)
+  email      String? @db.VarChar(255)
+  targetExam String  @db.VarChar(255)
+  status     String  @db.VarChar(50)
+  createdAt  String  @db.VarChar(255)
+}
+
+model lms_assignment_submissions {
+  id             String    @id @db.VarChar(255)
+  userId         String    @db.VarChar(255)
+  assignmentId   String    @db.VarChar(255)
+  submissionUrl  String?   @db.Text
+  submissionText String?   @db.Text
+  submittedAt    DateTime? @default(now()) @db.Timestamp(0)
+  grade          Int?
+  feedback       String?   @db.Text
+
+  @@index([assignmentId], map: "idx_submission_assignment")
+  @@index([userId], map: "idx_submission_user")
+}
+
+model lms_assignments {
+  id             String    @id @db.VarChar(255)
+  courseId       String    @db.VarChar(255)
+  lessonId       String?   @db.VarChar(255)
+  title          String    @db.VarChar(255)
+  description    String?   @db.Text
+  dueDate        String?   @db.VarChar(100)
+  maxMarks       Int?      @default(100)
+  submissionType String?   @default("pdf") @db.VarChar(50)
+  isPublished    Boolean?  @default(true)
+  createdAt      DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([courseId], map: "idx_assign_course")
+  @@index([lessonId], map: "idx_assign_lesson")
+}
+
+model lms_chat_messages {
+  id             String         @id @db.VarChar(36)
+  roomId         String         @db.VarChar(36)
+  senderId       String         @db.VarChar(36)
+  messageText    String         @db.Text
+  createdAt      DateTime?      @default(now()) @db.DateTime(0)
+  lms_chat_rooms lms_chat_rooms @relation(fields: [roomId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_chat_messages_ibfk_1")
+  users          users          @relation(fields: [senderId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_chat_messages_ibfk_2")
+
+  @@index([roomId], map: "roomId")
+  @@index([senderId], map: "senderId")
+}
+
+model lms_chat_rooms {
+  id                String               @id @db.VarChar(36)
+  courseId          String               @db.VarChar(100)
+  title             String               @db.VarChar(255)
+  type              lms_chat_rooms_type? @default(general)
+  createdAt         DateTime?            @default(now()) @db.DateTime(0)
+  lms_chat_messages lms_chat_messages[]
+  lms_courses       lms_courses          @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_chat_rooms_ibfk_1")
+
+  @@index([courseId], map: "courseId")
+}
+
+model lms_courses {
+  id              String            @id @db.VarChar(100)
+  title           String            @db.VarChar(255)
+  slug            String            @unique(map: "slug") @db.VarChar(255)
+  category        String            @db.VarChar(50)
+  description     String?           @db.Text
+  thumbnailUrl    String?           @db.Text
+  previewVideoUrl String?           @db.Text
+  fee             Int               @default(0)
+  discountedFee   Int?
+  duration        String?           @db.VarChar(100)
+  schedule        String?           @db.VarChar(255)
+  enrolledCount   Int?              @default(0)
+  syllabus        String?           @db.LongText
+  features        String?           @db.LongText
+  faq             String?           @db.LongText
+  isPublished     Boolean?          @default(true)
+  isActive        Boolean?          @default(true)
+  createdAt       DateTime?         @default(now()) @db.DateTime(0)
+  lms_chat_rooms  lms_chat_rooms[]
+  lms_enrollments lms_enrollments[]
+  lms_quizzes     lms_quizzes[]
+  lms_sections    lms_sections[]
+}
+
+model lms_enrollments {
+  id             String                         @id @db.VarChar(36)
+  userId         String                         @db.VarChar(36)
+  courseId       String                         @db.VarChar(100)
+  paymentOrderId String?                        @db.VarChar(100)
+  paymentStatus  lms_enrollments_paymentStatus? @default(free)
+  amountPaid     Int?
+  enrolledAt     DateTime?                      @default(now()) @db.DateTime(0)
+  users          users                          @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_enrollments_ibfk_1")
+  lms_courses    lms_courses                    @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_enrollments_ibfk_2")
+
+  @@unique([userId, courseId], map: "unique_enrollment")
+  @@index([courseId], map: "courseId")
+}
+
+model lms_lessons {
+  id              String            @id @db.VarChar(100)
+  sectionId       String            @db.VarChar(100)
+  courseId        String            @db.VarChar(100)
+  title           String            @db.VarChar(255)
+  type            lms_lessons_type? @default(video)
+  videoUrl        String?           @db.Text
+  pdfUrl          String?           @db.Text
+  textContent     String?           @db.LongText
+  duration        String?           @db.VarChar(50)
+  durationSeconds Int?
+  orderIndex      Int
+  isFree          Boolean?          @default(false)
+  isPublished     Boolean?          @default(true)
+  createdAt       DateTime?         @default(now()) @db.DateTime(0)
+  lms_sections    lms_sections      @relation(fields: [sectionId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_lessons_ibfk_1")
+
+  @@index([sectionId], map: "sectionId")
+}
+
+model lms_progress {
+  id             String    @id @db.VarChar(36)
+  userId         String    @db.VarChar(36)
+  courseId       String    @db.VarChar(100)
+  lessonId       String    @db.VarChar(100)
+  completed      Boolean?  @default(false)
+  watchedSeconds Int?      @default(0)
+  totalSeconds   Int?      @default(0)
+  lastPosition   Int?      @default(0)
+  completedAt    DateTime? @db.DateTime(0)
+  updatedAt      DateTime? @default(now()) @db.DateTime(0)
+  users          users     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_progress_ibfk_1")
+
+  @@unique([userId, lessonId], map: "unique_progress")
+}
+
+model lms_questions {
+  id            String   @id @db.VarChar(255)
+  quizId        String   @db.VarChar(255)
+  questionText  String   @db.Text
+  optionA       String   @db.Text
+  optionB       String   @db.Text
+  optionC       String   @db.Text
+  optionD       String   @db.Text
+  correctAnswer String   @db.Char(1)
+  explanation   String?  @db.Text
+  marks         Decimal? @default(1.00) @db.Decimal(5, 2)
+  negativeMarks Decimal? @default(0.33) @db.Decimal(5, 2)
+  orderIndex    Int?     @default(1)
+
+  @@index([quizId], map: "idx_question_quiz")
+}
+
+model lms_quiz_attempts {
+  id            String      @id @db.VarChar(36)
+  userId        String      @db.VarChar(36)
+  quizId        String      @db.VarChar(100)
+  answers       String?     @db.LongText
+  score         Float?      @db.Float
+  maxScore      Float?      @db.Float
+  passed        Boolean?
+  timeTakenSecs Int?
+  submittedAt   DateTime?   @default(now()) @db.DateTime(0)
+  users         users       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quiz_attempts_ibfk_1")
+  lms_quizzes   lms_quizzes @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quiz_attempts_ibfk_2")
+
+  @@index([quizId], map: "quizId")
+  @@index([userId], map: "userId")
+}
+
+model lms_quiz_questions {
+  id            String                           @id @db.VarChar(36)
+  quizId        String                           @db.VarChar(100)
+  questionText  String                           @db.Text
+  optionA       String?                          @db.Text
+  optionB       String?                          @db.Text
+  optionC       String?                          @db.Text
+  optionD       String?                          @db.Text
+  correctAnswer lms_quiz_questions_correctAnswer
+  explanation   String?                          @db.Text
+  marks         Float?                           @default(1) @db.Float
+  negativeMarks Float?                           @default(0.33) @db.Float
+  lms_quizzes   lms_quizzes                      @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quiz_questions_ibfk_1")
+
+  @@index([quizId], map: "quizId")
+}
+
+model lms_quizzes {
+  id                 String               @id @db.VarChar(100)
+  courseId           String               @db.VarChar(100)
+  title              String               @db.VarChar(255)
+  description        String?              @db.Text
+  timeLimitMins      Int?                 @default(60)
+  passingScore       Int?                 @default(40)
+  isPublished        Boolean?             @default(true)
+  createdAt          DateTime?            @default(now()) @db.DateTime(0)
+  lms_quiz_attempts  lms_quiz_attempts[]
+  lms_quiz_questions lms_quiz_questions[]
+  lms_courses        lms_courses          @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quizzes_ibfk_1")
+
+  @@index([courseId], map: "courseId")
+}
+
+model lms_sections {
+  id          String        @id @db.VarChar(100)
+  courseId    String        @db.VarChar(100)
+  title       String        @db.VarChar(255)
+  description String?       @db.Text
+  orderIndex  Int
+  isPublished Boolean?      @default(true)
+  createdAt   DateTime?     @default(now()) @db.DateTime(0)
+  lms_lessons lms_lessons[]
+  lms_courses lms_courses   @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_sections_ibfk_1")
+
+  @@index([courseId], map: "courseId")
+}
+
+model otp_verifications {
+  id         String                    @id @db.VarChar(36)
+  identifier String                    @db.VarChar(255)
+  type       otp_verifications_type
+  otpHash    String                    @db.VarChar(255)
+  purpose    otp_verifications_purpose
+  expiresAt  DateTime                  @db.DateTime(0)
+  usedAt     DateTime?                 @db.DateTime(0)
+  attempts   Int?                      @default(0)
+  createdAt  DateTime?                 @default(now()) @db.DateTime(0)
+}
+
+model resources {
+  id            String  @id @db.VarChar(255)
+  title         String  @db.VarChar(255)
+  size          String  @db.VarChar(100)
+  type          String  @db.VarChar(100)
+  downloadCount Int?    @default(0)
+  url           String? @db.Text
+}
+
+model results {
+  id       String  @id @db.VarChar(255)
+  name     String  @db.VarChar(255)
+  rank     String  @db.VarChar(100)
+  exam     String  @db.VarChar(100)
+  course   String  @db.VarChar(255)
+  service  String  @db.VarChar(255)
+  district String  @db.VarChar(100)
+  photo    String? @db.Text
+  year     Int
+  story    String? @db.Text
+}
+
+model settings {
+  id            Int     @id @default(1)
+  heroTitle     String? @db.Text
+  heroSubtitle  String? @db.Text
+  tagline       String? @db.Text
+  heroImageUrl  String? @db.Text
+  visitorsCount Int?    @default(0)
+}
+
+model student_queries {
+  id          String  @id @db.VarChar(255)
+  studentName String  @db.VarChar(255)
+  subject     String  @db.VarChar(255)
+  text        String  @db.Text
+  status      String  @db.VarChar(50)
+  replyText   String? @db.Text
+}
+
+model user_sessions {
+  id           String    @id @db.VarChar(36)
+  userId       String    @db.VarChar(36)
+  refreshToken String    @db.Text
+  expiresAt    DateTime  @db.DateTime(0)
+  createdAt    DateTime? @default(now()) @db.DateTime(0)
+  users        users     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "user_sessions_ibfk_1")
+
+  @@index([userId], map: "userId")
+}
+
+model users {
+  id                String              @id @db.VarChar(36)
+  fullName          String              @db.VarChar(255)
+  email             String              @unique(map: "email") @db.VarChar(255)
+  mobile            String?             @unique(map: "mobile") @db.VarChar(20)
+  passwordHash      String?             @db.VarChar(255)
+  googleId          String?             @unique(map: "googleId") @db.VarChar(255)
+  role              users_role?         @default(student)
+  avatarUrl         String?             @db.Text
+  isEmailVerified   Boolean?            @default(false)
+  isMobileVerified  Boolean?            @default(false)
+  targetExam        String?             @db.VarChar(100)
+  isActive          Boolean?            @default(true)
+  createdAt         DateTime?           @default(now()) @db.DateTime(0)
+  lastLoginAt       DateTime?           @db.DateTime(0)
+  lms_chat_messages lms_chat_messages[]
+  lms_enrollments   lms_enrollments[]
+  lms_progress      lms_progress[]
+  lms_quiz_attempts lms_quiz_attempts[]
+  user_sessions     user_sessions[]
+  mediaItems        Media[]
+}
+
+enum otp_verifications_type {
+  email
+  mobile
+}
+
+enum lms_chat_rooms_type {
+  general
+  doubts
+  announcement
+}
+
+enum lms_lessons_type {
+  video
+  pdf
+  text
+  quiz
+  live
+}
+
+enum otp_verifications_purpose {
+  login
+  register
+  reset
+  verify
+}
+
+enum lms_enrollments_paymentStatus {
+  pending
+  paid
+  free
+}
+
+enum users_role {
+  student
+  faculty
+  admin
+}
+
+enum lms_quiz_questions_correctAnswer {
+  A
+  B
+  C
+  D
+}
+
+enum FileType {
+  IMAGE
+  VIDEO
+  PDF
+  DOCUMENT
+  AUDIO
+  ZIP
+  OTHER
+}
+
+enum StorageProvider {
+  LOCAL
+  YOUTUBE
+  CLOUDFLARE
+  MUX
+  VIMEO
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+}
+
+model Media {
+  id              String          @id @default(uuid())
+  title           String
+  description     String?         @db.Text
+  fileName        String          @unique
+  originalName    String
+  fileType        FileType
+  storageProvider StorageProvider
+  mimeType        String
+  extension       String
+  size            Int
+  storagePath     String
+  thumbnailPath   String?
+  metadata        Json?           // Supports dynamic parameters
+  visibility      Visibility      @default(PUBLIC)
+  checksum        String          // SHA256 file check
+  width           Int?
+  height          Int?
+  folderId        String?
+  folder          MediaFolder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  createdById     String?         @db.VarChar(36)
+  creator         users?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+  lastAccessedAt  DateTime?
+  usages          MediaUsage[]
+  examLogos         Exam[]
+  syllabusItems     Syllabus[]
+  strategyFeatured  StrategyBlock[] @relation("StrategyFeaturedImage")
+  strategyAttachments StrategyBlock[] @relation("StrategyAttachment")
+  pyqQuestions      PYQ[]           @relation("PYQQuestionPaper")
+  pyqAnswers        PYQ[]           @relation("PYQAnswerKey")
+  pyqSolutions      PYQ[]           @relation("PYQSolution")
+}
+
+model MediaFolder {
+  id        String        @id @default(uuid())
+  name      String
+  parentId  String?
+  parent    MediaFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  MediaFolder[] @relation("FolderHierarchy")
+  mediaItems Media[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model MediaUsage {
+  id          String   @id @default(uuid())
+  mediaId     String
+  media       Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  entityType  String   // e.g., "Course", "Blog", "Faculty", "Settings"
+  entityId    String   // ID of target entity
+  fieldName   String   // e.g., "thumbnailMediaId", "photoMediaId"
+  createdAt   DateTime @default(now())
+}
+
+enum ExamStage {
+  PRELIMS
+  MAINS
+  INTERVIEW
+}
+
+enum CompanyValueType {
+  MISSION
+  VISION
+  CORE_VALUES
+}
+
+model Exam {
+  id           String     @id @default(uuid())
+  name         String
+  code         String     @unique
+  slug         String     @unique
+  description  String?    @db.Text
+  displayOrder Int        @default(0)
+  isActive     Boolean    @default(true)
+  logoMediaId  String?
+  logo         Media?     @relation(fields: [logoMediaId], references: [id], onDelete: SetNull)
+  syllabusList Syllabus[]
+  pyqList      PYQ[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Syllabus {
+  id           String     @id @default(uuid())
+  examId       String
+  exam         Exam       @relation(fields: [examId], references: [id], onDelete: Cascade)
+  stage        ExamStage
+  version      String     @default("1.0")
+  mediaId      String
+  fileMedia    Media      @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  lastUpdated  String
+  description  String?    @db.Text
+  isPublished  Boolean    @default(true)
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model StrategyBlock {
+  id                    String    @id @default(uuid())
+  title                 String
+  slug                  String    @unique
+  content               String    @db.Text
+  category              String    // e.g., "Beginner Strategy", "3 Month Plan", "Book List"
+  featuredImageMediaId  String?
+  featuredImage         Media?    @relation("StrategyFeaturedImage", fields: [featuredImageMediaId], references: [id], onDelete: SetNull)
+  attachmentMediaId     String?
+  attachment            Media?    @relation("StrategyAttachment", fields: [attachmentMediaId], references: [id], onDelete: SetNull)
+  videoUrl              String?   @db.Text
+  ctaText               String?
+  ctaUrl                String?
+  sortOrder             Int       @default(0)
+  isPublished           Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model PYQ {
+  id                   String    @id @default(uuid())
+  examId               String
+  exam                 Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  year                 Int
+  stage                ExamStage
+  paperName            String
+  questionPaperMediaId String?
+  questionPaper        Media?    @relation("PYQQuestionPaper", fields: [questionPaperMediaId], references: [id], onDelete: SetNull)
+  answerKeyMediaId     String?
+  answerKey            Media?    @relation("PYQAnswerKey", fields: [answerKeyMediaId], references: [id], onDelete: SetNull)
+  solutionMediaId      String?
+  solution             Media?    @relation("PYQSolution", fields: [solutionMediaId], references: [id], onDelete: SetNull)
+  description          String?   @db.Text
+  sortOrder            Int       @default(0)
+  isPublished          Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
+
+model CompanyValue {
+  id        String           @id @default(uuid())
+  type      CompanyValueType @unique
+  title     String
+  content   String           @db.Text
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+

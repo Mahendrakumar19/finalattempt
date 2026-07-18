@@ -81,7 +81,7 @@ export default function EnrollmentCard({ courseId, fee }: EnrollmentCardProps) {
         key: orderData.key,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: 'Final Attempt IAS',
+        name: 'Final Attempt',
         description: 'BPSC Course Enrollment Payment',
         image: '/favicon.ico',
         order_id: orderData.id,

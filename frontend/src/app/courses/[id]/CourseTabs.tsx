@@ -132,7 +132,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
 
   const handleAddLesson = async (sectionId: string) => {
     const title = window.prompt('Enter Lesson Title:');
-    const videoUrl = window.prompt('Enter Video URL (e.g. Cloudinary/Vimeo link):', 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4');
+    const videoUrl = window.prompt('Enter Video URL (e.g. Media/YouTube link):', 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4');
     if (!title || !videoUrl) return;
 
     try {

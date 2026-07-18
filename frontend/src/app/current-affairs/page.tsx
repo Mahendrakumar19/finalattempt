@@ -14,7 +14,7 @@ function getCurrentISOWeek(): number {
   return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
 }
 
-const MONTH_NAMES = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+const MONTH_NAMES = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
 
 export default function CurrentAffairsLanding() {
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
@@ -69,16 +69,13 @@ export default function CurrentAffairsLanding() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.12),transparent_45%)]" />
         <div className="relative z-10 max-w-3xl space-y-4">
           <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg">
-            Final Attempt IAS Portal
+            Final Attempt Portal
           </span>
           <h1 className="text-3xl sm:text-5xl font-heading font-black tracking-tight leading-tight">
-            Dynamic Current Affairs <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-600">
-              Compilation Hub
-            </span>
+            Dynamic Current Affairs
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            Every day, our editorial desk updates Bihar-specific, National, and International current events. 
+            Every day, our editorial desk updates Bihar-specific, National, and International current events.
             These daily updates aggregate automatically into weekly, monthly, and yearly compendiums.
           </p>
 
@@ -139,18 +136,6 @@ export default function CurrentAffairsLanding() {
               >
                 {subjects.map(sub => (
                   <option key={sub}>{sub}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Exam Target Mapping</label>
-              <select
-                value={selectedExam}
-                onChange={(e) => setSelectedExam(e.target.value)}
-                className="w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-              >
-                {exams.map(ex => (
-                  <option key={ex}>{ex}</option>
                 ))}
               </select>
             </div>

@@ -22,7 +22,8 @@ import {
   Trophy,
   Activity,
   Layers,
-  GraduationCap
+  GraduationCap,
+  Video
 } from 'lucide-react';
 import { db, fallbackResults, fallbackCurrentAffairs } from '@/services/db';
 import TestimonialCarousel from '@/components/TestimonialCarousel';
@@ -36,10 +37,24 @@ export default function Home() {
     heroImageUrl: ''
   });
   const [liveCourses, setLiveCourses] = useState<any[]>([]);
+  const [latestVideos, setLatestVideos] = useState<any[]>([]);
   const [formSuccess, setFormSuccess] = useState(false);
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [targetExam, setTargetExam] = useState('BPSC Foundation Batch');
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  const heroImages = heroSettings.heroImageUrl
+    ? heroSettings.heroImageUrl.split(',').map(img => img.trim()).filter(Boolean)
+    : ["https://upload.wikimedia.org/wikipedia/commons/f/f6/Front_view_of_bihar_vidhan_sabha.jpg"];
+
+  useEffect(() => {
+    if (heroImages.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveImageIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [heroImages.length]);
 
   useEffect(() => {
     const loadLiveData = async () => {
@@ -58,6 +73,11 @@ export default function Home() {
             { id: '3', title: 'BPSC Mains Answer Writing', description: 'Answer writing practice with expert evaluation.', fee: 999900, duration: '4 Months' },
             { id: '4', title: 'Interview Guidance Program', description: 'Personality development & mock interviews.', fee: 0, duration: '1 Month' }
           ]);
+        }
+
+        const videosData = await db.getYoutubeVideos(3);
+        if (videosData && videosData.videos) {
+          setLatestVideos(videosData.videos.slice(0, 3));
         }
       } catch (e) {
         console.error('Failed loading live Home data, using mock fallbacks.', e);
@@ -108,19 +128,22 @@ export default function Home() {
         {/* Full Wide Blended Background Image (matching mockup exactly) */}
         <div className="absolute inset-0 z-0 flex items-center justify-center opacity-95 pointer-events-none">
           <div className="relative w-full h-full">
-            {/* Vidhan Sabha Image stretched in the center and blended */}
+            {/* Dynamic Slider Animation for Hero Background Images */}
             <div className="absolute inset-0 z-0">
-              <img 
-                src={heroSettings.heroImageUrl || "https://upload.wikimedia.org/wikipedia/commons/f/f6/Front_view_of_bihar_vidhan_sabha.jpg"}
-                alt="Bihar Vidhan Sabha Patna Secretariat" 
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover opacity-90"
-              />
+              {heroImages.map((url, idx) => (
+                <img 
+                  key={idx}
+                  src={url}
+                  alt={`Bihar Vidhan Sabha Patna Secretariat - Slide ${idx + 1}`} 
+                  referrerPolicy="no-referrer"
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-90' : 'opacity-0'}`}
+                />
+              ))}
             </div>
             {/* Radial mask that fades the image into the background left text area */}
-            <div className="absolute inset-y-0 left-0 w-[50%] bg-gradient-to-r from-[var(--bg-color)] via-[var(--bg-color)]/95 to-transparent z-10" />
-            {/* Radial mask that fades the image into the background right list area */}
-            <div className="absolute inset-y-0 right-0 w-[50%] bg-gradient-to-l from-[var(--bg-color)] via-[var(--bg-color)]/90 to-transparent z-10" />
+            <div className="absolute inset-y-0 left-0 w-[55%] bg-gradient-to-r from-[var(--bg-color)] via-[var(--bg-color)]/95 to-transparent z-10" />
+            {/* Radial mask that fades the image into the background right area */}
+            <div className="absolute inset-y-0 right-0 w-[25%] bg-gradient-to-l from-[var(--bg-color)] via-[var(--bg-color)]/90 to-transparent z-10" />
             {/* Soft top and bottom vignetting to blend with Header and Stats bar */}
             <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[var(--bg-color)] to-transparent z-10" />
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg-color)] to-transparent z-10" />
@@ -130,18 +153,18 @@ export default function Home() {
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[450px]">
             
-            {/* Left Content */}
-            <div className="lg:col-span-4 space-y-6 pt-6">
+            {/* Left Content (Expanded from 4 to 8 columns for cleaner landscape spacing) */}
+            <div className="lg:col-span-8 space-y-6 pt-6">
               {heroSettings.tagline && (
-                <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-blue-600/10 border border-blue-500/20 text-[12px] font-bold uppercase tracking-widest text-blue-800 dark:text-blue-400">
                   {heroSettings.tagline}
                 </span>
               )}
-              <h1 className="text-4xl sm:text-5xl lg:text-6.5xl font-heading font-black tracking-tight leading-tight" style={{ color: 'var(--text-color)' }}>
+              <h1 className="text-4xl sm:text-lg lg:text-6.5xl font-heading font-black tracking-tight leading-tight" style={{ color: 'var(--text-color)' }}>
                 {heroSettings.heroTitle}
               </h1>
               
-              <p className="text-base sm:text-lg text-slate-700 dark:text-slate-300 font-semibold leading-relaxed max-w-sm">
+              <p className="text-base sm:text-md text-slate-600 dark:text-slate-200 font-semibold leading-relaxed max-w-md">
                 {heroSettings.heroSubtitle}
               </p>
 
@@ -164,28 +187,8 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Empty Center Column to let the background show behind */}
-            <div className="lg:col-span-5 hidden lg:block" />
-
-            {/* Right Side Bullet Features List */}
-            <div className="lg:col-span-3 space-y-4 pt-6">
-              {[
-                { title: 'Expert Faculty', desc: 'Learn from experienced and dedicated educators.', icon: GraduationCap, color: 'bg-purple-100 text-purple-600' },
-                { title: 'Comprehensive Courses', desc: 'Well-structured courses for Prelims, Mains & Interview.', icon: BookOpen, color: 'bg-amber-100 text-amber-600' },
-                { title: 'Test Series & Analysis', desc: 'Regular tests with detailed performance analysis.', icon: Activity, color: 'bg-emerald-100 text-emerald-600' },
-                { title: 'Personalized Mentorship', desc: 'Individual guidance for your overall development.', icon: Users, color: 'bg-pink-100 text-pink-600' }
-              ].map((item, idx) => (
-                <div key={idx} className="flex gap-4 p-4 bg-white rounded-2xl border border-slate-100/80 shadow-md hover:shadow-lg transition-all hover:scale-[1.01] relative z-20">
-                  <div className={`w-10 h-10 rounded-xl ${item.color} flex items-center justify-center shrink-0`}>
-                    <item.icon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-slate-900 leading-snug">{item.title}</h4>
-                    <p className="text-xs text-slate-500 leading-normal mt-0.5">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {/* Right Column: Empty space allowing background slide visibility */}
+            <div className="lg:col-span-4 hidden lg:block" />
 
           </div>
         </div>
@@ -237,7 +240,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {liveCourses.slice(0, 4).map((course) => (
-                <div key={course.id} className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md hover:border-slate-200 transition-all flex flex-col justify-between min-h-[190px]">
+                <div key={course.id} className="course-card-premium rounded-3xl p-6 flex flex-col justify-between min-h-[190px]">
                   <div>
                     <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E3A8A] flex items-center justify-center mb-4">
                       {course.id === '1' && <GraduationCap className="w-5 h-5" />}
@@ -317,6 +320,157 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 3.4 WHY FINAL ATTEMPT STANDS OUT SECTION */}
+      <section className="py-20 bg-[var(--bg-color)] border-t border-slate-100 dark:border-white/[0.06]">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-4">
+            <span className="text-xs font-bold text-[#1E3A8A] bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
+              Core Pillars
+            </span>
+            <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
+              Why Final Attempt Stands Out
+            </h2>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Our unique learning framework combines academic excellence, personal development, and tracking technology to deliver BPSC success.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              {
+                title: 'Mentorship That Puts You First',
+                desc: "At Final Attempt, mentorship is not just an add-on—it's the foundation of our learning ecosystem. Every aspirant receives personalized one-to-one guidance, regular progress reviews, strategic planning, and continuous support throughout the preparation journey.",
+                emoji: '🤝',
+                bg: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600'
+              },
+              {
+                title: 'Learn from Experienced Mentors',
+                desc: 'Learn from experienced educators, BPSC experts, and mentors who simplify complex concepts, provide practical exam strategies, and guide you with years of teaching and examination expertise.',
+                emoji: '🎓',
+                bg: 'bg-blue-50 dark:bg-blue-950/30 text-blue-600'
+              },
+              {
+                title: 'Personalized Learning Journey',
+                desc: 'Every aspirant receives a customized study plan based on their strengths, weaknesses, learning pace, and performance—ensuring focused preparation and maximum improvement.',
+                emoji: '🎯',
+                bg: 'bg-amber-50 dark:bg-amber-950/30 text-amber-600'
+              },
+              {
+                title: 'Expert Answer Evaluation & Feedback',
+                desc: 'Improve your answer writing with detailed, mentor-driven copy evaluation. Every answer is assessed using BPSC standards, with personalized feedback, score analysis, model approaches, and actionable suggestions to help you maximize your mains score.',
+                emoji: '✍️',
+                bg: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600'
+              },
+              {
+                title: 'AI-Powered Performance Analytics',
+                desc: 'Monitor your progress through advanced performance analytics, test insights, accuracy reports, and improvement recommendations. Our data-driven approach helps you identify weak areas and prepare more efficiently.',
+                emoji: '📊',
+                bg: 'bg-cyan-50 dark:bg-cyan-950/30 text-cyan-600'
+              },
+              {
+                title: 'Complete BPSC Learning Ecosystem',
+                desc: 'Access everything you need under one platform—high-quality study material, structured courses, test series, answer writing practice, current affairs, mentorship, performance tracking, and interview guidance—covering every stage of your BPSC journey.',
+                emoji: '📚',
+                bg: 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600'
+              },
+              {
+                title: 'Designed to Make This Your Final Attempt',
+                desc: 'Final Attempt combines personalized mentorship, expert evaluation, technology-driven learning, and strategic preparation into one integrated ecosystem—helping aspirants prepare with confidence and move one step closer to selection.',
+                emoji: '🚀',
+                bg: 'bg-rose-50 dark:bg-rose-950/30 text-rose-600',
+                colSpan: 'md:col-span-2 lg:col-span-3'
+              }
+            ].map((item, idx) => (
+              <div key={idx} className={`bg-white dark:bg-slate-900/40 p-8 rounded-3xl border border-slate-100 dark:border-white/[0.06] space-y-4 shadow-sm hover:shadow-md transition-all ${item.colSpan || ''}`}>
+                <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center text-2xl`}>
+                  <span>{item.emoji}</span>
+                </div>
+                <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white">{item.title}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  {item.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 3.45 YOUTUBE INTEGRATION VIDEOS SECTION */}
+      {latestVideos.length > 0 && (
+        <section className="py-20 bg-[var(--bg-color)] border-t border-slate-100 dark:border-white/[0.06]">
+          <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 max-w-7xl mx-auto">
+              <div className="space-y-3">
+                <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
+                  Official Channel
+                </span>
+                <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
+                  Latest from Our YouTube Channel
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
+                  Keep up to date with BPSC exam strategies, toppers interviews, and current affairs discussions.
+                </p>
+              </div>
+              <Link
+                href="/current-affairs/videos"
+                className="btn-outline text-xs flex items-center gap-1.5 shrink-0"
+              >
+                <span>View All Videos</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+              {latestVideos.map((video) => (
+                <div
+                  key={video.youtubeVideoId}
+                  className="course-card-premium rounded-3xl overflow-hidden flex flex-col justify-between"
+                >
+                  <div className="space-y-4">
+                    {/* Embedded Player */}
+                    <div className="relative aspect-video w-full bg-slate-950">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${video.youtubeVideoId}?autoplay=0&rel=0`}
+                        title={video.title}
+                        loading="lazy"
+                        allowFullScreen
+                        className="absolute inset-0 w-full h-full border-0"
+                      />
+                    </div>
+
+                    <div className="p-6 space-y-3">
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">
+                        Published · {new Date(video.publishedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </p>
+                      <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug">
+                        {video.title}
+                      </h3>
+                      {video.description && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                          {video.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="p-6 pt-0 border-t border-slate-50 dark:border-white/[0.04] mt-auto">
+                    <a
+                      href={`https://www.youtube.com/watch?v=${video.youtubeVideoId}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-primary w-full text-center text-xs flex justify-center items-center gap-1.5"
+                    >
+                      <span>Watch on YouTube</span>
+                      <Video className="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 3.5 PREMIUM TESTIMONIALS SECTION */}
       <section className="py-20 bg-gradient-to-b from-[var(--bg-color)] to-slate-50 border-t border-slate-100 overflow-hidden">
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
@@ -333,6 +487,68 @@ export default function Home() {
           </div>
 
           <TestimonialCarousel />
+        </div>
+      </section>
+
+      {/* 3.6 ABOUT FINAL ATTEMPT DETAILS */}
+      <section className="py-20 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/[0.06]">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+            
+            {/* Left Column: About Final Attempt */}
+            <div className="lg:col-span-7 space-y-6">
+              <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
+                Our Journey
+              </span>
+              <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
+                About Final Attempt
+              </h2>
+              
+              <div className="space-y-4 text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
+                <p>
+                  Final Attempt is a next-generation mentorship and learning platform dedicated to helping aspirants achieve success through structured preparation, personalized guidance, and technology-driven learning. Built on a mentorship-first philosophy, we focus on delivering measurable outcomes by combining academic excellence with continuous performance improvement.
+                </p>
+                <p>
+                  Our ecosystem integrates one-to-one personalized mentorship, strategic study planning, high-quality learning resources, advanced answer evaluation, AI-powered performance tracking, and data-driven analytics to ensure every student receives guidance tailored to their individual strengths and challenges.
+                </p>
+                <p>
+                  We believe that every aspirant's journey is unique. That's why our learning framework is designed to identify improvement areas, provide timely feedback, and create customized preparation strategies that maximize performance at every stage of the examination process.
+                </p>
+                <p>
+                  Driven by innovation, discipline, transparency, and student-centric values, Final Attempt is committed to building an ecosystem where aspirants don't just prepare for examinations—they prepare for long-term success.
+                </p>
+              </div>
+            </div>
+
+            {/* Right Column: Community & Call to Action */}
+            <div className="lg:col-span-5 bg-white dark:bg-slate-900/40 p-8 rounded-3xl border border-slate-100/80 dark:border-white/[0.06] shadow-sm space-y-6">
+              <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">
+                Become a Part of the Final Attempt Community
+              </h3>
+              
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Join a growing community of ambitious aspirants, experienced mentors, and dedicated educators committed to excellence. Stay connected through our digital platforms for expert guidance, mentorship initiatives, preparation resources, performance insights, and the latest academic updates.
+              </p>
+
+              <div className="pt-4 border-t border-slate-50 dark:border-white/[0.04] space-y-4">
+                <div className="text-[#1E3A8A] dark:text-amber-500 font-extrabold text-sm sm:text-base tracking-wide flex items-center gap-2">
+                  <span>🎯</span>
+                  <span>Let's Make Your Attempt Final with FINAL ATTEMPT.</span>
+                </div>
+                
+                <div className="flex gap-4">
+                  <a
+                    href="#book-session"
+                    className="btn-primary text-xs w-full text-center flex justify-center items-center gap-1.5"
+                  >
+                    <span>Get Mentorship</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+          </div>
         </div>
       </section>
 

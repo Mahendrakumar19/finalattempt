@@ -4,8 +4,9 @@ import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ChevronLeft, Plus, Trash2, Edit3, Save, CheckCircle, 
-  HelpCircle, BookOpen, Clock, FileText, Layout, Play, ExternalLink
+  HelpCircle, BookOpen, Clock, FileText, Layout, Play, ExternalLink, FolderOpen
 } from 'lucide-react';
+import MediaPicker from '@/components/MediaPicker';
 
 interface Lesson {
   id: string;
@@ -87,8 +88,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
 
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [lessonForm, setLessonForm] = useState({ id: '', sectionId: '', title: '', type: 'video', videoUrl: '', duration: '15 mins' });
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
 
   useEffect(() => {
     fetchCourseDetails();
@@ -193,39 +193,6 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     } catch (err) { console.error(err); }
   };
 
-  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    setUploadProgress(15);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'ml_default');
-      
-      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'dku1pxh1y';
-      setUploadProgress(40);
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
-        method: 'POST',
-        body: formData
-      });
-      setUploadProgress(80);
-      const data = await res.json();
-      if (data.secure_url) {
-        setLessonForm(prev => ({ ...prev, videoUrl: data.secure_url }));
-        setUploadProgress(100);
-        alert('File uploaded successfully! URL set.');
-      } else {
-        alert('Upload failed: ' + (data.error?.message || 'Unknown error'));
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Upload failed. Check network or verify Cloudinary presets.');
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
-    }
-  };
 
   const handleDeleteLesson = async (lessonId: string) => {
     if (!window.confirm('Delete this lecture lesson?')) return;
@@ -953,26 +920,20 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
               />
             </div>
 
-            {/* Cloudinary File Upload Input Option */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Direct Upload to Cloudinary</span>
-              <input 
-                type="file" 
-                onChange={handleUploadFile}
-                disabled={uploading}
-                className="block w-full text-[10px] text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-              {uploading && (
-                <div className="space-y-1">
-                  <div className="flex justify-between text-[9px] text-slate-450 font-bold">
-                    <span>Uploading file...</span>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                  <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
-                    <div className="bg-blue-600 h-full rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
-                  </div>
-                </div>
-              )}
+            {/* Local Media Library Picker */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 flex items-center justify-between">
+              <div>
+                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Local Media Storage</span>
+                <span className="text-[10px] text-slate-400">Choose lectures or reading materials from Media Library</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMediaPicker(true)}
+                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 transition-colors"
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                Select File
+              </button>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
@@ -983,6 +944,15 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
         </div>
       )}
 
+      {showMediaPicker && (
+        <MediaPicker
+          onSelect={(url) => {
+            setLessonForm(prev => ({ ...prev, videoUrl: url }));
+            setShowMediaPicker(false);
+          }}
+          onClose={() => setShowMediaPicker(false)}
+        />
+      )}
     </div>
   );
 }

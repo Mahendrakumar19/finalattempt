@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 import { db } from './db';
 
 import { createServer } from 'http';
@@ -17,6 +18,11 @@ import paymentsRouter from './routes/payments';
 import quizzesRouter from './routes/quizzes';
 import facultiesRouter from './routes/faculties';
 import uploadsRouter from './routes/uploads';
+import youtubeRouter, { syncYouTubeChannel } from './routes/youtube';
+import mediaRouter from './media/media.routes';
+import syllabusStrategyRouter from './routes/syllabusStrategy';
+import pyqsRouter from './routes/pyqs';
+import { verifyEmailConnection } from './services/email';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -72,6 +78,11 @@ app.use('/api/quizzes', quizzesRouter);
 app.use('/api/chats', chatsRouter);
 app.use('/api/faculty', facultiesRouter);
 app.use('/api', uploadsRouter); // file upload + serve
+app.use('/api/youtube', youtubeRouter);
+app.use('/api/media', mediaRouter);
+app.use('/api/syllabus-strategy', syllabusStrategyRouter);
+app.use('/api/pyqs', pyqsRouter);
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Swagger UI 
 import swaggerUi from "swagger-ui-express";
@@ -484,4 +495,27 @@ httpServer.listen(PORT, () => {
   console.log(`Auth routes: POST /api/auth/register | /api/auth/login | /api/auth/refresh`);
   console.log(`LMS  routes: GET  /api/lms/courses   | /api/lms/enrollments/me`);
   console.log(`Real-Time Mentorship Socket.io Server active.`);
+
+  // Verify Zoho SMTP email connection at startup
+  verifyEmailConnection();
+
+  const THIRTY_MINUTES_MS = 30 * 60 * 1000;
+  setInterval(async () => {
+    console.log('[YouTube Scheduler] Running automatic background channel sync...');
+    try {
+      await syncYouTubeChannel();
+    } catch (e: any) {
+      console.error('[YouTube Scheduler] Background sync error:', e.message);
+    }
+  }, THIRTY_MINUTES_MS);
+
+  // Run initial sync 5 seconds after startup to ensure fresh data
+  setTimeout(async () => {
+    console.log('[YouTube Scheduler] Initial background channel sync trigger...');
+    try {
+      await syncYouTubeChannel();
+    } catch (e: any) {
+      console.error('[YouTube Scheduler] Initial sync error:', e.message);
+    }
+  }, 5000);
 });

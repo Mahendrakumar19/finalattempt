@@ -46,7 +46,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center">
               <div className="relative w-48 h-12 shrink-0">
                 <img
-                  src="/darklogofull.png"
+                  src="/lightlogofull.png"
                   alt="Final Attempt"
                   className="w-full h-full object-contain"
                 />
@@ -64,7 +64,7 @@ export default function Footer() {
                 className="w-9 h-9 rounded-xl bg-white/[0.03] hover:bg-blue-600 hover:text-white flex items-center justify-center text-slate-400 border border-white/[0.04] transition-all hover:scale-105"
                 aria-label="Facebook"
               >
-                <Globe className="w-4 h-4" />
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
               </a>
               <a
                 href="https://www.instagram.com/finalattempt_official"
@@ -73,7 +73,7 @@ export default function Footer() {
                 className="w-9 h-9 rounded-xl bg-white/[0.03] hover:bg-pink-600 hover:text-white flex items-center justify-center text-slate-400 border border-white/[0.04] transition-all hover:scale-105"
                 aria-label="Instagram"
               >
-                <Globe className="w-4 h-4" />
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
               </a>
               <a
                 href="https://www.youtube.com/@FinalAttemptOfficial"
@@ -82,7 +82,7 @@ export default function Footer() {
                 className="w-9 h-9 rounded-xl bg-white/[0.03] hover:bg-red-600 hover:text-white flex items-center justify-center text-slate-400 border border-white/[0.04] transition-all hover:scale-105"
                 aria-label="YouTube"
               >
-                <Video className="w-4 h-4" />
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.163a3.003 3.003 0 0 0-2.11-2.107C19.53 3.5 12 3.5 12 3.5s-7.53 0-9.388.556a3.003 3.003 0 0 0-2.11 2.107C0 8.022 0 12 0 12s0 3.978.502 5.837a3.003 3.003 0 0 0 2.11 2.107c1.858.556 9.388.556 9.388.556s7.53 0 9.388-.556a3.003 3.003 0 0 0 2.11-2.107C24 15.978 24 12 24 12s0-3.978-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
               </a>
               <a
                 href="https://t.me/Finalattemptofficial"
@@ -91,7 +91,7 @@ export default function Footer() {
                 className="w-9 h-9 rounded-xl bg-white/[0.03] hover:bg-blue-500 hover:text-white flex items-center justify-center text-slate-400 border border-white/[0.04] transition-all hover:scale-105"
                 aria-label="Telegram"
               >
-                <Send className="w-4 h-4" />
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
               </a>
             </div>
           </div>
@@ -139,8 +139,8 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-3">
                 <Mail className="w-4 h-4 text-amber-550 mt-0.5 shrink-0" />
-                <a href="mailto:info@finalattemptias.com" className="hover:text-white transition-colors text-slate-350">
-                  info@finalattemptias.com
+                <a href="mailto:enquiry@finalattemptias.com" className="hover:text-white transition-colors text-slate-350">
+                  enquiry@finalattemptias.com
                 </a>
               </li>
               <li className="flex items-start gap-3">

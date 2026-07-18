@@ -28,21 +28,62 @@ export default function Header() {
     setActiveDropdown(activeDropdown === name ? null : name);
   };
 
-  const navLinks: { name: string; href: string; dropdown?: any[] }[] = [
+  const navLinks: { name: string; href: string; dropdown?: { name: string; href: string; desc?: string }[] }[] = [
     { name: 'Home', href: '/' },
-    { name: 'Courses', href: '/courses' },
-    { name: 'Test Series', href: '/test-series' },
-    { name: 'Current Affairs', href: '/current-affairs' },
-    { name: 'PYQs', href: '/pyq' },
-    { name: 'Study Material', href: '/resources' },
-    { name: 'Blogs', href: '/blog' },
-    { name: 'About & Contact', href: '/about' }
+    {
+      name: 'Courses', href: '/courses',
+      dropdown: [
+        { name: 'All Courses', href: '/courses', desc: 'Browse all programs' },
+        { name: 'Test Series', href: '/test-series', desc: 'Prelims & Mains series' },
+        { name: 'Achievers', href: '/achievers', desc: 'Our toppers & results' },
+      ]
+    },
+    {
+      name: 'BPSC', href: '#',
+      dropdown: [
+        { name: 'Bihar Special', href: '/resources/bihar-special', desc: 'Bihar specific resources' },
+        { name: 'BPSC Test Series', href: '/test-series', desc: 'Prelims & Mains test series' },
+        { name: 'Syllabus & Strategy', href: '/syllabus-strategy', desc: 'Detailed BPSC exam strategy' },
+        { name: 'PYQ Archive', href: '/pyq', desc: 'Bihar civil services past papers' },
+      ]
+    },
+    {
+      name: 'Current Affairs', href: '/current-affairs',
+      dropdown: [
+        { name: 'Daily Digest', href: '/current-affairs/daily', desc: 'Today\'s news analysis' },
+        { name: 'Videos', href: '/current-affairs/videos', desc: 'YouTube lecture series' },
+      ]
+    },
+    {
+      name: 'PYQs', href: '/pyq',
+      dropdown: [
+        { name: 'Question Papers', href: '/pyq', desc: 'Year-wise PYQ archive' },
+        { name: 'Syllabus & Strategy', href: '/syllabus-strategy', desc: 'Exam prep strategy' },
+      ]
+    },
+    { name: 'Syllabus & Strategy', href: '/syllabus-strategy' },
+    {
+      name: 'Blogs', href: '/blog',
+      dropdown: [
+        { name: 'All Articles', href: '/blog', desc: 'Strategy & analysis posts' },
+        { name: 'Resources', href: '/resources', desc: 'Free PDFs & notes' },
+      ]
+    },
+    {
+      name: 'About', href: '/about',
+      dropdown: [
+        { name: 'About Us', href: '/about', desc: 'Our mission & faculty' },
+        { name: 'Results', href: '/results', desc: 'Topper hall of fame' },
+        { name: 'Faculty', href: '/faculty', desc: 'Meet our mentors' },
+      ]
+    },
+    { name: 'Contact', href: '/contact' }
   ];
 
   return (
     <header className="w-full z-50 sticky top-0 border-b border-slate-100 shadow-sm transition-colors duration-200" style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--card-border)' }}>
       {/* Upper Ticker Bar matching wireframe scheme */}
-      <div className="w-full bg-[#0F172A] text-slate-300 py-2 px-4 sm:px-6 lg:px-8 text-xs flex justify-between items-center border-b border-slate-800">
+      <div className="w-full bg-[#0F172A] text-slate-300 py-3.5 px-4 sm:px-6 lg:px-12 text-sm flex justify-between items-center border-b border-slate-800">
         <div className="flex items-center gap-6">
           <a href="mailto:enquiry@finalattemptias.com" className="hover:text-white transition-colors flex items-center gap-1.5">
             <span className="font-semibold text-amber-500">✉</span>
@@ -87,13 +128,13 @@ export default function Header() {
             <div className="relative w-48 h-12 shrink-0">
               {/* Light Theme Logo */}
               <img
-                src="/lightlogofull.png"
+                src="/darklogofull.png"
                 alt="Final Attempt"
                 className="w-full h-full object-contain logo-light"
               />
               {/* Dark Theme Logo */}
               <img
-                src="/darklogofull.png"
+                src="/lightlogofull.png"
                 alt="Final Attempt"
                 className="w-full h-full object-contain logo-dark"
               />
@@ -109,16 +150,16 @@ export default function Header() {
               return (
                 <div key={link.name} className="relative group/nav">
                   {link.dropdown ? (
-                    <button
-                      onClick={() => toggleDropdown(link.name)}
+                    <Link
+                      href={link.href}
                       className={`flex items-center gap-1 px-3 py-2 text-sm font-bold transition-all ${isDropdownActive
                           ? 'text-[#F59E0B]'
                           : 'text-slate-700 hover:text-[#F59E0B]'
                         }`}
                     >
                       <span>{link.name}</span>
-                      <ChevronDown className="w-4 h-4 text-slate-400 group-hover/nav:rotate-180 transition-transform duration-300" />
-                    </button>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover/nav:rotate-180 transition-transform duration-200" />
+                    </Link>
                   ) : (
                     <Link
                       href={link.href}
@@ -133,20 +174,24 @@ export default function Header() {
 
                   {/* Dropdown Menu */}
                   {link.dropdown && (
-                    <div className="absolute top-full left-0 mt-1 w-56 rounded-xl border border-slate-100 bg-white shadow-xl opacity-0 invisible group-hover/nav:opacity-100 group-hover/nav:visible transition-all duration-200 z-50 py-1.5">
+                    <div className="absolute top-full left-0 mt-2 w-60 rounded-2xl border border-slate-100 dark:border-white/[0.08] bg-white dark:bg-slate-900 shadow-2xl opacity-0 invisible group-hover/nav:opacity-100 group-hover/nav:visible translate-y-1 group-hover/nav:translate-y-0 transition-all duration-200 z-50 p-2 space-y-0.5">
                       {link.dropdown.map((subItem) => (
                         <Link
                           key={subItem.name}
                           href={subItem.href}
-                          className="block px-4 py-2.5 text-sm font-bold text-slate-700 hover:text-[#F59E0B] hover:bg-slate-50 transition-colors"
+                          className="flex flex-col px-3 py-2.5 rounded-xl hover:bg-amber-50 dark:hover:bg-white/[0.04] transition-colors group/sub"
                         >
-                          {subItem.name}
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-100 group-hover/sub:text-amber-600 transition-colors">{subItem.name}</span>
+                          {subItem.desc && (
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{subItem.desc}</span>
+                          )}
                         </Link>
                       ))}
                     </div>
                   )}
                 </div>
               );
+
             })}
           </nav>
 

@@ -4,7 +4,7 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Final Attempt IAS API Docs',
+      title: 'Final Attempt API Docs',
       version: '1.0.0',
       description: 'Backend REST API swagger UI endpoint mapping documentation details sheet.',
     },

@@ -12,6 +12,7 @@ import {
   refreshTokenExpiry
 } from '../services/jwt';
 import { generateOTP, hashOTP, verifyOTPHash, otpExpiry, MAX_OTP_ATTEMPTS } from '../services/otp';
+import { sendOTPEmail } from '../services/email';
 import { authDB } from '../db';
 
 const router = Router();
@@ -141,8 +142,12 @@ router.post('/register', authLimiter, async (req: Request, res: Response) => {
     const otpHash = await hashOTP(otp);
     await authDB.createOTP(email, 'email', otpHash, 'verify', otpExpiry());
 
-    // TODO: Replace with real email send (Nodemailer)
-    console.log(`[OTP] Verification OTP for ${email}: ${otp}`);
+    // Send real email via Zoho SMTP
+    try {
+      await sendOTPEmail(email, otp, 'register', fullName);
+    } catch (mailErr) {
+      console.warn(`[OTP] Email delivery failed for ${email}, OTP: ${otp}`, mailErr);
+    }
 
     const { accessToken } = await issueTokens(res, user);
 
@@ -232,8 +237,17 @@ router.post('/send-otp', otpLimiter, async (req: Request, res: Response) => {
     const otpHash = await hashOTP(otp);
     await authDB.createOTP(identifier, type, otpHash, purpose, otpExpiry());
 
-    // TODO: Hook up real email (Nodemailer) / SMS (MSG91) here
-    console.log(`[OTP] ${purpose} OTP for ${identifier}: ${otp}`);
+    // Send real OTP email via Zoho SMTP (email type only; SMS can be added later)
+    if (type === 'email') {
+      try {
+        await sendOTPEmail(identifier, otp, purpose as any);
+      } catch (mailErr) {
+        console.warn(`[OTP] Email delivery failed for ${identifier}, OTP: ${otp}`, mailErr);
+      }
+    } else {
+      // SMS fallback: log to console until MSG91 is wired up
+      console.log(`[OTP] ${purpose} OTP for ${identifier} (SMS): ${otp}`);
+    }
 
     res.json({ success: true, message: `OTP sent to your ${type}.` });
   } catch (err: any) {
@@ -453,8 +467,12 @@ router.post('/forgot-password', authLimiter, async (req: Request, res: Response)
       const otp = generateOTP();
       const otpHash = await hashOTP(otp);
       await authDB.createOTP(email, 'email', otpHash, 'reset', otpExpiry());
-      // TODO: Send via Nodemailer
-      console.log(`[OTP] Password reset OTP for ${email}: ${otp}`);
+      // Send real reset OTP email via Zoho SMTP
+      try {
+        await sendOTPEmail(email, otp, 'reset', user.fullName);
+      } catch (mailErr) {
+        console.warn(`[OTP] Reset email delivery failed for ${email}, OTP: ${otp}`, mailErr);
+      }
     }
 
     res.json({ success: true, message: 'If that email exists, a reset OTP has been sent.' });

@@ -53,7 +53,7 @@ function ContactFormContent() {
           <div className="p-8 sm:p-10 space-y-6">
             <div className="space-y-2 border-b border-slate-100 dark:border-white/[0.04] pb-6">
               <span className="text-[10px] font-bold text-amber-500 uppercase tracking-widest bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
-                {isEnrollMode ? 'Google Form replication' : 'Support Query'}
+                {isEnrollMode ? '' : 'Support Query'}
               </span>
               <h1 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
                 {isEnrollMode ? 'BPSC Batch Enrollment Portal' : 'Contact Support Desk'}

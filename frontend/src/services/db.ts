@@ -321,6 +321,27 @@ class FinalAttemptDB {
     });
     return data?.success || false;
   }
+
+  // YOUTUBE INTEGRATION API WRAPPERS
+  public async getYoutubeVideos(limit: number = 9, page: number = 1, search: string = ''): Promise<{ videos: any[], total: number }> {
+    const data = await this.apiFetch(`/api/youtube/videos?limit=${limit}&page=${page}&search=${encodeURIComponent(search)}`);
+    return data || { videos: [], total: 0 };
+  }
+
+  public async getYoutubeSyncStatus(): Promise<{ lastSyncTime: string | null; videosSynced: number; status: string; error: string | null }> {
+    const data = await this.apiFetch('/api/youtube/status');
+    return data || { lastSyncTime: null, videosSynced: 0, status: 'IDLE', error: null };
+  }
+
+  public async triggerYoutubeSync(token: string): Promise<{ success: boolean; syncedCount?: number; error?: string }> {
+    const data = await this.apiFetch('/api/youtube/sync', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return data || { success: false, error: 'Failed connecting to server' };
+  }
 }
 
 export const db = new FinalAttemptDB();

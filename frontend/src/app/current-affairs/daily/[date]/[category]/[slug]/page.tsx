@@ -10,7 +10,7 @@ export default function ArticleDetailViewer() {
   const params = useParams();
   const slug = params.slug as string;
   const dateStr = params.date as string;
-  
+
   const [article, setArticle] = useState<DynamicCurrentAffairArticle | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +71,7 @@ export default function ArticleDetailViewer() {
             'headline': article.title,
             'description': article.summary,
             'datePublished': article.publishedDate,
-            'author': { '@type': 'Organization', 'name': 'Final Attempt IAS' }
+            'author': { '@type': 'Organization', 'name': 'Final Attempt' }
           })
         }}
       />
@@ -149,56 +149,56 @@ export default function ArticleDetailViewer() {
       {((article.subjects && article.subjects.length > 0) ||
         (article.exams && article.exams.length > 0) ||
         (article.tags && article.tags.length > 0)) && (
-        <div className="pt-6 border-t border-slate-100 dark:border-white/[0.06] grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {article.subjects && article.subjects.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1">
-                <Clipboard className="w-3.5 h-3.5 text-amber-500" />
-                <span>GS Subjects</span>
-              </h3>
-              <div className="flex flex-wrap gap-1.5">
-                {article.subjects.map(sub => (
-                  <span key={sub} className="px-2.5 py-1 rounded-lg bg-amber-500/5 border border-amber-500/10 text-[9px] font-bold text-amber-700 dark:text-amber-400">
-                    {sub}
-                  </span>
-                ))}
+          <div className="pt-6 border-t border-slate-100 dark:border-white/[0.06] grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {article.subjects && article.subjects.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1">
+                  <Clipboard className="w-3.5 h-3.5 text-amber-500" />
+                  <span>GS Subjects</span>
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {article.subjects.map(sub => (
+                    <span key={sub} className="px-2.5 py-1 rounded-lg bg-amber-500/5 border border-amber-500/10 text-[9px] font-bold text-amber-700 dark:text-amber-400">
+                      {sub}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {article.exams && article.exams.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1">
-                <Award className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Target Exams</span>
-              </h3>
-              <div className="flex flex-wrap gap-1.5">
-                {article.exams.map(ex => (
-                  <span key={ex} className="px-2.5 py-1 rounded-lg bg-indigo-500/5 border border-indigo-500/10 text-[9px] font-bold text-indigo-700 dark:text-indigo-400">
-                    {ex}
-                  </span>
-                ))}
+            {article.exams && article.exams.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1">
+                  <Award className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Target Exams</span>
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {article.exams.map(ex => (
+                    <span key={ex} className="px-2.5 py-1 rounded-lg bg-indigo-500/5 border border-indigo-500/10 text-[9px] font-bold text-indigo-700 dark:text-indigo-400">
+                      {ex}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {article.tags && article.tags.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1">
-                <Tag className="w-3.5 h-3.5 text-emerald-500" />
-                <span>Tags</span>
-              </h3>
-              <div className="flex flex-wrap gap-1.5">
-                {article.tags.map(t => (
-                  <span key={t} className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-white/[0.04] text-[9px] font-semibold text-slate-600 dark:text-slate-400">
-                    #{t}
-                  </span>
-                ))}
+            {article.tags && article.tags.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1">
+                  <Tag className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Tags</span>
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {article.tags.map(t => (
+                    <span key={t} className="px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-white/[0.04] text-[9px] font-semibold text-slate-600 dark:text-slate-400">
+                      #{t}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
       {/* Return navigation */}
       <div className="pt-4 border-t border-slate-100 dark:border-white/[0.06]">

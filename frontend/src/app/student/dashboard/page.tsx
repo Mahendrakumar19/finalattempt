@@ -219,7 +219,7 @@ export default function LMSDashboard() {
                       <Link
                         key={e.courseId}
                         href={`/student/course/${e.courseId}`}
-                        className="group p-4 rounded-2xl bg-white/[0.04] border border-white/[0.06] hover:border-blue-500/30 hover:bg-blue-500/5 transition-all"
+                        className="course-card-premium group p-4 rounded-3xl"
                       >
                         <div className="flex items-start gap-3">
                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0">
@@ -295,7 +295,7 @@ export default function LMSDashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {enrollments.map(e => (
-                    <Link key={e.courseId} href={`/student/course/${e.courseId}`} className="group p-5 rounded-2xl bg-white/[0.04] border border-white/[0.06] hover:border-blue-500/30 hover:bg-blue-500/5 transition-all">
+                    <Link key={e.courseId} href={`/student/course/${e.courseId}`} className="course-card-premium group p-5 rounded-3xl">
                       <div className="flex items-start gap-4">
                         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg">
                           <BookOpen className="w-6 h-6 text-white" />

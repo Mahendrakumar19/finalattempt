@@ -123,8 +123,8 @@ function LoginFormContent() {
           <div className="flex items-center gap-3">
             <GraduationCap className="w-10 h-10 text-amber-500 shrink-0" />
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">LMS Dashboard</h4>
-              <p className="text-[10px] text-slate-400">Review syllabus, quizzes, and marks logs.</p>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider"> Dashboard</h4>
+              {/* <p className="text-[10px] text-slate-400">Review syllabus, quizzes, and marks logs.</p> */}
             </div>
           </div>
         </div>

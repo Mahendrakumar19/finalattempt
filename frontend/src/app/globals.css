@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme inline {
+  --variant-dark: class;
   --font-heading: var(--font-heading), sans-serif;
   --font-body: var(--font-body), sans-serif;
   
@@ -22,6 +23,18 @@
   --animate-shimmer: shimmer 2.5s infinite linear;
   --animate-float: float 6s ease-in-out infinite;
   --animate-marquee: marquee 30s linear infinite;
+
+  /* Scale all font sizes up by exactly one step */
+  --font-size-xs: 0.875rem;
+  --font-size-sm: 1rem;
+  --font-size-base: 1.125rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 1.875rem;
+  --font-size-3xl: 2.25rem;
+  --font-size-4xl: 3rem;
+  --font-size-5xl: 3.75rem;
+  --font-size-6xl: 4.5rem;
   
   @keyframes shimmer {
     0% { background-position: -200% 0; }
@@ -41,7 +54,10 @@
   --font-heading: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Inter', sans-serif;
   --bg-color: #FFFBF2;
-  --text-color: #0F172A;
+  --bg-color-accent: #FAF6EC;
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
+  --text-muted: #57657A;
   --card-bg: #FFFFFF;
   --card-border: #E2E8F0;
   --header-bg: #FFFFFF;
@@ -49,8 +65,11 @@
 
 /* Midnight blue/black mixed theme for dark mode */
 html.dark {
-  --bg-color: #080D1A;
-  --text-color: #F8FAFC;
+  --bg-color: #070B16;
+  --bg-color-accent: #0F1627;
+  --text-primary: #F8FAFC;
+  --text-secondary: #CBD5E1;
+  --text-muted: #94A3B8;
   --card-bg: #0F172A;
   --card-border: rgba(255, 255, 255, 0.08);
   --header-bg: #000000;
@@ -72,10 +91,35 @@ html.dark .logo-dark {
 body {
   font-family: var(--font-body);
   background-color: var(--bg-color);
-  color: var(--text-color);
+  color: var(--text-primary);
   overflow-x: hidden;
-  font-size: 1.05rem; /* slightly increased font size */
+  font-size: 1.125rem; /* increased default font size */
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ── Dynamic High-Contrast Theme System Overrides ── */
+.text-slate-950, .text-slate-900, .text-slate-800, .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+.text-slate-700, .text-slate-650, .text-slate-600, .text-gray-700, .text-slate-550 {
+  color: var(--text-secondary) !important;
+}
+.text-slate-500, .text-gray-500, .text-slate-450, .text-slate-400, .text-gray-400 {
+  color: var(--text-muted) !important;
+}
+
+.bg-white {
+  background-color: var(--card-bg) !important;
+}
+.bg-slate-50, .bg-gray-50 {
+  background-color: var(--bg-color) !important;
+}
+.bg-slate-100, .bg-gray-100 {
+  background-color: var(--bg-color-accent) !important;
+}
+
+.border-slate-100, .border-slate-150, .border-slate-200, .border-slate-205, .border-slate-250, .border-gray-100, .border-slate-100\/60 {
+  border-color: var(--card-border) !important;
 }
 
 /* ── Custom Scrollbar ── */
@@ -236,6 +280,42 @@ html.dark .btn-outline:hover {
   color: #0F172A;
 }
 
+.course-card-premium {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+.course-card-premium::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(135deg, transparent, transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+.course-card-premium:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 22px 35px -16px rgba(245, 158, 11, 0.14), 0 0 18px -4px rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+.course-card-premium:hover::after {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.55), rgba(217, 119, 6, 0.15));
+}
+.course-card-premium:active {
+  transform: scale(0.98);
+  box-shadow: 0 0 25px 4px rgba(245, 158, 11, 0.35) !important;
+  border-color: rgba(245, 158, 11, 0.6) !important;
+  filter: brightness(1.1);
+}
+
+
 /* ── Dark Mode Class Overrides ── */
 
 /* Background colors */
@@ -273,7 +353,7 @@ html.dark .text-gray-900,
 html.dark .text-gray-800,
 html.dark .text-black,
 html.dark .text-brand-primary {
-  color: var(--text-color) !important;
+  color: var(--text-primary) !important;
 }
 
 html.dark .text-slate-700,
@@ -349,7 +429,7 @@ html.dark tr:hover {
 html.dark th,
 html.dark td {
   border-color: var(--card-border) !important;
-  color: var(--text-color) !important;
+  color: var(--text-primary) !important;
 }
 
 html.dark thead tr {
@@ -379,4 +459,9 @@ html.dark .focus\:border-amber-400:focus {
 /* Scrollbar in dark */
 html.dark ::-webkit-scrollbar-track {
   background: #0d1627;
+}
+
+/* Preserve line breaks for all dynamic content blocks */
+p, .prose, .prose p, [class*="prose"] p, .whitespace-pre-wrap, .text-xs, .text-sm, .text-base {
+  white-space: pre-wrap;
 }

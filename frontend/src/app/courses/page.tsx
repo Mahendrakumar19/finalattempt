@@ -93,7 +93,7 @@ export default function Courses() {
           {filteredCourses.map((course) => (
             <div
               key={course.id}
-              className="bg-white rounded-3xl border border-slate-100 hover:border-blue-200 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col"
+              className="course-card-premium rounded-3xl overflow-hidden flex flex-col"
             >
               <div className="p-6 flex-grow space-y-4">
                 <div className="flex justify-between items-start">
