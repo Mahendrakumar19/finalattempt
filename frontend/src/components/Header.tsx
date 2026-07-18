@@ -217,7 +217,7 @@ export default function Header() {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="lg:hidden border-t px-4 pt-2 pb-6 space-y-1 shadow-inner max-h-[80vh] overflow-y-auto" style={{ background: '#FFFBF2', borderColor: 'rgba(245,158,11,0.2)' }}>
+        <div className="lg:hidden border-t px-4 pt-2 pb-6 space-y-1 shadow-inner max-h-[80vh] overflow-y-auto transition-colors duration-200" style={{ backgroundColor: 'var(--bg-color)', borderColor: 'var(--card-border)' }}>
           {navLinks.map((link) => (
             <div key={link.name} className="py-1">
               {link.dropdown ? (
