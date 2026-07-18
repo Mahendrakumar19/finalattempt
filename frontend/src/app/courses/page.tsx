@@ -12,6 +12,11 @@ export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [coursesList, setCoursesList] = useState<any[]>(courseData);
+  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+
+  const toggleFlip = (id: string) => {
+    setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -93,53 +98,121 @@ export default function Courses() {
           {filteredCourses.map((course) => (
             <div
               key={course.id}
-              className="course-card-premium rounded-3xl overflow-hidden flex flex-col"
+              className={`flip-card-container cursor-pointer ${flippedCards[course.id] ? 'is-flipped' : ''}`}
+              onClick={() => toggleFlip(course.id)}
             >
-              <div className="p-6 flex-grow space-y-4">
-                <div className="flex justify-between items-start">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <BookOpen className="w-5 h-5" />
-                  </div>
-                  <span className="px-2.5 py-1 rounded-full bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-600 uppercase">
-                    {course.category}
-                  </span>
-                </div>
+              <div className="flip-card-inner">
+                {/* Front Side */}
+                <div className="flip-card-front course-card-premium rounded-3xl">
+                  <div className="flip-card-front-content flex flex-col justify-between h-full">
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                          <BookOpen className="w-5 h-5" />
+                        </div>
+                        <span className="px-2.5 py-1 rounded-full bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-600 uppercase">
+                          {course.category}
+                        </span>
+                      </div>
 
-                <div className="space-y-1.5">
-                  <h3 className="font-heading font-extrabold text-base text-brand-primary group-hover:text-blue-600 transition-colors">
-                    {course.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                    {course.description}
-                  </p>
-                </div>
+                      <div className="space-y-1.5">
+                        <h3 className="font-heading font-extrabold text-base text-brand-primary">
+                          {course.title}
+                        </h3>
+                        <p className="text-xs text-slate-550 line-clamp-3 leading-relaxed">
+                          {course.description}
+                        </p>
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 text-xs font-bold text-slate-700">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                    <div>
-                      <p className="text-[9px] text-slate-400 uppercase leading-none font-bold">Duration</p>
-                      <p className="mt-0.5">{course.duration}</p>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 text-xs font-bold text-slate-700">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                          <div>
+                            <p className="text-[9px] text-slate-400 uppercase leading-none font-bold">Duration</p>
+                            <p className="mt-0.5">{course.duration}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                          <div>
+                            <p className="text-[9px] text-slate-400 uppercase leading-none font-bold">Course Fee</p>
+                            <p className="mt-0.5 text-blue-650 text-sm">{course.fee}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-[9px] text-center text-blue-600 font-bold uppercase tracking-wider animate-pulse pt-2">
+                        Tap / Hover to View Syllabus
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                    <div>
-                      <p className="text-[9px] text-slate-400 uppercase leading-none font-bold">Course Fee</p>
-                      <p className="mt-0.5 text-blue-600 text-sm">{course.fee}</p>
+                </div>
+
+                {/* Back Side */}
+                <div className="flip-card-back rounded-3xl">
+                  <div className="flip-card-back-content flex flex-col justify-between h-full bg-slate-50/50 dark:bg-slate-900/30">
+                    <div className="space-y-3 overflow-y-auto pr-1">
+                      <h4 className="font-heading font-extrabold text-xs text-blue-600 uppercase tracking-wider">
+                        Course Details
+                      </h4>
+                      
+                      {course.syllabus && course.syllabus.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-slate-400 font-bold uppercase">Syllabus Highlights</p>
+                          <ul className="text-[10px] text-slate-600 list-disc list-inside space-y-0.5">
+                            {course.syllabus.slice(0, 3).map((item: string, idx: number) => (
+                              <li key={idx} className="line-clamp-1">{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {course.features && course.features.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-slate-400 font-bold uppercase">Key Highlights</p>
+                          <div className="flex flex-wrap gap-1">
+                            {course.features.slice(0, 2).map((feat: string, idx: number) => (
+                              <span key={idx} className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-md text-[8px] font-bold">
+                                {feat}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {course.schedule && (
+                        <div className="space-y-0.5">
+                          <p className="text-[9px] text-slate-400 font-bold uppercase">Schedule</p>
+                          <p className="text-[10px] text-slate-600 font-semibold line-clamp-1">{course.schedule}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFlip(course.id);
+                        }}
+                        className="text-[9px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase cursor-pointer"
+                      >
+                        Flip Back
+                      </button>
+                      
+                      <Link
+                        href={`/courses/${course.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold rounded-xl transition-colors inline-flex items-center gap-1"
+                      >
+                        <span>View Details</span>
+                        <SlidersHorizontal className="w-3 h-3" />
+                      </Link>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-center">
-                <Link
-                  href={`/courses/${course.id}`}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                >
-                  <span>View Details</span>
-                  <SlidersHorizontal className="w-3.5 h-3.5" />
-                </Link>
               </div>
             </div>
           ))}

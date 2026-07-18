@@ -23,7 +23,8 @@ import {
   Activity,
   Layers,
   GraduationCap,
-  Video
+  Video,
+  SlidersHorizontal
 } from 'lucide-react';
 import { db, fallbackResults, fallbackCurrentAffairs } from '@/services/db';
 import TestimonialCarousel from '@/components/TestimonialCarousel';
@@ -37,6 +38,11 @@ export default function Home() {
     heroImageUrl: ''
   });
   const [liveCourses, setLiveCourses] = useState<any[]>([]);
+  const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+
+  const toggleFlip = (id: string) => {
+    setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }));
+  };
   const [latestVideos, setLatestVideos] = useState<any[]>([]);
   const [formSuccess, setFormSuccess] = useState(false);
   const [name, setName] = useState('');
@@ -240,23 +246,74 @@ export default function Home() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {liveCourses.slice(0, 4).map((course) => (
-                <div key={course.id} className="course-card-premium rounded-3xl p-6 flex flex-col justify-between min-h-[190px]">
-                  <div>
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E3A8A] flex items-center justify-center mb-4">
-                      {course.id === '1' && <GraduationCap className="w-5 h-5" />}
-                      {course.id === '2' && <Layers className="w-5 h-5" />}
-                      {course.id === '3' && <FileText className="w-5 h-5" />}
-                      {course.id !== '1' && course.id !== '2' && course.id !== '3' && <BookOpen className="w-5 h-5" />}
+                <div
+                  key={course.id}
+                  className={`flip-card-container cursor-pointer ${flippedCards[course.id] ? 'is-flipped' : ''}`}
+                  onClick={() => toggleFlip(course.id)}
+                >
+                  <div className="flip-card-inner">
+                    {/* Front Side */}
+                    <div className="flip-card-front course-card-premium rounded-3xl">
+                      <div className="flip-card-front-content flex flex-col justify-between h-full p-5">
+                        <div>
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E3A8A] flex items-center justify-center mb-4">
+                            {course.id === 'bpsc-foundation' || course.id === '1' ? <GraduationCap className="w-5 h-5" /> : null}
+                            {course.id === 'prelims-test-series' || course.id === '2' ? <Layers className="w-5 h-5" /> : null}
+                            {course.id === 'mains-answer-writing' || course.id === '3' ? <FileText className="w-5 h-5" /> : null}
+                            {course.id !== 'bpsc-foundation' && course.id !== '1' && course.id !== 'prelims-test-series' && course.id !== '2' && course.id !== 'mains-answer-writing' && course.id !== '3' ? <BookOpen className="w-5 h-5" /> : null}
+                          </div>
+                          <h3 className="font-heading font-extrabold text-base text-slate-900 mb-1 leading-snug">{course.title}</h3>
+                          <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed">{course.description}</p>
+                        </div>
+                        <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-xs font-bold">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase">{course.duration}</span>
+                          <span className="text-[9px] text-blue-600 font-extrabold uppercase">Tap/Hover</span>
+                        </div>
+                      </div>
                     </div>
-                    <h3 className="font-heading font-extrabold text-base text-slate-900 mb-1">{course.title}</h3>
-                    <p className="text-xs text-slate-500 leading-relaxed mb-4">{course.description}</p>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-50">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">{course.duration}</span>
-                    <Link href={`/courses/${course.id}`} className="text-xs font-bold text-[#1E3A8A] hover:underline flex items-center gap-1">
-                      <span>View Details</span>
-                      <ChevronRight className="w-3 h-3" />
-                    </Link>
+
+                    {/* Back Side */}
+                    <div className="flip-card-back rounded-3xl">
+                      <div className="flip-card-back-content flex flex-col justify-between h-full bg-slate-50/50 dark:bg-slate-900/30 p-5">
+                        <div className="space-y-3 overflow-y-auto pr-1">
+                          <h4 className="font-heading font-extrabold text-xs text-blue-600 uppercase tracking-wider">
+                            Syllabus Overview
+                          </h4>
+                          
+                          {course.syllabus && course.syllabus.length > 0 ? (
+                            <ul className="text-[10px] text-slate-600 list-disc list-inside space-y-0.5">
+                              {course.syllabus.slice(0, 3).map((item: string, idx: number) => (
+                                <li key={idx} className="line-clamp-1">{item}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-[11px] text-slate-550 italic">Personalized batch guidance, mock modules, and comprehensive daily strategy evaluation sessions.</p>
+                          )}
+                        </div>
+
+                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFlip(course.id);
+                            }}
+                            className="text-[9px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase cursor-pointer"
+                          >
+                            Flip Back
+                          </button>
+                          
+                          <Link
+                            href={`/courses/${course.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold rounded-xl transition-colors inline-flex items-center gap-1"
+                          >
+                            <span>Details</span>
+                            <SlidersHorizontal className="w-3 h-3" />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
