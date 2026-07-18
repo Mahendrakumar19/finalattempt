@@ -37,10 +37,26 @@ app.use(helmet({
   contentSecurityPolicy: false // Disable inline CSP — Next.js handles this
 }));
 
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'https://finalattempt-tau.vercel.app',
+  'https://finalattempt-vawt.onrender.com'
+];
+
 app.use(cors({
-  origin: process.env.USE_LOCAL_DB === 'true' 
-    ? ['http://localhost:3000', 'http://localhost:3001'] // Local development
-    : true, // Production (allow all or configure specific domains)
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    const isAllowed = ALLOWED_ORIGINS.includes(origin) || 
+                      origin.includes('vercel.app') || 
+                      origin.includes('onrender.com') ||
+                      origin.startsWith('http://localhost:');
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
