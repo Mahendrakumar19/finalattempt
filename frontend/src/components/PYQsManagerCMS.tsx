@@ -21,6 +21,8 @@ interface PYQItem {
   questionPaper?: { originalName: string } | null;
   answerKeyMediaId?: string | null;
   answerKey?: { originalName: string } | null;
+  solutionMediaId?: string | null;
+  solution?: { originalName: string } | null;
   description?: string | null;
   sortOrder: number;
 }
@@ -31,7 +33,7 @@ export default function PYQsManagerCMS() {
 
   // Picker toggles
   const [showPicker, setShowPicker] = useState(false);
-  const [pickerTarget, setPickerTarget] = useState<'paper' | 'key' | null>(null);
+  const [pickerTarget, setPickerTarget] = useState<'paper' | 'key' | 'solution' | null>(null);
 
   // Form states
   const [form, setForm] = useState({
@@ -42,6 +44,7 @@ export default function PYQsManagerCMS() {
     paperName: '',
     questionPaperMediaId: '',
     answerKeyMediaId: '',
+    solutionMediaId: '',
     description: '',
     sortOrder: 0
   });
@@ -92,6 +95,7 @@ export default function PYQsManagerCMS() {
           paperName: '',
           questionPaperMediaId: '',
           answerKeyMediaId: '',
+          solutionMediaId: '',
           description: '',
           sortOrder: 0
         });
@@ -123,6 +127,8 @@ export default function PYQsManagerCMS() {
       setForm(prev => ({ ...prev, questionPaperMediaId: item.id }));
     } else if (pickerTarget === 'key') {
       setForm(prev => ({ ...prev, answerKeyMediaId: item.id }));
+    } else if (pickerTarget === 'solution') {
+      setForm(prev => ({ ...prev, solutionMediaId: item.id }));
     }
     setShowPicker(false);
   };
@@ -226,6 +232,26 @@ export default function PYQsManagerCMS() {
           </div>
         </div>
 
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-400 uppercase block">Detailed Solutions (DAM - Future)</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Solution Media ID"
+              value={form.solutionMediaId}
+              className="w-full px-3 py-2 text-xs border bg-slate-100 rounded-xl outline-none"
+              readOnly
+            />
+            <button
+              type="button"
+              onClick={() => { setPickerTarget('solution'); setShowPicker(true); }}
+              className="btn-outline px-3 text-xs"
+            >
+              Pick
+            </button>
+          </div>
+        </div>
+
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-slate-400 uppercase">Description / Meta Notes</label>
           <textarea
@@ -264,7 +290,7 @@ export default function PYQsManagerCMS() {
                 </td>
                 <td className="p-4 font-medium">{pq.paperName}</td>
                 <td className="p-4 flex gap-2">
-                  <button onClick={() => setForm({ id: pq.id, examId: pq.examId, year: pq.year, stage: pq.stage, paperName: pq.paperName, questionPaperMediaId: pq.questionPaperMediaId || '', answerKeyMediaId: pq.answerKeyMediaId || '', description: pq.description || '', sortOrder: pq.sortOrder })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
+                  <button onClick={() => setForm({ id: pq.id, examId: pq.examId, year: pq.year, stage: pq.stage, paperName: pq.paperName, questionPaperMediaId: pq.questionPaperMediaId || '', answerKeyMediaId: pq.answerKeyMediaId || '', solutionMediaId: pq.solutionMediaId || '', description: pq.description || '', sortOrder: pq.sortOrder })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
                     <Edit2 className="w-3.5 h-3.5 text-slate-500" />
                   </button>
                   <button onClick={() => handleDelete(pq.id)} className="p-1 bg-slate-50 rounded hover:bg-red-50">

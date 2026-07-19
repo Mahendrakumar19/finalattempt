@@ -109,6 +109,8 @@ interface ResourceDownload {
   type: string;
   downloadCount: number;
   url: string;
+  category?: string;
+  subcategory?: string;
 }
 
 interface Course {
@@ -204,7 +206,7 @@ export default function AdminPortal() {
   const [resultForm, setResultForm] = useState<ResultTopper>({ id: '', name: '', rank: '', exam: '', course: '', service: '', district: '', photo: '', year: 2026, story: '' });
   const [caForm, setCaForm] = useState<CurrentAffairArticle>({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
   const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
-  const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '' });
+  const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '', category: 'Prelims', subcategory: '' });
   const [resourceUploading, setResourceUploading] = useState(false);
   const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'LMS Program', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
 
@@ -1988,7 +1990,7 @@ export default function AdminPortal() {
               <h3 className="font-extrabold text-sm text-slate-900">Free Resources Downloads</h3>
               <button
                 onClick={() => {
-                  setResourceForm({ id: '', title: '', size: '2.5 MB', type: 'PDF', downloadCount: 0, url: '#' });
+                  setResourceForm({ id: '', title: '', size: '2.5 MB', type: 'PDF', downloadCount: 0, url: '#', category: 'Prelims', subcategory: '' });
                   setActiveModal({ type: 'add' });
                 }}
                 className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs shadow-sm"
@@ -2137,6 +2139,35 @@ export default function AdminPortal() {
                           <option>MP4</option>
                           <option>Notes</option>
                         </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Category</label>
+                        <select
+                          value={resourceForm.category || 'Prelims'}
+                          onChange={(e) => setResourceForm({ ...resourceForm, category: e.target.value })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        >
+                          <option value="Prelims">Prelims</option>
+                          <option value="Mains">Mains</option>
+                          <option value="Infographics">Infographics</option>
+                          <option value="Rapid Revision Material">Rapid Revision Material</option>
+                          <option value="PYQ Solutions">PYQ Solutions</option>
+                          <option value="Value Added Materials">Value Added Materials</option>
+                          <option value="FA Publications">FA Publications</option>
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Subcategory</label>
+                        <input
+                          type="text"
+                          value={resourceForm.subcategory || ''}
+                          onChange={(e) => setResourceForm({ ...resourceForm, subcategory: e.target.value })}
+                          placeholder="e.g. Economy, Modern History"
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
                       </div>
                     </div>
 

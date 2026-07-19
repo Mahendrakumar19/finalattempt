@@ -154,6 +154,8 @@ export interface ResourceDownload {
   type: string;
   downloadCount: number;
   url: string;
+  category?: string;
+  subcategory?: string;
 }
 
 export interface SiteSettings {
@@ -444,9 +446,14 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         size VARCHAR(100) NOT NULL,
         type VARCHAR(100) NOT NULL,
         downloadCount INT DEFAULT 0,
-        url TEXT
+        url TEXT,
+        category VARCHAR(100),
+        subcategory VARCHAR(100)
       )
     `);
+    // Add category/subcategory columns if upgrading existing DB
+    try { await pool.query('ALTER TABLE resources ADD COLUMN IF NOT EXISTS category VARCHAR(100)'); } catch (_) {}
+    try { await pool.query('ALTER TABLE resources ADD COLUMN IF NOT EXISTS subcategory VARCHAR(100)'); } catch (_) {}
     
     // 8. Course Progress
     await pool.query(`
@@ -1696,7 +1703,7 @@ class BackendDB {
   public async getResources(): Promise<ResourceDownload[]> {
     if (mysqlPool) {
       try {
-        const [rows] = await mysqlPool.query('SELECT * FROM resources');
+        const [rows] = await mysqlPool.query('SELECT * FROM resources ORDER BY category, subcategory, title');
         return rows as ResourceDownload[];
       } catch (err) {
         console.error('MySQL query error:', err);
@@ -1709,8 +1716,8 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO resources (id, title, size, type, downloadCount, url) VALUES (?, ?, ?, ?, ?, ?)',
-          [item.id, item.title, item.size, item.type, item.downloadCount, item.url]
+          'INSERT INTO resources (id, title, size, type, downloadCount, url, category, subcategory) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [item.id, item.title, item.size, item.type, item.downloadCount, item.url, item.category ?? null, item.subcategory ?? null]
         );
         return item;
       } catch (err) {
@@ -1726,8 +1733,8 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query(
-          'UPDATE resources SET title = ?, size = ?, type = ?, downloadCount = ?, url = ? WHERE id = ?',
-          [updated.title, updated.size, updated.type, updated.downloadCount, updated.url, id]
+          'UPDATE resources SET title = ?, size = ?, type = ?, downloadCount = ?, url = ?, category = ?, subcategory = ? WHERE id = ?',
+          [updated.title, updated.size, updated.type, updated.downloadCount, updated.url, updated.category ?? null, updated.subcategory ?? null, id]
         );
         return result.affectedRows > 0;
       } catch (err) {

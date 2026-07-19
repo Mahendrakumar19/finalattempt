@@ -39,5 +39,12 @@ export default function FacultyLayout({ children }: { children: React.ReactNode 
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <head>
+        <meta name="robots" content="noindex, nofollow" />
+      </head>
+      {children}
+    </>
+  );
 }

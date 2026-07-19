@@ -146,10 +146,10 @@ export default function Home() {
                 />
               ))}
             </div>
-            {/* Radial mask that fades the image into the background left text area */}
-            <div className="absolute inset-y-0 left-0 w-[55%] bg-gradient-to-r from-[var(--bg-color)] via-[var(--bg-color)]/95 to-transparent z-10" />
+            {/* Responsive overlay: Solid fade on mobile, gradient on desktop */}
+            <div className="absolute inset-0 bg-[var(--bg-color)]/90 lg:bg-transparent lg:bg-gradient-to-r lg:from-[var(--bg-color)] lg:via-[var(--bg-color)]/95 lg:to-transparent z-10" />
             {/* Radial mask that fades the image into the background right area */}
-            <div className="absolute inset-y-0 right-0 w-[25%] bg-gradient-to-l from-[var(--bg-color)] via-[var(--bg-color)]/90 to-transparent z-10" />
+            <div className="absolute inset-y-0 right-0 w-[25%] bg-gradient-to-l from-[var(--bg-color)] via-[var(--bg-color)]/90 to-transparent z-10 hidden lg:block" />
             {/* Soft top and bottom vignetting to blend with Header and Stats bar */}
             <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[var(--bg-color)] to-transparent z-10" />
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg-color)] to-transparent z-10" />
@@ -166,7 +166,7 @@ export default function Home() {
                   {heroSettings.tagline}
                 </span>
               )}
-              <h1 className="text-4xl sm:text-lg lg:text-6.5xl font-heading font-black tracking-tight leading-tight" style={{ color: 'var(--text-color)' }}>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-black tracking-tight leading-tight" style={{ color: 'var(--text-color)' }}>
                 {heroSettings.heroTitle}
               </h1>
               
@@ -184,7 +184,7 @@ export default function Home() {
                 </Link>
                 
                 <a
-                  href="#book-session"
+                  href="/contact?enquiry=enroll"
                   className="btn-outline flex items-center gap-2"
                 >
                   <Play className="w-4 h-4 text-[#1E3A8A] fill-[#1E3A8A] dark:text-amber-500 dark:fill-amber-500" />

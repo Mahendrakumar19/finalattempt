@@ -23,6 +23,20 @@ export default function CurrentAffairsLanding() {
   const [selectedExam, setSelectedExam] = useState('All');
   const [searchResults, setSearchResults] = useState<DynamicCurrentAffairArticle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'BIHAR' | 'NATIONAL' | 'INTERNATIONAL'>('ALL');
+
+  // Flatten and map articles to display with parent edition publishedDate
+  const allArticles = editions.flatMap(ed => 
+    (ed.articles || []).map(art => ({
+      ...art,
+      publishedDate: ed.publishDate
+    }))
+  );
+
+  const filteredArticles = allArticles.filter(art => {
+    if (categoryFilter === 'ALL') return true;
+    return art.category.toUpperCase() === categoryFilter;
+  });
 
   useEffect(() => {
     async function loadData() {
@@ -263,59 +277,69 @@ export default function CurrentAffairsLanding() {
         </Link>
       </div>
 
-      {/* Latest Daily Editions List */}
+      {/* Dynamic Filters & Instant Articles List */}
       <div className="space-y-6">
-        <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/[0.06] pb-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 dark:border-white/[0.06] pb-4 gap-4">
           <h2 className="text-xl font-heading font-black text-slate-900 dark:text-white flex items-center gap-2">
             <Grid className="w-5 h-5 text-amber-500" />
-            <span>Latest Editorial Editions</span>
+            <span>Latest Articles</span>
           </h2>
-          <Link
-            href="/current-affairs/daily"
-            className="text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors flex items-center gap-1"
-          >
-            <span>View Calendar Archive</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          
+          {/* Instant Filter Tabs */}
+          <div className="flex bg-slate-50 dark:bg-slate-950/20 p-0.5 rounded-xl border border-slate-100 dark:border-white/[0.04] text-xs font-bold">
+            {(['ALL', 'BIHAR', 'NATIONAL', 'INTERNATIONAL'] as const).map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${categoryFilter === cat ? 'bg-amber-500 text-slate-950' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+              >
+                {cat === 'ALL' ? 'All' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading ? (
-          <p className="text-slate-500 text-xs">Loading latest editions...</p>
-        ) : editions.length === 0 ? (
-          <p className="text-slate-500 text-xs">No current affairs editions uploaded yet.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-40 bg-slate-100 dark:bg-white/[0.02] border rounded-3xl animate-pulse" />
+            ))}
+          </div>
+        ) : filteredArticles.length === 0 ? (
+          <div className="text-center py-12 bg-slate-55/10 rounded-3xl border border-slate-100">
+            <p className="text-slate-500 text-xs font-semibold">No articles match the selected category.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {editions.slice(0, 3).map(ed => {
-              const dateObj = new Date(ed.publishDate);
-              const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-
+            {filteredArticles.slice(0, 9).map(art => {
               return (
                 <div
-                  key={ed.id}
-                  className="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/[0.06] rounded-3xl p-6 space-y-4 hover:border-amber-500/20 transition-all flex flex-col justify-between"
+                  key={art.id}
+                  className="bg-white dark:bg-slate-900/40 border border-slate-150 dark:border-white/[0.04] rounded-3xl p-6 space-y-4 hover:border-amber-500/20 transition-all flex flex-col justify-between"
                 >
                   <div className="space-y-2">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      <span>{formattedDate}</span>
+                      <Calendar className="w-3 h-3 text-amber-500" />
+                      <span>{art.publishedDate}</span>
                     </span>
-                    <h4 className="font-heading font-black text-md text-slate-950 dark:text-white leading-tight">
-                      Daily Edition Summary
+                    <h4 className="font-heading font-black text-md text-slate-950 dark:text-white leading-tight line-clamp-2">
+                      {art.title}
                     </h4>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
-                      {ed.summary || 'Editorial brief with complete category analysis for BPSC aspirants.'}
+                      {art.summary}
                     </p>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-50 dark:border-white/[0.02] flex items-center justify-between mt-4">
-                    <span className="text-[10px] font-bold text-slate-400">
-                      {ed.articles?.length || 0} Articles
+                  <div className="pt-4 border-t border-slate-100 dark:border-white/[0.02] flex items-center justify-between mt-4">
+                    <span className="px-2 py-0.5 text-[8px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 rounded-md uppercase tracking-wider">
+                      {art.category}
                     </span>
                     <Link
-                      href={`/current-affairs/daily/${ed.publishDate}`}
+                      href={`/current-affairs/daily/${art.publishedDate}/${art.category.toLowerCase()}/${art.slug}`}
                       className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl text-[10px] transition-all cursor-pointer"
                     >
-                      Read Edition
+                      Read Article
                     </Link>
                   </div>
                 </div>

@@ -7,6 +7,19 @@ import { Menu, X, ChevronDown, Phone, User, MapPin, Sparkles, LogOut, ArrowRight
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
 
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+function getCurrentISOWeek() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+}
+
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
@@ -33,25 +46,25 @@ export default function Header() {
     {
       name: 'Courses', href: '/courses',
       dropdown: [
-        { name: 'All Courses', href: '/courses', desc: 'Browse all programs' },
-        { name: 'Test Series', href: '/test-series', desc: 'Prelims & Mains series' },
-        { name: 'Achievers', href: '/achievers', desc: 'Our toppers & results' },
+        { name: 'Foundation', href: '/courses?category=Foundation', desc: 'Foundational learning programs' },
+        { name: 'Prelims', href: '/courses?category=Prelims', desc: 'Target prelims batches & crash courses' },
+        { name: 'Mains', href: '/courses?category=Mains', desc: 'Mains batches & answer writing' },
       ]
     },
     {
-      name: 'BPSC', href: '#',
+      name: 'Test Series', href: '/test-series',
       dropdown: [
-        { name: 'Bihar Special', href: '/resources/bihar-special', desc: 'Bihar specific resources' },
-        { name: 'BPSC Test Series', href: '/test-series', desc: 'Prelims & Mains test series' },
-        { name: 'Syllabus & Strategy', href: '/syllabus-strategy', desc: 'Detailed BPSC exam strategy' },
-        { name: 'PYQ Archive', href: '/pyq', desc: 'Bihar civil services past papers' },
+        { name: 'Prelims Series', href: '/test-series?stage=PRELIMS', desc: 'Prelims mocks & sectional tests' },
+        { name: 'Mains Series', href: '/test-series?stage=MAINS', desc: 'Mains answer writing tests' },
       ]
     },
     {
       name: 'Current Affairs', href: '/current-affairs',
       dropdown: [
-        { name: 'Daily Digest', href: '/current-affairs/daily', desc: 'Today\'s news analysis' },
-        { name: 'Videos', href: '/current-affairs/videos', desc: 'YouTube lecture series' },
+        { name: 'Daily', href: '/current-affairs/daily', desc: 'Daily news analysis & facts' },
+        { name: 'Weekly', href: `/current-affairs/weekly/week-${getCurrentISOWeek()}-${new Date().getFullYear()}`, desc: 'Consolidated weekly updates' },
+        { name: 'Monthly', href: `/current-affairs/monthly/${MONTH_NAMES[new Date().getMonth()]}-${new Date().getFullYear()}`, desc: 'Monthly prep booklets' },
+        { name: 'Yearly', href: `/current-affairs/yearly/${new Date().getFullYear()}`, desc: 'Yearly compendiums' },
       ]
     },
     {
@@ -65,8 +78,7 @@ export default function Header() {
     {
       name: 'Blogs', href: '/blog',
       dropdown: [
-        { name: 'All Articles', href: '/blog', desc: 'Strategy & analysis posts' },
-        { name: 'Resources', href: '/resources', desc: 'Free PDFs & notes' },
+        { name: 'All Articles', href: '/blog', desc: 'Strategy & analysis posts' }
       ]
     },
     {
@@ -74,7 +86,7 @@ export default function Header() {
       dropdown: [
         { name: 'About Us', href: '/about', desc: 'Our mission & faculty' },
         { name: 'Results', href: '/results', desc: 'Topper hall of fame' },
-        { name: 'Faculty', href: '/faculty', desc: 'Meet our mentors' },
+        { name: 'Faculty', href: '/faculties', desc: 'Meet our mentors' },
       ]
     },
     { name: 'Contact', href: '/contact' }
@@ -95,10 +107,31 @@ export default function Header() {
           </a>
         </div>
         <div className="flex items-center gap-6">
-          <Link href="/auth/login/student" className="hover:text-white transition-colors flex items-center gap-1.5 font-bold">
-            <span>👤</span>
-            <span>Student Login</span>
-          </Link>
+          {isAuthenticated && user ? (
+            <div className="flex items-center gap-4">
+              <span className="text-xs font-bold text-slate-350">Hello, {user.fullName.split(' ')[0]}</span>
+              <Link 
+                href={user.role === 'admin' ? '/admin' : user.role === 'faculty' ? '/faculty/dashboard' : '/student/dashboard'} 
+                className="hover:scale-105 transition-all flex items-center gap-1 bg-white/5 border border-white/10 px-2.5 py-1 rounded-xl text-xs text-white"
+              >
+                <div className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 font-black text-[9px] flex items-center justify-center">
+                  {user.fullName.charAt(0).toUpperCase()}
+                </div>
+                <span>Dashboard</span>
+              </Link>
+              <button 
+                onClick={logout} 
+                className="text-xs text-red-400 hover:text-red-350 font-bold transition-colors cursor-pointer"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link href="/auth/login/student" className="hover:text-white transition-colors flex items-center gap-1.5 font-bold">
+              <span>👤</span>
+              <span>Student Login</span>
+            </Link>
+          )}
           <span className="text-slate-750">|</span>
           <button
             onClick={toggleTheme}

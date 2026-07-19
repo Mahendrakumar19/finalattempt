@@ -39,6 +39,8 @@ export default function PyqPage() {
   const [selectedYear, setSelectedYear] = useState<string>('ALL');
   const [selectedStage, setSelectedStage] = useState<string>('ALL');
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   // Grouping expanded accordions state
   const [expandedExams, setExpandedExams] = useState<Record<string, boolean>>({});
@@ -59,11 +61,16 @@ export default function PyqPage() {
     fetchExams();
   }, []);
 
+  // Reset page to 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedExamId, selectedYear, selectedStage]);
+
   useEffect(() => {
     if (viewMode === 'pdfs') {
       fetchPYQs();
     }
-  }, [viewMode, searchQuery, selectedExamId, selectedYear, selectedStage]);
+  }, [viewMode, searchQuery, selectedExamId, selectedYear, selectedStage, currentPage]);
 
   const fetchExams = async () => {
     try {
@@ -80,7 +87,7 @@ export default function PyqPage() {
   const fetchPYQs = async () => {
     setLoading(true);
     try {
-      let url = `${BACKEND_URL}/api/pyqs?limit=100`;
+      let url = `${BACKEND_URL}/api/pyqs?page=${currentPage}&limit=10`;
       if (selectedExamId !== 'ALL') {
         url += `&examId=${selectedExamId}`;
       }
@@ -98,6 +105,9 @@ export default function PyqPage() {
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         setPyqList(data.data);
+        if (data.pagination) {
+          setTotalPages(data.pagination.pages || 1);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -354,6 +364,18 @@ export default function PyqPage() {
                                                   <span>Key</span>
                                                 </button>
                                               )}
+                                              {item.solution && (
+                                                <button
+                                                  onClick={() => {
+                                                    setPreviewPdfUrl(`${BACKEND_URL}/${item.solution!.storagePath}`);
+                                                    setPreviewTitle(`${item.paperName} - Detailed Solution`);
+                                                  }}
+                                                  className="btn-outline py-1.5 text-[9px] flex-grow text-center flex items-center justify-center gap-1 cursor-pointer"
+                                                >
+                                                  <Eye className="w-3 h-3" />
+                                                  <span>Solution</span>
+                                                </button>
+                                              )}
                                               {item.questionPaper && (
                                                 <a
                                                   href={`${BACKEND_URL}/${item.questionPaper!.storagePath}`}
@@ -382,6 +404,29 @@ export default function PyqPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2 pt-6">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 border rounded-xl text-xs font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-white/[0.08] hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Previous
+              </button>
+              <span className="text-xs font-bold text-slate-650 dark:text-slate-400 px-3">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 border rounded-xl text-xs font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-white/[0.08] hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
             </div>
           )}
 
