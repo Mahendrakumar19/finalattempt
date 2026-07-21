@@ -328,7 +328,13 @@ export default function AdminPortal() {
   const handleSelectMedia = (url: string, item: any) => {
     const { field } = mediaPickerConfig;
     if (field === 'heroImageUrl') {
-      setSettings(prev => ({ ...prev, heroImageUrl: url }));
+      setSettings(prev => {
+        const existing = prev.heroImageUrl ? prev.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean) : [];
+        if (!existing.includes(url)) {
+          existing.push(url);
+        }
+        return { ...prev, heroImageUrl: existing.join(', ') };
+      });
     } else if (field === 'resultPhoto') {
       setResultForm(prev => ({ ...prev, photo: url }));
     } else if (field === 'facultyAvatar') {
@@ -802,62 +808,78 @@ export default function AdminPortal() {
                   Hero Background Image
                 </label>
 
-                {/* Live Preview */}
-                <div className="relative w-full h-32 rounded-2xl overflow-hidden bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center">
-                  {settings.heroImageUrl ? (
-                    <>
-                      <img
-                        src={settings.heroImageUrl}
-                        alt="Hero Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => { (e.target as HTMLImageElement).src = ''; }}
-                      />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <span className="text-white text-[10px] font-bold bg-black/60 px-3 py-1 rounded-full">Current Hero Image</span>
+                {/* Multi-Image Live Slider Gallery Preview */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                      Active Hero Slider Images ({settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean).length : 1})
+                    </span>
+                    {settings.heroImageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setSettings(prev => ({ ...prev, heroImageUrl: '' }))}
+                        className="text-[10px] font-bold text-red-500 hover:text-red-700 hover:underline cursor-pointer"
+                      >
+                        Clear All Custom Images
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {(settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean) : ["https://upload.wikimedia.org/wikipedia/commons/f/f6/Front_view_of_bihar_vidhan_sabha.jpg"]).map((url, idx) => (
+                      <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 group">
+                        <img
+                          src={url}
+                          alt={`Hero Slide ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = ''; }}
+                        />
+                        <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold text-amber-500 bg-slate-950/80 px-2 py-0.5 rounded-md border border-amber-500/20">
+                          Slide #{idx + 1}
+                        </span>
+                        {settings.heroImageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean) : [];
+                              list.splice(idx, 1);
+                              setSettings(prev => ({ ...prev, heroImageUrl: list.join(', ') }));
+                            }}
+                            className="absolute top-1.5 right-1.5 p-1 bg-red-500 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-sm"
+                            title="Remove slide image"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
-                    </>
-                  ) : (
-                    <div className="text-center">
-                      <svg className="w-8 h-8 text-slate-300 mx-auto mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9l4-4 4 4 4-5 6 7" /></svg>
-                      <p className="text-[10px] text-slate-400 font-semibold">No custom image — using default</p>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
 
                 {/* Media Library Selector */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 pt-2">
                   <button
                     type="button"
                     onClick={() => setMediaPickerConfig({ isOpen: true, field: 'heroImageUrl', allowedTypes: ['IMAGE'] })}
                     className="relative flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50 text-slate-600 hover:text-amber-600 rounded-2xl cursor-pointer transition-all text-xs font-semibold"
                   >
                     <FolderOpen className="w-3.5 h-3.5" />
-                    Choose from Media Library
+                    + Add Image from Media Library (DAM)
                   </button>
-
-                  {settings.heroImageUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setSettings(prev => ({ ...prev, heroImageUrl: '' }))}
-                      className="px-3 py-2.5 text-[10px] font-bold text-red-500 border border-red-200 rounded-2xl hover:bg-red-50 transition-colors"
-                    >
-                      Reset to Default
-                    </button>
-                  )}
                 </div>
 
-                {/* Direct URL Input */}
+                {/* Direct Comma-Separated URL Input */}
                 <div className="space-y-1">
-                  <label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">— or paste image URL directly —</label>
-                  <input
-                    type="url"
-                    placeholder="https://example.com/your-hero-image.jpg"
+                  <label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">— or paste image URLs directly (comma-separated for multi-slides) —</label>
+                  <textarea
+                    rows={2}
+                    placeholder="https://example.com/slide1.jpg, https://example.com/slide2.jpg"
                     value={settings.heroImageUrl || ''}
                     onChange={(e) => setSettings(prev => ({ ...prev, heroImageUrl: e.target.value }))}
                     className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none text-slate-900 font-mono placeholder:font-sans placeholder:text-slate-300"
                   />
                   <p className="text-[9px] text-slate-400 font-medium">
-                    Accepts any publicly accessible image URL. To add multiple images for the slider, paste their URLs separated by commas (e.g. url1, url2, url3). Leave empty to use the default.
+                    Supports unlimited dynamic slider background images. Pick from DAM Media Manager or paste image URLs separated by commas.
                   </p>
                 </div>
               </div>

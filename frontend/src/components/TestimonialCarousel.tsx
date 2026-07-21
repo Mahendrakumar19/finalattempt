@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const TOPPER_POSTERS = [
-  { id: '1', title: 'BPSC Topper Selection 1', url: 'https://finalattemptias.com/wp-content/uploads/2026/04/MD-FA.jpg' },
-  { id: '2', title: 'BPSC Topper Selection 2', url: 'https://finalattemptias.com/wp-content/uploads/2026/04/JP-FA.jpg' },
-  { id: '3', title: 'BPSC Topper Selection 3', url: 'https://finalattemptias.com/wp-content/uploads/2026/04/SP-FA.jpg' },
-  { id: '4', title: 'BPSC Topper Selection 4', url: 'https://finalattemptias.com/wp-content/uploads/2026/04/SU-FA.jpg' }
+  { id: '1', title: 'BPSC Topper Selection 1', url: '/MD-FA.jpg' },
+  { id: '2', title: 'BPSC Topper Selection 2', url: '/JP-FA.jpg' },
+  { id: '3', title: 'BPSC Topper Selection 3', url: '/SP-FA.jpg' },
+  { id: '4', title: 'BPSC Topper Selection 4', url: '/SU-FA.jpg' }
 ];
 
 interface ImageDimensions {

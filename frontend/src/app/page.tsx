@@ -115,8 +115,8 @@ export default function Home() {
   return (
     <div className="w-full flex flex-col min-h-screen bg-[var(--bg-color)]">
 
-      {/* 1. HERO SECTION WITH EXACT WIREFRAME BACKDROP EFFECTS */}
-      <section className="relative pt-12 pb-20 overflow-hidden bg-[var(--bg-color)]">
+      {/* 1. HERO SECTION WITH RESPONSIVE LAYOUT (IMAGE ABOVE CONTENT ON MOBILE, BLENDED BACKDROP ON DESKTOP) */}
+      <section className="relative pt-6 lg:pt-12 pb-16 lg:pb-20 overflow-hidden bg-[var(--bg-color)]">
 
         {/* Soft Radial Glow backdrop */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full opacity-[0.06] blur-[130px] pointer-events-none"
@@ -132,10 +132,9 @@ export default function Home() {
           </svg>
         </div>
 
-        {/* Full Wide Blended Background Image (matching mockup exactly) */}
-        <div className="absolute inset-0 z-0 flex items-center justify-center opacity-95 pointer-events-none">
+        {/* Desktop Full-Width Blended Backdrop (Hidden on mobile where image is stacked on top) */}
+        <div className="hidden lg:block absolute inset-0 z-0 opacity-95 pointer-events-none">
           <div className="relative w-full h-full">
-            {/* Dynamic Slider Animation for Hero Background Images */}
             <div className="absolute inset-0 z-0">
               {heroImages.map((url, idx) => (
                 <img
@@ -147,21 +146,49 @@ export default function Home() {
                 />
               ))}
             </div>
-            {/* Radial mask that fades the image into the background left text area */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-color)] via-[var(--bg-color)]/95 to-[var(--bg-color)]/80 lg:to-transparent z-10" />
+            {/* Backdrop gradient confined to left 40% of screen to keep image clear and visible across 60% of right screen */}
+            <div
+              className="absolute inset-0 z-10 pointer-events-none"
+              style={{
+                background: 'linear-gradient(to right, var(--bg-color) 0%, var(--bg-color) 20%, rgba(255,251,242,0.85) 25%, transparent 55%)'
+              }}
+            />
             {/* Soft top and bottom vignetting to blend with Header and Stats bar */}
-            <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[var(--bg-color)] to-transparent z-10" />
-            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg-color)] to-transparent z-10" />
+            <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[var(--bg-color)] to-transparent z-10" />
+            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[var(--bg-color)] to-transparent z-10" />
           </div>
         </div>
 
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[450px]">
+          <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 items-center">
 
-            {/* Left Content (Expanded from 4 to 8 columns for cleaner landscape spacing) */}
-            <div className="lg:col-span-8 space-y-6 pt-6">
+            {/* MOBILE ONLY IMAGE DISPLAY: Full screen width edge-to-edge slider (no boxed frame) */}
+            <div className="block lg:hidden w-screen -mx-4 sm:-mx-6 aspect-[16/9] sm:aspect-[21/9] overflow-hidden relative shadow-md">
+              {heroImages.map((url, idx) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`Bihar Vidhan Sabha Patna Secretariat - Slide ${idx + 1}`}
+                  referrerPolicy="no-referrer"
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-100' : 'opacity-0'}`}
+                />
+              ))}
+              <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[var(--bg-color)] via-black/40 to-transparent flex items-end p-3 justify-center">
+                <div className="flex gap-1.5 pb-1">
+                  {heroImages.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`h-1.5 rounded-full transition-all ${idx === activeImageIndex ? 'w-5 bg-amber-500' : 'w-1.5 bg-white/70'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Left Content (Positioned BELOW image on mobile, side-by-side on desktop) */}
+            <div className="w-full lg:col-span-8 space-y-5 lg:space-y-6 pt-2 lg:pt-6">
               {heroSettings.tagline && (
-                <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-blue-600/10 border border-blue-500/20 text-[12px] font-bold uppercase tracking-widest text-blue-800 dark:text-blue-400">
+                <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-blue-600/10 border border-blue-500/20 text-[11px] sm:text-[12px] font-bold uppercase tracking-widest text-blue-800 dark:text-blue-400">
                   {heroSettings.tagline}
                 </span>
               )}
@@ -169,14 +196,14 @@ export default function Home() {
                 {heroSettings.heroTitle}
               </h1>
 
-              <p className="text-base sm:text-md text-slate-600 dark:text-slate-200 font-semibold leading-relaxed max-w-md">
+              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-200 font-semibold leading-relaxed max-w-md">
                 {heroSettings.heroSubtitle}
               </p>
 
-              <div className="flex flex-wrap gap-4 pt-2">
+              <div className="flex flex-wrap gap-3 sm:gap-4 pt-2">
                 <Link
                   href="/courses"
-                  className="btn-primary flex items-center gap-2"
+                  className="btn-primary flex items-center gap-2 text-xs sm:text-sm py-3 px-6"
                 >
                   <span>Explore Courses</span>
                   <ArrowRight className="w-4 h-4" />
@@ -184,7 +211,7 @@ export default function Home() {
 
                 <a
                   href="/contact?enquiry=enroll"
-                  className="btn-outline flex items-center gap-2"
+                  className="btn-outline flex items-center gap-2 text-xs sm:text-sm py-3 px-6"
                 >
                   <Play className="w-4 h-4 text-[#1E3A8A] fill-[#1E3A8A] dark:text-amber-500 dark:fill-amber-500" />
                   <span>Watch Intro Video</span>
@@ -192,7 +219,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Column: Empty space allowing background slide visibility */}
+            {/* Right Column (Desktop space) */}
             <div className="lg:col-span-4 hidden lg:block" />
 
           </div>
@@ -201,20 +228,20 @@ export default function Home() {
 
       {/* 2. STATS BANNER */}
       <section className="max-w-8xl mx-auto w-full px-4 sm:px-6 lg:px-8 -mt-6 mb-16 relative z-20">
-        <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-xl">
+        <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-xl hover-lift">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 divide-x divide-slate-100">
             {[
-              { val: '5000+', lbl: 'Students Enrolled', icon: Users, color: 'text-purple-500' },
-              { val: '250+', lbl: 'Study Materials', icon: BookOpen, color: 'text-amber-500' },
-              { val: '1000+', lbl: 'Mock Tests', icon: FileText, color: 'text-emerald-500' },
-              { val: '100+', lbl: 'Selections', icon: Trophy, color: 'text-pink-500' }
+              { val: '5000+', lbl: 'Students Enrolled', icon: Users, color: 'text-purple-500 bg-purple-50 hover:bg-purple-100' },
+              { val: '250+', lbl: 'Study Materials', icon: BookOpen, color: 'text-amber-500 bg-amber-50 hover:bg-amber-100' },
+              { val: '1000+', lbl: 'Mock Tests', icon: FileText, color: 'text-emerald-500 bg-emerald-50 hover:bg-emerald-100' },
+              { val: '100+', lbl: 'Selections', icon: Trophy, color: 'text-pink-500 bg-pink-50 hover:bg-pink-100' }
             ].map((stat, idx) => (
-              <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start gap-4 px-4 text-center sm:text-left first:pl-0">
-                <div className={`w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center ${stat.color} shrink-0`}>
-                  <stat.icon className="w-6 h-6" />
+              <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start gap-4 px-4 text-center sm:text-left first:pl-0 group cursor-default">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stat.color} shrink-0 transition-transform duration-300 group-hover:scale-110`}>
+                  <stat.icon className="w-6 h-6 transition-transform duration-300 group-hover:rotate-6" />
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-heading font-extrabold text-slate-900 tracking-tight">{stat.val}</div>
+                  <div className="text-2xl sm:text-3xl font-heading font-extrabold text-slate-900 tracking-tight group-hover:text-amber-600 transition-colors">{stat.val}</div>
                   <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">{stat.lbl}</div>
                 </div>
               </div>
@@ -236,10 +263,10 @@ export default function Home() {
               </div>
               <Link
                 href="/courses"
-                className="text-xs font-bold text-[#1E3A8A] hover:text-amber-600 transition-colors flex items-center gap-1"
+                className="text-xs font-bold text-[#1E3A8A] hover:text-amber-600 transition-colors flex items-center gap-1 group"
               >
                 <span>View All Courses</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             </div>
 
@@ -247,7 +274,7 @@ export default function Home() {
               {liveCourses.slice(0, 4).map((course) => (
                 <div
                   key={course.id}
-                  className={`flip-card-container cursor-pointer ${flippedCards[course.id] ? 'is-flipped' : ''}`}
+                  className={`flip-card-container cursor-pointer hover-lift ${flippedCards[course.id] ? 'is-flipped' : ''}`}
                   onClick={() => toggleFlip(course.id)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
@@ -264,7 +291,7 @@ export default function Home() {
                     <div className="flip-card-front course-card-premium rounded-3xl">
                       <div className="flip-card-front-content flex flex-col justify-between h-full p-5">
                         <div>
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E3A8A] flex items-center justify-center mb-4">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E3A8A] flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110">
                             {course.id === 'bpsc-foundation' || course.id === '1' ? <GraduationCap className="w-5 h-5" /> : null}
                             {course.id === 'prelims-test-series' || course.id === '2' ? <Layers className="w-5 h-5" /> : null}
                             {course.id === 'mains-answer-writing' || course.id === '3' ? <FileText className="w-5 h-5" /> : null}
@@ -332,34 +359,34 @@ export default function Home() {
           <div className="lg:col-span-4 space-y-8">
 
             {/* Announcements Card */}
-            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
+            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover-lift">
               <div className="flex justify-between items-center border-b border-slate-50 pb-4 mb-4">
                 <h3 className="font-heading font-extrabold text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  <Sparkles className="w-4 h-4 text-purple-600 animate-pulse" />
                   <span>Latest Announcements</span>
                 </h3>
               </div>
               <div className="space-y-4">
                 {announcements.map((ann, idx) => (
-                  <div key={idx} className="flex gap-4 items-start p-2.5 rounded-xl hover:bg-slate-50 transition-colors group cursor-pointer">
-                    <div className="bg-blue-50 text-[#1E3A8A] p-2 rounded-xl text-center shrink-0 w-12 flex flex-col justify-center">
+                  <div key={idx} className="flex gap-4 items-start p-2.5 rounded-2xl hover:bg-amber-500/10 border border-transparent hover:border-amber-500/20 transition-all duration-300 group cursor-pointer">
+                    <div className="bg-blue-50 text-[#1E3A8A] p-2 rounded-xl text-center shrink-0 w-12 flex flex-col justify-center transition-transform duration-300 group-hover:scale-105">
                       <span className="text-[10px] font-extrabold leading-none">{ann.date.split(' ')[0]}</span>
                       <span className="text-[8px] font-bold text-slate-400 mt-1">{ann.date.split(' ')[1]}</span>
                     </div>
                     <div className="flex-grow">
                       <p className="text-xs font-bold text-slate-700 leading-snug group-hover:text-[#1E3A8A] transition-colors">{ann.text}</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 self-center" />
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-all duration-300 group-hover:translate-x-1 self-center" />
                   </div>
                 ))}
               </div>
-              <button className="w-full mt-4 py-2.5 bg-[#5B21B6] hover:bg-purple-800 text-white font-bold rounded-xl text-xs transition-colors">
+              <button className="w-full mt-4 py-2.5 bg-[#5B21B6] hover:bg-purple-800 text-white font-bold rounded-xl text-xs transition-all duration-300 hover:shadow-md cursor-pointer">
                 View All Announcements
               </button>
             </div>
 
             {/* Why Choose Us checklist */}
-            <div className="bg-amber-50/40 rounded-3xl border border-amber-100/60 p-6 shadow-sm">
+            <div className="bg-amber-50/40 rounded-3xl border border-amber-100/60 p-6 shadow-sm hover-lift">
               <h3 className="font-heading font-extrabold text-sm text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                 <span>Why Choose Final Attempt?</span>
@@ -372,9 +399,9 @@ export default function Home() {
                   'Updated Content as per Latest Pattern',
                   'Doubt Support & Mentorship'
                 ].map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-3 text-xs font-semibold text-slate-700">
-                    <CheckCircle className="w-4 h-4 text-[#F59E0B] shrink-0" />
-                    <span>{item}</span>
+                  <li key={idx} className="flex items-center gap-3 text-xs font-semibold text-slate-700 group cursor-default">
+                    <CheckCircle className="w-4 h-4 text-[#F59E0B] shrink-0 transition-transform duration-300 group-hover:scale-125" />
+                    <span className="group-hover:text-slate-900 transition-colors">{item}</span>
                   </li>
                 ))}
               </ul>
@@ -446,11 +473,11 @@ export default function Home() {
                 colSpan: 'md:col-span-2 lg:col-span-3'
               }
             ].map((item, idx) => (
-              <div key={idx} className={`bg-white dark:bg-slate-900/40 p-8 rounded-3xl border border-slate-100 dark:border-white/[0.06] space-y-4 shadow-sm hover:shadow-md transition-all ${item.colSpan || ''}`}>
-                <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center text-2xl`}>
+              <div key={idx} className={`bg-white dark:bg-slate-900/40 p-8 rounded-3xl border border-slate-100 dark:border-white/[0.06] space-y-4 shadow-sm hover-lift group ${item.colSpan || ''}`}>
+                <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
                   <span>{item.emoji}</span>
                 </div>
-                <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white">{item.title}</h3>
+                <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">{item.title}</h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   {item.desc}
                 </p>

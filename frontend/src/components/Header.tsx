@@ -95,23 +95,24 @@ export default function Header() {
   return (
     <header className="w-full z-50 sticky top-0 border-b border-slate-100 shadow-sm transition-colors duration-200" style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--card-border)' }}>
       {/* Upper Ticker Bar matching wireframe scheme */}
-      <div className="w-full bg-[#0F172A] text-slate-300 py-2.5 px-4 sm:px-6 lg:px-12 text-xs flex justify-between items-center border-b border-slate-800">
-        <div className="flex items-center gap-6">
-          <a href="mailto:enquiry@finalattemptias.com" className="hover:text-white transition-colors flex items-center gap-1.5">
+      <div className="w-full bg-[#0F172A] text-slate-300 py-2 px-4 sm:px-6 lg:px-12 text-xs flex flex-wrap justify-between items-center gap-y-2 border-b border-slate-800">
+        <div className="flex items-center flex-wrap gap-x-4 gap-y-1 w-full sm:w-auto justify-center sm:justify-start">
+          <a href="mailto:enquiry@finalattemptias.com" className="hover:text-white transition-colors flex items-center gap-1.5 shrink-0">
             <span className="font-semibold text-amber-500">✉</span>
             <span>enquiry@finalattemptias.com</span>
           </a>
-          <a href="tel:+919709992093" className="hover:text-white transition-colors flex items-center gap-1.5">
+          <span className="hidden sm:inline text-slate-700">|</span>
+          <a href="tel:+919709992093" className="hover:text-white transition-colors flex items-center gap-1.5 shrink-0">
             <span className="font-semibold text-amber-500">📞</span>
             <span>+91 97099 92093</span>
           </a>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center justify-center sm:justify-end gap-4 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
           {mounted && isAuthenticated ? (
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <Link
                 href={user?.role === 'admin' ? '/admin' : user?.role === 'faculty' ? '/faculty/dashboard' : '/student/dashboard'}
-                className="hover:text-white transition-colors flex items-center gap-2 font-bold"
+                className="hover:text-white transition-colors flex items-center gap-1.5 font-bold"
               >
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-amber-500" />
@@ -128,15 +129,15 @@ export default function Header() {
               </button>
             </div>
           ) : (
-            <Link href="/auth/login/student" className="hover:text-white transition-colors flex items-center gap-1.5 font-bold">
+            <Link href="/auth/login/student" className="hover:text-white transition-colors flex items-center gap-1.5 font-bold shrink-0">
               <span>👤</span>
               <span>Student Login</span>
             </Link>
           )}
-          <span className="text-slate-750">|</span>
+          <span className="text-slate-700">|</span>
           <button
             onClick={toggleTheme}
-            className="hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+            className="hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shrink-0"
             aria-label="Toggle theme"
           >
             {theme === 'dark' ? (
@@ -187,8 +188,8 @@ export default function Header() {
                     <Link
                       href={link.href}
                       className={`flex items-center gap-1 px-3 py-2 text-sm font-bold transition-all ${isDropdownActive
-                          ? 'text-[#F59E0B]'
-                          : 'text-slate-700 hover:text-[#F59E0B]'
+                        ? 'text-[#F59E0B]'
+                        : 'text-slate-700 hover:text-[#F59E0B]'
                         }`}
                     >
                       <span>{link.name}</span>
@@ -198,8 +199,8 @@ export default function Header() {
                     <Link
                       href={link.href}
                       className={`px-3 py-2 text-sm font-bold transition-all relative ${isLinkActive
-                          ? 'text-[#F59E0B] after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:bg-[#F59E0B]'
-                          : 'text-slate-700 hover:text-[#F59E0B]'
+                        ? 'text-[#F59E0B] after:absolute after:bottom-0 after:left-3 after:right-3 after:h-0.5 after:bg-[#F59E0B]'
+                        : 'text-slate-700 hover:text-[#F59E0B]'
                         }`}
                     >
                       {link.name}
@@ -289,7 +290,7 @@ export default function Header() {
               )}
             </div>
           ))}
-          
+
           {mounted && isAuthenticated ? (
             <div className="pt-4 border-t border-[var(--card-border)] px-4 space-y-2">
               <Link
