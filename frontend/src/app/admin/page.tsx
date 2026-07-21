@@ -23,8 +23,13 @@ import {
   Bookmark,
   BookOpen,
   Layers,
-  FolderOpen
+  FolderOpen,
+  Sun,
+  Moon,
+  Menu,
+  X
 } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 import RichTextEditor from '@/components/RichTextEditor';
 import MediaDashboard from '@/components/MediaDashboard';
 import MediaPicker from '@/components/MediaPicker';
@@ -178,6 +183,8 @@ export default function AdminPortal() {
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [authError, setAuthError] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -635,10 +642,10 @@ export default function AdminPortal() {
   }
 
   return (
-    <div className="min-h-screen text-slate-900 font-body flex flex-col lg:flex-row" style={{ background: '#FFFBF2' }}>
+    <div className="min-h-screen text-[var(--text-color)] font-body flex flex-col lg:flex-row bg-[var(--bg-color)] transition-colors duration-200">
       {/* SIDEBAR PANEL */}
-      <aside className="w-full lg:w-64 border-b lg:border-b-0 lg:border-r flex flex-col justify-between shrink-0" style={{ background: '#FFFBF2', borderColor: 'rgba(245,158,11,0.15)' }}>
-        <div className="p-6 space-y-8">
+      <aside className={`w-full lg:w-64 lg:h-screen lg:sticky lg:top-0 border-b lg:border-b-0 lg:border-r flex flex-col justify-between shrink-0 bg-[var(--card-bg)] border-[var(--card-border)] z-40 transition-all duration-300 ${isSidebarOpen ? 'block' : 'hidden lg:flex'}`}>
+        <div className="p-6 space-y-6 overflow-y-auto max-h-screen">
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
               <div className="relative w-40 h-10 shrink-0">
@@ -647,10 +654,21 @@ export default function AdminPortal() {
                   alt="Final Attempt"
                   className="w-full h-full object-contain logo-light"
                 />
-
+                <img
+                  src="/lightlogofull.png"
+                  alt="Final Attempt"
+                  className="w-full h-full object-contain logo-dark"
+                />
               </div>
-              {/* <span className="font-heading font-extrabold text-[10px] uppercase tracking-wider text-slate-500 pl-1">CMS Master</span> */}
             </div>
+            {/* Mobile Close Button */}
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="lg:hidden p-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              aria-label="Close Sidebar"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           <nav className="flex flex-col gap-1.5">
@@ -701,16 +719,32 @@ export default function AdminPortal() {
       <main className="flex-grow p-6 sm:p-10 space-y-8 overflow-y-auto max-h-screen relative">
         {/* TOP STATUS */}
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-          <div>
-            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">CMS Console</span>
-            <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">{activeTab} Editor</h2>
+          <div className="flex items-center gap-3">
+            {/* Mobile Sidebar Open Toggle */}
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] text-slate-700 dark:text-slate-300"
+              aria-label="Open Sidebar"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">CMS Console</span>
+              <h2 className="text-2xl font-heading font-extrabold text-slate-900 dark:text-white mt-0.5">{activeTab} Editor</h2>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">
+            <button 
+              onClick={toggleTheme}
+              className="p-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-colors rounded-2xl shadow-sm text-slate-700 dark:text-slate-350 cursor-pointer"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-500" />}
+            </button>
             <button
               onClick={fetchCMSData}
-              className="p-2.5 bg-white border hover:bg-amber-50/60 transition-colors rounded-2xl shadow-sm text-slate-700"
-              style={{ borderColor: 'rgba(245,158,11,0.15)' }}
+              className="p-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-colors rounded-2xl shadow-sm text-slate-700 dark:text-slate-350 cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
             </button>

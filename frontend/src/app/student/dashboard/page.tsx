@@ -6,9 +6,11 @@ import {
   BookOpen, TrendingUp, FileText, HelpCircle,
   Users, Bell, Award, CheckCircle, Play, LogOut,
   ChevronRight, Sparkles, Search, MessageSquare,
-  LayoutDashboard, Settings, Target, Zap, Lock
+  LayoutDashboard, Settings, Target, Zap, Lock,
+  Sun, Moon, Menu, X
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/context/ThemeContext';
 import { getMyEnrollments } from '@/services/auth';
 import MentorshipChat from '@/components/lms/MentorshipChat';
 import PerformanceAnalytics from '@/components/lms/PerformanceAnalytics';
@@ -26,7 +28,9 @@ interface Enrollment {
 
 export default function LMSDashboard() {
   const { user, accessToken, logout, isLoading, requireAuth } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<DashTab>('Dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState(true);
 
@@ -80,22 +84,33 @@ export default function LMSDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 flex font-body">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex font-body transition-colors duration-200">
       
       {/* ──────────────── Sidebar ──────────────── */}
-      <aside className="hidden lg:flex w-64 flex-col bg-slate-900/80 border-r border-white/[0.06] h-screen sticky top-0">
+      <aside className={`w-64 flex-col bg-white dark:bg-slate-900/80 border-r border-slate-200 dark:border-white/[0.06] h-screen sticky top-0 z-40 transition-all duration-300 ${isSidebarOpen ? 'flex fixed inset-y-0 left-0 shadow-2xl' : 'hidden lg:flex'}`}>
         {/* Logo */}
-        <div className="p-5 border-b border-white/[0.06]">
+        <div className="p-5 border-b border-slate-200 dark:border-white/[0.06] flex items-center justify-between">
           <Link href="/" className="flex flex-col gap-1">
             <div className="w-40 h-10 relative shrink-0">
               <img
                 src="/darklogofull.png"
                 alt="Final Attempt"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain logo-light"
+              />
+              <img
+                src="/lightlogofull.png"
+                alt="Final Attempt"
+                className="w-full h-full object-contain logo-dark"
               />
             </div>
             <span className="text-slate-500 text-[9px] font-bold uppercase tracking-wider pl-1">Student Portal</span>
           </Link>
+          <button
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* User Info */}
@@ -153,20 +168,36 @@ export default function LMSDashboard() {
       <div className="flex-1 overflow-y-auto">
         
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 bg-slate-950/90 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-white font-bold text-lg">
-              {activeTab === 'Dashboard' ? `Good ${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, ${user?.fullName ? user.fullName.split(' ')[0] : 'Student'} 👋` : activeTab}
-            </h1>
-            {activeTab === 'Dashboard' && (
-              <p className="text-slate-500 text-xs mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-            )}
+        <header className="sticky top-0 z-20 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/[0.06] px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-700 dark:text-slate-300"
+              aria-label="Open Sidebar"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-slate-900 dark:text-white font-bold text-lg">
+                {activeTab === 'Dashboard' ? `Good ${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, ${user?.fullName ? user.fullName.split(' ')[0] : 'Student'} 👋` : activeTab}
+              </h1>
+              {activeTab === 'Dashboard' && (
+                <p className="text-slate-400 dark:text-slate-500 text-xs mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <button className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all">
+            <button 
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/[0.08] transition-all cursor-pointer"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-500" />}
+            </button>
+            <button className="p-2 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-550 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/[0.08] transition-all">
               <Bell className="w-4 h-4" />
             </button>
-            <button className="p-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all">
+            <button className="p-2 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-550 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/[0.08] transition-all">
               <Search className="w-4 h-4" />
             </button>
           </div>

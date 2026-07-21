@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { db, fallbackResults, fallbackCurrentAffairs } from '@/services/db';
 import TestimonialCarousel from '@/components/TestimonialCarousel';
+import Image from "next/image";
 
 export default function Home() {
   // Real-time dynamic states
@@ -113,10 +114,10 @@ export default function Home() {
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-[var(--bg-color)]">
-      
+
       {/* 1. HERO SECTION WITH EXACT WIREFRAME BACKDROP EFFECTS */}
       <section className="relative pt-12 pb-20 overflow-hidden bg-[var(--bg-color)]">
-        
+
         {/* Soft Radial Glow backdrop */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full opacity-[0.06] blur-[130px] pointer-events-none"
           style={{ background: 'radial-gradient(circle, #6366f1 0%, #3b82f6 50%, transparent 100%)' }} />
@@ -137,19 +138,17 @@ export default function Home() {
             {/* Dynamic Slider Animation for Hero Background Images */}
             <div className="absolute inset-0 z-0">
               {heroImages.map((url, idx) => (
-                <img 
+                <img
                   key={idx}
                   src={url}
-                  alt={`Bihar Vidhan Sabha Patna Secretariat - Slide ${idx + 1}`} 
+                  alt={`Bihar Vidhan Sabha Patna Secretariat - Slide ${idx + 1}`}
                   referrerPolicy="no-referrer"
                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-90' : 'opacity-0'}`}
                 />
               ))}
             </div>
-            {/* Responsive overlay: Solid fade on mobile, gradient on desktop */}
-            <div className="absolute inset-0 bg-[var(--bg-color)]/90 lg:bg-transparent lg:bg-gradient-to-r lg:from-[var(--bg-color)] lg:via-[var(--bg-color)]/95 lg:to-transparent z-10" />
-            {/* Radial mask that fades the image into the background right area */}
-            <div className="absolute inset-y-0 right-0 w-[25%] bg-gradient-to-l from-[var(--bg-color)] via-[var(--bg-color)]/90 to-transparent z-10 hidden lg:block" />
+            {/* Radial mask that fades the image into the background left text area */}
+            <div className="absolute inset-0 bg-gradient-to-r from-[var(--bg-color)] via-[var(--bg-color)]/95 to-[var(--bg-color)]/80 lg:to-transparent z-10" />
             {/* Soft top and bottom vignetting to blend with Header and Stats bar */}
             <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[var(--bg-color)] to-transparent z-10" />
             <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[var(--bg-color)] to-transparent z-10" />
@@ -158,7 +157,7 @@ export default function Home() {
 
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[450px]">
-            
+
             {/* Left Content (Expanded from 4 to 8 columns for cleaner landscape spacing) */}
             <div className="lg:col-span-8 space-y-6 pt-6">
               {heroSettings.tagline && (
@@ -166,10 +165,10 @@ export default function Home() {
                   {heroSettings.tagline}
                 </span>
               )}
-              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-black tracking-tight leading-tight" style={{ color: 'var(--text-color)' }}>
+              <h1 className="text-3xl sm:text-4xl lg:text-6.5xl font-heading font-black tracking-tight leading-tight max-w-[450px]" style={{ color: 'var(--text-color)' }}>
                 {heroSettings.heroTitle}
               </h1>
-              
+
               <p className="text-base sm:text-md text-slate-600 dark:text-slate-200 font-semibold leading-relaxed max-w-md">
                 {heroSettings.heroSubtitle}
               </p>
@@ -182,7 +181,7 @@ export default function Home() {
                   <span>Explore Courses</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
-                
+
                 <a
                   href="/contact?enquiry=enroll"
                   className="btn-outline flex items-center gap-2"
@@ -227,7 +226,7 @@ export default function Home() {
       {/* 3. TWO-COLUMN POPULAR COURSES vs ANNOUNCEMENTS */}
       <section className="max-w-8xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
+
           {/* Left Column: Popular Courses */}
           <div className="lg:col-span-8 space-y-6">
             <div className="flex justify-between items-end border-b border-slate-150 pb-4">
@@ -235,8 +234,8 @@ export default function Home() {
                 <span className="text-xs font-bold text-[#1E3A8A] uppercase tracking-widest">Our Popular Courses</span>
                 <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">Explore Top Classes</h2>
               </div>
-              <Link 
-                href="/courses" 
+              <Link
+                href="/courses"
                 className="text-xs font-bold text-[#1E3A8A] hover:text-amber-600 transition-colors flex items-center gap-1"
               >
                 <span>View All Courses</span>
@@ -250,6 +249,15 @@ export default function Home() {
                   key={course.id}
                   className={`flip-card-container cursor-pointer ${flippedCards[course.id] ? 'is-flipped' : ''}`}
                   onClick={() => toggleFlip(course.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleFlip(course.id);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Course: ${course.title}. Click to view syllabus.`}
                 >
                   <div className="flip-card-inner">
                     {/* Front Side */}
@@ -267,27 +275,27 @@ export default function Home() {
                         </div>
                         <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-xs font-bold">
                           <span className="text-[10px] text-slate-400 font-bold uppercase">{course.duration}</span>
-                          <span className="text-[9px] text-blue-600 font-extrabold uppercase">Tap/Hover</span>
+                          <span className="text-[9px] text-blue-600 font-extrabold uppercase">Tap / Hover</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Back Side */}
                     <div className="flip-card-back rounded-3xl">
-                      <div className="flip-card-back-content flex flex-col justify-between h-full bg-slate-50/50 dark:bg-slate-900/30 p-5">
-                        <div className="space-y-3 overflow-y-auto pr-1">
+                      <div className="flip-card-back-content flex flex-col justify-between h-full bg-slate-50/50 dark:bg-slate-900/30 p-4 sm:p-5">
+                        <div className="space-y-3 overflow-y-auto flex-1 pr-1">
                           <h4 className="font-heading font-extrabold text-xs text-blue-600 uppercase tracking-wider">
                             Syllabus Overview
                           </h4>
-                          
+
                           {course.syllabus && course.syllabus.length > 0 ? (
-                            <ul className="text-[10px] text-slate-600 list-disc list-inside space-y-0.5">
-                              {course.syllabus.slice(0, 3).map((item: string, idx: number) => (
-                                <li key={idx} className="line-clamp-1">{item}</li>
+                            <ul className="text-xs text-slate-600 dark:text-slate-300 list-disc list-inside space-y-1">
+                              {course.syllabus.map((item: string, idx: number) => (
+                                <li key={idx} className="line-clamp-2">{item}</li>
                               ))}
                             </ul>
                           ) : (
-                            <p className="text-[11px] text-slate-550 italic">Personalized batch guidance, mock modules, and comprehensive daily strategy evaluation sessions.</p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300 italic">Personalized batch guidance, mock modules, and comprehensive daily strategy evaluation sessions.</p>
                           )}
                         </div>
 
@@ -302,7 +310,7 @@ export default function Home() {
                           >
                             Flip Back
                           </button>
-                          
+
                           <Link
                             href={`/courses/${course.id}`}
                             onClick={(e) => e.stopPropagation()}
@@ -322,7 +330,7 @@ export default function Home() {
 
           {/* Right Column: Announcements & Why Choose Us */}
           <div className="lg:col-span-4 space-y-8">
-            
+
             {/* Announcements Card */}
             <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
               <div className="flex justify-between items-center border-b border-slate-50 pb-4 mb-4">
@@ -551,7 +559,7 @@ export default function Home() {
       <section className="py-20 bg-slate-50 dark:bg-white/[0.02] border-t border-slate-100 dark:border-white/[0.06]">
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-            
+
             {/* Left Column: About Final Attempt */}
             <div className="lg:col-span-7 space-y-6">
               <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
@@ -560,7 +568,7 @@ export default function Home() {
               <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
                 About Final Attempt
               </h2>
-              
+
               <div className="space-y-4 text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
                 <p>
                   Final Attempt is a next-generation mentorship and learning platform dedicated to helping aspirants achieve success through structured preparation, personalized guidance, and technology-driven learning. Built on a mentorship-first philosophy, we focus on delivering measurable outcomes by combining academic excellence with continuous performance improvement.
@@ -582,7 +590,7 @@ export default function Home() {
               <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">
                 Become a Part of the Final Attempt Community
               </h3>
-              
+
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 Join a growing community of ambitious aspirants, experienced mentors, and dedicated educators committed to excellence. Stay connected through our digital platforms for expert guidance, mentorship initiatives, preparation resources, performance insights, and the latest academic updates.
               </p>
@@ -592,7 +600,7 @@ export default function Home() {
                   <span>🎯</span>
                   <span>Let's Make Your Attempt Final with FINAL ATTEMPT.</span>
                 </div>
-                
+
                 <div className="flex gap-4">
                   <a
                     href="#book-session"
@@ -678,14 +686,22 @@ export default function Home() {
                       <span>Book My Session</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
+                    
+
                     <a
                       href="https://wa.me/919709992093"
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center justify-center gap-2 px-4 py-3 bg-[#22C55E] hover:bg-green-600 text-white font-bold rounded-xl text-xs transition-all shadow-md hover:-translate-y-0.5"
+                      className="flex items-center justify-center gap-2 p-4 bg-[#22C55E] hover:bg-green-600 text-white font-bold rounded-2xl shadow-3xs text-xs transition-colors"
                     >
-                      <MessageCircle className="w-4 h-4" />
-                      <span className="hidden sm:inline">WhatsApp</span>
+                      <Image
+                        src="/whatsapp-icon.svg"
+                        alt="WhatsApp"
+                        width={20}
+                        height={20}
+                        className="w-4 h-4"
+                      />
+                      <span>WhatsApp Chat</span>
                     </a>
                   </div>
                 </div>

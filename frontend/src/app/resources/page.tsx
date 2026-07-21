@@ -281,12 +281,12 @@ export default function Resources() {
                   href={resolveUrl(previewItem.url)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 text-slate-600 font-bold rounded-xl text-xs"
+                  className="flex items-center gap-1.5 px-3 py-2 border border-[var(--card-border)] bg-[var(--card-bg)] text-[var(--text-color)] font-bold rounded-xl text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   Open
                 </a>
-                <button onClick={() => setPreviewItem(null)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+                <button onClick={() => setPreviewItem(null)} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>

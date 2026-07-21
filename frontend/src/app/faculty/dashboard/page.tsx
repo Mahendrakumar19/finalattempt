@@ -16,14 +16,21 @@ import {
   TrendingUp,
   Search,
   Check,
-  ClipboardList
+  ClipboardList,
+  Sun,
+  Moon,
+  Menu,
+  X
 } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 
 type FacultyTab = 'Classes' | 'Attendance' | 'Evaluation' | 'Queries' | 'Student Tracking';
 
 export default function FacultyPortal() {
   const { logout, user, isLoading, requireAuth } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<FacultyTab>('Classes');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Authentication guard
   useEffect(() => {
@@ -94,26 +101,37 @@ export default function FacultyPortal() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col md:flex-row antialiased font-sans relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col md:flex-row antialiased font-sans relative overflow-hidden transition-colors duration-200">
       
       {/* Decorative Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 pointer-events-none" />
 
       {/* SIDEBAR */}
-      <aside className="w-full md:w-64 bg-white/80 backdrop-blur-md border-b md:border-b-0 md:border-r border-slate-200/80 p-5 flex flex-col justify-between shrink-0 relative z-10">
-        <div className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center font-extrabold text-sm border border-amber-400 shadow-sm text-slate-950">
-              FA
-            </div>
-            <div className="flex flex-col">
-              <span className="font-heading font-extrabold text-sm tracking-tight text-slate-900 uppercase">
-                Final Attempt
-              </span>
-              <span className="text-[9px] text-[#F59E0B] font-bold tracking-wider uppercase">
-                Faculty Account
-              </span>
-            </div>
+      <aside className={`w-full md:w-64 md:h-screen md:sticky md:top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b md:border-b-0 md:border-r border-slate-200/80 dark:border-white/[0.06] p-5 flex flex-col justify-between shrink-0 z-30 transition-all duration-300 ${isSidebarOpen ? 'block' : 'hidden md:flex'}`}>
+        <div className="space-y-6 overflow-y-auto max-h-screen">
+          <div className="flex items-center justify-between">
+            <Link href="/" className="flex flex-col gap-1">
+              <div className="relative w-40 h-10 shrink-0">
+                <img
+                  src="/darklogofull.png"
+                  alt="Final Attempt"
+                  className="w-full h-full object-contain logo-light"
+                />
+                <img
+                  src="/lightlogofull.png"
+                  alt="Final Attempt"
+                  className="w-full h-full object-contain logo-dark"
+                />
+              </div>
+              <span className="text-[9px] text-[#F59E0B] font-bold tracking-wider uppercase pl-0.5">Faculty Account</span>
+            </Link>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden p-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white"
+              aria-label="Close Sidebar"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3">
@@ -164,11 +182,27 @@ export default function FacultyPortal() {
       <main className="flex-grow p-6 sm:p-10 space-y-8 overflow-y-auto max-h-screen relative z-10">
         
         {/* TOP STATUS */}
-        <div className="flex justify-between items-center">
-          <div>
-            <span className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Faculty Portal</span>
-            <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">Hello, {user?.fullName || 'Faculty Member'}</h2>
+        <div className="flex justify-between items-center bg-white/40 dark:bg-transparent p-4 rounded-2xl border border-slate-200/40 dark:border-transparent">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden p-2 rounded-xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-700 dark:text-slate-300"
+              aria-label="Open Sidebar"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <span className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Faculty Portal</span>
+              <h2 className="text-2xl font-heading font-extrabold text-slate-900 dark:text-white mt-0.5">Hello, {user?.fullName || 'Faculty Member'}</h2>
+            </div>
           </div>
+          <button 
+            onClick={toggleTheme}
+            className="p-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-500 dark:text-slate-455 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.08] transition-all cursor-pointer shadow-xs"
+            aria-label="Toggle Theme"
+          >
+            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-500" />}
+          </button>
         </div>
 
         {/* TAB VIEWS */}

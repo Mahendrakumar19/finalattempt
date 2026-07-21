@@ -100,11 +100,20 @@ export default function Courses() {
               key={course.id}
               className={`flip-card-container cursor-pointer ${flippedCards[course.id] ? 'is-flipped' : ''}`}
               onClick={() => toggleFlip(course.id)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggleFlip(course.id);
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              aria-label={`Course: ${course.title}. Click to view syllabus.`}
             >
               <div className="flip-card-inner">
                 {/* Front Side */}
                 <div className="flip-card-front course-card-premium rounded-3xl">
-                  <div className="flip-card-front-content flex flex-col justify-between h-full">
+                  <div className="flip-card-front-content flex flex-col justify-between h-full p-5">
                     <div className="space-y-4">
                       <div className="flex justify-between items-start">
                         <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -152,8 +161,8 @@ export default function Courses() {
 
                 {/* Back Side */}
                 <div className="flip-card-back rounded-3xl">
-                  <div className="flip-card-back-content flex flex-col justify-between h-full bg-slate-50/50 dark:bg-slate-900/30">
-                    <div className="space-y-3 overflow-y-auto pr-1">
+                  <div className="flip-card-back-content flex flex-col justify-between h-full bg-slate-50/50 dark:bg-slate-900/30 p-4 sm:p-5">
+                    <div className="space-y-3 overflow-y-auto flex-1 pr-1">
                       <h4 className="font-heading font-extrabold text-xs text-blue-600 uppercase tracking-wider">
                         Course Details
                       </h4>
@@ -161,9 +170,9 @@ export default function Courses() {
                       {course.syllabus && course.syllabus.length > 0 && (
                         <div className="space-y-1">
                           <p className="text-[9px] text-slate-400 font-bold uppercase">Syllabus Highlights</p>
-                          <ul className="text-[10px] text-slate-600 list-disc list-inside space-y-0.5">
-                            {course.syllabus.slice(0, 3).map((item: string, idx: number) => (
-                              <li key={idx} className="line-clamp-1">{item}</li>
+                          <ul className="text-xs text-slate-600 dark:text-slate-300 list-disc list-inside space-y-0.5">
+                            {course.syllabus.map((item: string, idx: number) => (
+                              <li key={idx} className="line-clamp-2">{item}</li>
                             ))}
                           </ul>
                         </div>
@@ -173,8 +182,8 @@ export default function Courses() {
                         <div className="space-y-1">
                           <p className="text-[9px] text-slate-400 font-bold uppercase">Key Highlights</p>
                           <div className="flex flex-wrap gap-1">
-                            {course.features.slice(0, 2).map((feat: string, idx: number) => (
-                              <span key={idx} className="px-2 py-0.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-md text-[8px] font-bold">
+                            {course.features.map((feat: string, idx: number) => (
+                              <span key={idx} className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800 rounded-md text-[9px] font-bold">
                                 {feat}
                               </span>
                             ))}
@@ -185,12 +194,12 @@ export default function Courses() {
                       {course.schedule && (
                         <div className="space-y-0.5">
                           <p className="text-[9px] text-slate-400 font-bold uppercase">Schedule</p>
-                          <p className="text-[10px] text-slate-600 font-semibold line-clamp-1">{course.schedule}</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold">{course.schedule}</p>
                         </div>
                       )}
                     </div>
 
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                    <div className="pt-3 mt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-3 shrink-0">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -205,7 +214,7 @@ export default function Courses() {
                       <Link
                         href={`/courses/${course.id}`}
                         onClick={(e) => e.stopPropagation()}
-                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold rounded-xl transition-colors inline-flex items-center gap-1"
+                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold rounded-xl transition-colors inline-flex items-center gap-1 shadow-xs"
                       >
                         <span>View Details</span>
                         <SlidersHorizontal className="w-3 h-3" />

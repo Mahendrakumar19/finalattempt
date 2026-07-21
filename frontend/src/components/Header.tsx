@@ -95,7 +95,7 @@ export default function Header() {
   return (
     <header className="w-full z-50 sticky top-0 border-b border-slate-100 shadow-sm transition-colors duration-200" style={{ backgroundColor: 'var(--header-bg)', borderColor: 'var(--card-border)' }}>
       {/* Upper Ticker Bar matching wireframe scheme */}
-      <div className="w-full bg-[#0F172A] text-slate-300 py-3.5 px-4 sm:px-6 lg:px-12 text-sm flex justify-between items-center border-b border-slate-800">
+      <div className="w-full bg-[#0F172A] text-slate-300 py-2.5 px-4 sm:px-6 lg:px-12 text-xs flex justify-between items-center border-b border-slate-800">
         <div className="flex items-center gap-6">
           <a href="mailto:enquiry@finalattemptias.com" className="hover:text-white transition-colors flex items-center gap-1.5">
             <span className="font-semibold text-amber-500">✉</span>
@@ -107,21 +107,22 @@ export default function Header() {
           </a>
         </div>
         <div className="flex items-center gap-6">
-          {isAuthenticated && user ? (
+          {mounted && isAuthenticated ? (
             <div className="flex items-center gap-4">
-              <span className="text-xs font-bold text-slate-350">Hello, {user.fullName.split(' ')[0]}</span>
-              <Link 
-                href={user.role === 'admin' ? '/admin' : user.role === 'faculty' ? '/faculty/dashboard' : '/student/dashboard'} 
-                className="hover:scale-105 transition-all flex items-center gap-1 bg-white/5 border border-white/10 px-2.5 py-1 rounded-xl text-xs text-white"
+              <Link
+                href={user?.role === 'admin' ? '/admin' : user?.role === 'faculty' ? '/faculty/dashboard' : '/student/dashboard'}
+                className="hover:text-white transition-colors flex items-center gap-2 font-bold"
               >
-                <div className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 font-black text-[9px] flex items-center justify-center">
-                  {user.fullName.charAt(0).toUpperCase()}
-                </div>
-                <span>Dashboard</span>
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-amber-500" />
+                ) : (
+                  <span className="w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-[10px] text-amber-500 border border-slate-700">👤</span>
+                )}
+                <span className="text-xs">Dashboard</span>
               </Link>
-              <button 
-                onClick={logout} 
-                className="text-xs text-red-400 hover:text-red-350 font-bold transition-colors cursor-pointer"
+              <button
+                onClick={logout}
+                className="hover:text-white transition-colors font-bold text-[10px] uppercase tracking-wider bg-red-650/40 border border-red-500/20 px-2 py-0.5 rounded-lg cursor-pointer"
               >
                 Logout
               </button>
@@ -232,10 +233,10 @@ export default function Header() {
           <div className="flex items-center gap-4">
             <Link
               href="/contact?enquiry=enroll"
-              className="hidden sm:inline-flex items-center justify-center px-6 py-3 text-sm font-extrabold text-slate-900 bg-[#F59E0B] hover:bg-amber-500 transition-all rounded-xl shadow-md hover:scale-[1.02] gap-2"
+              className="hidden sm:inline-flex items-center justify-center px-5 py-2.5 text-sm font-extrabold text-slate-900 bg-[#F59E0B] hover:bg-amber-500 transition-all rounded-xl shadow-md hover:scale-[1.02] gap-2"
             >
               <span>Enroll Now</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
 
             <button
@@ -288,7 +289,45 @@ export default function Header() {
               )}
             </div>
           ))}
-          <div className="pt-4 px-4">
+          
+          {mounted && isAuthenticated ? (
+            <div className="pt-4 border-t border-[var(--card-border)] px-4 space-y-2">
+              <Link
+                href={user?.role === 'admin' ? '/admin' : user?.role === 'faculty' ? '/faculty/dashboard' : '/student/dashboard'}
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] font-bold rounded-xl text-center shadow-sm"
+              >
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-amber-500" />
+                ) : (
+                  <span>👤</span>
+                )}
+                <span>My Dashboard</span>
+              </Link>
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  logout();
+                }}
+                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md cursor-pointer"
+              >
+                Log Out
+              </button>
+            </div>
+          ) : (
+            <div className="pt-4 border-t border-[var(--card-border)] px-4">
+              <Link
+                href="/auth/login/student"
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] font-bold rounded-xl text-center shadow-sm"
+              >
+                <span>👤</span>
+                <span>Student Login</span>
+              </Link>
+            </div>
+          )}
+
+          <div className="pt-2 px-4">
             <Link
               href="/contact"
               onClick={() => setIsOpen(false)}

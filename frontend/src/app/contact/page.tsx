@@ -5,6 +5,8 @@ import { useSearchParams } from 'next/navigation';
 import { CheckCircle, ArrowRight, HelpCircle, GraduationCap, MapPin, Send, Mail, Phone, Clock, MessageCircle, SendIcon } from 'lucide-react';
 import { db } from '@/services/db';
 
+import Image from "next/image";
+
 function ContactFormContent() {
   const searchParams = useSearchParams();
   const isEnrollMode = searchParams.get('enquiry') === 'enroll';
@@ -35,7 +37,7 @@ function ContactFormContent() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
-      
+
       {/* 1. Header banner */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest inline-block">
@@ -51,14 +53,14 @@ function ContactFormContent() {
 
       {/* 2. Contact layout grids */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
+
         {/* Left Side: Detail Cards */}
         <div className="lg:col-span-5 space-y-6">
-          
+
           {/* Main info panel */}
           <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-8 shadow-3xs space-y-6">
             <h3 className="font-heading font-extrabold text-lg text-[var(--text-color)]">Boring Road Crossing Centre</h3>
-            
+
             <div className="space-y-4 text-xs font-semibold text-slate-655 dark:text-slate-350">
               <div className="flex gap-3.5 items-start">
                 <MapPin className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
@@ -96,13 +98,28 @@ function ContactFormContent() {
 
           {/* Social Links Cards */}
           <div className="grid grid-cols-2 gap-4">
-            <a
+            {/* <a
               href="https://wa.me/919709992093"
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-center gap-2 p-4 bg-[#22C55E] hover:bg-green-600 text-white font-bold rounded-2xl shadow-3xs text-xs transition-colors"
             >
               <MessageCircle className="w-4 h-4" />
+              <span>WhatsApp Chat</span>
+            </a> */}
+
+            <a
+              href="https://wa.me/919709992093"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-center gap-2 p-4 bg-white hover:bg-green-500 text-green-500 font-bold rounded-2xl shadow-3xs text-xs transition-colors"
+            >
+              <Image
+                src="/whatsapp.svg"
+                alt="WhatsApp"
+                width={20}
+                height={20}
+              />
               <span>WhatsApp Chat</span>
             </a>
             <a

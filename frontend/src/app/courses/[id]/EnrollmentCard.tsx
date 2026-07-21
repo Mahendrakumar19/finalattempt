@@ -54,7 +54,7 @@ export default function EnrollmentCard({ courseId, fee }: EnrollmentCardProps) {
   const handleEnrollment = async () => {
     if (!isAuthenticated || !accessToken) {
       // Redirect to login page and redirect back after login
-      router.push(`/auth/login?redirect=/courses/${courseId}`);
+      router.push(`/auth/login/student?redirect=/courses/${courseId}`);
       return;
     }
 
