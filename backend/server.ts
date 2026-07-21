@@ -40,6 +40,12 @@ app.use(helmet({
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:3001',
+
+  'http://38.242.244.225:3000',
+
+  'https://finalattemptias.com',
+  'https://www.finalattemptias.com',
+
   'https://finalattempt-tau.vercel.app',
   'https://finalattempt-vawt.onrender.com'
 ];
@@ -47,10 +53,11 @@ const ALLOWED_ORIGINS = [
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    const isAllowed = ALLOWED_ORIGINS.includes(origin) || 
-                      origin.includes('vercel.app') || 
+    const isAllowed = ALLOWED_ORIGINS.includes(origin) ||
+                      origin.includes('vercel.app') ||
                       origin.includes('onrender.com') ||
-                      origin.startsWith('http://localhost:');
+                      origin.startsWith('http://localhost:') ||
+                        origin.startsWith('http://38.242.244.225:');
     if (isAllowed) {
       callback(null, true);
     } else {

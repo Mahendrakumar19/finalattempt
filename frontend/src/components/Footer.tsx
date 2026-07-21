@@ -195,6 +195,7 @@ import {
   MapPin,
   PhoneCall,
   Eye,
+  TrendingUp,
 } from 'lucide-react';
 
 import {
@@ -236,9 +237,7 @@ export default function Footer() {
         if (data.success) {
           setVisitorsCount(data.visitorsCount);
         }
-      } catch (err) {
-        console.warn('Failed to increment visitor counter:', err);
-      }
+      } catch (_) {}
     };
 
     incrementVisitors();
@@ -512,24 +511,35 @@ shadow-[0_10px_60px_rgba(0,0,0,.35)] p-6 backdrop-blur-xl">
             {/* Right Side */}
             <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-end">
 
-              {/* Visitor Counter */}
+              {/* Professional Visitor Counter */}
               {visitorsCount !== null && (
-                <div className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 backdrop-blur-xl transition-all duration-300 hover:border-amber-500/30 hover:bg-white/10">
-
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
-                    <Eye size={18} />
+                <div className="group inline-flex items-center gap-3.5 rounded-2xl border border-amber-500/20 bg-slate-900/80 px-4.5 py-2.5 backdrop-blur-xl shadow-lg transition-all duration-300 hover:border-amber-500/40 hover:bg-slate-900">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+                    <TrendingUp size={16} className="text-amber-400 transition-transform duration-300 group-hover:scale-110" />
                   </div>
 
-                  <div>
-                    <p className="text-[11px] uppercase tracking-widest text-slate-500">
-                      Visitors
-                    </p>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Visitors Count
+                      </span>
+                    </div>
 
-                    <p className="font-bold tracking-widest text-white">
-                      {visitorsCount.toLocaleString()}
-                    </p>
+                    <div className="flex items-center gap-1 mt-1 font-mono">
+                      {visitorsCount.toLocaleString('en-IN').split('').map((digit, idx) => (
+                        <span
+                          key={idx}
+                          className={digit === ',' ? 'text-slate-500 font-bold px-0.5' : 'bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-white text-xs font-black shadow-inner'}
+                        >
+                          {digit}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-
                 </div>
               )}
 

@@ -128,8 +128,7 @@ class FinalAttemptDB {
       const res = await fetch(`${BACKEND_URL}${endpoint}`, options);
       if (!res.ok) throw new Error('API request failed');
       return await res.json();
-    } catch (err) {
-      console.warn(`Backend API unreachable at ${endpoint}, using static client mock.`, err);
+    } catch (_) {
       return null;
     }
   }
