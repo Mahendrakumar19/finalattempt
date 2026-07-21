@@ -196,27 +196,28 @@ export default function Resources() {
                             </div>
 
                             <div className="shrink-0 flex items-center gap-2">
-                              {canPreview && (
-                                <button
-                                  onClick={() => setPreviewItem(res)}
-                                  className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs transition-all"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                  <span>Preview</span>
-                                </button>
-                              )}
+                              {/* Primary View / Preview in Popup Button */}
+                              <button
+                                onClick={() => setPreviewItem(res)}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs shadow-sm hover:scale-[1.02] transition-all cursor-pointer"
+                              >
+                                <Eye className="w-4 h-4" />
+                                <span>View File</span>
+                              </button>
 
+                              {/* Download Button */}
                               {downloadStates[res.id] ? (
-                                <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100">
+                                <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-100">
                                   <CheckCircle className="w-4 h-4" />
-                                  <span>Opening…</span>
+                                  <span>Downloading…</span>
                                 </span>
                               ) : (
                                 <button
                                   onClick={() => handleDownload(res)}
-                                  className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-primary hover:bg-slate-800 text-white font-bold rounded-xl text-xs shadow-md hover:scale-[1.02] transition-all cursor-pointer"
+                                  className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs border border-slate-200 dark:border-white/10 transition-all cursor-pointer"
+                                  title="Download File"
                                 >
-                                  <Download className="w-4 h-4" />
+                                  <Download className="w-3.5 h-3.5" />
                                   <span>Download</span>
                                 </button>
                               )}

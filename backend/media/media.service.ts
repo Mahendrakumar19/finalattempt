@@ -166,8 +166,10 @@ export class MediaService {
     const fileType = this.getFileTypeFromExtension(extension);
     const subFolder = this.getStoragePathForMime(mimetype, extension);
 
-    const uuid = crypto.randomUUID();
-    let finalFileName = `${uuid}.${fileType === FileType.IMAGE ? 'webp' : extension}`;
+    const uuid = crypto.randomUUID().substring(0, 8);
+    const baseName = path.basename(originalName, path.extname(originalName)).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const ext = fileType === FileType.IMAGE && extension !== 'svg' ? 'webp' : extension;
+    let finalFileName = `${Date.now()}_${baseName}.${ext}`;
     let finalBuffer = fileBuffer;
     let width: number | undefined;
     let height: number | undefined;

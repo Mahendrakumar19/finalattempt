@@ -29,6 +29,14 @@ export const metadata: Metadata = {
     description: "Bihar's premium technology-driven learning platform for UPSC & BPSC aspirants.",
     type: "website",
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({

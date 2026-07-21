@@ -379,34 +379,10 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Stage</label>
-              <select
-                value={syllabusForm.stage}
-                onChange={(e) => setSyllabusForm({ ...syllabusForm, stage: e.target.value as any })}
-                className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none font-bold"
-              >
-                <option value="PRELIMS">Prelims</option>
-                <option value="MAINS">Mains</option>
-                <option value="INTERVIEW">Interview</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Version</label>
-              <input
-                type="text"
-                placeholder="e.g. 1.0"
-                value={syllabusForm.version}
-                onChange={(e) => setSyllabusForm({ ...syllabusForm, version: e.target.value })}
-                className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none"
-              />
-            </div>
-
-            <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase">Description / Paper Name</label>
               <input
                 type="text"
-                placeholder="e.g. GS Paper I & Optional Syllabus"
+                placeholder="e.g. BPSC-72 PRELIMS Syllabus"
                 value={syllabusForm.description}
                 onChange={(e) => setSyllabusForm({ ...syllabusForm, description: e.target.value })}
                 className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none"
@@ -442,7 +418,6 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
                   <th className="p-4">Exam</th>
-                  <th className="p-4">Stage</th>
                   <th className="p-4">File Name</th>
                   <th className="p-4">Actions</th>
                 </tr>
@@ -451,12 +426,7 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
                 {syllabusList.map((sy) => (
                   <tr key={sy.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                     <td className="p-4 font-bold">{sy.exam.name}</td>
-                    <td className="p-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 border border-amber-200 text-amber-800">
-                        {sy.stage}
-                      </span>
-                    </td>
-                    <td className="p-4 font-mono text-slate-500">{sy.fileMedia?.originalName || 'Syllabus PDF'}</td>
+                    <td className="p-4 font-mono text-slate-700">{sy.fileMedia?.originalName || sy.description || 'Syllabus PDF'}</td>
                     <td className="p-4 flex gap-2">
                       <button onClick={() => setSyllabusForm({ id: sy.id, examId: sy.examId, stage: sy.stage, version: sy.version, mediaId: sy.mediaId, description: sy.description || '', sortOrder: sy.sortOrder })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
                         <Edit2 className="w-3.5 h-3.5 text-slate-500" />

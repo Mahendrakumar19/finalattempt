@@ -33,9 +33,9 @@ import Image from "next/image";
 export default function Home() {
   // Real-time dynamic states
   const [heroSettings, setHeroSettings] = useState({
-    heroTitle: 'Dream BPSC. Achieve Success.',
-    heroSubtitle: 'The right guidance today, leads to a better tomorrow.',
-    tagline: 'Your Final Step Toward Success..........',
+    heroTitle: 'The Next Generation Mentorship & Learning Platform',
+    heroSubtitle: 'Empowering aspirants through personalized mentorship, high-quality content, strategic preparation, an innovative AI-powered learning ecosystem and continuous performance tracking - everything designed with one goal: to help make this attempt your final attempt.\"Let\'s Make Your Attempt Final with FINAL ATTEMPT \"',
+    tagline: 'Welcome to FINAL ATTEMPT',
     heroImageUrl: ''
   });
   const [liveCourses, setLiveCourses] = useState<any[]>([]);

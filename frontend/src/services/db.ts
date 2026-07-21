@@ -136,9 +136,9 @@ class FinalAttemptDB {
   public async getSettings() {
     const data = await this.apiFetch('/api/settings');
     return data || {
-      heroTitle: '72nd BPSC Preparation Starts Here',
-      heroSubtitle: 'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
-      tagline: 'One Mentor. One Strategy. One Final Attempt.'
+      heroTitle: 'The Next Generation Mentorship & Learning Platform',
+      heroSubtitle: 'Empowering aspirants through personalized mentorship, high-quality content, strategic preparation, an innovative AI-powered learning ecosystem and continuous performance tracking - everything designed with one goal: to help make this attempt your final attempt.',
+      tagline: "Let's Make Your Attempt Final with FINAL ATTEMPT"
     };
   }
 

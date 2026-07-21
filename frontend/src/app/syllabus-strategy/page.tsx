@@ -173,10 +173,10 @@ export default function SyllabusStrategyPage() {
 
       {/* Syllabus Tab View */}
       {activeTab === 'syllabus' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="w-full space-y-8">
           
-          {/* Left panel: Exams list Accordions */}
-          <div className="lg:col-span-8 space-y-6">
+          {/* Main Panel: Full width 12 columns */}
+          <div className="w-full space-y-6">
             {exams.length === 0 ? (
               <p className="text-sm text-slate-400">Loading exam definitions...</p>
             ) : (
@@ -188,96 +188,103 @@ export default function SyllabusStrategyPage() {
                 return (
                   <div
                     key={exam.id}
-                    className="bg-white dark:bg-[#0F172A] border border-slate-200/80 dark:border-[#1E293B] rounded-3xl overflow-hidden shadow-xs hover:shadow-sm transition-all"
+                    className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/[0.08] rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all"
                   >
-                    {/* Accordion Trigger */}
+                    {/* Accordion Trigger Header */}
                     <button
                       onClick={() => {
                         setExpandedExamId(isExpanded ? null : exam.id);
                         setSelectedExamId(exam.id);
                         setSelectedStage('ALL'); // Reset stage filter
                       }}
-                      className="w-full flex justify-between items-center p-6 bg-slate-50/30 dark:bg-[#131B2E] text-left cursor-pointer border-b border-transparent"
+                      className="w-full flex justify-between items-center p-6 bg-slate-50/60 dark:bg-slate-800/40 text-left cursor-pointer border-b border-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors"
                     >
                       <div className="flex items-center gap-4">
                         {exam.logo ? (
                           <img
                             src={`${BACKEND_URL}/${exam.logo.storagePath}`}
                             alt={exam.name}
-                            className="w-10 h-10 object-contain rounded-xl"
+                            className="w-12 h-12 object-contain rounded-2xl bg-amber-500/10 p-1 border border-amber-500/20"
                           />
                         ) : (
-                          <div className="w-10 h-10 bg-amber-100 flex items-center justify-center text-amber-600 rounded-xl font-black text-sm">
+                          <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 rounded-2xl font-black text-sm">
                             {exam.code}
                           </div>
                         )}
                         <div>
-                          <h3 className="font-heading font-black text-slate-900 dark:text-white text-base sm:text-lg">{exam.name}</h3>
-                          <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">{exam.description || 'Official exam roadmap'}</p>
+                          <h3 className="font-heading font-black text-slate-900 dark:text-white text-lg sm:text-xl">{exam.name}</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{exam.description || 'Official civil services examination roadmap'}</p>
                         </div>
                       </div>
-                      <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl hidden sm:inline-block border border-amber-500/20">
+                          {filteredSyllabus.length} Documents
+                        </span>
+                        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-amber-500' : ''}`} />
+                      </div>
                     </button>
 
                     {/* Accordion Content */}
                     {isExpanded && (
-                      <div className="p-6 space-y-6 border-t border-slate-100 dark:border-[#1E293B]/60 bg-white dark:bg-[#0F172A]">
+                      <div className="p-6 sm:p-8 space-y-6 border-t border-slate-100 dark:border-white/[0.06] bg-white dark:bg-slate-900">
                         
-                        {/* Dynamic Stage Filters */}
-                        <div className="flex bg-slate-100/80 dark:bg-[#131B2E] p-1 rounded-xl w-fit text-xs font-bold text-slate-500 border border-slate-200/60 dark:border-[#1E293B]">
-                          {['ALL', 'PRELIMS', 'MAINS', ...(hasInterview ? ['INTERVIEW'] : [])].map((stage) => (
-                            <button
-                              key={stage}
-                              onClick={() => setSelectedStage(stage)}
-                              className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${selectedStage === stage ? 'bg-amber-500 text-slate-950 shadow-xs' : 'hover:text-slate-800 dark:hover:text-white'}`}
-                            >
-                              {stage}
-                            </button>
-                          ))}
-                        </div>
-
-                        {/* Syllabus Cards List */}
+                        {/* Syllabus Cards List - Premium 3-column Responsive Grid */}
                         {filteredSyllabus.length === 0 ? (
-                          <p className="text-xs text-slate-400 italic">No syllabus documents matching the active filter.</p>
+                          <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-white/10">
+                            <p className="text-xs text-slate-400 font-semibold">No syllabus documents uploaded yet for this exam.</p>
+                          </div>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredSyllabus.map((syll) => {
                               const fileUrl = `${BACKEND_URL}/${syll.fileMedia.storagePath}`;
+                              const displayName = syll.fileMedia?.originalName || syll.description || `${exam.code} Syllabus`;
                               return (
                                 <div
                                   key={syll.id}
-                                  className="p-5 bg-slate-50/30 dark:bg-[#131B2E]/40 border border-slate-200/60 dark:border-[#1E293B] rounded-2xl flex flex-col justify-between"
+                                  className="p-6 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/[0.08] rounded-3xl flex flex-col justify-between hover:border-amber-500/50 hover:shadow-lg transition-all group"
                                 >
-                                  <div className="space-y-3">
-                                    <div className="flex justify-between items-start">
-                                      <span className="text-[9px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                                        {syll.stage}
-                                      </span>
-                                      <span className="text-[10px] text-slate-400 font-bold">
-                                        v{syll.version}
+                                  <div className="space-y-4">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl uppercase tracking-wider">
+                                        OFFICIAL SYLLABUS
                                       </span>
                                     </div>
-                                    <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white">{syll.description || `${exam.code} ${syll.stage} Syllabus`}</h4>
-                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold">Last Updated: {syll.lastUpdated}</p>
+
+                                    <div className="space-y-1.5">
+                                      <h4 className="font-heading font-black text-base text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors line-clamp-2">
+                                        {displayName}
+                                      </h4>
+                                      {syll.description && (
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
+                                          {syll.description}
+                                        </p>
+                                      )}
+                                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                                        Last Updated: <span className="font-bold text-slate-700 dark:text-slate-300">{syll.lastUpdated}</span>
+                                      </p>
+                                    </div>
                                   </div>
 
-                                  <div className="pt-4 mt-4 border-t border-slate-100 dark:border-white/[0.02] flex gap-2">
+                                  <div className="pt-6 mt-6 border-t border-slate-200/60 dark:border-white/[0.06] flex items-center gap-3">
+                                    {/* Primary Preview Button */}
                                     <button
                                       onClick={() => {
                                         setPreviewPdfUrl(fileUrl);
                                         setPreviewTitle(`${exam.code} ${syll.stage} Syllabus`);
                                       }}
-                                      className="btn-outline py-2 text-[10px] flex-grow text-center flex items-center justify-center gap-1"
+                                      className="flex-1 py-2.5 px-4 bg-white dark:bg-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-extrabold rounded-xl text-xs border border-slate-200 dark:border-white/10 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
                                     >
-                                      <Eye className="w-3.5 h-3.5" />
+                                      <Eye className="w-4 h-4 text-amber-500" />
                                       <span>Preview</span>
                                     </button>
+
+                                    {/* Download Button */}
                                     <a
                                       href={fileUrl}
                                       download
-                                      className="btn-primary py-2 text-[10px] flex-grow text-center flex items-center justify-center gap-1"
+                                      className="flex-1 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 font-extrabold rounded-xl text-xs flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] transition-all cursor-pointer"
                                     >
-                                      <Download className="w-3.5 h-3.5" />
+                                      <Download className="w-4 h-4" />
                                       <span>Download</span>
                                     </a>
                                   </div>
@@ -293,21 +300,6 @@ export default function SyllabusStrategyPage() {
                 );
               })
             )}
-          </div>
-
-          <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white dark:bg-[#0F172A] p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-[#1E293B] space-y-6 shadow-xs">
-              <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">Old Website Hallmarks</h3>
-              
-              {companyValues.map((val) => (
-                <div key={val.id} className="space-y-2">
-                  <h4 className="font-heading font-extrabold text-xs text-amber-500 uppercase tracking-widest">{val.title}</h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-semibold">
-                    {val.content}
-                  </p>
-                </div>
-              ))}
-            </div>
           </div>
 
         </div>

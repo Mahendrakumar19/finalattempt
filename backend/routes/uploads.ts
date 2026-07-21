@@ -16,9 +16,9 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
   filename: (_req, file, cb) => {
-    // Sanitize filename: strip spaces/special chars, prefix with timestamp
+    // Preserve original filename while ensuring unique prefix to prevent overwrite collisions
     const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `${Date.now()}_${safeName}`);
+    cb(null, `${Date.now()}-${safeName}`);
   }
 });
 
@@ -92,13 +92,15 @@ router.get('/files/:filename', (req: Request, res: Response) => {
     return;
   }
 
-  // For PDFs / images: serve inline so browser can render them
-  // For other files: trigger download
+  // Extract original display name by stripping the timestamp prefix (e.g. 1720000000000-filename.pdf -> filename.pdf)
+  const originalDisplayName = filename.includes('-') ? filename.split('-').slice(1).join('-') : filename;
+
+  // For PDFs / images / videos / text: serve inline so browser can render / preview them
   const ext = path.extname(filename).toLowerCase();
-  const inlineExts = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm', '.ogg'];
+  const inlineExts = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm', '.ogg', '.txt'];
   const disposition = inlineExts.includes(ext) ? 'inline' : 'attachment';
 
-  res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
+  res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(originalDisplayName)}"`);
   res.setHeader('Cache-Control', 'public, max-age=31536000');
 
   res.sendFile(filePath);

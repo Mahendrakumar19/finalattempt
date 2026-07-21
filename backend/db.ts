@@ -600,9 +600,9 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       await pool.query(
         'INSERT INTO settings (id, heroTitle, heroSubtitle, tagline) VALUES (1, ?, ?, ?)',
         [
-          '72nd BPSC Preparation Starts Here',
-          'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
-          'One Mentor. One Strategy. One Final Attempt.'
+          'The Next Generation Mentorship & Learning Platform',
+          'Empowering aspirants through personalized mentorship, high-quality content, strategic preparation, an innovative AI-powered learning ecosystem and continuous performance tracking - everything designed with one goal: to help make this attempt your final attempt.',
+          "Let's Make Your Attempt Final with FINAL ATTEMPT"
         ]
       );
       console.log('Seeded settings table.');
@@ -751,9 +751,9 @@ class BackendDB {
     blogs: [...blogData],
     resources: [...resourceData],
     settings: {
-      heroTitle: '72nd BPSC Preparation Starts Here',
-      heroSubtitle: 'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
-      tagline: 'One Mentor. One Strategy. One Final Attempt.',
+      heroTitle: 'The Next Generation Mentorship & Learning Platform',
+      heroSubtitle: 'Empowering aspirants through personalized mentorship, high-quality content, strategic preparation, an innovative AI-powered learning ecosystem and continuous performance tracking - everything designed with one goal: to help make this attempt your final attempt.',
+      tagline: "Let's Make Your Attempt Final with FINAL ATTEMPT",
       heroImageUrl: ''
     },
     courses: [...courseData],
