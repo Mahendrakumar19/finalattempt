@@ -147,7 +147,7 @@ class FinalAttemptDB {
     if (res && res.success && Array.isArray(res.data)) {
       return res.data;
     }
-    return courseData;
+    return [];
   }
 
   public async getCourseById(id: string): Promise<Course | undefined> {

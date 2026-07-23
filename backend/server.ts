@@ -128,9 +128,10 @@ app.use('/uploads', (req, res, next) => {
     }
     // Serve PDFs inline (viewable in browser), force attachment for Office files
     const inlineExts = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm', '.txt', '.svg']);
-    const baseName = path.basename(filePath).replace(/^\d+-/, ''); // strip timestamp prefix
+    // Cleanly strip leading timestamp (e.g., 1784719739539_ or 1784719739539-)
+    const cleanFileName = path.basename(filePath).replace(/^\d+[_-]/, '');
     const disposition = inlineExts.has(ext) ? 'inline' : 'attachment';
-    res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(baseName)}"; filename*=UTF-8''${encodeURIComponent(baseName)}`);
+    res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(cleanFileName)}"; filename*=UTF-8''${encodeURIComponent(cleanFileName)}`);
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   }
 }));

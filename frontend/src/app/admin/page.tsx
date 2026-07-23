@@ -36,8 +36,9 @@ import MediaPicker from '@/components/MediaPicker';
 import SyllabusStrategyCMS from '@/components/SyllabusStrategyCMS';
 import PYQsManagerCMS from '@/components/PYQsManagerCMS';
 import { db } from '@/services/db';
+import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 
-type AdminTab = 'Dashboard' | 'Settings' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy CMS' | 'Values CMS' | 'Leads' | 'Faculty' | 'Results' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Courses';
+type AdminTab = 'Dashboard' | 'Settings' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy CMS' | 'Values CMS' | 'Leads' | 'Faculty' | 'Results' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Courses' | 'Test Series';
 
 interface SiteSettings {
   heroTitle: string;
@@ -101,6 +102,7 @@ interface BlogItem {
   readTime: string;
   category: string;
   content: string;
+  imageUrl?: string;
   seoTitle?: string;
   seoKeywords?: string;
   seoDescription?: string;
@@ -212,7 +214,7 @@ export default function AdminPortal() {
   const [facultyForm, setFacultyForm] = useState<FacultyMember>({ id: '', name: '', role: '', experience: '', avatar: '', bio: '', demoLectures: [] });
   const [resultForm, setResultForm] = useState<ResultTopper>({ id: '', name: '', rank: '', exam: '', course: '', service: '', district: '', photo: '', year: 2026, story: '' });
   const [caForm, setCaForm] = useState<CurrentAffairArticle>({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
-  const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
+  const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '', imageUrl: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '', category: 'Prelims', subcategory: '' });
   const [resourceUploading, setResourceUploading] = useState(false);
   const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'LMS Program', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
@@ -339,6 +341,8 @@ export default function AdminPortal() {
       setResultForm(prev => ({ ...prev, photo: url }));
     } else if (field === 'facultyAvatar') {
       setFacultyForm(prev => ({ ...prev, avatar: url }));
+    } else if (field === 'blogImage') {
+      setBlogForm(prev => ({ ...prev, imageUrl: url }));
     }
     setMediaPickerConfig({ isOpen: false, field: '' });
   };
@@ -515,11 +519,20 @@ export default function AdminPortal() {
     const slugifiedTitle = editingArticle.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const finalSlug = editingArticle.slug || `${editingEdition.publishDate}-${editingArticle.category.toLowerCase()}-${slugifiedTitle}`;
 
+    const parseCsv = (val: any) => {
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
+      return [];
+    };
+
     const nextArt = {
       ...editingArticle,
       id: editingArticle.id || `art-${Date.now()}`,
       slug: finalSlug,
-      publishedDate: editingEdition.publishDate
+      publishedDate: editingEdition.publishDate,
+      subjects: parseCsv(editingArticle.subjects),
+      exams: parseCsv(editingArticle.exams),
+      tags: parseCsv(editingArticle.tags)
     };
 
     if (artIdx >= 0) {
@@ -596,6 +609,12 @@ export default function AdminPortal() {
   const handleDeleteResource = async (id: string) => {
     setResourcesList(prev => prev.filter(r => r.id !== id));
     await fetch(`${BACKEND_URL}/api/resources/${id}`, { method: 'DELETE' });
+  };
+
+  const handleDeleteCourse = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this course? It will be removed from the public website in real time.')) return;
+    setCoursesList(prev => prev.filter(c => c.id !== id));
+    await fetch(`${BACKEND_URL}/api/lms/courses/${id}`, { method: 'DELETE' });
   };
 
   if (!adminToken) {
@@ -687,6 +706,7 @@ export default function AdminPortal() {
               { id: 'Strategy CMS', icon: Bookmark },
               { id: 'Values CMS', icon: Database },
               { id: 'Courses', icon: BookOpen },
+              { id: 'Test Series', icon: FileText },
               { id: 'Leads', icon: Users },
               { id: 'Faculty', icon: Briefcase },
               { id: 'Results', icon: Award },
@@ -1369,16 +1389,28 @@ export default function AdminPortal() {
                     <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Daily Digest Editions</h3>
                     <p className="text-[10px] text-slate-500">Add or edit multi-column daily current affairs feeds for students.</p>
                   </div>
-                  <button
-                    onClick={() => {
-                      setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: '', articles: [] });
-                      setIsEditionModalOpen(true);
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Create Daily Edition</span>
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Yearly Compilation Edition', articles: [] });
+                        setIsEditionModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Create Yearly Edition</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: '', articles: [] });
+                        setIsEditionModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Create Daily Edition</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1797,8 +1829,9 @@ export default function AdminPortal() {
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">Subjects (comma separated)</label>
                           <input
-                            type="text" value={editingArticle.subjects?.join(', ') || ''}
-                            onChange={(e) => setEditingArticle({ ...editingArticle, subjects: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                            type="text"
+                            value={Array.isArray(editingArticle.subjects) ? editingArticle.subjects.join(', ') : (editingArticle.subjects || '')}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, subjects: e.target.value as any })}
                             placeholder="Polity, Economy..."
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                           />
@@ -1806,8 +1839,9 @@ export default function AdminPortal() {
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">Exams (comma separated)</label>
                           <input
-                            type="text" value={editingArticle.exams?.join(', ') || ''}
-                            onChange={(e) => setEditingArticle({ ...editingArticle, exams: e.target.value.split(',').map(ex => ex.trim()).filter(Boolean) })}
+                            type="text"
+                            value={Array.isArray(editingArticle.exams) ? editingArticle.exams.join(', ') : (editingArticle.exams || '')}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, exams: e.target.value as any })}
                             placeholder="UPSC, BPSC..."
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                           />
@@ -1815,8 +1849,9 @@ export default function AdminPortal() {
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">Tags (comma separated)</label>
                           <input
-                            type="text" value={editingArticle.tags?.join(', ') || ''}
-                            onChange={(e) => setEditingArticle({ ...editingArticle, tags: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })}
+                            type="text"
+                            value={Array.isArray(editingArticle.tags) ? editingArticle.tags.join(', ') : (editingArticle.tags || '')}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, tags: e.target.value as any })}
                             placeholder="governance, budget..."
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                           />
@@ -1941,12 +1976,21 @@ export default function AdminPortal() {
             {/* Modal add/edit Blog */}
             {activeModal && activeTab === 'Blogs' && (
               <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <form onSubmit={handleSaveBlog} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-xl w-full space-y-4 shadow-2xl">
-                  <h3 className="font-extrabold text-sm text-slate-900">
-                    {activeModal.type === 'add' ? 'Create Blog Post' : 'Edit Blog Post'}
-                  </h3>
+                <form onSubmit={handleSaveBlog} className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl w-full md:w-[85vw] max-w-[85vw] space-y-6 shadow-2xl">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <h3 className="font-extrabold text-base text-slate-900">
+                      {activeModal.type === 'add' ? 'Create Blog Post' : 'Edit Blog Post'}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setActiveModal(null)}
+                      className="text-slate-400 hover:text-slate-700 font-bold text-sm cursor-pointer"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
 
-                  <div className="max-h-[50vh] overflow-y-auto space-y-4 pr-1">
+                  <div className="max-h-[75vh] overflow-y-auto space-y-6 pr-2">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Post Title</label>
@@ -2014,6 +2058,26 @@ export default function AdminPortal() {
                         placeholder="Short introductory summary snippet..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Featured Cover Image</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={blogForm.imageUrl || ''}
+                          onChange={(e) => setBlogForm({ ...blogForm, imageUrl: e.target.value })}
+                          placeholder="Image URL or pick from Media DAM..."
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setMediaPickerConfig({ isOpen: true, field: 'blogImage' })}
+                          className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-2xl shrink-0"
+                        >
+                          Pick
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
@@ -2505,6 +2569,11 @@ export default function AdminPortal() {
               </div>
             )}
           </div>
+        )}
+
+        {/* TAB: TEST SERIES */}
+        {activeTab === 'Test Series' && (
+          <TestSeriesAdmin BACKEND_URL={BACKEND_URL} />
         )}
       </main>
 

@@ -137,10 +137,15 @@ export interface DynamicCurrentAffairEdition {
 export interface BlogItem {
   id: string;
   title: string;
+  slug?: string;
   publishDate: string;
   readTime: string;
   category: string;
   content: string;
+  imageUrl?: string;
+  excerpt?: string;
+  status?: string;
+  author_name?: string;
   seoTitle?: string;
   seoKeywords?: string;
   seoDescription?: string;
@@ -421,10 +426,15 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       CREATE TABLE IF NOT EXISTS blogs (
         id VARCHAR(255) PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
+        slug VARCHAR(255),
         publishDate VARCHAR(100) NOT NULL,
         readTime VARCHAR(100) NOT NULL,
         category VARCHAR(100) NOT NULL,
         content TEXT,
+        imageUrl TEXT,
+        excerpt TEXT,
+        status VARCHAR(50) DEFAULT 'published',
+        author_name VARCHAR(255) DEFAULT 'Admin',
         seoTitle VARCHAR(255),
         seoKeywords TEXT,
         seoDescription TEXT,
@@ -432,6 +442,11 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       )
     `);
     try {
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS slug VARCHAR(255)');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS imageUrl TEXT');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS excerpt TEXT');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT "published"');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS author_name VARCHAR(255) DEFAULT "Admin"');
       await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS seoTitle VARCHAR(255)');
       await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS seoKeywords TEXT');
       await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS seoDescription TEXT');
@@ -1641,9 +1656,10 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO blogs (id, title, publishDate, readTime, category, content, seoTitle, seoKeywords, seoDescription, blurb) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO blogs (id, title, slug, publishDate, readTime, category, content, imageUrl, excerpt, status, author_name, seoTitle, seoKeywords, seoDescription, blurb) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
-            item.id, item.title, item.publishDate, item.readTime, item.category, item.content,
+            item.id, item.title, item.slug ?? null, item.publishDate, item.readTime, item.category, item.content, item.imageUrl ?? null,
+            item.excerpt ?? null, item.status ?? 'published', item.author_name ?? 'Admin',
             item.seoTitle ?? null, item.seoKeywords ?? null, item.seoDescription ?? null, item.blurb ?? null
           ]
         );
@@ -1661,9 +1677,10 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query(
-          'UPDATE blogs SET title = ?, publishDate = ?, readTime = ?, category = ?, content = ?, seoTitle = ?, seoKeywords = ?, seoDescription = ?, blurb = ? WHERE id = ?',
+          'UPDATE blogs SET title = ?, slug = ?, publishDate = ?, readTime = ?, category = ?, content = ?, imageUrl = ?, excerpt = ?, status = ?, author_name = ?, seoTitle = ?, seoKeywords = ?, seoDescription = ?, blurb = ? WHERE id = ?',
           [
-            updated.title, updated.publishDate, updated.readTime, updated.category, updated.content,
+            updated.title, updated.slug ?? null, updated.publishDate, updated.readTime, updated.category, updated.content, updated.imageUrl ?? null,
+            updated.excerpt ?? null, updated.status ?? 'published', updated.author_name ?? 'Admin',
             updated.seoTitle ?? null, updated.seoKeywords ?? null, updated.seoDescription ?? null, updated.blurb ?? null, id
           ]
         );

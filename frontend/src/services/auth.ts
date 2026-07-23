@@ -169,6 +169,11 @@ export async function verifyRazorpayPayment(
   }, accessToken);
 }
 
+// ─── Quizzes: Get Quizzes for a Course ───────────────────────────────────────
+export async function getCourseQuizzes(courseId: string, accessToken: string) {
+  return apiFetch<any[]>(`/api/lms/courses/${courseId}/quizzes`, {}, accessToken);
+}
+
 // ─── Quizzes: Get Details ────────────────────────────────────────────────────
 export async function getQuizDetails(quizId: string, accessToken: string) {
   return apiFetch<any>(`/api/quizzes/${quizId}`, {}, accessToken);

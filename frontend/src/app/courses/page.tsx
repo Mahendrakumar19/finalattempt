@@ -11,7 +11,7 @@ type CategoryType = 'All' | 'UPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Inter
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [coursesList, setCoursesList] = useState<any[]>(courseData);
+  const [coursesList, setCoursesList] = useState<any[]>([]);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
 
   const toggleFlip = (id: string) => {
@@ -22,7 +22,7 @@ export default function Courses() {
     const loadCourses = async () => {
       try {
         const c = await db.getCourses();
-        if (c && c.length > 0) {
+        if (c) {
           setCoursesList(c);
         }
       } catch (err) {

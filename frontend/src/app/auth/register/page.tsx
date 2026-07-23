@@ -134,7 +134,7 @@ export default function RegisterPage() {
             <div className="flex items-center mb-8">
               <div className="relative w-40 h-10 shrink-0">
                 <img
-                  src="/darklogofull.png"
+                  src="/lightlogofull.png"
                   alt="Final Attempt"
                   className="w-full h-full object-contain"
                 />
@@ -142,10 +142,6 @@ export default function RegisterPage() {
             </div>
 
             <h2 className="text-xl font-bold text-white mb-2">Start Your Journey</h2>
-            <p className="text-slate-400 text-xs leading-relaxed mb-8">
-              Join thousands of BPSC aspirants who cleared with Final Attempt's structured mentorship.
-            </p>
-
             <div className="space-y-3">
               {benefits.map(b => (
                 <div key={b} className="flex items-center gap-3">
@@ -163,8 +159,8 @@ export default function RegisterPage() {
               <p className="text-amber-500/80 text-[10px] mb-3 uppercase tracking-wider font-bold">Platform Stats</p>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { value: '1,500+', label: 'Active Students' },
-                  { value: '420+', label: 'Selections' },
+                  { value: '1,000+', label: 'Active Students' },
+                  { value: '200+', label: 'Selections' },
                   { value: '95%', label: 'Satisfaction' },
                   { value: '4', label: 'Expert Faculty' }
                 ].map(s => (
@@ -185,7 +181,7 @@ export default function RegisterPage() {
             <div className="flex lg:hidden items-center mb-6">
               <div className="relative w-40 h-10 shrink-0">
                 <img
-                  src="/darklogofull.png"
+                  src="/lightlogofull.png"
                   alt="Final Attempt"
                   className="w-full h-full object-contain"
                 />

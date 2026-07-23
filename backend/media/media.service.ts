@@ -169,7 +169,12 @@ export class MediaService {
     const uuid = crypto.randomUUID().substring(0, 8);
     const baseName = path.basename(originalName, path.extname(originalName)).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '_');
     const ext = fileType === FileType.IMAGE && extension !== 'svg' ? 'webp' : extension;
-    let finalFileName = `${Date.now()}_${baseName}.${ext}`;
+    
+    // Use clean original filename without timestamp prefix (handle collisions by checking existence if needed)
+    let finalFileName = `${baseName}.${ext}`;
+    if (fs.existsSync(path.join(UPLOADS_ROOT, subFolder, finalFileName))) {
+      finalFileName = `${baseName}_${uuid}.${ext}`;
+    }
     let finalBuffer = fileBuffer;
     let width: number | undefined;
     let height: number | undefined;

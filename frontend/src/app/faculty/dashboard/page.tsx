@@ -101,7 +101,7 @@ export default function FacultyPortal() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col md:flex-row antialiased font-sans relative overflow-hidden transition-colors duration-200">
+    <div className="portal-page min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col md:flex-row antialiased font-sans relative overflow-hidden transition-colors duration-200">
       
       {/* Decorative Grid Background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-50 pointer-events-none" />
@@ -134,12 +134,12 @@ export default function FacultyPortal() {
             </button>
           </div>
 
-          <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center gap-3">
+          <div className="p-3 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] rounded-2xl flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs">
               {user?.fullName?.charAt(0) || 'F'}
             </div>
             <div>
-              <p className="text-xs font-bold text-slate-900">{user?.fullName || 'Faculty Member'}</p>
+              <p className="text-xs font-bold text-slate-900 dark:text-white">{user?.fullName || 'Faculty Member'}</p>
               <p className="text-[9px] text-[#F59E0B] font-bold">Chief Mentor</p>
             </div>
           </div>
@@ -152,8 +152,8 @@ export default function FacultyPortal() {
                 onClick={() => setActiveTab(link.name)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   activeTab === link.name 
-                    ? 'bg-amber-50 text-amber-700 border border-amber-200/60 shadow-xs' 
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                    ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-500/20 shadow-xs' 
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.04]'
                 }`}
               >
                 <link.icon className="w-4 h-4 shrink-0" />
@@ -164,13 +164,13 @@ export default function FacultyPortal() {
         </div>
 
         {/* Footer */}
-        <div className="pt-6 border-t border-slate-200 flex flex-col gap-2 mt-8">
-          <Link href="/" className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-2">
+        <div className="pt-6 border-t border-slate-200 dark:border-white/[0.06] flex flex-col gap-2 mt-8">
+          <Link href="/" className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white flex items-center gap-2">
             <span>Portal Home</span>
           </Link>
           <button 
             onClick={logout} 
-            className="text-xs font-bold text-slate-500 hover:text-red-650 flex items-center gap-2 text-left"
+            className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-2 text-left"
           >
             <LogOut className="w-4 h-4 text-red-500" />
             <span>Logout</span>
@@ -198,7 +198,7 @@ export default function FacultyPortal() {
           </div>
           <button 
             onClick={toggleTheme}
-            className="p-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-500 dark:text-slate-455 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.08] transition-all cursor-pointer shadow-xs"
+            className="p-2.5 rounded-xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/[0.08] transition-all cursor-pointer shadow-xs"
             aria-label="Toggle Theme"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-500" />}
@@ -210,7 +210,7 @@ export default function FacultyPortal() {
         {/* TAB 1: CLASSES */}
         {activeTab === 'Classes' && (
           <div className="space-y-6">
-            <h3 className="font-heading font-extrabold text-lg text-slate-900">Your Scheduled Lectures</h3>
+            <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Your Scheduled Lectures</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
@@ -262,8 +262,8 @@ export default function FacultyPortal() {
 
         {/* TAB 2: ATTENDANCE */}
         {activeTab === 'Attendance' && (
-          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
-            <h3 className="font-heading font-extrabold text-lg text-slate-900">Daily Session Attendance Log</h3>
+          <div className="bg-white/70 dark:bg-white/[0.04] backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 dark:border-white/[0.06] space-y-6 shadow-xs">
+            <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Daily Session Attendance Log</h3>
             <p className="text-xs text-slate-500 font-semibold">Check class presence for: GS II Basics (June 24 Batch)</p>
             
             <div className="bg-slate-50/50 rounded-2xl border border-slate-200/80 divide-y divide-slate-200/80">
@@ -288,8 +288,8 @@ export default function FacultyPortal() {
 
         {/* TAB 3: EVALUATION */}
         {activeTab === 'Evaluation' && (
-          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
-            <h3 className="font-heading font-extrabold text-lg text-slate-900">Student Essay Evaluations</h3>
+          <div className="bg-white/70 dark:bg-white/[0.04] backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 dark:border-white/[0.06] space-y-6 shadow-xs">
+            <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Student Essay Evaluations</h3>
             
             <div className="space-y-4">
               {evaluationList.map((sub) => (
@@ -333,8 +333,8 @@ export default function FacultyPortal() {
 
         {/* TAB 4: QUERIES */}
         {activeTab === 'Queries' && (
-          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
-            <h3 className="font-heading font-extrabold text-lg text-slate-900">Student Query Helpdesk</h3>
+          <div className="bg-white/70 dark:bg-white/[0.04] backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 dark:border-white/[0.06] space-y-6 shadow-xs">
+            <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Student Query Helpdesk</h3>
             
             <div className="space-y-4">
               {queriesList.map((query) => (
@@ -380,8 +380,8 @@ export default function FacultyPortal() {
 
         {/* TAB 5: STUDENT TRACKING */}
         {activeTab === 'Student Tracking' && (
-          <div className="bg-white/70 backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 space-y-6 shadow-xs">
-            <h3 className="font-heading font-extrabold text-lg text-slate-900">Student Progress Tracking</h3>
+          <div className="bg-white/70 dark:bg-white/[0.04] backdrop-blur-md p-6 rounded-3xl border border-slate-200/80 dark:border-white/[0.06] space-y-6 shadow-xs">
+            <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">Student Progress Tracking</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[

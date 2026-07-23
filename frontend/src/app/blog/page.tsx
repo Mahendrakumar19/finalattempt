@@ -8,6 +8,13 @@ export default function Blog() {
   const [blogsList, setBlogsList] = useState<any[]>(fallbackBlogs);
   const [selectedPost, setSelectedPost] = useState<any | null>(null);
 
+  const resolveUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    return `${backendBase}/${url.replace(/^\//, '')}`;
+  };
+
   useEffect(() => {
     const loadBlogs = async () => {
       try {
@@ -49,6 +56,15 @@ export default function Blog() {
             className="bg-white rounded-3xl border border-slate-100 p-6 flex flex-col justify-between hover:shadow-lg hover:border-blue-100 transition-all duration-300 cursor-pointer group"
           >
             <div className="space-y-4">
+              {(post.imageUrl || post.cover_image_url) && (
+                <div className="w-full aspect-video rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center">
+                  <img
+                    src={resolveUrl(post.imageUrl || post.cover_image_url)}
+                    alt={post.title}
+                    className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              )}
               <div className="flex justify-between items-center text-[10px] font-bold text-slate-450 uppercase">
                 <span className="text-blue-600">{post.category}</span>
                 <span className="flex items-center gap-1.5">
@@ -60,7 +76,7 @@ export default function Blog() {
                 {post.title}
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed line-clamp-3">
-                {stripHtml(post.content)}
+                {post.blurb || stripHtml(post.content)}
               </p>
             </div>
 
@@ -81,7 +97,7 @@ export default function Blog() {
       {/* Detail Overlay Modal */}
       {selectedPost && (
         <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-150 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white border border-slate-150 rounded-3xl max-w-[80vw] w-full md:w-[80vw] max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="p-6 border-b border-slate-100 flex justify-between items-start gap-4 shrink-0">
               <div className="space-y-1.5">
@@ -90,7 +106,7 @@ export default function Blog() {
                   <span>&bull;</span>
                   <span>{selectedPost.publishDate}</span>
                 </div>
-                <h2 className="font-heading font-black text-slate-900 text-base sm:text-lg leading-tight">
+                <h2 className="font-heading font-black text-slate-900 text-base sm:text-xl leading-tight">
                   {selectedPost.title}
                 </h2>
               </div>
@@ -103,10 +119,19 @@ export default function Blog() {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 sm:p-8 overflow-y-auto flex-grow prose max-w-none text-slate-800 text-sm leading-relaxed space-y-4">
+            <div className="p-6 sm:p-8 overflow-y-auto flex-grow prose max-w-none text-slate-800 text-sm leading-relaxed space-y-6">
+              {(selectedPost.imageUrl || selectedPost.cover_image_url) && (
+                <div className="w-full max-h-[450px] rounded-2xl overflow-hidden border border-slate-100 shadow-xs bg-slate-50 flex items-center justify-center p-2">
+                  <img
+                    src={resolveUrl(selectedPost.imageUrl || selectedPost.cover_image_url)}
+                    alt={selectedPost.title}
+                    className="max-h-[420px] w-auto object-contain rounded-xl"
+                  />
+                </div>
+              )}
               <div 
                 dangerouslySetInnerHTML={{ __html: selectedPost.content }} 
-                className="space-y-3"
+                className="space-y-4"
               />
             </div>
 

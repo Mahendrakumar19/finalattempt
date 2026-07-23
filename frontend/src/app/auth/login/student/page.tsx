@@ -109,13 +109,13 @@ function LoginFormContent() {
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-amber-500/25 bg-amber-500/10">
             <Sparkles className="w-4 h-4 text-amber-400" />
-            <span className="text-xs text-amber-200 font-extrabold uppercase tracking-widest">Aspirant Portal</span>
+            <span className="text-xs text-amber-200 font-extrabold uppercase tracking-widest">Student Portal</span>
           </div>
           <h2 className="text-3xl font-heading font-black text-white leading-tight">
-            One Mentor. One Strategy. One Final Attempt.
+            
           </h2>
           <p className="text-slate-400 text-xs leading-relaxed">
-            Welcome to the Student learning dashboard. Access assignments, syllabus, real-time feedback, and dynamic mentorship logs.
+            Welcome to the Student learning dashboard. Access courses, assignments, syllabus, test series and more.
           </p>
         </div>
 
@@ -124,7 +124,6 @@ function LoginFormContent() {
             <GraduationCap className="w-10 h-10 text-amber-500 shrink-0" />
             <div>
               <h4 className="text-xs font-bold text-white uppercase tracking-wider"> Dashboard</h4>
-              {/* <p className="text-[10px] text-slate-400">Review syllabus, quizzes, and marks logs.</p> */}
             </div>
           </div>
         </div>
@@ -307,7 +306,7 @@ function LoginFormContent() {
           </form>
         )}
 
-        <p className="mt-6 text-center text-slate-555 text-xs">
+        <p className="mt-6 text-center text-white text-xs">
           Don't have an account?{' '}
           <Link href="/auth/register" className="text-amber-500 font-bold hover:text-amber-400 transition-colors">
             Create one free

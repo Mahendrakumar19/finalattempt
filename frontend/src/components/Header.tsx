@@ -68,11 +68,7 @@ export default function Header() {
       ]
     },
     {
-      name: 'PYQs', href: '/pyq',
-      dropdown: [
-        { name: 'Question Papers', href: '/pyq', desc: 'Year-wise PYQ archive' },
-        { name: 'Syllabus & Strategy', href: '/syllabus-strategy', desc: 'Exam prep strategy' },
-      ]
+      name: 'PYQs', href: '/pyq'
     },
     { name: 'Syllabus & Strategy', href: '/syllabus-strategy' },
     {

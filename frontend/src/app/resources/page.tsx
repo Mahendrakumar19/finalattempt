@@ -207,14 +207,16 @@ export default function Resources() {
                             </div>
 
                             <div className="shrink-0 flex items-center gap-2">
-                              {/* Primary View / Preview in Popup Button */}
-                              <button
-                                onClick={() => setPreviewItem(res)}
+                              {/* Primary View / Open in New Tab Button */}
+                              <a
+                                href={resolveUrl(res.url)}
+                                target="_blank"
+                                rel="noreferrer"
                                 className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs shadow-sm hover:scale-[1.02] transition-all cursor-pointer"
                               >
                                 <Eye className="w-4 h-4" />
                                 <span>View File</span>
-                              </button>
+                              </a>
 
                               {/* Download Button */}
                               {downloadStates[res.id] ? (

@@ -16,9 +16,14 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
   filename: (_req, file, cb) => {
-    // Preserve original filename while ensuring unique prefix to prevent overwrite collisions
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `${Date.now()}-${safeName}`);
+    // Preserve clean original filename with spaces converted to underscores without timestamp prefix
+    const ext = path.extname(file.originalname);
+    const baseName = path.basename(file.originalname, ext).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '_');
+    let targetName = `${baseName}${ext}`;
+    if (fs.existsSync(path.join(UPLOADS_DIR, targetName))) {
+      targetName = `${baseName}_${Date.now()}${ext}`;
+    }
+    cb(null, targetName);
   }
 });
 
@@ -119,16 +124,15 @@ router.get('/files/:filename', (req: Request, res: Response) => {
     return;
   }
 
-  // Strip the timestamp prefix to recover the original display name
-  // e.g. "1720000000000-My_Document.pdf" → "My_Document.pdf"
-  const originalDisplayName = filename.replace(/^\d+-/, '');
+  // Strip leading timestamp prefix (e.g. "1784719739539_Paper.pdf" or "1784719739539-Paper.pdf")
+  const cleanDisplayName = filename.replace(/^\d+[_-]/, '');
 
   const ext = path.extname(filename).toLowerCase();
   const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
   const disposition = INLINE_EXTS.has(ext) ? 'inline' : 'attachment';
 
   res.setHeader('Content-Type', mimeType);
-  res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(originalDisplayName)}"; filename*=UTF-8''${encodeURIComponent(originalDisplayName)}`);
+  res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(cleanDisplayName)}"; filename*=UTF-8''${encodeURIComponent(cleanDisplayName)}`);
   res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
   res.setHeader('Access-Control-Allow-Origin', '*');
 

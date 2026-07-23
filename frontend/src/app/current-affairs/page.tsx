@@ -115,6 +115,29 @@ export default function CurrentAffairsLanding() {
         </div>
       </div>
 
+      {/* Primary Category Filter Bar at Top */}
+      <div className="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/[0.06] rounded-3xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <span className="text-xs font-black uppercase text-slate-400 tracking-wider">
+          Filter Topics:
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {(['ALL', 'BIHAR', 'NATIONAL', 'INTERNATIONAL'] as const).map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setCategoryFilter(cat)}
+              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                categoryFilter === cat
+                  ? 'bg-amber-500 text-slate-950 shadow-sm scale-105'
+                  : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              {cat === 'ALL' ? 'All Coverage' : cat === 'BIHAR' ? 'Bihar Special' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Advanced Global Search Card */}
       <div className="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/[0.06] rounded-3xl p-6 shadow-xs">
         <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-4">

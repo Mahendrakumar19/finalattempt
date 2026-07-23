@@ -28,8 +28,8 @@ function ContactFormContent() {
 
     // Concatenate fields for CMS Lead targets
     const encodedTarget = isEnrollMode
-      ? `${targetExam} [Mode: ${classMode} | Dist: ${district} | Prep: ${prepStatus} | Msg: ${message || 'None'}]`
-      : `General Query: ${message}`;
+      ? `[Counselling Form] ${targetExam} [Mode: ${classMode} | Dist: ${district} | Prep: ${prepStatus} | Msg: ${message || 'None'}]`
+      : `[Counselling Form] General Query: ${message}`;
 
     await db.createLead(name, mobile, encodedTarget, email || undefined);
     setSuccess(true);
@@ -44,7 +44,7 @@ function ContactFormContent() {
           Admissions Helpdesk
         </span>
         <h1 className="text-4xl font-heading font-black text-[var(--text-color)] tracking-tight">
-          Connect With Final Attempt IAS
+          Connect With Final Attempt
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
           Have questions about the BPSC micro-schedule, answer writing mentorship batches, or offline library? Let's trace out your study strategy.
@@ -123,7 +123,7 @@ function ContactFormContent() {
               <span>WhatsApp Chat</span>
             </a>
             <a
-              href="https://t.me/finalattemptias"
+              href="https://t.me/Finalattemptofficial"
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-center gap-2 p-4 bg-[#0088cc] hover:bg-[#0077b3] text-white font-bold rounded-2xl shadow-3xs text-xs transition-colors"

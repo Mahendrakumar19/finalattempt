@@ -51,8 +51,15 @@ export default function Home() {
   const [targetExam, setTargetExam] = useState('BPSC Foundation Batch');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
+  const resolveUrl = (url: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    return `${backendBase}/${url.replace(/^\//, '')}`;
+  };
+
   const heroImages = heroSettings.heroImageUrl
-    ? heroSettings.heroImageUrl.split(',').map(img => img.trim()).filter(Boolean)
+    ? heroSettings.heroImageUrl.split(',').map(img => resolveUrl(img.trim())).filter(Boolean)
     : ["https://upload.wikimedia.org/wikipedia/commons/f/f6/Front_view_of_bihar_vidhan_sabha.jpg"];
 
   useEffect(() => {
@@ -70,16 +77,8 @@ export default function Home() {
         if (s) setHeroSettings(s);
 
         const c = await db.getCourses();
-        if (c && c.length > 0) {
+        if (c) {
           setLiveCourses(c);
-        } else {
-          // Fallback UI mock courses matching the wireframe
-          setLiveCourses([
-            { id: '1', title: 'BPSC Foundation Course', description: 'Complete foundation course for Prelims & Mains.', fee: 4999900, duration: '12 Months' },
-            { id: '2', title: 'BPSC Prelims Test Series', description: 'Topic-wise & Full Length Test Series.', fee: 499900, duration: '3 Months' },
-            { id: '3', title: 'BPSC Mains Answer Writing', description: 'Answer writing practice with expert evaluation.', fee: 999900, duration: '4 Months' },
-            { id: '4', title: 'Interview Guidance Program', description: 'Personality development & mock interviews.', fee: 0, duration: '1 Month' }
-          ]);
         }
 
         const videosData = await db.getYoutubeVideos(3);

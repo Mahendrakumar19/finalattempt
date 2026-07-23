@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Globe, FileText, Settings, Upload, Image as ImageIcon, Check } from 'lucide-react';
 import MediaPicker from './MediaPicker';
+import RichTextEditor from './RichTextEditor';
 
 interface Exam {
   id: string;
@@ -286,13 +287,10 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Description</label>
-              <textarea
-                placeholder="Brief details..."
-                value={examForm.description}
-                onChange={(e) => setExamForm({ ...examForm, description: e.target.value })}
-                className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none"
-                rows={3}
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Description (Rich Text)</label>
+              <RichTextEditor
+                value={examForm.description || ''}
+                onChange={(html) => setExamForm({ ...examForm, description: html })}
               />
             </div>
 
@@ -487,14 +485,10 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Content (HTML Rich Text)</label>
-              <textarea
-                placeholder="Strategy instructions and analysis..."
-                value={strategyForm.content}
-                onChange={(e) => setStrategyForm({ ...strategyForm, content: e.target.value })}
-                className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none"
-                rows={5}
-                required
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Content (Rich Text)</label>
+              <RichTextEditor
+                value={strategyForm.content || ''}
+                onChange={(html) => setStrategyForm({ ...strategyForm, content: html })}
               />
             </div>
 
@@ -641,12 +635,10 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase">Section Content</label>
-                <textarea
-                  value={valueContent}
-                  onChange={(e) => setValueContent(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border bg-white rounded-xl outline-none"
-                  rows={4}
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Section Content (Rich Text)</label>
+                <RichTextEditor
+                  value={valueContent || ''}
+                  onChange={(html) => setValueContent(html)}
                 />
               </div>
 
