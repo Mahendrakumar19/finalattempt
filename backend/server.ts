@@ -105,7 +105,35 @@ app.use('/api/youtube', youtubeRouter);
 app.use('/api/media', mediaRouter);
 app.use('/api/syllabus-strategy', syllabusStrategyRouter);
 app.use('/api/pyqs', pyqsRouter);
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', (req, res, next) => {
+  // Allow cross-origin file serving for the frontend domain
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  next();
+}, express.static(path.join(process.cwd(), 'uploads'), {
+  // Force correct MIME type for PDFs and documents
+  setHeaders: (res, filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeMap: Record<string, string> = {
+      '.pdf':  'application/pdf',
+      '.doc':  'application/msword',
+      '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.xls':  'application/vnd.ms-excel',
+      '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.ppt':  'application/vnd.ms-powerpoint',
+      '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      '.zip':  'application/zip',
+    };
+    if (mimeMap[ext]) {
+      res.setHeader('Content-Type', mimeMap[ext]);
+    }
+    // Serve PDFs inline (viewable in browser), force attachment for Office files
+    const inlineExts = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm', '.txt', '.svg']);
+    const baseName = path.basename(filePath).replace(/^\d+-/, ''); // strip timestamp prefix
+    const disposition = inlineExts.has(ext) ? 'inline' : 'attachment';
+    res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(baseName)}"; filename*=UTF-8''${encodeURIComponent(baseName)}`);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  }
+}));
 
 // Swagger UI 
 import swaggerUi from "swagger-ui-express";

@@ -83,6 +83,33 @@ router.post('/upload', upload.single('file'), (req: Request, res: Response) => {
 // ── GET /api/files/:filename ───────────────────────────────────────────────
 // Serve a previously uploaded file by its stored filename.
 
+// MIME type map to ensure correct Content-Type headers
+const MIME_TYPES: Record<string, string> = {
+  '.pdf':  'application/pdf',
+  '.doc':  'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls':  'application/vnd.ms-excel',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.ppt':  'application/vnd.ms-powerpoint',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  '.zip':  'application/zip',
+  '.txt':  'text/plain',
+  '.jpg':  'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png':  'image/png',
+  '.gif':  'image/gif',
+  '.webp': 'image/webp',
+  '.svg':  'image/svg+xml',
+  '.mp4':  'video/mp4',
+  '.webm': 'video/webm',
+  '.ogg':  'video/ogg',
+  '.mp3':  'audio/mpeg',
+  '.wav':  'audio/wav',
+};
+
+// Extensions that should be rendered inline in browser (not force-downloaded)
+const INLINE_EXTS = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.mp4', '.webm', '.ogg', '.txt']);
+
 router.get('/files/:filename', (req: Request, res: Response) => {
   const filename = path.basename(req.params.filename); // prevent path traversal
   const filePath = path.join(UPLOADS_DIR, filename);
@@ -92,16 +119,18 @@ router.get('/files/:filename', (req: Request, res: Response) => {
     return;
   }
 
-  // Extract original display name by stripping the timestamp prefix (e.g. 1720000000000-filename.pdf -> filename.pdf)
-  const originalDisplayName = filename.includes('-') ? filename.split('-').slice(1).join('-') : filename;
+  // Strip the timestamp prefix to recover the original display name
+  // e.g. "1720000000000-My_Document.pdf" → "My_Document.pdf"
+  const originalDisplayName = filename.replace(/^\d+-/, '');
 
-  // For PDFs / images / videos / text: serve inline so browser can render / preview them
   const ext = path.extname(filename).toLowerCase();
-  const inlineExts = ['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm', '.ogg', '.txt'];
-  const disposition = inlineExts.includes(ext) ? 'inline' : 'attachment';
+  const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
+  const disposition = INLINE_EXTS.has(ext) ? 'inline' : 'attachment';
 
-  res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(originalDisplayName)}"`);
-  res.setHeader('Cache-Control', 'public, max-age=31536000');
+  res.setHeader('Content-Type', mimeType);
+  res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(originalDisplayName)}"; filename*=UTF-8''${encodeURIComponent(originalDisplayName)}`);
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  res.setHeader('Access-Control-Allow-Origin', '*');
 
   res.sendFile(filePath);
 });
