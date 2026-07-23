@@ -65,19 +65,30 @@ export default function Resources() {
 
   const handleDownload = (res: any) => {
     setDownloadStates(prev => ({ ...prev, [res.id]: true }));
-    const url = res.url?.startsWith('/api/') ? `${BACKEND_URL}${res.url}` : res.url;
+    const url = resolveUrl(res.url);
     const a = document.createElement('a');
     a.href = url;
-    a.download = res.title || 'resource';
+    // Use original title as download name (keep extension from URL)
+    const ext = res.url ? res.url.split('.').pop()?.split('?')[0] : '';
+    a.download = ext ? `${res.title}.${ext}` : res.title || 'resource';
     a.target = '_blank';
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     setTimeout(() => {
       setDownloadStates(prev => ({ ...prev, [res.id]: false }));
     }, 3000);
   };
 
-  const resolveUrl = (url: string) =>
-    url?.startsWith('/api/') ? `${BACKEND_URL}${url}` : url;
+  const resolveUrl = (url: string) => {
+    if (!url) return '';
+    // Already a full URL
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    // /api/ prefixed path
+    if (url.startsWith('/api/')) return `${BACKEND_URL}${url}`;
+    // Relative path like uploads/documents/file.pdf
+    return `${BACKEND_URL}/${url.replace(/^\//, '')}`;
+  };
 
   // Filter resources based on selected category & search query
   const filteredResources = resourcesList.filter(res => {

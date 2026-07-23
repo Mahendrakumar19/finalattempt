@@ -34,6 +34,7 @@ export default function PyqPage() {
   // PDF state variables
   const [exams, setExams] = useState<Exam[]>([]);
   const [pyqList, setPyqList] = useState<PYQItem[]>([]);
+  const [allYears, setAllYears] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExamId, setSelectedExamId] = useState<string>('ALL');
   const [selectedYear, setSelectedYear] = useState<string>('ALL');
@@ -87,7 +88,8 @@ export default function PyqPage() {
   const fetchPYQs = async () => {
     setLoading(true);
     try {
-      let url = `${BACKEND_URL}/api/pyqs?page=${currentPage}&limit=10`;
+      // Fetch all without pagination for grouping — filters applied client-side for year/stage
+      let url = `${BACKEND_URL}/api/pyqs?page=${currentPage}&limit=200`;
       if (selectedExamId !== 'ALL') {
         url += `&examId=${selectedExamId}`;
       }
@@ -108,6 +110,17 @@ export default function PyqPage() {
         if (data.pagination) {
           setTotalPages(data.pagination.pages || 1);
         }
+        // Extract unique years from data for dynamic year filter dropdown
+        const yearsSet = new Set<number>(data.data.map((item: PYQItem) => item.year));
+        setAllYears(Array.from(yearsSet).sort((a, b) => b - a)); // descending
+        // Auto-expand all exams if results found
+        if (data.data.length > 0) {
+          const examNames: Record<string, boolean> = {};
+          data.data.forEach((item: PYQItem) => {
+            examNames[item.exam.name] = true;
+          });
+          setExpandedExams(examNames);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -115,7 +128,16 @@ export default function PyqPage() {
     setLoading(false);
   };
 
-  // Group items by Exam Name -> Year -> Stage
+  // Build proper file URL from storagePath
+  const buildFileUrl = (storagePath: string) => {
+    if (!storagePath) return '';
+    // If already a full URL, return as-is
+    if (storagePath.startsWith('http://') || storagePath.startsWith('https://')) return storagePath;
+    // If it's a relative path like uploads/documents/file.pdf
+    return `${BACKEND_URL}/${storagePath.replace(/^\//, '')}`;
+  };
+
+  // Group items by Exam Name -> Year (desc) -> Stage
   const getGroupedPYQs = () => {
     const grouped: Record<string, Record<number, Record<string, PYQItem[]>>> = {};
 
@@ -242,9 +264,14 @@ export default function PyqPage() {
                 className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-205 dark:border-white/[0.06] rounded-xl outline-none text-slate-700 dark:text-white font-bold"
               >
                 <option value="ALL">All Years</option>
-                {['2024', '2023', '2022', '2021', '2020', '2019'].map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
+                {allYears.length > 0
+                  ? allYears.map((y) => (
+                      <option key={y} value={String(y)}>{y}</option>
+                    ))
+                  : ['2024', '2023', '2022', '2021', '2020', '2019', '2018', '2017', '2016', '2015'].map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))
+                }
               </select>
 
               <select
@@ -297,8 +324,8 @@ export default function PyqPage() {
                     {isExamExpanded && (
                       <div className="p-6 space-y-6 border-t border-slate-100 dark:border-white/[0.04] bg-white dark:bg-transparent">
                         
-                        {/* Grouped by Year */}
-                        {Object.entries(years).map(([year, stages]) => {
+                        {/* Grouped by Year — descending */}
+                        {Object.entries(years).sort(([a], [b]) => Number(b) - Number(a)).map(([year, stages]) => {
                           const yearKey = `${examName}_${year}`;
                           const isYearExpanded = expandedYears[yearKey];
 
@@ -339,46 +366,48 @@ export default function PyqPage() {
                                             </div>
 
                                             {/* Action downloads */}
-                                            <div className="flex gap-2 pt-4 mt-3 border-t border-slate-100 dark:border-white/[0.02]">
+                                            <div className="flex flex-wrap gap-2 pt-4 mt-3 border-t border-slate-100 dark:border-white/[0.02]">
                                               {item.questionPaper && (
                                                 <button
                                                   onClick={() => {
-                                                    setPreviewPdfUrl(`${BACKEND_URL}/${item.questionPaper!.storagePath}`);
-                                                    setPreviewTitle(`${item.paperName} - Question Booklet`);
+                                                    setPreviewPdfUrl(buildFileUrl(item.questionPaper!.storagePath));
+                                                    setPreviewTitle(`${item.paperName} — Question Booklet`);
                                                   }}
                                                   className="btn-outline py-1.5 text-[9px] flex-grow text-center flex items-center justify-center gap-1 cursor-pointer"
                                                 >
                                                   <Eye className="w-3 h-3" />
-                                                  <span>Paper</span>
+                                                  <span>View Paper</span>
                                                 </button>
                                               )}
                                               {item.answerKey && (
                                                 <button
                                                   onClick={() => {
-                                                    setPreviewPdfUrl(`${BACKEND_URL}/${item.answerKey!.storagePath}`);
-                                                    setPreviewTitle(`${item.paperName} - Answer Key`);
+                                                    setPreviewPdfUrl(buildFileUrl(item.answerKey!.storagePath));
+                                                    setPreviewTitle(`${item.paperName} — Answer Key`);
                                                   }}
                                                   className="btn-outline py-1.5 text-[9px] flex-grow text-center flex items-center justify-center gap-1 cursor-pointer"
                                                 >
                                                   <Eye className="w-3 h-3" />
-                                                  <span>Key</span>
+                                                  <span>View Key</span>
                                                 </button>
                                               )}
                                               {item.solution && (
                                                 <button
                                                   onClick={() => {
-                                                    setPreviewPdfUrl(`${BACKEND_URL}/${item.solution!.storagePath}`);
-                                                    setPreviewTitle(`${item.paperName} - Detailed Solution`);
+                                                    setPreviewPdfUrl(buildFileUrl(item.solution!.storagePath));
+                                                    setPreviewTitle(`${item.paperName} — Detailed Solution`);
                                                   }}
                                                   className="btn-outline py-1.5 text-[9px] flex-grow text-center flex items-center justify-center gap-1 cursor-pointer"
                                                 >
                                                   <Eye className="w-3 h-3" />
-                                                  <span>Solution</span>
+                                                  <span>View Solution</span>
                                                 </button>
                                               )}
                                               {item.questionPaper && (
                                                 <a
-                                                  href={`${BACKEND_URL}/${item.questionPaper!.storagePath}`}
+                                                  href={buildFileUrl(item.questionPaper!.storagePath)}
+                                                  target="_blank"
+                                                  rel="noreferrer"
                                                   download
                                                   className="btn-primary py-1.5 text-[9px] flex-grow text-center flex items-center justify-center gap-1"
                                                 >
@@ -524,11 +553,30 @@ export default function PyqPage() {
               </button>
             </div>
 
+            <div className="flex items-center gap-2 border-t border-slate-100 dark:border-white/[0.04] px-4 py-2 bg-slate-50 dark:bg-slate-800/50">
+              <a
+                href={previewPdfUrl || ''}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[10px] font-bold text-blue-600 hover:underline"
+              >
+                Open in New Tab ↗
+              </a>
+              <span className="text-slate-300">|</span>
+              <a
+                href={previewPdfUrl || ''}
+                download
+                className="text-[10px] font-bold text-slate-500 hover:text-slate-700"
+              >
+                Download
+              </a>
+            </div>
             <div className="flex-grow bg-slate-950 relative overflow-hidden">
               <iframe
-                src={previewPdfUrl}
+                src={previewPdfUrl || ''}
                 className="w-full h-full border-0"
-                title="Syllabus PDF Previewer"
+                title="PYQ PDF Preview"
+                allowFullScreen
               />
             </div>
           </div>
