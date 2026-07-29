@@ -58,6 +58,14 @@ export default function SyllabusStrategyPage() {
   const [expandedExamId, setExpandedExamId] = useState<string | null>(null);
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>('');
+  const [siteSettings, setSiteSettings] = useState<any>({});
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/api/settings`)
+      .then(res => res.json())
+      .then(data => setSiteSettings(data || {}))
+      .catch(() => {});
+  }, []);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -191,38 +199,46 @@ export default function SyllabusStrategyPage() {
                     className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/[0.08] rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all"
                   >
                     {/* Accordion Trigger Header */}
-                    <button
+                    <div
                       onClick={() => {
                         setExpandedExamId(isExpanded ? null : exam.id);
                         setSelectedExamId(exam.id);
                         setSelectedStage('ALL'); // Reset stage filter
                       }}
-                      className="w-full flex justify-between items-center p-6 bg-slate-50/60 dark:bg-slate-800/40 text-left cursor-pointer border-b border-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors"
+                      className="w-full flex justify-between items-center p-6 bg-slate-50/60 dark:bg-slate-800/40 text-left cursor-pointer border-b border-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors select-none"
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 min-w-0 flex-1">
                         {exam.logo ? (
                           <img
                             src={`${BACKEND_URL}/${exam.logo.storagePath}`}
                             alt={exam.name}
-                            className="w-12 h-12 object-contain rounded-2xl bg-amber-500/10 p-1 border border-amber-500/20"
+                            className="w-12 h-12 object-contain rounded-2xl bg-amber-500/10 p-1 border border-amber-500/20 shrink-0"
                           />
                         ) : (
-                          <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 rounded-2xl font-black text-sm">
+                          <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 rounded-2xl font-black text-sm shrink-0">
                             {exam.code}
                           </div>
                         )}
-                        <div>
-                          <h3 className="font-heading font-black text-slate-900 dark:text-white text-lg sm:text-xl">{exam.name}</h3>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">{exam.description || 'Official civil services examination roadmap'}</p>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-heading font-black text-slate-900 dark:text-white text-lg sm:text-xl truncate">{exam.name}</h3>
+                          {exam.description ? (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 line-clamp-1">
+                              {exam.description.replace(/<[^>]*>?/gm, '')}
+                            </p>
+                          ) : (
+                            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                              Official civil services examination roadmap
+                            </p>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 shrink-0 ml-4">
                         <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl hidden sm:inline-block border border-amber-500/20">
                           {filteredSyllabus.length} Documents
                         </span>
                         <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${isExpanded ? 'rotate-180 text-amber-500' : ''}`} />
                       </div>
-                    </button>
+                    </div>
 
                     {/* Accordion Content */}
                     {isExpanded && (
@@ -249,17 +265,17 @@ export default function SyllabusStrategyPage() {
                                         OFFICIAL SYLLABUS
                                       </span>
                                     </div>
-
                                     <div className="space-y-1.5">
                                       <h4 className="font-heading font-black text-base text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors line-clamp-2">
                                         {displayName}
                                       </h4>
                                       {syll.description && (
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-1">
-                                          {syll.description}
-                                        </p>
+                                        <div
+                                          className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-3 [&_*]:inline [&_*]:m-0"
+                                          dangerouslySetInnerHTML={{ __html: syll.description }}
+                                        />
                                       )}
-                                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium pt-1">
                                         Last Updated: <span className="font-bold text-slate-700 dark:text-slate-300">{syll.lastUpdated}</span>
                                       </p>
                                     </div>
@@ -269,8 +285,12 @@ export default function SyllabusStrategyPage() {
                                     {/* Primary Preview Button */}
                                     <button
                                       onClick={() => {
-                                        setPreviewPdfUrl(fileUrl);
-                                        setPreviewTitle(`${exam.code} ${syll.stage} Syllabus`);
+                                        if (siteSettings?.featureFlags?.pdfPreviewer === false) {
+                                          window.open(fileUrl, '_blank');
+                                        } else {
+                                          setPreviewPdfUrl(fileUrl);
+                                          setPreviewTitle(`${exam.code} ${syll.stage} Syllabus`);
+                                        }
                                       }}
                                       className="flex-1 py-2.5 px-4 bg-white dark:bg-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 font-extrabold rounded-xl text-xs border border-slate-200 dark:border-white/10 flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
                                     >
@@ -307,47 +327,86 @@ export default function SyllabusStrategyPage() {
 
       {/* Strategy Tab View */}
       {activeTab === 'strategy' && (
-        <div className="space-y-12 max-w-5xl">
+        <div className="space-y-10 max-w-5xl">
           {strategyBlocks.length === 0 ? (
             <p className="text-sm text-slate-400">Loading strategy blocks...</p>
           ) : (
-            strategyBlocks.map((block) => (
-              <div
-                key={block.id}
-                className="bg-white dark:bg-[#0F172A] border border-slate-200/80 dark:border-[#1E293B] rounded-3xl p-6 sm:p-10 space-y-6 shadow-xs flex flex-col md:flex-row gap-8 items-start hover:shadow-sm transition-all"
-              >
-                {/* Optional Image */}
-                {block.featuredImage && (
-                  <div className="w-full md:w-1/3 aspect-video md:aspect-square bg-slate-50 dark:bg-[#131B2E] rounded-2xl overflow-hidden shrink-0">
-                    <img
-                      src={`${BACKEND_URL}/${block.featuredImage.storagePath}`}
-                      alt={block.title}
-                      className="w-full h-full object-cover"
-                    />
+            strategyBlocks.map((block) => {
+              // Convert YouTube URL to embed URL if applicable
+              let embedVideoUrl = block.videoUrl || '';
+              if (embedVideoUrl.includes('youtube.com/watch?v=')) {
+                embedVideoUrl = embedVideoUrl.replace('watch?v=', 'embed/');
+              } else if (embedVideoUrl.includes('youtu.be/')) {
+                const id = embedVideoUrl.split('youtu.be/')[1]?.split('?')[0];
+                if (id) embedVideoUrl = `https://www.youtube.com/embed/${id}`;
+              }
+
+              return (
+                <div
+                  key={block.id}
+                  className="bg-white dark:bg-[#0F172A] border border-slate-200/80 dark:border-[#1E293B] rounded-3xl p-6 sm:p-10 space-y-6 shadow-sm w-full transition-all"
+                >
+                  <div className="flex flex-col md:flex-row gap-6 md:items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-4">
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 px-3 py-1 rounded-xl uppercase tracking-wider inline-block">
+                        {block.category}
+                      </span>
+                      <h3 className="font-heading font-black text-slate-900 dark:text-white text-xl sm:text-2xl">{block.title}</h3>
+                    </div>
                   </div>
-                )}
 
-                <div className="space-y-4 flex-grow">
-                  <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider block w-fit">
-                    {block.category}
-                  </span>
-                  <h3 className="font-heading font-black text-slate-900 dark:text-white text-lg sm:text-xl">{block.title}</h3>
-                  
-                  {/* Rich Text render */}
-                  <div
-                    className="text-xs sm:text-sm text-slate-550 dark:text-slate-400 leading-relaxed space-y-3 prose dark:prose-invert"
-                    dangerouslySetInnerHTML={{ __html: block.content }}
-                  />
+                  {/* Featured Image & Main Grid Content */}
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    {block.featuredImage && (
+                      <div className="lg:col-span-4 aspect-video lg:aspect-square bg-slate-50 dark:bg-[#131B2E] rounded-2xl overflow-hidden shrink-0 border border-slate-200/60 dark:border-white/10">
+                        <img
+                          src={`${BACKEND_URL}/${block.featuredImage.storagePath}`}
+                          alt={block.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
 
-                  {/* Attachment Download & video player & CTA triggers */}
-                  <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-50 dark:border-white/[0.02]">
+                    <div className={`${block.featuredImage ? 'lg:col-span-8' : 'lg:col-span-12'} space-y-4`}>
+                      {/* Rich Text render with clean normalized HTML tables */}
+                      <div
+                        className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-4 prose dark:prose-invert max-w-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 [&_th]:dark:bg-slate-800 [&_th]:p-3 [&_th]:text-left [&_th]:font-bold [&_td]:p-3 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-white/10 [&_tr:nth-child(even)]:bg-slate-50/50 [&_tr:nth-child(even)]:dark:bg-slate-800/30"
+                        dangerouslySetInnerHTML={{ __html: block.content }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Responsive Video Embed Player */}
+                  {embedVideoUrl && (
+                    <div className="space-y-3 pt-4 border-t border-slate-100 dark:border-white/[0.06]">
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <span>📹 Strategy Guidance Video</span>
+                      </h4>
+                      <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-white/10 shadow-md">
+                        {embedVideoUrl.includes('embed') || embedVideoUrl.includes('youtube') || embedVideoUrl.includes('vimeo') ? (
+                          <iframe
+                            src={embedVideoUrl}
+                            title={block.title}
+                            className="w-full h-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video src={embedVideoUrl} controls className="w-full h-full object-contain" />
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-slate-100 dark:border-white/[0.06]">
                     {block.attachment && (
                       <a
                         href={`${BACKEND_URL}/${block.attachment.storagePath}`}
                         download
                         className="btn-outline py-2.5 px-4 text-xs flex items-center gap-1.5"
                       >
-                        <FileText className="w-4 h-4" />
+                        <FileText className="w-4 h-4 text-amber-500" />
                         <span>Booklist PDF / Details</span>
                       </a>
                     )}
@@ -361,23 +420,10 @@ export default function SyllabusStrategyPage() {
                         <ChevronRight className="w-4 h-4" />
                       </Link>
                     )}
-
-                    {block.videoUrl && (
-                      <a
-                        href={block.videoUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="btn-outline py-2.5 px-4 text-xs flex items-center gap-1.5 border-amber-500/30 hover:bg-amber-50"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                        <span>Watch Guidance Video</span>
-                      </a>
-                    )}
                   </div>
-
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}

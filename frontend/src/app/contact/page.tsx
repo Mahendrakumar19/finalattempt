@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle, ArrowRight, HelpCircle, GraduationCap, MapPin, Send, Mail, Phone, Clock, MessageCircle, SendIcon } from 'lucide-react';
 import { db } from '@/services/db';
@@ -10,6 +10,16 @@ import Image from "next/image";
 function ContactFormContent() {
   const searchParams = useSearchParams();
   const isEnrollMode = searchParams.get('enquiry') === 'enroll';
+
+  // CMS Settings
+  const [cmsSettings, setCmsSettings] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => setCmsSettings(data))
+      .catch(() => {});
+  }, []);
 
   // Form states
   const [name, setName] = useState('');
@@ -35,6 +45,16 @@ function ContactFormContent() {
     setSuccess(true);
   };
 
+  const title = cmsSettings?.contactTitle || "Connect With Final Attempt";
+  const subtitle = cmsSettings?.contactSubtitle || "Have questions about the BPSC micro-schedule, answer writing mentorship batches, or offline library? Let's trace out your study strategy.";
+  const address = cmsSettings?.contactAddress || "2nd Floor, Opposite Verma Centre, Boring Road Crossing, Patna, Bihar - 800001";
+  const phone = cmsSettings?.contactPhone || "+91 97099 92093 (Counseling & Doubts)";
+  const emailAddr = cmsSettings?.contactEmail || "enquiry@finalattemptias.com";
+  const hours = cmsSettings?.contactHours || "Monday - Sunday: 9:00 AM - 7:00 PM";
+  const whatsappUrl = cmsSettings?.whatsappLink || "https://wa.me/919709992093";
+  const telegramUrl = cmsSettings?.telegramLink || "https://t.me/Finalattemptofficial";
+  const mapUrl = cmsSettings?.googleMapUrl || "https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d28385.5475886151!2d85.1218147!3d25.6043364!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39f9e28542b71ddf%3A0x549b953bf6840f72!2sFinal%20Attempt%20IAS%20Institute!5e0!3m2!1sen!2sin!4v1753153883700!5m2!1sen!2sin";
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
 
@@ -44,10 +64,10 @@ function ContactFormContent() {
           Admissions Helpdesk
         </span>
         <h1 className="text-4xl font-heading font-black text-[var(--text-color)] tracking-tight">
-          Connect With Final Attempt
+          {title}
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-          Have questions about the BPSC micro-schedule, answer writing mentorship batches, or offline library? Let's trace out your study strategy.
+          {subtitle}
         </p>
       </div>
 
@@ -66,7 +86,7 @@ function ContactFormContent() {
                 <MapPin className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-[var(--text-color)]">Corporate Address</p>
-                  <p className="mt-0.5 text-slate-500">2nd Floor, Opposite Verma Centre, Boring Road Crossing, Patna, Bihar - 800001</p>
+                  <p className="mt-0.5 text-slate-500">{address}</p>
                 </div>
               </div>
 
@@ -74,7 +94,7 @@ function ContactFormContent() {
                 <Phone className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-[var(--text-color)]">Admission Helpline</p>
-                  <p className="mt-0.5 text-slate-500">+91 97099 92093 (Counseling & Doubts)</p>
+                  <p className="mt-0.5 text-slate-500">{phone}</p>
                 </div>
               </div>
 
@@ -82,7 +102,7 @@ function ContactFormContent() {
                 <Mail className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-[var(--text-color)]">Support Email</p>
-                  <p className="mt-0.5 text-slate-500">enquiry@finalattemptias.com</p>
+                  <p className="mt-0.5 text-slate-500">{emailAddr}</p>
                 </div>
               </div>
 
@@ -90,7 +110,7 @@ function ContactFormContent() {
                 <Clock className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-bold text-[var(--text-color)]">Working Hours</p>
-                  <p className="mt-0.5 text-slate-500">Monday - Sunday: 9:00 AM - 7:00 PM</p>
+                  <p className="mt-0.5 text-slate-500">{hours}</p>
                 </div>
               </div>
             </div>
@@ -98,21 +118,11 @@ function ContactFormContent() {
 
           {/* Social Links Cards */}
           <div className="grid grid-cols-2 gap-4">
-            {/* <a
-              href="https://wa.me/919709992093"
-              target="_blank"
-              rel="noreferrer"
-              className="flex items-center justify-center gap-2 p-4 bg-[#22C55E] hover:bg-green-600 text-white font-bold rounded-2xl shadow-3xs text-xs transition-colors"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>WhatsApp Chat</span>
-            </a> */}
-
             <a
-              href="https://wa.me/919709992093"
+              href={whatsappUrl}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center justify-center gap-2 p-4 bg-white hover:bg-green-500 text-green-500 font-bold rounded-2xl shadow-3xs text-xs transition-colors"
+              className="flex items-center justify-center gap-2 p-4 bg-white hover:bg-green-500 text-green-500 hover:text-white font-bold rounded-2xl shadow-3xs text-xs transition-colors border border-green-200"
             >
               <Image
                 src="/whatsapp.svg"
@@ -123,7 +133,7 @@ function ContactFormContent() {
               <span>WhatsApp Chat</span>
             </a>
             <a
-              href="https://t.me/Finalattemptofficial"
+              href={telegramUrl}
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-center gap-2 p-4 bg-[#0088cc] hover:bg-[#0077b3] text-white font-bold rounded-2xl shadow-3xs text-xs transition-colors"
@@ -136,7 +146,7 @@ function ContactFormContent() {
           {/* Interactive Google Map iframe wrapper */}
           <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden shadow-3xs h-64 relative">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d28385.5475886151!2d85.1218147!3d25.6043364!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39f9e28542b71ddf%3A0x549b953bf6840f72!2sFinal%20Attempt%20IAS%20Institute!5e0!3m2!1sen!2sin!4v1753153883700!5m2!1sen!2sin"
+              src={mapUrl}
               width="100%"
               height="100%"
               style={{ border: 0 }}

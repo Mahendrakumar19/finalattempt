@@ -422,12 +422,21 @@ model results {
 }
 
 model settings {
-  id            Int     @id @default(1)
-  heroTitle     String? @db.Text
-  heroSubtitle  String? @db.Text
-  tagline       String? @db.Text
-  heroImageUrl  String? @db.Text
-  visitorsCount Int?    @default(0)
+  id              Int     @id @default(1)
+  heroTitle       String? @db.Text
+  heroSubtitle    String? @db.Text
+  tagline         String? @db.Text
+  heroImageUrl    String? @db.Text
+  visitorsCount   Int?    @default(0)
+  contactTitle    String? @db.Text
+  contactSubtitle String? @db.Text
+  contactAddress  String? @db.Text
+  contactPhone    String? @db.Text
+  contactEmail    String? @db.Text
+  contactHours    String? @db.Text
+  whatsappLink    String? @db.Text
+  telegramLink    String? @db.Text
+  googleMapUrl    String? @db.Text
 }
 
 model student_queries {

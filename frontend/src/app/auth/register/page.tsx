@@ -42,10 +42,25 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [registrationDisabled, setRegistrationDisabled] = useState(false);
+
+  useState(() => {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data?.featureFlags?.allowRegistration === false) {
+          setRegistrationDisabled(true);
+        }
+      }).catch(() => {});
+  });
 
   const form = useForm<RegisterForm>({ resolver: zodResolver(RegisterSchema) });
 
   const onSubmit = async (data: RegisterForm) => {
+    if (registrationDisabled) {
+      setError('New student registrations are currently paused by administration.');
+      return;
+    }
     setError('');
     setIsSubmitting(true);
     const res = await registerUser(data);

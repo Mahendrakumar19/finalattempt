@@ -170,6 +170,47 @@ app.put('/api/settings', async (req, res) => {
   }
 });
 
+// CUSTOM PAGES CMS
+app.get('/api/custom-pages', async (req, res) => {
+  try {
+    const publishedOnly = req.query.publishedOnly === 'true';
+    const pages = await db.getCustomPages(publishedOnly);
+    res.json({ success: true, data: pages });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/custom-pages/:slug', async (req, res) => {
+  try {
+    const page = await db.getCustomPageBySlug(req.params.slug);
+    if (!page) {
+      return res.status(404).json({ success: false, error: 'Page not found' });
+    }
+    res.json({ success: true, data: page });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/custom-pages', async (req, res) => {
+  try {
+    const saved = await db.saveCustomPage(req.body);
+    res.json({ success: true, data: saved });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/custom-pages/:id', async (req, res) => {
+  try {
+    const ok = await db.deleteCustomPage(req.params.id);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post('/api/visitors/increment', async (req, res) => {
   try {
     const count = await db.getAndIncrementVisitorCount();

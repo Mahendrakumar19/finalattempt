@@ -27,6 +27,7 @@ import {
   Sun,
   Moon,
   Menu,
+  MessageSquare,
   X
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
@@ -37,8 +38,9 @@ import SyllabusStrategyCMS from '@/components/SyllabusStrategyCMS';
 import PYQsManagerCMS from '@/components/PYQsManagerCMS';
 import { db } from '@/services/db';
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
+import CustomPagesCMS from '@/components/CustomPagesCMS';
 
-type AdminTab = 'Dashboard' | 'Settings' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy CMS' | 'Values CMS' | 'Leads' | 'Faculty' | 'Results' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Courses' | 'Test Series';
+type AdminTab = 'Dashboard' | 'Settings' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
 
 interface SiteSettings {
   heroTitle: string;
@@ -46,6 +48,16 @@ interface SiteSettings {
   tagline: string;
   heroImageUrl?: string;
   visitorsCount?: number;
+  contactTitle?: string;
+  contactSubtitle?: string;
+  contactAddress?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  contactHours?: string;
+  whatsappLink?: string;
+  telegramLink?: string;
+  googleMapUrl?: string;
+  featureFlags?: Record<string, boolean>;
 }
 
 interface Lead {
@@ -56,29 +68,6 @@ interface Lead {
   targetExam: string;
   status: string;
   createdAt: string;
-}
-
-interface FacultyMember {
-  id: string;
-  name: string;
-  role: string;
-  experience: string;
-  avatar: string;
-  bio: string;
-  demoLectures: { title: string; duration: string; url: string }[];
-}
-
-interface ResultTopper {
-  id: string;
-  name: string;
-  rank: string;
-  exam: string;
-  course: string;
-  service: string;
-  district: string;
-  photo: string;
-  year: number;
-  story: string;
 }
 
 interface CurrentAffairArticle {
@@ -131,14 +120,28 @@ interface Course {
   isPublished: boolean;
 }
 
+interface StudentEnrollmentInfo {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  batch: string;
+  paymentOrderId: string;
+  paymentStatus: string;
+  amountPaid: number;
+  enrolledAt: string;
+}
+
 interface UserProfile {
   id: string;
   fullName: string;
   email: string;
   mobile?: string;
   role: 'student' | 'faculty' | 'admin';
+  targetExam?: string;
   isActive: boolean;
   createdAt: string;
+  lastLoginAt?: string;
+  enrollments?: StudentEnrollmentInfo[];
 }
 
 export default function AdminPortal() {
@@ -155,8 +158,6 @@ export default function AdminPortal() {
   });
   const [heroUploading, setHeroUploading] = useState(false);
   const [leadsList, setLeadsList] = useState<Lead[]>([]);
-  const [facultyList, setFacultyList] = useState<FacultyMember[]>([]);
-  const [resultsList, setResultsList] = useState<ResultTopper[]>([]);
   const [caList, setCaList] = useState<CurrentAffairArticle[]>([]);
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
   const [resourcesList, setResourcesList] = useState<ResourceDownload[]>([]);
@@ -180,8 +181,9 @@ export default function AdminPortal() {
   const [youtubeStatus, setYoutubeStatus] = useState<any>({ lastSyncTime: null, videosSynced: 0, status: 'IDLE', error: null });
   const [syncingYoutube, setSyncingYoutube] = useState(false);
 
-  // Simple Local Storage Auth check for Admin Portal
+  // Local Storage Auth & Super Admin state
   const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -190,15 +192,26 @@ export default function AdminPortal() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setAdminToken(localStorage.getItem('admin_token'));
+      const token = localStorage.getItem('admin_token');
+      const superFlag = localStorage.getItem('is_super_admin') === 'true';
+      setAdminToken(token);
+      setIsSuperAdmin(superFlag);
     }
   }, []);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminEmail === 'admin@finalattempt.com' && adminPassword === 'Password123') {
+    if (adminEmail === 'superadmin@finalattempt.com' && adminPassword === 'SuperAdminSecret#2026') {
+      localStorage.setItem('admin_token', 'finalattempt-superadmin-master-access-key-999');
+      localStorage.setItem('is_super_admin', 'true');
+      setAdminToken('finalattempt-superadmin-master-access-key-999');
+      setIsSuperAdmin(true);
+      setAuthError('');
+    } else if (adminEmail === 'admin@finalattempt.com' && adminPassword === 'Password123') {
       localStorage.setItem('admin_token', 'finalattempt-admin-token-secure-hash');
+      localStorage.removeItem('is_super_admin');
       setAdminToken('finalattempt-admin-token-secure-hash');
+      setIsSuperAdmin(false);
       setAuthError('');
     } else {
       setAuthError('Invalid administrator credentials.');
@@ -207,12 +220,12 @@ export default function AdminPortal() {
 
   const handleAdminLogout = () => {
     localStorage.removeItem('admin_token');
+    localStorage.removeItem('is_super_admin');
     setAdminToken(null);
+    setIsSuperAdmin(false);
   };
 
   // Form states for CRUD operations
-  const [facultyForm, setFacultyForm] = useState<FacultyMember>({ id: '', name: '', role: '', experience: '', avatar: '', bio: '', demoLectures: [] });
-  const [resultForm, setResultForm] = useState<ResultTopper>({ id: '', name: '', rank: '', exam: '', course: '', service: '', district: '', photo: '', year: 2026, story: '' });
   const [caForm, setCaForm] = useState<CurrentAffairArticle>({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
   const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '', imageUrl: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '', category: 'Prelims', subcategory: '' });
@@ -231,14 +244,6 @@ export default function AdminPortal() {
       // 2. Leads
       const leadsRes = await fetch(`${BACKEND_URL}/api/leads`);
       if (leadsRes.ok) setLeadsList(await leadsRes.json());
-
-      // 3. Faculty
-      const facRes = await fetch(`${BACKEND_URL}/api/faculty`);
-      if (facRes.ok) setFacultyList(await facRes.json());
-
-      // 4. Results
-      const resRes = await fetch(`${BACKEND_URL}/api/results`);
-      if (resRes.ok) setResultsList(await resRes.json());
 
       // 5. Current affairs
       const caRes = await fetch(`${BACKEND_URL}/api/current-affairs`);
@@ -337,10 +342,6 @@ export default function AdminPortal() {
         }
         return { ...prev, heroImageUrl: existing.join(', ') };
       });
-    } else if (field === 'resultPhoto') {
-      setResultForm(prev => ({ ...prev, photo: url }));
-    } else if (field === 'facultyAvatar') {
-      setFacultyForm(prev => ({ ...prev, avatar: url }));
     } else if (field === 'blogImage') {
       setBlogForm(prev => ({ ...prev, imageUrl: url }));
     }
@@ -361,62 +362,6 @@ export default function AdminPortal() {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     setUsersList(prev => prev.filter(u => u.id !== id));
     await fetch(`${BACKEND_URL}/api/auth/users/${id}`, { method: 'DELETE' });
-  };
-
-  const handleSaveFaculty = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (activeModal?.type === 'add') {
-      const newItem = { ...facultyForm, id: `fac-${Date.now()}` };
-      setFacultyList(prev => [...prev, newItem]);
-      await fetch(`${BACKEND_URL}/api/faculty`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newItem)
-      });
-    } else {
-      const id = facultyForm.id;
-      setFacultyList(prev => prev.map(f => f.id === id ? facultyForm : f));
-      await fetch(`${BACKEND_URL}/api/faculty/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(facultyForm)
-      });
-    }
-    setActiveModal(null);
-  };
-
-  const handleDeleteFaculty = async (id: string) => {
-    if (!window.confirm('Delete this faculty profile?')) return;
-    setFacultyList(prev => prev.filter(f => f.id !== id));
-    await fetch(`${BACKEND_URL}/api/faculty/${id}`, { method: 'DELETE' });
-  };
-
-  const handleSaveResult = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (activeModal?.type === 'add') {
-      const newItem = { ...resultForm, id: `res-${Date.now()}` };
-      setResultsList(prev => [...prev, newItem]);
-      await fetch(`${BACKEND_URL}/api/results`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newItem)
-      });
-    } else {
-      const id = resultForm.id;
-      setResultsList(prev => prev.map(r => r.id === id ? resultForm : r));
-      await fetch(`${BACKEND_URL}/api/results/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(resultForm)
-      });
-    }
-    setActiveModal(null);
-  };
-
-  const handleDeleteResult = async (id: string) => {
-    if (!window.confirm('Delete this topper result record?')) return;
-    setResultsList(prev => prev.filter(r => r.id !== id));
-    await fetch(`${BACKEND_URL}/api/results/${id}`, { method: 'DELETE' });
   };
 
   const handleSaveCA = async (e: React.FormEvent) => {
@@ -700,19 +645,18 @@ export default function AdminPortal() {
             {[
               { id: 'Dashboard', icon: LayoutDashboard },
               { id: 'Settings', icon: Settings },
+              ...(settings.featureFlags?.livePageBuilder !== false ? [{ id: 'Custom Pages', icon: FileText }] : []),
+              { id: 'Students', icon: Users },
+              { id: 'Courses', icon: BookOpen },
+              { id: 'Test Series', icon: FileText },
+              { id: 'Leads', icon: MessageSquare },
               { id: 'Media Library', icon: FolderOpen },
               { id: 'Exams & Syllabus', icon: Layers },
               { id: 'PYQs Manager', icon: FileText },
-              { id: 'Strategy CMS', icon: Bookmark },
-              { id: 'Values CMS', icon: Database },
-              { id: 'Courses', icon: BookOpen },
-              { id: 'Test Series', icon: FileText },
-              { id: 'Leads', icon: Users },
-              { id: 'Faculty', icon: Briefcase },
-              { id: 'Results', icon: Award },
-              { id: 'Current Affairs', icon: FileText },
+              { id: 'Strategy & Values', icon: Bookmark },
+              ...(settings.featureFlags?.currentAffairsFilters !== false ? [{ id: 'Current Affairs', icon: FileText }] : []),
               { id: 'Blogs', icon: Bookmark },
-              { id: 'Resources', icon: Database }
+              ...(isSuperAdmin ? [{ id: 'Super Admin Console', icon: Award }] : [])
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -788,9 +732,9 @@ export default function AdminPortal() {
           <div className="space-y-8">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { label: 'Total Enquiries', value: leadsList.length.toString(), desc: 'Direct Lead records', icon: Users, color: 'text-blue-500' },
-                { label: 'Total Faculty', value: facultyList.length.toString(), desc: 'Active mentoring profiles', icon: Users, color: 'text-amber-500' },
-                { label: 'Results Ranks', value: resultsList.length.toString(), desc: 'Successful topper stories', icon: Award, color: 'text-emerald-500' },
+                { label: 'Registered Users', value: usersList.length.toString(), desc: 'Active student profiles', icon: Users, color: 'text-blue-500' },
+                { label: 'LMS Courses', value: coursesList.length.toString(), desc: 'Published programs & batches', icon: BookOpen, color: 'text-amber-500' },
+                { label: 'Total Enquiries', value: leadsList.length.toString(), desc: 'Direct lead records', icon: MessageSquare, color: 'text-emerald-500' },
                 { label: 'Current Articles', value: caList.length.toString(), desc: 'Magazine current affairs', icon: FileText, color: 'text-purple-500' }
               ].map((metric, idx) => (
                 <div key={idx} className="p-5 bg-white border border-slate-200 space-y-3 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
@@ -815,7 +759,7 @@ export default function AdminPortal() {
 
         {/* TAB 2: SETTINGS */}
         {activeTab === 'Settings' && (
-          <div className="p-6 bg-white border border-slate-200 max-w-2xl rounded-3xl shadow-sm">
+          <div className="p-6 sm:p-8 bg-white border border-slate-200 w-full rounded-3xl shadow-sm">
             <form onSubmit={handleSaveSettings} className="space-y-6">
               <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-3">
                 Homepage Hero Configurations
@@ -936,9 +880,119 @@ export default function AdminPortal() {
                 </div>
               </div>
 
+              {/* ── Contact Page CMS Configurations ───────────────────── */}
+              <div className="border-t border-slate-200 pt-6 space-y-4">
+                <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+                  <span>📞 Contact Page CMS Configurations</span>
+                </h3>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Contact Page Title</label>
+                  <input
+                    type="text"
+                    placeholder="Connect With Final Attempt"
+                    value={settings.contactTitle || ''}
+                    onChange={(e) => setSettings({ ...settings, contactTitle: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Contact Page Subtitle</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Have questions about the BPSC micro-schedule..."
+                    value={settings.contactSubtitle || ''}
+                    onChange={(e) => setSettings({ ...settings, contactSubtitle: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Admission Helpline Phone</label>
+                    <input
+                      type="text"
+                      placeholder="+91 97099 92093"
+                      value={settings.contactPhone || ''}
+                      onChange={(e) => setSettings({ ...settings, contactPhone: e.target.value })}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Support Email</label>
+                    <input
+                      type="text"
+                      placeholder="enquiry@finalattemptias.com"
+                      value={settings.contactEmail || ''}
+                      onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Corporate Centre Address</label>
+                  <input
+                    type="text"
+                    placeholder="2nd Floor, Opposite Verma Centre..."
+                    value={settings.contactAddress || ''}
+                    onChange={(e) => setSettings({ ...settings, contactAddress: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Working Hours</label>
+                  <input
+                    type="text"
+                    placeholder="Monday - Sunday: 9:00 AM - 7:00 PM"
+                    value={settings.contactHours || ''}
+                    onChange={(e) => setSettings({ ...settings, contactHours: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">WhatsApp Link</label>
+                    <input
+                      type="text"
+                      placeholder="https://wa.me/919709992093"
+                      value={settings.whatsappLink || ''}
+                      onChange={(e) => setSettings({ ...settings, whatsappLink: e.target.value })}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Telegram Link</label>
+                    <input
+                      type="text"
+                      placeholder="https://t.me/Finalattemptofficial"
+                      value={settings.telegramLink || ''}
+                      onChange={(e) => setSettings({ ...settings, telegramLink: e.target.value })}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Google Map Embed URL</label>
+                  <textarea
+                    rows={2}
+                    placeholder="https://www.google.com/maps/embed?..."
+                    value={settings.googleMapUrl || ''}
+                    onChange={(e) => setSettings({ ...settings, googleMapUrl: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900 font-mono"
+                  />
+                </div>
+              </div>
+
               <button
                 type="submit"
-                className="w-full px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase rounded-2xl shadow-md transition-all"
+                className="w-full px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase rounded-2xl shadow-md transition-all cursor-pointer"
               >
                 💾 Save All Configurations
               </button>
@@ -1002,6 +1056,119 @@ export default function AdminPortal() {
                 )}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* TAB: SUPER ADMIN CONSOLE */}
+        {activeTab === 'Super Admin Console' && isSuperAdmin && (
+          <div className="space-y-8">
+            <div className="bg-gradient-to-br from-slate-900 to-amber-950 border border-amber-500/30 p-8 rounded-3xl text-white space-y-4 shadow-2xl relative overflow-hidden">
+              <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-xl inline-block">
+                👑 Super Admin Master Console
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-heading font-black">Platform Master Controls & Feature Toggles</h2>
+              <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                As Super Admin, you have full unrestricted access to system-wide flags, offline store overrides, database reset options, user roles management, and CMS permissions.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-sm md:col-span-2">
+                <h3 className="font-heading font-extrabold text-slate-900 dark:text-white text-sm flex items-center justify-between">
+                  <span>⚡ Master Feature Toggle Controls</span>
+                  <span className="text-[10px] text-amber-500 font-bold uppercase">Real-Time Sync</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    { key: 'livePageBuilder', title: 'Live Custom Page Builder', desc: 'Allow admins to create /page/[slug] live pages' },
+                    { key: 'richTextPopup', title: 'Rich Text Popup Canvas', desc: 'Full-screen editor & table width resizer' },
+                    { key: 'currentAffairsFilters', title: 'Dynamic Current Affairs', desc: 'Daily, Weekly, Monthly, Yearly compendiums' },
+                    { key: 'youtubeAutoSync', title: 'YouTube Auto-Sync Engine', desc: 'Automated video sync from official channel' },
+                    { title: 'Syllabus PDF In-App Previewer', key: 'pdfPreviewer', desc: 'Modal PDF reader overlay on syllabus' },
+                    { title: 'Public User Registration', key: 'allowRegistration', desc: 'Enable student self-registration flow' }
+                  ].map((feat) => {
+                    const isEnabled = settings.featureFlags?.[feat.key] !== false;
+                    const toggleFeature = async () => {
+                      const updatedFlags = {
+                        ...settings.featureFlags,
+                        [feat.key]: !isEnabled
+                      };
+                      const updatedSettings = { ...settings, featureFlags: updatedFlags };
+                      setSettings(updatedSettings);
+                      try {
+                        await fetch(`${BACKEND_URL}/api/settings`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(updatedSettings)
+                        });
+                      } catch (err) {
+                        console.error('Failed toggling feature:', err);
+                      }
+                    };
+
+                    return (
+                      <div key={feat.key} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5 rounded-2xl">
+                        <div className="space-y-0.5 pr-2">
+                          <h4 className="font-bold text-xs text-slate-900 dark:text-white">{feat.title}</h4>
+                          <p className="text-[10px] text-slate-400 leading-tight">{feat.desc}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={toggleFeature}
+                          className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors shrink-0 ${isEnabled ? 'bg-emerald-500 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'}`}
+                        >
+                          <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-sm">
+                <h3 className="font-heading font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                  <span>🔑 Super Admin Passkeys</span>
+                </h3>
+                <div className="space-y-3 text-xs">
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-2xl space-y-1">
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">Super Admin Email</span>
+                    <p className="font-mono font-bold text-slate-900 dark:text-white text-xs">superadmin@finalattempt.com</p>
+                  </div>
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-2xl space-y-1">
+                    <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">Master Access Key</span>
+                    <p className="font-mono font-bold text-slate-900 dark:text-white text-xs">SuperAdminSecret#2026</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-sm">
+                <h3 className="font-heading font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-2">
+                  <span>🛡️ System Diagnostic & Overrides</span>
+                </h3>
+                <div className="space-y-3">
+                  <button
+                    onClick={fetchCMSData}
+                    className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-2xl transition-all cursor-pointer"
+                  >
+                    🔄 Force Refresh All CMS Stores
+                  </button>
+                  <button
+                    onClick={handleTriggerYoutubeSync}
+                    className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-2xl transition-all cursor-pointer"
+                  >
+                    ▶️ Run Manual YouTube Sync
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: CUSTOM PAGES */}
+        {activeTab === 'Custom Pages' && (
+          <div className="space-y-6">
+            <CustomPagesCMS />
           </div>
         )}
 
@@ -1076,280 +1243,166 @@ export default function AdminPortal() {
             </div>
           </div>
         )}
-
-        {/* TAB 4: FACULTY */}
-        {activeTab === 'Faculty' && (
+        {activeTab === 'Students' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="font-extrabold text-sm text-slate-900">Faculty Profiles</h3>
-              <button
-                onClick={() => {
-                  setFacultyForm({ id: '', name: '', role: '', experience: '', avatar: '', bio: '', demoLectures: [] });
-                  setActiveModal({ type: 'add' });
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Mentor</span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {facultyList.map((fac, idx) => (
-                <div key={fac.id} className="p-6 bg-white border border-slate-200 flex gap-4 justify-between items-start rounded-3xl shadow-sm">
-                  <div className="flex gap-4">
-                    <div className="w-14 h-16 bg-slate-100 shrink-0 border border-slate-200 overflow-hidden rounded-2xl">
-                      <img src={fac.avatar || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400'} alt="fac" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-sm text-slate-900 leading-tight">{fac.name}</h4>
-                      <p className="text-[10px] text-blue-600 font-bold uppercase tracking-wider">{fac.role}</p>
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{fac.bio}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setFacultyForm(fac);
-                        setActiveModal({ type: 'edit', index: idx });
-                      }}
-                      className="p-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-650"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteFaculty(fac.id)}
-                      className="p-2 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Modal add/edit Faculty */}
-            {activeModal && activeTab === 'Faculty' && (
-              <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <form onSubmit={handleSaveFaculty} className="bg-white/90 backdrop-blur-md border border-slate-200 p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
-                  <h3 className="font-extrabold text-sm text-slate-900">
-                    {activeModal.type === 'add' ? 'Add New Faculty Member' : 'Edit Faculty Member'}
-                  </h3>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Name</label>
-                    <input
-                      type="text" required value={facultyForm.name}
-                      onChange={(e) => setFacultyForm({ ...facultyForm, name: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Role/Specialty</label>
-                    <input
-                      type="text" required value={facultyForm.role}
-                      onChange={(e) => setFacultyForm({ ...facultyForm, role: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between items-center">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Avatar URL</label>
-                      <button
-                        type="button"
-                        onClick={() => setMediaPickerConfig({ isOpen: true, field: 'facultyAvatar', allowedTypes: ['IMAGE'] })}
-                        className="text-[10px] text-amber-650 hover:underline font-bold"
-                      >
-                        Choose from Media
-                      </button>
-                    </div>
-                    <input
-                      type="text" value={facultyForm.avatar}
-                      onChange={(e) => setFacultyForm({ ...facultyForm, avatar: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Short Biography</label>
-                    <textarea
-                      rows={3} required value={facultyForm.bio}
-                      onChange={(e) => setFacultyForm({ ...facultyForm, bio: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-2xl">
-                      Cancel
-                    </button>
-                    <button type="submit" className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl">
-                      Save Profile
-                    </button>
-                  </div>
-                </form>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/70 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-xs">
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900">Enrolled Students & Registered Users</h3>
+                <p className="text-[10px] text-slate-500 font-medium">Complete record of registered users, target exams, course enrollments, batch allocations, and payment transaction IDs.</p>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 5: RESULTS */}
-        {activeTab === 'Results' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="font-extrabold text-sm text-slate-900">Toppers Hall of Fame</h3>
-              <button
-                onClick={() => {
-                  setResultForm({ id: '', name: '', rank: '', exam: '', course: '', service: '', district: '', photo: '', year: 2026, story: '' });
-                  setActiveModal({ type: 'add' });
-                }}
-                className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Record</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl">
+                  Total Users: {usersList.length}
+                </span>
+              </div>
             </div>
 
             <div className="bg-white border border-slate-200 overflow-hidden rounded-3xl shadow-sm">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
-                    <th className="p-4">Name</th>
-                    <th className="p-4">Rank</th>
-                    <th className="p-4">Exam</th>
-                    <th className="p-4">Service</th>
-                    <th className="p-4">District</th>
-                    <th className="p-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resultsList.map((item, idx) => (
-                    <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="p-4 font-bold">{item.name}</td>
-                      <td className="p-4 font-mono font-bold text-blue-600">{item.rank}</td>
-                      <td className="p-4">{item.exam}</td>
-                      <td className="p-4">{item.service}</td>
-                      <td className="p-4">{item.district}</td>
-                      <td className="p-4 flex gap-2">
-                        <button
-                          onClick={() => {
-                            setResultForm(item);
-                            setActiveModal({ type: 'edit', index: idx });
-                          }}
-                          className="p-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-650"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteResult(item.id)}
-                          className="p-1.5 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-700 uppercase tracking-wider text-[10px]">
+                      <th className="p-4">Student Info</th>
+                      <th className="p-4">Mobile & Email</th>
+                      <th className="p-4">Target Exam</th>
+                      <th className="p-4">Course Enrolled</th>
+                      <th className="p-4">Batch</th>
+                      <th className="p-4">Payment ID & Status</th>
+                      <th className="p-4">Amount</th>
+                      <th className="p-4">Account Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {usersList.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className="p-8 text-center text-slate-400 text-xs">No registered users or students found.</td>
+                      </tr>
+                    ) : (
+                      usersList.map((user) => {
+                        const hasEnrollments = user.enrollments && user.enrollments.length > 0;
+                        return (
+                          <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
+                            {/* Student Info */}
+                            <td className="p-4">
+                              <div className="font-bold text-slate-900 text-xs">{user.fullName}</div>
+                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {user.id.slice(0, 8)}...</div>
+                              <div className="mt-1">
+                                <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
+                                  user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
+                                  user.role === 'faculty' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {user.role}
+                                </span>
+                              </div>
+                            </td>
 
-            {/* Modal results add/edit */}
-            {activeModal && activeTab === 'Results' && (
-              <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <form onSubmit={handleSaveResult} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
-                  <h3 className="font-extrabold text-sm text-slate-900">
-                    {activeModal.type === 'add' ? 'Add Topper Rank Record' : 'Edit Topper Rank Record'}
-                  </h3>
+                            {/* Mobile & Email */}
+                            <td className="p-4">
+                              <div className="font-mono text-slate-900 font-semibold">{user.mobile || '-'}</div>
+                              <div className="text-[10px] text-slate-500">{user.email}</div>
+                            </td>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Name</label>
-                      <input
-                        type="text" required value={resultForm.name}
-                        onChange={(e) => setResultForm({ ...resultForm, name: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Rank (e.g. AIR 23)</label>
-                      <input
-                        type="text" required value={resultForm.rank}
-                        onChange={(e) => setResultForm({ ...resultForm, rank: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                      />
-                    </div>
-                  </div>
+                            {/* Target Exam */}
+                            <td className="p-4">
+                              <span className="font-medium text-slate-700">{user.targetExam || 'General BPSC'}</span>
+                            </td>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Exam</label>
-                      <input
-                        type="text" required value={resultForm.exam}
-                        onChange={(e) => setResultForm({ ...resultForm, exam: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Service Allocated</label>
-                      <input
-                        type="text" required value={resultForm.service}
-                        onChange={(e) => setResultForm({ ...resultForm, service: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                      />
-                    </div>
-                  </div>
+                            {/* Course Enrolled */}
+                            <td className="p-4">
+                              {hasEnrollments ? (
+                                <div className="space-y-1">
+                                  {user.enrollments!.map((enr, i) => (
+                                    <div key={i} className="font-bold text-blue-700 text-xs">
+                                      {enr.courseTitle}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 text-[11px] italic">Not Enrolled Yet</span>
+                              )}
+                            </td>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">District</label>
-                      <input
-                        type="text" required value={resultForm.district}
-                        onChange={(e) => setResultForm({ ...resultForm, district: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Photo URL</label>
-                        <button
-                          type="button"
-                          onClick={() => setMediaPickerConfig({ isOpen: true, field: 'resultPhoto', allowedTypes: ['IMAGE'] })}
-                          className="text-[10px] text-amber-650 hover:underline font-bold"
-                        >
-                          Choose from Media
-                        </button>
-                      </div>
-                      <input
-                        type="text" value={resultForm.photo}
-                        onChange={(e) => setResultForm({ ...resultForm, photo: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                      />
-                    </div>
-                  </div>
+                            {/* Batch */}
+                            <td className="p-4">
+                              {hasEnrollments ? (
+                                <div className="space-y-1">
+                                  {user.enrollments!.map((enr, i) => (
+                                    <span key={i} className="inline-block px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-md text-[10px] font-semibold">
+                                      {enr.batch}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 text-[11px]">-</span>
+                              )}
+                            </td>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Topper Story</label>
-                    <textarea
-                      rows={3} value={resultForm.story}
-                      onChange={(e) => setResultForm({ ...resultForm, story: e.target.value })}
-                      className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                    />
-                  </div>
+                            {/* Payment ID & Status */}
+                            <td className="p-4">
+                              {hasEnrollments ? (
+                                <div className="space-y-1">
+                                  {user.enrollments!.map((enr, i) => (
+                                    <div key={i}>
+                                      <div className="font-mono text-[10px] font-semibold text-slate-800">{enr.paymentOrderId}</div>
+                                      <span className={`inline-block px-2 py-0.2 rounded-full text-[9px] font-bold uppercase mt-0.5 ${
+                                        enr.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                        enr.paymentStatus === 'pending' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                        'bg-slate-100 text-slate-600'
+                                      }`}>
+                                        {enr.paymentStatus}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 text-[11px]">-</span>
+                              )}
+                            </td>
 
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-2xl">
-                      Cancel
-                    </button>
-                    <button type="submit" className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl">
-                      Save Record
-                    </button>
-                  </div>
-                </form>
+                            {/* Amount Paid */}
+                            <td className="p-4">
+                              {hasEnrollments ? (
+                                <div className="space-y-1 font-mono font-bold text-slate-900">
+                                  {user.enrollments!.map((enr, i) => (
+                                    <div key={i}>
+                                      {enr.amountPaid ? `₹${(enr.amountPaid / (enr.amountPaid > 10000 ? 100 : 1)).toLocaleString('en-IN')}` : '₹0 (Free)'}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-slate-400 text-[11px]">-</span>
+                              )}
+                            </td>
+
+                            {/* Account Status Toggle */}
+                            <td className="p-4">
+                              <button
+                                onClick={async () => {
+                                  const newStatus = !user.isActive;
+                                  await fetch(`${BACKEND_URL}/api/auth/users/${user.id}/status`, {
+                                    method: 'PUT',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ isActive: newStatus })
+                                  });
+                                  setUsersList(prev => prev.map(u => u.id === user.id ? { ...u, isActive: newStatus } : u));
+                                }}
+                                className={`px-3 py-1 rounded-xl text-[10px] font-bold transition-all cursor-pointer border ${
+                                  user.isActive
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                    : 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                                }`}
+                              >
+                                {user.isActive ? 'Active' : 'Suspended'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -1389,10 +1442,30 @@ export default function AdminPortal() {
                     <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Daily Digest Editions</h3>
                     <p className="text-[10px] text-slate-500">Add or edit multi-column daily current affairs feeds for students.</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => {
-                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Yearly Compilation Edition', articles: [] });
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Weekly Compilation Digest', articles: [] });
+                        setIsEditionModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Create Weekly Edition</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Monthly Compendium Edition', articles: [] });
+                        setIsEditionModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Create Monthly Edition</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Yearly Compilation Booklet', articles: [] });
                         setIsEditionModalOpen(true);
                       }}
                       className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-2xl text-xs shadow-sm cursor-pointer"

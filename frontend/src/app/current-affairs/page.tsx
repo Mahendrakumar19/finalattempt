@@ -115,34 +115,32 @@ export default function CurrentAffairsLanding() {
         </div>
       </div>
 
-      {/* Primary Category Filter Bar at Top */}
-      <div className="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/[0.06] rounded-3xl p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <span className="text-xs font-black uppercase text-slate-400 tracking-wider">
-          Filter Topics:
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {(['ALL', 'BIHAR', 'NATIONAL', 'INTERNATIONAL'] as const).map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setCategoryFilter(cat)}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                categoryFilter === cat
-                  ? 'bg-amber-500 text-slate-950 shadow-sm scale-105'
-                  : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-              }`}
-            >
-              {cat === 'ALL' ? 'All Coverage' : cat === 'BIHAR' ? 'Bihar Special' : cat.charAt(0) + cat.slice(1).toLowerCase()}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Advanced Global Search Card with Category Filter */}
+      <div className="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/[0.06] rounded-3xl p-6 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 dark:border-white/[0.06] pb-3">
+          <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider">
+            Global Archives Query Engine
+          </h3>
 
-      {/* Advanced Global Search Card */}
-      <div className="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/[0.06] rounded-3xl p-6 shadow-xs">
-        <h3 className="text-xs font-black uppercase text-slate-400 tracking-wider mb-4">
-          Global Archives Query Engine
-        </h3>
+          {/* Moved Category Filter Pills Here */}
+          <div className="flex flex-wrap gap-1.5">
+            {(['ALL', 'BIHAR', 'NATIONAL', 'INTERNATIONAL'] as const).map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                  categoryFilter === cat
+                    ? 'bg-amber-500 text-slate-950 shadow-sm scale-105'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                }`}
+              >
+                {cat === 'ALL' ? 'All' : cat === 'BIHAR' ? 'Bihar' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <form onSubmit={handleSearch} className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">

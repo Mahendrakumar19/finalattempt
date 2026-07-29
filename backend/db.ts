@@ -169,6 +169,30 @@ export interface SiteSettings {
   tagline: string;
   heroImageUrl?: string;
   visitorsCount?: number;
+  contactTitle?: string;
+  contactSubtitle?: string;
+  contactAddress?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  contactHours?: string;
+  whatsappLink?: string;
+  telegramLink?: string;
+  googleMapUrl?: string;
+  featureFlags?: Record<string, boolean>;
+}
+
+export interface CustomPage {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  showLocation: 'NAVBAR' | 'FOOTER' | 'HEADER_TOP' | 'SLUG_ONLY';
+  displayOrder?: number;
+  metaTitle?: string;
+  metaDescription?: string;
+  isPublished?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface LocalDBStore {
@@ -190,6 +214,7 @@ interface LocalDBStore {
   dynamicCurrentAffairEditions?: DynamicCurrentAffairEdition[];
   youtubeVideos?: any[];
   youtubeSyncLogs?: any[];
+  customPages?: CustomPage[];
 }
 
 export let mysqlPool: mysql.Pool | null = null;
@@ -222,6 +247,9 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     } catch (_) { /* column already exists */ }
     try {
       await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS visitorsCount INT DEFAULT 0');
+    } catch (_) { /* column already exists */ }
+    try {
+      await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS featureFlags JSON');
     } catch (_) { /* column already exists */ }
     
     // 2. Leads
@@ -606,6 +634,23 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       )
     `);
 
+    // 17. Custom Pages CMS Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS custom_pages (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        slug VARCHAR(255) UNIQUE NOT NULL,
+        content LONGTEXT,
+        showLocation VARCHAR(50) DEFAULT 'NAVBAR',
+        displayOrder INT DEFAULT 0,
+        metaTitle VARCHAR(255),
+        metaDescription TEXT,
+        isPublished TINYINT(1) DEFAULT 1,
+        createdAt VARCHAR(255),
+        updatedAt VARCHAR(255)
+      )
+    `);
+
     console.log('MySQL Database tables initialized successfully.');
 
     
@@ -834,7 +879,13 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query('SELECT * FROM settings LIMIT 1');
-        if (rows && rows.length > 0) return rows[0] as SiteSettings;
+        if (rows && rows.length > 0) {
+          const row = rows[0];
+          return {
+            ...row,
+            featureFlags: typeof row.featureFlags === 'string' ? JSON.parse(row.featureFlags) : (row.featureFlags || {})
+          } as SiteSettings;
+        }
       } catch (err) {
         console.error('MySQL query error, using local fallback:', err);
       }
@@ -846,10 +897,29 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, heroImageUrl) VALUES (1, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE heroTitle = ?, heroSubtitle = ?, tagline = ?, heroImageUrl = ?',
+          `INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, heroImageUrl, contactTitle, contactSubtitle, contactAddress, contactPhone, contactEmail, contactHours, whatsappLink, telegramLink, googleMapUrl, featureFlags)
+           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+           heroTitle = VALUES(heroTitle),
+           heroSubtitle = VALUES(heroSubtitle),
+           tagline = VALUES(tagline),
+           heroImageUrl = VALUES(heroImageUrl),
+           contactTitle = VALUES(contactTitle),
+           contactSubtitle = VALUES(contactSubtitle),
+           contactAddress = VALUES(contactAddress),
+           contactPhone = VALUES(contactPhone),
+           contactEmail = VALUES(contactEmail),
+           contactHours = VALUES(contactHours),
+           whatsappLink = VALUES(whatsappLink),
+           telegramLink = VALUES(telegramLink),
+           googleMapUrl = VALUES(googleMapUrl),
+           featureFlags = VALUES(featureFlags)`,
           [
-            settings.heroTitle, settings.heroSubtitle, settings.tagline, settings.heroImageUrl ?? null,
-            settings.heroTitle, settings.heroSubtitle, settings.tagline, settings.heroImageUrl ?? null
+            settings.heroTitle || '', settings.heroSubtitle || '', settings.tagline || '', settings.heroImageUrl || null,
+            settings.contactTitle || null, settings.contactSubtitle || null, settings.contactAddress || null,
+            settings.contactPhone || null, settings.contactEmail || null, settings.contactHours || null,
+            settings.whatsappLink || null, settings.telegramLink || null, settings.googleMapUrl || null,
+            JSON.stringify(settings.featureFlags || {})
           ]
         );
         return true;
@@ -859,10 +929,7 @@ class BackendDB {
     }
     this.localStore.settings = {
       ...this.localStore.settings,
-      heroTitle: settings.heroTitle,
-      heroSubtitle: settings.heroSubtitle,
-      tagline: settings.tagline,
-      heroImageUrl: settings.heroImageUrl
+      ...settings
     };
     this.saveLocalData();
     return true;
@@ -1884,6 +1951,114 @@ class BackendDB {
     }
     return false;
   }
+
+  // ── Custom Pages CMS Engine ────────────────────────────────────────────────
+  public async getCustomPages(publishedOnly: boolean = false): Promise<CustomPage[]> {
+    if (mysqlPool) {
+      try {
+        const query = publishedOnly
+          ? 'SELECT * FROM custom_pages WHERE isPublished = 1 ORDER BY displayOrder ASC, createdAt DESC'
+          : 'SELECT * FROM custom_pages ORDER BY displayOrder ASC, createdAt DESC';
+        const [rows]: any = await mysqlPool.query(query);
+        return rows.map((r: any) => ({
+          ...r,
+          isPublished: Boolean(r.isPublished)
+        }));
+      } catch (err) {
+        handlePoolDegrade(err);
+      }
+    }
+    const store = this.localStore;
+    const pages = store.customPages || [];
+    return publishedOnly ? pages.filter(p => p.isPublished !== false) : pages;
+  }
+
+  public async getCustomPageBySlug(slug: string): Promise<CustomPage | null> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM custom_pages WHERE slug = ? LIMIT 1', [slug]);
+        if (rows.length > 0) {
+          return {
+            ...rows[0],
+            isPublished: Boolean(rows[0].isPublished)
+          };
+        }
+      } catch (err) {
+        handlePoolDegrade(err);
+      }
+    }
+    const store = this.localStore;
+    const pages = store.customPages || [];
+    return pages.find(p => p.slug === slug) || null;
+  }
+
+  public async saveCustomPage(pageData: Partial<CustomPage>): Promise<CustomPage> {
+    const id = pageData.id || `page-${Date.now()}`;
+    const title = pageData.title || 'Untitled Page';
+    const slug = (pageData.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-')).replace(/(^-|-$)/g, '');
+    const content = pageData.content || '';
+    const showLocation = pageData.showLocation || 'NAVBAR';
+    const displayOrder = pageData.displayOrder || 0;
+    const metaTitle = pageData.metaTitle || title;
+    const metaDescription = pageData.metaDescription || '';
+    const isPublished = pageData.isPublished !== false ? 1 : 0;
+    const now = new Date().toISOString();
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO custom_pages (id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription, isPublished, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             title = VALUES(title),
+             slug = VALUES(slug),
+             content = VALUES(content),
+             showLocation = VALUES(showLocation),
+             displayOrder = VALUES(displayOrder),
+             metaTitle = VALUES(metaTitle),
+             metaDescription = VALUES(metaDescription),
+             isPublished = VALUES(isPublished),
+             updatedAt = VALUES(updatedAt)`,
+          [id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription, isPublished, pageData.createdAt || now, now]
+        );
+      } catch (err) {
+        handlePoolDegrade(err);
+      }
+    }
+
+    const store = this.localStore;
+    if (!store.customPages) store.customPages = [];
+    const idx = store.customPages.findIndex(p => p.id === id);
+    const updatedRecord: CustomPage = {
+      id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription,
+      isPublished: Boolean(isPublished),
+      createdAt: pageData.createdAt || now,
+      updatedAt: now
+    };
+    if (idx >= 0) {
+      store.customPages[idx] = updatedRecord;
+    } else {
+      store.customPages.push(updatedRecord);
+    }
+    this.saveLocalData();
+    return updatedRecord;
+  }
+
+  public async deleteCustomPage(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM custom_pages WHERE id = ?', [id]);
+      } catch (err) {
+        handlePoolDegrade(err);
+      }
+    }
+    const store = this.localStore;
+    if (store.customPages) {
+      store.customPages = store.customPages.filter(p => p.id !== id);
+      this.saveLocalData();
+    }
+    return true;
+  }
 }
 
 
@@ -2307,6 +2482,43 @@ class AuthDB {
       } catch (err) { console.error('[AuthDB] getUsers MySQL error:', err); }
     }
     return db.localStore.users || [];
+  }
+
+  async getUsersWithEnrollments(): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [users]: any = await mysqlPool.query('SELECT id, fullName, email, mobile, role, targetExam, isEmailVerified, isActive, createdAt, lastLoginAt FROM users ORDER BY createdAt DESC');
+        const [enrollments]: any = await mysqlPool.query(`
+          SELECT e.*, c.title as courseTitle, c.category as batchCategory, c.schedule as batchSchedule
+          FROM lms_enrollments e
+          JOIN lms_courses c ON c.id = e.courseId
+        `);
+
+        return users.map((u: any) => {
+          const userEnrs = enrollments.filter((e: any) => e.userId === u.id);
+          return {
+            ...u,
+            isEmailVerified: !!u.isEmailVerified,
+            isActive: !!u.isActive,
+            enrollments: userEnrs.map((e: any) => ({
+              id: e.id,
+              courseId: e.courseId,
+              courseTitle: e.courseTitle,
+              batch: e.batchCategory || e.batchSchedule || 'Standard Batch',
+              paymentOrderId: e.paymentOrderId || 'N/A',
+              paymentStatus: e.paymentStatus || 'free',
+              amountPaid: e.amountPaid || 0,
+              enrolledAt: e.enrolledAt
+            }))
+          };
+        });
+      } catch (err) { console.error('[AuthDB] getUsersWithEnrollments MySQL error:', err); }
+    }
+    const localUsers = db.localStore.users || [];
+    return localUsers.map(u => ({
+      ...u,
+      enrollments: (lmsLocalEnrollments || []).filter(e => e.userId === u.id)
+    }));
   }
 
   async updateUserActiveStatus(userId: string, isActive: boolean): Promise<boolean> {
@@ -3357,8 +3569,6 @@ class LmsDB {
     return { courseCompletion: [], quizAnalytics: [] };
   }
 }
-
-
 
 export const lmsDB = new LmsDB();
 

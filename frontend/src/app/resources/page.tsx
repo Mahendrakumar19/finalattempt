@@ -9,6 +9,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:500
 
 const CATEGORIES = [
   'All',
+  'Syllabus',
   'Prelims',
   'Mains',
   'Infographics',

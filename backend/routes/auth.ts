@@ -525,13 +525,11 @@ router.post('/reset-password', authLimiter, async (req: Request, res: Response) 
   }
 });
 
-// ─── ADMIN: Get All Users ───────────────────────────────────────────────────
+// ─── ADMIN: Get All Users with Enrollment & Payment Info ─────────────────────
 router.get('/users', async (req: Request, res: Response) => {
   try {
-    const list = await authDB.getUsers();
-    // Exclude password hashes for security
-    const sanitized = list.map(({ passwordHash, ...rest }) => rest);
-    res.json(sanitized);
+    const list = await authDB.getUsersWithEnrollments();
+    res.json(list);
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

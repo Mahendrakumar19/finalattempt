@@ -119,6 +119,20 @@ export interface ResultTopper {
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 
+export interface CustomPage {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  showLocation: 'NAVBAR' | 'FOOTER' | 'HEADER_TOP' | 'SLUG_ONLY';
+  displayOrder?: number;
+  metaTitle?: string;
+  metaDescription?: string;
+  isPublished?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 class FinalAttemptDB {
   private fallbackLeads: Lead[] = [];
 
@@ -140,6 +154,38 @@ class FinalAttemptDB {
       heroSubtitle: 'Empowering aspirants through personalized mentorship, high-quality content, strategic preparation, an innovative AI-powered learning ecosystem and continuous performance tracking - everything designed with one goal: to help make this attempt your final attempt.',
       tagline: "Let's Make Your Attempt Final with FINAL ATTEMPT"
     };
+  }
+
+  public async getCustomPages(publishedOnly: boolean = false): Promise<CustomPage[]> {
+    const res = await this.apiFetch(`/api/custom-pages?publishedOnly=${publishedOnly}`);
+    if (res && res.success && Array.isArray(res.data)) {
+      return res.data;
+    }
+    return [];
+  }
+
+  public async getCustomPageBySlug(slug: string): Promise<CustomPage | null> {
+    const res = await this.apiFetch(`/api/custom-pages/${slug}`);
+    if (res && res.success && res.data) {
+      return res.data;
+    }
+    return null;
+  }
+
+  public async saveCustomPage(page: Partial<CustomPage>): Promise<boolean> {
+    const res = await this.apiFetch('/api/custom-pages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(page)
+    });
+    return res?.success || false;
+  }
+
+  public async deleteCustomPage(id: string): Promise<boolean> {
+    const res = await this.apiFetch(`/api/custom-pages/${id}`, {
+      method: 'DELETE'
+    });
+    return res?.success || false;
   }
 
   public async getCourses(): Promise<Course[]> {

@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Menu, X, ChevronDown, Phone, User, MapPin, Sparkles, LogOut, ArrowRight, Sun, Moon } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
+import { db } from '@/services/db';
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -28,8 +29,13 @@ export default function Header() {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
 
+  const [customPages, setCustomPages] = useState<any[]>([]);
+  const [siteSettings, setSiteSettings] = useState<any>({});
+
   useEffect(() => {
     setMounted(true);
+    db.getCustomPages(true).then((pages) => setCustomPages(pages || []));
+    db.getSettings().then((s) => setSiteSettings(s || {}));
   }, []);
 
   // Hide header/footer on portals for clean dashboard layout
@@ -40,6 +46,13 @@ export default function Header() {
   const toggleDropdown = (name: string) => {
     setActiveDropdown(activeDropdown === name ? null : name);
   };
+
+  const featureFlags = siteSettings?.featureFlags || {};
+  const isLivePageBuilderEnabled = featureFlags.livePageBuilder !== false;
+  const isCurrentAffairsEnabled = featureFlags.currentAffairsFilters !== false;
+
+  const navbarCustomPages = isLivePageBuilderEnabled ? customPages.filter(p => p.showLocation === 'NAVBAR') : [];
+  const headerTopCustomPages = isLivePageBuilderEnabled ? customPages.filter(p => p.showLocation === 'HEADER_TOP') : [];
 
   const navLinks: { name: string; href: string; dropdown?: { name: string; href: string; desc?: string }[] }[] = [
     { name: 'Home', href: '/' },
@@ -58,7 +71,7 @@ export default function Header() {
         { name: 'Mains Series', href: '/test-series?stage=MAINS', desc: 'Mains answer writing tests' },
       ]
     },
-    {
+    ...(isCurrentAffairsEnabled ? [{
       name: 'Current Affairs', href: '/current-affairs',
       dropdown: [
         { name: 'Daily', href: '/current-affairs/daily', desc: 'Daily news analysis & facts' },
@@ -66,7 +79,7 @@ export default function Header() {
         { name: 'Monthly', href: `/current-affairs/monthly/${MONTH_NAMES[new Date().getMonth()]}-${new Date().getFullYear()}`, desc: 'Monthly prep booklets' },
         { name: 'Yearly', href: `/current-affairs/yearly/${new Date().getFullYear()}`, desc: 'Yearly compendiums' },
       ]
-    },
+    }] : []),
     {
       name: 'PYQs', href: '/pyq'
     },
@@ -78,13 +91,12 @@ export default function Header() {
       ]
     },
     {
-      name: 'About', href: '/about',
-      dropdown: [
-        { name: 'About Us', href: '/about', desc: 'Our mission & faculty' },
-        { name: 'Results', href: '/results', desc: 'Topper hall of fame' },
-        { name: 'Faculty', href: '/faculties', desc: 'Meet our mentors' },
-      ]
+      name: 'About', href: '/about'
     },
+    ...navbarCustomPages.map(p => ({
+      name: p.title,
+      href: `/page/${p.slug}`
+    })),
     { name: 'Contact', href: '/contact' }
   ];
 
@@ -102,6 +114,14 @@ export default function Header() {
             <span className="font-semibold text-amber-500">📞</span>
             <span>+91 97099 92093</span>
           </a>
+          {headerTopCustomPages.map(p => (
+            <span key={p.id} className="flex items-center gap-4">
+              <span className="hidden sm:inline text-slate-700">|</span>
+              <Link href={`/page/${p.slug}`} className="hover:text-amber-400 font-bold transition-colors">
+                {p.title}
+              </Link>
+            </span>
+          ))}
         </div>
         <div className="flex items-center justify-center sm:justify-end gap-4 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-800/80">
           {mounted && isAuthenticated ? (

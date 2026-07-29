@@ -204,6 +204,7 @@ import {
   FaYoutube,
   FaTelegramPlane,
 } from 'react-icons/fa';
+import { db } from '@/services/db';
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -218,8 +219,14 @@ export default function Footer() {
     pathname.startsWith('/admin') ||
     pathname.startsWith('/lms');
 
+  const [footerCustomPages, setFooterCustomPages] = useState<any[]>([]);
+
   useEffect(() => {
     if (isPortal) return;
+
+    db.getCustomPages(true).then(pages => {
+      if (pages) setFooterCustomPages(pages.filter(p => p.showLocation === 'FOOTER'));
+    });
 
     const incrementVisitors = async () => {
       try {
@@ -503,6 +510,18 @@ shadow-[0_10px_60px_rgba(0,0,0,.35)] p-6 backdrop-blur-xl">
                 >
                   Disclaimer
                 </Link>
+
+                {footerCustomPages.map(p => (
+                  <span key={p.id} className="flex items-center gap-3">
+                    <span>•</span>
+                    <Link
+                      href={`/page/${p.slug}`}
+                      className="transition hover:text-amber-400 font-bold"
+                    >
+                      {p.title}
+                    </Link>
+                  </span>
+                ))}
 
               </div>
 

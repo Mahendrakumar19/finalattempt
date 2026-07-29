@@ -60,7 +60,7 @@ export default function Home() {
 
   const heroImages = heroSettings.heroImageUrl
     ? heroSettings.heroImageUrl.split(',').map(img => resolveUrl(img.trim())).filter(Boolean)
-    : ["https://upload.wikimedia.org/wikipedia/commons/f/f6/Front_view_of_bihar_vidhan_sabha.jpg"];
+    : [];
 
   useEffect(() => {
     if (heroImages.length <= 1) return;
