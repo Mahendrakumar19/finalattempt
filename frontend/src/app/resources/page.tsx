@@ -47,13 +47,20 @@ export default function Resources() {
   const [previewItem, setPreviewItem] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [customDownloadPages, setCustomDownloadPages] = useState<any[]>([]);
+
   useEffect(() => {
     const loadResources = async () => {
       setLoading(true);
       try {
-        const res = await db.getResources();
-        if (res && res.length > 0) {
-          setResourcesList(res);
+        const [res, pages] = await Promise.all([
+          db.getResources(),
+          db.getCustomPages(true)
+        ]);
+        if (res && res.length > 0) setResourcesList(res);
+        if (pages && pages.length > 0) {
+          const downloadPages = pages.filter(p => p.slug.startsWith('downloads/') || (p.downloadItems && p.downloadItems.length > 0));
+          setCustomDownloadPages(downloadPages);
         }
       } catch (err) {
         console.error('Failed loading resources:', err);
@@ -250,8 +257,10 @@ export default function Resources() {
             )}
           </div>
 
-          {/* Right Column: Special Subpages Callout */}
+          {/* Right Column: Special Subpages & CMS Download Portals */}
           <div className="lg:col-span-4 space-y-6">
+            
+            {/* Bihar Special Portal Banner */}
             <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-100/70 dark:border-amber-900/30 p-6 rounded-3xl shadow-3xs space-y-4">
               <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-xl flex items-center justify-center">
                 <Compass className="w-5 h-5" />
@@ -270,6 +279,43 @@ export default function Resources() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
+
+            {/* CMS Dynamic Download Portals (NCERT, PYQs, Budget, Economic Survey, etc.) */}
+            {customDownloadPages.length > 0 && (
+              <div className="bg-[var(--card-bg)] border border-[var(--card-border)] p-6 rounded-3xl space-y-4 shadow-3xs">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-amber-500" />
+                  <h3 className="font-heading font-black text-[var(--text-color)] text-sm uppercase tracking-wider">
+                    Specialized Download Portals
+                  </h3>
+                </div>
+                <div className="space-y-2.5">
+                  {customDownloadPages.map((pg) => {
+                    const cleanSlug = pg.slug.startsWith('downloads/') ? pg.slug : `downloads/${pg.slug}`;
+                    return (
+                      <Link
+                        key={pg.id}
+                        href={`/${cleanSlug}`}
+                        className="group flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-amber-500/10 border border-slate-200/80 dark:border-white/10 rounded-2xl transition-all"
+                      >
+                        <div className="space-y-0.5">
+                          <h4 className="font-bold text-xs text-[var(--text-color)] group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                            {pg.title}
+                          </h4>
+                          {pg.downloadItems && (
+                            <span className="text-[10px] text-slate-400 font-medium block">
+                              {pg.downloadItems.length} File Package{pg.downloadItems.length !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </div>

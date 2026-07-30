@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Globe, FileText, CheckCircle, ExternalLink, RefreshCw } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
-import { db, CustomPage } from '@/services/db';
+import MediaPicker from './MediaPicker';
+import { db, CustomPage, DownloadItem } from '@/services/db';
 
 export default function CustomPagesCMS() {
   const [pages, setPages] = useState<CustomPage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
 
   const [form, setForm] = useState<Partial<CustomPage>>({
     id: '',
@@ -225,6 +227,145 @@ export default function CustomPagesCMS() {
               />
             </div>
 
+            {/* Banner Image (Media Picker) */}
+            <div className="space-y-1 pt-2">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Page Banner Image (DAM Media)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Banner image URL (e.g., uploads/media/...)"
+                  value={form.bannerUrl || ''}
+                  onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+                  className="w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-mono text-slate-900 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowMediaPicker(true)}
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-2xl shrink-0 cursor-pointer shadow-xs"
+                >
+                  Pick Banner
+                </button>
+              </div>
+            </div>
+
+            {/* Downloadable Files Package Collection Manager */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-3xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-heading font-black text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                    📁 Downloadable Files Package ({ (form.downloadItems || []).length })
+                  </h4>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                    Add downloadable PDFs, ZIPs, DOCX notes, reports & materials for this page.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newItem: DownloadItem = {
+                      id: `dl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                      title: 'New Study Document',
+                      description: '',
+                      type: 'PDF',
+                      size: '2.5 MB',
+                      url: ''
+                    };
+                    setForm(prev => ({ ...prev, downloadItems: [...(prev.downloadItems || []), newItem] }));
+                  }}
+                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] rounded-xl cursor-pointer"
+                >
+                  + Add File
+                </button>
+              </div>
+
+              {/* Items List */}
+              <div className="space-y-3">
+                {(form.downloadItems || []).length === 0 ? (
+                  <p className="text-[10px] text-slate-400 italic text-center py-2">
+                    No files added to this download portal package yet.
+                  </p>
+                ) : (
+                  (form.downloadItems || []).map((item, idx) => (
+                    <div key={item.id} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-amber-600 uppercase">Item #{idx + 1}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForm(prev => ({
+                              ...prev,
+                              downloadItems: (prev.downloadItems || []).filter(i => i.id !== item.id)
+                            }));
+                          }}
+                          className="text-red-500 text-[10px] font-bold hover:underline"
+                        >
+                          Remove
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <input
+                          type="text"
+                          placeholder="File Title (e.g. NCERT Class 11 Polity Chapter 1)"
+                          value={item.title || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setForm(prev => ({
+                              ...prev,
+                              downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, title: val } : i)
+                            }));
+                          }}
+                          className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-slate-900 dark:text-white"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Type (e.g. PDF)"
+                            value={item.type || 'PDF'}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setForm(prev => ({
+                                ...prev,
+                                downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, type: val } : i)
+                              }));
+                            }}
+                            className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Size (e.g. 4.2 MB)"
+                            value={item.size || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setForm(prev => ({
+                                ...prev,
+                                downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, size: val } : i)
+                              }));
+                            }}
+                            className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="File Download URL (e.g. uploads/documents/ncert_polity.pdf)"
+                        value={item.url || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setForm(prev => ({
+                            ...prev,
+                            downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, url: val } : i)
+                          }));
+                        }}
+                        className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl font-mono text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
             {/* SEO Meta Titles */}
             <div className="space-y-2 border-t border-slate-100 dark:border-white/10 pt-4">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">SEO Meta Configurations</span>
@@ -342,6 +483,16 @@ export default function CustomPagesCMS() {
         </div>
 
       </div>
+
+      {showMediaPicker && (
+        <MediaPicker
+          onSelect={(url) => {
+            setForm(prev => ({ ...prev, bannerUrl: url }));
+            setShowMediaPicker(false);
+          }}
+          onClose={() => setShowMediaPicker(false)}
+        />
+      )}
     </div>
   );
 }

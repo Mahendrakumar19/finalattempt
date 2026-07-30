@@ -547,6 +547,50 @@ router.put('/users/:id/status', async (req: Request, res: Response) => {
   }
 });
 
+// ─── SUPER ADMIN: Update User Role ───────────────────────────────────────────
+router.put('/users/:id/role', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { role } = req.body;
+  if (!['student', 'faculty', 'admin'].includes(role)) {
+    res.status(400).json({ success: false, error: 'Invalid role' });
+    return;
+  }
+  try {
+    const user = await authDB.findUserById(id);
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User not found' });
+      return;
+    }
+    await authDB.updateProfile(id, { role });
+    res.json({ success: true, message: `Role updated to ${role}` });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── SUPER ADMIN: Update User Full Profile Info ─────────────────────────────
+router.put('/users/:id/profile', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { fullName, email, mobile, targetExam, role } = req.body;
+  try {
+    const user = await authDB.findUserById(id);
+    if (!user) {
+      res.status(404).json({ success: false, error: 'User not found' });
+      return;
+    }
+    await authDB.updateProfile(id, {
+      fullName: fullName || user.fullName,
+      email: email || user.email,
+      mobile: mobile !== undefined ? mobile : user.mobile,
+      targetExam: targetExam !== undefined ? targetExam : user.targetExam,
+      role: role && ['student', 'faculty', 'admin'].includes(role) ? role : user.role
+    });
+    res.json({ success: true, message: 'User profile updated successfully' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ─── ADMIN: Delete User Profile ──────────────────────────────────────────────
 router.delete('/users/:id', async (req: Request, res: Response) => {
   const { id } = req.params;

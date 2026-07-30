@@ -162,6 +162,8 @@ export default function AdminPortal() {
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
   const [resourcesList, setResourcesList] = useState<ResourceDownload[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
+  const [selectedUserModal, setSelectedUserModal] = useState<UserProfile | null>(null);
+  const [editUserForm, setEditUserForm] = useState<Partial<UserProfile>>({});
   const [coursesList, setCoursesList] = useState<Course[]>([]);
   const [editMode, setEditMode] = useState(false);
 
@@ -1270,26 +1272,37 @@ export default function AdminPortal() {
                       <th className="p-4">Payment ID & Status</th>
                       <th className="p-4">Amount</th>
                       <th className="p-4">Account Status</th>
+                      <th className="p-4">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {usersList.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="p-8 text-center text-slate-400 text-xs">No registered users or students found.</td>
+                        <td colSpan={9} className="p-8 text-center text-slate-400 text-xs">No registered users or students found.</td>
                       </tr>
                     ) : (
                       usersList.map((user) => {
                         const hasEnrollments = user.enrollments && user.enrollments.length > 0;
                         return (
-                          <tr key={user.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
+                          <tr
+                            key={user.id}
+                            className="border-b border-slate-100 hover:bg-amber-500/5 transition-colors cursor-pointer"
+                            onClick={() => {
+                              setSelectedUserModal(user);
+                              setEditUserForm({ ...user });
+                            }}
+                          >
                             {/* Student Info */}
                             <td className="p-4">
-                              <div className="font-bold text-slate-900 text-xs">{user.fullName}</div>
+                              <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                                <span>{user.fullName}</span>
+                                {user.role === 'admin' && <span className="text-[10px]">👑</span>}
+                              </div>
                               <div className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {user.id.slice(0, 8)}...</div>
                               <div className="mt-1">
                                 <span className={`inline-block px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${
-                                  user.role === 'admin' ? 'bg-purple-100 text-purple-700' :
-                                  user.role === 'faculty' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'
+                                  user.role === 'admin' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                                  user.role === 'faculty' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
                                 }`}>
                                   {user.role}
                                 </span>
@@ -1375,7 +1388,7 @@ export default function AdminPortal() {
                             </td>
 
                             {/* Account Status Toggle */}
-                            <td className="p-4">
+                            <td className="p-4" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={async () => {
                                   const newStatus = !user.isActive;
@@ -1393,6 +1406,20 @@ export default function AdminPortal() {
                                 }`}
                               >
                                 {user.isActive ? 'Active' : 'Suspended'}
+                              </button>
+                            </td>
+
+                            {/* Actions Button */}
+                            <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => {
+                                  setSelectedUserModal(user);
+                                  setEditUserForm({ ...user });
+                                }}
+                                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                <span>Edit User</span>
                               </button>
                             </td>
                           </tr>
@@ -2656,6 +2683,202 @@ export default function AdminPortal() {
           onSelect={handleSelectMedia}
           onClose={() => setMediaPickerConfig({ isOpen: false, field: '' })}
         />
+      )}
+
+      {/* Super Admin User Profile & Role Assignment Popup Modal */}
+      {selectedUserModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+            
+            {/* Modal Header */}
+            <div className="p-6 bg-slate-50 dark:bg-slate-950/50 border-b border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-lg">
+                    User Management Console
+                  </span>
+                  {selectedUserModal.role === 'admin' && (
+                    <span className="text-[10px] font-extrabold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200">
+                      👑 Admin Access
+                    </span>
+                  )}
+                </div>
+                <h3 className="font-heading font-black text-lg text-slate-900 dark:text-white">
+                  {selectedUserModal.fullName}
+                </h3>
+              </div>
+
+              <button
+                onClick={() => setSelectedUserModal(null)}
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 sm:p-8 space-y-6 overflow-y-auto flex-grow">
+              
+              {/* Role Assignment Switcher */}
+              <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-amber-900 dark:text-amber-300 uppercase tracking-wider">
+                    👑 Assign Account Role (Super Admin Permission)
+                  </label>
+                  <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold">Real-Time Permission Sync</span>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { role: 'student', title: 'Student', desc: 'Standard student portal access' },
+                    { role: 'faculty', title: 'Faculty', desc: 'Faculty portal & batch creator' },
+                    { role: 'admin', title: 'Admin', desc: 'Full CMS & platform admin access' }
+                  ].map((r) => (
+                    <button
+                      key={r.role}
+                      type="button"
+                      onClick={() => setEditUserForm(prev => ({ ...prev, role: r.role as any }))}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        editUserForm.role === r.role
+                          ? 'bg-amber-500 text-slate-950 border-amber-600 font-black shadow-sm'
+                          : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-amber-400'
+                      }`}
+                    >
+                      <div className="font-extrabold text-xs">{r.title}</div>
+                      <div className="text-[9px] opacity-80 mt-0.5 leading-tight">{r.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Account Details Form */}
+              <div className="space-y-4">
+                <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-white/[0.06] pb-2">
+                  Account Details & Information
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Full Name</label>
+                    <input
+                      type="text"
+                      value={editUserForm.fullName || ''}
+                      onChange={(e) => setEditUserForm(prev => ({ ...prev, fullName: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Email Address</label>
+                    <input
+                      type="email"
+                      value={editUserForm.email || ''}
+                      onChange={(e) => setEditUserForm(prev => ({ ...prev, email: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Mobile Number</label>
+                    <input
+                      type="text"
+                      value={editUserForm.mobile || ''}
+                      onChange={(e) => setEditUserForm(prev => ({ ...prev, mobile: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Target Exam</label>
+                    <input
+                      type="text"
+                      value={editUserForm.targetExam || ''}
+                      onChange={(e) => setEditUserForm(prev => ({ ...prev, targetExam: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Course Enrollments & Payments Info */}
+              {selectedUserModal.enrollments && selectedUserModal.enrollments.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-white/[0.06] pb-2">
+                    Enrolled Courses & Transaction Logs
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedUserModal.enrollments.map((enr, i) => (
+                      <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-150 dark:border-white/5 rounded-2xl flex items-center justify-between text-xs">
+                        <div>
+                          <div className="font-bold text-slate-900 dark:text-white">{enr.courseTitle}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">Order ID: {enr.paymentOrderId} • Batch: {enr.batch}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-mono font-bold text-slate-900 dark:text-white">
+                            {enr.amountPaid ? `₹${(enr.amountPaid / (enr.amountPaid > 10000 ? 100 : 1)).toLocaleString('en-IN')}` : 'Free'}
+                          </div>
+                          <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded uppercase">
+                            {enr.paymentStatus}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 bg-slate-50 dark:bg-slate-950/50 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!confirm(`Are you sure you want to delete profile for ${selectedUserModal.fullName}?`)) return;
+                  await fetch(`${BACKEND_URL}/api/auth/users/${selectedUserModal.id}`, { method: 'DELETE' });
+                  setUsersList(prev => prev.filter(u => u.id !== selectedUserModal.id));
+                  setSelectedUserModal(null);
+                }}
+                className="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-extrabold rounded-xl border border-red-200 transition-all cursor-pointer"
+              >
+                Delete Account
+              </button>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUserModal(null)}
+                  className="px-4 py-2.5 border border-slate-300 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`${BACKEND_URL}/api/auth/users/${selectedUserModal.id}/profile`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(editUserForm)
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        setUsersList(prev => prev.map(u => u.id === selectedUserModal.id ? { ...u, ...editUserForm } as UserProfile : u));
+                        setSelectedUserModal(null);
+                        alert('User profile & role updated successfully!');
+                      }
+                    } catch (err) {
+                      console.error('Failed saving user edit:', err);
+                    }
+                  }}
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl shadow-md transition-all cursor-pointer"
+                >
+                  Save Changes & Role
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
       )}
     </div>
   );

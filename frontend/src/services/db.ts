@@ -119,6 +119,18 @@ export interface ResultTopper {
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 
+export interface DownloadItem {
+  id: string;
+  title: string;
+  description?: string;
+  size?: string;
+  type?: string;
+  url: string;
+  thumbnailUrl?: string;
+  displayOrder?: number;
+  downloadCount?: number;
+}
+
 export interface CustomPage {
   id: string;
   title: string;
@@ -128,6 +140,8 @@ export interface CustomPage {
   displayOrder?: number;
   metaTitle?: string;
   metaDescription?: string;
+  bannerUrl?: string;
+  downloadItems?: DownloadItem[];
   isPublished?: boolean;
   createdAt?: string;
   updatedAt?: string;

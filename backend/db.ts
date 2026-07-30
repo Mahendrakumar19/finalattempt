@@ -181,6 +181,18 @@ export interface SiteSettings {
   featureFlags?: Record<string, boolean>;
 }
 
+export interface DownloadItem {
+  id: string;
+  title: string;
+  description?: string;
+  size?: string;
+  type?: string;
+  url: string;
+  thumbnailUrl?: string;
+  displayOrder?: number;
+  downloadCount?: number;
+}
+
 export interface CustomPage {
   id: string;
   title: string;
@@ -190,6 +202,8 @@ export interface CustomPage {
   displayOrder?: number;
   metaTitle?: string;
   metaDescription?: string;
+  bannerUrl?: string;
+  downloadItems?: DownloadItem[];
   isPublished?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -634,7 +648,6 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       )
     `);
 
-    // 17. Custom Pages CMS Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS custom_pages (
         id VARCHAR(255) PRIMARY KEY,
@@ -645,11 +658,16 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         displayOrder INT DEFAULT 0,
         metaTitle VARCHAR(255),
         metaDescription TEXT,
+        bannerUrl TEXT,
+        downloadItems JSON,
         isPublished TINYINT(1) DEFAULT 1,
         createdAt VARCHAR(255),
         updatedAt VARCHAR(255)
       )
     `);
+
+    try { await pool.query('ALTER TABLE custom_pages ADD COLUMN bannerUrl TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE custom_pages ADD COLUMN downloadItems JSON'); } catch (_) {}
 
     console.log('MySQL Database tables initialized successfully.');
 
@@ -1962,7 +1980,8 @@ class BackendDB {
         const [rows]: any = await mysqlPool.query(query);
         return rows.map((r: any) => ({
           ...r,
-          isPublished: Boolean(r.isPublished)
+          isPublished: Boolean(r.isPublished),
+          downloadItems: typeof r.downloadItems === 'string' ? JSON.parse(r.downloadItems) : (r.downloadItems || [])
         }));
       } catch (err) {
         handlePoolDegrade(err);
@@ -1980,7 +1999,8 @@ class BackendDB {
         if (rows.length > 0) {
           return {
             ...rows[0],
-            isPublished: Boolean(rows[0].isPublished)
+            isPublished: Boolean(rows[0].isPublished),
+            downloadItems: typeof rows[0].downloadItems === 'string' ? JSON.parse(rows[0].downloadItems) : (rows[0].downloadItems || [])
           };
         }
       } catch (err) {
@@ -2001,14 +2021,16 @@ class BackendDB {
     const displayOrder = pageData.displayOrder || 0;
     const metaTitle = pageData.metaTitle || title;
     const metaDescription = pageData.metaDescription || '';
+    const bannerUrl = pageData.bannerUrl || '';
+    const downloadItems = pageData.downloadItems || [];
     const isPublished = pageData.isPublished !== false ? 1 : 0;
     const now = new Date().toISOString();
 
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO custom_pages (id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription, isPublished, createdAt, updatedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO custom_pages (id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription, bannerUrl, downloadItems, isPublished, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
              title = VALUES(title),
              slug = VALUES(slug),
@@ -2017,9 +2039,11 @@ class BackendDB {
              displayOrder = VALUES(displayOrder),
              metaTitle = VALUES(metaTitle),
              metaDescription = VALUES(metaDescription),
+             bannerUrl = VALUES(bannerUrl),
+             downloadItems = VALUES(downloadItems),
              isPublished = VALUES(isPublished),
              updatedAt = VALUES(updatedAt)`,
-          [id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription, isPublished, pageData.createdAt || now, now]
+          [id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription, bannerUrl, JSON.stringify(downloadItems), isPublished, pageData.createdAt || now, now]
         );
       } catch (err) {
         handlePoolDegrade(err);
@@ -2030,7 +2054,7 @@ class BackendDB {
     if (!store.customPages) store.customPages = [];
     const idx = store.customPages.findIndex(p => p.id === id);
     const updatedRecord: CustomPage = {
-      id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription,
+      id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription, bannerUrl, downloadItems,
       isPublished: Boolean(isPublished),
       createdAt: pageData.createdAt || now,
       updatedAt: now
@@ -2635,22 +2659,33 @@ class AuthDB {
     }
   }
 
-  async updateProfile(userId: string, data: { fullName: string; mobile?: string; targetExam?: string; avatarUrl?: string }): Promise<void> {
+  async updateProfile(userId: string, data: { fullName?: string; email?: string; mobile?: string; targetExam?: string; avatarUrl?: string; role?: 'student' | 'faculty' | 'admin' }): Promise<void> {
     if (mysqlPool) {
       try {
-        await mysqlPool.query(
-          'UPDATE users SET fullName = ?, mobile = ?, targetExam = ?, avatarUrl = ? WHERE id = ?',
-          [data.fullName, data.mobile || null, data.targetExam || null, data.avatarUrl || null, userId]
-        );
+        const setClauses: string[] = [];
+        const params: any[] = [];
+        if (data.fullName !== undefined) { setClauses.push('fullName = ?'); params.push(data.fullName); }
+        if (data.email !== undefined) { setClauses.push('email = ?'); params.push(data.email); }
+        if (data.mobile !== undefined) { setClauses.push('mobile = ?'); params.push(data.mobile); }
+        if (data.targetExam !== undefined) { setClauses.push('targetExam = ?'); params.push(data.targetExam); }
+        if (data.avatarUrl !== undefined) { setClauses.push('avatarUrl = ?'); params.push(data.avatarUrl); }
+        if (data.role !== undefined) { setClauses.push('role = ?'); params.push(data.role); }
+
+        if (setClauses.length > 0) {
+          params.push(userId);
+          await mysqlPool.query(`UPDATE users SET ${setClauses.join(', ')} WHERE id = ?`, params);
+        }
         return;
       } catch (err) { console.error('[AuthDB] updateProfile MySQL error:', err); }
     }
     const u = (db.localStore.users || []).find(user => user.id === userId);
     if (u) {
-      u.fullName = data.fullName;
+      if (data.fullName !== undefined) u.fullName = data.fullName;
+      if (data.email !== undefined) u.email = data.email;
       if (data.mobile !== undefined) u.mobile = data.mobile;
       if (data.targetExam !== undefined) u.targetExam = data.targetExam;
       if (data.avatarUrl !== undefined) u.avatarUrl = data.avatarUrl;
+      if (data.role !== undefined) u.role = data.role;
       db.saveLocalData();
     }
   }
