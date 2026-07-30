@@ -273,9 +273,10 @@ export default function PyqPage() {
                       {item.paperName}
                     </h4>
                     {item.description && (
-                      <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                        {item.description}
-                      </p>
+                      <div
+                        className="text-xs text-slate-500 line-clamp-3 leading-relaxed [&_*]:inline [&_*]:m-0"
+                        dangerouslySetInnerHTML={{ __html: item.description }}
+                      />
                     )}
                   </div>
 

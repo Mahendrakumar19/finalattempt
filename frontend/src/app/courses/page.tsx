@@ -60,97 +60,97 @@ export default function Courses() {
         </p>
       </div>
 
-      {/* Filters and Search Bar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
-        {/* Search */}
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search courses..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          />
+        {/* Filters and Search Bar */}
+        <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--card-border)] shadow-xs">
+          {/* Search */}
+          <div className="relative w-full md:w-80">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search courses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)] focus:ring-2 focus:ring-amber-500/20"
+            />
+          </div>
+
+          {/* Category Pills */}
+          <div className="flex flex-wrap gap-2 w-full md:w-auto">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                  selectedCategory === cat
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                    : 'text-[var(--text-color)] hover:bg-amber-500/10 bg-[var(--card-bg)] border border-[var(--card-border)]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Category Pills */}
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
-                selectedCategory === cat
-                  ? 'bg-brand-primary text-white shadow-xs'
-                  : 'text-slate-600 hover:bg-slate-50 border border-slate-100'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Courses Grid */}
-      {filteredCourses.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredCourses.map((course) => (
-            <div
-              key={course.id}
-              className={`flip-card-container cursor-pointer ${flippedCards[course.id] ? 'is-flipped' : ''}`}
-              onClick={() => toggleFlip(course.id)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  toggleFlip(course.id);
-                }
-              }}
-              tabIndex={0}
-              role="button"
-              aria-label={`Course: ${course.title}. Click to view syllabus.`}
-            >
-              <div className="flip-card-inner">
-                {/* Front Side */}
-                <div className="flip-card-front course-card-premium rounded-3xl">
-                  <div className="flip-card-front-content flex flex-col justify-between h-full p-5">
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-start">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                          <BookOpen className="w-5 h-5" />
+        {/* Courses Grid */}
+        {filteredCourses.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredCourses.map((course) => (
+              <div
+                key={course.id}
+                className={`flip-card-container cursor-pointer ${flippedCards[course.id] ? 'is-flipped' : ''}`}
+                onClick={() => toggleFlip(course.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleFlip(course.id);
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                aria-label={`Course: ${course.title}. Click to view syllabus.`}
+              >
+                <div className="flip-card-inner">
+                  {/* Front Side */}
+                  <div className="flip-card-front course-card-premium rounded-3xl bg-[var(--card-bg)] border border-[var(--card-border)]">
+                    <div className="flip-card-front-content flex flex-col justify-between h-full p-5">
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-start">
+                          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                            <BookOpen className="w-5 h-5" />
+                          </div>
+                          <span className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">
+                            {course.category}
+                          </span>
                         </div>
-                        <span className="px-2.5 py-1 rounded-full bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-600 uppercase">
-                          {course.category}
-                        </span>
+
+                        <div className="space-y-1.5">
+                          <h3 className="font-heading font-extrabold text-base text-[var(--text-color)]">
+                            {course.title}
+                          </h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                            {course.description}
+                          </p>
+                        </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <h3 className="font-heading font-extrabold text-base text-brand-primary">
-                          {course.title}
-                        </h3>
-                        <p className="text-xs text-slate-550 line-clamp-3 leading-relaxed">
-                          {course.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 text-xs font-bold text-slate-700">
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                          <div>
-                            <p className="text-[9px] text-slate-400 uppercase leading-none font-bold">Duration</p>
-                            <p className="mt-0.5">{course.duration}</p>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--card-border)] text-xs font-bold text-[var(--text-color)]">
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                            <div>
+                              <p className="text-[9px] text-slate-400 uppercase leading-none font-bold">Duration</p>
+                              <p className="mt-0.5">{course.duration}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                            <div>
+                              <p className="text-[9px] text-slate-400 uppercase leading-none font-bold">Course Fee</p>
+                              <p className="mt-0.5 text-amber-600 dark:text-amber-400 text-sm font-black">{course.fee}</p>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                          <div>
-                            <p className="text-[9px] text-slate-400 uppercase leading-none font-bold">Course Fee</p>
-                            <p className="mt-0.5 text-blue-650 text-sm">{course.fee}</p>
-                          </div>
-                        </div>
-                      </div>
 
                       <div className="text-[9px] text-center text-blue-600 font-bold uppercase tracking-wider animate-pulse pt-2">
                         Tap / Hover to View Syllabus

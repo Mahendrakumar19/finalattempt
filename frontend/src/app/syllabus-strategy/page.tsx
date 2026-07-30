@@ -271,7 +271,7 @@ export default function SyllabusStrategyPage() {
                                       </h4>
                                       {syll.description && (
                                         <div
-                                          className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-3 [&_*]:inline [&_*]:m-0"
+                                          className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed space-y-2 [&_table]:max-w-full [&_table]:border-collapse [&_table]:my-2 [&_th]:bg-slate-100 [&_th]:dark:bg-slate-800 [&_th]:p-2 [&_th]:text-left [&_th]:font-bold [&_th]:whitespace-nowrap [&_td]:p-2 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-white/10 [&_td]:whitespace-nowrap overflow-x-auto"
                                           dangerouslySetInnerHTML={{ __html: syll.description }}
                                         />
                                       )}
@@ -327,7 +327,7 @@ export default function SyllabusStrategyPage() {
 
       {/* Strategy Tab View */}
       {activeTab === 'strategy' && (
-        <div className="space-y-10 max-w-5xl">
+        <div className="space-y-10 w-full">
           {strategyBlocks.length === 0 ? (
             <p className="text-sm text-slate-400">Loading strategy blocks...</p>
           ) : (
@@ -344,36 +344,34 @@ export default function SyllabusStrategyPage() {
               return (
                 <div
                   key={block.id}
-                  className="bg-white dark:bg-[#0F172A] border border-slate-200/80 dark:border-[#1E293B] rounded-3xl p-6 sm:p-10 space-y-6 shadow-sm w-full transition-all"
+                  className="bg-white dark:bg-[#0F172A] border border-slate-200/80 dark:border-[#1E293B] rounded-3xl p-6 sm:p-10 space-y-8 shadow-sm w-full transition-all"
                 >
                   <div className="flex flex-col md:flex-row gap-6 md:items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-4">
                     <div className="space-y-2">
                       <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 px-3 py-1 rounded-xl uppercase tracking-wider inline-block">
                         {block.category}
                       </span>
-                      <h3 className="font-heading font-black text-slate-900 dark:text-white text-xl sm:text-2xl">{block.title}</h3>
+                      <h3 className="font-heading font-black text-slate-900 dark:text-white text-2xl sm:text-3xl">{block.title}</h3>
                     </div>
                   </div>
 
-                  {/* Featured Image & Main Grid Content */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    {block.featuredImage && (
-                      <div className="lg:col-span-4 aspect-video lg:aspect-square bg-slate-50 dark:bg-[#131B2E] rounded-2xl overflow-hidden shrink-0 border border-slate-200/60 dark:border-white/10">
-                        <img
-                          src={`${BACKEND_URL}/${block.featuredImage.storagePath}`}
-                          alt={block.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-
-                    <div className={`${block.featuredImage ? 'lg:col-span-8' : 'lg:col-span-12'} space-y-4`}>
-                      {/* Rich Text render with clean normalized HTML tables */}
-                      <div
-                        className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-4 prose dark:prose-invert max-w-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 [&_th]:dark:bg-slate-800 [&_th]:p-3 [&_th]:text-left [&_th]:font-bold [&_td]:p-3 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-white/10 [&_tr:nth-child(even)]:bg-slate-50/50 [&_tr:nth-child(even)]:dark:bg-slate-800/30"
-                        dangerouslySetInnerHTML={{ __html: block.content }}
+                  {/* Centered Top Featured Image if uploaded */}
+                  {block.featuredImage && (
+                    <div className="w-full max-w-3xl mx-auto rounded-3xl overflow-hidden border border-slate-200/60 dark:border-white/10 shadow-md">
+                      <img
+                        src={`${BACKEND_URL}/${block.featuredImage.storagePath}`}
+                        alt={block.title}
+                        className="w-full h-auto max-h-[450px] object-cover mx-auto"
                       />
                     </div>
+                  )}
+
+                  {/* Full-width Rich Text Content */}
+                  <div className="w-full space-y-4">
+                    <div
+                      className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed space-y-4 prose dark:prose-invert max-w-none [&_table]:max-w-full [&_table]:border-collapse [&_table]:my-4 [&_table]:mx-auto [&_th]:bg-slate-100 [&_th]:dark:bg-slate-800 [&_th]:p-3 [&_th]:text-left [&_th]:font-bold [&_th]:whitespace-nowrap [&_td]:p-3 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-white/10 [&_td]:whitespace-nowrap [&_tr:nth-child(even)]:bg-slate-50/50 [&_tr:nth-child(even)]:dark:bg-slate-800/30 overflow-x-auto"
+                      dangerouslySetInnerHTML={{ __html: block.content }}
+                    />
                   </div>
 
                   {/* Responsive Video Embed Player */}

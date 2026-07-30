@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, FileText, Eye } from 'lucide-react';
 import MediaPicker from './MediaPicker';
+import RichTextEditor from './RichTextEditor';
 
 interface Exam {
   id: string;
@@ -253,13 +254,11 @@ export default function PYQsManagerCMS() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-bold text-slate-400 uppercase">Description / Meta Notes</label>
-          <textarea
-            placeholder="Paper structure info..."
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none"
-            rows={3}
+          <label className="text-[10px] font-bold text-slate-400 uppercase">Description / Meta Notes (Rich Text)</label>
+          <RichTextEditor
+            label="PYQ Description & Notes"
+            value={form.description || ''}
+            onChange={(html) => setForm({ ...form, description: html })}
           />
         </div>
 

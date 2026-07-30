@@ -40,7 +40,7 @@ import { db } from '@/services/db';
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 
-type AdminTab = 'Dashboard' | 'Settings' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Settings' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy & Values' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
 
 interface SiteSettings {
   heroTitle: string;
@@ -662,8 +662,8 @@ export default function AdminPortal() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as AdminTab)}
                 className={`flex items-center gap-3 px-4 py-3 text-xs font-bold transition-all text-left rounded-2xl border ${activeTab === tab.id
-                    ? 'text-white border-amber-600 shadow-md'
-                    : 'text-slate-600 hover:bg-amber-500/10 hover:text-amber-800 border-transparent'
+                  ? 'text-white border-amber-600 shadow-md'
+                  : 'text-slate-600 hover:bg-amber-500/10 hover:text-amber-800 border-transparent'
                   }`}
                 style={activeTab === tab.id ? { background: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)', borderColor: '#D97706' } : {}}
               >
@@ -1193,8 +1193,8 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* TAB: STRATEGY CMS */}
-        {activeTab === 'Strategy CMS' && (
+        {/* TAB: STRATEGY & VALUES CMS */}
+        {(activeTab === 'Strategy & Values' || activeTab === 'Strategy CMS') && (
           <div className="space-y-6">
             <SyllabusStrategyCMS defaultTab="strategy" />
           </div>

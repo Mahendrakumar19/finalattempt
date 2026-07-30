@@ -377,13 +377,11 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase">Description / Paper Name</label>
-              <input
-                type="text"
-                placeholder="e.g. BPSC-72 PRELIMS Syllabus"
-                value={syllabusForm.description}
-                onChange={(e) => setSyllabusForm({ ...syllabusForm, description: e.target.value })}
-                className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none"
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Description / Paper Notes (Rich Text)</label>
+              <RichTextEditor
+                label="Syllabus Description & Notes"
+                value={syllabusForm.description || ''}
+                onChange={(html) => setSyllabusForm({ ...syllabusForm, description: html })}
               />
             </div>
 

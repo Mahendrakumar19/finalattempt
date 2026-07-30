@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Bold, Italic, Underline, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Link as LinkIcon, Sparkles, Paintbrush,
-  Table, Image as ImageIcon, Box, CheckCircle, Maximize2, Minimize2, X, Scaling
+  Table, Image as ImageIcon, Box, CheckCircle, Maximize2, Minimize2, X, Scaling,
+  FileText, Paperclip, FolderOpen, AlignLeft, AlignCenter, AlignRight
 } from 'lucide-react';
+import MediaPicker from '@/components/MediaPicker';
 
 interface RichTextEditorProps {
   value: string;
@@ -19,6 +21,10 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
   const isFirstLoad = useRef(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedTableWidth, setSelectedTableWidth] = useState('100%');
+
+  // Media Asset Picker Modal state
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [mediaPickerMode, setMediaPickerMode] = useState<'IMAGE' | 'DOCUMENT'>('IMAGE');
 
   // Set initial content once
   useEffect(() => {
@@ -86,10 +92,57 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
     }
   };
 
-  const insertImage = () => {
-    const url = prompt('Enter Image URL (e.g., https://... or /uploads/images/...):');
-    if (url) {
-      execCmd('insertImage', url);
+  const openImagePicker = () => {
+    setMediaPickerMode('IMAGE');
+    setShowMediaPicker(true);
+  };
+
+  const openDocumentPicker = () => {
+    setMediaPickerMode('DOCUMENT');
+    setShowMediaPicker(true);
+  };
+
+  const handleMediaSelect = (fileUrl: string, item: any) => {
+    setShowMediaPicker(false);
+    if (mediaPickerMode === 'IMAGE') {
+      const alignChoice = prompt('Image Alignment & Placement:\nEnter "center" (default), "left", "right", or "full":', 'center') || 'center';
+      const align = alignChoice.toLowerCase().trim();
+
+      let styleStr = 'max-width:100%; height:auto; border-radius:12px; border:1px solid #cbd5e1; box-shadow:0 4px 12px rgba(0,0,0,0.06);';
+      let wrapperStyle = 'margin:1.5rem 0; text-align:center;';
+
+      if (align === 'left') {
+        wrapperStyle = 'margin:1rem 1.5rem 1rem 0; float:left; max-width:45%;';
+      } else if (align === 'right') {
+        wrapperStyle = 'margin:1rem 0 1rem 1.5rem; float:right; max-width:45%;';
+      } else if (align === 'full') {
+        wrapperStyle = 'margin:1.5rem 0; text-align:center; width:100%;';
+        styleStr += ' width:100%; object-fit:cover;';
+      } else {
+        // Center top / default
+        wrapperStyle = 'margin:1.5rem auto; text-align:center; display:block; max-width:85%;';
+      }
+
+      const imgHtml = `<div style="${wrapperStyle}"><img src="${fileUrl}" alt="${item.title || 'Image'}" style="${styleStr}" /><p style="font-size:11px; color:#64748b; margin-top:6px; font-weight:600;">${item.title || ''}</p></div><p style="clear:both;"></p>`;
+      execCmd('insertHTML', imgHtml);
+    } else {
+      // Document / PDF / Attachment card
+      const docName = item.originalName || item.title || 'Download Document';
+      const fileSize = (item.size / 1024).toFixed(1);
+      const ext = (item.extension || 'FILE').toUpperCase();
+      const docHtml = `
+        <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:14px; padding:12px 16px; margin:1rem 0; display:flex; align-items:center; justify-between; gap:12px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div style="background:#0f172a; color:#f59e0b; padding:8px; border-radius:10px; font-weight:900; font-size:11px;">📄 ${ext}</div>
+            <div>
+              <div style="font-weight:800; font-size:13px; color:#0f172a;">${docName}</div>
+              <div style="font-size:11px; color:#64748b;">${ext} File · ${fileSize} KB</div>
+            </div>
+          </div>
+          <a href="${fileUrl}" target="_blank" download style="background:#f59e0b; color:#0f172a; font-weight:800; font-size:11px; text-decoration:none; padding:8px 14px; border-radius:10px; display:inline-block;">📥 Download Document</a>
+        </div><p></p>
+      `;
+      execCmd('insertHTML', docHtml);
     }
   };
 
@@ -281,17 +334,27 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
         type="button"
         onClick={insertLink}
         className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-        title="Insert Link"
+        title="Insert Hyperlink"
       >
         <LinkIcon className="h-3.5 w-3.5" />
       </button>
       <button
         type="button"
-        onClick={insertImage}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-        title="Insert Image"
+        onClick={openImagePicker}
+        className="rounded p-1.5 text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
+        title="Insert Image from Media Library"
       >
-        <ImageIcon className="h-3.5 w-3.5" />
+        <ImageIcon className="h-3.5 w-3.5 text-blue-600" />
+        <span>+ Image</span>
+      </button>
+      <button
+        type="button"
+        onClick={openDocumentPicker}
+        className="rounded p-1.5 text-emerald-600 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
+        title="Attach Document / PDF Download Card"
+      >
+        <Paperclip className="h-3.5 w-3.5 text-emerald-600" />
+        <span>+ File/PDF</span>
       </button>
       <button
         type="button"
@@ -491,6 +554,14 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
             </div>
           </div>
         </div>
+      )}
+      {/* Media Asset Picker Modal */}
+      {showMediaPicker && (
+        <MediaPicker
+          allowedTypes={mediaPickerMode === 'IMAGE' ? ['IMAGE'] : ['PDF', 'DOCUMENT', 'ARCHIVE', 'ZIP']}
+          onSelect={handleMediaSelect}
+          onClose={() => setShowMediaPicker(false)}
+        />
       )}
     </>
   );

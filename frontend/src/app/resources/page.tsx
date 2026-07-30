@@ -182,21 +182,21 @@ export default function Resources() {
                         const canPreview = canPreviewInline(res.url, res.type);
 
                         return (
-                          <div key={res.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors">
-                            <div className="flex gap-4 items-start">
+                          <div key={res.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--card-bg)] hover:bg-amber-500/5 transition-colors border-b border-[var(--card-border)] last:border-b-0">
+                            <div className="flex gap-4 items-start min-w-0">
                               <div className={`w-10 h-10 rounded-xl ${bg} ${color} flex items-center justify-center shrink-0`}>
                                 <Icon className="w-5 h-5" />
                               </div>
-                              <div className="space-y-1">
-                                <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] leading-tight">
+                              <div className="space-y-1 min-w-0">
+                                <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] leading-snug break-words">
                                   {res.title}
                                 </h4>
                                 <div className="flex flex-wrap items-center gap-1.5">
-                                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded-md">
                                     {res.type} {res.size ? `• ${res.size}` : ''}
                                   </span>
                                   {res.subcategory && (
-                                    <span className="text-[8px] bg-slate-100 dark:bg-slate-850 px-2 py-0.5 text-slate-500 dark:text-slate-400 rounded-md font-bold uppercase">
+                                    <span className="text-[8px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[var(--text-color)] rounded-md font-bold uppercase">
                                       {res.subcategory}
                                     </span>
                                   )}
@@ -207,13 +207,13 @@ export default function Resources() {
                               </div>
                             </div>
 
-                            <div className="shrink-0 flex items-center gap-2">
+                            <div className="shrink-0 flex items-center gap-2 w-full sm:w-auto pt-2 sm:pt-0">
                               {/* Primary View / Open in New Tab Button */}
                               <a
                                 href={resolveUrl(res.url)}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs shadow-sm hover:scale-[1.02] transition-all cursor-pointer"
+                                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs shadow-sm hover:scale-[1.02] transition-all cursor-pointer"
                               >
                                 <Eye className="w-4 h-4" />
                                 <span>View File</span>
@@ -221,14 +221,14 @@ export default function Resources() {
 
                               {/* Download Button */}
                               {downloadStates[res.id] ? (
-                                <span className="flex items-center gap-1.5 text-emerald-600 text-xs font-bold bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-100">
+                                <span className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-emerald-600 text-xs font-bold bg-emerald-500/10 px-3.5 py-2 rounded-xl border border-emerald-500/20">
                                   <CheckCircle className="w-4 h-4" />
                                   <span>Downloading…</span>
                                 </span>
                               ) : (
                                 <button
                                   onClick={() => handleDownload(res)}
-                                  className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs border border-slate-200 dark:border-white/10 transition-all cursor-pointer"
+                                  className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[var(--card-bg)] hover:bg-amber-500/10 text-[var(--text-color)] font-bold rounded-xl text-xs border border-[var(--card-border)] transition-all cursor-pointer"
                                   title="Download File"
                                 >
                                   <Download className="w-3.5 h-3.5" />

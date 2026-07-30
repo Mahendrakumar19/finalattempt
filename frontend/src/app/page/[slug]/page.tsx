@@ -107,9 +107,9 @@ export default function CustomDynamicPage() {
               [&_h1]:text-2xl [&_h1]:font-black [&_h1]:font-heading [&_h1]:my-4
               [&_h2]:text-xl [&_h2]:font-bold [&_h2]:font-heading [&_h2]:my-3
               [&_h3]:text-lg [&_h3]:font-bold [&_h3]:my-2
-              [&_table]:w-full [&_table]:border-collapse [&_table]:my-6
-              [&_th]:bg-slate-100 [&_th]:dark:bg-slate-800 [&_th]:p-3 [&_th]:text-left [&_th]:font-bold
-              [&_td]:p-3 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-white/10
+              [&_table]:max-w-full [&_table]:border-collapse [&_table]:my-6 [&_table]:mx-auto
+              [&_th]:bg-slate-100 [&_th]:dark:bg-slate-800 [&_th]:p-3 [&_th]:text-left [&_th]:font-bold [&_th]:whitespace-nowrap
+              [&_td]:p-3 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-white/10 [&_td]:whitespace-nowrap
               [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6
               [&_blockquote]:border-l-4 [&_blockquote]:border-amber-500 [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:my-4"
             dangerouslySetInnerHTML={{ __html: page.content || '<p>No content provided yet for this page.</p>' }}
