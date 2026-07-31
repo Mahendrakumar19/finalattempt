@@ -57,6 +57,11 @@ interface SiteSettings {
   whatsappLink?: string;
   telegramLink?: string;
   googleMapUrl?: string;
+  aboutTitle?: string;
+  aboutSubtitle?: string;
+  aboutMission?: string;
+  aboutVision?: string;
+  aboutValues?: string;
   featureFlags?: Record<string, boolean>;
 }
 
@@ -988,6 +993,70 @@ export default function AdminPortal() {
                     value={settings.googleMapUrl || ''}
                     onChange={(e) => setSettings({ ...settings, googleMapUrl: e.target.value })}
                     className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* ABOUT PAGE CMS CONFIGURATION */}
+              <div className="border-t border-slate-100 pt-6 space-y-4">
+                <h4 className="font-heading font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
+                  <span>ℹ️ About Us Page Content CMS</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Main Heading Title</label>
+                    <input
+                      type="text"
+                      placeholder="One Mentor. One Strategy. One Final Attempt."
+                      value={settings.aboutTitle || ''}
+                      onChange={(e) => setSettings({ ...settings, aboutTitle: e.target.value })}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900 font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sub-heading Description</label>
+                    <input
+                      type="text"
+                      placeholder="Final Attempt is BPSC's premium prep ecosystem..."
+                      value={settings.aboutSubtitle || ''}
+                      onChange={(e) => setSettings({ ...settings, aboutSubtitle: e.target.value })}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Our Mission Statement</label>
+                  <textarea
+                    rows={2}
+                    placeholder="To democratize civil services coaching in Bihar..."
+                    value={settings.aboutMission || ''}
+                    onChange={(e) => setSettings({ ...settings, aboutMission: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Our Vision Statement</label>
+                  <textarea
+                    rows={2}
+                    placeholder="To be recognized as Bihar's most trusted gateway for administrative leadership..."
+                    value={settings.aboutVision || ''}
+                    onChange={(e) => setSettings({ ...settings, aboutVision: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Core Values Description</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Upholding transparency in feedback, diagnostic dashboards, strict study schedules..."
+                    value={settings.aboutValues || ''}
+                    onChange={(e) => setSettings({ ...settings, aboutValues: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
                   />
                 </div>
               </div>

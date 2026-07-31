@@ -178,6 +178,11 @@ export interface SiteSettings {
   whatsappLink?: string;
   telegramLink?: string;
   googleMapUrl?: string;
+  aboutTitle?: string;
+  aboutSubtitle?: string;
+  aboutMission?: string;
+  aboutVision?: string;
+  aboutValues?: string;
   featureFlags?: Record<string, boolean>;
 }
 

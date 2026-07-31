@@ -27,15 +27,19 @@ interface ResultTopper {
 export default function AboutPage() {
   const [faculty, setFaculty] = useState<FacultyMember[]>([]);
   const [results, setResults] = useState<ResultTopper[]>([]);
+  const [settings, setSettings] = useState<any>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const facData = await db.getFaculty();
+        const [facData, resData, setRes] = await Promise.all([
+          db.getFaculty(),
+          db.getResults(),
+          db.getSettings()
+        ]);
         setFaculty(facData || []);
-        
-        const resData = await db.getResults();
         setResults(resData || []);
+        setSettings(setRes || null);
       } catch (err) {
         console.error('Failed loading about page dynamic parameters:', err);
       }
@@ -51,11 +55,17 @@ export default function AboutPage() {
           Who We Are
         </span>
         <h1 className="text-4xl sm:text-5xl font-heading font-black text-[var(--text-color)] tracking-tight leading-tight">
-          One Mentor. One Strategy. <br />
-          <span className="text-amber-500">One Final Attempt.</span>
+          {settings?.aboutTitle ? (
+            <span>{settings.aboutTitle}</span>
+          ) : (
+            <>
+              One Mentor. One Strategy. <br />
+              <span className="text-amber-500">One Final Attempt.</span>
+            </>
+          )}
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-          Final Attempt is BPSC's premium prep ecosystem designed by civil servants and leading experts to deliver strategic mentorship and personalized micro-scheduling.
+          {settings?.aboutSubtitle || "Final Attempt is BPSC's premium prep ecosystem designed by civil servants and leading experts to deliver strategic mentorship and personalized micro-scheduling."}
         </p>
       </div>
 
@@ -67,7 +77,7 @@ export default function AboutPage() {
           </div>
           <h3 className="font-heading font-extrabold text-lg text-[var(--text-color)]">Our Mission</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            To democratize civil services coaching in Bihar by providing senior administrative officer mentorship, structured syllabus micro-targets, and local language accessibility.
+            {settings?.aboutMission || "To democratize civil services coaching in Bihar by providing senior administrative officer mentorship, structured syllabus micro-targets, and local language accessibility."}
           </p>
         </div>
 
@@ -77,7 +87,7 @@ export default function AboutPage() {
           </div>
           <h3 className="font-heading font-extrabold text-lg text-[var(--text-color)]">Our Vision</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            To be recognized as Bihar's most trusted and outcome-oriented gateway for administrative leadership, shaping civil servants who drive regional development.
+            {settings?.aboutVision || "To be recognized as Bihar's most trusted and outcome-oriented gateway for administrative leadership, shaping civil servants who drive regional development."}
           </p>
         </div>
 
@@ -87,7 +97,7 @@ export default function AboutPage() {
           </div>
           <h3 className="font-heading font-extrabold text-lg text-[var(--text-color)]">Core Values</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            Upholding transparency in feedback, data-driven diagnostic dashboards, strict study schedules, and unyielding support for economically backward learners.
+            {settings?.aboutValues || "Upholding transparency in feedback, data-driven diagnostic dashboards, strict study schedules, and unyielding support for economically backward learners."}
           </p>
         </div>
       </div>
