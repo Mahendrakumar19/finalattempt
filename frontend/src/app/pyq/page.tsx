@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ChevronDown, CheckCircle, FileText, Download, BookOpen, Eye, Home, ChevronRight, X } from 'lucide-react';
-import { pyqs as fallbackMcqs } from '@/services/db';
+import { Search, FileText, Download, BookOpen, Eye, Home, ChevronRight, X } from 'lucide-react';
 
 interface Exam {
   id: string;
@@ -27,30 +26,16 @@ interface PYQItem {
 }
 
 export default function PyqPage() {
-  // PDF state variables
   const [exams, setExams] = useState<Exam[]>([]);
   const [pyqList, setPyqList] = useState<PYQItem[]>([]);
   const [allYears, setAllYears] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExamId, setSelectedExamId] = useState<string>('ALL');
   const [selectedYear, setSelectedYear] = useState<string>('ALL');
-  const [selectedStage, setSelectedStage] = useState<string>('ALL');
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
-  // Grouping expanded accordions state
-  const [expandedExams, setExpandedExams] = useState<Record<string, boolean>>({});
-  const [expandedYears, setExpandedYears] = useState<Record<string, boolean>>({});
-
-  // Preview overlay state
-  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
-  const [previewTitle, setPreviewTitle] = useState<string>('');
-
-  // Interactive MCQs state variables
-  const [mcqSearchQuery, setMcqSearchQuery] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('All');
-  const [openExplanations, setOpenExplanations] = useState<Record<string, boolean>>({});
+  // Active selected exam for paper modal viewer
+  const [activeExamModal, setActiveExamModal] = useState<{ id: string; name: string } | null>(null);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -58,14 +43,9 @@ export default function PyqPage() {
     fetchExams();
   }, []);
 
-  // Reset page to 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedExamId, selectedYear, selectedStage]);
-
   useEffect(() => {
     fetchPYQs();
-  }, [searchQuery, selectedExamId, selectedYear, selectedStage, currentPage]);
+  }, [searchQuery, selectedExamId, selectedYear]);
 
   const fetchExams = async () => {
     try {
@@ -82,39 +62,17 @@ export default function PyqPage() {
   const fetchPYQs = async () => {
     setLoading(true);
     try {
-      // Fetch all without pagination for grouping — filters applied client-side for year/stage
-      let url = `${BACKEND_URL}/api/pyqs?page=${currentPage}&limit=200`;
-      if (selectedExamId !== 'ALL') {
-        url += `&examId=${selectedExamId}`;
-      }
-      if (selectedYear !== 'ALL') {
-        url += `&year=${selectedYear}`;
-      }
-      if (selectedStage !== 'ALL') {
-        url += `&stage=${selectedStage}`;
-      }
-      if (searchQuery) {
-        url += `&search=${encodeURIComponent(searchQuery)}`;
-      }
+      let url = `${BACKEND_URL}/api/pyqs?limit=500`;
+      if (selectedExamId !== 'ALL') url += `&examId=${selectedExamId}`;
+      if (selectedYear !== 'ALL') url += `&year=${selectedYear}`;
+      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
 
       const res = await fetch(url);
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         setPyqList(data.data);
-        if (data.pagination) {
-          setTotalPages(data.pagination.pages || 1);
-        }
-        // Extract unique years from data for dynamic year filter dropdown
         const yearsSet = new Set<number>(data.data.map((item: PYQItem) => item.year));
-        setAllYears(Array.from(yearsSet).sort((a, b) => b - a)); // descending
-        // Auto-expand all exams if results found
-        if (data.data.length > 0) {
-          const examNames: Record<string, boolean> = {};
-          data.data.forEach((item: PYQItem) => {
-            examNames[item.exam.name] = true;
-          });
-          setExpandedExams(examNames);
-        }
+        setAllYears(Array.from(yearsSet).sort((a, b) => b - a));
       }
     } catch (err) {
       console.error(err);
@@ -122,7 +80,6 @@ export default function PyqPage() {
     setLoading(false);
   };
 
-  // Safely extract media URL whether media has storagePath, url, or path
   const getMediaUrl = (mediaObj?: any) => {
     if (!mediaObj) return '';
     const pathStr = mediaObj.storagePath || mediaObj.url || mediaObj.path || (typeof mediaObj === 'string' ? mediaObj : '');
@@ -132,42 +89,17 @@ export default function PyqPage() {
     return `${BACKEND_URL}/${pathStr.replace(/^\//, '')}`;
   };
 
-  // Group items by Exam Name -> Year (desc) -> Stage
-  const getGroupedPYQs = () => {
-    const grouped: Record<string, Record<number, Record<string, PYQItem[]>>> = {};
-
-    pyqList.forEach((item) => {
-      const examName = item.exam.name;
-      const year = item.year;
-      const stage = item.stage;
-
-      if (!grouped[examName]) {
-        grouped[examName] = {};
-      }
-      if (!grouped[examName][year]) {
-        grouped[examName][year] = {};
-      }
-      if (!grouped[examName][year][stage]) {
-        grouped[examName][year][stage] = [];
-      }
-      grouped[examName][year][stage].push(item);
-    });
-
-    return grouped;
-  };
-
-  const toggleExamAccordion = (examName: string) => {
-    setExpandedExams((prev) => ({ ...prev, [examName]: !prev[examName] }));
-  };
-
-  const toggleYearAccordion = (yearKey: string) => {
-    setExpandedYears((prev) => ({ ...prev, [yearKey]: !prev[yearKey] }));
-  };
-
-  const groupedData = getGroupedPYQs();
+  // Group papers by Exam Category
+  const examGroups = exams.map((ex) => {
+    const papers = pyqList.filter((p) => p.examId === ex.id || p.exam?.id === ex.id);
+    return {
+      exam: ex,
+      papers: papers.sort((a, b) => (b.year - a.year) || (a.sortOrder - b.sortOrder))
+    };
+  }).filter((group) => group.papers.length > 0 || selectedExamId === 'ALL');
 
   return (
-    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12 min-h-screen">
+    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 min-h-screen">
       
       {/* Breadcrumbs */}
       <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-semibold">
@@ -180,297 +112,245 @@ export default function PyqPage() {
       </div>
 
       {/* Page Header */}
-      <div className="space-y-4 max-w-3xl">
-        <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest block w-fit">
-          Question Bank
-        </span>
-        <h1 className="text-4xl font-heading font-black text-slate-900 dark:text-white tracking-tight leading-none">
-          Previous Year Papers Library
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
-          Access structured question booklets, verified answer keys, and solutions from our dynamic exam vault.
-        </p>
-      </div>
-
-      {/* PDFs Directories View */}
-      <div className="space-y-8">
-          
-          {/* Filters Bar */}
-          <div className="p-6 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-white/[0.06] shadow-xs flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="relative w-full md:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search PYQ booklets..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/[0.06] rounded-xl outline-none text-slate-900 dark:text-white"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
-              <select
-                value={selectedExamId}
-                onChange={(e) => setSelectedExamId(e.target.value)}
-                className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-250 dark:border-white/[0.06] rounded-xl outline-none text-slate-700 dark:text-white font-bold"
-              >
-                <option value="ALL">All Exams</option>
-                {exams.map((ex) => (
-                  <option key={ex.id} value={ex.id}>{ex.name}</option>
-                ))}
-              </select>
-
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                className="px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-205 dark:border-white/[0.06] rounded-xl outline-none text-slate-700 dark:text-white font-bold"
-              >
-                <option value="ALL">All Years</option>
-                {allYears.length > 0
-                  ? allYears.map((y) => (
-                      <option key={y} value={String(y)}>{y}</option>
-                    ))
-                  : ['2024', '2023', '2022', '2021', '2020', '2019', '2018', '2017', '2016', '2015'].map((y) => (
-                      <option key={y} value={y}>{y}</option>
-                    ))
-                }
-              </select>
-
-            </div>
-          </div>
-
-          {/* PYQs Grouped by Exam Vault */}
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-44 bg-slate-100 dark:bg-white/[0.02] border rounded-2xl animate-pulse" />
-              ))}
-            </div>
-          ) : Object.keys(groupedData).length === 0 ? (
-            <div className="text-center py-20 bg-white dark:bg-slate-900/10 border border-slate-200 rounded-3xl max-w-md mx-auto space-y-4">
-              <FileText className="w-12 h-12 text-slate-400 mx-auto" />
-              <h3 className="font-heading font-black text-sm text-slate-950 dark:text-white">No Question Booklets Found</h3>
-              <p className="text-xs text-slate-500">Modify your search query filters and try again.</p>
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {Object.entries(groupedData).map(([examName, yearsObj]) => {
-                const isExamExpanded = expandedExams[examName] !== false; // expanded by default
-                const totalPapers = Object.values(yearsObj).reduce((acc, stagesObj) => {
-                  return acc + Object.values(stagesObj).reduce((sAcc, items) => sAcc + items.length, 0);
-                }, 0);
-
-                return (
-                  <div
-                    key={examName}
-                    className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.08] rounded-3xl overflow-hidden shadow-sm transition-all"
-                  >
-                    {/* Exam Card Header */}
-                    <div
-                      onClick={() => toggleExamAccordion(examName)}
-                      className="p-6 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent flex items-center justify-between cursor-pointer border-b border-slate-100 dark:border-white/[0.06] hover:bg-amber-500/15 transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow-md">
-                          <BookOpen className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <h3 className="font-heading font-black text-lg sm:text-xl text-slate-900 dark:text-white">
-                            {examName}
-                          </h3>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                            {Object.keys(yearsObj).length} Exam Sessions • {totalPapers} Question Booklets & Papers Available
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-500/20 px-3 py-1 rounded-xl">
-                          Click to {isExamExpanded ? 'Collapse' : 'View Papers'}
-                        </span>
-                        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${isExamExpanded ? 'rotate-180' : ''}`} />
-                      </div>
-                    </div>
-
-                    {/* Exam Papers List Container */}
-                    {isExamExpanded && (
-                      <div className="p-6 space-y-6">
-                        {Object.entries(yearsObj)
-                          .sort(([a], [b]) => Number(b) - Number(a))
-                          .map(([yearStr, stagesObj]) => {
-                            const yearKey = `${examName}-${yearStr}`;
-                            const isYearExpanded = expandedYears[yearKey] !== false; // default open
-
-                            return (
-                              <div key={yearStr} className="space-y-4">
-                                <div
-                                  onClick={() => toggleYearAccordion(yearKey)}
-                                  className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/10 cursor-pointer group"
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs font-black text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
-                                      {yearStr} Academic Session
-                                    </span>
-                                  </div>
-                                  <ChevronDown className={`w-4 h-4 text-slate-400 group-hover:text-slate-700 transition-transform ${isYearExpanded ? 'rotate-180' : ''}`} />
-                                </div>
-
-                                {isYearExpanded && (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-                                    {Object.entries(stagesObj).flatMap(([stage, items]) =>
-                                      items.map((item) => (
-                                        <div
-                                          key={item.id}
-                                          className="p-5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl space-y-3 hover:border-amber-500/50 hover:shadow-xs transition-all flex flex-col justify-between"
-                                        >
-                                          <div className="space-y-2">
-                                            <div className="flex items-center justify-between gap-2">
-                                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/40">
-                                                {item.stage}
-                                              </span>
-                                              <span className="text-[9px] font-bold text-slate-400 uppercase">
-                                                Order: #{item.sortOrder || 1}
-                                              </span>
-                                            </div>
-
-                                            <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white leading-snug">
-                                              {item.paperName}
-                                            </h4>
-
-                                            {item.description && (
-                                              <div
-                                                className="text-xs text-slate-500 line-clamp-2 leading-relaxed [&_*]:inline [&_*]:m-0"
-                                                dangerouslySetInnerHTML={{ __html: item.description }}
-                                              />
-                                            )}
-                                          </div>
-
-                                          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200/60 dark:border-white/5">
-                                            {item.questionPaper && getMediaUrl(item.questionPaper) && (
-                                              <a
-                                                href={getMediaUrl(item.questionPaper)}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="flex-1 py-2 px-3 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
-                                              >
-                                                <Eye className="w-3.5 h-3.5" />
-                                                <span>View Paper</span>
-                                              </a>
-                                            )}
-                                            {item.answerKey && getMediaUrl(item.answerKey) && (
-                                              <a
-                                                href={getMediaUrl(item.answerKey)}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="py-2 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors border border-slate-200 dark:border-white/10"
-                                              >
-                                                <Eye className="w-3.5 h-3.5 text-blue-500" />
-                                                <span>Key</span>
-                                              </a>
-                                            )}
-                                            {item.solution && getMediaUrl(item.solution) && (
-                                              <a
-                                                href={getMediaUrl(item.solution)}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="py-2 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors border border-slate-200 dark:border-white/10"
-                                              >
-                                                <Eye className="w-3.5 h-3.5 text-emerald-500" />
-                                                <span>Solution</span>
-                                              </a>
-                                            )}
-                                            {item.questionPaper && getMediaUrl(item.questionPaper) && (
-                                              <a
-                                                href={getMediaUrl(item.questionPaper)}
-                                                download
-                                                className="py-2 px-3 bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors hover:bg-slate-800"
-                                                title="Download PDF"
-                                              >
-                                                <Download className="w-3.5 h-3.5" />
-                                              </a>
-                                            )}
-                                          </div>
-                                        </div>
-                                      ))
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 pt-6">
-              <button
-                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-                className="px-4 py-2 border rounded-xl text-xs font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-white/[0.08] hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Previous
-              </button>
-              <span className="text-xs font-bold text-slate-650 dark:text-slate-400 px-3">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-                className="px-4 py-2 border rounded-xl text-xs font-bold bg-white dark:bg-slate-900 border-slate-200 dark:border-white/[0.08] hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Next
-              </button>
-            </div>
-          )}
-
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200 dark:border-white/10">
+        <div className="space-y-3 max-w-3xl">
+          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest block w-fit">
+            Official Question Bank
+          </span>
+          <h1 className="text-4xl sm:text-5xl font-heading font-black text-slate-900 dark:text-white tracking-tight leading-none">
+            Previous Year Papers Library
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
+            Select an exam category to explore structured question booklets, verified answer keys, and direct downloadable solutions.
+          </p>
         </div>
 
-      {/* PDF.js Viewer Overlay Modal */}
-      {previewPdfUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
-          <div className="w-full max-w-4xl bg-white dark:bg-slate-900 rounded-3xl overflow-hidden flex flex-col h-[80vh] border border-slate-200">
-            <div className="p-4 border-b border-slate-100 dark:border-white/[0.04] flex items-center justify-between">
-              <h3 className="font-heading font-black text-slate-900 dark:text-white text-sm">{previewTitle}</h3>
+        {/* Quick Stats Banner */}
+        <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-5 py-3.5 rounded-2xl shrink-0">
+          <BookOpen className="w-6 h-6 text-amber-500" />
+          <div>
+            <span className="text-xs font-black text-slate-900 dark:text-white block">{pyqList.length} Papers Uploaded</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{exams.length} Active Exam Vaults</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Search & Filters Bar */}
+      <div className="p-6 bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200 dark:border-white/[0.08] shadow-xs flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full md:w-80">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by paper name or exam..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/[0.06] rounded-2xl outline-none text-slate-900 dark:text-white font-medium"
+          />
+        </div>
+
+        <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
+          <select
+            value={selectedExamId}
+            onChange={(e) => setSelectedExamId(e.target.value)}
+            className="px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-250 dark:border-white/[0.06] rounded-2xl outline-none text-slate-800 dark:text-white font-bold cursor-pointer"
+          >
+            <option value="ALL">All Exams ({exams.length})</option>
+            {exams.map((ex) => (
+              <option key={ex.id} value={ex.id}>{ex.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-205 dark:border-white/[0.06] rounded-2xl outline-none text-slate-800 dark:text-white font-bold cursor-pointer"
+          >
+            <option value="ALL">All Years</option>
+            {allYears.length > 0
+              ? allYears.map((y) => (
+                  <option key={y} value={String(y)}>{y}</option>
+                ))
+              : ['2026', '2025', '2024', '2023', '2022', '2021', '2020'].map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))
+            }
+          </select>
+        </div>
+      </div>
+
+      {/* EXAM CARDS VAULT GRID */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-56 bg-slate-100 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl animate-pulse" />
+          ))}
+        </div>
+      ) : pyqList.length === 0 ? (
+        <div className="text-center py-20 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-white/10 rounded-3xl max-w-md mx-auto space-y-4 shadow-sm">
+          <FileText className="w-12 h-12 text-slate-400 mx-auto" />
+          <h3 className="font-heading font-black text-base text-slate-950 dark:text-white">No Question Papers Found</h3>
+          <p className="text-xs text-slate-500">Modify your search query filters or select another exam category.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {examGroups.map(({ exam, papers }) => (
+            <div
+              key={exam.id}
+              onClick={() => setActiveExamModal({ id: exam.id, name: exam.name })}
+              className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-7 rounded-3xl space-y-6 shadow-sm hover:shadow-xl hover:border-amber-500/60 transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden"
+            >
+              <div className="space-y-4 relative">
+                <div className="flex items-center justify-between">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-sm group-hover:bg-amber-500 group-hover:text-slate-950 transition-all">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl">
+                    {papers.length} Papers
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">
+                    {exam.name}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2">
+                    Click to view all {papers.length} question booklets, answer keys, and solutions for {exam.name}.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                  Latest: {papers[0]?.year || '2026'} Session
+                </span>
+                <span className="text-xs font-black text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                  Open Vault &rarr;
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* POPUP MODAL: ALL PAPERS LIST FOR SELECTED EXAM */}
+      {activeExamModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col max-h-[88vh] overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="p-6 sm:p-8 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-slate-100 dark:border-white/[0.08] flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow-md">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="font-heading font-black text-2xl text-slate-900 dark:text-white">
+                    {activeExamModal.name} Papers Collection
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                    Showing all question booklets, official answer keys, and solutions.
+                  </p>
+                </div>
+              </div>
+
               <button
-                onClick={() => setPreviewPdfUrl(null)}
-                className="p-2 text-slate-400 hover:bg-slate-50 rounded-lg cursor-pointer"
+                onClick={() => setActiveExamModal(null)}
+                className="p-2.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl cursor-pointer transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="flex items-center gap-2 border-t border-slate-100 dark:border-white/[0.04] px-4 py-2 bg-slate-50 dark:bg-slate-800/50">
-              <a
-                href={previewPdfUrl || ''}
-                target="_blank"
-                rel="noreferrer"
-                className="text-[10px] font-bold text-blue-600 hover:underline"
-              >
-                Open in New Tab ↗
-              </a>
-              <span className="text-slate-300">|</span>
-              <a
-                href={previewPdfUrl || ''}
-                download
-                className="text-[10px] font-bold text-slate-500 hover:text-slate-700"
-              >
-                Download
-              </a>
+            {/* Modal Papers Grid Scrollable Content */}
+            <div className="p-6 sm:p-8 overflow-y-auto space-y-6">
+              {pyqList.filter(p => p.examId === activeExamModal.id || p.exam?.id === activeExamModal.id).length === 0 ? (
+                <div className="text-center py-12 text-slate-400 text-xs font-semibold">
+                  No question papers uploaded yet for {activeExamModal.name}.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {pyqList
+                    .filter(p => p.examId === activeExamModal.id || p.exam?.id === activeExamModal.id)
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/[0.08] rounded-2xl space-y-4 hover:border-amber-500/50 transition-all flex flex-col justify-between"
+                      >
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20">
+                              {item.year} Academic Year
+                            </span>
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/40">
+                              {item.stage}
+                            </span>
+                          </div>
+
+                          <h4 className="font-heading font-extrabold text-base text-slate-900 dark:text-white leading-snug">
+                            {item.paperName}
+                          </h4>
+
+                          {item.description && (
+                            <div
+                              className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed [&_*]:inline [&_*]:m-0"
+                              dangerouslySetInnerHTML={{ __html: item.description }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Direct PDF View & Download Actions */}
+                        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200/70 dark:border-white/[0.06]">
+                          {item.questionPaper && getMediaUrl(item.questionPaper) && (
+                            <a
+                              href={getMediaUrl(item.questionPaper)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex-1 py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                            >
+                              <Eye className="w-4 h-4" />
+                              <span>View Paper</span>
+                            </a>
+                          )}
+
+                          {item.questionPaper && getMediaUrl(item.questionPaper) && (
+                            <a
+                              href={getMediaUrl(item.questionPaper)}
+                              download
+                              className="py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                            >
+                              <Download className="w-4 h-4" />
+                              <span>Download PDF</span>
+                            </a>
+                          )}
+
+                          {item.answerKey && getMediaUrl(item.answerKey) && (
+                            <a
+                              href={getMediaUrl(item.answerKey)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="py-2.5 px-3 bg-white dark:bg-slate-700 hover:bg-slate-100 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl flex items-center justify-center gap-1 border border-slate-200 dark:border-white/10"
+                            >
+                              <span>Key ↗</span>
+                            </a>
+                          )}
+
+                          {item.solution && getMediaUrl(item.solution) && (
+                            <a
+                              href={getMediaUrl(item.solution)}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="py-2.5 px-3 bg-white dark:bg-slate-700 hover:bg-slate-100 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl flex items-center justify-center gap-1 border border-slate-200 dark:border-white/10"
+                            >
+                              <span>Solution ↗</span>
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
             </div>
-            <div className="flex-grow bg-slate-950 relative overflow-hidden">
-              <iframe
-                src={previewPdfUrl || ''}
-                className="w-full h-full border-0"
-                title="PYQ PDF Preview"
-                allowFullScreen
-              />
-            </div>
+
           </div>
         </div>
       )}
