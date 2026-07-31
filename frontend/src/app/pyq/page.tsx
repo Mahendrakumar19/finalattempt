@@ -239,94 +239,170 @@ export default function PyqPage() {
             </div>
           </div>
 
-          {/* PYQs Booklet Cards Grid */}
+          {/* PYQs Grouped by Exam Vault */}
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="h-44 bg-slate-100 dark:bg-white/[0.02] border rounded-2xl animate-pulse" />
               ))}
             </div>
-          ) : pyqList.length === 0 ? (
+          ) : Object.keys(groupedData).length === 0 ? (
             <div className="text-center py-20 bg-white dark:bg-slate-900/10 border border-slate-200 rounded-3xl max-w-md mx-auto space-y-4">
               <FileText className="w-12 h-12 text-slate-400 mx-auto" />
               <h3 className="font-heading font-black text-sm text-slate-950 dark:text-white">No Question Booklets Found</h3>
               <p className="text-xs text-slate-500">Modify your search query filters and try again.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {pyqList.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-6 bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.08] rounded-3xl space-y-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-2.5 py-1 rounded-lg border border-amber-200 dark:border-amber-800/40">
-                        {item.exam?.name || 'BPSC'} • {item.year}
-                      </span>
-                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/40">
-                        {item.stage}
-                      </span>
+            <div className="space-y-8">
+              {Object.entries(groupedData).map(([examName, yearsObj]) => {
+                const isExamExpanded = expandedExams[examName] !== false; // expanded by default
+                const totalPapers = Object.values(yearsObj).reduce((acc, stagesObj) => {
+                  return acc + Object.values(stagesObj).reduce((sAcc, items) => sAcc + items.length, 0);
+                }, 0);
+
+                return (
+                  <div
+                    key={examName}
+                    className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.08] rounded-3xl overflow-hidden shadow-sm transition-all"
+                  >
+                    {/* Exam Card Header */}
+                    <div
+                      onClick={() => toggleExamAccordion(examName)}
+                      className="p-6 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent flex items-center justify-between cursor-pointer border-b border-slate-100 dark:border-white/[0.06] hover:bg-amber-500/15 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow-md">
+                          <BookOpen className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <h3 className="font-heading font-black text-lg sm:text-xl text-slate-900 dark:text-white">
+                            {examName}
+                          </h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                            {Object.keys(yearsObj).length} Exam Sessions • {totalPapers} Question Booklets & Papers Available
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-500/20 px-3 py-1 rounded-xl">
+                          Click to {isExamExpanded ? 'Collapse' : 'View Papers'}
+                        </span>
+                        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${isExamExpanded ? 'rotate-180' : ''}`} />
+                      </div>
                     </div>
 
-                    <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white leading-snug">
-                      {item.paperName}
-                    </h4>
-                    {item.description && (
-                      <div
-                        className="text-xs text-slate-500 line-clamp-3 leading-relaxed [&_*]:inline [&_*]:m-0"
-                        dangerouslySetInnerHTML={{ __html: item.description }}
-                      />
-                    )}
-                  </div>
+                    {/* Exam Papers List Container */}
+                    {isExamExpanded && (
+                      <div className="p-6 space-y-6">
+                        {Object.entries(yearsObj)
+                          .sort(([a], [b]) => Number(b) - Number(a))
+                          .map(([yearStr, stagesObj]) => {
+                            const yearKey = `${examName}-${yearStr}`;
+                            const isYearExpanded = expandedYears[yearKey] !== false; // default open
 
-                  <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-100 dark:border-white/[0.06]">
-                    {item.questionPaper && getMediaUrl(item.questionPaper) && (
-                      <a
-                        href={getMediaUrl(item.questionPaper)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 py-2 px-3 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>View Paper</span>
-                      </a>
-                    )}
-                    {item.answerKey && getMediaUrl(item.answerKey) && (
-                      <a
-                        href={getMediaUrl(item.answerKey)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-blue-500" />
-                        <span>Key</span>
-                      </a>
-                    )}
-                    {item.solution && getMediaUrl(item.solution) && (
-                      <a
-                        href={getMediaUrl(item.solution)}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="py-2 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Solution</span>
-                      </a>
-                    )}
-                    {item.questionPaper && getMediaUrl(item.questionPaper) && (
-                      <a
-                        href={getMediaUrl(item.questionPaper)}
-                        download
-                        className="py-2 px-3 bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors hover:bg-slate-800"
-                        title="Download PDF"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </a>
+                            return (
+                              <div key={yearStr} className="space-y-4">
+                                <div
+                                  onClick={() => toggleYearAccordion(yearKey)}
+                                  className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/10 cursor-pointer group"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
+                                      {yearStr} Academic Session
+                                    </span>
+                                  </div>
+                                  <ChevronDown className={`w-4 h-4 text-slate-400 group-hover:text-slate-700 transition-transform ${isYearExpanded ? 'rotate-180' : ''}`} />
+                                </div>
+
+                                {isYearExpanded && (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                                    {Object.entries(stagesObj).flatMap(([stage, items]) =>
+                                      items.map((item) => (
+                                        <div
+                                          key={item.id}
+                                          className="p-5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/10 rounded-2xl space-y-3 hover:border-amber-500/50 hover:shadow-xs transition-all flex flex-col justify-between"
+                                        >
+                                          <div className="space-y-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/40">
+                                                {item.stage}
+                                              </span>
+                                              <span className="text-[9px] font-bold text-slate-400 uppercase">
+                                                Order: #{item.sortOrder || 1}
+                                              </span>
+                                            </div>
+
+                                            <h4 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white leading-snug">
+                                              {item.paperName}
+                                            </h4>
+
+                                            {item.description && (
+                                              <div
+                                                className="text-xs text-slate-500 line-clamp-2 leading-relaxed [&_*]:inline [&_*]:m-0"
+                                                dangerouslySetInnerHTML={{ __html: item.description }}
+                                              />
+                                            )}
+                                          </div>
+
+                                          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200/60 dark:border-white/5">
+                                            {item.questionPaper && getMediaUrl(item.questionPaper) && (
+                                              <a
+                                                href={getMediaUrl(item.questionPaper)}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="flex-1 py-2 px-3 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
+                                              >
+                                                <Eye className="w-3.5 h-3.5" />
+                                                <span>View Paper</span>
+                                              </a>
+                                            )}
+                                            {item.answerKey && getMediaUrl(item.answerKey) && (
+                                              <a
+                                                href={getMediaUrl(item.answerKey)}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="py-2 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors border border-slate-200 dark:border-white/10"
+                                              >
+                                                <Eye className="w-3.5 h-3.5 text-blue-500" />
+                                                <span>Key</span>
+                                              </a>
+                                            )}
+                                            {item.solution && getMediaUrl(item.solution) && (
+                                              <a
+                                                href={getMediaUrl(item.solution)}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="py-2 px-3 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors border border-slate-200 dark:border-white/10"
+                                              >
+                                                <Eye className="w-3.5 h-3.5 text-emerald-500" />
+                                                <span>Solution</span>
+                                              </a>
+                                            )}
+                                            {item.questionPaper && getMediaUrl(item.questionPaper) && (
+                                              <a
+                                                href={getMediaUrl(item.questionPaper)}
+                                                download
+                                                className="py-2 px-3 bg-slate-900 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors hover:bg-slate-800"
+                                                title="Download PDF"
+                                              >
+                                                <Download className="w-3.5 h-3.5" />
+                                              </a>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 

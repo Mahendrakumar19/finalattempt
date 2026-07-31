@@ -111,26 +111,20 @@ export default function AboutPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
-          <div className="space-y-2">
-            <div className="w-10 h-10 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center font-black text-xs mx-auto mb-2">01</div>
-            <h4 className="font-heading font-bold text-sm text-[var(--text-color)]">Micro-Scheduling</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Dividing massive GS books into weekly targeted syllabus schedules.</p>
-          </div>
-          <div className="space-y-2">
-            <div className="w-10 h-10 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center font-black text-xs mx-auto mb-2">02</div>
-            <h4 className="font-heading font-bold text-sm text-[var(--text-color)]">Daily Evaluation</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Mandatory daily answer writing checks by experienced evaluators.</p>
-          </div>
-          <div className="space-y-2">
-            <div className="w-10 h-10 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center font-black text-xs mx-auto mb-2">03</div>
-            <h4 className="font-heading font-bold text-sm text-[var(--text-color)]">Bihar Focus</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Extensive state geography, budget digests, and economic statistics.</p>
-          </div>
-          <div className="space-y-2">
-            <div className="w-10 h-10 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center font-black text-xs mx-auto mb-2">04</div>
-            <h4 className="font-heading font-bold text-sm text-[var(--text-color)]">Officer Mentorship</h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Direct workshops and feedback sessions with selected public administrators.</p>
-          </div>
+          {(settings?.aboutMethodology || [
+            { title: 'Micro-Scheduling', desc: 'Dividing massive GS books into weekly targeted syllabus schedules.' },
+            { title: 'Daily Evaluation', desc: 'Mandatory daily answer writing checks by experienced evaluators.' },
+            { title: 'Bihar Focus', desc: 'Extensive state geography, budget digests, and economic statistics.' },
+            { title: 'Officer Mentorship', desc: 'Direct workshops and feedback sessions with selected public administrators.' }
+          ]).map((step: any, idx: number) => (
+            <div key={idx} className="space-y-2">
+              <div className="w-10 h-10 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center font-black text-xs mx-auto mb-2">
+                0{idx + 1}
+              </div>
+              <h4 className="font-heading font-bold text-sm text-[var(--text-color)]">{step.title}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{step.desc || step.description}</p>
+            </div>
+          ))}
         </div>
       </div>
 

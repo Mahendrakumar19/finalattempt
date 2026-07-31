@@ -183,6 +183,7 @@ export interface SiteSettings {
   aboutMission?: string;
   aboutVision?: string;
   aboutValues?: string;
+  aboutMethodology?: { title: string; desc: string }[];
   featureFlags?: Record<string, boolean>;
 }
 

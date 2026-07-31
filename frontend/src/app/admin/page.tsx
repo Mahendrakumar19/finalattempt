@@ -40,7 +40,7 @@ import { db } from '@/services/db';
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 
-type AdminTab = 'Dashboard' | 'Settings' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy & Values' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Settings' | 'About Page CMS' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy & Values' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
 
 interface SiteSettings {
   heroTitle: string;
@@ -62,6 +62,7 @@ interface SiteSettings {
   aboutMission?: string;
   aboutVision?: string;
   aboutValues?: string;
+  aboutMethodology?: { title: string; desc: string }[];
   featureFlags?: Record<string, boolean>;
 }
 
@@ -167,6 +168,7 @@ export default function AdminPortal() {
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
   const [resourcesList, setResourcesList] = useState<ResourceDownload[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
+  const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'student' | 'faculty' | 'admin'>('all');
   const [selectedUserModal, setSelectedUserModal] = useState<UserProfile | null>(null);
   const [editUserForm, setEditUserForm] = useState<Partial<UserProfile>>({});
   const [coursesList, setCoursesList] = useState<Course[]>([]);
@@ -651,6 +653,7 @@ export default function AdminPortal() {
           <nav className="flex flex-col gap-1.5">
             {[
               { id: 'Dashboard', icon: LayoutDashboard },
+              { id: 'About Page CMS', icon: FileText },
               { id: 'Settings', icon: Settings },
               ...(settings.featureFlags?.livePageBuilder !== false ? [{ id: 'Custom Pages', icon: FileText }] : []),
               { id: 'Students', icon: Users },
@@ -997,70 +1000,6 @@ export default function AdminPortal() {
                 </div>
               </div>
 
-              {/* ABOUT PAGE CMS CONFIGURATION */}
-              <div className="border-t border-slate-100 pt-6 space-y-4">
-                <h4 className="font-heading font-extrabold text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
-                  <span>ℹ️ About Us Page Content CMS</span>
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Main Heading Title</label>
-                    <input
-                      type="text"
-                      placeholder="One Mentor. One Strategy. One Final Attempt."
-                      value={settings.aboutTitle || ''}
-                      onChange={(e) => setSettings({ ...settings, aboutTitle: e.target.value })}
-                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900 font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sub-heading Description</label>
-                    <input
-                      type="text"
-                      placeholder="Final Attempt is BPSC's premium prep ecosystem..."
-                      value={settings.aboutSubtitle || ''}
-                      onChange={(e) => setSettings({ ...settings, aboutSubtitle: e.target.value })}
-                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Our Mission Statement</label>
-                  <textarea
-                    rows={2}
-                    placeholder="To democratize civil services coaching in Bihar..."
-                    value={settings.aboutMission || ''}
-                    onChange={(e) => setSettings({ ...settings, aboutMission: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Our Vision Statement</label>
-                  <textarea
-                    rows={2}
-                    placeholder="To be recognized as Bihar's most trusted gateway for administrative leadership..."
-                    value={settings.aboutVision || ''}
-                    onChange={(e) => setSettings({ ...settings, aboutVision: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Core Values Description</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Upholding transparency in feedback, diagnostic dashboards, strict study schedules..."
-                    value={settings.aboutValues || ''}
-                    onChange={(e) => setSettings({ ...settings, aboutValues: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                  />
-                </div>
-              </div>
-
               <button
                 type="submit"
                 className="w-full px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase rounded-2xl shadow-md transition-all cursor-pointer"
@@ -1127,6 +1066,211 @@ export default function AdminPortal() {
                 )}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* TAB: ABOUT PAGE CMS */}
+        {activeTab === 'About Page CMS' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
+              <div>
+                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Public Content Manager</span>
+                <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">About Us Page CMS Editor</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Manage main titles, sub-headings, mission statements, vision, and core values displayed on `/about`.
+                </p>
+              </div>
+              <a
+                href="/about"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Preview /about ↗</span>
+              </a>
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-sm">
+              <div className="space-y-4">
+                <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-white/10 pb-3">
+                  1. Page Hero Title & Sub-Heading
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Main Heading Title</label>
+                    <input
+                      type="text"
+                      placeholder="One Mentor. One Strategy. One Final Attempt."
+                      value={settings.aboutTitle || ''}
+                      onChange={(e) => setSettings({ ...settings, aboutTitle: e.target.value })}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Sub-heading Description</label>
+                    <input
+                      type="text"
+                      placeholder="Final Attempt is BPSC's premium prep ecosystem..."
+                      value={settings.aboutSubtitle || ''}
+                      onChange={(e) => setSettings({ ...settings, aboutSubtitle: e.target.value })}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-6">
+                <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-white/10 pb-3">
+                  2. Core Pillars: Mission, Vision, and Values
+                </h3>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Our Mission Statement</label>
+                  <textarea
+                    rows={3}
+                    placeholder="To democratize civil services coaching in Bihar..."
+                    value={settings.aboutMission || ''}
+                    onChange={(e) => setSettings({ ...settings, aboutMission: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Our Vision Statement</label>
+                  <textarea
+                    rows={3}
+                    placeholder="To be recognized as Bihar's most trusted gateway for administrative leadership..."
+                    value={settings.aboutVision || ''}
+                    onChange={(e) => setSettings({ ...settings, aboutVision: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Core Values Description</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Upholding transparency in feedback, diagnostic dashboards, strict study schedules..."
+                    value={settings.aboutValues || ''}
+                    onChange={(e) => setSettings({ ...settings, aboutValues: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* 3. Methodology & Strategic Approach Editor */}
+              <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-6">
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
+                  <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+                    3. Methodology & Core Strategic Approach (4 Steps)
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = settings.aboutMethodology || [
+                        { title: 'Micro-Scheduling', desc: 'Dividing massive GS books into weekly targeted syllabus schedules.' },
+                        { title: 'Daily Evaluation', desc: 'Mandatory daily answer writing checks by experienced evaluators.' },
+                        { title: 'Bihar Focus', desc: 'Extensive state geography, budget digests, and economic statistics.' },
+                        { title: 'Officer Mentorship', desc: 'Direct workshops and feedback sessions with selected public administrators.' }
+                      ];
+                      setSettings({ ...settings, aboutMethodology: current });
+                    }}
+                    className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 hover:underline"
+                  >
+                    Reset Defaults
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[0, 1, 2, 3].map((idx) => {
+                    const defaultSteps = [
+                      { title: 'Micro-Scheduling', desc: 'Dividing massive GS books into weekly targeted syllabus schedules.' },
+                      { title: 'Daily Evaluation', desc: 'Mandatory daily answer writing checks by experienced evaluators.' },
+                      { title: 'Bihar Focus', desc: 'Extensive state geography, budget digests, and economic statistics.' },
+                      { title: 'Officer Mentorship', desc: 'Direct workshops and feedback sessions with selected public administrators.' }
+                    ];
+                    const currentArr = settings.aboutMethodology || defaultSteps;
+                    const step = currentArr[idx] || defaultSteps[idx];
+
+                    return (
+                      <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-2xl space-y-2">
+                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Step 0{idx + 1}</span>
+                        <input
+                          type="text"
+                          placeholder={`Step 0${idx + 1} Title`}
+                          value={step.title}
+                          onChange={(e) => {
+                            const newTitle = e.target.value;
+                            const updatedArr = [...currentArr];
+                            updatedArr[idx] = { ...step, title: newTitle };
+                            setSettings({ ...settings, aboutMethodology: updatedArr });
+                          }}
+                          className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                        />
+                        <textarea
+                          rows={2}
+                          placeholder={`Step 0${idx + 1} Description`}
+                          value={step.desc}
+                          onChange={(e) => {
+                            const newDesc = e.target.value;
+                            const updatedArr = [...currentArr];
+                            updatedArr[idx] = { title: step.title, desc: newDesc };
+                            setSettings({ ...settings, aboutMethodology: updatedArr });
+                          }}
+                          className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 4. Quick Shortcuts to Manage Faculty & Toppers */}
+              <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-6">
+                <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-white/10 pb-3">
+                  4. Mentorship Board & Hall of Fame Data Management
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-2">
+                    <h4 className="font-heading font-extrabold text-xs text-slate-900 dark:text-white">🌟 Hall of Fame & Toppers Results</h4>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Add, edit, or remove BPSC selected toppers and ranks displayed in the Hall of Fame section.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('Strategy & Values')}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[10px] rounded-xl cursor-pointer"
+                    >
+                      Open Results Manager ↗
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl space-y-2">
+                    <h4 className="font-heading font-extrabold text-xs text-slate-900 dark:text-white">🎓 Expert Mentorship & Faculty Panel</h4>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      Manage faculty profiles, roles, experience, bios, and avatars shown on the Mentorship Board.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('Strategy & Values')}
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] rounded-xl cursor-pointer"
+                    >
+                      Open Faculty Manager ↗
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-md transition-all cursor-pointer"
+              >
+                💾 Save About Us Page Changes
+              </button>
+            </form>
           </div>
         )}
 
@@ -1318,8 +1462,8 @@ export default function AdminPortal() {
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/70 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-xs">
               <div>
-                <h3 className="font-extrabold text-sm text-slate-900">Enrolled Students & Registered Users</h3>
-                <p className="text-[10px] text-slate-500 font-medium">Complete record of registered users, target exams, course enrollments, batch allocations, and payment transaction IDs.</p>
+                <h3 className="font-extrabold text-sm text-slate-900">Registered Platform Users & Students</h3>
+                <p className="text-[10px] text-slate-500 font-medium">Manage student course enrollments, faculty profiles, and administrator credentials.</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl">
@@ -1328,12 +1472,35 @@ export default function AdminPortal() {
               </div>
             </div>
 
+            {/* Role Filter Tabs */}
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+              {[
+                { id: 'all', label: 'All Registered Accounts', count: usersList.length },
+                { id: 'student', label: '🎓 Students Only', count: usersList.filter(u => u.role === 'student' || !u.role).length },
+                { id: 'faculty', label: '👨‍🏫 Faculty Members', count: usersList.filter(u => u.role === 'faculty').length },
+                { id: 'admin', label: '👑 Administrators', count: usersList.filter(u => u.role === 'admin').length },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setUserRoleFilter(tab.id as any)}
+                  className={`px-4 py-2 text-xs font-bold rounded-2xl transition-all ${
+                    userRoleFilter === tab.id
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  {tab.label} <span className="opacity-70 ml-1 text-[10px]">({tab.count})</span>
+                </button>
+              ))}
+            </div>
+
             <div className="bg-white border border-slate-200 overflow-hidden rounded-3xl shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-700 uppercase tracking-wider text-[10px]">
-                      <th className="p-4">Student Info</th>
+                      <th className="p-4">User Info</th>
                       <th className="p-4">Mobile & Email</th>
                       <th className="p-4">Target Exam</th>
                       <th className="p-4">Course Enrolled</th>
@@ -1345,12 +1512,22 @@ export default function AdminPortal() {
                     </tr>
                   </thead>
                   <tbody>
-                    {usersList.length === 0 ? (
+                    {usersList.filter(u => {
+                      if (userRoleFilter === 'student') return u.role === 'student' || !u.role;
+                      if (userRoleFilter === 'faculty') return u.role === 'faculty';
+                      if (userRoleFilter === 'admin') return u.role === 'admin';
+                      return true;
+                    }).length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="p-8 text-center text-slate-400 text-xs">No registered users or students found.</td>
+                        <td colSpan={9} className="p-8 text-center text-slate-400 text-xs">No accounts found for selected filter.</td>
                       </tr>
                     ) : (
-                      usersList.map((user) => {
+                      usersList.filter(u => {
+                        if (userRoleFilter === 'student') return u.role === 'student' || !u.role;
+                        if (userRoleFilter === 'faculty') return u.role === 'faculty';
+                        if (userRoleFilter === 'admin') return u.role === 'admin';
+                        return true;
+                      }).map((user) => {
                         const hasEnrollments = user.enrollments && user.enrollments.length > 0;
                         return (
                           <tr
