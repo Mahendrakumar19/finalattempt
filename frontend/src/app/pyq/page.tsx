@@ -98,6 +98,9 @@ export default function PyqPage() {
     };
   }).filter((group) => group.papers.length > 0 || selectedExamId === 'ALL');
 
+  // Active edition/session filter inside modal popup (e.g. 'ALL', '71st', '70th', '69th')
+  const [modalEditionFilter, setModalEditionFilter] = useState<string>('ALL');
+
   return (
     <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 min-h-screen">
       
@@ -196,7 +199,10 @@ export default function PyqPage() {
           {examGroups.map(({ exam, papers }) => (
             <div
               key={exam.id}
-              onClick={() => setActiveExamModal({ id: exam.id, name: exam.name })}
+              onClick={() => {
+                setActiveExamModal({ id: exam.id, name: exam.name });
+                setModalEditionFilter('ALL');
+              }}
               className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-7 rounded-3xl space-y-6 shadow-sm hover:shadow-xl hover:border-amber-500/60 transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden"
             >
               <div className="space-y-4 relative">
@@ -232,46 +238,98 @@ export default function PyqPage() {
         </div>
       )}
 
-      {/* POPUP MODAL: ALL PAPERS LIST FOR SELECTED EXAM */}
-      {activeExamModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col max-h-[88vh] overflow-hidden">
-            
-            {/* Modal Header */}
-            <div className="p-6 sm:p-8 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-slate-100 dark:border-white/[0.08] flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow-md">
-                  <BookOpen className="w-6 h-6" />
+      {/* POPUP MODAL: ALL PAPERS LIST FOR SELECTED EXAM WITH DYNAMIC EDITION FILTERS */}
+      {activeExamModal && (() => {
+        const modalPapers = pyqList.filter(p => p.examId === activeExamModal.id || p.exam?.id === activeExamModal.id);
+
+        // Dynamically extract exam edition tokens (e.g. "71st", "70th", "69th", "68th", "67th") ONLY if papers contain ordinal edition matches
+        const editionSet = new Set<string>();
+        modalPapers.forEach(p => {
+          const match = p.paperName.match(/\b(\d{2,3}(?:st|nd|rd|th))\b/i);
+          if (match && match[1]) {
+            editionSet.add(match[1].toUpperCase());
+          }
+        });
+        const detectedEditions = Array.from(editionSet).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+
+        const filteredModalPapers = modalPapers.filter(p => {
+          if (modalEditionFilter === 'ALL') return true;
+          return p.paperName.toUpperCase().includes(modalEditionFilter);
+        });
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+              
+              {/* Modal Header */}
+              <div className="p-6 sm:p-7 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-slate-100 dark:border-white/[0.08] flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow-md">
+                    <BookOpen className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-black text-2xl text-slate-900 dark:text-white">
+                      {activeExamModal.name} Papers Collection
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Filter by exam edition (71st, 70th, 69th...) or year to download question booklets & answer keys.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="font-heading font-black text-2xl text-slate-900 dark:text-white">
-                    {activeExamModal.name} Papers Collection
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                    Showing all question booklets, official answer keys, and solutions.
-                  </p>
-                </div>
+
+                <button
+                  onClick={() => setActiveExamModal(null)}
+                  className="p-2.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl cursor-pointer transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
               </div>
 
-              <button
-                onClick={() => setActiveExamModal(null)}
-                className="p-2.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl cursor-pointer transition-colors"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+              {/* Exam Edition Filter Sub-Tabs Bar (71st, 70th, 69th, 68th...) */}
+              {detectedEditions.length > 0 && (
+                <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-white/[0.06] flex items-center gap-2 overflow-x-auto shrink-0">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+                    Select Edition:
+                  </span>
+                  <button
+                    onClick={() => setModalEditionFilter('ALL')}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
+                      modalEditionFilter === 'ALL'
+                        ? 'bg-amber-500 text-slate-950 shadow-sm'
+                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-white/10'
+                    }`}
+                  >
+                    All Papers ({modalPapers.length})
+                  </button>
 
-            {/* Modal Papers Grid Scrollable Content */}
-            <div className="p-6 sm:p-8 overflow-y-auto space-y-6">
-              {pyqList.filter(p => p.examId === activeExamModal.id || p.exam?.id === activeExamModal.id).length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-xs font-semibold">
-                  No question papers uploaded yet for {activeExamModal.name}.
+                  {detectedEditions.map((ed) => {
+                    const count = modalPapers.filter(p => p.paperName.toLowerCase().includes(ed.toLowerCase()) || String(p.year) === ed).length;
+                    return (
+                      <button
+                        key={ed}
+                        onClick={() => setModalEditionFilter(ed)}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
+                          modalEditionFilter === ed
+                            ? 'bg-amber-500 text-slate-950 shadow-sm'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-white/10'
+                        }`}
+                      >
+                        {ed.toUpperCase()} Exam ({count})
+                      </button>
+                    );
+                  })}
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {pyqList
-                    .filter(p => p.examId === activeExamModal.id || p.exam?.id === activeExamModal.id)
-                    .map((item) => (
+              )}
+
+              {/* Modal Papers Grid Scrollable Content */}
+              <div className="p-6 sm:p-8 overflow-y-auto space-y-6">
+                {filteredModalPapers.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 text-xs font-semibold">
+                    No question papers found for edition filter "{modalEditionFilter}".
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredModalPapers.map((item) => (
                       <div
                         key={item.id}
                         className="p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/[0.08] rounded-2xl space-y-4 hover:border-amber-500/50 transition-all flex flex-col justify-between"
@@ -347,13 +405,14 @@ export default function PyqPage() {
                         </div>
                       </div>
                     ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
 
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );

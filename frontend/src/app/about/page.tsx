@@ -21,6 +21,7 @@ interface ResultTopper {
   service: string;
   district: string;
   photo: string;
+  image?: string;
   year: number;
 }
 
@@ -140,10 +141,14 @@ export default function AboutPage() {
           <p className="text-xs text-slate-400 text-center">Loading toppers records...</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            {results.slice(0, 4).map((topper) => (
+            {results.slice(0, 8).map((topper) => (
               <div key={topper.id} className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl overflow-hidden shadow-3xs p-4 text-center space-y-2 hover-lift">
-                <div className="w-24 h-24 rounded-full overflow-hidden mx-auto bg-slate-100 border border-slate-200">
-                  <img src={topper.photo || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200'} alt={topper.name} className="w-full h-full object-cover" />
+                <div className="w-24 h-24 rounded-full overflow-hidden mx-auto bg-slate-100 border border-slate-200 shadow-sm">
+                  <img
+                    src={topper.image || topper.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'}
+                    alt={topper.name}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div>
                   <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)]">{topper.name}</h4>

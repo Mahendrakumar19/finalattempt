@@ -571,7 +571,7 @@ router.put('/users/:id/role', async (req: Request, res: Response) => {
 // ─── SUPER ADMIN: Update User Full Profile Info ─────────────────────────────
 router.put('/users/:id/profile', async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { fullName, email, mobile, targetExam, role } = req.body;
+  const { fullName, email, mobile, targetExam, role, avatarUrl } = req.body;
   try {
     const user = await authDB.findUserById(id);
     if (!user) {
@@ -583,6 +583,7 @@ router.put('/users/:id/profile', async (req: Request, res: Response) => {
       email: email || user.email,
       mobile: mobile !== undefined ? mobile : user.mobile,
       targetExam: targetExam !== undefined ? targetExam : user.targetExam,
+      avatarUrl: avatarUrl !== undefined ? avatarUrl : user.avatarUrl,
       role: role && ['student', 'faculty', 'admin'].includes(role) ? role : user.role
     });
     res.json({ success: true, message: 'User profile updated successfully' });

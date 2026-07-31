@@ -257,36 +257,72 @@ export default function Resources() {
             )}
           </div>
 
-          {/* Right Column: Special Subpages & CMS Download Portals */}
+          {/* Right Column: Special Subpages & Dynamic Download Portals */}
           <div className="lg:col-span-4 space-y-6">
             
-            {/* Bihar Special Portal Banner */}
-            <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border border-amber-100/70 dark:border-amber-900/30 p-6 rounded-3xl shadow-3xs space-y-4">
-              <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 text-amber-600 rounded-xl flex items-center justify-center">
-                <Compass className="w-5 h-5" />
+            {/* Quick Portals Navigation (PYQs, NCERT, Bihar Special) */}
+            <div className="bg-[var(--card-bg)] border border-[var(--card-border)] p-6 rounded-3xl space-y-4 shadow-3xs">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-amber-500" />
+                <h3 className="font-heading font-black text-[var(--text-color)] text-sm uppercase tracking-wider">
+                  Core Study Portals
+                </h3>
               </div>
-              <div>
-                <h3 className="font-heading font-black text-[var(--text-color)] text-base">Bihar Special Section</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">
-                  Access Bihar-specific economic survey notes, state budget digests, maps, historical archives, and demographic data.
-                </p>
+              <div className="space-y-2.5">
+                <Link
+                  href="/pyq"
+                  className="group flex items-center justify-between p-3.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-2xl transition-all"
+                >
+                  <div className="space-y-0.5">
+                    <h4 className="font-black text-xs text-amber-600 dark:text-amber-400">
+                      📜 Official PYQs Library (71st - 60th BPSC)
+                    </h4>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
+                      Explore 71st, 70th, 69th BPSC Prelims & Mains Booklets
+                    </span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-all" />
+                </Link>
+
+                <Link
+                  href="/resources/bihar-special"
+                  className="group flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-amber-500/10 border border-slate-200/80 dark:border-white/10 rounded-2xl transition-all"
+                >
+                  <div className="space-y-0.5">
+                    <h4 className="font-bold text-xs text-[var(--text-color)] group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                      🗺️ Bihar Special Geography & Budget
+                    </h4>
+                    <span className="text-[10px] text-slate-400 font-medium block">
+                      State Economic Survey & District Digests
+                    </span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
+                </Link>
+
+                <Link
+                  href="/syllabus-strategy"
+                  className="group flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-amber-500/10 border border-slate-200/80 dark:border-white/10 rounded-2xl transition-all"
+                >
+                  <div className="space-y-0.5">
+                    <h4 className="font-bold text-xs text-[var(--text-color)] group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                      📋 Micro-Syllabus & Strategy Worksheets
+                    </h4>
+                    <span className="text-[10px] text-slate-400 font-medium block">
+                      Subject-wise Trend Analysis & Booklists
+                    </span>
+                  </div>
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
+                </Link>
               </div>
-              <Link
-                href="/resources/bihar-special"
-                className="w-full flex items-center justify-center gap-2 py-3 bg-[#F59E0B] hover:bg-amber-600 text-slate-900 font-bold rounded-xl text-xs shadow-md transition-all hover:scale-[1.01]"
-              >
-                <span>Explore Bihar Special</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
             </div>
 
             {/* CMS Dynamic Download Portals (NCERT, PYQs, Budget, Economic Survey, etc.) */}
             {customDownloadPages.length > 0 && (
               <div className="bg-[var(--card-bg)] border border-[var(--card-border)] p-6 rounded-3xl space-y-4 shadow-3xs">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-amber-500" />
+                  <Download className="w-4 h-4 text-amber-500" />
                   <h3 className="font-heading font-black text-[var(--text-color)] text-sm uppercase tracking-wider">
-                    Specialized Download Portals
+                    NCERT & Specialized Download Pages
                   </h3>
                 </div>
                 <div className="space-y-2.5">
@@ -300,7 +336,7 @@ export default function Resources() {
                       >
                         <div className="space-y-0.5">
                           <h4 className="font-bold text-xs text-[var(--text-color)] group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                            {pg.title}
+                            📚 {pg.title}
                           </h4>
                           {pg.downloadItems && (
                             <span className="text-[10px] text-slate-400 font-medium block">

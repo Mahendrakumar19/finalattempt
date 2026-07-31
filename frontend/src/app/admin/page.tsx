@@ -40,7 +40,7 @@ import { db } from '@/services/db';
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 
-type AdminTab = 'Dashboard' | 'Settings' | 'About Page CMS' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy & Values' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Settings' | 'About Page' | 'About Page CMS' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy & Values' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
 
 interface SiteSettings {
   heroTitle: string;
@@ -142,6 +142,7 @@ interface UserProfile {
   fullName: string;
   email: string;
   mobile?: string;
+  avatarUrl?: string;
   role: 'student' | 'faculty' | 'admin';
   targetExam?: string;
   isActive: boolean;
@@ -168,9 +169,16 @@ export default function AdminPortal() {
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
   const [resourcesList, setResourcesList] = useState<ResourceDownload[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
+  const [facultyList, setFacultyList] = useState<any[]>([]);
+  const [toppersList, setToppersList] = useState<any[]>([]);
   const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'student' | 'faculty' | 'admin'>('all');
   const [selectedUserModal, setSelectedUserModal] = useState<UserProfile | null>(null);
   const [editUserForm, setEditUserForm] = useState<Partial<UserProfile>>({});
+
+  // Faculty & Topper Popup Modal States
+  const [facultyModal, setFacultyModal] = useState<{ isOpen: boolean; data: any | null }>({ isOpen: false, data: null });
+  const [topperModal, setTopperModal] = useState<{ isOpen: boolean; data: any | null }>({ isOpen: false, data: null });
+
   const [coursesList, setCoursesList] = useState<Course[]>([]);
   const [editMode, setEditMode] = useState(false);
 
@@ -286,6 +294,12 @@ export default function AdminPortal() {
       // 11. YouTube Sync Status
       const ytStatus = await db.getYoutubeSyncStatus();
       if (ytStatus) setYoutubeStatus(ytStatus);
+
+      // 12. Faculty & Toppers
+      const facRes = await fetch(`${BACKEND_URL}/api/faculty`);
+      if (facRes.ok) setFacultyList(await facRes.json());
+      const topRes = await fetch(`${BACKEND_URL}/api/results`);
+      if (topRes.ok) setToppersList(await topRes.json());
 
       setBackendOffline(false);
     } catch (err) {
@@ -653,10 +667,10 @@ export default function AdminPortal() {
           <nav className="flex flex-col gap-1.5">
             {[
               { id: 'Dashboard', icon: LayoutDashboard },
-              { id: 'About Page CMS', icon: FileText },
+              { id: 'About Page', icon: FileText },
               { id: 'Settings', icon: Settings },
               ...(settings.featureFlags?.livePageBuilder !== false ? [{ id: 'Custom Pages', icon: FileText }] : []),
-              { id: 'Students', icon: Users },
+              { id: 'Users', icon: Users },
               { id: 'Courses', icon: BookOpen },
               { id: 'Test Series', icon: FileText },
               { id: 'Leads', icon: MessageSquare },
@@ -1070,7 +1084,7 @@ export default function AdminPortal() {
         )}
 
         {/* TAB: ABOUT PAGE CMS */}
-        {activeTab === 'About Page CMS' && (
+        {activeTab === 'About Page' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
               <div>
@@ -1228,40 +1242,143 @@ export default function AdminPortal() {
                 </div>
               </div>
 
-              {/* 4. Quick Shortcuts to Manage Faculty & Toppers */}
+              {/* 4. Mentorship Board (Faculty Panel) Management */}
               <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-6">
-                <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-white/10 pb-3">
-                  4. Mentorship Board & Hall of Fame Data Management
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-2">
-                    <h4 className="font-heading font-extrabold text-xs text-slate-900 dark:text-white">🌟 Hall of Fame & Toppers Results</h4>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                      Add, edit, or remove BPSC selected toppers and ranks displayed in the Hall of Fame section.
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
+                  <div>
+                    <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+                      4. Expert Faculty Panel (Mentorship Board)
+                    </h3>
+                    <p className="text-[10px] text-slate-400">
+                      View, edit, reorder, or remove faculty members displayed on the About page.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('Strategy & Values')}
-                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-[10px] rounded-xl cursor-pointer"
-                    >
-                      Open Results Manager ↗
-                    </button>
                   </div>
-
-                  <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl space-y-2">
-                    <h4 className="font-heading font-extrabold text-xs text-slate-900 dark:text-white">🎓 Expert Mentorship & Faculty Panel</h4>
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                      Manage faculty profiles, roles, experience, bios, and avatars shown on the Mentorship Board.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('Strategy & Values')}
-                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[10px] rounded-xl cursor-pointer"
-                    >
-                      Open Faculty Manager ↗
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFacultyModal({ isOpen: true, data: { name: '', role: 'Senior GS Faculty', experience: '10+ Years', bio: '', avatar: '' } })}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add New Faculty</span>
+                  </button>
                 </div>
+
+                {facultyList.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic py-2">No faculty members found. Click above to add one.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {facultyList.map((fac, i) => (
+                      <div key={fac.id || i} className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-2xl space-y-3 relative group">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={fac.avatar || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200'}
+                            alt={fac.name}
+                            className="w-12 h-12 rounded-xl object-cover border border-amber-500/40 shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">{fac.name}</h4>
+                            <p className="text-[10px] text-amber-600 font-semibold">{fac.role}</p>
+                            <p className="text-[9px] text-slate-400">{fac.experience} Exp</p>
+                          </div>
+                        </div>
+
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">{fac.bio}</p>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-white/10 text-[10px]">
+                          <span className="text-slate-400 font-mono">Position #{i + 1}</span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setFacultyModal({ isOpen: true, data: { ...fac } })}
+                              className="px-2 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-white/10 font-bold hover:bg-slate-100"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!confirm(`Delete faculty "${fac.name}"?`)) return;
+                                try {
+                                  await fetch(`${BACKEND_URL}/api/faculty/${fac.id}`, { method: 'DELETE' });
+                                  fetchCMSData();
+                                } catch (err) { console.error(err); }
+                              }}
+                              className="px-2 py-1 bg-red-50 text-red-600 rounded-lg border border-red-200 font-bold hover:bg-red-100"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 5. Hall of Fame (Toppers & Achievers) Management */}
+              <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-6">
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
+                  <div>
+                    <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+                      5. BPSC Achievers & Toppers (Hall of Fame)
+                    </h3>
+                    <p className="text-[10px] text-slate-400">
+                      View, edit, reorder, or remove selected toppers displayed in the Hall of Fame on the About page.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTopperModal({ isOpen: true, data: { name: '', rank: 'Rank 01 - 70th BPSC', exam: 'BPSC', service: 'Sub-Divisional Officer (SDO)', image: '' } })}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add New Topper</span>
+                  </button>
+                </div>
+
+                {toppersList.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic py-2">No toppers found. Click above to add one.</p>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {toppersList.map((top, i) => (
+                      <div key={top.id || i} className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-2xl text-center space-y-2 relative group">
+                        <img
+                          src={top.image || top.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'}
+                          alt={top.name}
+                          className="w-16 h-16 rounded-full object-cover border-2 border-amber-500 mx-auto shadow-sm"
+                        />
+                        <div>
+                          <h4 className="font-bold text-xs text-slate-900 dark:text-white truncate">{top.name}</h4>
+                          <p className="text-[10px] text-amber-600 font-extrabold">{top.rank}</p>
+                          <p className="text-[9px] text-slate-400 font-bold uppercase">{top.service}</p>
+                        </div>
+
+                        <div className="flex items-center justify-center gap-1.5 pt-2 border-t border-slate-200/60 dark:border-white/10 text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => setTopperModal({ isOpen: true, data: { ...top, image: top.image || top.photo } })}
+                            className="px-2.5 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-white/10 font-bold hover:bg-slate-100"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!confirm(`Delete topper "${top.name}"?`)) return;
+                              try {
+                                await fetch(`${BACKEND_URL}/api/results/${top.id}`, { method: 'DELETE' });
+                                fetchCMSData();
+                              } catch (err) { console.error(err); }
+                            }}
+                            className="px-2 py-1 bg-red-50 text-red-600 rounded-lg border border-red-200 font-bold hover:bg-red-100"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <button
@@ -1458,12 +1575,12 @@ export default function AdminPortal() {
             </div>
           </div>
         )}
-        {activeTab === 'Students' && (
+        {(activeTab === 'Users' || activeTab === 'Students') && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/70 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-xs">
               <div>
-                <h3 className="font-extrabold text-sm text-slate-900">Registered Platform Users & Students</h3>
-                <p className="text-[10px] text-slate-500 font-medium">Manage student course enrollments, faculty profiles, and administrator credentials.</p>
+                <h3 className="font-extrabold text-sm text-slate-900">User Directory & Platform Accounts</h3>
+                <p className="text-[10px] text-slate-500 font-medium">Manage student course enrollments, faculty credentials, and administrator roles.</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl">
@@ -1507,6 +1624,7 @@ export default function AdminPortal() {
                       <th className="p-4">Batch</th>
                       <th className="p-4">Payment ID & Status</th>
                       <th className="p-4">Amount</th>
+                      <th className="p-4">Role</th>
                       <th className="p-4">Account Status</th>
                       <th className="p-4">Actions</th>
                     </tr>
@@ -1529,6 +1647,7 @@ export default function AdminPortal() {
                         return true;
                       }).map((user) => {
                         const hasEnrollments = user.enrollments && user.enrollments.length > 0;
+                        const isStudent = user.role === 'student' || !user.role;
                         return (
                           <tr
                             key={user.id}
@@ -1538,7 +1657,7 @@ export default function AdminPortal() {
                               setEditUserForm({ ...user });
                             }}
                           >
-                            {/* Student Info */}
+                            {/* User Info */}
                             <td className="p-4">
                               <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                                 <span>{user.fullName}</span>
@@ -1561,9 +1680,13 @@ export default function AdminPortal() {
                               <div className="text-[10px] text-slate-500">{user.email}</div>
                             </td>
 
-                            {/* Target Exam */}
+                            {/* Target Exam (Only relevant for Students) */}
                             <td className="p-4">
-                              <span className="font-medium text-slate-700">{user.targetExam || 'General BPSC'}</span>
+                              {isStudent ? (
+                                <span className="font-medium text-slate-700">{user.targetExam || 'General BPSC'}</span>
+                              ) : (
+                                <span className="text-slate-400 text-[11px] italic">N/A ({user.role.toUpperCase()})</span>
+                              )}
                             </td>
 
                             {/* Course Enrolled */}
@@ -1633,6 +1756,44 @@ export default function AdminPortal() {
                               )}
                             </td>
 
+                            {/* Role Column with Instant Selector Dropdown */}
+                            <td className="p-4" onClick={(e) => e.stopPropagation()}>
+                              <select
+                                value={user.role || 'student'}
+                                onChange={async (e) => {
+                                  const newRole = e.target.value as 'student' | 'faculty' | 'admin';
+                                  try {
+                                    const res = await fetch(`${BACKEND_URL}/api/auth/users/${user.id}/role`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ role: newRole })
+                                    });
+                                    const data = await res.json();
+                                    if (data.success) {
+                                      setUsersList(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole } : u));
+                                      alert(`User ${user.fullName}'s role updated to ${newRole.toUpperCase()}!`);
+                                    } else {
+                                      alert(`Failed to update role: ${data.error || 'Unknown error'}`);
+                                    }
+                                  } catch (err) {
+                                    console.error('Role update error:', err);
+                                    alert('Failed to connect to backend server.');
+                                  }
+                                }}
+                                className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold uppercase outline-none cursor-pointer border shadow-2xs ${
+                                  user.role === 'admin'
+                                    ? 'bg-purple-50 text-purple-700 border-purple-300 hover:bg-purple-100'
+                                    : user.role === 'faculty'
+                                    ? 'bg-blue-50 text-blue-700 border-blue-300 hover:bg-blue-100'
+                                    : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
+                                }`}
+                              >
+                                <option value="student">🎓 Student</option>
+                                <option value="faculty">👨‍🏫 Faculty</option>
+                                <option value="admin">👑 Admin</option>
+                              </select>
+                            </td>
+
                             {/* Account Status Toggle */}
                             <td className="p-4" onClick={(e) => e.stopPropagation()}>
                               <button
@@ -1665,7 +1826,7 @@ export default function AdminPortal() {
                                 className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
                               >
                                 <Edit3 className="w-3 h-3" />
-                                <span>Edit User</span>
+                                <span>Inspect & Edit</span>
                               </button>
                             </td>
                           </tr>
@@ -3034,14 +3195,33 @@ export default function AdminPortal() {
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase">Target Exam</label>
-                    <input
-                      type="text"
-                      value={editUserForm.targetExam || ''}
-                      onChange={(e) => setEditUserForm(prev => ({ ...prev, targetExam: e.target.value }))}
-                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-bold"
-                    />
+                  {(editUserForm.role === 'student' || !editUserForm.role) && (
+                    <div className="space-y-1 sm:col-span-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Target Exam (Students Only)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 72nd BPSC Combined Competitive Exam"
+                        value={editUserForm.targetExam || ''}
+                        onChange={(e) => setEditUserForm(prev => ({ ...prev, targetExam: e.target.value }))}
+                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-bold"
+                      />
+                    </div>
+                  )}
+
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase">Profile Photo / Avatar URL</label>
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        placeholder="https://example.com/avatar.jpg"
+                        value={editUserForm.avatarUrl || ''}
+                        onChange={(e) => setEditUserForm(prev => ({ ...prev, avatarUrl: e.target.value }))}
+                        className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-mono"
+                      />
+                      {editUserForm.avatarUrl && (
+                        <img src={editUserForm.avatarUrl} alt="Preview" className="w-9 h-9 rounded-xl object-cover shrink-0 border border-amber-500" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -3123,6 +3303,255 @@ export default function AdminPortal() {
               </div>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* FACULTY MEMBER ADD / EDIT POPUP MODAL */}
+      {facultyModal.isOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl space-y-6 p-6 sm:p-8">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-2.5 py-0.5 rounded-lg border border-blue-200">
+                  Mentorship Board Manager
+                </span>
+                <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white mt-1">
+                  {facultyModal.data?.id ? 'Edit Faculty Profile' : 'Add New Faculty Member'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFacultyModal({ isOpen: false, data: null })}
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Full Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dr. Anand Kumar"
+                  value={facultyModal.data?.name || ''}
+                  onChange={(e) => setFacultyModal(prev => ({ ...prev, data: { ...prev.data, name: e.target.value } }))}
+                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Designation / Role</label>
+                  <input
+                    type="text"
+                    placeholder="Senior GS Faculty"
+                    value={facultyModal.data?.role || ''}
+                    onChange={(e) => setFacultyModal(prev => ({ ...prev, data: { ...prev.data, role: e.target.value } }))}
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Experience</label>
+                  <input
+                    type="text"
+                    placeholder="12+ Years"
+                    value={facultyModal.data?.experience || ''}
+                    onChange={(e) => setFacultyModal(prev => ({ ...prev, data: { ...prev.data, experience: e.target.value } }))}
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Short Bio / Highlights</label>
+                <textarea
+                  rows={3}
+                  placeholder="Former Civil Services Evaluator and Author of Bihar GS Digests..."
+                  value={facultyModal.data?.bio || ''}
+                  onChange={(e) => setFacultyModal(prev => ({ ...prev, data: { ...prev.data, bio: e.target.value } }))}
+                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Photo / Avatar Image URL</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="https://example.com/faculty.jpg"
+                    value={facultyModal.data?.avatar || ''}
+                    onChange={(e) => setFacultyModal(prev => ({ ...prev, data: { ...prev.data, avatar: e.target.value } }))}
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-mono text-slate-900 dark:text-white"
+                  />
+                  {facultyModal.data?.avatar && (
+                    <img src={facultyModal.data.avatar} alt="Preview" className="w-10 h-10 rounded-xl object-cover shrink-0 border border-blue-500" />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/[0.06]">
+              <button
+                type="button"
+                onClick={() => setFacultyModal({ isOpen: false, data: null })}
+                className="px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!facultyModal.data?.name) { alert('Faculty name is required'); return; }
+                  const isEdit = Boolean(facultyModal.data?.id);
+                  const url = isEdit ? `${BACKEND_URL}/api/faculty/${facultyModal.data.id}` : `${BACKEND_URL}/api/faculty`;
+                  const method = isEdit ? 'PUT' : 'POST';
+
+                  try {
+                    const res = await fetch(url, {
+                      method,
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(facultyModal.data)
+                    });
+                    const data = await res.json();
+                    if (data.success || res.ok) {
+                      setFacultyModal({ isOpen: false, data: null });
+                      fetchCMSData();
+                    } else {
+                      alert(`Error saving faculty: ${data.error || 'Unknown error'}`);
+                    }
+                  } catch (err) {
+                    console.error('Faculty save error:', err);
+                  }
+                }}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Save Faculty Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOPPER & ACHIEVER ADD / EDIT POPUP MODAL */}
+      {topperModal.isOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl space-y-6 p-6 sm:p-8">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/20">
+                  Hall of Fame Manager
+                </span>
+                <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white mt-1">
+                  {topperModal.data?.id ? 'Edit Topper Details' : 'Add New BPSC Achiever'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTopperModal({ isOpen: false, data: null })}
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-xl transition-all cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Topper Full Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Aarav Kumar"
+                  value={topperModal.data?.name || ''}
+                  onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, name: e.target.value } }))}
+                  className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Rank & Exam Session</label>
+                  <input
+                    type="text"
+                    placeholder="Rank 04 - 69th BPSC"
+                    value={topperModal.data?.rank || ''}
+                    onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, rank: e.target.value } }))}
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase">Service Allocated</label>
+                  <input
+                    type="text"
+                    placeholder="Sub-Divisional Officer (SDO)"
+                    value={topperModal.data?.service || ''}
+                    onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, service: e.target.value } }))}
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase">Topper Photo URL</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="https://example.com/topper.jpg"
+                    value={topperModal.data?.image || topperModal.data?.photo || ''}
+                    onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, image: e.target.value, photo: e.target.value } }))}
+                    className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-mono text-slate-900 dark:text-white"
+                  />
+                  {(topperModal.data?.image || topperModal.data?.photo) && (
+                    <img src={topperModal.data.image || topperModal.data.photo} alt="Preview" className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-amber-500" />
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/[0.06]">
+              <button
+                type="button"
+                onClick={() => setTopperModal({ isOpen: false, data: null })}
+                className="px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!topperModal.data?.name) { alert('Topper name is required'); return; }
+                  const isEdit = Boolean(topperModal.data?.id);
+                  const url = isEdit ? `${BACKEND_URL}/api/results/${topperModal.data.id}` : `${BACKEND_URL}/api/results`;
+                  const method = isEdit ? 'PUT' : 'POST';
+
+                  try {
+                    const res = await fetch(url, {
+                      method,
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        name: topperModal.data.name,
+                        rank: topperModal.data.rank || 'Rank 01',
+                        exam: topperModal.data.exam || 'BPSC',
+                        service: topperModal.data.service || 'SDO',
+                        photo: topperModal.data.image || topperModal.data.photo || ''
+                      })
+                    });
+                    const data = await res.json();
+                    if (data.success || res.ok) {
+                      setTopperModal({ isOpen: false, data: null });
+                      fetchCMSData();
+                    } else {
+                      alert(`Error saving topper: ${data.error || 'Unknown error'}`);
+                    }
+                  } catch (err) {
+                    console.error('Topper save error:', err);
+                  }
+                }}
+                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all cursor-pointer"
+              >
+                Save Topper Details
+              </button>
+            </div>
           </div>
         </div>
       )}
