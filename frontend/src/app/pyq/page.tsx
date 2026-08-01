@@ -258,114 +258,112 @@ export default function PyqPage() {
         });
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
-            <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+            <div className="w-full max-w-6xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
               
               {/* Modal Header */}
-              <div className="p-6 sm:p-7 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-slate-100 dark:border-white/[0.08] flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm shrink-0 shadow-md">
-                    <BookOpen className="w-6 h-6" />
+              <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-slate-100 dark:border-white/[0.08] flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-md">
+                    <BookOpen className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="font-heading font-black text-2xl text-slate-900 dark:text-white">
+                    <h2 className="font-heading font-black text-lg sm:text-xl text-slate-900 dark:text-white leading-tight">
                       {activeExamModal.name} Papers Collection
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                      Filter by exam edition (71st, 70th, 69th...) or year to download question booklets & answer keys.
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                      Select exam edition or year to download question booklets & answer keys.
                     </p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setActiveExamModal(null)}
-                  className="p-2.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl cursor-pointer transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer transition-colors"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Exam Edition Filter Sub-Tabs Bar (71st, 70th, 69th, 68th...) */}
-              {detectedEditions.length > 0 && (
-                <div className="px-6 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-white/[0.06] flex items-center gap-2 overflow-x-auto shrink-0">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
-                    Select Edition:
+              {/* Exam Edition Filter Dropdown & Quick Filter Bar */}
+              <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-white/[0.06] flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+                    Edition Filter:
                   </span>
-                  <button
-                    onClick={() => setModalEditionFilter('ALL')}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
-                      modalEditionFilter === 'ALL'
-                        ? 'bg-amber-500 text-slate-950 shadow-sm'
-                        : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-white/10'
-                    }`}
-                  >
-                    All Papers ({modalPapers.length})
-                  </button>
-
-                  {detectedEditions.map((ed) => {
-                    const count = modalPapers.filter(p => p.paperName.toLowerCase().includes(ed.toLowerCase()) || String(p.year) === ed).length;
-                    return (
-                      <button
-                        key={ed}
-                        onClick={() => setModalEditionFilter(ed)}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 cursor-pointer ${
-                          modalEditionFilter === ed
-                            ? 'bg-amber-500 text-slate-950 shadow-sm'
-                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 border border-slate-200 dark:border-white/10'
-                        }`}
-                      >
-                        {ed.toUpperCase()} Exam ({count})
-                      </button>
-                    );
-                  })}
+                  {detectedEditions.length > 0 ? (
+                    <select
+                      value={modalEditionFilter}
+                      onChange={(e) => setModalEditionFilter(e.target.value)}
+                      className="px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-250 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-extrabold cursor-pointer shadow-xs"
+                    >
+                      <option value="ALL">All Editions ({modalPapers.length} Papers)</option>
+                      {detectedEditions.map((ed) => {
+                        const count = modalPapers.filter(p => p.paperName.toLowerCase().includes(ed.toLowerCase()) || String(p.year) === ed).length;
+                        return (
+                          <option key={ed} value={ed}>
+                            {ed.toUpperCase()} Exam Session ({count} Papers)
+                          </option>
+                        );
+                      })}
+                    </select>
+                  ) : (
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 px-3 py-1 rounded-xl border border-slate-200 dark:border-white/10">
+                      {modalPapers.length} Papers Available
+                    </span>
+                  )}
                 </div>
-              )}
 
-              {/* Modal Papers Grid Scrollable Content */}
-              <div className="p-6 sm:p-8 overflow-y-auto space-y-6">
+                <span className="text-[10px] font-extrabold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
+                  Showing {filteredModalPapers.length} of {modalPapers.length} Papers
+                </span>
+              </div>
+
+              {/* Modal Papers Grid Scrollable Content - 3 AT ONCE (COMPACT & RESPONSIVE) */}
+              <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
                 {filteredModalPapers.length === 0 ? (
                   <div className="text-center py-12 text-slate-400 text-xs font-semibold">
                     No question papers found for edition filter "{modalEditionFilter}".
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                     {filteredModalPapers.map((item) => (
                       <div
                         key={item.id}
-                        className="p-5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/[0.08] rounded-2xl space-y-4 hover:border-amber-500/50 transition-all flex flex-col justify-between"
+                        className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-white/[0.08] rounded-2xl space-y-3 hover:border-amber-500/50 transition-all flex flex-col justify-between"
                       >
-                        <div className="space-y-2.5">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
                               {item.year} Academic Year
                             </span>
-                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800/40">
+                            <span className="text-[8px] font-extrabold uppercase tracking-wider text-blue-600 bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800/40">
                               {item.stage}
                             </span>
                           </div>
 
-                          <h4 className="font-heading font-extrabold text-base text-slate-900 dark:text-white leading-snug">
+                          <h4 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white leading-snug line-clamp-2">
                             {item.paperName}
                           </h4>
 
                           {item.description && (
                             <div
-                              className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed [&_*]:inline [&_*]:m-0"
+                              className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed [&_*]:inline [&_*]:m-0"
                               dangerouslySetInnerHTML={{ __html: item.description }}
                             />
                           )}
                         </div>
 
                         {/* Direct PDF View & Download Actions */}
-                        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-slate-200/70 dark:border-white/[0.06]">
+                        <div className="flex flex-wrap items-center gap-1.5 pt-2.5 border-t border-slate-200/70 dark:border-white/[0.06]">
                           {item.questionPaper && getMediaUrl(item.questionPaper) && (
                             <a
                               href={getMediaUrl(item.questionPaper)}
                               target="_blank"
                               rel="noreferrer"
-                              className="flex-1 py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                              className="flex-1 py-1.5 px-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] font-black rounded-lg flex items-center justify-center gap-1 shadow-2xs transition-all cursor-pointer"
                             >
-                              <Eye className="w-4 h-4" />
+                              <Eye className="w-3.5 h-3.5" />
                               <span>View Paper</span>
                             </a>
                           )}
@@ -374,10 +372,10 @@ export default function PyqPage() {
                             <a
                               href={getMediaUrl(item.questionPaper)}
                               download
-                              className="py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                              className="py-1.5 px-2.5 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 shadow-2xs transition-all cursor-pointer"
                             >
-                              <Download className="w-4 h-4" />
-                              <span>Download PDF</span>
+                              <Download className="w-3.5 h-3.5" />
+                              <span>PDF</span>
                             </a>
                           )}
 
@@ -386,7 +384,7 @@ export default function PyqPage() {
                               href={getMediaUrl(item.answerKey)}
                               target="_blank"
                               rel="noreferrer"
-                              className="py-2.5 px-3 bg-white dark:bg-slate-700 hover:bg-slate-100 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl flex items-center justify-center gap-1 border border-slate-200 dark:border-white/10"
+                              className="py-1.5 px-2 bg-white dark:bg-slate-700 hover:bg-slate-100 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-lg flex items-center justify-center gap-0.5 border border-slate-200 dark:border-white/10"
                             >
                               <span>Key ↗</span>
                             </a>
@@ -397,7 +395,7 @@ export default function PyqPage() {
                               href={getMediaUrl(item.solution)}
                               target="_blank"
                               rel="noreferrer"
-                              className="py-2.5 px-3 bg-white dark:bg-slate-700 hover:bg-slate-100 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl flex items-center justify-center gap-1 border border-slate-200 dark:border-white/10"
+                              className="py-1.5 px-2 bg-white dark:bg-slate-700 hover:bg-slate-100 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded-lg flex items-center justify-center gap-0.5 border border-slate-200 dark:border-white/10"
                             >
                               <span>Solution ↗</span>
                             </a>

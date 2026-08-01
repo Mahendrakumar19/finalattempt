@@ -81,7 +81,7 @@ export default function Header() {
       ]
     }] : []),
     {
-      name: 'PYQs', href: '/pyq'
+      name: 'PYQs', href: '/downloads/pyq'
     },
     { name: 'Syllabus & Strategy', href: '/syllabus-strategy' },
     {

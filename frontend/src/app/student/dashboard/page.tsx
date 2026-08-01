@@ -301,7 +301,7 @@ export default function LMSDashboard() {
                     { label: 'Browse Courses', href: '/courses', icon: BookOpen, color: 'from-blue-600 to-blue-700' },
                     { label: 'Book Mentor Session', href: '/contact', icon: Users, color: 'from-indigo-600 to-indigo-700' },
                     { label: 'Current Affairs', href: '/current-affairs', icon: Zap, color: 'from-violet-600 to-violet-700' },
-                    { label: 'Previous Year Qs', href: '/pyq', icon: Target, color: 'from-cyan-600 to-cyan-700' }
+                    { label: 'Previous Year Qs', href: '/downloads/pyq', icon: Target, color: 'from-cyan-600 to-cyan-700' }
                   ].map(a => (
                     <Link
                       key={a.label}

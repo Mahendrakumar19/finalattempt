@@ -9,7 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/courses',
     '/test-series',
     '/current-affairs',
-    '/pyq',
+    '/downloads/pyq',
     '/resources',
     '/blog',
     '/faculties',

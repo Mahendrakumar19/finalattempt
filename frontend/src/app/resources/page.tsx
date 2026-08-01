@@ -2,19 +2,31 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Download, FileText, ArrowRight, CheckCircle, Search, Compass, BookOpen, ExternalLink, Eye, X, File, Film, Archive, Layers } from 'lucide-react';
-import { db } from '@/services/db';
+import { Download, FileText, ArrowRight, CheckCircle, Search, BookOpen, ExternalLink, Eye, X, File, Film, Archive, Layers } from 'lucide-react';
+import { db, CustomPage } from '@/services/db';
+
+interface ResourceItem {
+  id: string;
+  title: string;
+  size?: string;
+  type: string;
+  downloadCount: number;
+  url: string;
+  category?: string;
+  subcategory?: string;
+}
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 const CATEGORIES = [
   'All',
+  'NCERT Books',
+  'Official PYQs',
   'Syllabus',
   'Prelims',
   'Mains',
   'Infographics',
   'Rapid Revision Material',
-  'PYQ Solutions',
   'Value Added Materials',
   'FA Publications'
 ];
@@ -30,24 +42,17 @@ function getFileIcon(type: string) {
   return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-50 dark:bg-slate-900/40' };
 }
 
-function canPreviewInline(url: string, type: string) {
-  const t = (type || '').toUpperCase();
-  if (!url) return false;
-  if (t === 'PDF') return true;
-  if (['MP4','WEBM','OGG'].includes(t)) return true;
-  if (['JPG','JPEG','PNG','GIF','WEBP'].includes(t)) return true;
-  return false;
-}
+
 
 export default function Resources() {
   const [downloadStates, setDownloadStates] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
-  const [resourcesList, setResourcesList] = useState<any[]>([]);
+  const [resourcesList, setResourcesList] = useState<ResourceItem[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('All');
-  const [previewItem, setPreviewItem] = useState<any | null>(null);
+  const [previewItem, setPreviewItem] = useState<ResourceItem | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [customDownloadPages, setCustomDownloadPages] = useState<any[]>([]);
+  const [customDownloadPages, setCustomDownloadPages] = useState<CustomPage[]>([]);
 
   useEffect(() => {
     const loadResources = async () => {
@@ -71,7 +76,7 @@ export default function Resources() {
     loadResources();
   }, []);
 
-  const handleDownload = (res: any) => {
+  const handleDownload = (res: ResourceItem) => {
     setDownloadStates(prev => ({ ...prev, [res.id]: true }));
     const url = resolveUrl(res.url);
     const a = document.createElement('a');
@@ -101,13 +106,22 @@ export default function Resources() {
   // Filter resources based on selected category & search query
   const filteredResources = resourcesList.filter(res => {
     const title = res.title || '';
+    const category = res.category || '';
+    const subcategory = res.subcategory || '';
     const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase());
+    
     if (activeCategory === 'All') return matchesSearch;
-    return matchesSearch && res.category === activeCategory;
+    if (activeCategory === 'NCERT Books') {
+      return matchesSearch && (category.toLowerCase().includes('ncert') || subcategory.toLowerCase().includes('ncert') || title.toLowerCase().includes('ncert'));
+    }
+    if (activeCategory === 'Official PYQs') {
+      return matchesSearch && (category.toLowerCase().includes('pyq') || subcategory.toLowerCase().includes('pyq') || title.toLowerCase().includes('pyq') || category === 'PYQ Solutions');
+    }
+    return matchesSearch && category === activeCategory;
   });
 
   // Group filtered resources by category for subheaders if 'All' is selected
-  const groupedResources: Record<string, any[]> = {};
+  const groupedResources: Record<string, ResourceItem[]> = {};
   filteredResources.forEach(res => {
     const cat = res.category || 'Other Notes';
     if (!groupedResources[cat]) {
@@ -186,7 +200,6 @@ export default function Resources() {
                     <div className="bg-[var(--card-bg)] rounded-3xl border border-[var(--card-border)] shadow-3xs divide-y divide-[var(--card-border)] overflow-hidden">
                       {groupedResources[catName].map((res) => {
                         const { icon: Icon, color, bg } = getFileIcon(res.type);
-                        const canPreview = canPreviewInline(res.url, res.type);
 
                         return (
                           <div key={res.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--card-bg)] hover:bg-amber-500/5 transition-colors border-b border-[var(--card-border)] last:border-b-0">
@@ -270,7 +283,7 @@ export default function Resources() {
               </div>
               <div className="space-y-2.5">
                 <Link
-                  href="/pyq"
+                  href="/downloads/pyq"
                   className="group flex items-center justify-between p-3.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-2xl transition-all"
                 >
                   <div className="space-y-0.5">

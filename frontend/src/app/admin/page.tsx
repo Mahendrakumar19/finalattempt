@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   LayoutDashboard,
@@ -8,11 +8,6 @@ import {
   Settings,
   LogOut,
   RefreshCw,
-  TrendingUp,
-  DollarSign,
-  Briefcase,
-  Database,
-  CheckCircle,
   AlertTriangle,
   ExternalLink,
   Plus,
@@ -36,7 +31,7 @@ import MediaDashboard from '@/components/MediaDashboard';
 import MediaPicker from '@/components/MediaPicker';
 import SyllabusStrategyCMS from '@/components/SyllabusStrategyCMS';
 import PYQsManagerCMS from '@/components/PYQsManagerCMS';
-import { db } from '@/services/db';
+import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTopper } from '@/services/db';
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 
@@ -153,7 +148,6 @@ interface UserProfile {
 
 export default function AdminPortal() {
   const [activeTab, setActiveTab] = useState<AdminTab>('Dashboard');
-  const [loading, setLoading] = useState(true);
   const [backendOffline, setBackendOffline] = useState(false);
 
   // States for CMS collections
@@ -163,29 +157,28 @@ export default function AdminPortal() {
     tagline: 'One Mentor. One Strategy. One Final Attempt.',
     heroImageUrl: ''
   });
-  const [heroUploading, setHeroUploading] = useState(false);
   const [leadsList, setLeadsList] = useState<Lead[]>([]);
   const [caList, setCaList] = useState<CurrentAffairArticle[]>([]);
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
   const [resourcesList, setResourcesList] = useState<ResourceDownload[]>([]);
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
-  const [facultyList, setFacultyList] = useState<any[]>([]);
-  const [toppersList, setToppersList] = useState<any[]>([]);
+  const [facultyList, setFacultyList] = useState<Record<string, string>[]>([]);
+  const [toppersList, setToppersList] = useState<ResultTopper[]>([]);
   const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'student' | 'faculty' | 'admin'>('all');
   const [selectedUserModal, setSelectedUserModal] = useState<UserProfile | null>(null);
   const [editUserForm, setEditUserForm] = useState<Partial<UserProfile>>({});
 
   // Faculty & Topper Popup Modal States
-  const [facultyModal, setFacultyModal] = useState<{ isOpen: boolean; data: any | null }>({ isOpen: false, data: null });
-  const [topperModal, setTopperModal] = useState<{ isOpen: boolean; data: any | null }>({ isOpen: false, data: null });
+  const [facultyModal, setFacultyModal] = useState<{ isOpen: boolean; data: Record<string, string> | null }>({ isOpen: false, data: null });
+  const [topperModal, setTopperModal] = useState<{ isOpen: boolean; data: ResultTopper | null }>({ isOpen: false, data: null });
 
   const [coursesList, setCoursesList] = useState<Course[]>([]);
   const [editMode, setEditMode] = useState(false);
 
   // Dynamic Current Affairs states
-  const [dynamicEditionsList, setDynamicEditionsList] = useState<any[]>([]);
-  const [editingEdition, setEditingEdition] = useState<any | null>(null);
-  const [editingArticle, setEditingArticle] = useState<any | null>(null);
+  const [dynamicEditionsList, setDynamicEditionsList] = useState<DynamicCurrentAffairEdition[]>([]);
+  const [editingEdition, setEditingEdition] = useState<DynamicCurrentAffairEdition | null>(null);
+  const [editingArticle, setEditingArticle] = useState<Partial<DynamicCurrentAffairArticle> | null>(null);
   const [activeArticleCategory, setActiveArticleCategory] = useState<'NATIONAL' | 'INTERNATIONAL' | 'BIHAR'>('NATIONAL');
   const [isEditionModalOpen, setIsEditionModalOpen] = useState(false);
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
@@ -195,7 +188,7 @@ export default function AdminPortal() {
   const [activeModal, setActiveModal] = useState<{ type: 'add' | 'edit'; index?: number } | null>(null);
 
   // YouTube Sync Console States
-  const [youtubeStatus, setYoutubeStatus] = useState<any>({ lastSyncTime: null, videosSynced: 0, status: 'IDLE', error: null });
+  const [youtubeStatus, setYoutubeStatus] = useState<{ lastSyncTime: string | null; videosSynced: number; status: string; error: string | null }>({ lastSyncTime: null, videosSynced: 0, status: 'IDLE', error: null });
   const [syncingYoutube, setSyncingYoutube] = useState(false);
 
   // Local Storage Auth & Super Admin state
@@ -208,12 +201,10 @@ export default function AdminPortal() {
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('admin_token');
-      const superFlag = localStorage.getItem('is_super_admin') === 'true';
-      setAdminToken(token);
-      setIsSuperAdmin(superFlag);
-    }
+    const token = localStorage.getItem('admin_token');
+    const superFlag = localStorage.getItem('is_super_admin') === 'true';
+    setAdminToken(token);
+    setIsSuperAdmin(superFlag);
   }, []);
 
   const handleAdminLogin = (e: React.FormEvent) => {
@@ -251,68 +242,49 @@ export default function AdminPortal() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  const fetchCMSData = async () => {
-    setLoading(true);
+  const fetchCMSData = useCallback(async () => {
     try {
-      // 1. Settings
       const setRes = await fetch(`${BACKEND_URL}/api/settings`);
-      if (setRes.ok) setSettings(await setRes.json());
-
-      // 2. Leads
+      if (setRes.ok) {
+        const setJson = await setRes.json();
+        if (setJson) setSettings(prev => ({ ...prev, ...setJson }));
+      }
+      const courseRes = await fetch(`${BACKEND_URL}/api/lms/courses`);
+      if (courseRes.ok) {
+        const cData = await courseRes.json();
+        if (cData.success && Array.isArray(cData.data)) setCoursesList(cData.data);
+      }
+      const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`);
+      if (usersRes.ok) setUsersList(await usersRes.json());
       const leadsRes = await fetch(`${BACKEND_URL}/api/leads`);
       if (leadsRes.ok) setLeadsList(await leadsRes.json());
-
-      // 5. Current affairs
       const caRes = await fetch(`${BACKEND_URL}/api/current-affairs`);
       if (caRes.ok) setCaList(await caRes.json());
-
-      // 6. Blogs
       const blogRes = await fetch(`${BACKEND_URL}/api/blogs`);
       if (blogRes.ok) setBlogsList(await blogRes.json());
-
-      // 7. Resources
-      const rRes = await fetch(`${BACKEND_URL}/api/resources`);
-      if (rRes.ok) setResourcesList(await rRes.json());
-
-      // 8. LMS Courses
-      const cRes = await fetch(`${BACKEND_URL}/api/lms/courses`);
-      if (cRes.ok) {
-        const cData = await cRes.json();
-        if (cData.success && cData.data) setCoursesList(cData.data);
-      }
-
-      // 9. Users check list
-      const uRes = await fetch(`${BACKEND_URL}/api/auth/users`);
-      if (uRes.ok) setUsersList(await uRes.json());
-
-      // 10. Dynamic Current Affairs
-      const dynRes = await fetch(`${BACKEND_URL}/api/dynamic-current-affairs/editions?includeDrafts=true`);
-      if (dynRes.ok) {
-        setDynamicEditionsList(await dynRes.json());
-      }
-
-      // 11. YouTube Sync Status
-      const ytStatus = await db.getYoutubeSyncStatus();
-      if (ytStatus) setYoutubeStatus(ytStatus);
-
-      // 12. Faculty & Toppers
+      const resRes = await fetch(`${BACKEND_URL}/api/resources`);
+      if (resRes.ok) setResourcesList(await resRes.json());
       const facRes = await fetch(`${BACKEND_URL}/api/faculty`);
       if (facRes.ok) setFacultyList(await facRes.json());
       const topRes = await fetch(`${BACKEND_URL}/api/results`);
       if (topRes.ok) setToppersList(await topRes.json());
 
+      const dynRes = await fetch(`${BACKEND_URL}/api/dynamic-current-affairs/editions?includeDrafts=true`);
+      if (dynRes.ok) setDynamicEditionsList(await dynRes.json());
+
+      const ytStatus = await db.getYoutubeSyncStatus();
+      if (ytStatus) setYoutubeStatus(ytStatus);
+
       setBackendOffline(false);
     } catch (err) {
       console.warn('Backend server offline. Running in mock offline mode:', err);
       setBackendOffline(true);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCMSData();
-  }, []);
+  }, [fetchCMSData]);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -348,7 +320,7 @@ export default function AdminPortal() {
       } else {
         alert('YouTube Sync Failed: ' + (res.error || 'Unknown error'));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       alert('Error triggering YouTube synchronization.');
     } finally {
@@ -362,7 +334,7 @@ export default function AdminPortal() {
     allowedTypes?: string[];
   }>({ isOpen: false, field: '' });
 
-  const handleSelectMedia = (url: string, item: any) => {
+  const handleSelectMedia = (url: string) => {
     const { field } = mediaPickerConfig;
     if (field === 'heroImageUrl') {
       setSettings(prev => {
@@ -425,6 +397,7 @@ export default function AdminPortal() {
   // Dynamic Current Affairs handlers
   const handleSaveDynamicEdition = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingEdition) return;
     if (!editingEdition.publishDate) {
       alert('Date is required.');
       return;
@@ -452,6 +425,7 @@ export default function AdminPortal() {
   };
 
   const handleAddArticleToEdition = (category: 'NATIONAL' | 'INTERNATIONAL' | 'BIHAR') => {
+    if (!editingEdition) return;
     setActiveArticleCategory(category);
     setEditingArticle({
       id: '',
@@ -483,6 +457,7 @@ export default function AdminPortal() {
   };
 
   const handleSaveArticleToEdition = () => {
+    if (!editingEdition || !editingArticle) return;
     if (!editingArticle.title || !editingArticle.summary) {
       alert('Title and Summary are required.');
       return;
@@ -492,9 +467,9 @@ export default function AdminPortal() {
     const artIdx = articles.findIndex(a => a.id === editingArticle.id && editingArticle.id !== '');
 
     const slugifiedTitle = editingArticle.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    const finalSlug = editingArticle.slug || `${editingEdition.publishDate}-${editingArticle.category.toLowerCase()}-${slugifiedTitle}`;
+    const finalSlug = editingArticle.slug || `${editingEdition.publishDate}-${(editingArticle.category ?? 'general').toLowerCase()}-${slugifiedTitle}`;
 
-    const parseCsv = (val: any) => {
+    const parseCsv = (val: string | string[] | undefined) => {
       if (Array.isArray(val)) return val;
       if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
       return [];
@@ -508,7 +483,7 @@ export default function AdminPortal() {
       subjects: parseCsv(editingArticle.subjects),
       exams: parseCsv(editingArticle.exams),
       tags: parseCsv(editingArticle.tags)
-    };
+    } as DynamicCurrentAffairArticle;
 
     if (artIdx >= 0) {
       articles[artIdx] = nextArt;
@@ -524,10 +499,11 @@ export default function AdminPortal() {
   };
 
   const handleDeleteArticleFromEdition = (artId: string) => {
+    if (!editingEdition) return;
     if (!window.confirm('Remove this article from layout?')) return;
     setEditingEdition({
       ...editingEdition,
-      articles: (editingEdition.articles || []).filter((a: any) => a.id !== artId)
+      articles: (editingEdition.articles || []).filter(a => a.id !== artId)
     });
   };
 
@@ -1091,7 +1067,7 @@ export default function AdminPortal() {
         )}
 
         {/* TAB: ABOUT PAGE CMS */}
-        {activeTab === 'About Page' && (
+        {(activeTab === 'About Page' || activeTab === 'About Page CMS') && (
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
               <div>
@@ -1335,7 +1311,7 @@ export default function AdminPortal() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setTopperModal({ isOpen: true, data: { name: '', rank: 'Rank 01 - 70th BPSC', exam: 'BPSC', service: 'Sub-Divisional Officer (SDO)', image: '' } })}
+                    onClick={() => setTopperModal({ isOpen: true, data: { id: '', name: '', rank: 'Rank 01 - 70th BPSC', exam: 'BPSC', course: '', service: 'Sub-Divisional Officer (SDO)', district: '', photo: '', year: new Date().getFullYear(), story: '' } })}
                     className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm"
                   >
                     <Plus className="w-4 h-4" />
@@ -1350,7 +1326,7 @@ export default function AdminPortal() {
                     {toppersList.map((top, i) => (
                       <div key={top.id || i} className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-2xl text-center space-y-2 relative group">
                         <img
-                          src={top.image || top.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'}
+                          src={top.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'}
                           alt={top.name}
                           className="w-16 h-16 rounded-full object-cover border-2 border-amber-500 mx-auto shadow-sm"
                         />
@@ -1363,7 +1339,7 @@ export default function AdminPortal() {
                         <div className="flex items-center justify-center gap-1.5 pt-2 border-t border-slate-200/60 dark:border-white/10 text-[10px]">
                           <button
                             type="button"
-                            onClick={() => setTopperModal({ isOpen: true, data: { ...top, image: top.image || top.photo } })}
+                            onClick={() => setTopperModal({ isOpen: true, data: { ...top } })}
                             className="px-2.5 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg border border-slate-200 dark:border-white/10 font-bold hover:bg-slate-100"
                           >
                             Edit
@@ -1607,7 +1583,7 @@ export default function AdminPortal() {
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setUserRoleFilter(tab.id as any)}
+                  onClick={() => setUserRoleFilter(tab.id as 'all' | 'student' | 'faculty' | 'admin')}
                   className={`px-4 py-2 text-xs font-bold rounded-2xl transition-all ${
                     userRoleFilter === tab.id
                       ? 'bg-slate-900 text-white shadow-sm'
@@ -1929,9 +1905,9 @@ export default function AdminPortal() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {dynamicEditionsList.map((ed) => {
-                    const natCount = ed.articles?.filter((a: any) => a.category === 'NATIONAL').length || 0;
-                    const intCount = ed.articles?.filter((a: any) => a.category === 'INTERNATIONAL').length || 0;
-                    const bihCount = ed.articles?.filter((a: any) => a.category === 'BIHAR').length || 0;
+                    const natCount = ed.articles?.filter(a => a.category === 'NATIONAL').length || 0;
+                    const intCount = ed.articles?.filter(a => a.category === 'INTERNATIONAL').length || 0;
+                    const bihCount = ed.articles?.filter(a => a.category === 'BIHAR').length || 0;
 
                     return (
                       <div key={ed.id} className="p-5 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/[0.06] rounded-3xl shadow-sm flex flex-col justify-between space-y-4">
@@ -2049,7 +2025,7 @@ export default function AdminPortal() {
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Category</label>
                       <select
                         value={caForm.category}
-                        onChange={(e) => setCaForm({ ...caForm, category: e.target.value as any })}
+                        onChange={(e) => setCaForm({ ...caForm, category: e.target.value as CurrentAffairArticle['category'] })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       >
                         <option>GS Paper I</option>
@@ -2174,7 +2150,7 @@ export default function AdminPortal() {
                       <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Edition Article Layout</h4>
 
                       {(['BIHAR', 'NATIONAL', 'INTERNATIONAL'] as const).map(cat => {
-                        const catArticles = (editingEdition.articles || []).filter((a: any) => a.category === cat);
+                        const catArticles = (editingEdition.articles || []).filter(a => a.category === cat);
                         return (
                           <div key={cat} className="p-4 bg-slate-50 dark:bg-slate-950/20 rounded-2xl space-y-3 border border-slate-100 dark:border-white/[0.04]">
                             <div className="flex justify-between items-center">
@@ -2191,7 +2167,7 @@ export default function AdminPortal() {
                               {catArticles.length === 0 ? (
                                 <p className="text-[10px] text-slate-450 italic">No articles mapped in this category yet.</p>
                               ) : (
-                                catArticles.map((art: any) => (
+                                catArticles.map((art) => (
                                   <div key={art.id} className="flex justify-between items-center p-3 bg-white dark:bg-slate-900 border border-slate-150 dark:border-white/[0.04] rounded-xl">
                                     <div>
                                       <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">{art.title}</h5>
@@ -2284,7 +2260,7 @@ export default function AdminPortal() {
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Importance</label>
                         <select
                           value={editingArticle.importance}
-                          onChange={(e) => setEditingArticle({ ...editingArticle, importance: e.target.value })}
+                          onChange={(e) => setEditingArticle({ ...editingArticle, importance: e.target.value as 'HIGH' | 'MEDIUM' | 'LOW' })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                         >
                           <option>HIGH</option>
@@ -2304,7 +2280,7 @@ export default function AdminPortal() {
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Status</label>
                         <select
                           value={editingArticle.publishStatus}
-                          onChange={(e) => setEditingArticle({ ...editingArticle, publishStatus: e.target.value })}
+                          onChange={(e) => setEditingArticle({ ...editingArticle, publishStatus: e.target.value as 'DRAFT' | 'PUBLISHED' })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                         >
                           <option>PUBLISHED</option>
@@ -2345,7 +2321,7 @@ export default function AdminPortal() {
                           <input
                             type="text"
                             value={Array.isArray(editingArticle.subjects) ? editingArticle.subjects.join(', ') : (editingArticle.subjects || '')}
-                            onChange={(e) => setEditingArticle({ ...editingArticle, subjects: e.target.value as any })}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, subjects: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                             placeholder="Polity, Economy..."
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                           />
@@ -2355,7 +2331,7 @@ export default function AdminPortal() {
                           <input
                             type="text"
                             value={Array.isArray(editingArticle.exams) ? editingArticle.exams.join(', ') : (editingArticle.exams || '')}
-                            onChange={(e) => setEditingArticle({ ...editingArticle, exams: e.target.value as any })}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, exams: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                             placeholder="UPSC, BPSC..."
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                           />
@@ -2365,7 +2341,7 @@ export default function AdminPortal() {
                           <input
                             type="text"
                             value={Array.isArray(editingArticle.tags) ? editingArticle.tags.join(', ') : (editingArticle.tags || '')}
-                            onChange={(e) => setEditingArticle({ ...editingArticle, tags: e.target.value as any })}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, tags: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                             placeholder="governance, budget..."
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                           />
@@ -3151,7 +3127,7 @@ export default function AdminPortal() {
                     <button
                       key={r.role}
                       type="button"
-                      onClick={() => setEditUserForm(prev => ({ ...prev, role: r.role as any }))}
+                      onClick={() => setEditUserForm(prev => ({ ...prev, role: r.role as UserProfile['role'] }))}
                       className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                         editUserForm.role === r.role
                           ? 'bg-amber-500 text-slate-950 border-amber-600 font-black shadow-sm'
@@ -3470,7 +3446,7 @@ export default function AdminPortal() {
                   type="text"
                   placeholder="e.g. Aarav Kumar"
                   value={topperModal.data?.name || ''}
-                  onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, name: e.target.value } }))}
+                  onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, name: e.target.value } as ResultTopper }))}
                   className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
                 />
               </div>
@@ -3482,7 +3458,7 @@ export default function AdminPortal() {
                     type="text"
                     placeholder="Rank 04 - 69th BPSC"
                     value={topperModal.data?.rank || ''}
-                    onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, rank: e.target.value } }))}
+                    onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, rank: e.target.value } as ResultTopper }))}
                     className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
                   />
                 </div>
@@ -3492,7 +3468,7 @@ export default function AdminPortal() {
                     type="text"
                     placeholder="Sub-Divisional Officer (SDO)"
                     value={topperModal.data?.service || ''}
-                    onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, service: e.target.value } }))}
+                    onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, service: e.target.value } as ResultTopper }))}
                     className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
                   />
                 </div>
@@ -3504,12 +3480,12 @@ export default function AdminPortal() {
                   <input
                     type="text"
                     placeholder="https://example.com/topper.jpg"
-                    value={topperModal.data?.image || topperModal.data?.photo || ''}
-                    onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, image: e.target.value, photo: e.target.value } }))}
+                    value={topperModal.data?.photo || ''}
+                    onChange={(e) => setTopperModal(prev => ({ ...prev, data: { ...prev.data, photo: e.target.value } as ResultTopper }))}
                     className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-mono text-slate-900 dark:text-white"
                   />
-                  {(topperModal.data?.image || topperModal.data?.photo) && (
-                    <img src={topperModal.data.image || topperModal.data.photo} alt="Preview" className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-amber-500" />
+                  {topperModal.data?.photo && (
+                    <img src={topperModal.data.photo} alt="Preview" className="w-10 h-10 rounded-full object-cover shrink-0 border-2 border-amber-500" />
                   )}
                 </div>
               </div>
@@ -3540,7 +3516,7 @@ export default function AdminPortal() {
                         rank: topperModal.data.rank || 'Rank 01',
                         exam: topperModal.data.exam || 'BPSC',
                         service: topperModal.data.service || 'SDO',
-                        photo: topperModal.data.image || topperModal.data.photo || ''
+                        photo: topperModal.data.photo || ''
                       })
                     });
                     const data = await res.json();
