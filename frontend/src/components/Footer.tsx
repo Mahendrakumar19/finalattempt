@@ -344,7 +344,7 @@ export default function Footer() {
                 { label: "Courses", href: "/courses" },
                 { label: "Test Series", href: "/test-series" },
                 { label: "Current Affairs", href: "/current-affairs" },
-                { label: "PYQ Papers", href: "/downloads/pyq" },
+                { label: "Downloads Hub", href: "/downloads" },
                 { label: "Blogs", href: "/blog" },
               ].map((item) => (
                 <li key={item.label}>

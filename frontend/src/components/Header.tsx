@@ -81,7 +81,12 @@ export default function Header() {
       ]
     }] : []),
     {
-      name: 'PYQs', href: '/downloads/pyq'
+      name: 'Downloads', href: '/downloads',
+      dropdown: [
+        { name: 'All Downloads Hub', href: '/downloads', desc: 'Central study material repository' },
+        { name: 'Official PYQs Library', href: '/downloads/pyq', desc: 'Structured BPSC & UPSC question papers' },
+        { name: 'NCERT & Free Materials', href: '/resources', desc: 'Class 6-12 NCERT books & notes' }
+      ]
     },
     { name: 'Syllabus & Strategy', href: '/syllabus-strategy' },
     {
