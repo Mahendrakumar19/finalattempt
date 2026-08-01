@@ -907,6 +907,7 @@ class BackendDB {
           const row = rows[0];
           return {
             ...row,
+            aboutMethodology: typeof row.aboutMethodology === 'string' ? JSON.parse(row.aboutMethodology) : (row.aboutMethodology || null),
             featureFlags: typeof row.featureFlags === 'string' ? JSON.parse(row.featureFlags) : (row.featureFlags || {})
           } as SiteSettings;
         }
@@ -921,8 +922,8 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, heroImageUrl, contactTitle, contactSubtitle, contactAddress, contactPhone, contactEmail, contactHours, whatsappLink, telegramLink, googleMapUrl, featureFlags)
-           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, heroImageUrl, contactTitle, contactSubtitle, contactAddress, contactPhone, contactEmail, contactHours, whatsappLink, telegramLink, googleMapUrl, aboutTitle, aboutSubtitle, aboutMission, aboutVision, aboutValues, aboutMethodology, featureFlags)
+           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
            heroTitle = VALUES(heroTitle),
            heroSubtitle = VALUES(heroSubtitle),
@@ -937,12 +938,21 @@ class BackendDB {
            whatsappLink = VALUES(whatsappLink),
            telegramLink = VALUES(telegramLink),
            googleMapUrl = VALUES(googleMapUrl),
+           aboutTitle = VALUES(aboutTitle),
+           aboutSubtitle = VALUES(aboutSubtitle),
+           aboutMission = VALUES(aboutMission),
+           aboutVision = VALUES(aboutVision),
+           aboutValues = VALUES(aboutValues),
+           aboutMethodology = VALUES(aboutMethodology),
            featureFlags = VALUES(featureFlags)`,
           [
             settings.heroTitle || '', settings.heroSubtitle || '', settings.tagline || '', settings.heroImageUrl || null,
             settings.contactTitle || null, settings.contactSubtitle || null, settings.contactAddress || null,
             settings.contactPhone || null, settings.contactEmail || null, settings.contactHours || null,
             settings.whatsappLink || null, settings.telegramLink || null, settings.googleMapUrl || null,
+            settings.aboutTitle || null, settings.aboutSubtitle || null, settings.aboutMission || null,
+            settings.aboutVision || null, settings.aboutValues || null,
+            settings.aboutMethodology ? JSON.stringify(settings.aboutMethodology) : null,
             JSON.stringify(settings.featureFlags || {})
           ]
         );

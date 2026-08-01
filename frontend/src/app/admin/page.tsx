@@ -322,9 +322,16 @@ export default function AdminPortal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
       });
-      if (res.ok) alert('Settings saved successfully!');
+      const data = await res.json();
+      if (res.ok && (data.success || data.success === undefined)) {
+        alert('About Us page content & site settings saved successfully!');
+        fetchCMSData();
+      } else {
+        alert(`Failed to save settings: ${data.error || 'Unknown error'}`);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Save settings error:', err);
+      alert('Network error while saving settings.');
     }
   };
 
