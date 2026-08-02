@@ -1,5 +1,29 @@
 import { courseData, facultyData, resultData, currentAffairsData, pyqData, blogData, resourceData } from './seedData';
 
+export interface SiteSettings {
+  heroTitle: string;
+  heroSubtitle: string;
+  tagline: string;
+  heroImageUrl?: string;
+  visitorsCount?: number;
+  contactTitle?: string;
+  contactSubtitle?: string;
+  contactAddress?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  contactHours?: string;
+  whatsappLink?: string;
+  telegramLink?: string;
+  googleMapUrl?: string;
+  aboutTitle?: string;
+  aboutSubtitle?: string;
+  aboutMission?: string;
+  aboutVision?: string;
+  aboutValues?: string;
+  aboutMethodology?: { title: string; desc?: string; description?: string }[];
+  featureFlags?: Record<string, boolean>;
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -156,18 +180,27 @@ class FinalAttemptDB {
       const res = await fetch(`${BACKEND_URL}${endpoint}`, options);
       if (!res.ok) throw new Error('API request failed');
       return await res.json();
-    } catch (_) {
+    } catch {
       return null;
     }
   }
 
-  public async getSettings() {
+  public async getSettings(): Promise<SiteSettings> {
     const data = await this.apiFetch('/api/settings');
     return data || {
       heroTitle: 'The Next Generation Mentorship & Learning Platform',
       heroSubtitle: 'Empowering aspirants through personalized mentorship, high-quality content, strategic preparation, an innovative AI-powered learning ecosystem and continuous performance tracking - everything designed with one goal: to help make this attempt your final attempt.',
       tagline: "Let's Make Your Attempt Final with FINAL ATTEMPT"
     };
+  }
+
+  public async updateSettings(settings: Partial<SiteSettings>): Promise<boolean> {
+    const res = await this.apiFetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    return res?.success !== false;
   }
 
   public async getCustomPages(publishedOnly: boolean = false): Promise<CustomPage[]> {
@@ -247,8 +280,8 @@ class FinalAttemptDB {
 
   public async getStudentProgress(studentId: string, courseId: string): Promise<CourseProgress[]> {
     const data = await this.apiFetch(`/api/student/progress/${studentId}`);
-    if (data) {
-      return data.filter((p: any) => p.courseId === courseId);
+    if (data && Array.isArray(data)) {
+      return data.filter((p: CourseProgress) => p.courseId === courseId);
     }
     return [
       { studentId, courseId, lessonId: `les-${courseId}-1-1`, completed: true, updatedAt: new Date().toISOString() },
@@ -382,7 +415,7 @@ class FinalAttemptDB {
   }
 
   // YOUTUBE INTEGRATION API WRAPPERS
-  public async getYoutubeVideos(limit: number = 9, page: number = 1, search: string = ''): Promise<{ videos: any[], total: number }> {
+  public async getYoutubeVideos(limit: number = 9, page: number = 1, search: string = ''): Promise<{ videos: Record<string, unknown>[], total: number }> {
     const data = await this.apiFetch(`/api/youtube/videos?limit=${limit}&page=${page}&search=${encodeURIComponent(search)}`);
     return data || { videos: [], total: 0 };
   }

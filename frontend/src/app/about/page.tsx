@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Award, Users, BookOpen, Clock, Sparkles, CheckCircle, MessageCircle, HelpCircle } from 'lucide-react';
-import { db } from '@/services/db';
+import { Award, Users, Sparkles } from 'lucide-react';
+import { db, SiteSettings } from '@/services/db';
 
 interface FacultyMember {
   id: string;
@@ -28,7 +28,7 @@ interface ResultTopper {
 export default function AboutPage() {
   const [faculty, setFaculty] = useState<FacultyMember[]>([]);
   const [results, setResults] = useState<ResultTopper[]>([]);
-  const [settings, setSettings] = useState<any>(null);
+  const [settings, setSettings] = useState<SiteSettings | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -56,7 +56,7 @@ export default function AboutPage() {
           Who We Are
         </span>
         <h1 className="text-4xl sm:text-5xl font-heading font-black text-[var(--text-color)] tracking-tight leading-tight">
-          {settings?.aboutTitle ? (
+          {settings?.aboutTitle && settings.aboutTitle.trim() !== '' ? (
             <span>{settings.aboutTitle}</span>
           ) : (
             <>
@@ -117,7 +117,7 @@ export default function AboutPage() {
             { title: 'Daily Evaluation', desc: 'Mandatory daily answer writing checks by experienced evaluators.' },
             { title: 'Bihar Focus', desc: 'Extensive state geography, budget digests, and economic statistics.' },
             { title: 'Officer Mentorship', desc: 'Direct workshops and feedback sessions with selected public administrators.' }
-          ]).map((step: any, idx: number) => (
+          ]).map((step: { title: string; desc?: string; description?: string }, idx: number) => (
             <div key={idx} className="space-y-2">
               <div className="w-10 h-10 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center font-black text-xs mx-auto mb-2">
                 0{idx + 1}

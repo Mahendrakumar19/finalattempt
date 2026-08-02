@@ -23,6 +23,7 @@ import {
   Moon,
   Menu,
   MessageSquare,
+  Download,
   X
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
@@ -35,7 +36,7 @@ import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTop
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 
-type AdminTab = 'Dashboard' | 'Settings' | 'About Page' | 'About Page CMS' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Strategy & Values' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Settings' | 'About Page' | 'About Page CMS' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Downloads Hub' | 'Strategy & Values' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
 
 interface SiteSettings {
   heroTitle: string;
@@ -192,20 +193,13 @@ export default function AdminPortal() {
   const [syncingYoutube, setSyncingYoutube] = useState(false);
 
   // Local Storage Auth & Super Admin state
-  const [adminToken, setAdminToken] = useState<string | null>(null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
+  const [adminToken, setAdminToken] = useState<string | null>(() => typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(() => typeof window !== 'undefined' ? localStorage.getItem('is_super_admin') === 'true' : false);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
-
-  useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    const superFlag = localStorage.getItem('is_super_admin') === 'true';
-    setAdminToken(token);
-    setIsSuperAdmin(superFlag);
-  }, []);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -280,7 +274,7 @@ export default function AdminPortal() {
       console.warn('Backend server offline. Running in mock offline mode:', err);
       setBackendOffline(true);
     }
-  }, []);
+  }, [BACKEND_URL]);
 
   useEffect(() => {
     fetchCMSData();
@@ -289,17 +283,12 @@ export default function AdminPortal() {
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch(`${BACKEND_URL}/api/settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
-      });
-      const data = await res.json();
-      if (res.ok && (data.success || data.success === undefined)) {
+      const ok = await db.updateSettings(settings);
+      if (ok) {
         alert('About Us page content & site settings saved successfully!');
         fetchCMSData();
       } else {
-        alert(`Failed to save settings: ${data.error || 'Unknown error'}`);
+        alert('Failed to save settings.');
       }
     } catch (err) {
       console.error('Save settings error:', err);
@@ -659,6 +648,7 @@ export default function AdminPortal() {
               { id: 'Leads', icon: MessageSquare },
               { id: 'Media Library', icon: FolderOpen },
               { id: 'Exams & Syllabus', icon: Layers },
+              { id: 'Downloads Hub', icon: Download },
               { id: 'PYQs Manager', icon: FileText },
               { id: 'Strategy & Values', icon: Bookmark },
               ...(settings.featureFlags?.currentAffairsFilters !== false ? [{ id: 'Current Affairs', icon: FileText }] : []),
@@ -1498,6 +1488,77 @@ export default function AdminPortal() {
         {activeTab === 'Exams & Syllabus' && (
           <div className="space-y-6">
             <SyllabusStrategyCMS defaultTab="exams" />
+          </div>
+        )}
+
+        {/* TAB: DOWNLOADS HUB CMS */}
+        {activeTab === 'Downloads Hub' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
+              <div>
+                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Public Downloads Hub Control</span>
+                <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Downloads Hub & Section Manager</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Manage the central `/downloads` page, PYQ booklets, NCERT portals, and custom download sections.
+                </p>
+              </div>
+              <a
+                href="/downloads"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all shrink-0"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Preview /downloads ↗</span>
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-sm">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-black">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">📜 Official PYQ Papers Vault</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Upload and organize BPSC & UPSC Previous Year Question booklets, verified answer keys, and detailed PDF solutions.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('PYQs Manager')}
+                  className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <span>Open PYQs Manager &rarr;</span>
+                </button>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-sm">
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-black">
+                  <Plus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">📁 Create Custom Download Section</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Create new downloadable file packages, NCERT portals, state budget digests, or subject notes with custom URL slugs.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('Custom Pages')}
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <span>Open Custom Download Section Creator &rarr;</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl space-y-4 shadow-sm">
+              <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">
+                PYQs Full Booklet Manager (Integrated)
+              </h3>
+              <PYQsManagerCMS />
+            </div>
           </div>
         )}
 

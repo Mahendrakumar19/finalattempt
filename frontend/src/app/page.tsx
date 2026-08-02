@@ -74,7 +74,15 @@ export default function Home() {
     const loadLiveData = async () => {
       try {
         const s = await db.getSettings();
-        if (s) setHeroSettings(s);
+        if (s) {
+          setHeroSettings(prev => ({
+            ...prev,
+            heroTitle: s.heroTitle || prev.heroTitle,
+            heroSubtitle: s.heroSubtitle || prev.heroSubtitle,
+            tagline: s.tagline || prev.tagline,
+            heroImageUrl: s.heroImageUrl || ''
+          }));
+        }
 
         const c = await db.getCourses();
         if (c) {

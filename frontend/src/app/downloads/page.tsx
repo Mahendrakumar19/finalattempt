@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Download, FileText, ArrowRight, CheckCircle, Search, BookOpen, ExternalLink, Eye, X, File, Film, Archive, Layers, Plus } from 'lucide-react';
+import { Download, FileText, ArrowRight, CheckCircle, Search, BookOpen, Eye, File, Film, Archive, Layers } from 'lucide-react';
 import { db, CustomPage } from '@/services/db';
 
 interface ResourceItem {
@@ -154,233 +154,260 @@ export default function DedicatedDownloadsPage() {
         ))}
       </div>
 
-      {/* Main Grid: Core Sections & Download Portals */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* Left 8 Cols: Downloads Catalog & Files */}
-        <div className="lg:col-span-8 space-y-6">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder={`Search in ${activeSection === 'All' ? 'all download sections' : activeSection}...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3.5 text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-[var(--text-color)] shadow-xs font-medium"
-            />
-          </div>
-
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-20 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl animate-pulse" />
-              ))}
-            </div>
-          ) : activeSection === 'Custom Download Packages' ? (
-            /* Dedicated view for custom download pages created via Admin CMS */
-            <div className="space-y-4">
-              <h3 className="font-heading font-black text-slate-900 dark:text-white text-base uppercase tracking-wider flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-amber-500" />
-                <span>Custom Created Download Portals ({customDownloadPages.length})</span>
-              </h3>
-              {customDownloadPages.length === 0 ? (
-                <div className="p-10 text-center text-slate-400 font-semibold text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl">
-                  No custom download portals created yet. Admin can add new sections in Admin -&gt; Custom Pages CMS.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {customDownloadPages.map((pg) => {
-                    const cleanSlug = pg.slug.startsWith('downloads/') ? pg.slug : `downloads/${pg.slug}`;
-                    return (
-                      <Link
-                        key={pg.id}
-                        href={`/${cleanSlug}`}
-                        className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/60 rounded-3xl transition-all shadow-xs flex flex-col justify-between space-y-4"
-                      >
-                        <div className="space-y-2">
-                          <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20 w-fit block">
-                            ADMIN CREATED PORTAL
-                          </span>
-                          <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors">
-                            {pg.title}
-                          </h4>
-                          {pg.metaDescription && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                              {pg.metaDescription}
-                            </p>
-                          )}
-                        </div>
-                        <div className="pt-3 border-t border-[var(--card-border)] flex items-center justify-between">
-                          <span className="text-[10px] font-extrabold text-slate-400">
-                            {pg.downloadItems?.length || 0} Files Included
-                          </span>
-                          <span className="text-xs font-black text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                            Open Portal &rarr;
-                          </span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          ) : filteredResources.length > 0 ? (
-            <div className="space-y-8">
-              {Object.keys(groupedResources).map((catName) => (
-                <div key={catName} className="space-y-3">
-                  {activeSection === 'All' && (
-                    <h3 className="font-heading font-black text-slate-850 dark:text-slate-200 text-sm uppercase tracking-wider flex items-center gap-2 pl-1">
-                      <Layers className="w-4 h-4 text-amber-500" />
-                      <span>{catName}</span>
-                    </h3>
-                  )}
-                  <div className="bg-[var(--card-bg)] rounded-3xl border border-[var(--card-border)] shadow-xs divide-y divide-[var(--card-border)] overflow-hidden">
-                    {groupedResources[catName].map((res) => {
-                      const { icon: Icon, color, bg } = getFileIcon(res.type);
-
-                      return (
-                        <div key={res.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--card-bg)] hover:bg-amber-500/5 transition-colors border-b border-[var(--card-border)] last:border-b-0">
-                          <div className="flex gap-4 items-start min-w-0">
-                            <div className={`w-11 h-11 rounded-2xl ${bg} ${color} flex items-center justify-center shrink-0`}>
-                              <Icon className="w-5 h-5" />
-                            </div>
-                            <div className="space-y-1 min-w-0">
-                              <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] leading-snug break-words">
-                                {res.title}
-                              </h4>
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded-md">
-                                  {res.type} {res.size ? `• ${res.size}` : ''}
-                                </span>
-                                {res.subcategory && (
-                                  <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[var(--text-color)] rounded-md font-bold uppercase">
-                                    {res.subcategory}
-                                  </span>
-                                )}
-                                <span className="text-[10px] text-slate-400 font-semibold">
-                                  • {res.downloadCount + (downloadStates[res.id] ? 1 : 0)} downloads
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="shrink-0 flex items-center gap-2 w-full sm:w-auto pt-2 sm:pt-0">
-                            <a
-                              href={resolveUrl(res.url)}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs shadow-xs hover:scale-[1.02] transition-all cursor-pointer"
-                            >
-                              <Eye className="w-4 h-4" />
-                              <span>View</span>
-                            </a>
-
-                            {downloadStates[res.id] ? (
-                              <span className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-emerald-600 text-xs font-bold bg-emerald-500/10 px-3.5 py-2 rounded-xl border border-emerald-500/20">
-                                <CheckCircle className="w-4 h-4" />
-                                <span>Downloading…</span>
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => handleDownload(res)}
-                                className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[var(--card-bg)] hover:bg-amber-500/10 text-[var(--text-color)] font-bold rounded-xl text-xs border border-[var(--card-border)] transition-all cursor-pointer"
-                              >
-                                <Download className="w-3.5 h-3.5" />
-                                <span>Download</span>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-12 text-center text-slate-400 font-semibold text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl">
-              No items found in section "{activeSection}" matching query.
-            </div>
-          )}
+      {/* Featured Download Vaults & NCERT Portals (HORIZONTAL FEATURED ROW) */}
+      <div className="max-w-7xl mx-auto space-y-4">
+        <div className="flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-amber-500" />
+          <h3 className="font-heading font-black text-[var(--text-color)] text-base uppercase tracking-wider">
+            Featured Download Vaults & NCERT Portals
+          </h3>
         </div>
 
-        {/* Right 4 Cols: Quick Access Portals & Admin-created Sections */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] p-6 rounded-3xl space-y-4 shadow-xs">
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-amber-500" />
-              <h3 className="font-heading font-black text-[var(--text-color)] text-sm uppercase tracking-wider">
-                Featured Download Vaults
-              </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link
+            href="/downloads/pyq"
+            className="group p-5 bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/30 rounded-3xl transition-all shadow-xs hover:border-amber-500 hover:shadow-md flex flex-col justify-between space-y-3"
+          >
+            <div className="space-y-1.5">
+              <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20 w-fit block">
+                OFFICIAL QUESTION BANK
+              </span>
+              <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors">
+                📜 Official PYQs Vault (71st - 60th BPSC)
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Structured Question Papers, verified Answer Keys & detailed PDF Solutions.
+              </p>
             </div>
-            <div className="space-y-3">
-              <Link
-                href="/downloads/pyq"
-                className="group flex items-center justify-between p-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 rounded-2xl transition-all"
-              >
-                <div className="space-y-0.5">
-                  <h4 className="font-black text-xs text-amber-600 dark:text-amber-400">
-                    📜 Official PYQs Vault (71st - 60th BPSC)
-                  </h4>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold block">
-                    Structured Question Papers, Answer Keys & Solutions
-                  </span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-all" />
-              </Link>
+            <div className="pt-2 border-t border-amber-500/20 flex items-center justify-between">
+              <span className="text-xs font-black text-amber-600 dark:text-amber-400">Open PYQ Vault &rarr;</span>
+              <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-all" />
+            </div>
+          </Link>
 
-              <Link
-                href="/resources"
-                className="group flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/40 hover:bg-amber-500/10 border border-slate-200/80 dark:border-white/10 rounded-2xl transition-all"
-              >
-                <div className="space-y-0.5">
-                  <h4 className="font-bold text-xs text-[var(--text-color)] group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                    📚 NCERT Textbooks & Study Portal
-                  </h4>
-                  <span className="text-[10px] text-slate-400 font-medium block">
-                    Class 6-12 NCERTs & Micro-Syllabus Worksheets
-                  </span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
-              </Link>
+          <Link
+            href="/resources"
+            className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-3xl transition-all shadow-xs flex flex-col justify-between space-y-3"
+          >
+            <div className="space-y-1.5">
+              <span className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-md border border-blue-500/20 w-fit block">
+                CORE SYLLABUS TEXTBOOKS
+              </span>
+              <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors">
+                📚 NCERT Textbooks & Study Portal
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Class 6-12 NCERT books & syllabus worksheets for Prelims & Mains.
+              </p>
             </div>
+            <div className="pt-2 border-t border-[var(--card-border)] flex items-center justify-between">
+              <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-amber-500 transition-colors">Explore NCERTs &rarr;</span>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
+            </div>
+          </Link>
+
+          <Link
+            href="/resources/bihar-special"
+            className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-3xl transition-all shadow-xs flex flex-col justify-between space-y-3"
+          >
+            <div className="space-y-1.5">
+              <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 w-fit block">
+                STATE DIGESTS
+              </span>
+              <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors">
+                🗺️ Bihar Special Geography & Budget
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                State Economic Survey, Bihar Budget breakdowns & District Digests.
+              </p>
+            </div>
+            <div className="pt-2 border-t border-[var(--card-border)] flex items-center justify-between">
+              <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-amber-500 transition-colors">View Bihar Digests &rarr;</span>
+              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Main Grid: Downloads Catalog & Admin Custom Portals */}
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder={`Search in ${activeSection === 'All' ? 'all download sections' : activeSection}...`}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-11 pr-4 py-3.5 text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-[var(--text-color)] shadow-xs font-medium"
+          />
+        </div>
+
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-20 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl animate-pulse" />
+            ))}
           </div>
-
-          {/* Admin Created Custom Downloads Portals */}
-          {customDownloadPages.length > 0 && (
-            <div className="bg-[var(--card-bg)] border border-[var(--card-border)] p-6 rounded-3xl space-y-4 shadow-xs">
-              <div className="flex items-center gap-2">
-                <Download className="w-4 h-4 text-amber-500" />
-                <h3 className="font-heading font-black text-[var(--text-color)] text-sm uppercase tracking-wider">
-                  Admin Created Download Sections
-                </h3>
+        ) : activeSection === 'Custom Download Packages' ? (
+          /* Dedicated view for custom download pages created via Admin CMS */
+          <div className="space-y-4">
+            <h3 className="font-heading font-black text-slate-900 dark:text-white text-base uppercase tracking-wider flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-amber-500" />
+              <span>Custom Created Download Portals ({customDownloadPages.length})</span>
+            </h3>
+            {customDownloadPages.length === 0 ? (
+              <div className="p-10 text-center text-slate-400 font-semibold text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl">
+                No custom download portals created yet. Admin can add new sections in Admin -&gt; Downloads Hub.
               </div>
-              <div className="space-y-2.5">
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {customDownloadPages.map((pg) => {
                   const cleanSlug = pg.slug.startsWith('downloads/') ? pg.slug : `downloads/${pg.slug}`;
                   return (
                     <Link
                       key={pg.id}
                       href={`/${cleanSlug}`}
-                      className="group flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-amber-500/10 border border-slate-200/80 dark:border-white/10 rounded-2xl transition-all"
+                      className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/60 rounded-3xl transition-all shadow-xs flex flex-col justify-between space-y-4"
                     >
-                      <div className="space-y-0.5">
-                        <h4 className="font-bold text-xs text-[var(--text-color)] group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                          📁 {pg.title}
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20 w-fit block">
+                          ADMIN CREATED PORTAL
+                        </span>
+                        <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors">
+                          {pg.title}
                         </h4>
-                        <span className="text-[10px] text-slate-400 font-medium block">
+                        {pg.metaDescription && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                            {pg.metaDescription}
+                          </p>
+                        )}
+                      </div>
+                      <div className="pt-3 border-t border-[var(--card-border)] flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold text-slate-400">
                           {pg.downloadItems?.length || 0} Files Included
                         </span>
+                        <span className="text-xs font-black text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                          Open Portal &rarr;
+                        </span>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
                     </Link>
                   );
                 })}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        ) : filteredResources.length > 0 ? (
+          <div className="space-y-8">
+            {Object.keys(groupedResources).map((catName) => (
+              <div key={catName} className="space-y-3">
+                {activeSection === 'All' && (
+                  <h3 className="font-heading font-black text-slate-850 dark:text-slate-200 text-sm uppercase tracking-wider flex items-center gap-2 pl-1">
+                    <Layers className="w-4 h-4 text-amber-500" />
+                    <span>{catName}</span>
+                  </h3>
+                )}
+                <div className="bg-[var(--card-bg)] rounded-3xl border border-[var(--card-border)] shadow-xs divide-y divide-[var(--card-border)] overflow-hidden">
+                  {groupedResources[catName].map((res) => {
+                    const { icon: Icon, color, bg } = getFileIcon(res.type);
 
+                    return (
+                      <div key={res.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--card-bg)] hover:bg-amber-500/5 transition-colors border-b border-[var(--card-border)] last:border-b-0">
+                        <div className="flex gap-4 items-start min-w-0">
+                          <div className={`w-11 h-11 rounded-2xl ${bg} ${color} flex items-center justify-center shrink-0`}>
+                            <Icon className="w-5 h-5" />
+                          </div>
+                          <div className="space-y-1 min-w-0">
+                            <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] leading-snug break-words">
+                              {res.title}
+                            </h4>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider bg-amber-500/10 px-2 py-0.5 rounded-md">
+                                {res.type} {res.size ? `• ${res.size}` : ''}
+                              </span>
+                              {res.subcategory && (
+                                <span className="text-[9px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[var(--text-color)] rounded-md font-bold uppercase">
+                                  {res.subcategory}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-slate-400 font-semibold">
+                                • {res.downloadCount + (downloadStates[res.id] ? 1 : 0)} downloads
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 flex items-center gap-2 w-full sm:w-auto pt-2 sm:pt-0">
+                          <a
+                            href={resolveUrl(res.url)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs shadow-xs hover:scale-[1.02] transition-all cursor-pointer"
+                          >
+                            <Eye className="w-4 h-4" />
+                            <span>View</span>
+                          </a>
+
+                          {downloadStates[res.id] ? (
+                            <span className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-emerald-600 text-xs font-bold bg-emerald-500/10 px-3.5 py-2 rounded-xl border border-emerald-500/20">
+                              <CheckCircle className="w-4 h-4" />
+                              <span>Downloading…</span>
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleDownload(res)}
+                              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[var(--card-bg)] hover:bg-amber-500/10 text-[var(--text-color)] font-bold rounded-xl text-xs border border-[var(--card-border)] transition-all cursor-pointer"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Download</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-12 text-center text-slate-400 font-semibold text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl">
+            No items found in section &quot;{activeSection}&quot; matching query.
+          </div>
+        )}
+
+        {/* Custom Created Download Portals Section */}
+        {customDownloadPages.length > 0 && activeSection !== 'Custom Download Packages' && (
+          <div className="space-y-4 pt-6 border-t border-[var(--card-border)]">
+            <div className="flex items-center gap-2">
+              <Download className="w-4 h-4 text-amber-500" />
+              <h3 className="font-heading font-black text-[var(--text-color)] text-sm uppercase tracking-wider">
+                Admin Created Download Sections & Portals
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {customDownloadPages.map((pg) => {
+                const cleanSlug = pg.slug.startsWith('downloads/') ? pg.slug : `downloads/${pg.slug}`;
+                return (
+                  <Link
+                    key={pg.id}
+                    href={`/${cleanSlug}`}
+                    className="group p-4.5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center justify-between"
+                  >
+                    <div className="space-y-0.5">
+                      <h4 className="font-bold text-xs text-[var(--text-color)] group-hover:text-amber-500 transition-colors">
+                        📁 {pg.title}
+                      </h4>
+                      <span className="text-[10px] text-slate-400 font-medium block">
+                        {pg.downloadItems?.length || 0} Files Included
+                      </span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
     </div>

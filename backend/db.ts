@@ -261,7 +261,6 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         visitorsCount INT DEFAULT 0
       )
     `);
-    // Add columns if they don't exist (for existing DBs)
     try {
       await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS heroImageUrl TEXT');
     } catch (_) { /* column already exists */ }
@@ -271,6 +270,21 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try {
       await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS featureFlags JSON');
     } catch (_) { /* column already exists */ }
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactTitle TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactSubtitle TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactAddress TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactPhone TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactEmail TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactHours TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsappLink TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS telegramLink TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS googleMapUrl TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutTitle TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutSubtitle TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutMission TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutVision TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutValues TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutMethodology JSON'); } catch (_) {}
     
     // 2. Leads
     await pool.query(`
