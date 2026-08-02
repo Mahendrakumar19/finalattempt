@@ -193,13 +193,22 @@ export default function AdminPortal() {
   const [syncingYoutube, setSyncingYoutube] = useState(false);
 
   // Local Storage Auth & Super Admin state
-  const [adminToken, setAdminToken] = useState<string | null>(() => typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null);
-  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(() => typeof window !== 'undefined' ? localStorage.getItem('is_super_admin') === 'true' : false);
+  const [isMounted, setIsMounted] = useState(false);
+  const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    setIsMounted(true);
+    const token = localStorage.getItem('admin_token');
+    const superFlag = localStorage.getItem('is_super_admin') === 'true';
+    if (token) setAdminToken(token);
+    if (superFlag) setIsSuperAdmin(true);
+  }, []);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -556,6 +565,10 @@ export default function AdminPortal() {
     setCoursesList(prev => prev.filter(c => c.id !== id));
     await fetch(`${BACKEND_URL}/api/lms/courses/${id}`, { method: 'DELETE' });
   };
+
+  if (!isMounted) {
+    return <div className="min-h-screen flex items-center justify-center p-6 bg-slate-950 text-slate-400 text-xs font-bold">Loading...</div>;
+  }
 
   if (!adminToken) {
     return (
