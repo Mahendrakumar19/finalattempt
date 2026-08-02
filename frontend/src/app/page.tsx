@@ -45,6 +45,8 @@ export default function Home() {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }));
   };
   const [latestVideos, setLatestVideos] = useState<any[]>([]);
+  const [blogsList, setBlogsList] = useState<any[]>([]);
+  const [expandedBlog, setExpandedBlog] = useState<any | null>(null);
   const [formSuccess, setFormSuccess] = useState(false);
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
@@ -92,6 +94,11 @@ export default function Home() {
         const videosData = await db.getYoutubeVideos(3);
         if (videosData && videosData.videos) {
           setLatestVideos(videosData.videos.slice(0, 3));
+        }
+
+        const blogs = await db.getBlogs();
+        if (blogs && blogs.length > 0) {
+          setBlogsList(blogs);
         }
       } catch (e) {
         console.error('Failed loading live Home data, using mock fallbacks.', e);
@@ -568,6 +575,163 @@ export default function Home() {
             </div>
           </div>
         </section>
+      )}
+
+      {/* 3.48 ARTICLES & INSIGHTS BLOGS SECTION (EXPANDABLE MODAL CARDS) */}
+      <section className="py-20 bg-[var(--bg-color)] border-t border-slate-100 dark:border-white/[0.06]">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 max-w-7xl mx-auto">
+            <div className="space-y-3">
+              <span className="text-xs font-bold text-[#1E3A8A] bg-blue-500/10 border border-blue-500/20 px-3.5 py-1.5 rounded-xl uppercase tracking-widest inline-block">
+                Articles & Insights
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white leading-tight">
+                Latest Articles & Expert Analysis
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
+                In-depth strategy guides, current affairs breakdowns, and mentorship insights from senior civil servants.
+              </p>
+            </div>
+            <Link
+              href="/blog"
+              className="btn-outline text-xs flex items-center gap-1.5 shrink-0"
+            >
+              <span>Explore All Articles</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {/* Cards Grid Matching Modern Design */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+            {blogsList.slice(0, 3).map((blog) => (
+              <div
+                key={blog.id}
+                onClick={() => setExpandedBlog(blog)}
+                className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-amber-500/50 transition-all duration-300 flex flex-col justify-between cursor-pointer"
+              >
+                <div className="space-y-4">
+                  {/* Card Image Cover */}
+                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                    <img
+                      src={resolveUrl(blog.imageUrl) || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800'}
+                      alt={blog.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 left-3">
+                      <span className="text-[9px] font-black uppercase tracking-wider text-amber-900 bg-amber-400/90 backdrop-blur-md px-2.5 py-1 rounded-lg shadow-sm">
+                        {blog.category || 'EXAM STRATEGY'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card Body Content */}
+                  <div className="p-6 space-y-3">
+                    <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-2 leading-snug">
+                      {blog.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                      {blog.blurb || blog.content ? (blog.blurb || blog.content).replace(/<[^>]*>?/gm, '').slice(0, 140) + '...' : 'Read our comprehensive exam strategy breakdown...'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card Footer Author & Expand Button */}
+                <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-[10px]">
+                      {(blog.author || 'Final Attempt IAS').charAt(0)}
+                    </div>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      {blog.author || 'Final Attempt IAS'}
+                    </span>
+                  </div>
+
+                  <span className="text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
+                    <ArrowRight className="w-4 h-4 -rotate-45" />
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* EXPANDED ARTICLE MODAL OVERLAY */}
+      {expandedBlog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 w-full max-w-4xl max-h-[90vh] rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header Bar */}
+            <div className="p-6 border-b border-slate-100 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
+                  {expandedBlog.category || 'ARTICLE'}
+                </span>
+                <span className="text-xs text-slate-400 font-semibold">
+                  • {expandedBlog.readTime || '5 min read'}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setExpandedBlog(null)}
+                className="w-9 h-9 rounded-full bg-slate-200/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-amber-500 hover:text-slate-950 font-bold flex items-center justify-center transition-all cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body Content Area */}
+            <div className="p-6 sm:p-10 overflow-y-auto space-y-6">
+              {/* Cover Image */}
+              {expandedBlog.imageUrl && (
+                <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden bg-slate-900 shadow-md">
+                  <img
+                    src={resolveUrl(expandedBlog.imageUrl)}
+                    alt={expandedBlog.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <h2 className="text-2xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white leading-tight">
+                  {expandedBlog.title}
+                </h2>
+                <div className="flex items-center gap-3 text-xs text-slate-400 font-medium border-b border-slate-100 dark:border-white/10 pb-4">
+                  <span>Written by <strong className="text-slate-700 dark:text-slate-200">{expandedBlog.author || 'Final Attempt IAS'}</strong></span>
+                  <span>•</span>
+                  <span>Published {expandedBlog.publishDate || 'Recent'}</span>
+                </div>
+              </div>
+
+              {/* Rich Body Content */}
+              <div
+                className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 text-sm sm:text-base leading-relaxed space-y-4
+                  [&_h1]:text-2xl [&_h1]:font-black [&_h1]:font-heading
+                  [&_h2]:text-xl [&_h2]:font-bold [&_h2]:font-heading
+                  [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-6"
+                dangerouslySetInnerHTML={{ __html: expandedBlog.content || expandedBlog.blurb || expandedBlog.summary || 'Content details loading...' }}
+              />
+            </div>
+
+            {/* Modal Footer Bar */}
+            <div className="p-6 border-t border-slate-100 dark:border-white/10 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50 dark:bg-slate-900/50">
+              <span className="text-xs text-slate-400 font-semibold">
+                Share this article with fellow civil services aspirants.
+              </span>
+              <button
+                type="button"
+                onClick={() => setExpandedBlog(null)}
+                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all cursor-pointer"
+              >
+                Close Article
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 3.5 PREMIUM TESTIMONIALS SECTION */}
