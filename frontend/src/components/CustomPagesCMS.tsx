@@ -43,7 +43,10 @@ export default function CustomPagesCMS() {
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
-    const generatedSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    let generatedSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    if (form.showLocation === 'DOWNLOADS_HUB') {
+      generatedSlug = `downloads/${generatedSlug}`;
+    }
     setForm(prev => ({
       ...prev,
       title,
@@ -164,13 +167,20 @@ export default function CustomPagesCMS() {
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">URL Slug Path</label>
                 <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 px-3 py-2.5 rounded-2xl text-xs font-mono text-slate-600 dark:text-slate-300">
-                  <span className="text-slate-400">/page/</span>
+                  <span className="text-amber-500 font-bold">
+                    {form.showLocation === 'DOWNLOADS_HUB' || (form.slug && form.slug.startsWith('downloads/')) ? '/downloads/' : '/page/'}
+                  </span>
                   <input
                     type="text"
-                    value={form.slug || ''}
-                    onChange={(e) => setForm({ ...form, slug: e.target.value })}
+                    value={(form.slug || '').replace(/^downloads\//, '').replace(/^page\//, '')}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const isDownload = form.showLocation === 'DOWNLOADS_HUB' || (form.slug && form.slug.startsWith('downloads/'));
+                      const clean = isDownload ? `downloads/${raw.replace(/^downloads\//, '')}` : raw;
+                      setForm({ ...form, slug: clean });
+                    }}
                     className="w-full bg-transparent outline-none font-bold text-slate-900 dark:text-white"
-                    placeholder="student-code"
+                    placeholder="ncert"
                     required
                   />
                 </div>
@@ -180,10 +190,18 @@ export default function CustomPagesCMS() {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Show Location / Menu</label>
                 <select
                   value={form.showLocation || 'NAVBAR'}
-                  onChange={(e) => setForm({ ...form, showLocation: e.target.value as any })}
+                  onChange={(e) => {
+                    const loc = e.target.value;
+                    let currentSlug = (form.slug || '').replace(/^downloads\//, '');
+                    if (loc === 'DOWNLOADS_HUB') {
+                      currentSlug = `downloads/${currentSlug}`;
+                    }
+                    setForm({ ...form, showLocation: loc as any, slug: currentSlug });
+                  }}
                   className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
                 >
-                  <option value="NAVBAR">📌 Main Navbar Header Menu</option>
+                  <option value="DOWNLOADS_HUB">📁 Downloads Hub Section (/downloads/[slug])</option>
+                  <option value="NAVBAR">📌 Main Navbar Header Menu (/page/[slug])</option>
                   <option value="HEADER_TOP">⭐ Header Upper Ticker Bar</option>
                   <option value="FOOTER">🦶 Footer Bottom Legal Links</option>
                   <option value="SLUG_ONLY">🔗 Direct URL Only (Hidden in Menus)</option>

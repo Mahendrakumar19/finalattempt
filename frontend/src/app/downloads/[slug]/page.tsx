@@ -89,11 +89,11 @@ export default function DynamicDownloadPage() {
           <h2 className="text-xl font-heading font-black text-[var(--text-color)]">Download Page Not Found</h2>
           <p className="text-xs text-slate-500">The requested download portal might have been moved or is undergoing updates.</p>
           <Link
-            href="/resources"
+            href="/downloads"
             className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-slate-950 font-bold rounded-2xl text-xs uppercase tracking-wider shadow-md hover:bg-amber-600 transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Resources</span>
+            <span>Back to Downloads Hub</span>
           </Link>
         </div>
       </div>
@@ -109,11 +109,11 @@ export default function DynamicDownloadPage() {
         {/* Navigation Breadcrumb */}
         <div className="flex items-center justify-between">
           <Link
-            href="/resources"
+            href="/downloads"
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-amber-500 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to All Resources</span>
+            <span>Back to Downloads Hub</span>
           </Link>
 
           <span className="text-[10px] font-extrabold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl uppercase tracking-widest">

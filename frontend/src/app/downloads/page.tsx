@@ -154,7 +154,7 @@ export default function DedicatedDownloadsPage() {
         ))}
       </div>
 
-      {/* Featured Download Vaults & NCERT Portals (HORIZONTAL FEATURED ROW) */}
+      {/* Featured Download Vaults & NCERT Portals (DYNAMIC FEATURED ROW) */}
       <div className="max-w-7xl mx-auto space-y-4">
         <div className="flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-amber-500" />
@@ -186,7 +186,7 @@ export default function DedicatedDownloadsPage() {
           </Link>
 
           <Link
-            href="/resources"
+            href="/downloads/ncert"
             className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-3xl transition-all shadow-xs flex flex-col justify-between space-y-3"
           >
             <div className="space-y-1.5">
@@ -201,13 +201,13 @@ export default function DedicatedDownloadsPage() {
               </p>
             </div>
             <div className="pt-2 border-t border-[var(--card-border)] flex items-center justify-between">
-              <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-amber-500 transition-colors">Explore NCERTs &rarr;</span>
+              <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-amber-500 transition-colors">Explore NCERTs (/downloads/ncert) &rarr;</span>
               <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
             </div>
           </Link>
 
           <Link
-            href="/resources/bihar-special"
+            href="/downloads/bihar-special"
             className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-3xl transition-all shadow-xs flex flex-col justify-between space-y-3"
           >
             <div className="space-y-1.5">
@@ -222,7 +222,7 @@ export default function DedicatedDownloadsPage() {
               </p>
             </div>
             <div className="pt-2 border-t border-[var(--card-border)] flex items-center justify-between">
-              <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-amber-500 transition-colors">View Bihar Digests &rarr;</span>
+              <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-amber-500 transition-colors">View Bihar Digests (/downloads/bihar-special) &rarr;</span>
               <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
             </div>
           </Link>

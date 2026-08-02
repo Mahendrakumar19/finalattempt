@@ -160,7 +160,7 @@ export interface CustomPage {
   title: string;
   slug: string;
   content: string;
-  showLocation: 'NAVBAR' | 'FOOTER' | 'HEADER_TOP' | 'SLUG_ONLY';
+  showLocation: 'NAVBAR' | 'FOOTER' | 'HEADER_TOP' | 'SLUG_ONLY' | 'DOWNLOADS_HUB';
   displayOrder?: number;
   metaTitle?: string;
   metaDescription?: string;

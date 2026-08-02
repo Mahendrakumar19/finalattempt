@@ -662,7 +662,6 @@ export default function AdminPortal() {
               { id: 'Media Library', icon: FolderOpen },
               { id: 'Exams & Syllabus', icon: Layers },
               { id: 'Downloads Hub', icon: Download },
-              { id: 'PYQs Manager', icon: FileText },
               { id: 'Strategy & Values', icon: Bookmark },
               ...(settings.featureFlags?.currentAffairsFilters !== false ? [{ id: 'Current Affairs', icon: FileText }] : []),
               { id: 'Blogs', icon: Bookmark },
