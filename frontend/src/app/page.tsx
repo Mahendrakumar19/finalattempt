@@ -611,9 +611,9 @@ export default function Home() {
               >
                 <div className="space-y-4">
                   {/* Card Image Cover */}
-                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
                     <img
-                      src={resolveUrl(blog.imageUrl) || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800'}
+                      src={resolveUrl(blog.imageUrl || blog.cover_image_url || blog.photo) || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800'}
                       alt={blog.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -686,12 +686,12 @@ export default function Home() {
             {/* Modal Body Content Area */}
             <div className="p-6 sm:p-10 overflow-y-auto space-y-6">
               {/* Cover Image */}
-              {expandedBlog.imageUrl && (
-                <div className="w-full aspect-[21/9] rounded-2xl overflow-hidden bg-slate-900 shadow-md">
+              {(expandedBlog.imageUrl || expandedBlog.cover_image_url || expandedBlog.photo) && (
+                <div className="w-full max-h-[380px] rounded-2xl overflow-hidden bg-slate-950 flex items-center justify-center p-1 shadow-md border border-slate-200 dark:border-white/10">
                   <img
-                    src={resolveUrl(expandedBlog.imageUrl)}
+                    src={resolveUrl(expandedBlog.imageUrl || expandedBlog.cover_image_url || expandedBlog.photo)}
                     alt={expandedBlog.title}
-                    className="w-full h-full object-cover"
+                    className="max-h-[360px] w-auto max-w-full object-contain rounded-xl"
                   />
                 </div>
               )}
