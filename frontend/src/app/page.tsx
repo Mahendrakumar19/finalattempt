@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   Sparkles,
   Users,
-  Award,
   BookOpen,
   ChevronRight,
   CheckCircle,
@@ -13,20 +12,17 @@ import {
   FileText,
   Play,
   ArrowRight,
-  MessageCircle,
   Calendar,
   Compass,
   TrendingUp,
   ShieldCheck,
-  Target,
   Trophy,
-  Activity,
   Layers,
   GraduationCap,
   Video,
   SlidersHorizontal
 } from 'lucide-react';
-import { db, fallbackResults, fallbackCurrentAffairs } from '@/services/db';
+import { db } from '@/services/db';
 import TestimonialCarousel from '@/components/TestimonialCarousel';
 import Image from "next/image";
 
@@ -72,6 +68,8 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [heroImages.length]);
 
+  const [dynamicAnnouncements, setDynamicAnnouncements] = useState<any[]>([]);
+
   useEffect(() => {
     const loadLiveData = async () => {
       try {
@@ -84,6 +82,16 @@ export default function Home() {
             tagline: s.tagline || prev.tagline,
             heroImageUrl: s.heroImageUrl || ''
           }));
+
+          if (s.announcements && s.announcements.length > 0) {
+            setDynamicAnnouncements(s.announcements);
+          } else {
+            setDynamicAnnouncements([
+              { date: '08 JUN', text: 'BPSC 70th Prelims Exam Date Announced', isNew: true },
+              { date: '04 JUN', text: 'New Batch for BPSC Foundation Starts from 15th June 2025', isNew: false },
+              { date: '30 MAY', text: 'Free Demo Classes Available for New Students', isNew: false }
+            ]);
+          }
         }
 
         const c = await db.getCourses();
@@ -381,11 +389,11 @@ export default function Home() {
                 </h3>
               </div>
               <div className="space-y-4">
-                {announcements.map((ann, idx) => (
+                {dynamicAnnouncements.map((ann, idx) => (
                   <div key={idx} className="flex gap-4 items-start p-2.5 rounded-2xl hover:bg-amber-500/10 border border-transparent hover:border-amber-500/20 transition-all duration-300 group cursor-pointer">
                     <div className="bg-blue-50 text-[#1E3A8A] p-2 rounded-xl text-center shrink-0 w-12 flex flex-col justify-center transition-transform duration-300 group-hover:scale-105">
-                      <span className="text-[10px] font-extrabold leading-none">{ann.date.split(' ')[0]}</span>
-                      <span className="text-[8px] font-bold text-slate-400 mt-1">{ann.date.split(' ')[1]}</span>
+                      <span className="text-[10px] font-extrabold leading-none">{(ann.date || 'NOTICE').split(' ')[0]}</span>
+                      <span className="text-[8px] font-bold text-slate-400 mt-1">{(ann.date || 'NOTICE').split(' ')[1] || ''}</span>
                     </div>
                     <div className="flex-grow">
                       <p className="text-xs font-bold text-slate-700 leading-snug group-hover:text-[#1E3A8A] transition-colors">{ann.text}</p>
@@ -775,10 +783,10 @@ export default function Home() {
                   Our ecosystem integrates one-to-one personalized mentorship, strategic study planning, high-quality learning resources, advanced answer evaluation, AI-powered performance tracking, and data-driven analytics to ensure every student receives guidance tailored to their individual strengths and challenges.
                 </p>
                 <p>
-                  We believe that every aspirant's journey is unique. That's why our learning framework is designed to identify improvement areas, provide timely feedback, and create customized preparation strategies that maximize performance at every stage of the examination process.
+                  We believe that every aspirant&apos;s journey is unique. That&apos;s why our learning framework is designed to identify improvement areas, provide timely feedback, and create customized preparation strategies that maximize performance at every stage of the examination process.
                 </p>
                 <p>
-                  Driven by innovation, discipline, transparency, and student-centric values, Final Attempt is committed to building an ecosystem where aspirants don't just prepare for examinations—they prepare for long-term success.
+                  Driven by innovation, discipline, transparency, and student-centric values, Final Attempt is committed to building an ecosystem where aspirants don&apos;t just prepare for examinations—they prepare for long-term success.
                 </p>
               </div>
             </div>
@@ -796,7 +804,7 @@ export default function Home() {
               <div className="pt-4 border-t border-slate-50 dark:border-white/[0.04] space-y-4">
                 <div className="text-[#1E3A8A] dark:text-amber-500 font-extrabold text-sm sm:text-base tracking-wide flex items-center gap-2">
                   <span>🎯</span>
-                  <span>Let's Make Your Attempt Final with FINAL ATTEMPT.</span>
+                  <span>Let&apos;s Make Your Attempt Final with FINAL ATTEMPT.</span>
                 </div>
 
                 <div className="flex gap-4">

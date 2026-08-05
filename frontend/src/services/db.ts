@@ -21,6 +21,7 @@ export interface SiteSettings {
   aboutVision?: string;
   aboutValues?: string;
   aboutMethodology?: { title: string; desc?: string; description?: string }[];
+  announcements?: { date: string; text: string; link?: string; isNew?: boolean }[];
   featureFlags?: Record<string, boolean>;
 }
 

@@ -36,7 +36,7 @@ import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTop
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 
-type AdminTab = 'Dashboard' | 'Settings' | 'About Page' | 'About Page CMS' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Downloads Hub' | 'Strategy & Values' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Home Page CMS' | 'About Page' | 'About Page CMS' | 'Settings' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Downloads Hub' | 'Strategy & Values' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
 
 interface SiteSettings {
   heroTitle: string;
@@ -59,6 +59,7 @@ interface SiteSettings {
   aboutVision?: string;
   aboutValues?: string;
   aboutMethodology?: { title: string; desc: string }[];
+  announcements?: { date: string; text: string; link?: string; isNew?: boolean }[];
   featureFlags?: Record<string, boolean>;
 }
 
@@ -203,11 +204,13 @@ export default function AdminPortal() {
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
-    setIsMounted(true);
-    const token = localStorage.getItem('admin_token');
-    const superFlag = localStorage.getItem('is_super_admin') === 'true';
-    if (token) setAdminToken(token);
-    if (superFlag) setIsSuperAdmin(true);
+    queueMicrotask(() => {
+      setIsMounted(true);
+      const token = localStorage.getItem('admin_token');
+      const superFlag = localStorage.getItem('is_super_admin') === 'true';
+      if (token) setAdminToken(token);
+      if (superFlag) setIsSuperAdmin(true);
+    });
   }, []);
 
   const handleAdminLogin = (e: React.FormEvent) => {
@@ -286,7 +289,9 @@ export default function AdminPortal() {
   }, [BACKEND_URL]);
 
   useEffect(() => {
-    fetchCMSData();
+    queueMicrotask(() => {
+      fetchCMSData();
+    });
   }, [fetchCMSData]);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -630,6 +635,7 @@ export default function AdminPortal() {
           <nav className="flex flex-col gap-1.5">
             {[
               { id: 'Dashboard', icon: LayoutDashboard },
+              { id: 'Home Page CMS', icon: Sun },
               { id: 'About Page', icon: FileText },
               { id: 'Settings', icon: Settings },
               ...(settings.featureFlags?.livePageBuilder !== false ? [{ id: 'Custom Pages', icon: FileText }] : []),
@@ -1043,6 +1049,185 @@ export default function AdminPortal() {
                 )}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* TAB: HOME PAGE CMS */}
+        {activeTab === 'Home Page CMS' && (
+          <div className="space-y-6">
+            <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
+              <div>
+                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Public Content Manager</span>
+                <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Home Page CMS Editor</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Manage Hero Title, Subtitles, Background Slider Images, Tagline, and Real-Time Announcements.
+                </p>
+              </div>
+              <a
+                href="/"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Preview Home Page ↗</span>
+              </a>
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-sm">
+              {/* 1. Hero Content & Dynamic Slider Images */}
+              <div className="space-y-4">
+                <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-white/10 pb-3">
+                  1. Hero Banner, Tagline & Slider Images
+                </h3>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Top Tagline Badge</label>
+                  <input
+                    type="text"
+                    value={settings.tagline || ''}
+                    onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hero Main Title</label>
+                  <input
+                    type="text"
+                    value={settings.heroTitle || ''}
+                    onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hero Subtitle Paragraph</label>
+                  <textarea
+                    rows={3}
+                    value={settings.heroSubtitle || ''}
+                    onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                {/* Slider background image selector */}
+                <div className="space-y-2 pt-2">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Background Slider Images (DAM Media Library)</label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setMediaPickerConfig({ isOpen: true, field: 'heroImageUrl', allowedTypes: ['IMAGE'] })}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 dark:border-white/20 hover:border-amber-400 hover:bg-amber-50 text-slate-600 dark:text-slate-300 hover:text-amber-600 rounded-2xl cursor-pointer transition-all text-xs font-semibold"
+                    >
+                      <FolderOpen className="w-4 h-4" />
+                      <span>+ Pick Image from DAM Media Manager</span>
+                    </button>
+                  </div>
+                  <textarea
+                    rows={2}
+                    placeholder="https://example.com/slide1.jpg, https://example.com/slide2.jpg"
+                    value={settings.heroImageUrl || ''}
+                    onChange={(e) => setSettings({ ...settings, heroImageUrl: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-mono text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              {/* 2. Dynamic Announcements Section Editor */}
+              <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-6">
+                <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
+                  <div>
+                    <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+                      2. Live Home Page Announcements
+                    </h3>
+                    <p className="text-[10px] text-slate-400">
+                      Add, update, or remove live bulletin announcements shown in the home page sidebar card.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const current = settings.announcements || [];
+                      const today = new Date();
+                      const dateStr = `${today.getDate()} ${today.toLocaleString('en-US', { month: 'short' }).toUpperCase()}`;
+                      setSettings({
+                        ...settings,
+                        announcements: [
+                          ...current,
+                          { date: dateStr, text: 'New Batch Announcement', isNew: true }
+                        ]
+                      });
+                    }}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Add Announcement</span>
+                  </button>
+                </div>
+
+                {(settings.announcements || []).length === 0 ? (
+                  <p className="text-xs text-slate-400 italic py-2">No custom announcements configured. Default system notices will display.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {(settings.announcements || []).map((ann, idx) => (
+                      <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-2xl space-y-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Notice #{idx + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (settings.announcements || []).filter((_, i) => i !== idx);
+                              setSettings({ ...settings, announcements: updated });
+                            }}
+                            className="text-xs font-bold text-red-500 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase">Date Tag (e.g. 15 JUN)</label>
+                            <input
+                              type="text"
+                              value={ann.date}
+                              onChange={(e) => {
+                                const updated = [...(settings.announcements || [])];
+                                updated[idx] = { ...updated[idx], date: e.target.value };
+                                setSettings({ ...settings, announcements: updated });
+                              }}
+                              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-3 space-y-1">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase">Announcement Text</label>
+                            <input
+                              type="text"
+                              value={ann.text}
+                              onChange={(e) => {
+                                const updated = [...(settings.announcements || [])];
+                                updated[idx] = { ...updated[idx], text: e.target.value };
+                                setSettings({ ...settings, announcements: updated });
+                              }}
+                              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-md transition-all cursor-pointer"
+              >
+                💾 Save Home Page Changes
+              </button>
+            </form>
           </div>
         )}
 
