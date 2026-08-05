@@ -157,7 +157,7 @@ function VerifyOTPContent() {
 
             {/* Resend */}
             <div className="flex items-center justify-center gap-1 text-xs">
-              <span className="text-slate-500">Didn't receive it?</span>
+              <span className="text-slate-500">Didn&apos;t receive it?</span>
               <button
                 onClick={handleResend}
                 disabled={countdown > 0}

@@ -307,7 +307,7 @@ function LoginFormContent() {
         )}
 
         <p className="mt-6 text-center text-white text-xs">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{' '}
           <Link href="/auth/register" className="text-amber-500 font-bold hover:text-amber-400 transition-colors">
             Create one free
           </Link>

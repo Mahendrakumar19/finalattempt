@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BookOpen, Calendar, Clock, ArrowRight, X } from 'lucide-react';
-import { db, fallbackBlogs } from '@/services/db';
+import { Calendar, ArrowRight, X } from 'lucide-react';
+import { db, fallbackBlogs, BlogItem } from '@/services/db';
 
 export default function Blog() {
-  const [blogsList, setBlogsList] = useState<any[]>(fallbackBlogs);
-  const [selectedPost, setSelectedPost] = useState<any | null>(null);
+  const [blogsList, setBlogsList] = useState<BlogItem[]>(fallbackBlogs);
+  const [selectedPost, setSelectedPost] = useState<BlogItem | null>(null);
 
   const resolveUrl = (url?: string) => {
     if (!url) return '';

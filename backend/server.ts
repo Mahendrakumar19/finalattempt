@@ -539,7 +539,7 @@ app.get('/api/custom-pages', async (req, res) => {
 
 app.get('/api/custom-pages/*', async (req, res) => {
   try {
-    const rawSlug = req.params[0] || '';
+    const rawSlug = (req.params as any)[0] || '';
     const page = await db.getCustomPageBySlug(rawSlug);
     res.json({ success: true, data: page });
   } catch (err: any) {

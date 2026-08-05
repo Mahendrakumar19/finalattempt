@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Trophy, MapPin, Award } from 'lucide-react';
-import { db, fallbackResults } from '@/services/db';
+import { db, fallbackResults, ResultTopper } from '@/services/db';
 
 export default function Achievers() {
-  const [resultsList, setResultsList] = useState<any[]>(fallbackResults);
+  const [resultsList, setResultsList] = useState<ResultTopper[]>(fallbackResults);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedYear, setSelectedYear] = useState<string>('All');
   const [selectedExam, setSelectedExam] = useState<string>('All');
@@ -148,7 +148,7 @@ export default function Achievers() {
                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Preparation Journey</span>
                   <p className="text-xs text-slate-500 leading-relaxed italic">
-                    "{topper.story}"
+                    &ldquo;{topper.story}&rdquo;
                   </p>
                 </div>
               </div>

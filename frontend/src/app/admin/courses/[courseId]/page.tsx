@@ -1,10 +1,9 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
-  ChevronLeft, Plus, Trash2, Edit3, Save, CheckCircle, 
-  HelpCircle, BookOpen, Clock, FileText, Layout, Play, ExternalLink, FolderOpen
+  ChevronLeft, Plus, Trash2, Edit3, FileText, Play, FolderOpen
 } from 'lucide-react';
 import MediaPicker from '@/components/MediaPicker';
 
@@ -14,6 +13,7 @@ interface Lesson {
   type: string;
   videoUrl?: string;
   duration: string;
+  
   isFree?: boolean;
 }
 
@@ -90,11 +90,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   const [lessonForm, setLessonForm] = useState({ id: '', sectionId: '', title: '', type: 'video', videoUrl: '', duration: '15 mins' });
   const [showMediaPicker, setShowMediaPicker] = useState(false);
 
-  useEffect(() => {
-    fetchCourseDetails();
-  }, [courseId]);
-
-  const fetchCourseDetails = async () => {
+  const fetchCourseDetails = useCallback(async () => {
     setLoading(true);
     try {
       // 1. Get Course & Curriculum
@@ -124,7 +120,11 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId]);
+
+  useEffect(() => {
+    fetchCourseDetails();
+  }, [fetchCourseDetails]);
 
   // Section CRUD
   const handleAddSection = async () => {
@@ -336,7 +336,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'curriculum' | 'quizzes' | 'assignments')}
               className={`px-4 py-2 text-xs font-bold rounded-xl transition-all ${
                 activeTab === tab.id 
                   ? 'bg-slate-900 text-white' 
@@ -552,7 +552,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                   <div className="space-y-4">
                     {questions.length === 0 ? (
                       <p className="text-center py-10 text-slate-400 text-xs italic">
-                        This quiz has no questions yet. Click "Add Question" to begin.
+                        This quiz has no questions yet. Click &ldquo;Add Question&rdquo; to begin.
                       </p>
                     ) : (
                       questions.map((q, idx) => (
@@ -592,7 +592,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                                 }`}
                               >
                                 <span className="font-bold mr-1.5">{opt}.</span>
-                                {(q as any)[`option${opt}`]}
+                                {q[`option${opt as 'A' | 'B' | 'C' | 'D'}`]}
                               </div>
                             ))}
                           </div>
@@ -781,7 +781,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                 <label className="text-[9px] font-bold text-slate-400 uppercase">Correct Answer</label>
                 <select 
                   value={questionForm.correctAnswer} 
-                  onChange={(e) => setQuestionForm({ ...questionForm, correctAnswer: e.target.value as any })}
+                  onChange={(e) => setQuestionForm({ ...questionForm, correctAnswer: e.target.value as 'A' | 'B' | 'C' | 'D' })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white"
                 >
                   <option value="A">Option A</option>

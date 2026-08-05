@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, FileText, Download, BookOpen, Eye, Home, ChevronRight, X } from 'lucide-react';
 
@@ -9,6 +9,7 @@ interface Exam {
   name: string;
   code: string;
   slug: string;
+  isActive?: boolean;
 }
 
 interface PYQItem {
@@ -39,27 +40,19 @@ export default function PyqPage() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  useEffect(() => {
-    fetchExams();
-  }, []);
-
-  useEffect(() => {
-    fetchPYQs();
-  }, [searchQuery, selectedExamId, selectedYear]);
-
-  const fetchExams = async () => {
+  const fetchExams = useCallback(async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setExams(data.data.filter((e: any) => e.isActive));
+        setExams(data.data.filter((e: Exam) => e.isActive));
       }
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [BACKEND_URL]);
 
-  const fetchPYQs = async () => {
+  const fetchPYQs = useCallback(async () => {
     setLoading(true);
     try {
       let url = `${BACKEND_URL}/api/pyqs?limit=500`;
@@ -78,7 +71,15 @@ export default function PyqPage() {
       console.error(err);
     }
     setLoading(false);
-  };
+  }, [BACKEND_URL, selectedExamId, selectedYear, searchQuery]);
+
+  useEffect(() => {
+    fetchExams();
+  }, [fetchExams]);
+
+  useEffect(() => {
+    fetchPYQs();
+  }, [fetchPYQs]);
 
   const getMediaUrl = (mediaObj?: any) => {
     if (!mediaObj) return '';
@@ -323,7 +324,7 @@ export default function PyqPage() {
               <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
                 {filteredModalPapers.length === 0 ? (
                   <div className="text-center py-12 text-slate-400 text-xs font-semibold">
-                    No question papers found for edition filter "{modalEditionFilter}".
+                    No question papers found for edition filter &ldquo;{modalEditionFilter}&rdquo;.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">

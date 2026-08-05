@@ -38,6 +38,26 @@ export interface Course {
   enrolledCount: number;
 }
 
+export interface BlogItem {
+  id: string;
+  title: string;
+  slug?: string;
+  publishDate: string;
+  readTime: string;
+  category: string;
+  content: string;
+  imageUrl?: string;
+  cover_image_url?: string;
+  author?: string;
+  author_name?: string;
+  blurb?: string;
+  excerpt?: string;
+  seoTitle?: string;
+  seoKeywords?: string;
+  seoDescription?: string;
+  status?: string;
+}
+
 export interface CourseSection {
   id: string;
   courseId: string;
@@ -195,12 +215,21 @@ class FinalAttemptDB {
   }
 
   public async updateSettings(settings: Partial<SiteSettings>): Promise<boolean> {
-    const res = await this.apiFetch('/api/settings', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(settings)
-    });
-    return res?.success !== false;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data?.success !== false;
+      }
+      return false;
+    } catch (err) {
+      console.error('updateSettings error:', err);
+      return false;
+    }
   }
 
   public async getCustomPages(publishedOnly: boolean = false): Promise<CustomPage[]> {

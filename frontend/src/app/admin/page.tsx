@@ -348,22 +348,6 @@ export default function AdminPortal() {
     setMediaPickerConfig({ isOpen: false, field: '' });
   };
 
-  const handleToggleUserStatus = async (id: string, currentStatus: boolean) => {
-    const nextStatus = !currentStatus;
-    setUsersList(prev => prev.map(u => u.id === id ? { ...u, isActive: nextStatus } : u));
-    await fetch(`${BACKEND_URL}/api/auth/users/${id}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isActive: nextStatus })
-    });
-  };
-
-  const handleDeleteUser = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
-    setUsersList(prev => prev.filter(u => u.id !== id));
-    await fetch(`${BACKEND_URL}/api/auth/users/${id}`, { method: 'DELETE' });
-  };
-
   const handleSaveCA = async (e: React.FormEvent) => {
     e.preventDefault();
     if (activeModal?.type === 'add') {
@@ -558,12 +542,6 @@ export default function AdminPortal() {
   const handleDeleteResource = async (id: string) => {
     setResourcesList(prev => prev.filter(r => r.id !== id));
     await fetch(`${BACKEND_URL}/api/resources/${id}`, { method: 'DELETE' });
-  };
-
-  const handleDeleteCourse = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this course? It will be removed from the public website in real time.')) return;
-    setCoursesList(prev => prev.filter(c => c.id !== id));
-    await fetch(`${BACKEND_URL}/api/lms/courses/${id}`, { method: 'DELETE' });
   };
 
   if (!isMounted) {

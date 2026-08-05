@@ -250,8 +250,8 @@ export const pyqData = [
 ];
 
 export const blogData = [
-  { id: 'blog-1', title: 'How to Master Bihar Special GK for BPSC Prelims & Mains', publishDate: '20 May 2025', readTime: '5 min read', category: 'Strategy', content: 'Bihar Special GK contributes over 25-30 questions in BPSC Prelims. Focus on: 1. Modern History of Bihar (Peasant movements, Congress sessions). 2. Physical Geography (Rivers, Soils). 3. Economic Survey...' },
-  { id: 'blog-2', title: 'A working professional’s guide to cracking Civil Services', publishDate: '15 May 2025', readTime: '7 min read', category: 'Mentorship', content: 'Time is the biggest asset. Working professionals should design a clean 4-hour daily block: 2 hours in the morning for newspaper + GS, and 2 hours in the evening for answer writing and quizzes...' }
+  { id: 'blog-1', title: 'How to Master Bihar Special GK for BPSC Prelims & Mains', publishDate: '20 May 2025', readTime: '5 min read', category: 'Strategy', imageUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800', content: 'Bihar Special GK contributes over 25-30 questions in BPSC Prelims. Focus on: 1. Modern History of Bihar (Peasant movements, Congress sessions). 2. Physical Geography (Rivers, Soils). 3. Economic Survey...' },
+  { id: 'blog-2', title: 'A working professional’s guide to cracking Civil Services', publishDate: '15 May 2025', readTime: '7 min read', category: 'Mentorship', imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800', content: 'Time is the biggest asset. Working professionals should design a clean 4-hour daily block: 2 hours in the morning for newspaper + GS, and 2 hours in the evening for answer writing and quizzes...' }
 ];
 
 export const resourceData = [

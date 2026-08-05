@@ -310,7 +310,7 @@ function BlogEditorForm() {
         .then(res => res.json())
         .then(list => {
           if (Array.isArray(list)) {
-            const post = list.find((p: any) => p.id === postId)
+            const post = list.find((p: { id: string }) => p.id === postId)
             if (post) {
               setFormData({
                 id: post.id || '',
@@ -368,8 +368,9 @@ function BlogEditorForm() {
       } else {
         throw new Error(data.error || 'Upload failed');
       }
-    } catch (err: any) {
-      setError(`Upload failed: ${err.message}`)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload failed';
+      setError(`Upload failed: ${msg}`)
     } finally {
       setUploading(false)
     }
@@ -399,8 +400,9 @@ function BlogEditorForm() {
       if (!res.ok) throw new Error('Failed to save blog post')
       
       router.push('/blog')
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Save failed';
+      setError(msg)
     } finally {
       setLoading(false)
     }
