@@ -1262,7 +1262,11 @@ export default function AdminPortal() {
                               onClick={async () => {
                                 if (!confirm(`Delete faculty "${fac.name}"?`)) return;
                                 try {
-                                  await fetch(`${BACKEND_URL}/api/faculty/${fac.id}`, { method: 'DELETE' });
+                                  setFacultyList(prev => prev.filter(f => f.id !== fac.id));
+                                  await fetch(`${BACKEND_URL}/api/faculty/${fac.id}`, {
+                                    method: 'DELETE',
+                                    headers: adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}
+                                  });
                                   fetchCMSData();
                                 } catch (err) { console.error(err); }
                               }}
@@ -1329,7 +1333,11 @@ export default function AdminPortal() {
                             onClick={async () => {
                               if (!confirm(`Delete topper "${top.name}"?`)) return;
                               try {
-                                await fetch(`${BACKEND_URL}/api/results/${top.id}`, { method: 'DELETE' });
+                                setToppersList(prev => prev.filter(t => t.id !== top.id));
+                                await fetch(`${BACKEND_URL}/api/results/${top.id}`, {
+                                  method: 'DELETE',
+                                  headers: adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}
+                                });
                                 fetchCMSData();
                               } catch (err) { console.error(err); }
                             }}
