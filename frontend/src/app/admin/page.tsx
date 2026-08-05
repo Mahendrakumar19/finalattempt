@@ -246,7 +246,15 @@ export default function AdminPortal() {
   const [resourceUploading, setResourceUploading] = useState(false);
   const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'LMS Program', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  const getBackendUrl = () => {
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      return `http://${hostname}:5000`;
+    }
+    return 'http://localhost:5000';
+  };
+  const BACKEND_URL = getBackendUrl();
 
   const fetchCMSData = useCallback(async () => {
     try {
