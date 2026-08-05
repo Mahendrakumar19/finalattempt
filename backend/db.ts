@@ -184,6 +184,7 @@ export interface SiteSettings {
   aboutVision?: string;
   aboutValues?: string;
   aboutMethodology?: { title: string; desc: string }[];
+  announcements?: { date: string; text: string; link?: string; isNew?: boolean }[];
   featureFlags?: Record<string, boolean>;
 }
 
@@ -285,6 +286,7 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutVision TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutValues TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutMethodology JSON'); } catch (_) {}
+    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS announcements JSON'); } catch (_) {}
     
     // 2. Leads
     await pool.query(`
@@ -922,6 +924,7 @@ class BackendDB {
           return {
             ...row,
             aboutMethodology: typeof row.aboutMethodology === 'string' ? JSON.parse(row.aboutMethodology) : (row.aboutMethodology || null),
+            announcements: typeof row.announcements === 'string' ? JSON.parse(row.announcements) : (row.announcements || null),
             featureFlags: typeof row.featureFlags === 'string' ? JSON.parse(row.featureFlags) : (row.featureFlags || {})
           } as SiteSettings;
         }
@@ -936,8 +939,8 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, heroImageUrl, contactTitle, contactSubtitle, contactAddress, contactPhone, contactEmail, contactHours, whatsappLink, telegramLink, googleMapUrl, aboutTitle, aboutSubtitle, aboutMission, aboutVision, aboutValues, aboutMethodology, featureFlags)
-           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, heroImageUrl, contactTitle, contactSubtitle, contactAddress, contactPhone, contactEmail, contactHours, whatsappLink, telegramLink, googleMapUrl, aboutTitle, aboutSubtitle, aboutMission, aboutVision, aboutValues, aboutMethodology, announcements, featureFlags)
+           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
            heroTitle = VALUES(heroTitle),
            heroSubtitle = VALUES(heroSubtitle),
@@ -958,6 +961,7 @@ class BackendDB {
            aboutVision = VALUES(aboutVision),
            aboutValues = VALUES(aboutValues),
            aboutMethodology = VALUES(aboutMethodology),
+           announcements = VALUES(announcements),
            featureFlags = VALUES(featureFlags)`,
           [
             settings.heroTitle || '', settings.heroSubtitle || '', settings.tagline || '', settings.heroImageUrl || null,
@@ -967,6 +971,7 @@ class BackendDB {
             settings.aboutTitle || null, settings.aboutSubtitle || null, settings.aboutMission || null,
             settings.aboutVision || null, settings.aboutValues || null,
             settings.aboutMethodology ? JSON.stringify(settings.aboutMethodology) : null,
+            settings.announcements ? JSON.stringify(settings.announcements) : null,
             JSON.stringify(settings.featureFlags || {})
           ]
         );
