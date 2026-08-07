@@ -215,6 +215,46 @@ app.delete('/api/custom-pages/:id', async (req, res) => {
   }
 });
 
+// TEST SERIES CMS API ROUTES
+import { testSeriesData } from '../frontend/src/services/seedData';
+let testSeriesStore: any[] = [...testSeriesData];
+
+app.get('/api/test-series', (req, res) => {
+  const includeUnpublished = req.query.includeUnpublished === 'true';
+  const list = includeUnpublished ? testSeriesStore : testSeriesStore.filter((s: any) => s.isPublished !== false);
+  res.json({ success: true, data: list });
+});
+
+
+app.get('/api/test-series/:slug', (req, res) => {
+  const slug = req.params.slug;
+  const item = testSeriesStore.find((s: any) => s.slug === slug || s.id === slug);
+  if (!item) {
+    return res.status(404).json({ success: false, error: 'Test Series not found' });
+  }
+  res.json({ success: true, data: item });
+});
+
+app.post('/api/admin/test-series', (req, res) => {
+  const body = req.body;
+  if (!body || !body.id || !body.title) {
+    return res.status(400).json({ success: false, error: 'id and title are required' });
+  }
+  const idx = testSeriesStore.findIndex((s: any) => s.id === body.id);
+  if (idx >= 0) {
+    testSeriesStore[idx] = { ...testSeriesStore[idx], ...body };
+  } else {
+    testSeriesStore.unshift(body);
+  }
+  res.json({ success: true, data: body });
+});
+
+app.delete('/api/admin/test-series/:id', (req, res) => {
+  testSeriesStore = testSeriesStore.filter((s: any) => s.id !== req.params.id);
+  res.json({ success: true });
+});
+
+
 app.post('/api/visitors/increment', async (req, res) => {
   try {
     const count = await db.getAndIncrementVisitorCount();

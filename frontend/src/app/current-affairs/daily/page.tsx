@@ -1,67 +1,156 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Calendar, ArrowLeft, ArrowRight, Grid, Filter } from 'lucide-react';
+import { Calendar, ArrowLeft, ArrowRight } from 'lucide-react';
 import { db, DynamicCurrentAffairEdition } from '@/services/db';
+
+const MONTH_LABELS: Record<string, string> = {
+  '01': 'January', '02': 'February', '03': 'March', '04': 'April',
+  '05': 'May',     '06': 'June',     '07': 'July',   '08': 'August',
+  '09': 'September','10': 'October', '11': 'November','12': 'December',
+};
 
 export default function DailyEditionsList() {
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]   = useState(true);
+
+  const [selectedYear,  setSelectedYear]  = useState<string>('ALL');
+  const [selectedMonth, setSelectedMonth] = useState<string>('ALL');
 
   useEffect(() => {
-    async function loadEditions() {
-      try {
-        const list = await db.getDynamicCurrentAffairsEditions(false);
-        setEditions(list);
-      } catch (err) {
-        console.error('Error loading daily editions:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadEditions();
+    db.getDynamicCurrentAffairsEditions(false)
+      .then(list => setEditions(list || []))
+      .catch(err => console.error('Error loading daily editions:', err))
+      .finally(() => setLoading(false));
   }, []);
+
+  // ── derive available years & months from actual data ──────────────────────
+  const availableYears = useMemo(() => {
+    const years = new Set<string>();
+    editions.forEach(ed => years.add(ed.publishDate.split('-')[0]));
+    return Array.from(years).sort((a, b) => Number(b) - Number(a));
+  }, [editions]);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    editions.forEach(ed => {
+      const [yr, mo] = ed.publishDate.split('-');
+      if (selectedYear === 'ALL' || yr === selectedYear) months.add(mo);
+    });
+    return Array.from(months).sort();
+  }, [editions, selectedYear]);
+
+  // ── filtered editions ─────────────────────────────────────────────────────
+  const filteredEditions = useMemo(() => editions.filter(ed => {
+    const [yr, mo] = ed.publishDate.split('-');
+    if (selectedYear  !== 'ALL' && yr !== selectedYear)  return false;
+    if (selectedMonth !== 'ALL' && mo !== selectedMonth) return false;
+    return true;
+  }), [editions, selectedYear, selectedMonth]);
+
+  const handleYearChange = (yr: string) => {
+    setSelectedYear(yr);
+    setSelectedMonth('ALL'); // reset month when year changes
+  };
+
+  const hasFilters = selectedYear !== 'ALL' || selectedMonth !== 'ALL';
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 font-body space-y-8">
-      {/* Back to landing */}
+      {/* Back */}
       <Link
         href="/current-affairs"
         className="text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors flex items-center gap-1 w-fit"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
-        <span>Back to Current Affairs Portal</span>
+        <span>Back to Current Affairs</span>
       </Link>
 
-      <div className="space-y-2 border-b border-slate-100 dark:border-white/[0.06] pb-6">
-        <h1 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
-          Daily Current Affairs Feed
-        </h1>
-        <p className="text-xs text-slate-500 max-w-xl">
-          Track syllabus updates day-by-day. Select a date below to read daily articles mapped to National, International, and Bihar categories.
-        </p>
+      {/* Header + Filter Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 dark:border-white/10 pb-6">
+        <div>
+          <h1 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
+            Daily Current Affairs
+          </h1>
+          <p className="text-xs text-slate-500 max-w-xl mt-1">
+            {loading
+              ? 'Loading editions…'
+              : editions.length === 0
+              ? 'No editions published yet.'
+              : `${editions.length} edition${editions.length === 1 ? '' : 's'} available — filter by year or month.`}
+          </p>
+        </div>
+
+        {/* Dynamic filters — only shown when data exists */}
+        {!loading && availableYears.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3 bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-white/10">
+            <Calendar className="w-4 h-4 text-amber-500 shrink-0" />
+
+            {/* Year */}
+            <select
+              value={selectedYear}
+              onChange={e => handleYearChange(e.target.value)}
+              className="px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-bold cursor-pointer"
+            >
+              <option value="ALL">All Years</option>
+              {availableYears.map(yr => (
+                <option key={yr} value={yr}>{yr}</option>
+              ))}
+            </select>
+
+            {/* Month — only years with data */}
+            {availableMonths.length > 0 && (
+              <select
+                value={selectedMonth}
+                onChange={e => setSelectedMonth(e.target.value)}
+                className="px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-bold cursor-pointer"
+              >
+                <option value="ALL">All Months</option>
+                {availableMonths.map(mo => (
+                  <option key={mo} value={mo}>{MONTH_LABELS[mo] || mo}</option>
+                ))}
+              </select>
+            )}
+
+            {hasFilters && (
+              <button
+                onClick={() => { setSelectedYear('ALL'); setSelectedMonth('ALL'); }}
+                className="px-3 py-2 text-xs font-bold text-amber-600 hover:text-amber-700 bg-amber-500/10 rounded-xl cursor-pointer"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
+      {/* Content */}
       {loading ? (
-        <div className="text-slate-500 text-xs font-semibold">Loading feed history...</div>
-      ) : editions.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/[0.06] rounded-3xl">
-          <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-          <h3 className="font-heading font-bold text-sm text-slate-700 dark:text-slate-350">No Daily Editions Found</h3>
-          <p className="text-[11px] text-slate-550 mt-1 max-w-xs mx-auto">
-            Please log into the Admin portal and create a new daily current affairs edition.
-          </p>
+        <div className="text-slate-500 text-xs font-semibold">Loading daily editions…</div>
+      ) : filteredEditions.length === 0 ? (
+        <div className="text-center py-16 bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/[0.06] rounded-3xl space-y-3">
+          <Calendar className="w-12 h-12 text-slate-400 mx-auto" />
+          <h3 className="font-heading font-bold text-sm text-slate-700 dark:text-slate-300">
+            {editions.length === 0 ? 'No editions published yet.' : 'No editions for this filter.'}
+          </h3>
+          {hasFilters && (
+            <button
+              onClick={() => { setSelectedYear('ALL'); setSelectedMonth('ALL'); }}
+              className="text-xs font-bold text-amber-500 hover:underline cursor-pointer"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {editions.map(ed => {
-            const dateObj = new Date(ed.publishDate);
-            const formattedDate = dateObj.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
-            
-            const nationalCount = ed.articles?.filter(a => a.category === 'NATIONAL').length || 0;
+          {filteredEditions.map(ed => {
+            const dateObj      = new Date(ed.publishDate + 'T00:00:00');
+            const formattedDate = dateObj.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+            const nationalCount      = ed.articles?.filter(a => a.category === 'NATIONAL').length || 0;
             const internationalCount = ed.articles?.filter(a => a.category === 'INTERNATIONAL').length || 0;
-            const biharCount = ed.articles?.filter(a => a.category === 'BIHAR').length || 0;
+            const biharCount         = ed.articles?.filter(a => a.category === 'BIHAR').length || 0;
 
             return (
               <div
@@ -75,25 +164,19 @@ export default function DailyEditionsList() {
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{ed.publishDate}</span>
                   </div>
-                  
+
                   <h3 className="font-heading font-black text-base text-slate-950 dark:text-white group-hover:text-amber-500 transition-colors">
                     {formattedDate} Edition
                   </h3>
-                  
+
                   <p className="text-[11px] text-slate-500 line-clamp-3 leading-relaxed">
-                    {ed.summary || 'Summary briefing of today\'s important issues, curated for high weightage exams.'}
+                    {ed.summary || "Summary of today's important issues curated for high-weightage exams."}
                   </p>
-                  
+
                   <div className="flex flex-wrap gap-1.5 pt-2">
-                    <span className="px-2 py-0.5 rounded-lg bg-amber-500/5 text-amber-600 dark:text-amber-400 text-[9px] font-bold">
-                      National ({nationalCount})
-                    </span>
-                    <span className="px-2 py-0.5 rounded-lg bg-indigo-500/5 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold">
-                      International ({internationalCount})
-                    </span>
-                    <span className="px-2 py-0.5 rounded-lg bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold">
-                      Bihar ({biharCount})
-                    </span>
+                    <span className="px-2 py-0.5 rounded-lg bg-amber-500/5 text-amber-600 dark:text-amber-400 text-[9px] font-bold">National ({nationalCount})</span>
+                    <span className="px-2 py-0.5 rounded-lg bg-indigo-500/5 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold">International ({internationalCount})</span>
+                    <span className="px-2 py-0.5 rounded-lg bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold">Bihar ({biharCount})</span>
                   </div>
                 </div>
 
@@ -102,7 +185,7 @@ export default function DailyEditionsList() {
                     href={`/current-affairs/daily/${ed.publishDate}`}
                     className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-800 text-slate-900 dark:text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-all cursor-pointer border border-slate-100 dark:border-white/[0.04]"
                   >
-                    <span>Read Full Edition</span>
+                    <span>Read Edition</span>
                     <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                   </Link>
                 </div>

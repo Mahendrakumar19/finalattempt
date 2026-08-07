@@ -26,7 +26,7 @@ const options = {
     paths: {
       '/api/auth/register': {
         post: {
-          summary: 'Register a new BPSC/UPSC student',
+          summary: 'Register a new student',
           tags: ['Authentication'],
           requestBody: {
             required: true,

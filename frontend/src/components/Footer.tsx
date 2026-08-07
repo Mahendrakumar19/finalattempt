@@ -1,190 +1,3 @@
-// 'use client';
-
-// import { useState, useEffect } from 'react';
-// import Link from 'next/link';
-// import { usePathname } from 'next/navigation';
-// import { Mail, MapPin, PhoneCall, Globe, Video, Send, Eye } from 'lucide-react';
-// import {
-//   FaFacebookF,
-//   FaInstagram,
-//   FaYoutube,
-//   FaTelegramPlane,
-// } from "react-icons/fa";
-
-// const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
-// export default function Footer() {
-//   const pathname = usePathname();
-//   const [visitorsCount, setVisitorsCount] = useState<number | null>(null);
-
-//   const isPortal = pathname.startsWith('/student') || pathname.startsWith('/faculty') || pathname.startsWith('/admin') || pathname.startsWith('/lms');
-
-//   useEffect(() => {
-//     if (isPortal) return;
-
-//     const incrementVisitors = async () => {
-//       try {
-//         const res = await fetch(`${BACKEND_URL}/api/visitors/increment`, { method: 'POST' });
-//         if (res.ok) {
-//           const data = await res.json();
-//           if (data.success) {
-//             setVisitorsCount(data.visitorsCount);
-//           }
-//         }
-//       } catch (err) {
-//         console.warn('Failed to increment visitor counter:', err);
-//       }
-//     };
-//     incrementVisitors();
-//   }, [isPortal]);
-
-//   if (isPortal) return null;
-
-//   return (
-//     <footer className="bg-[#090D1A] text-slate-400 pt-16 pb-8 border-t border-slate-900 font-body relative overflow-hidden">
-//       {/* Subtle bottom flare */}
-//       <div className="absolute bottom-0 right-1/4 w-96 h-48 bg-amber-500/5 rounded-full blur-[100px] pointer-events-none" />
-
-//       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-12">
-//           {/* Logo & Description */}
-//           <div className="lg:col-span-2 space-y-6">
-//             <Link href="/" className="flex items-center">
-//               <div className="relative w-48 h-12 shrink-0">
-//                 <img
-//                   src="/lightlogofull.png"
-//                   alt="Final Attempt"
-//                   className="w-full h-full object-contain"
-//                 />
-//               </div>
-//             </Link>
-//             <p className="text-xs leading-relaxed text-slate-400 pr-4">
-//               Empowering Bihar's civil services aspirants with structured daily mentorship, analytics diagnostics, and topper strategy mapping. We deliver outcome-oriented preparation for your successful attempt.
-//             </p>
-//             {/* Social Media Links */}
-//             <div className="flex items-center gap-4">
-//               <a
-//                 href="https://www.facebook.com/finalattemptofficial"
-//                 target="_blank"
-//                 rel="noreferrer"
-//                 aria-label="Facebook"
-//                 className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10 text-[#1877F2] transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-[#1877F2] hover:text-white hover:shadow-[0_10px_30px_rgba(24,119,242,.45)]"
-//               >
-//                 <FaFacebookF className="h-5 w-5 transition-transform duration-300 group-hover:rotate-6" />
-//               </a>
-//               <a
-//                 href="https://www.instagram.com/finalattempt_official"
-//                 target="_blank"
-//                 rel="noreferrer"
-//                 aria-label="Instagram"
-//                 className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-pink-500/20 bg-pink-500/10 text-[#E1306C] transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-gradient-to-br hover:from-[#FEDA75] hover:via-[#E1306C] hover:to-[#833AB4] hover:text-white hover:shadow-[0_10px_30px_rgba(225,48,108,.45)]"
-//               >
-//                 <FaInstagram className="h-5 w-5 transition-transform duration-300 group-hover:rotate-6" />
-//               </a>
-//               <a
-//                 href="https://www.youtube.com/@FinalAttemptOfficial"
-//                 target="_blank"
-//                 rel="noreferrer"
-//                 aria-label="YouTube"
-//                 className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 text-[#FF0000] transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-[#FF0000] hover:text-white hover:shadow-[0_10px_30px_rgba(255,0,0,.45)]"
-//               >
-//                 <FaYoutube className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" />
-//               </a>
-//               <a
-//                 href="https://t.me/Finalattemptofficial"
-//                 target="_blank"
-//                 rel="noreferrer"
-//                 aria-label="Telegram"
-//                 className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-500/20 bg-sky-500/10 text-[#229ED9] transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-[#229ED9] hover:text-white hover:shadow-[0_10px_30px_rgba(34,158,217,.45)]"
-//               >
-//                 <FaTelegramPlane className="h-5 w-5 transition-transform duration-300 group-hover:-rotate-12" />
-//               </a>
-//             </div>
-//           </div>
-
-//           {/* Quick Links */}
-//           <div>
-//             <h4 className="font-heading text-white font-bold text-xs uppercase tracking-wider mb-6 border-l-2 border-amber-500 pl-3">
-//               Quick Links
-//             </h4>
-//             <ul className="space-y-3.5 text-xs">
-//               <li><Link href="/" className="hover:text-amber-400 transition-colors">Home</Link></li>
-//               <li><Link href="/about" className="hover:text-amber-400 transition-colors">About & Contact</Link></li>
-//               <li><Link href="/courses" className="hover:text-amber-400 transition-colors">Courses</Link></li>
-//               <li><Link href="/test-series" className="hover:text-amber-400 transition-colors">Test Series</Link></li>
-//               <li><Link href="/current-affairs" className="hover:text-amber-400 transition-colors">Current Affairs</Link></li>
-//               <li><Link href="/pyq" className="hover:text-amber-400 transition-colors">PYQ Papers</Link></li>
-//               <li><Link href="/blog" className="hover:text-amber-400 transition-colors">Blogs & News</Link></li>
-//             </ul>
-//           </div>
-
-//           {/* Programs */}
-//           <div>
-//             <h4 className="font-heading text-white font-bold text-xs uppercase tracking-wider mb-6 border-l-2 border-amber-500 pl-3">
-//               Programs
-//             </h4>
-//             <ul className="space-y-3.5 text-xs">
-//               <li><Link href="/courses" className="hover:text-amber-400 transition-colors">BPSC Foundation Course</Link></li>
-//               <li><Link href="/test-series" className="hover:text-amber-400 transition-colors">Prelims Test Series</Link></li>
-//               <li><Link href="/courses" className="hover:text-amber-400 transition-colors">Mains Answer Writing</Link></li>
-//               <li><Link href="/courses" className="hover:text-amber-400 transition-colors">Interview Guidance</Link></li>
-//             </ul>
-//           </div>
-
-//           {/* Contact Details */}
-//           <div>
-//             <h4 className="font-heading text-white font-bold text-xs uppercase tracking-wider mb-6 border-l-2 border-amber-500 pl-3">
-//               Contact Us
-//             </h4>
-//             <ul className="space-y-4 text-xs">
-//               <li className="flex items-start gap-3">
-//                 <PhoneCall className="w-4 h-4 text-amber-550 mt-0.5 shrink-0" />
-//                 <a href="tel:+919709992093" className="hover:text-white transition-colors font-semibold text-slate-300">
-//                   +91 97099 92093
-//                 </a>
-//               </li>
-//               <li className="flex items-start gap-3">
-//                 <Mail className="w-4 h-4 text-amber-550 mt-0.5 shrink-0" />
-//                 <a href="mailto:enquiry@finalattemptias.com" className="hover:text-white transition-colors text-slate-350">
-//                   enquiry@finalattemptias.com
-//                 </a>
-//               </li>
-//               <li className="flex items-start gap-3">
-//                 <MapPin className="w-4 h-4 text-amber-550 mt-0.5 shrink-0" />
-//                 <span className="text-slate-350">
-//                   Boring Road Crossing,<br />
-//                   Patna, Bihar - 860001
-//                 </span>
-//               </li>
-//             </ul>
-//           </div>
-//         </div>
-
-//         {/* Legal & Copyright */}
-//         <div className="border-t border-white/[0.04] pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-slate-500 font-semibold tracking-wide uppercase">
-//           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 text-center" suppressHydrationWarning={true}>
-//             <p>&copy; {new Date().getFullYear()} Final Attempt. All Rights Reserved.</p>
-//             <span className="text-slate-800 hidden sm:inline" suppressHydrationWarning={true}>|</span>
-//             <span className="text-slate-400">
-//               Designed & Developed by <a href="https://nighwantech.com" target="_blank" rel="noreferrer" className="text-amber-500 hover:underline">Nighwan Technology Pvt. Ltd.</a>
-//             </span>
-//           </div>
-
-//           {/* Visitors Count Badge */}
-//           {visitorsCount !== null && (
-//             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.04]">
-//               <Eye className="w-3.5 h-3.5 text-amber-500" />
-//               <span>Visitors Count: </span>
-//               <span className="text-white font-bold tracking-widest">{visitorsCount.toLocaleString()}</span>
-//             </div>
-//           )}
-//         </div>
-//       </div>
-//     </footer>
-//   );
-// }
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -196,6 +9,11 @@ import {
   PhoneCall,
   Eye,
   TrendingUp,
+  ChevronRight,
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  Award,
 } from 'lucide-react';
 
 import {
@@ -206,20 +24,26 @@ import {
 } from 'react-icons/fa';
 import { db } from '@/services/db';
 
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const getBackendUrl = () => {
+  if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    return `http://${hostname}:5000`;
+  }
+  return 'http://localhost:5000';
+};
 
 export default function Footer() {
   const pathname = usePathname();
   const [visitorsCount, setVisitorsCount] = useState<number | null>(null);
+  const [footerCustomPages, setFooterCustomPages] = useState<any[]>([]);
+  const [siteSettings, setSiteSettings] = useState<any>({});
 
   const isPortal =
     pathname.startsWith('/student') ||
     pathname.startsWith('/faculty') ||
     pathname.startsWith('/admin') ||
     pathname.startsWith('/lms');
-
-  const [footerCustomPages, setFooterCustomPages] = useState<any[]>([]);
 
   useEffect(() => {
     if (isPortal) return;
@@ -228,19 +52,20 @@ export default function Footer() {
       if (pages) setFooterCustomPages(pages.filter(p => p.showLocation === 'FOOTER'));
     });
 
+    db.getSettings().then(s => {
+      if (s) setSiteSettings(s);
+    });
+
     const incrementVisitors = async () => {
       try {
-        const res = await fetch(
-          `${BACKEND_URL}/api/visitors/increment`,
-          {
-            method: 'POST',
-          }
-        );
+        const BACKEND_URL = getBackendUrl();
+        const res = await fetch(`${BACKEND_URL}/api/visitors/increment`, {
+          method: 'POST',
+        });
 
         if (!res.ok) return;
 
         const data = await res.json();
-
         if (data.success) {
           setVisitorsCount(data.visitorsCount);
         }
@@ -252,107 +77,152 @@ export default function Footer() {
 
   if (isPortal) return null;
 
+  const phone = siteSettings?.contactPhone || '+91 97099 92093';
+  const email = siteSettings?.contactEmail || 'enquiry@finalattemptias.com';
+  const address = siteSettings?.contactAddress || 'Boring Road Crossing, Patna, Bihar – 800001';
+
   return (
-    <footer className="relative overflow-hidden border-t border-white/10 bg-[#070B16] pt-20 pb-8 text-slate-300">
+    <footer className="relative overflow-hidden border-t border-slate-800/80 bg-[#0B1120] text-slate-200 pt-16 pb-8 font-sans">
 
-      {/* Background Glow */}
-      <div className="absolute -left-24 top-0 h-72 w-72 rounded-full bg-amber-500/10 blur-[120px]" />
-      <div className="absolute right-0 bottom-0 h-80 w-80 rounded-full bg-yellow-400/5 blur-[140px]" />
-      <div className="absolute left-1/2 top-0 h-px w-full -translate-x-1/2 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent" />
+      {/* Decorative Glow Elements */}
+      <div className="absolute -left-20 top-0 h-96 w-96 rounded-full bg-amber-500/10 blur-[130px] pointer-events-none" />
+      <div className="absolute right-0 bottom-0 h-96 w-96 rounded-full bg-blue-600/10 blur-[140px] pointer-events-none" />
+      <div className="absolute left-1/2 top-0 h-px w-full -translate-x-1/2 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
 
-      <div className="relative z-10 mx-auto max-w-screen-2xl px-6 lg:px-10">
-        <div className="grid gap-8 xl:gap-10 lg:grid-cols-12">
+      <div className="relative z-10 mx-auto max-w-screen-2xl px-5 sm:px-8 lg:px-12">
 
-          {/* Brand */}
-          <div className="space-y-8 lg:col-span-4">
+        {/* Top Newsletter / CTA Banner Banner */}
+        <div className="mb-14 rounded-3xl border border-slate-800 bg-gradient-to-r from-slate-900 via-[#0F172A] to-slate-900 p-6 sm:p-8 md:p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
+            <div className="space-y-2 text-center lg:text-left">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-black uppercase tracking-widest">
+                <Sparkles className="w-3.5 h-3.5" /> Start Preparing Today
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-heading font-black text-white tracking-tight">
+                Ready to Make Your BPSC Attempt Final?
+              </h2>
+              <p className="text-sm text-slate-300 max-w-xl leading-relaxed">
+                Join Patna's most outcome-focused coaching & mentorship ecosystem. Get direct Guidance from civil service experts.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
+              <Link
+                href="/contact?enquiry=enroll"
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm transition-all shadow-lg hover:shadow-amber-500/30 hover:scale-[1.02] active:scale-100"
+              >
+                <span>Enroll In Batch</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <a
+                href={`tel:${phone.replace(/\s+/g, '')}`}
+                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-white font-bold text-sm transition-all hover:border-slate-600"
+              >
+                <PhoneCall className="w-4 h-4 text-amber-400" />
+                <span>Call Us Now</span>
+              </a>
+            </div>
+          </div>
+        </div>
 
-            <Link
-              href="/"
-              className="inline-flex items-center"
-            >
+        {/* Main Footer Links & Information Grid */}
+        <div className="grid gap-10 sm:gap-12 grid-cols-1 md:grid-cols-2 lg:grid-cols-12 mb-14">
+
+          {/* Brand & About Column */}
+          <div className="space-y-6 lg:col-span-4">
+            <Link href="/" className="inline-flex items-center">
               <img
                 src="/lightlogofull.png"
-                alt="Final Attempt"
-                className="h-16 w-auto object-contain"
+                alt="Final Attempt IAS"
+                className="h-14 sm:h-16 w-auto object-contain"
               />
             </Link>
 
-            <p className="max-w-lg text-sm leading-7 text-slate-400">
-              Final Attempt is Bihar's premium preparation platform for
-              BPSC aspirants, combining structured courses, mentorship,
-              analytics, current affairs and test series to maximize
-              every student's chance of selection.
+            <p className="text-sm leading-relaxed text-slate-300 font-medium">
+              Final Attempt is Bihar's premier coaching and mentorship platform for civil service aspirants. We combine micro-scheduled syllabus coverage, daily answer evaluation, analytics diagnostics, and officer mentorship to deliver your target results.
             </p>
 
-            {/* Social Icons */}
-            <div className="flex flex-wrap gap-4">
+            <div className="flex items-center gap-3 text-xs text-slate-300">
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-amber-400 font-bold">
+                <ShieldCheck className="w-4 h-4" /> BPSC Focused
+              </span>
+              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-amber-400 font-bold">
+                <Award className="w-4 h-4" /> Expert Mentors
+              </span>
+            </div>
 
-              <a
-                href="https://www.facebook.com/finalattemptofficial"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Facebook"
-                className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/10 text-[#1877F2] transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-[#1877F2] hover:text-white hover:shadow-[0_12px_35px_rgba(24,119,242,.45)]"
-              >
-                <FaFacebookF size={18} />
-              </a>
+            {/* Social Media Channels */}
+            <div className="pt-2">
+              <p className="text-xs uppercase font-extrabold tracking-widest text-slate-400 mb-3">
+                Connect With Us
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="https://www.facebook.com/finalattemptofficial"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Facebook"
+                  className="group flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-400 transition-all duration-300 hover:scale-110 hover:bg-[#1877F2] hover:text-white"
+                >
+                  <FaFacebookF size={16} />
+                </a>
 
-              <a
-                href="https://www.instagram.com/finalattempt_official"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Instagram"
-                className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-pink-500/20 bg-pink-500/10 text-[#E1306C] transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-gradient-to-br hover:from-[#FEDA75] hover:via-[#E1306C] hover:to-[#833AB4] hover:text-white hover:shadow-[0_12px_35px_rgba(225,48,108,.45)]"
-              >
-                <FaInstagram size={18} />
-              </a>
+                <a
+                  href="https://www.instagram.com/finalattempt_official"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Instagram"
+                  className="group flex h-10 w-10 items-center justify-center rounded-xl border border-pink-500/30 bg-pink-500/10 text-pink-400 transition-all duration-300 hover:scale-110 hover:bg-gradient-to-br hover:from-[#FEDA75] hover:via-[#E1306C] hover:to-[#833AB4] hover:text-white"
+                >
+                  <FaInstagram size={16} />
+                </a>
 
-              <a
-                href="https://www.youtube.com/@FinalAttemptOfficial"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="YouTube"
-                className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 text-[#FF0000] transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-[#FF0000] hover:text-white hover:shadow-[0_12px_35px_rgba(255,0,0,.45)]"
-              >
-                <FaYoutube size={20} />
-              </a>
+                <a
+                  href="https://www.youtube.com/@FinalAttemptOfficial"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="YouTube"
+                  className="group flex h-10 w-10 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 transition-all duration-300 hover:scale-110 hover:bg-[#FF0000] hover:text-white"
+                >
+                  <FaYoutube size={18} />
+                </a>
 
-              <a
-                href="https://t.me/Finalattemptofficial"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Telegram"
-                className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-500/20 bg-sky-500/10 text-[#229ED9] transition-all duration-300 hover:-translate-y-1 hover:scale-110 hover:bg-[#229ED9] hover:text-white hover:shadow-[0_12px_35px_rgba(34,158,217,.45)]"
-              >
-                <FaTelegramPlane size={18} />
-              </a>
+                <a
+                  href="https://t.me/Finalattemptofficial"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Telegram"
+                  className="group flex h-10 w-10 items-center justify-center rounded-xl border border-sky-500/30 bg-sky-500/10 text-sky-400 transition-all duration-300 hover:scale-110 hover:bg-[#229ED9] hover:text-white"
+                >
+                  <FaTelegramPlane size={16} />
+                </a>
+              </div>
+            </div>
+          </div>
 
-            </div>   {/* Social Icons */}
-
-          </div>   {/* Brand Section */}
-
-          {/* Quick Links */}
-          <div className="lg:col-span-2">
-            <h3 className="mb-6 text-sm font-bold uppercase tracking-[0.2em] text-white">
+          {/* Quick Navigation Links */}
+          <div className="lg:col-span-2 sm:col-span-1">
+            <h3 className="mb-5 text-base font-extrabold uppercase tracking-widest text-white border-l-2 border-amber-500 pl-3">
               Quick Links
             </h3>
 
-            <ul className="space-y-4 text-sm">
+            <ul className="space-y-3.5 text-base font-bold">
               {[
                 { label: "Home", href: "/" },
                 { label: "About Us", href: "/about" },
-                { label: "Courses", href: "/courses" },
+                { label: "Courses & Batches", href: "/courses" },
                 { label: "Test Series", href: "/test-series" },
                 { label: "Current Affairs", href: "/current-affairs" },
                 { label: "Downloads Hub", href: "/downloads" },
-                { label: "Blogs", href: "/blog" },
+                { label: "Strategy & Syllabus", href: "/syllabus-strategy" },
+                { label: "Blogs & News", href: "/blog" },
               ].map((item) => (
                 <li key={item.label}>
                   <Link
                     href={item.href}
-                    className="group inline-flex items-center text-slate-400 transition-all duration-300 hover:text-amber-400"
+                    className="group flex items-center text-slate-200 transition-colors duration-200 hover:text-amber-400"
                   >
-                    <span className="mr-2 h-[2px] w-0 rounded-full bg-amber-400 transition-all duration-300 group-hover:w-4" />
+                    <ChevronRight className="mr-1.5 h-4 w-4 text-slate-400 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-amber-400" />
                     {item.label}
                   </Link>
                 </li>
@@ -360,199 +230,157 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Programs */}
-          <div className="lg:col-span-2">
-            <h3 className="mb-6 text-sm font-bold uppercase tracking-[0.2em] text-white">
-              Programs
+          {/* Core Programs Column */}
+          <div className="lg:col-span-2 sm:col-span-1">
+            <h3 className="mb-5 text-base font-extrabold uppercase tracking-widest text-white border-l-2 border-amber-500 pl-3">
+              Courses & Batches
             </h3>
 
-            <ul className="space-y-4 text-sm">
+            <ul className="space-y-3.5 text-base font-bold">
               {[
-                "BPSC Foundation Course",
-                "Prelims Test Series",
-                "Mains Answer Writing",
-                "Interview Guidance",
+                { label: "BPSC Foundation Batch", href: "/courses?category=Foundation" },
+                { label: "BPSC Prelims Target", href: "/courses?category=Prelims" },
+                { label: "Mains Answer Writing", href: "/courses?category=Mains" },
+                { label: "Prelims Test Series", href: "/test-series?stage=PRELIMS" },
+                { label: "Mains Test Series", href: "/test-series?stage=MAINS" },
+                { label: "Interview Guidance", href: "/courses" },
+                { label: "Official PYQ Library", href: "/downloads/pyq" },
               ].map((program) => (
-                <li key={program}>
+                <li key={program.label}>
                   <Link
-                    href="/courses"
-                    className="group inline-flex items-center text-slate-400 transition-all duration-300 hover:text-amber-400"
+                    href={program.href}
+                    className="group flex items-center text-slate-200 transition-colors duration-200 hover:text-amber-400"
                   >
-                    <span className="mr-2 h-[2px] w-0 rounded-full bg-amber-400 transition-all duration-300 group-hover:w-4" />
-                    {program}
+                    <ChevronRight className="mr-1.5 h-4 w-4 text-slate-400 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-amber-400" />
+                    {program.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Contact Card */}
+          {/* Contact Details Card */}
           <div className="lg:col-span-4">
-            <h3 className="mb-6 text-sm font-bold uppercase tracking-[0.2em] text-white">
-              Contact Us
+            <h3 className="mb-5 text-sm font-extrabold uppercase tracking-widest text-white border-l-2 border-amber-500 pl-3">
+              Head Office Contact
             </h3>
 
-            <div className="w-full rounded-3xl border border-white/10 bg-white/[0.04]
-border-white/5
-shadow-[0_10px_60px_rgba(0,0,0,.35)] p-6 backdrop-blur-xl">
-
-              <div className="mb-6 flex items-start gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
+            <div className="w-full rounded-2xl border border-slate-800 bg-slate-900/90 p-5 space-y-4 shadow-xl">
+              <div className="flex items-start gap-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
                   <PhoneCall size={18} />
                 </div>
-
                 <div>
-                  <p className="text-xs uppercase tracking-widest text-slate-500">
-                    Phone
+                  <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                    Admission Helpline
                   </p>
-
                   <a
-                    href="tel:+919709992093"
-                    className="mt-1 block font-semibold text-white transition hover:text-amber-400"
+                    href={`tel:${phone.replace(/\s+/g, '')}`}
+                    className="mt-0.5 block text-sm font-bold text-white transition-colors hover:text-amber-400"
                   >
-                    +91 97099 92093
+                    {phone}
                   </a>
                 </div>
               </div>
 
-              <div className="mb-6 flex items-start gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
+              <div className="flex items-start gap-3.5 border-t border-slate-800/80 pt-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
                   <Mail size={18} />
                 </div>
-
                 <div>
-                  <p className="text-xs uppercase tracking-widest text-slate-500">
-                    Email
+                  <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                    Official Email
                   </p>
-
                   <a
-                    href="mailto:enquiry@finalattemptias.com"
-                    className="mt-1 block text-sm leading-6 text-white transition hover:text-amber-400"
+                    href={`mailto:${email}`}
+                    className="mt-0.5 block text-sm font-bold text-white transition-colors hover:text-amber-400 break-all"
                   >
-                    enquiry@finalattemptias.com
+                    {email}
                   </a>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400">
+              <div className="flex items-start gap-3.5 border-t border-slate-800/80 pt-3.5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400">
                   <MapPin size={18} />
                 </div>
-
                 <div>
-                  <p className="text-xs uppercase tracking-widest text-slate-500">
-                    Office
+                  <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
+                    Patna Center Location
                   </p>
-
-                  <p className="mt-1 leading-6 text-slate-300">
-                    Boring Road Crossing
-                    <br />
-                    Patna, Bihar – 800001
+                  <p className="mt-0.5 text-xs font-semibold text-slate-300 leading-snug">
+                    {address}
                   </p>
                 </div>
               </div>
-
             </div>
           </div>
 
         </div>
-        {/* Bottom Bar */}
-        <div className="relative mt-16 border-t border-white/10 pt-8">
 
-          {/* Top Border Glow */}
-          <div className="absolute left-1/2 top-0 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+        {/* Bottom Legal & Copyright Bar */}
+        <div className="relative border-t border-slate-800/80 pt-8">
 
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
 
-            {/* Left Side */}
-            <div className="space-y-2 text-center lg:text-left">
-
-              <p className="text-sm text-slate-400">
-                © {new Date().getFullYear()}
-                <span className="font-semibold text-white">
-                  {" "}Final Attempt
-                </span>
-                . All Rights Reserved.
+            {/* Copyright & Legal Links */}
+            <div className="space-y-3 text-center lg:text-left">
+              <p className="text-sm font-medium text-slate-300">
+                © {new Date().getFullYear()} <span className="font-extrabold text-white">Final Attempt</span>. All Rights Reserved.
               </p>
 
-              <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-slate-500 lg:justify-start">
-
-                <Link
-                  href="/privacy-policy"
-                  className="transition hover:text-amber-400"
-                >
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-bold text-slate-300 lg:justify-start">
+                <Link href="/privacy-policy" className="hover:text-amber-400 transition-colors">
                   Privacy Policy
                 </Link>
-
-                <span>•</span>
-
-                <Link
-                  href="/terms"
-                  className="transition hover:text-amber-400"
-                >
+                <span className="text-slate-700">•</span>
+                <Link href="/terms" className="hover:text-amber-400 transition-colors">
                   Terms & Conditions
                 </Link>
-
-                <span>•</span>
-
-                <Link
-                  href="/refund-policy"
-                  className="transition hover:text-amber-400"
-                >
+                <span className="text-slate-700">•</span>
+                <Link href="/refund-policy" className="hover:text-amber-400 transition-colors">
                   Refund Policy
                 </Link>
-
-                <span>•</span>
-
-                <Link
-                  href="/disclaimer"
-                  className="transition hover:text-amber-400"
-                >
+                <span className="text-slate-700">•</span>
+                <Link href="/disclaimer" className="hover:text-amber-400 transition-colors">
                   Disclaimer
                 </Link>
 
                 {footerCustomPages.map(p => (
-                  <span key={p.id} className="flex items-center gap-3">
-                    <span>•</span>
-                    <Link
-                      href={`/page/${p.slug}`}
-                      className="transition hover:text-amber-400 font-bold"
-                    >
+                  <span key={p.id} className="flex items-center gap-x-4">
+                    <span className="text-slate-700">•</span>
+                    <Link href={`/page/${p.slug}`} className="hover:text-amber-400 transition-colors">
                       {p.title}
                     </Link>
                   </span>
                 ))}
-
               </div>
-
             </div>
 
-            {/* Right Side */}
-            <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-end">
+            {/* Visitor Counter & Developer Credits */}
+            <div className="flex flex-wrap items-center justify-center gap-4 lg:justify-end">
 
-              {/* Professional Visitor Counter */}
+              {/* Real-time Visitor Counter Badge */}
               {visitorsCount !== null && (
-                <div className="group inline-flex items-center gap-3.5 rounded-2xl border border-amber-500/20 bg-slate-900/80 px-4.5 py-2.5 backdrop-blur-xl shadow-lg transition-all duration-300 hover:border-amber-500/40 hover:bg-slate-900">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
-                    <TrendingUp size={16} className="text-amber-400 transition-transform duration-300 group-hover:scale-110" />
+                <div className="inline-flex items-center gap-3 rounded-xl border border-amber-500/30 bg-slate-900 px-4 py-2 shadow-lg">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+                    <TrendingUp size={15} />
                   </div>
-
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1.5">
                       <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                       </span>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        Visitors Count
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-300">
+                        Live Visitor Counter
                       </span>
                     </div>
-
-                    <div className="flex items-center gap-1 mt-1 font-mono">
+                    <div className="flex items-center gap-1 mt-0.5 font-mono">
                       {visitorsCount.toLocaleString('en-IN').split('').map((digit, idx) => (
                         <span
                           key={idx}
-                          className={digit === ',' ? 'text-slate-500 font-bold px-0.5' : 'bg-white/10 border border-white/15 px-1.5 py-0.5 rounded text-white text-xs font-black shadow-inner'}
+                          className={digit === ',' ? 'text-amber-500 font-bold px-0.5' : 'bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded text-amber-400 text-xs font-black shadow-inner'}
                         >
                           {digit}
                         </span>
@@ -567,17 +395,13 @@ shadow-[0_10px_60px_rgba(0,0,0,.35)] p-6 backdrop-blur-xl">
                 href="https://nighwantech.com"
                 target="_blank"
                 rel="noreferrer"
-                className="group inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-slate-400 transition-all duration-300 hover:border-amber-500/30 hover:bg-amber-500/10 hover:text-amber-300"
+                className="group inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs text-slate-300 transition-all duration-300 hover:border-amber-500/40 hover:bg-slate-800 hover:text-white"
               >
-
-                <span className="h-2 w-2 rounded-full bg-amber-400 transition group-hover:animate-pulse" />
-
-                Designed & Developed by
-
-                <span className="font-semibold text-white group-hover:text-amber-300">
+                <span className="h-2 w-2 rounded-full bg-amber-400 group-hover:animate-pulse" />
+                <span>Designed & Developed by</span>
+                <span className="font-extrabold text-white group-hover:text-amber-400">
                   Nighwan Technology Pvt. Ltd.
                 </span>
-
               </a>
 
             </div>

@@ -20,13 +20,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Final Attempt | One Mentor. One Strategy. One Final Attempt.",
-  description: "Bihar's most trusted premium mentorship platform for BPSC & UPSC aspirants. Personalized preparation, real results, current affairs, and mock test tracking.",
-  keywords: ["BPSC Preparation", "UPSC Preparation", "Bihar PCS", "Patna IAS Coaching", "BPSC Answer Writing", "Final Attempt"],
+  title: "Final Attempt | Premier BPSC Mentorship & Coaching Platform",
+  description: "Bihar's most trusted premium mentorship platform for BPSC aspirants. Personalized preparation, real results, current affairs, and mock test tracking.",
+  keywords: ["BPSC Preparation", "Bihar PCS", "Patna BPSC Coaching", "BPSC Answer Writing", "Final Attempt"],
   authors: [{ name: "Final Attempt" }],
   openGraph: {
-    title: "Final Attempt | One Mentor. One Strategy. One Final Attempt.",
-    description: "Bihar's premium technology-driven learning platform for UPSC & BPSC aspirants.",
+    title: "Final Attempt | BPSC Mentorship Platform",
+    description: "Bihar's premium technology-driven learning platform for BPSC aspirants.",
     type: "website",
   },
   icons: {

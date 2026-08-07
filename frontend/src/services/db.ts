@@ -1,4 +1,5 @@
-import { courseData, facultyData, resultData, currentAffairsData, pyqData, blogData, resourceData } from './seedData';
+import { courseData, facultyData, resultData, currentAffairsData, pyqData, blogData, resourceData, testSeriesData, TestSeriesItem } from './seedData';
+export type { TestSeriesItem };
 
 export interface SiteSettings {
   heroTitle: string;
@@ -28,7 +29,7 @@ export interface SiteSettings {
 export interface Course {
   id: string;
   title: string;
-  category: 'UPSC' | 'BPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview';
+  category: 'BPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview';
   description: string;
   duration: string;
   fee: string;
@@ -472,7 +473,248 @@ class FinalAttemptDB {
     });
     return data || { success: false, error: 'Failed connecting to server' };
   }
+
+  // ── Test Series Methods ──────────────────────────────────────────────────
+  private getLocalTestSeriesStore(): TestSeriesItem[] {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('finalattempt_test_series_store');
+        if (stored !== null) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) return parsed;
+        } else {
+          // Initialize once with seed data
+          localStorage.setItem('finalattempt_test_series_store', JSON.stringify(testSeriesData));
+          return testSeriesData;
+        }
+      } catch (_) {}
+    }
+    return testSeriesData;
+  }
+
+  private setLocalTestSeriesStore(list: TestSeriesItem[]) {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('finalattempt_test_series_store', JSON.stringify(list));
+        window.dispatchEvent(new CustomEvent('test_series_updated', { detail: list }));
+      } catch (_) {}
+    }
+  }
+
+  public async getTestSeries(includeUnpublished: boolean = false): Promise<TestSeriesItem[]> {
+    const data = await this.apiFetch(`/api/test-series?includeUnpublished=${includeUnpublished}`);
+    let list: TestSeriesItem[] = [];
+    if (data && data.success && Array.isArray(data.data)) {
+      list = data.data;
+    } else {
+      list = this.getLocalTestSeriesStore();
+    }
+    return includeUnpublished ? list : list.filter(s => s.isPublished !== false);
+  }
+
+  public async getTestSeriesBySlug(slug: string): Promise<TestSeriesItem | null> {
+    const data = await this.apiFetch(`/api/test-series/${slug}`);
+    if (data && data.success && data.data) {
+      return data.data;
+    }
+    const list = this.getLocalTestSeriesStore();
+    const found = list.find(s => s.slug === slug || s.id === slug);
+    return found || null;
+  }
+
+  public async saveTestSeries(series: Partial<TestSeriesItem>): Promise<boolean> {
+    const currentList = this.getLocalTestSeriesStore();
+    const existingIdx = currentList.findIndex(s => s.id === series.id);
+    let nextList: TestSeriesItem[] = [];
+
+    if (existingIdx >= 0) {
+      nextList = [...currentList];
+      nextList[existingIdx] = { ...nextList[existingIdx], ...series } as TestSeriesItem;
+    } else {
+      nextList = [series as TestSeriesItem, ...currentList];
+    }
+
+    this.setLocalTestSeriesStore(nextList);
+
+    const res = await this.apiFetch('/api/admin/test-series', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(series)
+    });
+    return res?.success || true;
+  }
+
+  public async deleteTestSeries(id: string): Promise<boolean> {
+    const currentList = this.getLocalTestSeriesStore();
+    const nextList = currentList.filter(s => s.id !== id);
+    this.setLocalTestSeriesStore(nextList);
+
+    const res = await this.apiFetch(`/api/admin/test-series/${id}`, {
+      method: 'DELETE'
+    });
+    return res?.success || true;
+  }
+
+  // ── Quiz & Question Bank Methods ──────────────────────────────────────────
+  public async getTestSeriesQuizzes(seriesId: string): Promise<any[]> {
+    const data = await this.apiFetch(`/api/lms/courses/${seriesId}/quizzes`);
+    let list: any[] = [];
+    if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
+      list = data.data;
+    } else {
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem(`finalattempt_quizzes_${seriesId}`);
+          if (stored) {
+            list = JSON.parse(stored);
+          }
+        } catch (_) {}
+      }
+    }
+
+    // If no quizzes exist yet, create a default Primary Mock Quiz
+    if (!list || list.length === 0) {
+      const defaultQuiz = {
+        id: `quiz-${seriesId}-default`,
+        title: 'Full Length Grand Mock Paper 1',
+        courseId: seriesId,
+        timeLimitMins: 120,
+        passingScore: 40,
+        description: 'Official 150-Question Full Length Test paper.'
+      };
+      list = [defaultQuiz];
+      this.saveQuiz(defaultQuiz);
+    }
+
+    return list;
+  }
+
+  public async saveQuiz(quiz: any): Promise<boolean> {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`finalattempt_quizzes_${quiz.courseId}`);
+        const current: any[] = stored ? JSON.parse(stored) : [];
+        const idx = current.findIndex(q => q.id === quiz.id);
+        let next: any[] = [];
+        if (idx >= 0) {
+          next = [...current];
+          next[idx] = { ...next[idx], ...quiz };
+        } else {
+          next = [...current, quiz];
+        }
+        localStorage.setItem(`finalattempt_quizzes_${quiz.courseId}`, JSON.stringify(next));
+      } catch (_) {}
+    }
+
+    const res = await this.apiFetch(`/api/lms/courses/${quiz.courseId}/quizzes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(quiz)
+    });
+    return res?.success || true;
+  }
+
+  public async deleteQuiz(quizId: string, seriesId: string): Promise<boolean> {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`finalattempt_quizzes_${seriesId}`);
+        if (stored) {
+          const current: any[] = JSON.parse(stored);
+          const next = current.filter(q => q.id !== quizId);
+          localStorage.setItem(`finalattempt_quizzes_${seriesId}`, JSON.stringify(next));
+        }
+      } catch (_) {}
+    }
+
+    const res = await this.apiFetch(`/api/lms/quizzes/${quizId}`, {
+      method: 'DELETE'
+    });
+    return res?.success || true;
+  }
+
+  public async getQuizQuestions(quizId: string): Promise<any[]> {
+    const data = await this.apiFetch(`/api/lms/quizzes/${quizId}/questions`);
+    if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
+      return data.data;
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`finalattempt_questions_${quizId}`);
+        if (stored) {
+          return JSON.parse(stored);
+        }
+      } catch (_) {}
+    }
+    return [];
+  }
+
+  public async saveQuestion(question: any): Promise<boolean> {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`finalattempt_questions_${question.quizId}`);
+        const current: any[] = stored ? JSON.parse(stored) : [];
+        const idx = current.findIndex(q => q.id === question.id);
+        let next: any[] = [];
+        if (idx >= 0) {
+          next = [...current];
+          next[idx] = { ...next[idx], ...question };
+        } else {
+          next = [...current, question];
+        }
+        localStorage.setItem(`finalattempt_questions_${question.quizId}`, JSON.stringify(next));
+      } catch (_) {}
+    }
+
+    const res = await this.apiFetch(`/api/lms/quizzes/${question.quizId}/questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(question)
+    });
+    return res?.success || true;
+  }
+
+  public async saveBulkQuestions(quizId: string, questions: any[]): Promise<boolean> {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`finalattempt_questions_${quizId}`);
+        const current: any[] = stored ? JSON.parse(stored) : [];
+        const next = [...current, ...questions];
+        localStorage.setItem(`finalattempt_questions_${quizId}`, JSON.stringify(next));
+      } catch (_) {}
+    }
+
+    for (const q of questions) {
+      await this.apiFetch(`/api/lms/quizzes/${quizId}/questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(q)
+      });
+    }
+    return true;
+  }
+
+  public async deleteQuestion(questionId: string, quizId: string): Promise<boolean> {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`finalattempt_questions_${quizId}`);
+        if (stored) {
+          const current: any[] = JSON.parse(stored);
+          const next = current.filter(q => q.id !== questionId);
+          localStorage.setItem(`finalattempt_questions_${quizId}`, JSON.stringify(next));
+        }
+      } catch (_) {}
+    }
+
+    const res = await this.apiFetch(`/api/lms/questions/${questionId}`, {
+      method: 'DELETE'
+    });
+    return res?.success || true;
+  }
+
+
+
 }
+
 
 export const db = new FinalAttemptDB();
 export const pyqs = pyqData;

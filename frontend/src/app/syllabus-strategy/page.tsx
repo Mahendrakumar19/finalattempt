@@ -153,13 +153,13 @@ export default function SyllabusStrategyPage() {
       {/* Header Banner */}
       <div className="space-y-4">
         <span className="text-[10px] font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest block w-fit">
-          Resources Portal
+          Syllabus & Strategy
         </span>
         <h1 className="text-4xl font-heading font-black text-slate-900 dark:text-white tracking-tight leading-none">
-          Syllabus & Strategic Roadmap
+          Syllabus & Preparation Strategy
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm max-w-xl">
-          Get official civil service schemas, PDF preview kits, and targeted strategy blueprints to help map out your exam execution.
+          Download official exam syllabus PDFs and read subject preparation guides.
         </p>
       </div>
 

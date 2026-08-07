@@ -260,7 +260,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
           <div className="space-y-6">
             <h3 className="font-heading font-extrabold text-lg text-brand-primary">Program Overview</h3>
             <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
-              This course is crafted to align with the core requirements of BPSC and UPSC administrative services. You will receive customized notes, continuous performance tracking, and direct access to selected officials.
+              This course is crafted to align with the core requirements of BPSC administrative services. You will receive customized notes, continuous performance tracking, and direct access to selected officials.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl pt-2">
               {course.features.map((feature, idx) => (

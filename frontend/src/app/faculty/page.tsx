@@ -31,7 +31,7 @@ export default function Faculty() {
           Meet Our Experts
         </h1>
         <p className="text-slate-500 text-sm">
-          {/* FUTURE USE: Include UPSC back when active */}
+          {/* Faculty List */}
           Learn from highly qualified educators and retired officers who specialize in BPSC syllabus depth.
         </p>
       </div>

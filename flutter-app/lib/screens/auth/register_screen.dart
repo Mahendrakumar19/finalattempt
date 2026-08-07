@@ -20,7 +20,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   String _targetExam = 'BPSC';
   bool _obscure = true;
 
-  static const _exams = ['BPSC', 'UPSC', 'UPPSC', 'MPPSC', 'JPSC', 'Other'];
+  static const _exams = ['BPSC', 'BSSC', 'UPPSC', 'MPPSC', 'JPSC', 'Other'];
 
   @override
   void dispose() {

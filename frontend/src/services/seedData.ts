@@ -60,7 +60,7 @@ export const courseData = [
     syllabus: [
       '20 Sectional Tests covering History, Geography, Polity, Science, Economy',
       '10 Bihar Special GK Exclusive Mock Tests',
-      '10 Full Length Mock Tests simulating the exact BPSC/UPSC pattern'
+      '10 Full Length Mock Tests simulating the exact BPSC pattern'
     ],
     features: [
       'Detailed Video Solutions',
@@ -88,11 +88,12 @@ export const courseData = [
     features: [
       'Personal evaluation within 48 hours',
       'Topper copy analysis webinar',
-      'One-on-one call with evaluator'
+      'One-on-one call with evaluator',
+      '10 Full Length Mock Tests simulating the exact BPSC pattern'
     ],
     schedule: 'Daily Self-paced submissions',
     faq: [
-      { q: 'Who evaluates the answers?', a: 'Answers are evaluated by selected BPSC officers and experienced senior UPSC mentors.' }
+      { q: 'Who evaluates the answers?', a: 'Answers are evaluated by selected BPSC officers and experienced senior mentors.' }
     ],
     enrolledCount: 310
   },
@@ -120,14 +121,15 @@ export const courseData = [
     enrolledCount: 120
   },
   {
-    id: 'upsc-mentorship',
-    title: 'UPSC Mentorship Program',
-    category: 'UPSC' as const,
-    description: 'Personalized strategy and mentorship for UPSC Civil Services aspirants.',
+    id: 'bpsc-mentorship',
+    title: 'BPSC Mentorship Program',
+    category: 'Foundation' as const,
+    description: 'Personalized strategy and mentorship for BPSC Civil Services aspirants.',
     duration: '12 Months',
-    fee: '₹29,999',
-    syllabus: [
-      'Micro-scheduling of UPSC GS Syllabus & Optional Subject',
+    fee: '₹14,999',
+    imageUrl: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=800&auto=format&fit=crop',
+    highlights: [
+      'Micro-scheduling of GS Syllabus & Optional Subject',
       'Regular performance audits & weekly milestone tracker',
       'Prelims CSAT + GS Mock strategy guidance'
     ],
@@ -214,7 +216,7 @@ export const currentAffairsData = [
     title: 'RBI Monetary Policy Highlights - May 2025',
     category: 'Economy' as const,
     publishDate: '24 May 2025',
-    summary: 'Detailed explanation of repo rate changes, inflation targeting strategies, and economic implications for UPSC/BPSC Prelims.',
+    summary: 'Detailed explanation of repo rate changes, inflation targeting strategies, and economic implications for BPSC Prelims.',
     content: 'The Monetary Policy Committee (MPC) maintained a focus on withdrawal of accommodation to ensure that inflation aligns with the target. While GDP growth remains strong at 7%, key supply side pressures in food inflation are keeping the central bank alert...'
   },
   {
@@ -246,7 +248,7 @@ export const currentAffairsData = [
 export const pyqData = [
   { id: 'pyq-1', year: 2024, exam: 'BPSC Prelims', subject: 'Polity', question: 'Under which Article of the Constitution can the Governor reserve a Bill for the consideration of the President?', options: ['Article 200', 'Article 201', 'Article 72', 'Article 356'], answer: 'Article 200', explanation: 'Article 200 deals with the assent to Bills passed by the State Legislature and reservation of bills by the Governor.' },
   { id: 'pyq-2', year: 2023, exam: 'BPSC Mains', subject: 'History', question: 'Analyze the role of Kunwar Singh in the Revolt of 1857 in Bihar. What was the impact of this struggle?', options: [], answer: 'Written/Mains Question', explanation: 'Refer to key focus areas: Jagdishpur uprising, leadership qualities, coordination with other leaders like Nana Sahib, and inspiring national consciousness.' },
-  { id: 'pyq-3', year: 2024, exam: 'UPSC Prelims', subject: 'Economy', question: 'With reference to the Indian economy, consider the Open Market Operations (OMO). What does it imply?', options: ['Buying and selling of government securities by RBI', 'Lending by commercial banks', 'Foreign exchange transactions', 'Corporate bond issues'], answer: 'Buying and selling of government securities by RBI', explanation: 'Open Market Operations (OMO) refers to the central bank\'s buying and selling of government securities in the open market to regulate liquidity.' }
+  { id: 'pyq-3', year: 2024, exam: 'BPSC Prelims', subject: 'Economy', question: 'With reference to the Indian economy, consider the Open Market Operations (OMO). What does it imply?', options: ['Buying and selling of government securities by RBI', 'Lending by commercial banks', 'Foreign exchange transactions', 'Corporate bond issues'], answer: 'Buying and selling of government securities by RBI', explanation: 'Open Market Operations (OMO) refers to the central bank\'s buying and selling of government securities in the open market to regulate liquidity.' }
 ];
 
 export const blogData = [
@@ -259,3 +261,150 @@ export const resourceData = [
   { id: 'res-2', title: 'Modern Indian History Mind Map', size: '5.1 MB', type: 'Mind Map', downloadCount: 4500, url: '#' },
   { id: 'res-3', title: 'GS II Mains Model Answer Booklet', size: '3.8 MB', type: 'PDF', downloadCount: 1900, url: '#' }
 ];
+
+export interface TestSeriesItem {
+  id: string;
+  title: string;
+  slug: string;
+  category: 'Prelims' | 'Mains' | 'PYQ' | 'Interview';
+  exam: string;
+  language: 'Bilingual (Hindi & English)' | 'English' | 'Hindi';
+  status: 'active' | 'coming_soon' | 'archived';
+  thumbnailUrl?: string;
+  bannerUrl?: string;
+  price: number;
+  discountedPrice?: number;
+  totalTests: number;
+  totalQuestions: number;
+  duration: string;
+  description: string;
+  highlights: string[];
+  syllabus: { subject: string; topics: string[] }[];
+  faq: { q: string; a: string }[];
+  batchStartDate?: string;
+  enrolledCount: number;
+  validityDays: number;
+  isPublished: boolean;
+  displayOrder: number;
+}
+
+export const testSeriesData: TestSeriesItem[] = [
+  {
+    id: 'bpsc-71st-prelims-mock-vault',
+    title: '71st BPSC Prelims All India Standard Test Series 2025-26',
+    slug: 'bpsc-71st-prelims-mock-vault',
+    category: 'Prelims',
+    exam: 'BPSC 71st CCE',
+    language: 'Bilingual (Hindi & English)',
+    status: 'active',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=600',
+    bannerUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1200',
+    price: 4999,
+    discountedPrice: 2499,
+    totalTests: 45,
+    totalQuestions: 6750,
+    duration: '6 Months Validity',
+    description: 'Comprehensive 45-Test Series engineered strictly according to the latest 71st BPSC micro-pattern with negative marking diagnostic analytics, video explanations & Patna center offline option.',
+    highlights: [
+      '20 Subject-Wise Micro Sectional Tests (History, Polity, Economy, Sci-Tech, Geo)',
+      '10 Bihar Special Exclusive Mock Tests (Bihar Economic Survey & Budget 2025-26)',
+      '15 Full Length Grand Mock Papers with All India Rank Diagnostic Radar',
+      'Instant Answer Keys with Subject Specialist Video Explanations',
+      'Downloadable PDF Solution Booklets with High-Yield Extra Notes'
+    ],
+    syllabus: [
+      { subject: 'History of India & Bihar Special', topics: ['Ancient & Medieval Bihar', '1857 Revolt & Veer Kunwar Singh', 'Freedom Struggle & Peasant Movements'] },
+      { subject: 'General Science & Tech', topics: ['Physics Core Concepts', 'Chemistry Everyday Applications', 'Biology & Modern Biotechnology'] },
+      { subject: 'Geography of India & Bihar', topics: ['Physical Features & River Systems', 'Soil & Vegetation Patterns', 'Mineral & Industrial Belts'] },
+      { subject: 'Indian Polity & Governance', topics: ['Constitutional Framework & Articles', 'Panchayati Raj in Bihar', 'Judiciary & Statutory Bodies'] },
+      { subject: 'Economy & Bihar Budget 2025-26', topics: ['Bihar Economic Survey Indicators', 'Inflation, Banking & Macroeconomy', 'State Welfare Schemes'] }
+    ],
+    faq: [
+      { q: 'Can I attempt tests anytime or is there a fixed time window?', a: 'You can attempt tests anytime 24/7 once unlocked, as per your own revision schedule.' },
+      { q: 'Are questions available in both English and Hindi?', a: 'Yes, every question paper and answer key is 100% bilingual (Hindi & English).' },
+      { q: 'Is offline test series available in Patna center?', a: 'Yes, enrolled online students can also take mock tests offline at Boring Road Patna center.' }
+    ],
+    batchStartDate: '2026-08-15',
+    enrolledCount: 1840,
+    validityDays: 180,
+    isPublished: true,
+    displayOrder: 1
+  },
+  {
+    id: 'bpsc-pyq-mastery-decades',
+    title: 'BPSC 20-Year PYQ Topic-wise Interactive Test Series (60th to 70th CCE)',
+    slug: 'pyq-eng',
+    category: 'PYQ',
+    exam: 'BPSC All Previous Exams',
+    language: 'Bilingual (Hindi & English)',
+    status: 'active',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600',
+    bannerUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=1200',
+    price: 1999,
+    discountedPrice: 999,
+    totalTests: 35,
+    totalQuestions: 5250,
+    duration: '1 Year Validity',
+    description: 'The Ultimate BPSC PYQ Mastery Vault — practice 20 years of real BPSC questions topic-by-topic with detailed elimination techniques, official answer key resolutions and repeated question trend maps.',
+    highlights: [
+      'Coverage of 60th to 70th BPSC Prelims official question papers',
+      'Segmented into 12 Subject Categories for targeted practice',
+      'Includes Option E vs 4-Option transition analysis notes',
+      'Bihar Special 1000+ Past Questions solved with updated statistics',
+      'Unlimited retakes with timing analytics'
+    ],
+    syllabus: [
+      { subject: 'History PYQs (1500+ Qs)', topics: ['Modern India & National Movement', 'Bihar Specific Historical Events', 'Ancient & Medieval Art'] },
+      { subject: 'Science PYQs (1200+ Qs)', topics: ['Repeated Physics Formulas', 'Biology Disease & Human Body', 'Chemistry Daily Life'] },
+      { subject: 'Polity & Bihar State Admin PYQs', topics: ['Governor & State Legislature', 'Constitutional Amendments', 'Panchayat & Municipal Elections'] }
+    ],
+    faq: [
+      { q: 'How does this compare to iasvalley PYQs?', a: 'This includes interactive analytics, extra explanation notes, updated current context for old questions, and instant score comparison.' },
+      { q: 'Will I get printable PDFs?', a: 'Yes, full topic-wise PYQ PDFs with answer keys are included.' }
+    ],
+    batchStartDate: '2026-08-01',
+    enrolledCount: 3120,
+    validityDays: 365,
+    isPublished: true,
+    displayOrder: 2
+  },
+  {
+    id: 'bpsc-70th-mains-evaluator-workbench',
+    title: '70th BPSC Mains Daily Answer Evaluation & Grand Mock Series',
+    slug: 'bpsc-70th-mains-evaluator-workbench',
+    category: 'Mains',
+    exam: 'BPSC 70th Mains',
+    language: 'Bilingual (Hindi & English)',
+    status: 'active',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80&w=600',
+    bannerUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=1200',
+    price: 8999,
+    discountedPrice: 4499,
+    totalTests: 24,
+    totalQuestions: 192,
+    duration: 'Until Mains Exam',
+    description: 'Expert evaluation by selected BPSC officers within 48 hours. Includes GS Paper I, GS Paper II, Essay paper mocks & 1-on-1 feedback calls to raise your score.',
+    highlights: [
+      '8 Full Length GS Paper I Mocks + 8 Full Length GS Paper II Mocks',
+      '4 Dedicated Essay Paper Mocks tailored to Bihar themes',
+      'Personalized copy correction with line-by-line mark breakdown',
+      'Model Answers PDF & Model Diagrammatic Maps for every test',
+      'Exclusive Toppers Copy compilation access'
+    ],
+    syllabus: [
+      { subject: 'GS Paper I', topics: ['Modern History & Indian Culture', 'Current Events of National & Intl Importance', 'Statistical Analysis, Graphs & Diagrams'] },
+      { subject: 'GS Paper II', topics: ['Indian & Bihar Polity', 'Indian & Bihar Economy & Geography', 'Role & Impact of Science & Tech'] },
+      { subject: 'Essay Section', topics: ['Bihar Cultural & Social Essays', 'Philosophical & Reflective Essays', 'Economic & Political Dilemmas'] }
+    ],
+    faq: [
+      { q: 'How do I submit my answers for evaluation?', a: 'Upload photos/scans of your handwritten answer sheet directly in the student dashboard.' },
+      { q: 'Who evaluates my answer script?', a: 'Evaluation is strictly done by selected BPSC officers and experienced senior faculty.' }
+    ],
+    batchStartDate: '2026-08-20',
+    enrolledCount: 650,
+    validityDays: 180,
+    isPublished: true,
+    displayOrder: 3
+  }
+];
+

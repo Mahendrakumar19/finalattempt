@@ -18,18 +18,6 @@ interface ResourceItem {
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-const MAIN_SECTIONS = [
-  'All',
-  'NCERT Books',
-  'Official PYQs',
-  'Syllabus',
-  'Prelims',
-  'Mains',
-  'Infographics',
-  'Rapid Revision',
-  'Custom Download Packages'
-];
-
 function getFileIcon(type: string) {
   const t = (type || '').toUpperCase();
   if (t === 'PDF') return { icon: FileText, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/20' };
@@ -43,11 +31,11 @@ function getFileIcon(type: string) {
 
 export default function DedicatedDownloadsPage() {
   const [downloadStates, setDownloadStates] = useState<Record<string, boolean>>({});
-  const [searchQuery, setSearchQuery] = useState('');
-  const [resourcesList, setResourcesList] = useState<ResourceItem[]>([]);
-  const [activeSection, setActiveSection] = useState<string>('All');
-  const [previewItem, setPreviewItem] = useState<ResourceItem | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [searchQuery,    setSearchQuery]    = useState('');
+  const [resourcesList,  setResourcesList]  = useState<ResourceItem[]>([]);
+  const [activeSection,  setActiveSection]  = useState<string>('All');
+  const [previewItem,    setPreviewItem]    = useState<ResourceItem | null>(null);
+  const [loading,        setLoading]        = useState(true);
 
   const [customDownloadPages, setCustomDownloadPages] = useState<CustomPage[]>([]);
 
@@ -96,28 +84,34 @@ export default function DedicatedDownloadsPage() {
     }, 3000);
   };
 
+  // ── Dynamic categories from real data ────────────────────────────────────
+  const dynamicCategories: string[] = ['All'];
+  resourcesList.forEach(res => {
+    const cat = res.category;
+    if (cat && cat !== 'General Downloads' && !dynamicCategories.includes(cat)) {
+      dynamicCategories.push(cat);
+    }
+  });
+  if (customDownloadPages.length > 0 && !dynamicCategories.includes('Custom Download Packages')) {
+    dynamicCategories.push('Custom Download Packages');
+  }
+
   const filteredResources = resourcesList.filter(res => {
-    const title = res.title || '';
-    const category = res.category || '';
+    const title       = res.title    || '';
+    const category    = res.category || '';
     const subcategory = res.subcategory || '';
     const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase());
-
     if (activeSection === 'All') return matchesSearch;
-    if (activeSection === 'NCERT Books') {
-      return matchesSearch && (category.toLowerCase().includes('ncert') || subcategory.toLowerCase().includes('ncert') || title.toLowerCase().includes('ncert'));
-    }
-    if (activeSection === 'Official PYQs') {
-      return matchesSearch && (category.toLowerCase().includes('pyq') || subcategory.toLowerCase().includes('pyq') || title.toLowerCase().includes('pyq') || category === 'PYQ Solutions');
-    }
+    if (activeSection === 'NCERT Books')   return matchesSearch && (category.toLowerCase().includes('ncert') || subcategory.toLowerCase().includes('ncert') || title.toLowerCase().includes('ncert'));
+    if (activeSection === 'Official PYQs') return matchesSearch && (category.toLowerCase().includes('pyq')  || subcategory.toLowerCase().includes('pyq')  || title.toLowerCase().includes('pyq')  || category === 'PYQ Solutions');
     return matchesSearch && category === activeSection;
   });
 
   const groupedResources: Record<string, ResourceItem[]> = {};
   filteredResources.forEach(res => {
-    const cat = res.category || 'General Downloads';
-    if (!groupedResources[cat]) {
-      groupedResources[cat] = [];
-    }
+    // Use actual category; fall back to empty string so no heading shows for uncategorised
+    const cat = res.category && res.category !== 'General Downloads' ? res.category : '';
+    if (!groupedResources[cat]) groupedResources[cat] = [];
     groupedResources[cat].push(res);
   });
 
@@ -127,31 +121,14 @@ export default function DedicatedDownloadsPage() {
       {/* Hero Banner Header */}
       <div className="max-w-7xl mx-auto space-y-4 text-center">
         <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3.5 py-1.5 rounded-xl uppercase tracking-widest inline-block">
-          Official Downloads Repository
+          Downloads
         </span>
         <h1 className="text-4xl sm:text-5xl font-heading font-black text-[var(--text-color)] tracking-tight">
-          Downloads Hub & Study Packages
+          Downloads Hub
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm max-w-3xl mx-auto leading-relaxed">
-          Access structured PYQs, NCERT text books, syllabus breakdowns, and custom PDF packages curated by Final Attempt IAS faculty.
+          Download question papers, NCERT books, notes, and study material.
         </p>
-      </div>
-
-      {/* Main Filter Sections Bar */}
-      <div className="max-w-7xl mx-auto flex flex-wrap justify-center gap-2 border-b border-[var(--card-border)] pb-6">
-        {MAIN_SECTIONS.map((sec) => (
-          <button
-            key={sec}
-            onClick={() => setActiveSection(sec)}
-            className={`px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer ${
-              activeSection === sec
-                ? 'bg-amber-500 text-slate-950 shadow-md scale-[1.02]'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 bg-[var(--card-bg)] border border-[var(--card-border)]'
-            }`}
-          >
-            {sec}
-          </button>
-        ))}
       </div>
 
       {/* Featured Download Vaults & NCERT Portals (DYNAMIC FEATURED ROW) */}
@@ -201,28 +178,28 @@ export default function DedicatedDownloadsPage() {
               </p>
             </div>
             <div className="pt-2 border-t border-[var(--card-border)] flex items-center justify-between">
-              <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-amber-500 transition-colors">Explore NCERTs (/downloads/ncert) &rarr;</span>
+              <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-amber-500 transition-colors">Explore NCERTs &rarr;</span>
               <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
             </div>
           </Link>
 
           <Link
-            href="/downloads/bihar-special"
+            href="/downloads"
             className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-3xl transition-all shadow-xs flex flex-col justify-between space-y-3"
           >
             <div className="space-y-1.5">
               <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 w-fit block">
-                STATE DIGESTS
+                FREE STUDY REPOSITORY
               </span>
               <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors">
-                🗺️ Bihar Special Geography & Budget
+                🗺️ Core Notes & Study Worksheets
               </h4>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                State Economic Survey, Bihar Budget breakdowns & District Digests.
+                State Economic Survey, Budget breakdowns & Subject Worksheets.
               </p>
             </div>
             <div className="pt-2 border-t border-[var(--card-border)] flex items-center justify-between">
-              <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-amber-500 transition-colors">View Bihar Digests (/downloads/bihar-special) &rarr;</span>
+              <span className="text-xs font-black text-slate-700 dark:text-slate-200 group-hover:text-amber-500 transition-colors">Explore All Downloads &rarr;</span>
               <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
             </div>
           </Link>
@@ -231,16 +208,33 @@ export default function DedicatedDownloadsPage() {
 
       {/* Main Grid: Downloads Catalog & Admin Custom Portals */}
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder={`Search in ${activeSection === 'All' ? 'all download sections' : activeSection}...`}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-11 pr-4 py-3.5 text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-[var(--text-color)] shadow-xs font-medium"
-          />
+        {/* Search + inline category filter */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder={`Search in ${activeSection === 'All' ? 'all downloads' : activeSection}…`}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3.5 text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-[var(--text-color)] shadow-xs font-medium"
+            />
+          </div>
+
+          {/* Dynamic category filter — only categories that exist in data */}
+          {dynamicCategories.length > 1 && (
+            <select
+              value={activeSection}
+              onChange={e => setActiveSection(e.target.value)}
+              className="px-4 py-3.5 text-xs font-bold bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl outline-none text-[var(--text-color)] cursor-pointer shadow-xs shrink-0"
+            >
+              {dynamicCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          )}
         </div>
+
 
         {loading ? (
           <div className="space-y-4">
@@ -300,7 +294,8 @@ export default function DedicatedDownloadsPage() {
           <div className="space-y-8">
             {Object.keys(groupedResources).map((catName) => (
               <div key={catName} className="space-y-3">
-                {activeSection === 'All' && (
+                {/* Show category heading only when browsing All and category is non-empty */}
+                {activeSection === 'All' && catName && (
                   <h3 className="font-heading font-black text-slate-850 dark:text-slate-200 text-sm uppercase tracking-wider flex items-center gap-2 pl-1">
                     <Layers className="w-4 h-4 text-amber-500" />
                     <span>{catName}</span>

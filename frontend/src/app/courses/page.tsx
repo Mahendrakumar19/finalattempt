@@ -6,7 +6,7 @@ import { Search, SlidersHorizontal, BookOpen, Clock, Calendar } from 'lucide-rea
 import { db } from '@/services/db';
 import { courseData } from '@/services/seedData';
 
-type CategoryType = 'All' | 'UPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview';
+type CategoryType = 'All' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview';
 
 export default function Courses() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('All');
@@ -32,14 +32,9 @@ export default function Courses() {
     loadCourses();
   }, []);
 
-  // FUTURE USE: UPSC Category is commented out for frontend display as the platform is currently not focusing on UPSC.
-  // const categories: CategoryType[] = ['All', 'UPSC', 'BPSC', 'Foundation', 'Prelims', 'Mains', 'Interview'];
   const categories: CategoryType[] = ['All', 'Foundation', 'Prelims', 'Mains', 'Interview'];
 
   const filteredCourses = coursesList.filter(course => {
-    // FUTURE USE: Hide UPSC courses from active view as we are currently focusing only on BPSC.
-    if (course.category === 'UPSC') return false;
-
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
     const matchesSearch = (course.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (course.description || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -55,7 +50,7 @@ export default function Courses() {
           Explore Our Courses
         </h1>
         <p className="text-slate-500 text-sm max-w-xl">
-          {/* FUTURE USE: Add UPSC back into course page descriptions when focus expands */}
+          {/* Courses Header */}
           Choose from BPSC batches curated by industry-leading mentors. Restrained pricing structures and result-oriented schedules.
         </p>
       </div>

@@ -71,6 +71,16 @@ router.delete('/exams/:id', async (req: Request, res: Response) => {
   }
 });
 
+router.delete('/exam/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    await prisma.exam.delete({ where: { id } });
+    res.json({ success: true, message: 'Exam deleted successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ─── Syllabus Endpoints ──────────────────────────────────────────────────────
 router.get('/syllabus', async (req: Request, res: Response) => {
   try {
@@ -244,7 +254,7 @@ router.get('/company-values', async (req: Request, res: Response) => {
         {
           type: CompanyValueType.MISSION,
           title: 'Our Mission',
-          content: 'To simplify the preparation of Civil Services Examinations (BPSC/UPSC) by offering structured learning, premium customized guidance, and personalized mentorship.'
+          content: 'To simplify the preparation of Civil Services Examinations (BPSC) by offering structured learning, premium customized guidance, and personalized mentorship.'
         },
         {
           type: CompanyValueType.VISION,

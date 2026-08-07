@@ -12,7 +12,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/downloads/pyq',
     '/resources',
     '/blog',
-    '/faculties',
     '/privacy-policy',
     '/terms',
     '/refund-policy',

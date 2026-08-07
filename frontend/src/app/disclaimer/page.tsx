@@ -34,12 +34,17 @@ export default function DisclaimerPage() {
         The content, study materials, video lectures, test series, current affairs digests, and answer evaluation notes provided on our platform (&quot;Website&quot;) are compiled solely for educational, academic preparation, and informational purposes. While we strive to ensure that all study materials reflect current examination trends and syllabus requirements, the materials should not be construed as official government notifications or legal advice.
       </p>
 
-      <h2>2. Non-Affiliation with Government Bodies</h2>
-      <p>
-        <strong>Final Attempt is an independent private educational coaching institute and digital learning platform.</strong> We are <strong>NOT affiliated, associated, authorized, endorsed by, or in any way officially connected with</strong> the Bihar Public Service Commission (BPSC), Union Public Service Commission (UPSC), Staff Selection Commission (SSC), or any other Central or State Government recruitment agency or examination board in India.
+      <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+        <strong>Final Attempt is an independent private educational coaching institute and digital learning platform.</strong> We are <strong>NOT affiliated, associated, authorized, endorsed by, or in any way officially connected with</strong> the Bihar Public Service Commission (BPSC), Staff Selection Commission (SSC), or any other Central or State Government recruitment agency or examination board in India.
       </p>
-      <p>
-        Official examination schedules, eligibility notifications, result declarations, and official answer keys are published exclusively on official government portals such as <a href="https://bpsc.bih.nic.in" target="_blank" rel="noopener noreferrer">bpsc.bih.nic.in</a> and <a href="https://upsc.gov.in" target="_blank" rel="noopener noreferrer">upsc.gov.in</a>. Candidates are advised to cross-reference all administrative announcements with official government gazettes.
+
+      <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+        Official examination schedules, eligibility notifications, result declarations, and official answer keys are published exclusively on official government portals such as <a href="https://bpsc.bih.nic.in" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">bpsc.bih.nic.in</a>. Candidates are advised to cross-reference all administrative announcements with official government gazettes.
+      </p>
+
+      <h2 className="text-xl font-heading font-extrabold text-[var(--text-color)] pt-4">2. Trademark & Examination Names Notice</h2>
+      <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+        All brand names, trademarks, exam names (such as BPSC, Civil Services Exam), logos, and government commission titles referenced on this platform belong to their respective trademark owners. Their reference on Final Attempt is strictly for identification and educational descriptive purposes and does not imply any official endorsement.
       </p>
 
       <h2>3. Accuracy of Content & Study Materials</h2>
@@ -59,7 +64,7 @@ export default function DisclaimerPage() {
 
       <h2>6. Intellectual Property & Copyright Notice</h2>
       <p>
-        All brand names, trademarks, exam names (such as BPSC, UPSC, Civil Services Exam), logos, and government commission titles referenced on this platform belong to their respective trademark owners. Their reference on Final Attempt is strictly for identification and educational descriptive purposes and does not imply any official endorsement.
+        All brand names, trademarks, exam names (such as BPSC, Civil Services Exam), logos, and government commission titles referenced on this platform belong to their respective trademark owners. Their reference on Final Attempt is strictly for identification and educational descriptive purposes and does not imply any official endorsement.
       </p>
 
       <h2>7. Technical Disclaimer & Availability</h2>

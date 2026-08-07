@@ -478,7 +478,7 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     }
 
     // Seed default exams
-    const defaultExams = ['UPSC', 'BPSC', 'BSSC', 'SSC', 'Railway'];
+    const defaultExams = ['BPSC', 'BSSC', 'SSC', 'Railway'];
     for (const ex of defaultExams) {
       try {
         await pool.query('INSERT IGNORE INTO current_affair_exams (id, name) VALUES (?, ?)', [`ex-${ex.toLowerCase()}`, ex]);
@@ -836,7 +836,7 @@ class BackendDB {
   public localStore: LocalDBStore = {
     leads: [
       { id: 'lead-1', fullName: 'Aman Kumar', mobile: '9123456780', targetExam: 'BPSC Target Batch', status: 'New', createdAt: new Date().toISOString() },
-      { id: 'lead-2', fullName: 'Priya Singh', mobile: '9876543210', targetExam: 'UPSC Mentorship', status: 'Contacted', createdAt: new Date().toISOString() },
+      { id: 'lead-2', fullName: 'Priya Singh', mobile: '9876543210', targetExam: 'BPSC Mentorship', status: 'Contacted', createdAt: new Date().toISOString() },
       { id: 'lead-3', fullName: 'Ramesh Pathak', mobile: '8877665544', targetExam: 'Prelims Test Series', status: 'Enrolled', createdAt: new Date().toISOString() }
     ],
     progress: [

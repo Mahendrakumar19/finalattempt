@@ -143,7 +143,7 @@ export default function Resources() {
             Aspirants Resources & Study Materials
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Access BPSC and UPSC syllabus-aligned premium study notes, budget breakdowns, infographics, and previous year solution booklets absolutely free.
+            Access BPSC syllabus-aligned premium study notes, budget breakdowns, infographics, and previous year solution booklets absolutely free.
           </p>
         </div>
 
@@ -298,7 +298,7 @@ export default function Resources() {
                 </Link>
 
                 <Link
-                  href="/resources/bihar-special"
+                  href="/downloads/pyq"
                   className="group flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-amber-500/10 border border-slate-200/80 dark:border-white/10 rounded-2xl transition-all"
                 >
                   <div className="space-y-0.5">

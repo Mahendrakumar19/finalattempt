@@ -36,20 +36,18 @@ export default function TermsAndConditionsPage() {
 
       <h2>2. Educational Services Offered</h2>
       <p>
-        Final Attempt is a specialized civil services coaching institute providing educational resources for BPSC, UPSC, and competitive examinations, including but not limited to:
+        Final Attempt is a specialized civil services coaching institute providing educational resources for BPSC and competitive examinations, including but not limited to:
       </p>
-      <ul>
-        <li>Online Foundation, Prelims, and Mains Courses</li>
-        <li>Live and Recorded Video Lectures</li>
-        <li>Sectional and Full-Length Test Series &amp; Mock Tests</li>
-        <li>Current Affairs Compendiums &amp; Daily Feeds</li>
-        <li>Downloadable PDF Study Notes and Mindmaps</li>
-        <li>Personalized Mentorship &amp; Answer Writing Evaluation</li>
+      <ul className="list-disc pl-6 space-y-2 text-sm text-slate-600 dark:text-slate-300">
+        <li>Structured Classroom & Online Coaching Programs</li>
+        <li>Prelims and Mains Test Series & Evaluation Services</li>
+        <li>Current Affairs Analysis & Daily Study Material</li>
+        <li>Mentorship, Interview Guidance, and Academic Consultations</li>
       </ul>
 
-      <h2>3. Student Account Registration & Security</h2>
-      <p>
-        To access certain courses or features, you must create a Student Account. You represent and warrant that all registration details provided by you are accurate, current, and complete. You are solely responsible for maintaining the confidentiality of your account credentials (email, password, OTPs). Account sharing, simultaneous logins across unauthorized devices, or selling account access to third parties is strictly prohibited and will result in immediate termination without refund.
+      <h2 className="text-xl font-heading font-extrabold text-[var(--text-color)] pt-4">3. Class Timings, Batches & Modifications</h2>
+      <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+        While we strive to adhere strictly to published batch schedules, Final Attempt reserves the right to adjust class timings, substitute faculty members, update syllabus modules, or modify test delivery schedules to align with updated exam patterns announced by public service commissions (BPSC).
       </p>
 
       <h2>4. Intellectual Property & Anti-Piracy Policy</h2>
@@ -80,7 +78,7 @@ export default function TermsAndConditionsPage() {
 
       <h2>7. Course Modification & Availability</h2>
       <p>
-        While we strive to adhere strictly to published batch schedules, Final Attempt reserves the right to adjust class timings, substitute faculty members, update syllabus modules, or modify test delivery schedules to align with updated exam patterns announced by public service commissions (BPSC/UPSC).
+        While we strive to adhere strictly to published batch schedules, Final Attempt reserves the right to adjust class timings, substitute faculty members, update syllabus modules, or modify test delivery schedules to align with updated exam patterns announced by public service commissions (BPSC).
       </p>
 
       <h2>8. Limitation of Liability</h2>

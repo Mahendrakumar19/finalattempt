@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Daily Current Affairs for BPSC & UPSC | Final Attempt IAS",
+  title: "Daily Current Affairs for BPSC | Final Attempt",
   description: "Get daily news analysis, editorial breakdowns, weekly digests, and current affairs video lectures tailored for BPSC.",
   keywords: ["Daily current affairs", "BPSC current affairs", "Bihar news analysis", "Current affairs for state PCS"],
 };

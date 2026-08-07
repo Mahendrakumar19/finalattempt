@@ -36,7 +36,13 @@ import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTop
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 
-type AdminTab = 'Dashboard' | 'Home Page CMS' | 'About Page' | 'About Page CMS' | 'Settings' | 'Custom Pages' | 'Media Library' | 'Exams & Syllabus' | 'PYQs Manager' | 'Downloads Hub' | 'Strategy & Values' | 'Strategy CMS' | 'Values CMS' | 'Students' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Current Affairs' | 'Blogs' | 'Resources' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Home' | 'About' | 'Contact' | 'Download Hub' | 'PYQ' | 'Blogs' | 'Settings' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
+
+interface FeaturePageConnection {
+  featureId: string;
+  featureName: string;
+  connectedPages: { name: string; tab: AdminTab }[];
+}
 
 interface SiteSettings {
   heroTitle: string;
@@ -643,20 +649,20 @@ export default function AdminPortal() {
           <nav className="flex flex-col gap-1.5">
             {[
               { id: 'Dashboard', icon: LayoutDashboard },
-              { id: 'Home Page CMS', icon: Sun },
-              { id: 'About Page', icon: FileText },
+              { id: 'Home', icon: Sun },
+              { id: 'About', icon: FileText },
+              { id: 'Contact', icon: MessageSquare },
+              { id: 'Download Hub', icon: Download },
+              { id: 'PYQ', icon: Layers },
+              { id: 'Blogs', icon: Bookmark },
               { id: 'Settings', icon: Settings },
-              ...(settings.featureFlags?.livePageBuilder !== false ? [{ id: 'Custom Pages', icon: FileText }] : []),
-              { id: 'Users', icon: Users },
               { id: 'Courses', icon: BookOpen },
               { id: 'Test Series', icon: FileText },
+              { id: 'Users', icon: Users },
               { id: 'Leads', icon: MessageSquare },
               { id: 'Media Library', icon: FolderOpen },
               { id: 'Exams & Syllabus', icon: Layers },
-              { id: 'Downloads Hub', icon: Download },
-              { id: 'Strategy & Values', icon: Bookmark },
               ...(settings.featureFlags?.currentAffairsFilters !== false ? [{ id: 'Current Affairs', icon: FileText }] : []),
-              { id: 'Blogs', icon: Bookmark },
               ...(isSuperAdmin ? [{ id: 'Super Admin Console', icon: Award }] : [])
             ].map((tab) => (
               <button
@@ -706,6 +712,60 @@ export default function AdminPortal() {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Feature Connected Page Dropdown */}
+            <div className="flex items-center gap-2 bg-[var(--card-bg)] border border-[var(--card-border)] px-3 py-1.5 rounded-2xl shadow-xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Connected Page(s):</span>
+              <select
+                onChange={(e) => {
+                  const targetTab = e.target.value as AdminTab;
+                  if (targetTab && targetTab !== ('NONE' as any)) {
+                    setActiveTab(targetTab);
+                  }
+                }}
+                className="bg-transparent text-xs font-bold text-slate-900 dark:text-white outline-none cursor-pointer"
+              >
+                {activeTab === 'Home' && (
+                  <>
+                    <option value="Home">📍 Home Page (/) - Connected</option>
+                    <option value="About">→ About Page (/about)</option>
+                    <option value="Contact">→ Contact Page (/contact)</option>
+                  </>
+                )}
+                {activeTab === 'About' && (
+                  <>
+                    <option value="About">📍 About Page (/about) - Connected</option>
+                    <option value="Home">→ Home Page (/)</option>
+                  </>
+                )}
+                {activeTab === 'Contact' && (
+                  <>
+                    <option value="Contact">📍 Contact Page (/contact) - Connected</option>
+                    <option value="Home">→ Home Page (/)</option>
+                  </>
+                )}
+                {activeTab === 'Download Hub' && (
+                  <>
+                    <option value="Download Hub">📍 Downloads Hub (/downloads) - Connected</option>
+                    <option value="PYQ">→ PYQ Vault (/downloads/pyq)</option>
+                  </>
+                )}
+                {activeTab === 'PYQ' && (
+                  <>
+                    <option value="PYQ">📍 PYQ Page (/downloads/pyq) - Connected</option>
+                    <option value="Download Hub">→ Downloads Hub (/downloads)</option>
+                  </>
+                )}
+                {activeTab === 'Blogs' && (
+                  <>
+                    <option value="Blogs">📍 Blogs & News Page (/blog) - Connected</option>
+                  </>
+                )}
+                {!['Home', 'About', 'Contact', 'Download Hub', 'PYQ', 'Blogs'].includes(activeTab) && (
+                  <option value="NONE">Not connected to any page</option>
+                )}
+              </select>
+            </div>
+
             <button 
               onClick={toggleTheme}
               className="p-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-colors rounded-2xl shadow-sm text-slate-700 dark:text-slate-350 cursor-pointer"
@@ -881,69 +941,6 @@ export default function AdminPortal() {
                 </div>
               </div>
 
-              {/* ── Contact Page CMS Configurations ───────────────────── */}
-              <div className="border-t border-slate-200 pt-6 space-y-4">
-                <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                  <span>📞 Contact Page CMS Configurations</span>
-                </h3>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Contact Page Title</label>
-                  <input
-                    type="text"
-                    placeholder="Connect With Final Attempt"
-                    value={settings.contactTitle || ''}
-                    onChange={(e) => setSettings({ ...settings, contactTitle: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Contact Page Subtitle</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Have questions about the BPSC micro-schedule..."
-                    value={settings.contactSubtitle || ''}
-                    onChange={(e) => setSettings({ ...settings, contactSubtitle: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Admission Helpline Phone</label>
-                    <input
-                      type="text"
-                      placeholder="+91 97099 92093"
-                      value={settings.contactPhone || ''}
-                      onChange={(e) => setSettings({ ...settings, contactPhone: e.target.value })}
-                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Support Email</label>
-                    <input
-                      type="text"
-                      placeholder="enquiry@finalattemptias.com"
-                      value={settings.contactEmail || ''}
-                      onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
-                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Corporate Centre Address</label>
-                  <input
-                    type="text"
-                    placeholder="2nd Floor, Opposite Verma Centre..."
-                    value={settings.contactAddress || ''}
-                    onChange={(e) => setSettings({ ...settings, contactAddress: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                  />
-                </div>
-
                 <div className="space-y-1.5">
                   <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Working Hours</label>
                   <input
@@ -989,7 +986,6 @@ export default function AdminPortal() {
                     className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900 font-mono"
                   />
                 </div>
-              </div>
 
               <button
                 type="submit"
@@ -1061,7 +1057,7 @@ export default function AdminPortal() {
         )}
 
         {/* TAB: HOME PAGE CMS */}
-        {activeTab === 'Home Page CMS' && (
+        {(activeTab === ('Home' as any) || activeTab === ('Home Page CMS' as any)) && (
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
               <div>
@@ -1240,7 +1236,7 @@ export default function AdminPortal() {
         )}
 
         {/* TAB: ABOUT PAGE CMS */}
-        {(activeTab === 'About Page' || activeTab === 'About Page CMS') && (
+        {(activeTab === ('About' as any) || activeTab === ('About Page' as any) || activeTab === ('About Page CMS' as any)) && (
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
               <div>
@@ -1661,8 +1657,104 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* TAB: CUSTOM PAGES */}
-        {activeTab === 'Custom Pages' && (
+        {/* TAB: CONTACT */}
+        {(activeTab as any) === 'Contact' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
+              <div>
+                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Public Contact Info</span>
+                <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Contact Page & Helpline CMS</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Manage Patna office address, contact numbers, email, hours, and map locations displayed on `/contact`.
+                </p>
+              </div>
+              <a
+                href="/contact"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Preview /contact ↗</span>
+              </a>
+            </div>
+
+            <form onSubmit={handleSaveSettings} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Contact Main Heading Title</label>
+                  <input
+                    type="text"
+                    value={settings.contactTitle || ''}
+                    onChange={(e) => setSettings({ ...settings, contactTitle: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Admission Phone Helpline</label>
+                  <input
+                    type="text"
+                    value={settings.contactPhone || ''}
+                    onChange={(e) => setSettings({ ...settings, contactPhone: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Official Email Address</label>
+                  <input
+                    type="email"
+                    value={settings.contactEmail || ''}
+                    onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Working Hours</label>
+                  <input
+                    type="text"
+                    value={settings.contactHours || ''}
+                    onChange={(e) => setSettings({ ...settings, contactHours: e.target.value })}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Corporate Physical Address</label>
+                <textarea
+                  rows={2}
+                  value={settings.contactAddress || ''}
+                  onChange={(e) => setSettings({ ...settings, contactAddress: e.target.value })}
+                  className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-md transition-all cursor-pointer"
+              >
+                💾 Save Contact Page Settings
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB: DOWNLOAD HUB */}
+        {(activeTab === 'Download Hub' || (activeTab as any) === 'Downloads Hub') && (
+          <div className="space-y-6">
+            <CustomPagesCMS defaultLocation="DOWNLOADS_HUB" />
+          </div>
+        )}
+
+        {/* TAB: PYQ */}
+        {(activeTab === 'PYQ' || (activeTab as any) === 'PYQs Manager') && (
+          <div className="space-y-6">
+            <PYQsManagerCMS />
+          </div>
+        )}
+
+        {/* TAB: CUSTOM PAGES (FALLBACK) */}
+        {(activeTab as any) === 'Custom Pages' && (
           <div className="space-y-6">
             <CustomPagesCMS />
           </div>
@@ -1682,93 +1774,15 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* TAB: DOWNLOADS HUB CMS */}
-        {activeTab === 'Downloads Hub' && (
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
-              <div>
-                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Public Downloads Hub Control</span>
-                <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Downloads Hub & Section Manager</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Manage the central `/downloads` page, PYQ booklets, NCERT portals, and custom download sections.
-                </p>
-              </div>
-              <a
-                href="/downloads"
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all shrink-0"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>Preview /downloads ↗</span>
-              </a>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-sm">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-black">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">📜 Official PYQ Papers Vault</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    Upload and organize BPSC & UPSC Previous Year Question booklets, verified answer keys, and detailed PDF solutions.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('PYQs Manager')}
-                  className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <span>Open PYQs Manager &rarr;</span>
-                </button>
-              </div>
-
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-sm">
-                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-black">
-                  <Plus className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">📁 Create Custom Download Section</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                    Create new downloadable file packages, NCERT portals, state budget digests, or subject notes with custom URL slugs.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('Custom Pages')}
-                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <span>Open Custom Download Section Creator &rarr;</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl space-y-4 shadow-sm">
-              <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">
-                PYQs Full Booklet Manager (Integrated)
-              </h3>
-              <PYQsManagerCMS />
-            </div>
-          </div>
-        )}
-
-        {/* TAB: PYQS MANAGER */}
-        {activeTab === 'PYQs Manager' && (
-          <div className="space-y-6">
-            <PYQsManagerCMS />
-          </div>
-        )}
-
         {/* TAB: STRATEGY & VALUES CMS */}
-        {(activeTab === 'Strategy & Values' || activeTab === 'Strategy CMS') && (
+        {((activeTab as any) === 'Strategy & Values' || (activeTab as any) === 'Strategy CMS') && (
           <div className="space-y-6">
             <SyllabusStrategyCMS defaultTab="strategy" />
           </div>
         )}
 
         {/* TAB: VALUES CMS */}
-        {activeTab === 'Values CMS' && (
+        {(activeTab as any) === 'Values CMS' && (
           <div className="space-y-6">
             <SyllabusStrategyCMS defaultTab="values" />
           </div>
@@ -1810,7 +1824,7 @@ export default function AdminPortal() {
             </div>
           </div>
         )}
-        {(activeTab === 'Users' || activeTab === 'Students') && (
+        {(activeTab === 'Users' || (activeTab as any) === 'Students') && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/70 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-xs">
               <div>
@@ -2584,7 +2598,7 @@ export default function AdminPortal() {
                             type="text"
                             value={Array.isArray(editingArticle.exams) ? editingArticle.exams.join(', ') : (editingArticle.exams || '')}
                             onChange={(e) => setEditingArticle({ ...editingArticle, exams: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                            placeholder="UPSC, BPSC..."
+                            placeholder="BPSC, Foundation..."
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                           />
                         </div>
@@ -2846,7 +2860,7 @@ export default function AdminPortal() {
         )}
 
         {/* TAB 8: RESOURCES */}
-        {activeTab === 'Resources' && (
+        {(activeTab as any) === 'Resources' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="font-extrabold text-sm text-slate-900">Free Resources Downloads</h3>
@@ -2891,7 +2905,7 @@ export default function AdminPortal() {
               ))}
             </div>
             {/* Modal add/edit Resource */}
-            {activeModal && activeTab === 'Resources' && (
+            {activeModal && (activeTab as any) === 'Resources' && (
               <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <form onSubmit={handleSaveResource} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl">
                   <h3 className="font-extrabold text-sm text-slate-900">

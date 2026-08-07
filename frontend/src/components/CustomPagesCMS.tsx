@@ -6,7 +6,11 @@ import RichTextEditor from './RichTextEditor';
 import MediaPicker from './MediaPicker';
 import { db, CustomPage, DownloadItem } from '@/services/db';
 
-export default function CustomPagesCMS() {
+interface CustomPagesCMSProps {
+  defaultLocation?: 'DOWNLOADS_HUB' | 'NAVBAR' | 'HEADER_TOP' | 'FOOTER' | 'SLUG_ONLY';
+}
+
+export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPagesCMSProps) {
   const [pages, setPages] = useState<CustomPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
@@ -16,7 +20,7 @@ export default function CustomPagesCMS() {
     title: '',
     slug: '',
     content: '',
-    showLocation: 'NAVBAR',
+    showLocation: defaultLocation,
     displayOrder: 0,
     metaTitle: '',
     metaDescription: '',

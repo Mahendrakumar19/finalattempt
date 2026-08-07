@@ -1,174 +1,292 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { Clock, FileText, CheckCircle, ArrowRight } from 'lucide-react';
-import { db } from '@/services/db';
-
-type SeriesType = 'All' | 'Prelims' | 'Mains';
+import { 
+  FileText, CheckCircle, ArrowRight, Layers, BookOpen, Search, Filter
+} from 'lucide-react';
+import { db, TestSeriesItem } from '@/services/db';
 
 export default function TestSeriesPage() {
-  const [testSeries, setTestSeries] = useState<any[]>([]);
+  const [seriesList, setSeriesList] = useState<TestSeriesItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<SeriesType>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedExam, setSelectedExam] = useState<string>('All');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('All');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
-  useEffect(() => {
-    const loadTestSeries = async () => {
-      setLoading(true);
-      try {
-        const courses = await db.getCourses();
-        const filtered = courses.filter(
-          (c: any) => c.category === 'Prelims' || c.category === 'Mains'
-        );
-        setTestSeries(filtered);
-      } catch (err) {
-        console.error('Failed loading test series:', err);
-      }
+  const loadData = useCallback(async () => {
+    try {
+      const list = await db.getTestSeries(false);
+      setSeriesList(list || []);
+    } catch (err) {
+      console.error('Error loading test series:', err);
+    } finally {
       setLoading(false);
-    };
-    loadTestSeries();
+    }
   }, []);
 
-  const displayedSeries = testSeries.filter(
-    (s) => activeTab === 'All' || s.category === activeTab
-  );
+  useEffect(() => {
+    loadData();
+
+    // Real-time synchronization listeners
+    const handleUpdate = () => {
+      loadData();
+    };
+
+    window.addEventListener('test_series_updated', handleUpdate);
+    window.addEventListener('focus', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+
+    return () => {
+      window.removeEventListener('test_series_updated', handleUpdate);
+      window.removeEventListener('focus', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, [loadData]);
+
+  // Dynamic category options — derived ONLY from published data that exists
+  const availableCategories = useMemo(() => {
+    const categories = new Set<string>();
+    seriesList.forEach(s => {
+      if (s.category) categories.add(s.category);
+    });
+    const order = ['Prelims', 'Mains', 'PYQ', 'Interview'];
+    const sorted = Array.from(categories).sort((a, b) => {
+      const idxA = order.indexOf(a);
+      const idxB = order.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      return a.localeCompare(b);
+    });
+    return ['All', ...sorted];
+  }, [seriesList]);
+
+  // Dynamic exams derived from data
+  const availableExams = useMemo(() => {
+    const exams = new Set<string>();
+    seriesList.forEach(s => {
+      if (s.exam) exams.add(s.exam);
+    });
+    return ['All', ...Array.from(exams)];
+  }, [seriesList]);
+
+  // Dynamic languages derived from data
+  const availableLanguages = useMemo(() => {
+    const langs = new Set<string>();
+    seriesList.forEach(s => {
+      if (s.language) langs.add(s.language);
+    });
+    return ['All', ...Array.from(langs)];
+  }, [seriesList]);
+
+  // Filtered series
+  const filteredSeries = useMemo(() => {
+    return seriesList.filter(s => {
+      if (selectedCategory !== 'All' && s.category !== selectedCategory) return false;
+      if (selectedExam !== 'All' && s.exam !== selectedExam) return false;
+      if (selectedLanguage !== 'All' && s.language !== selectedLanguage) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchTitle = s.title.toLowerCase().includes(q);
+        const matchDesc = s.description.toLowerCase().includes(q);
+        const matchExam = s.exam.toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchExam) return false;
+      }
+      return true;
+    });
+  }, [seriesList, selectedCategory, selectedExam, selectedLanguage, searchQuery]);
 
   return (
-    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
-      {/* Page Header */}
-      <div className="text-center max-w-3xl mx-auto space-y-4">
-        <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
-          Evaluation Workbench
-        </span>
-        <h1 className="text-4xl font-heading font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-          Premium BPSC Test Series
-        </h1>
-        <p className="text-slate-500 text-sm leading-relaxed">
-          Take full-length mock tests and daily answer challenges evaluated by selected BPSC officers. Dynamic micro-analytics diagnostic maps will help focus your practice.
-        </p>
-      </div>
+    <div className="min-h-screen bg-[var(--bg-color)] py-10 px-4 sm:px-6 lg:px-8 space-y-8 font-body">
+      
+      {/* ── Dynamic Category Filter Tabs & Filter Bar ───────────────────── */}
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Dynamic Category Pill Tabs */}
+        {availableCategories.length > 1 && (
+          <div className="flex flex-wrap justify-center sm:justify-start gap-2 border-b border-[var(--card-border)] pb-4">
+            {availableCategories.map((cat) => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${
+                  selectedCategory === cat
+                    ? 'bg-amber-500 text-slate-950 shadow-md scale-[1.02]'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 bg-[var(--card-bg)] border border-[var(--card-border)]'
+                }`}
+              >
+                <span>{cat === 'All' ? 'All Test Series' : `${cat} Series`}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
-      {/* Tabs Selector */}
-      <div className="flex justify-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-4 max-w-lg mx-auto">
-        {(['All', 'Prelims', 'Mains'] as SeriesType[]).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === tab
-                ? 'bg-amber-500 text-slate-950 shadow-md scale-[1.02]'
-                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}
-          >
-            {tab === 'All' ? 'All Test Series' : tab === 'Prelims' ? 'Prelims Test Series' : 'Mains Test Series'}
-            {tab === 'Prelims' && (
-              <span className="text-[8px] font-extrabold uppercase tracking-wider bg-orange-500 text-white px-1.5 py-0.5 rounded-md">
-                Soon
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Grid List */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-80 rounded-3xl bg-slate-100 dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.04] animate-pulse"
+        {/* Inline Search & Filter Bar */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search test series by exam, subject, or title..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-3.5 text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 text-[var(--text-color)] font-medium shadow-xs"
             />
-          ))}
-        </div>
-      ) : displayedSeries.length === 0 ? (
-        <div className="p-16 rounded-3xl bg-slate-50 dark:bg-white/[0.01] border border-slate-100 dark:border-white/[0.04] text-center max-w-md mx-auto">
-          <FileText className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">No active test series found</h3>
-          <p className="text-xs text-slate-500 mt-1">Check back later or contact helpdesk for details.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-          {displayedSeries.map((series) => (
-            <div
-              key={series.id}
-              className="course-card-premium rounded-3xl p-8 flex flex-col justify-between relative overflow-hidden group"
+          </div>
+
+          {availableExams.length > 2 && (
+            <div className="flex items-center gap-2 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl px-3 py-2 shrink-0">
+              <Filter className="w-3.5 h-3.5 text-amber-500" />
+              <select
+                value={selectedExam}
+                onChange={(e) => setSelectedExam(e.target.value)}
+                className="bg-transparent text-xs font-bold text-[var(--text-color)] outline-none cursor-pointer"
+              >
+                <option value="All">All Target Exams</option>
+                {availableExams.filter(e => e !== 'All').map(ex => (
+                  <option key={ex} value={ex}>{ex}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {availableLanguages.length > 2 && (
+            <select
+              value={selectedLanguage}
+              onChange={(e) => setSelectedLanguage(e.target.value)}
+              className="px-4 py-3.5 text-xs font-bold bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl outline-none text-[var(--text-color)] cursor-pointer shadow-xs shrink-0"
             >
-              {/* Coming Soon overlay for Prelims */}
-              {series.category === 'Prelims' && (
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-slate-950/80 backdrop-blur-[3px] rounded-3xl">
-                  <div className="text-center space-y-3">
-                    <div className="w-14 h-14 rounded-2xl bg-orange-500/10 border border-orange-400/30 flex items-center justify-center mx-auto">
-                      <Clock className="w-7 h-7 text-orange-500" />
+              <option value="All">All Languages</option>
+              {availableLanguages.filter(l => l !== 'All').map(lang => (
+                <option key={lang} value={lang}>{lang}</option>
+              ))}
+            </select>
+          )}
+        </div>
+      </div>
+
+      {/* ── Test Series Grid ────────────────────────────────────────────── */}
+      <div className="max-w-7xl mx-auto">
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-96 rounded-3xl bg-[var(--card-bg)] border border-[var(--card-border)] animate-pulse" />
+            ))}
+          </div>
+        ) : filteredSeries.length === 0 ? (
+          <div className="p-16 rounded-3xl bg-[var(--card-bg)] border border-[var(--card-border)] text-center max-w-md mx-auto space-y-3">
+            <FileText className="w-12 h-12 text-slate-400 mx-auto" />
+            <h3 className="text-base font-heading font-bold text-[var(--text-color)]">No Test Series Found</h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              No active test series matched your selected filter criteria. Try choosing &quot;All&quot; from the options above.
+            </p>
+            <button
+              onClick={() => { setSelectedCategory('All'); setSelectedExam('All'); setSelectedLanguage('All'); setSearchQuery(''); }}
+              className="px-4 py-2 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs cursor-pointer"
+            >
+              Reset Filters
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredSeries.map((series) => {
+              const hasDiscount = series.discountedPrice && series.discountedPrice < series.price;
+              const displayPrice = hasDiscount ? series.discountedPrice : series.price;
+
+              return (
+                <div
+                  key={series.id}
+                  className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden hover:border-amber-500/40 hover:shadow-xl transition-all flex flex-col justify-between group relative"
+                >
+                  {/* Category & Status Badges Overlay */}
+                  <div className="p-6 space-y-4">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                        {series.exam || series.category}
+                      </span>
+                      {series.status === 'coming_soon' ? (
+                        <span className="px-2.5 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-orange-500 text-white">
+                          Coming Soon
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          Active & Enrollment Open
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <p className="text-[10px] font-extrabold uppercase tracking-widest text-orange-500">Launching Soon</p>
-                      <h4 className="font-heading font-black text-lg text-slate-900 dark:text-white mt-1">Coming Soon</h4>
-                      <p className="text-xs text-slate-500 max-w-[200px] mx-auto mt-1 leading-relaxed">
-                        Prelims Test Series is under preparation. Stay tuned!
+
+                    {/* Title & Language */}
+                    <div className="space-y-2">
+                      <h3 className="font-heading font-black text-lg text-[var(--text-color)] group-hover:text-amber-500 transition-colors leading-snug">
+                        {series.title}
+                      </h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                        {series.description}
                       </p>
                     </div>
+
+                    {/* Quick Specs Metrics Pills */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--card-border)]">
+                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+                        <Layers className="w-4 h-4 text-amber-500 shrink-0" />
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-400 block uppercase">Total Mocks</span>
+                          <span className="text-xs font-black text-[var(--text-color)]">{series.totalTests} Tests</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+                        <BookOpen className="w-4 h-4 text-indigo-500 shrink-0" />
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-400 block uppercase">Questions</span>
+                          <span className="text-xs font-black text-[var(--text-color)]">{series.totalQuestions} Qs</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Highlights Bullet List (Top 3) */}
+                    {series.highlights && series.highlights.length > 0 && (
+                      <ul className="space-y-1.5 pt-2">
+                        {series.highlights.slice(0, 3).map((feat, idx) => (
+                          <li key={idx} className="flex items-start gap-2 text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                            <CheckCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                            <span className="line-clamp-1">{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Pricing & Footer CTA */}
+                  <div className="p-6 bg-slate-50/50 dark:bg-slate-900/40 border-t border-[var(--card-border)] flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Course Fee</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-lg font-black text-[var(--text-color)]">
+                          ₹{displayPrice?.toLocaleString()}
+                        </span>
+                        {hasDiscount && (
+                          <span className="text-xs font-bold text-slate-400 line-through">
+                            ₹{series.price.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
                     <Link
-                      href="/contact?enquiry=enroll"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl text-xs transition-all"
+                      href={`/test-series/${series.slug}`}
+                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs flex items-center gap-1.5 transition-all shadow-xs group-hover:scale-[1.03]"
                     >
-                      <span>Get Notified</span>
-                      <ArrowRight className="w-3 h-3" />
+                      <span>Explore Program</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </div>
                 </div>
-              )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-              {/* Category tag */}
-              <div className="absolute top-6 right-6">
-                <span className={`text-[9px] font-extrabold uppercase tracking-widest px-2.5 py-1 rounded-md border ${
-                  series.category === 'Prelims'
-                    ? 'bg-orange-50 dark:bg-orange-950/30 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-950/60'
-                    : 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-950/60'
-                }`}>
-                  {series.category === 'Prelims' ? 'Prelims Series' : 'Mains Series'}
-                </span>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="font-heading font-extrabold text-xl text-slate-900 dark:text-white leading-tight">
-                    {series.title}
-                  </h3>
-                  <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed max-w-md">
-                    {series.description}
-                  </p>
-                </div>
-
-                {/* Features List */}
-                <ul className="space-y-2.5 pt-4 border-t border-slate-50 dark:border-white/[0.04]">
-                  {(series.features || []).map((feat: string, idx: number) => (
-                    <li key={idx} className="flex gap-2.5 items-start text-xs font-semibold text-slate-650 dark:text-slate-300">
-                      <CheckCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Price & Action */}
-              <div className="flex items-center justify-between pt-8 mt-8 border-t border-slate-50 dark:border-white/[0.04]">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Course Fee</span>
-                  <span className="text-xl font-black text-slate-900 dark:text-white">{series.fee}</span>
-                </div>
-
-                <Link
-                  href={`/courses/${series.id}`}
-                  className="px-5 py-3 bg-slate-950 hover:bg-slate-800 dark:bg-amber-500 dark:hover:bg-amber-600 text-white dark:text-slate-950 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all group-hover:translate-x-1"
-                >
-                  <span>Explore Program</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

@@ -119,13 +119,13 @@ export default function PyqPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-3 max-w-3xl">
           <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest block w-fit">
-            Official Question Bank
+            Question Papers
           </span>
           <h1 className="text-4xl sm:text-5xl font-heading font-black text-slate-900 dark:text-white tracking-tight leading-none">
-            Previous Year Papers Library
+            Previous Year Papers
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
-            Select an exam category to explore structured question booklets, verified answer keys, and direct downloadable solutions.
+            Explore question papers, answer keys, and solutions.
           </p>
         </div>
 
