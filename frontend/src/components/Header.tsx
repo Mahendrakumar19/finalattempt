@@ -313,15 +313,15 @@ export default function Header() {
         style={{ backgroundColor: 'var(--header-bg)', borderBottom: '1px solid var(--card-border)' }}
       >
         {/* ── Top Ticker Bar ────────────────────── */}
-        <div className="w-full bg-[#0F172A] text-slate-300 py-2.5 px-4 sm:px-6 lg:px-12 text-xs flex flex-wrap justify-between items-center gap-y-2 border-b border-slate-800 font-medium">
-          <div className="flex items-center flex-wrap gap-x-5 gap-y-1 w-full sm:w-auto justify-center sm:justify-start">
-            <a href="mailto:enquiry@finalattemptias.com" className="hover:text-amber-400 transition-colors flex items-center gap-1.5 shrink-0">
-              <Phone className="w-3.5 h-3.5 text-amber-500" />
+        <div className="w-full bg-[#0F172A] text-slate-300 py-3 px-4 sm:px-6 lg:px-12 text-sm flex flex-wrap justify-between items-center gap-y-2 border-b border-slate-800">
+          <div className="flex items-center flex-wrap gap-x-4 gap-y-1 w-full sm:w-auto justify-center sm:justify-start">
+            <a href="mailto:enquiry@finalattemptias.com" className="hover:text-white transition-colors flex items-center gap-1.5 shrink-0">
+              <span className="font-semibold text-amber-500">✉</span>
               <span>enquiry@finalattemptias.com</span>
             </a>
             <span className="hidden sm:inline text-slate-700">|</span>
-            <a href="tel:+919709992093" className="hover:text-amber-400 transition-colors flex items-center gap-1.5 shrink-0">
-              <Phone className="w-3.5 h-3.5 text-amber-500" />
+            <a href="tel:+919709992093" className="hover:text-white transition-colors flex items-center gap-1.5 shrink-0">
+              <span className="font-semibold text-amber-500">📞</span>
               <span>+91 97099 92093</span>
             </a>
             {headerTopCustom.map((p: any) => (
@@ -344,9 +344,7 @@ export default function Header() {
                   {user?.avatarUrl ? (
                     <img src={user.avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-amber-500" />
                   ) : (
-                    <span className="w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-amber-500 border border-slate-700">
-                      <GraduationCap className="w-3 h-3 text-amber-500" />
-                    </span>
+                    <span className="w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-amber-500 border border-slate-700">👤</span>
                   )}
                   <span>Dashboard</span>
                 </Link>
@@ -360,25 +358,24 @@ export default function Header() {
               </div>
             ) : (
               <Link href="/auth/login/student" className="hover:text-white transition-colors flex items-center gap-1.5 font-bold shrink-0">
-                <GraduationCap className="w-3.5 h-3.5 text-amber-500" />
+                <span>👤</span>
                 <span>Student Login</span>
               </Link>
             )}
             <span className="text-slate-700">|</span>
             <button
               onClick={toggleTheme}
-              className="hover:text-white transition-colors flex items-center gap-1.5 text-xs font-bold cursor-pointer shrink-0"
+              className="hover:text-white transition-colors flex items-center gap-1.5 text-sm font-bold cursor-pointer shrink-0"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? (
-                <><Sun className="w-3.5 h-3.5 text-amber-500" /><span>Light</span></>
+                <><Sun className="w-4 h-4 text-amber-500" /><span>Light</span></>
               ) : (
-                <><Moon className="w-3.5 h-3.5 text-slate-400" /><span>Dark</span></>
+                <><Moon className="w-4 h-4 text-slate-400" /><span>Dark</span></>
               )}
             </button>
           </div>
         </div>
-
 
         {/* ── Main Navbar ───────────────────────── */}
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-10">

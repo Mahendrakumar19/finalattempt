@@ -247,15 +247,12 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
       const payload = { id, ...quizForm, courseId: selectedSeriesId };
       await db.saveQuiz(payload);
       setQuizzes(prev => [...prev, payload]);
-      setExpandedQuiz(id);
-      setQuizQuestions(prev => ({ ...prev, [id]: [] }));
       setShowQuizForm(false);
       setQuizForm({ ...BLANK_QUIZ });
     } finally {
       setSavingQuiz(false);
     }
   };
-
 
   const handleDeleteQuiz = async (quizId: string) => {
     if (!confirm('Delete this quiz and ALL its questions?')) return;
@@ -285,49 +282,112 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   // Bulk Import State
   const [showBulkImportModal, setShowBulkImportModal] = useState<string | null>(null);
   const [bulkRawText, setBulkRawText] = useState<string>('');
-  const [parsedBulkQuestions, setParsedBulkQuestions] = useState<Array<{
-    questionText: string;
-    optionA: string;
-    optionB: string;
-    optionC: string;
-    optionD: string;
-    correctAnswer: 'A' | 'B' | 'C' | 'D';
-    explanation: string;
-    marks: number;
-    negativeMarks: number;
-  }>>([]);
+  const [parsedBulkQuestions, setParsedBulkQuestions] = useState<Array<any>>([]);
   const [importingBulk, setImportingBulk] = useState(false);
 
-  // Intelligent Regex Parser for PDF & Text Question Feeds
+  // Edit Question State
+  const [editingQuestion, setEditingQuestion] = useState<any | null>(null);
+
+
+  // Universal Multi-Format Parser (JSON, CSV, PDF/DOC/TXT Text Feeds)
   const handleParseBulkText = (textToParse: string) => {
     const raw = textToParse || bulkRawText;
     if (!raw.trim()) {
-      alert('Please paste question text or upload a PDF/text file first.');
+      alert('Please paste question text or upload a PDF/CSV/JSON/Text file first.');
       return;
     }
 
-    // Split questions by Q1., Q2., 1., 2., Question 1:, etc.
-    const blocks = raw.split(/(?=\b(?:Q\.?\s*\d+|\d+[\.\)])\b)/i).filter(b => b.trim().length > 10);
     const parsed: any[] = [];
 
-    for (const block of blocks) {
-      const qMatch = block.match(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])?\s*([\s\S]+?)(?=\s*[\(\[]?[A-D][\)\.\:\s])/i);
-      const optAMatch = block.match(/[\(\[]?A[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?B[\)\.\:\s]|$)/i);
-      const optBMatch = block.match(/[\(\[]?B[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?C[\)\.\:\s]|$)/i);
-      const optCMatch = block.match(/[\(\[]?C[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?D[\)\.\:\s]|$)/i);
-      const optDMatch = block.match(/[\(\[]?D[\)\.\:\s]+([\s\S]+?)(?=\s*(?:Ans|Answer|Correct|Explanation|Sol|Solution)[\:\s]|$)/i);
+    // 1. Try parsing JSON format
+    if (raw.trim().startsWith('[') || raw.trim().startsWith('{')) {
+      try {
+        const jsonData = JSON.parse(raw.trim());
+        const list = Array.isArray(jsonData) ? jsonData : [jsonData];
+        for (const item of list) {
+          if (item.questionText || item.question) {
+            parsed.push({
+              questionText: item.questionText || item.question,
+              optionA: item.optionA || item.a || '',
+              optionB: item.optionB || item.b || '',
+              optionC: item.optionC || item.c || '',
+              optionD: item.optionD || item.d || '',
+              correctAnswer: (item.correctAnswer || item.answer || 'A').toString().toUpperCase().trim().charAt(0),
+              explanation: item.explanation || item.solution || 'Refer to BPSC official syllabus notes.',
+              marks: Number(item.marks) || 1,
+              negativeMarks: Number(item.negativeMarks) || 0.33
+            });
+          }
+        }
+        if (parsed.length > 0) {
+          setParsedBulkQuestions(parsed);
+          return;
+        }
+      } catch (_) {}
+    }
 
-      const ansMatch = block.match(/(?:Ans|Answer|Correct|Option)[\:\s]*[\(\[]?([A-D])[\)\]]?/i);
+    // 2. Try parsing CSV format
+    if (raw.includes(',') && (raw.toLowerCase().includes('option') || raw.toLowerCase().includes('question'))) {
+      const lines = raw.split('\n').map((l: string) => l.trim()).filter(Boolean);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // Skip CSV Header row
+        if (i === 0 && line.toLowerCase().includes('question')) continue;
+        const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((c: string) => c.replace(/^"|"$/g, '').trim());
+        if (cols.length >= 5) {
+          parsed.push({
+            questionText: cols[0],
+            optionA: cols[1] || '',
+            optionB: cols[2] || '',
+            optionC: cols[3] || '',
+            optionD: cols[4] || '',
+            correctAnswer: cols[5] ? cols[5].toUpperCase().trim().charAt(0) : 'A',
+            explanation: cols[6] || 'Refer to BPSC official syllabus notes.',
+            marks: 1,
+            negativeMarks: 0.33
+          });
+        }
+      }
+      if (parsed.length > 0) {
+        setParsedBulkQuestions(parsed);
+        return;
+      }
+    }
+
+    // 3. Fallback: Intelligent Regex Parser for PDF / DOC / TXT Text Feeds
+    const blocks = raw.split(/(?=\b(?:Q\.?\s*\d+|\d+[\.\)])\b)/i).filter((b: string) => b.trim().length > 10);
+
+    for (const block of blocks) {
+      // Extract Question Text
+      const qMatch = block.match(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])?\s*([\s\S]+?)(?=\s*(?:[\(\[]?[A-D1-4][\)\.\:\s]))/i);
+
+      // Extract Options A, B, C, D (or 1, 2, 3, 4)
+      const optAMatch = block.match(/[\(\[]?(?:A|1)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:B|2)[\)\.\:\s]|$)/i);
+      const optBMatch = block.match(/[\(\[]?(?:B|2)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:C|3)[\)\.\:\s]|$)/i);
+      const optCMatch = block.match(/[\(\[]?(?:C|3)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:D|4)[\)\.\:\s]|$)/i);
+      const optDMatch = block.match(/[\(\[]?(?:D|4)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:Ans|Answer|Correct|Explanation|Sol|Solution)[\:\s]|$)/i);
+
+      let ansMatch = block.match(/(?:Ans|Answer|Correct|Option)[\:\s\-]*[\(\[]?([A-D1-4])[\)\]]?/i);
       const expMatch = block.match(/(?:Explanation|Sol|Solution)[\:\s]+([\s\S]+)$/i);
 
       if (qMatch && optAMatch && optBMatch) {
+        let ansLetter: 'A' | 'B' | 'C' | 'D' = 'A';
+        if (ansMatch) {
+          const matchedVal = ansMatch[1].toUpperCase();
+          if (matchedVal === '1') ansLetter = 'A';
+          else if (matchedVal === '2') ansLetter = 'B';
+          else if (matchedVal === '3') ansLetter = 'C';
+          else if (matchedVal === '4') ansLetter = 'D';
+          else if (['A', 'B', 'C', 'D'].includes(matchedVal)) ansLetter = matchedVal as any;
+        }
+
         parsed.push({
           questionText: qMatch[1].trim().replace(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])\s*/i, ''),
           optionA: optAMatch[1].trim(),
           optionB: optBMatch[1].trim(),
           optionC: optCMatch ? optCMatch[1].trim() : '',
           optionD: optDMatch ? optDMatch[1].trim() : '',
-          correctAnswer: ansMatch ? ansMatch[1].toUpperCase() as any : 'A',
+          correctAnswer: ansLetter,
           explanation: expMatch ? expMatch[1].trim() : 'Refer to BPSC official syllabus notes.',
           marks: 1,
           negativeMarks: 0.33
@@ -336,13 +396,13 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
     }
 
     if (parsed.length === 0) {
-      alert('Could not detect standard MCQs in the text. Make sure questions follow standard format:\n\n1. Question statement\n(A) Option 1\n(B) Option 2\n(C) Option 3\n(D) Option 4\nAns: A\nExplanation: ...');
+      alert('Could not detect standard MCQs. Please ensure questions follow standard format or upload a CSV/JSON/TXT file.\n\nExample:\n1. Question text\n(A) Option 1\n(B) Option 2\n(C) Option 3\n(D) Option 4\nAns: A\nExplanation: ...');
     } else {
       setParsedBulkQuestions(parsed);
     }
   };
 
-  // Handle PDF / Text File Upload Read
+  // Handle File Upload Read (JSON, CSV, TXT, PDF, DOC)
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -364,11 +424,12 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
     setImportingBulk(true);
 
     try {
-      const createdItems = parsedBulkQuestions.map(q => ({
+      const createdItems = parsedBulkQuestions.map((q: any) => ({
         id: `q-${quizId}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         ...q,
         quizId
       }));
+
 
       await db.saveBulkQuestions(quizId, createdItems);
 
@@ -389,6 +450,36 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
     }
   };
 
+  // Save Edit Question Changes
+  const handleSaveEditQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQuestion || !editingQuestion.quizId) return;
+
+    await db.saveQuestion(editingQuestion);
+    setQuizQuestions(prev => ({
+      ...prev,
+      [editingQuestion.quizId]: (prev[editingQuestion.quizId] || []).map(q => q.id === editingQuestion.id ? editingQuestion : q)
+    }));
+    setEditingQuestion(null);
+    alert('Question updated successfully!');
+  };
+
+  // Export Question Bank to JSON
+  const handleExportQuestions = (quizId: string, quizTitle: string) => {
+    const qs = quizQuestions[quizId] || [];
+    if (qs.length === 0) {
+      alert('No questions in this quiz to export.');
+      return;
+    }
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(qs, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `${quizTitle.toLowerCase().replace(/[^a-z0-9]/g, '_')}_questions.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
   const handleDeleteQuestion = async (quizId: string, questionId: string) => {
     if (!confirm('Delete this question?')) return;
     await db.deleteQuestion(questionId, quizId);
@@ -397,6 +488,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
       [quizId]: (prev[quizId] || []).filter(q => q.id !== questionId),
     }));
   };
+
 
 
 
@@ -616,93 +708,6 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                 </button>
               </div>
 
-              {/* Create Quiz Modal / Form Inline */}
-              {showQuizForm && (
-                <form onSubmit={handleCreateQuiz} className="p-6 bg-[var(--card-bg)] rounded-3xl border border-amber-500/40 space-y-4 shadow-lg animate-fade-in">
-                  <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-3">
-                    <h4 className="font-heading font-black text-sm text-amber-500 uppercase tracking-wider flex items-center gap-2">
-                      <Plus className="w-4 h-4" />
-                      <span>Create New Mock Quiz / Paper</span>
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={() => setShowQuizForm(false)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-[var(--text-color)]"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="sm:col-span-2">
-                      <label className="text-[10px] font-bold uppercase text-slate-400">Quiz / Mock Paper Title *</label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Full Length Grand Mock Paper 2"
-                        value={quizForm.title}
-                        onChange={e => setQuizForm({ ...quizForm, title: e.target.value })}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] text-xs font-bold rounded-xl outline-none mt-1"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400">Time Limit (Minutes)</label>
-                      <input
-                        type="number"
-                        required
-                        min={5}
-                        max={360}
-                        value={quizForm.timeLimitMins}
-                        onChange={e => setQuizForm({ ...quizForm, timeLimitMins: Number(e.target.value) })}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] text-xs font-bold rounded-xl outline-none mt-1"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400">Passing Score (%)</label>
-                      <input
-                        type="number"
-                        required
-                        min={0}
-                        max={100}
-                        value={quizForm.passingScore}
-                        onChange={e => setQuizForm({ ...quizForm, passingScore: Number(e.target.value) })}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] text-xs font-bold rounded-xl outline-none mt-1"
-                      />
-                    </div>
-
-                    <div className="sm:col-span-2">
-                      <label className="text-[10px] font-bold uppercase text-slate-400">Quiz Description (Optional)</label>
-                      <textarea
-                        placeholder="Enter a brief description of topics covered in this mock..."
-                        value={quizForm.description}
-                        onChange={e => setQuizForm({ ...quizForm, description: e.target.value })}
-                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] text-xs rounded-xl outline-none mt-1 min-h-16"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowQuizForm(false)}
-                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={savingQuiz}
-                      className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer"
-                    >
-                      {savingQuiz ? 'Creating...' : 'Create Mock Quiz'}
-                    </button>
-                  </div>
-                </form>
-              )}
-
-
               {loadingQuizzes ? (
                 <div className="space-y-3">
                   {[1, 2].map(i => <div key={i} className="h-20 bg-[var(--card-bg)] rounded-2xl animate-pulse border border-[var(--card-border)]" />)}
@@ -756,6 +761,15 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
+                                onClick={() => handleExportQuestions(quiz.id, quiz.title)}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 text-slate-300 text-[10px] font-bold rounded-xl hover:bg-slate-700 cursor-pointer"
+                                title="Export Question Bank to JSON"
+                              >
+                                Export JSON
+                              </button>
+
+                              <button
+                                type="button"
                                 onClick={() => { setShowBulkImportModal(quiz.id); setParsedBulkQuestions([]); setBulkRawText(''); }}
                                 className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-extrabold rounded-xl shadow-xs transition-all cursor-pointer"
                               >
@@ -771,7 +785,6 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                               </button>
                             </div>
                           </div>
-
 
                           {loadingQuestions === quiz.id ? (
                             <div className="h-12 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
@@ -797,17 +810,29 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                                       ))}
                                     </div>
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteQuestion(quiz.id, q.id)}
-                                    className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingQuestion({ ...q })}
+                                      className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors shrink-0 cursor-pointer"
+                                      title="Edit question"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteQuestion(quiz.id, q.id)}
+                                      className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
+                                      title="Delete question"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                             </div>
                           )}
+
 
                           {/* Add Question Form Modal inline */}
                           {showQForm === quiz.id && (
@@ -1234,8 +1259,237 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
           </form>
         </div>
       )}
+
+
+      {/* ── CREATE NEW MOCK QUIZ MODAL ────────────────────────────────────── */}
+      {showQuizForm && (
+
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Test Series CMS</span>
+                <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-0.5">
+                  Add New Mock Quiz / Paper
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowQuizForm(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-[var(--text-color)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateQuiz} className="space-y-4 text-xs font-bold">
+              <div>
+                <label className="block text-slate-400 mb-1">Quiz Title *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Full Length Grand Mock Paper 2"
+                  value={quizForm.title}
+                  onChange={e => setQuizForm({ ...quizForm, title: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-400 mb-1">Time Limit (Minutes)</label>
+                  <input
+                    type="number"
+                    value={quizForm.timeLimitMins}
+                    onChange={e => setQuizForm({ ...quizForm, timeLimitMins: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Passing Score (%)</label>
+                  <input
+                    type="number"
+                    value={quizForm.passingScore}
+                    onChange={e => setQuizForm({ ...quizForm, passingScore: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Quiz Description / Instructions</label>
+                <textarea
+                  rows={3}
+                  placeholder="Official 150-question mock test pattern..."
+                  value={quizForm.description}
+                  onChange={e => setQuizForm({ ...quizForm, description: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-[var(--card-border)]">
+                <button
+                  type="button"
+                  onClick={() => setShowQuizForm(false)}
+                  className="px-5 py-2.5 border border-[var(--card-border)] text-slate-400 text-xs font-bold rounded-2xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingQuiz}
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl shadow-md cursor-pointer"
+                >
+                  {savingQuiz ? 'Creating...' : 'Create Mock Quiz'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── EDIT QUESTION MODAL ────────────────────────────────────────────── */}
+      {editingQuestion && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Question Bank Editor</span>
+                <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-0.5">
+                  Edit MCQ Question Details
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingQuestion(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-[var(--text-color)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditQuestion} className="space-y-4 text-xs font-bold">
+              <div>
+                <label className="block text-slate-400 mb-1">Question Prompt *</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={editingQuestion.questionText || ''}
+                  onChange={e => setEditingQuestion({ ...editingQuestion, questionText: e.target.value })}
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1">Option A *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingQuestion.optionA || ''}
+                    onChange={e => setEditingQuestion({ ...editingQuestion, optionA: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Option B *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingQuestion.optionB || ''}
+                    onChange={e => setEditingQuestion({ ...editingQuestion, optionB: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Option C</label>
+                  <input
+                    type="text"
+                    value={editingQuestion.optionC || ''}
+                    onChange={e => setEditingQuestion({ ...editingQuestion, optionC: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Option D</label>
+                  <input
+                    type="text"
+                    value={editingQuestion.optionD || ''}
+                    onChange={e => setEditingQuestion({ ...editingQuestion, optionD: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1">Correct Answer *</label>
+                  <select
+                    value={editingQuestion.correctAnswer || 'A'}
+                    onChange={e => setEditingQuestion({ ...editingQuestion, correctAnswer: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  >
+                    <option value="A">Option A</option>
+                    <option value="B">Option B</option>
+                    <option value="C">Option C</option>
+                    <option value="D">Option D</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Marks</label>
+                  <input
+                    type="number"
+                    value={editingQuestion.marks || 1}
+                    onChange={e => setEditingQuestion({ ...editingQuestion, marks: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Penalty (-)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editingQuestion.negativeMarks || 0.33}
+                    onChange={e => setEditingQuestion({ ...editingQuestion, negativeMarks: Number(e.target.value) })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Solution Explanation Notes</label>
+                <textarea
+                  rows={2}
+                  value={editingQuestion.explanation || ''}
+                  onChange={e => setEditingQuestion({ ...editingQuestion, explanation: e.target.value })}
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-[var(--card-border)]">
+                <button
+                  type="button"
+                  onClick={() => setEditingQuestion(null)}
+                  className="px-5 py-2.5 border border-[var(--card-border)] text-slate-400 text-xs font-bold rounded-2xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl shadow-md cursor-pointer"
+                >
+                  Save Question Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* ── BULK QUESTION IMPORT WORKBENCH MODAL (PDF / TEXT AUTO-PARSER) ──── */}
       {showBulkImportModal && (
+
+
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
@@ -1301,8 +1555,9 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                   </span>
 
                   <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
-                    {parsedBulkQuestions.map((pq, pIdx) => (
+                    {parsedBulkQuestions.map((pq: any, pIdx: number) => (
                       <div key={pIdx} className="p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-[var(--card-border)] space-y-2">
+
                         <div className="flex justify-between items-center text-[10px] font-black text-amber-500">
                           <span>Q{pIdx + 1}</span>
                           <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded">Ans: Option {pq.correctAnswer}</span>

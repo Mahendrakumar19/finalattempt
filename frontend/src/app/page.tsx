@@ -20,10 +20,8 @@ import {
   Layers,
   GraduationCap,
   Video,
-  SlidersHorizontal,
-  Target
+  SlidersHorizontal
 } from 'lucide-react';
-
 import { db } from '@/services/db';
 import TestimonialCarousel from '@/components/TestimonialCarousel';
 import Image from "next/image";
@@ -456,59 +454,58 @@ export default function Home() {
               {
                 title: 'Mentorship That Puts You First',
                 desc: "At Final Attempt, mentorship is not just an add-on—it's the foundation of our learning ecosystem. Every aspirant receives personalized one-to-one guidance, regular progress reviews, strategic planning, and continuous support throughout the preparation journey.",
-                icon: Users,
-                bg: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                emoji: '🤝',
+                bg: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600'
               },
               {
                 title: 'Learn from Experienced Mentors',
                 desc: 'Learn from experienced educators, BPSC experts, and mentors who simplify complex concepts, provide practical exam strategies, and guide you with years of teaching and examination expertise.',
-                icon: GraduationCap,
-                bg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20'
+                emoji: '🎓',
+                bg: 'bg-blue-50 dark:bg-blue-950/30 text-blue-600'
               },
               {
                 title: 'Personalized Learning Journey',
                 desc: 'Every aspirant receives a customized study plan based on their strengths, weaknesses, learning pace, and performance—ensuring focused preparation and maximum improvement.',
-                icon: Compass,
-                bg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                emoji: '🎯',
+                bg: 'bg-amber-50 dark:bg-amber-950/30 text-amber-600'
               },
               {
                 title: 'Expert Answer Evaluation & Feedback',
                 desc: 'Improve your answer writing with detailed, mentor-driven copy evaluation. Every answer is assessed using BPSC standards, with personalized feedback, score analysis, model approaches, and actionable suggestions to help you maximize your mains score.',
-                icon: FileText,
-                bg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
+                emoji: '✍️',
+                bg: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600'
               },
               {
                 title: 'AI-Powered Performance Analytics',
                 desc: 'Monitor your progress through advanced performance analytics, test insights, accuracy reports, and improvement recommendations. Our data-driven approach helps you identify weak areas and prepare more efficiently.',
-                icon: TrendingUp,
-                bg: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20'
+                emoji: '📊',
+                bg: 'bg-cyan-50 dark:bg-cyan-950/30 text-cyan-600'
               },
               {
                 title: 'Complete BPSC Learning Ecosystem',
                 desc: 'Access everything you need under one platform—high-quality study material, structured courses, test series, answer writing practice, current affairs, mentorship, performance tracking, and interview guidance—covering every stage of your BPSC journey.',
-                icon: BookOpen,
-                bg: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20'
+                emoji: '📚',
+                bg: 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600'
               },
               {
                 title: 'Designed to Make This Your Final Attempt',
                 desc: 'Final Attempt combines personalized mentorship, expert evaluation, technology-driven learning, and strategic preparation into one integrated ecosystem—helping aspirants prepare with confidence and move one step closer to selection.',
-                icon: Trophy,
-                bg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+                emoji: '🚀',
+                bg: 'bg-rose-50 dark:bg-rose-950/30 text-rose-600',
                 colSpan: 'md:col-span-2 lg:col-span-3'
               }
             ].map((item, idx) => (
-              <div key={idx} className={`card-editorial space-y-4 group ${item.colSpan || ''}`}>
-                <div className={`w-12 h-12 rounded-xl border ${item.bg} flex items-center justify-center transition-transform duration-200 group-hover:scale-105`}>
-                  <item.icon className="w-6 h-6" />
+              <div key={idx} className={`bg-white dark:bg-slate-900/40 p-8 rounded-3xl border border-slate-100 dark:border-white/[0.06] space-y-4 shadow-sm hover-lift group ${item.colSpan || ''}`}>
+                <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
+                  <span>{item.emoji}</span>
                 </div>
-                <h3 className="text-card-title text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{item.title}</h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">{item.title}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                   {item.desc}
                 </p>
               </div>
             ))}
           </div>
-
         </div>
       </section>
 
@@ -806,10 +803,9 @@ export default function Home() {
 
               <div className="pt-4 border-t border-slate-50 dark:border-white/[0.04] space-y-4">
                 <div className="text-[#1E3A8A] dark:text-amber-500 font-extrabold text-sm sm:text-base tracking-wide flex items-center gap-2">
-                  <Target className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>🎯</span>
                   <span>Let&apos;s Make Your Attempt Final with FINAL ATTEMPT.</span>
                 </div>
-
 
                 <div className="flex gap-4">
                   <a
