@@ -8,7 +8,8 @@ const router = Router();
 // Get Rooms list for Course
 router.get('/rooms/:courseId', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {
-    const rooms = await lmsDB.getChatRoomsByCourseId(req.params.courseId);
+    const courseId = Array.isArray(req.params.courseId) ? req.params.courseId[0] : req.params.courseId;
+    const rooms = await lmsDB.getChatRoomsByCourseId(courseId);
     res.json({ success: true, data: rooms });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -18,7 +19,8 @@ router.get('/rooms/:courseId', authenticate, requireStudent, async (req: AuthReq
 // Get Messages History of a Room
 router.get('/messages/:roomId', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {
-    const messages = await lmsDB.getChatMessagesByRoomId(req.params.roomId, 50);
+    const roomId = Array.isArray(req.params.roomId) ? req.params.roomId[0] : req.params.roomId;
+    const messages = await lmsDB.getChatMessagesByRoomId(roomId, 50);
     res.json({ success: true, data: messages });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

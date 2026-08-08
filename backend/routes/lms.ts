@@ -151,7 +151,41 @@ router.post('/enrollments', authenticate, async (req: AuthRequest, res: Response
   }
 });
 
-// ─────────────────────────── GET /api/lms/progress/:courseId ─────────────────
+// ─────────────────────────── ADMIN ENROLLMENT MANAGEMENT ──────────────────────
+// Admin: Manually assign user to course or test series
+router.post('/admin/enrollments', async (req: Request, res: Response) => {
+  const { userId, courseId, amountPaid } = req.body;
+  if (!userId || !courseId) {
+    res.status(400).json({ success: false, error: 'userId and courseId are required.' });
+    return;
+  }
+  try {
+    const alreadyEnrolled = await lmsDB.isEnrolled(userId, courseId);
+    if (alreadyEnrolled) {
+      res.status(409).json({ success: false, error: 'User is already enrolled in this program.' });
+      return;
+    }
+    const enrollment = await lmsDB.createEnrollment(userId, courseId, 'ADMIN_MANUAL_ASSIGN', amountPaid || 0);
+    res.status(201).json({ success: true, data: enrollment });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin: Unenroll / revoke course or test series access
+router.delete('/admin/enrollments', async (req: Request, res: Response) => {
+  const { userId, courseId } = req.body;
+  if (!userId || !courseId) {
+    res.status(400).json({ success: false, error: 'userId and courseId are required.' });
+    return;
+  }
+  try {
+    const ok = await lmsDB.deleteEnrollment(userId, courseId);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 // Get my progress for a course (completion %, per-lesson status)
 
 router.get('/progress/:courseId', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {

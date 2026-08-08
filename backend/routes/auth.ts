@@ -537,7 +537,7 @@ router.get('/users', async (req: Request, res: Response) => {
 
 // ─── ADMIN: Toggle User Active/Suspended ─────────────────────────────────────
 router.put('/users/:id/status', async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const { isActive } = req.body;
   try {
     const ok = await authDB.updateUserActiveStatus(id, isActive);
@@ -549,7 +549,7 @@ router.put('/users/:id/status', async (req: Request, res: Response) => {
 
 // ─── SUPER ADMIN: Update User Role ───────────────────────────────────────────
 router.put('/users/:id/role', async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const { role } = req.body;
   if (!['student', 'faculty', 'admin'].includes(role)) {
     res.status(400).json({ success: false, error: 'Invalid role' });
@@ -570,7 +570,7 @@ router.put('/users/:id/role', async (req: Request, res: Response) => {
 
 // ─── SUPER ADMIN: Update User Full Profile Info ─────────────────────────────
 router.put('/users/:id/profile', async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const { fullName, email, mobile, targetExam, role, avatarUrl } = req.body;
   try {
     const user = await authDB.findUserById(id);
@@ -594,7 +594,7 @@ router.put('/users/:id/profile', async (req: Request, res: Response) => {
 
 // ─── ADMIN: Delete User Profile ──────────────────────────────────────────────
 router.delete('/users/:id', async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   try {
     const ok = await authDB.deleteUser(id);
     res.json({ success: ok });

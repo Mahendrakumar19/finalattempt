@@ -3165,6 +3165,24 @@ class LmsDB {
     return enrollment;
   }
 
+  async deleteEnrollment(userId: string, courseId: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [res]: any = await mysqlPool.query(
+          'DELETE FROM lms_enrollments WHERE userId = ? AND courseId = ?',
+          [userId, courseId]
+        );
+        return res.affectedRows > 0;
+      } catch (err) { console.error('[LmsDB] deleteEnrollment MySQL error:', err); }
+    }
+    const idx = lmsLocalEnrollments.findIndex(e => e.userId === userId && e.courseId === courseId);
+    if (idx >= 0) {
+      lmsLocalEnrollments.splice(idx, 1);
+      return true;
+    }
+    return false;
+  }
+
   async getUserEnrollments(userId: string): Promise<any[]> {
     if (mysqlPool) {
       try {
