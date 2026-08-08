@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   LayoutDashboard,
   Users,
-  Settings,
   LogOut,
   RefreshCw,
   AlertTriangle,

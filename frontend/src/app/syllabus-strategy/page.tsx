@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { FileText, Download, Eye, Calendar, BookOpen, Layers, CheckCircle, ChevronRight, Home, ChevronDown, Compass, Award, ExternalLink, X } from 'lucide-react';
+import { FileText, Download, Eye, ChevronRight, Home, ChevronDown, X } from 'lucide-react';
 
 interface Exam {
   id: string;
@@ -76,8 +76,6 @@ export default function SyllabusStrategyPage() {
       const hash = window.location.hash;
       if (hash === '#strategy') {
         setActiveTab('strategy');
-      } else {
-        setActiveTab('syllabus');
       }
     }
 
