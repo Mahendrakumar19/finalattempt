@@ -119,7 +119,7 @@ function LoginFormContent() {
             <span className="text-xs text-emerald-250 font-extrabold uppercase tracking-widest">Faculty Console</span>
           </div>
           <h2 className="text-3xl font-heading font-black text-white leading-tight">
-            Mentor Workspace & LMS Editor
+            Mentor Workspace &amp; Course Editor
           </h2>
           <p className="text-slate-400 text-xs leading-relaxed">
             Instructor portal. Manage lesson lists, review student homework submissions, update quizzes, and configure strategy sessions.
@@ -130,7 +130,7 @@ function LoginFormContent() {
           <div className="flex items-center gap-3">
             <BookOpen className="w-10 h-10 text-emerald-500 shrink-0" />
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider">LMS Management</h4>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">Course Management</h4>
               <p className="text-[10px] text-slate-400">Post lesson updates and review question logs.</p>
             </div>
           </div>

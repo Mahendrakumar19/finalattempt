@@ -53,6 +53,7 @@
 :root {
   --font-heading: 'Plus Jakarta Sans', sans-serif;
   --font-body: 'Inter', sans-serif;
+  --font-inlander: 'Inlander', 'Cinzel', 'Playfair Display', serif;
   --bg-color: #FFFBF2;
   --bg-color-accent: #FAF6EC;
   --text-primary: #0F172A;
@@ -216,21 +217,103 @@ html.dark ::-webkit-scrollbar-track {
   background: #B45309;
 }
 
-/* ── Glass panels ── */
-.glass-panel {
-  background: rgba(255, 251, 242, 0.75);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(245, 158, 11, 0.15);
-}
-.dark .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* ── Real Glassmorphism System ── */
+.glass-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  z-index: 1;
 }
 
-.glass-panel-dark {
-  background: rgba(15, 23, 42, 0.90);
+.real-glass-card {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(254, 243, 199, 0.85) 100%);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-top: 1.5px solid rgba(245, 158, 11, 0.5);
+  border-left: 1.5px solid rgba(245, 158, 11, 0.5);
+  border-right: 1px solid rgba(245, 158, 11, 0.2);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(245, 158, 11, 0.12);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.5s ease, box-shadow 0.5s ease, border-color 0.5s ease;
+}
+
+html.dark .real-glass-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.45) 100%);
+  border-top: 1.5px solid rgba(245, 158, 11, 0.4);
+  border-left: 1.5px solid rgba(245, 158, 11, 0.4);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+}
+
+.real-glass-card .content-body {
+  padding: 28px 24px;
+  text-align: center;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.5s ease;
+  width: 100%;
+}
+
+.real-glass-card:hover .content-body {
+  transform: translateY(0px);
+  opacity: 1;
+}
+
+.real-glass-card .content-body h3 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0F172A !important;
+  z-index: 1;
+  margin-bottom: 12px;
+}
+
+html.dark .real-glass-card .content-body h3 {
+  color: #FFFFFF !important;
+}
+
+.real-glass-card .content-body p {
+  font-size: 0.875rem;
+  color: #334155 !important;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+html.dark .real-glass-card .content-body p {
+  color: #CBD5E1 !important;
+}
+
+.real-glass-card .content-body .glass-cta-btn {
+  position: relative;
+  display: inline-block;
+  padding: 8px 24px;
+  margin-top: 20px;
+  background: #ffffff;
+  color: #000000 !important;
+  border-radius: 20px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4);
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+.real-glass-card .content-body .glass-cta-btn:hover {
+  background: #F59E0B;
+  color: #ffffff !important;
+  transform: translateY(-2px);
 }
 
 /* ── Glow & Hover Utilities ── */
@@ -244,6 +327,58 @@ html.dark ::-webkit-scrollbar-track {
 }
 .glow-premium:hover {
   box-shadow: 0 0 35px rgba(245, 158, 11, 0.4);
+}
+
+.font-inlander {
+  font-family: var(--font-inlander);
+  letter-spacing: 0.08em;
+}
+
+/* Dynamic Live Color Wave Text Effect for Light & Dark Modes */
+@keyframes waveGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.text-wave-gradient {
+  background: linear-gradient(
+    270deg,
+    #F59E0B 0%,
+    #D97706 20%,
+    #1E3A8A 40%,
+    #0F172A 60%,
+    #F59E0B 80%,
+    #D97706 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: waveGradient 6s ease infinite;
+  filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.2));
+}
+
+html.dark .text-wave-gradient {
+  background: linear-gradient(
+    270deg,
+    #F59E0B 0%,
+    #FBBF24 20%,
+    #60A5FA 40%,
+    #FFFFFF 60%,
+    #F59E0B 80%,
+    #FBBF24 100%
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: waveGradient 6s ease infinite;
+  filter: drop-shadow(0 4px 16px rgba(245, 158, 11, 0.35));
 }
 
 .hover-lift {

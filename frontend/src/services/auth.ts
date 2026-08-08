@@ -1,4 +1,12 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const getBackendUrl = () => {
+  if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname || 'localhost';
+    return `http://${hostname}:5000`;
+  }
+  return 'http://127.0.0.1:5000';
+};
+const BACKEND_URL = getBackendUrl();
 
 interface ApiResponse<T = any> {
   success: boolean;

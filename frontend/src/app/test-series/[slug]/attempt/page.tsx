@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { 
-  Clock, ShieldCheck, CheckCircle2, XCircle, AlertCircle, ArrowLeft, ArrowRight,
-  RotateCcw, Bookmark, Award, Sparkles, BarChart2, Check, X, FileText, ChevronRight,
-  Maximize2, AlertTriangle, CheckSquare, Square
+  Clock, ShieldCheck, ArrowLeft,
+  Check, X, FileText, ChevronRight,
+  Maximize2, CheckSquare, Square
 } from 'lucide-react';
 import { db, TestSeriesItem } from '@/services/db';
 
@@ -89,10 +89,11 @@ const SAMPLE_BPSC_QUESTIONS: CBTQuestion[] = [
   }
 ];
 
-export default function CBTTestEnginePage() {
+function CBTTestEngineContent() {
   const params = useParams();
-  const router = useRouter();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
+  const targetQuizIdParam = searchParams.get('quiz');
 
   const [series, setSeries] = useState<TestSeriesItem | null>(null);
   const [questions, setQuestions] = useState<CBTQuestion[]>([]);
@@ -111,15 +112,7 @@ export default function CBTTestEnginePage() {
   const [isTestSubmitted, setIsTestSubmitted] = useState(false);
   const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(false);
 
-  const getBackendUrl = () => {
-    if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname;
-      return `http://${hostname}:5000`;
-    }
-    return 'http://localhost:5000';
-  };
-  const BACKEND_URL = getBackendUrl();
+
 
   // Dynamic quiz & question loader
   useEffect(() => {
@@ -135,10 +128,17 @@ export default function CBTTestEnginePage() {
           // Fetch quizzes linked to this test series program from db
           const quizzes = await db.getTestSeriesQuizzes(item.id);
           if (quizzes && quizzes.length > 0) {
-            const quizId = quizzes[0].id;
-            const questData = await db.getQuizQuestions(quizId);
+            const quizToLoad = targetQuizIdParam
+              ? quizzes.find((q: { id: string }) => q.id === targetQuizIdParam) || quizzes[0]
+              : quizzes[0];
+
+            if (quizToLoad && quizToLoad.timeLimitMins) {
+              setTimeLeftSecs(quizToLoad.timeLimitMins * 60);
+            }
+
+            const questData = await db.getQuizQuestions(quizToLoad.id);
             if (questData && questData.length > 0) {
-              loadedQs = questData.map((q: any) => ({
+              loadedQs = questData.map((q: CBTQuestion) => ({
                 id: q.id,
                 questionText: q.questionText,
                 optionA: q.optionA,
@@ -169,10 +169,10 @@ export default function CBTTestEnginePage() {
       } finally {
         setLoading(false);
       }
-
     }
     loadTestAndQuestions();
-  }, [slug]);
+  }, [slug, targetQuizIdParam]);
+
 
 
   // Countdown timer (only runs when exam is started and not submitted)
@@ -384,9 +384,10 @@ export default function CBTTestEnginePage() {
                 <span className="text-xs font-bold text-slate-400">Language:</span>
                 <select
                   value={examLanguage}
-                  onChange={e => setExamLanguage(e.target.value as any)}
+                  onChange={e => setExamLanguage(e.target.value as 'English' | 'Hindi')}
                   className="bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-700 outline-none"
                 >
+
                   <option value="English">English</option>
                   <option value="Hindi">Hindi (हिंदी)</option>
                 </select>
@@ -866,3 +867,16 @@ export default function CBTTestEnginePage() {
     </div>
   );
 }
+
+export default function CBTTestEnginePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white text-xs font-bold uppercase tracking-wider">
+        Loading CBT Test Engine...
+      </div>
+    }>
+      <CBTTestEngineContent />
+    </Suspense>
+  );
+}
+

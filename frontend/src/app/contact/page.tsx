@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle, ArrowRight, HelpCircle, GraduationCap, MapPin, Send, Mail, Phone, Clock, MessageCircle, SendIcon } from 'lucide-react';
+import { CheckCircle, MapPin, Send, Mail, Phone, Clock, SendIcon } from 'lucide-react';
 import { db } from '@/services/db';
 
 import Image from "next/image";
@@ -12,7 +12,7 @@ function ContactFormContent() {
   const isEnrollMode = searchParams.get('enquiry') === 'enroll';
 
   // CMS Settings
-  const [cmsSettings, setCmsSettings] = useState<any>(null);
+  const [cmsSettings, setCmsSettings] = useState<Record<string, string> | null>(null);
 
   useEffect(() => {
     fetch('/api/settings')
@@ -26,11 +26,12 @@ function ContactFormContent() {
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
   const [targetExam, setTargetExam] = useState('70th BPSC (Prelims + Mains)');
-  const [classMode, setClassMode] = useState('Patna Offline Centre');
+  const classMode = 'Patna Offline Centre';
   const [district, setDistrict] = useState('Patna');
-  const [prepStatus, setPrepStatus] = useState('Beginner (Fresh Prep)');
+  const prepStatus = 'Beginner (Fresh Prep)';
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -165,10 +165,10 @@ export interface ResultTopper {
 const getBackendUrl = () => {
   if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
   if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
+    const hostname = window.location.hostname || 'localhost';
     return `http://${hostname}:5000`;
   }
-  return 'http://localhost:5000';
+  return 'http://127.0.0.1:5000';
 };
 const BACKEND_URL = getBackendUrl();
 
@@ -225,21 +225,12 @@ class FinalAttemptDB {
   }
 
   public async updateSettings(settings: Partial<SiteSettings>): Promise<boolean> {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/settings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data?.success !== false;
-      }
-      return false;
-    } catch (err) {
-      console.error('updateSettings error:', err);
-      return false;
-    }
+    const res = await this.apiFetch('/api/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    return res?.success !== false;
   }
 
   public async getCustomPages(publishedOnly: boolean = false): Promise<CustomPage[]> {

@@ -47,18 +47,12 @@ export default function TestSeriesPage() {
 
   // Dynamic category options — derived ONLY from published data that exists
   const availableCategories = useMemo(() => {
+    const ALLOWED = new Set(['Prelims', 'Mains']);
     const categories = new Set<string>();
     seriesList.forEach(s => {
-      if (s.category) categories.add(s.category);
+      if (s.category && ALLOWED.has(s.category)) categories.add(s.category);
     });
-    const order = ['Prelims', 'Mains', 'PYQ', 'Interview'];
-    const sorted = Array.from(categories).sort((a, b) => {
-      const idxA = order.indexOf(a);
-      const idxB = order.indexOf(b);
-      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-      return a.localeCompare(b);
-    });
-    return ['All', ...sorted];
+    return ['All', 'Prelims', 'Mains'].filter(c => c === 'All' || categories.has(c));
   }, [seriesList]);
 
   // Dynamic exams derived from data

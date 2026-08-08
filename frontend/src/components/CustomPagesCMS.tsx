@@ -20,7 +20,7 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
     title: '',
     slug: '',
     content: '',
-    showLocation: defaultLocation,
+    showLocation: defaultLocation || 'DOWNLOADS_HUB',
     displayOrder: 0,
     metaTitle: '',
     metaDescription: '',
@@ -47,10 +47,9 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
-    let generatedSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    if (form.showLocation === 'DOWNLOADS_HUB') {
-      generatedSlug = `downloads/${generatedSlug}`;
-    }
+    let cleanSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const isDownload = (form.showLocation || defaultLocation) === 'DOWNLOADS_HUB';
+    const generatedSlug = isDownload ? `downloads/${cleanSlug}` : cleanSlug;
     setForm(prev => ({
       ...prev,
       title,
@@ -103,7 +102,7 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
       title: '',
       slug: '',
       content: '',
-      showLocation: 'NAVBAR',
+      showLocation: defaultLocation || 'DOWNLOADS_HUB',
       displayOrder: 0,
       metaTitle: '',
       metaDescription: '',
@@ -115,396 +114,329 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
   return (
     <div className="space-y-8">
       {/* Top Header info */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl shadow-sm">
         <div>
-          <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Live Page Builder</span>
-          <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Custom Pages Management</h2>
+          <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Page & Download Portal Management</span>
+          <h2 className="text-xl sm:text-2xl font-heading font-extrabold text-slate-900 dark:text-white">Custom Pages Directory</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Create dynamic pages, design content with Rich Text Editor & select where to feature links (Navbar Header, Footer, Top Ticker, or Direct URL).
+            All dynamic custom pages and downloadable resource hubs listed below. Click any page to edit content & downloadable files.
           </p>
         </div>
         <button
-          onClick={resetForm}
-          className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs cursor-pointer shadow-sm"
+          onClick={() => {
+            resetForm();
+            setIsEditing(true);
+          }}
+          className="flex items-center gap-2 px-5 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs cursor-pointer shadow-md transition-all shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Create New Custom Page</span>
+          <span>Create New Page</span>
         </button>
       </div>
 
-      {/* Grid: Form and Pages List */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* Editor Form Column */}
-        <form onSubmit={handleSave} className="lg:col-span-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-sm">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-4">
-            <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">
-              {isEditing ? '✏️ Edit Live Page' : '➕ Create New Live Page'}
-            </h3>
-            {isEditing && (
+      {/* Tabular List View of Pages */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm space-y-4 p-6">
+        <div className="flex justify-between items-center px-2">
+          <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">
+            Available Pages Directory ({pages.length})
+          </h3>
+          <button
+            onClick={fetchPages}
+            className="p-2 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer flex items-center gap-1 text-xs font-bold"
+          >
+            <RefreshCw className="w-4 h-4" />
+            <span>Refresh</span>
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="p-12 text-center space-y-2">
+            <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-xs text-slate-400 font-bold">Loading Pages Table...</p>
+          </div>
+        ) : pages.length === 0 ? (
+          <div className="p-12 text-center border border-dashed border-slate-200 dark:border-white/10 rounded-3xl space-y-3">
+            <FileText className="w-10 h-10 text-slate-300 mx-auto" />
+            <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">No Custom Pages Created Yet</h4>
+            <button
+              onClick={() => { resetForm(); setIsEditing(true); }}
+              className="px-4 py-2 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl"
+            >
+              + Create First Page
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/10 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                  <th className="p-4">Page Title & Slug</th>
+                  <th className="p-4">Target Location</th>
+                  <th className="p-4">Files Count</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pages.map((p) => (
+                  <tr
+                    key={p.id}
+                    className="border-b border-slate-100 dark:border-white/5 hover:bg-amber-500/5 transition-colors cursor-pointer"
+                    onClick={() => handleEdit(p)}
+                  >
+                    <td className="p-4">
+                      <div className="font-heading font-extrabold text-slate-900 dark:text-white text-sm">
+                        {p.title}
+                      </div>
+                      <div className="text-[11px] font-mono text-amber-600 dark:text-amber-400 mt-0.5 flex items-center gap-1">
+                        <span>/{p.slug}</span>
+                        <a
+                          href={p.slug.startsWith('downloads/') ? `/${p.slug}` : `/page/${p.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="hover:underline text-slate-400"
+                        >
+                          <ExternalLink className="w-3 h-3 inline" />
+                        </a>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                        {p.showLocation}
+                      </span>
+                    </td>
+                    <td className="p-4 font-bold text-slate-700 dark:text-slate-300">
+                      {p.downloadItems?.length || 0} Files
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase border ${p.isPublished !== false ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
+                        {p.isPublished !== false ? 'Live' : 'Draft'}
+                      </span>
+                    </td>
+                    <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleEdit(p)}
+                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs cursor-pointer flex items-center gap-1 shadow-2xs"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          <span>Open CMS</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(p.id)}
+                          className="p-1.5 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-200 rounded-xl transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Editor Modal Popup */}
+      {isEditing && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col space-y-6 shadow-2xl relative">
+            <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3 shrink-0">
+              <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">
+                {form.id ? `Edit Page: ${form.title}` : 'Create New Custom Page'}
+              </h3>
               <button
                 type="button"
                 onClick={resetForm}
-                className="text-xs text-amber-600 hover:underline font-bold"
+                className="text-slate-400 hover:text-slate-600 font-bold text-sm cursor-pointer"
               >
-                Cancel Edit
+                ✕ Close
               </button>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {/* Page Title */}
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Page Title</label>
-              <input
-                type="text"
-                placeholder="e.g. Student Code of Conduct & Honor Code"
-                value={form.title || ''}
-                onChange={handleTitleChange}
-                className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
-                required
-              />
             </div>
 
-            {/* URL Slug & Placement */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">URL Slug Path</label>
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 px-3 py-2.5 rounded-2xl text-xs font-mono text-slate-600 dark:text-slate-300">
-                  <span className="text-amber-500 font-bold">
-                    {form.showLocation === 'DOWNLOADS_HUB' || (form.slug && form.slug.startsWith('downloads/')) ? '/downloads/' : '/page/'}
-                  </span>
+            <form onSubmit={handleSave} className="flex-1 overflow-y-auto space-y-6 pr-2">
+              <div className="space-y-4">
+                {/* Page Title */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Page Title</label>
                   <input
                     type="text"
-                    value={(form.slug || '').replace(/^downloads\//, '').replace(/^page\//, '')}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      const isDownload = form.showLocation === 'DOWNLOADS_HUB' || (form.slug && form.slug.startsWith('downloads/'));
-                      const clean = isDownload ? `downloads/${raw.replace(/^downloads\//, '')}` : raw;
-                      setForm({ ...form, slug: clean });
-                    }}
-                    className="w-full bg-transparent outline-none font-bold text-slate-900 dark:text-white"
-                    placeholder="ncert"
+                    placeholder="e.g. BPSC Standard Cut Off & Exam Guidelines"
+                    value={form.title || ''}
+                    onChange={handleTitleChange}
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
                     required
                   />
                 </div>
-              </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Show Location / Menu</label>
-                <select
-                  value={form.showLocation || 'NAVBAR'}
-                  onChange={(e) => {
-                    const loc = e.target.value;
-                    let currentSlug = (form.slug || '').replace(/^downloads\//, '');
-                    if (loc === 'DOWNLOADS_HUB') {
-                      currentSlug = `downloads/${currentSlug}`;
-                    }
-                    setForm({ ...form, showLocation: loc as any, slug: currentSlug });
-                  }}
-                  className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
-                >
-                  <option value="DOWNLOADS_HUB">📁 Downloads Hub Section (/downloads/[slug])</option>
-                  <option value="NAVBAR">📌 Main Navbar Header Menu (/page/[slug])</option>
-                  <option value="HEADER_TOP">⭐ Header Upper Ticker Bar</option>
-                  <option value="FOOTER">🦶 Footer Bottom Legal Links</option>
-                  <option value="SLUG_ONLY">🔗 Direct URL Only (Hidden in Menus)</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Visibility & Order */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center pt-2">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Display Order Index</label>
-                <input
-                  type="number"
-                  value={form.displayOrder || 0}
-                  onChange={(e) => setForm({ ...form, displayOrder: parseInt(e.target.value, 10) || 0 })}
-                  className="w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 pt-4">
-                <input
-                  type="checkbox"
-                  id="isPublished"
-                  checked={form.isPublished !== false}
-                  onChange={(e) => setForm({ ...form, isPublished: e.target.checked })}
-                  className="w-4 h-4 text-amber-500 rounded cursor-pointer"
-                />
-                <label htmlFor="isPublished" className="text-xs font-bold text-slate-700 dark:text-slate-200 cursor-pointer">
-                  Publish Live Immediately
-                </label>
-              </div>
-            </div>
-
-            {/* Content Editor */}
-            <div className="space-y-1 pt-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Page Body Content (Rich Text Editor)</label>
-              <RichTextEditor
-                label={form.title || 'Custom Page Editor'}
-                value={form.content || ''}
-                onChange={(html) => setForm({ ...form, content: html })}
-              />
-            </div>
-
-            {/* Banner Image (Media Picker) */}
-            <div className="space-y-1 pt-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Page Banner Image (DAM Media)</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Banner image URL (e.g., uploads/media/...)"
-                  value={form.bannerUrl || ''}
-                  onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
-                  className="w-full px-4 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-mono text-slate-900 dark:text-white"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowMediaPicker(true)}
-                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-2xl shrink-0 cursor-pointer shadow-xs"
-                >
-                  Pick Banner
-                </button>
-              </div>
-            </div>
-
-            {/* Downloadable Files Package Collection Manager */}
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-3xl space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-heading font-black text-xs text-slate-900 dark:text-white uppercase tracking-wider">
-                    📁 Downloadable Files Package ({ (form.downloadItems || []).length })
-                  </h4>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                    Add downloadable PDFs, ZIPs, DOCX notes, reports & materials for this page.
-                  </p>
+                {/* URL Slug Path (Strictly /downloads/[slug]) */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">URL Slug Path</label>
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 px-4 py-3 rounded-2xl text-xs font-mono text-slate-600 dark:text-slate-300">
+                    <span className="text-amber-500 font-bold">/downloads/</span>
+                    <input
+                      type="text"
+                      value={(form.slug || '').replace(/^downloads\//, '').replace(/^page\//, '')}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        setForm({ ...form, showLocation: 'DOWNLOADS_HUB', slug: `downloads/${raw.replace(/^downloads\//, '')}` });
+                      }}
+                      className="w-full bg-transparent outline-none font-bold text-slate-900 dark:text-white"
+                      placeholder="ncert"
+                      required
+                    />
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const newItem: DownloadItem = {
-                      id: `dl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                      title: 'New Study Document',
-                      description: '',
-                      type: 'PDF',
-                      size: '2.5 MB',
-                      url: ''
-                    };
-                    setForm(prev => ({ ...prev, downloadItems: [...(prev.downloadItems || []), newItem] }));
-                  }}
-                  className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] rounded-xl cursor-pointer"
-                >
-                  + Add File
-                </button>
-              </div>
 
-              {/* Items List */}
-              <div className="space-y-3">
-                {(form.downloadItems || []).length === 0 ? (
-                  <p className="text-[10px] text-slate-400 italic text-center py-2">
-                    No files added to this download portal package yet.
-                  </p>
-                ) : (
-                  (form.downloadItems || []).map((item, idx) => (
-                    <div key={item.id} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-black text-amber-600 uppercase">Item #{idx + 1}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setForm(prev => ({
-                              ...prev,
-                              downloadItems: (prev.downloadItems || []).filter(i => i.id !== item.id)
-                            }));
-                          }}
-                          className="text-red-500 text-[10px] font-bold hover:underline"
-                        >
-                          Remove
-                        </button>
-                      </div>
+                {/* Content Editor */}
+                <div className="space-y-1 pt-2">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Page Body Content (Rich Text Editor)</label>
+                  <RichTextEditor
+                    label={form.title || 'Custom Page Editor'}
+                    value={form.content || ''}
+                    onChange={(html) => setForm({ ...form, content: html })}
+                  />
+                </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <input
-                          type="text"
-                          placeholder="File Title (e.g. NCERT Class 11 Polity Chapter 1)"
-                          value={item.title || ''}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            setForm(prev => ({
-                              ...prev,
-                              downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, title: val } : i)
-                            }));
-                          }}
-                          className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-slate-900 dark:text-white"
-                        />
-                        <div className="grid grid-cols-2 gap-2">
+                {/* Downloadable Files Package Collection Manager */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-3xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-heading font-black text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                        📁 Downloadable Files Package ({ (form.downloadItems || []).length })
+                      </h4>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        Add downloadable PDFs, ZIPs, DOCX notes & materials for this page.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newItem: DownloadItem = {
+                          id: `dl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                          title: 'New Study Document',
+                          description: '',
+                          type: 'PDF',
+                          size: '2.5 MB',
+                          url: ''
+                        };
+                        setForm(prev => ({ ...prev, downloadItems: [...(prev.downloadItems || []), newItem] }));
+                      }}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] rounded-xl cursor-pointer"
+                    >
+                      + Add File
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {(form.downloadItems || []).length === 0 ? (
+                      <p className="text-[10px] text-slate-400 italic text-center py-2">
+                        No files added to this page yet.
+                      </p>
+                    ) : (
+                      (form.downloadItems || []).map((item, idx) => (
+                        <div key={item.id} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-black text-amber-600 uppercase">Item #{idx + 1}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setForm(prev => ({
+                                  ...prev,
+                                  downloadItems: (prev.downloadItems || []).filter(i => i.id !== item.id)
+                                }));
+                              }}
+                              className="text-red-500 text-[10px] font-bold hover:underline"
+                            >
+                              Remove
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <input
+                              type="text"
+                              placeholder="File Title (e.g. Class 11 Geography Notes)"
+                              value={item.title || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setForm(prev => ({
+                                  ...prev,
+                                  downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, title: val } : i)
+                                }));
+                              }}
+                              className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl font-bold text-slate-900 dark:text-white"
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                type="text"
+                                placeholder="Type (e.g. PDF)"
+                                value={item.type || 'PDF'}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setForm(prev => ({
+                                    ...prev,
+                                    downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, type: val } : i)
+                                  }));
+                                }}
+                                className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white"
+                              />
+                              <input
+                                type="text"
+                                placeholder="Size (e.g. 4.2 MB)"
+                                value={item.size || ''}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setForm(prev => ({
+                                    ...prev,
+                                    downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, size: val } : i)
+                                  }));
+                                }}
+                                className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white"
+                              />
+                            </div>
+                          </div>
+
                           <input
                             type="text"
-                            placeholder="Type (e.g. PDF)"
-                            value={item.type || 'PDF'}
+                            placeholder="File Download URL (e.g. uploads/documents/notes.pdf)"
+                            value={item.url || ''}
                             onChange={(e) => {
                               const val = e.target.value;
                               setForm(prev => ({
                                 ...prev,
-                                downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, type: val } : i)
+                                downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, url: val } : i)
                               }));
                             }}
-                            className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white"
-                          />
-                          <input
-                            type="text"
-                            placeholder="Size (e.g. 4.2 MB)"
-                            value={item.size || ''}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setForm(prev => ({
-                                ...prev,
-                                downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, size: val } : i)
-                              }));
-                            }}
-                            className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl text-slate-900 dark:text-white"
+                            className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl font-mono text-slate-900 dark:text-white"
                           />
                         </div>
-                      </div>
-
-                      <input
-                        type="text"
-                        placeholder="File Download URL (e.g. uploads/documents/ncert_polity.pdf)"
-                        value={item.url || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setForm(prev => ({
-                            ...prev,
-                            downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, url: val } : i)
-                          }));
-                        }}
-                        className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl font-mono text-slate-900 dark:text-white"
-                      />
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* SEO Meta Titles */}
-            <div className="space-y-2 border-t border-slate-100 dark:border-white/10 pt-4">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">SEO Meta Configurations</span>
-              <input
-                type="text"
-                placeholder="Meta SEO Title"
-                value={form.metaTitle || ''}
-                onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
-                className="w-full px-4 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white"
-              />
-              <textarea
-                rows={2}
-                placeholder="Meta SEO Description..."
-                value={form.metaDescription || ''}
-                onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
-                className="w-full px-4 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white"
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-md transition-all cursor-pointer"
-          >
-            {isEditing ? '💾 Update Live Page' : '🚀 Publish Custom Page'}
-          </button>
-        </form>
-
-        {/* Existing Pages List Column */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className="flex justify-between items-center px-2">
-            <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">
-              Existing Custom Pages ({pages.length})
-            </h3>
-            <button
-              onClick={fetchPages}
-              className="p-1.5 text-slate-400 hover:text-slate-800 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="p-8 text-center bg-white dark:bg-slate-900 border rounded-3xl space-y-2">
-              <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs text-slate-400 font-bold">Loading Custom Pages...</p>
-            </div>
-          ) : pages.length === 0 ? (
-            <div className="p-12 text-center bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-white/10 rounded-3xl space-y-2">
-              <FileText className="w-10 h-10 text-slate-300 mx-auto" />
-              <h4 className="font-bold text-sm text-slate-700 dark:text-slate-300">No Custom Pages Created Yet</h4>
-              <p className="text-xs text-slate-400">Use the form to create new live content pages.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {pages.map((p) => (
-                <div
-                  key={p.id}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-sm space-y-4 hover:border-amber-500/50 transition-all"
-                >
-                  <div className="flex justify-between items-start gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-heading font-extrabold text-base text-slate-900 dark:text-white">{p.title}</h4>
-                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase border ${p.isPublished !== false ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                          {p.isPublished !== false ? 'Live' : 'Draft'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1 text-[11px] font-mono text-slate-400">
-                        <span>/page/{p.slug}</span>
-                        <a
-                          href={`/page/${p.slug}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-amber-500 hover:underline inline-flex items-center gap-0.5"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      </div>
-                    </div>
-
-                    <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 px-2.5 py-1 rounded-xl uppercase shrink-0">
-                      {p.showLocation}
-                    </span>
-                  </div>
-
-                  {p.metaDescription && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{p.metaDescription}</p>
-                  )}
-
-                  <div className="flex items-center justify-between border-t border-slate-100 dark:border-white/5 pt-3 text-xs">
-                    <span className="text-[10px] text-slate-400 font-bold">
-                      Order: {p.displayOrder || 0}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(p)}
-                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-white font-bold rounded-xl text-xs cursor-pointer flex items-center gap-1"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        <span>Edit Page</span>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(p.id)}
-                        className="p-1.5 bg-red-50 hover:bg-red-500 text-red-500 hover:text-white border border-red-200 rounded-xl transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                      ))
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
 
-      </div>
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/10 shrink-0">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-5 py-2.5 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-2xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-md cursor-pointer"
+                >
+                  {form.id ? '💾 Save Changes' : '🚀 Publish Page'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showMediaPicker && (
         <MediaPicker

@@ -9,11 +9,15 @@ import {
   LayoutDashboard, Settings, Target, Zap, Lock,
   Sun, Moon, Menu, X
 } from 'lucide-react';
+
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
 import { getMyEnrollments, getCourseQuizzes } from '@/services/auth';
 import MentorshipChat from '@/components/lms/MentorshipChat';
 import PerformanceAnalytics from '@/components/lms/PerformanceAnalytics';
+import { db } from '@/services/db';
+
+
 
 type DashTab = 'Dashboard' | 'My Courses' | 'Performance' | 'Tests' | 'Notes' | 'Mentor Connect' | 'Certificates';
 
@@ -26,14 +30,15 @@ interface Enrollment {
   enrolledAt: string;
 }
 
-export default function LMSDashboard() {
+export default function StudentDashboard() {
+
   const { user, accessToken, logout, isLoading, requireAuth } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<DashTab>('Dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState(true);
-  const [allQuizzes, setAllQuizzes] = useState<{ quiz: any; courseTitle: string; courseId: string }[]>([]);
+  const [allQuizzes, setAllQuizzes] = useState<{ quiz: any; courseTitle: string; courseId: string; slug?: string }[]>([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
 
   // Authentication guard
@@ -52,18 +57,20 @@ export default function LMSDashboard() {
     );
   }
 
-  // Fetch enrollments from real backend
+  // Fetch enrollments and test series quizzes from backend / DB
   useEffect(() => {
     if (!accessToken) return;
 
     const load = async () => {
       setLoadingEnrollments(true);
+      setLoadingQuizzes(true);
+
+      let fetchedCourseQuizzes: any[] = [];
       const res = await getMyEnrollments(accessToken);
       setLoadingEnrollments(false);
+
       if (res.success && res.data) {
         setEnrollments(res.data);
-        // Load quizzes for all enrolled courses
-        setLoadingQuizzes(true);
         const quizResults = await Promise.all(
           res.data.map(async (e: Enrollment) => {
             const qRes = await getCourseQuizzes(e.courseId, accessToken);
@@ -73,29 +80,53 @@ export default function LMSDashboard() {
             return [];
           })
         );
-        setAllQuizzes(quizResults.flat());
-        setLoadingQuizzes(false);
+        fetchedCourseQuizzes = quizResults.flat();
       }
+
+      // Also fetch active Test Series Mocks from db
+      try {
+        const testSeriesList = await db.getTestSeries(true);
+        if (testSeriesList && testSeriesList.length > 0) {
+          const tsQuizResults = await Promise.all(
+            testSeriesList.map(async (ts) => {
+              const qList = await db.getTestSeriesQuizzes(ts.id);
+              if (qList && qList.length > 0) {
+                return qList.map((quiz: any) => ({
+                  quiz,
+                  courseTitle: ts.title,
+                  courseId: ts.id,
+                  slug: ts.slug
+                }));
+              }
+              return [];
+            })
+          );
+          fetchedCourseQuizzes = [...fetchedCourseQuizzes, ...tsQuizResults.flat()];
+        }
+      } catch (err) {
+        console.error('Error fetching test series for student dashboard:', err);
+      }
+
+      setAllQuizzes(fetchedCourseQuizzes);
+      setLoadingQuizzes(false);
     };
     load();
   }, [accessToken]);
+
 
   const sidebarLinks: { name: DashTab; icon: any }[] = [
     { name: 'Dashboard',      icon: LayoutDashboard },
     { name: 'My Courses',     icon: BookOpen },
     { name: 'Performance',    icon: TrendingUp },
     { name: 'Tests',          icon: FileText },
-    { name: 'Notes',          icon: HelpCircle },
     { name: 'Mentor Connect', icon: MessageSquare },
-    { name: 'Certificates',   icon: Award }
   ];
 
-  // Demo progress stats (will be replaced with real data in Phase 2)
   const stats = [
     { label: 'Courses Enrolled', value: enrollments.length || 0, icon: BookOpen, color: 'text-blue-600 dark:text-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-200 dark:border-blue-500/20' },
-    { label: 'Lessons Completed', value: 8, icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20' },
-    { label: 'Hours Studied', value: '12h', icon: TrendingUp, color: 'text-violet-600 dark:text-violet-400', iconColor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-500/10', border: 'border-violet-200 dark:border-violet-500/20' },
-    { label: 'Tests Taken', value: 2, icon: FileText, color: 'text-amber-600 dark:text-amber-400', iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20' }
+    { label: 'Tests Attempted', value: allQuizzes.length || 0, icon: FileText, color: 'text-amber-600 dark:text-amber-400', iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20' },
+    { label: 'Current Affairs', value: '—', icon: TrendingUp, color: 'text-violet-600 dark:text-violet-400', iconColor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-500/10', border: 'border-violet-200 dark:border-violet-500/20' },
+    { label: 'Downloads', value: '—', icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20' }
   ];
 
   return (
@@ -298,10 +329,10 @@ export default function LMSDashboard() {
                 <h2 className="text-slate-900 dark:text-white font-bold text-base mb-4">Quick Actions</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { label: 'Browse Courses', href: '/courses', icon: BookOpen, color: 'from-blue-600 to-blue-700' },
-                    { label: 'Book Mentor Session', href: '/contact', icon: Users, color: 'from-indigo-600 to-indigo-700' },
-                    { label: 'Current Affairs', href: '/current-affairs', icon: Zap, color: 'from-violet-600 to-violet-700' },
-                    { label: 'Previous Year Qs', href: '/downloads/pyq', icon: Target, color: 'from-cyan-600 to-cyan-700' }
+                    { label: 'Browse Courses',   href: '/courses',          icon: BookOpen,  color: 'from-blue-600 to-blue-700' },
+                    { label: 'Test Series',       href: '/test-series',      icon: FileText,  color: 'from-amber-600 to-amber-700' },
+                    { label: 'Current Affairs',   href: '/current-affairs',  icon: Zap,       color: 'from-violet-600 to-violet-700' },
+                    { label: 'Downloads',         href: '/downloads',        icon: Target,    color: 'from-cyan-600 to-cyan-700' }
                   ].map(a => (
                     <Link
                       key={a.label}
@@ -371,17 +402,15 @@ export default function LMSDashboard() {
             </div>
           )}
 
-          {/* ── Placeholder Tabs ── */}
-          {['Notes', 'Certificates'].includes(activeTab) && (
+          {/* ── Placeholder Tab (Certificates only) ── */}
+          {activeTab === 'Certificates' && (
             <div className="flex flex-col items-center justify-center min-h-64 text-center gap-4 p-8 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06]">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-blue-500/20 flex items-center justify-center">
-                {activeTab === 'Notes'       && <HelpCircle  className="w-7 h-7 text-violet-400" />}
-                {activeTab === 'Certificates' && <Award      className="w-7 h-7 text-yellow-400" />}
+                <Award className="w-7 h-7 text-yellow-400" />
               </div>
-              <h3 className="text-slate-900 dark:text-white font-bold text-base">{activeTab}</h3>
+              <h3 className="text-slate-900 dark:text-white font-bold text-base">Certificates</h3>
               <p className="text-slate-600 dark:text-slate-400 text-sm max-w-xs">
-                {activeTab === 'Notes'         && 'Personal study notes and PDF viewer coming in Phase 1 extension.'}
-                {activeTab === 'Certificates'  && 'PDF certificates with QR verification are coming in Phase 5.'}
+                PDF certificates with QR verification are coming in Phase 5.
               </p>
               <div className="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
                 Coming Soon
@@ -453,7 +482,7 @@ export default function LMSDashboard() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {allQuizzes.map(({ quiz, courseTitle, courseId }) => (
+                  {allQuizzes.map(({ quiz, courseTitle, courseId, slug }) => (
                     <div
                       key={quiz.id}
                       className="group p-5 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] hover:border-blue-300 dark:hover:border-blue-500/30 hover:shadow-md transition-all space-y-3"
@@ -475,9 +504,9 @@ export default function LMSDashboard() {
                       </div>
 
                       {/* Description */}
-                      {quiz.description && (
-                        <p className="text-slate-500 text-xs leading-relaxed line-clamp-2">{quiz.description}</p>
-                      )}
+                      {quiz.description || quiz.instructions ? (
+                        <p className="text-slate-500 text-xs leading-relaxed line-clamp-2">{quiz.description || quiz.instructions}</p>
+                      ) : null}
 
                       {/* Meta */}
                       <div className="flex items-center gap-4 text-[10px] text-slate-500 font-medium">
@@ -497,7 +526,7 @@ export default function LMSDashboard() {
 
                       {/* CTA */}
                       <Link
-                        href={`/student/course/${courseId}/quiz/${quiz.id}`}
+                        href={slug ? `/test-series/${slug}/attempt?quiz=${quiz.id}` : `/student/course/${courseId}/quiz/${quiz.id}`}
                         className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
                       >
                         <Play className="w-3.5 h-3.5" />
@@ -505,6 +534,7 @@ export default function LMSDashboard() {
                       </Link>
                     </div>
                   ))}
+
                 </div>
               )}
             </div>

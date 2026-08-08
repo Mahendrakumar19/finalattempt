@@ -231,8 +231,7 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
         {[
           { id: 'exams', label: '🏛️ Exams Directory' },
           { id: 'syllabus', label: '📄 Syllabus Files' },
-          { id: 'strategy', label: '🎯 Strategy CMS' },
-          { id: 'values', label: '🤝 Values CMS' }
+          { id: 'strategy', label: '🎯 Strategy CMS' }
         ].map((t) => (
           <button
             key={t.id}

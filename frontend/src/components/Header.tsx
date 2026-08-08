@@ -84,6 +84,7 @@ export default function Header() {
   const [customPages,   setCustomPages]   = useState<any[]>([]);
   const [siteSettings,  setSiteSettings]  = useState<any>({});
   const [liveCourses,   setLiveCourses]   = useState<any[]>([]);
+  const [liveTestSeries, setLiveTestSeries] = useState<any[]>([]);
 
   const megaRef  = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -94,10 +95,12 @@ export default function Header() {
       db.getCustomPages(true),
       db.getSettings(),
       db.getCourses(),
-    ]).then(([pages, settings, courses]) => {
+      db.getTestSeries(false),
+    ]).then(([pages, settings, courses, testSeries]) => {
       setCustomPages(pages  || []);
       setSiteSettings(settings || {});
       setLiveCourses(courses || []);
+      setLiveTestSeries(testSeries || []);
     });
 
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -190,24 +193,50 @@ export default function Header() {
 
     {
       id: 'test', label: 'Test Series', href: '/test-series', icon: IC.test,
-      mega: {
-        tagline: 'Practice & Evaluate',
-        description: 'Simulate exam conditions with timed mocks and analytics.',
-        groups: [
-          { heading: 'Prelims Tests', items: [
-              { label: 'Full Mock Tests',     href: '/test-series?stage=PRELIMS', desc: 'Full-length BPSC prelims mocks',   icon: IC.test },
-              { label: 'Sectional Tests',     href: '/test-series?stage=PRELIMS', desc: 'Subject-wise targeted tests',      icon: IC.prelims },
-              { label: 'Previous Year Tests', href: '/test-series',               desc: 'Solved PYQ based tests',           icon: IC.pyq },
+      mega: (() => {
+        /* Build dynamic groups — Prelims first, then Mains */
+        const prelimsSeries = liveTestSeries.filter(ts => ts.category === 'Prelims').slice(0, 4);
+        const mainsSeries   = liveTestSeries.filter(ts => ts.category === 'Mains').slice(0, 4);
+
+        const dynamicGroups: MegaGroup[] = [];
+
+        if (prelimsSeries.length > 0) {
+          dynamicGroups.push({
+            heading: 'Prelims Tests',
+            items: prelimsSeries.map(ts => ({ label: ts.title, href: `/test-series/${ts.slug}`, icon: IC.test })),
+          });
+        } else {
+          dynamicGroups.push({
+            heading: 'Prelims Tests',
+            items: [
+              { label: 'Full Mock Tests',   href: '/test-series?category=Prelims', icon: IC.test },
+              { label: 'Sectional Tests',   href: '/test-series?category=Prelims', icon: IC.prelims },
             ],
-          },
-          { heading: 'Mains Tests', items: [
-              { label: 'GS Mains Series',   href: '/test-series?stage=MAINS', desc: 'Paper 1, 2, 3 & 4 mains tests',    icon: IC.mains },
-              { label: 'Essay Evaluation',  href: '/test-series?stage=MAINS', desc: 'Expert essay correction',           icon: IC.blog },
+          });
+        }
+
+        if (mainsSeries.length > 0) {
+          dynamicGroups.push({
+            heading: 'Mains Tests',
+            items: mainsSeries.map(ts => ({ label: ts.title, href: `/test-series/${ts.slug}`, icon: IC.mains })),
+          });
+        } else {
+          dynamicGroups.push({
+            heading: 'Mains Tests',
+            items: [
+              { label: 'GS Mains Series',  href: '/test-series?category=Mains', icon: IC.mains },
+              { label: 'Essay Evaluation', href: '/test-series?category=Mains', icon: IC.blog },
             ],
-          },
-        ],
-        cta: { label: 'Start a Test', href: '/test-series' },
-      },
+          });
+        }
+
+        return {
+          tagline: 'Practice & Evaluate',
+          description: 'Simulate exam conditions with timed mocks and analytics.',
+          groups: dynamicGroups,
+          cta: { label: 'View All Tests', href: '/test-series' },
+        };
+      })(),
     },
 
     ...(showCA ? [{
@@ -294,7 +323,7 @@ export default function Header() {
       },
     },
 
-    { id: 'contact', label: 'Contact', href: '/contact', icon: IC.contact },
+
   ];
 
   /* ── mega hover handlers already defined above (before isPortal guard) ── */
@@ -480,9 +509,6 @@ export default function Header() {
                       <h3 className="text-white font-black text-xl mt-1 leading-tight font-heading">
                         {entry.label.toUpperCase()}
                       </h3>
-                      <p className="text-blue-200 text-xs mt-2 leading-relaxed">
-                        {entry.mega.description}
-                      </p>
                     </div>
                     {entry.mega.cta && (
                       <Link
@@ -530,11 +556,7 @@ export default function Header() {
                                     </span>
                                   )}
                                 </div>
-                                {item.desc && (
-                                  <span className="text-xs font-medium text-slate-500 dark:text-slate-400 leading-snug block mt-0.5 truncate">
-                                    {item.desc}
-                                  </span>
-                                )}
+ 
                               </div>
                               <ChevronRight className="shrink-0 w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover/item:text-amber-500 mt-1 ml-auto transition-all group-hover/item:translate-x-0.5" />
                             </Link>

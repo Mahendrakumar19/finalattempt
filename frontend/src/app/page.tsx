@@ -1,6 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -10,46 +12,81 @@ import {
   CheckCircle,
   Star,
   FileText,
-  Play,
+  GraduationCap,
+  Video,
+  SlidersHorizontal,
+  Bell,
+  ChevronLeft,
+  ExternalLink,
   ArrowRight,
+  Layers,
   Calendar,
   Compass,
   TrendingUp,
-  ShieldCheck,
-  Trophy,
-  Layers,
-  GraduationCap,
-  Video,
-  SlidersHorizontal
+  ShieldCheck
 } from 'lucide-react';
-import { db } from '@/services/db';
+
+import { db, Course } from '@/services/db';
 import TestimonialCarousel from '@/components/TestimonialCarousel';
-import Image from "next/image";
+import NextImage from 'next/image';
+
+
+
+export interface YoutubeVideoItem {
+  youtubeVideoId: string;
+  title: string;
+  description?: string;
+  publishedAt: string;
+}
+
+export interface BlogItem {
+  id: string;
+  title: string;
+  blurb?: string;
+  content?: string;
+  imageUrl?: string;
+  cover_image_url?: string;
+  photo?: string;
+  displayImage?: string;
+  category?: string;
+  author?: string;
+  readTime?: string;
+  publishDate?: string;
+  summary?: string;
+  [key: string]: unknown;
+}
+
+export interface AnnouncementItem {
+  date: string;
+  text: string;
+  isNew?: boolean;
+  link?: string;
+}
 
 export default function Home() {
   // Real-time dynamic states
   const [heroSettings, setHeroSettings] = useState({
     heroTitle: 'The Next Generation Mentorship & Learning Platform',
-    heroSubtitle: 'Empowering aspirants through personalized mentorship, high-quality content, strategic preparation, an innovative AI-powered learning ecosystem and continuous performance tracking - everything designed with one goal: to help make this attempt your final attempt.\"Let\'s Make Your Attempt Final with FINAL ATTEMPT \"',
+    heroSubtitle: 'Empowering aspirants through personalized mentorship, high-quality content, strategic preparation, an innovative AI-powered learning ecosystem and continuous performance tracking - everything designed with one goal: to help make this attempt your final attempt."Let\'s Make Your Attempt Final with FINAL ATTEMPT "',
     tagline: 'Welcome to FINAL ATTEMPT',
     heroImageUrl: ''
   });
-  const [liveCourses, setLiveCourses] = useState<any[]>([]);
+  const [liveCourses, setLiveCourses] = useState<Course[]>([]);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
 
   const toggleFlip = (id: string) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }));
   };
-  const [latestVideos, setLatestVideos] = useState<any[]>([]);
-  const [blogsList, setBlogsList] = useState<any[]>([]);
-  const [expandedBlog, setExpandedBlog] = useState<any | null>(null);
+  const [latestVideos, setLatestVideos] = useState<YoutubeVideoItem[]>([]);
+  const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
+  const [expandedBlog, setExpandedBlog] = useState<BlogItem | null>(null);
   const [formSuccess, setFormSuccess] = useState(false);
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [targetExam, setTargetExam] = useState('BPSC Foundation Batch');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-  const resolveUrl = (url: string) => {
+  const resolveUrl = (url?: string) => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
@@ -68,7 +105,41 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [heroImages.length]);
 
-  const [dynamicAnnouncements, setDynamicAnnouncements] = useState<any[]>([]);
+  const tiltRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    let VanillaTilt: any;
+    import('vanilla-tilt').then((mod) => {
+      VanillaTilt = mod.default || mod;
+      tiltRefs.current.forEach((el) => {
+        if (el) {
+          VanillaTilt.init(el, {
+            max: 25,
+            speed: 400,
+            glare: true,
+            'max-glare': 1
+          });
+        }
+      });
+    });
+
+    return () => {
+      tiltRefs.current.forEach((el) => {
+        if (el && (el as any).vanillaTilt) {
+          (el as any).vanillaTilt.destroy();
+        }
+      });
+    };
+  }, []);
+
+  const [dynamicAnnouncements, setDynamicAnnouncements] = useState<AnnouncementItem[]>([
+    { date: 'NOTICE', text: 'Important Notice :- Regarding Postponement of 72nd CCE (Preliminary) Competitive Examination.', isNew: true, link: 'https://bpsc.bihar.gov.in/' },
+    { date: 'NOTICES', text: 'Important Notices :- Regarding raising dispute for refund/chargeback of unsuccessful/pending/failed transactions.', isNew: true, link: 'https://bpsc.bihar.gov.in/' },
+    { date: 'NOTICE', text: 'Important Notice: Regarding postponement of 33rd Bihar Judicial Services (Preliminary) Competitive Examination in compliance of order passed by Hon\'ble Supreme Court.', isNew: false, link: 'https://bpsc.bihar.gov.in/' },
+    { date: 'PROGRAM', text: 'Important Notice-cum-Examination Program: 33rd Bihar Judicial Services (Preliminary) Competitive Examination. (Advt. No. 12/2026)', isNew: false, link: 'https://bpsc.bihar.gov.in/' },
+    { date: 'NOTICE', text: 'Important Notice: Date of Commencement of Examination for the Post of Stenographer in Bihar Public Service Commission, Patna. (Advt. No. 01/2026)', isNew: false, link: 'https://bpsc.bihar.gov.in/' },
+    { date: 'CORRIGENDUM', text: 'Corrigendum: Integrated 72nd Combined (Preliminary) Competitive Examination.', isNew: false, link: 'https://bpsc.bihar.gov.in/' }
+  ]);
 
   useEffect(() => {
     const loadLiveData = async () => {
@@ -82,16 +153,23 @@ export default function Home() {
             tagline: s.tagline || prev.tagline,
             heroImageUrl: s.heroImageUrl || ''
           }));
+        }
 
-          if (s.announcements && s.announcements.length > 0) {
-            setDynamicAnnouncements(s.announcements);
-          } else {
-            setDynamicAnnouncements([
-              { date: '08 JUN', text: 'BPSC 70th Prelims Exam Date Announced', isNew: true },
-              { date: '04 JUN', text: 'New Batch for BPSC Foundation Starts from 15th June 2025', isNew: false },
-              { date: '30 MAY', text: 'Free Demo Classes Available for New Students', isNew: false }
-            ]);
+        // Fetch live scraped BPSC notices from backend
+        try {
+          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+          const bpscRes = await fetch(`${backendUrl}/api/bpsc/bpsc-notices`);
+          const bpscData = await bpscRes.json();
+          if (bpscData.success && Array.isArray(bpscData.data) && bpscData.data.length > 0) {
+            setDynamicAnnouncements(bpscData.data.map((item: any) => ({
+              date: item.category || 'NOTICE',
+              text: item.title,
+              isNew: item.isNew,
+              link: item.link
+            })));
           }
+        } catch (err) {
+          console.error('BPSC web scraper fetch error:', err);
         }
 
         const c = await db.getCourses();
@@ -101,12 +179,12 @@ export default function Home() {
 
         const videosData = await db.getYoutubeVideos(3);
         if (videosData && videosData.videos) {
-          setLatestVideos(videosData.videos.slice(0, 3));
+          setLatestVideos(videosData.videos.slice(0, 3) as unknown as YoutubeVideoItem[]);
         }
 
         const blogs = await db.getBlogs();
         if (blogs && blogs.length > 0) {
-          setBlogsList(blogs);
+          setBlogsList(blogs as unknown as BlogItem[]);
         }
       } catch (e) {
         console.error('Failed loading live Home data, using mock fallbacks.', e);
@@ -127,148 +205,50 @@ export default function Home() {
     }, 4000);
   };
 
-  // Static announcements matching wireframe scheme
-  const announcements = [
-    { date: '08 JUN', text: 'BPSC 70th Prelims Exam Date Announced', isNew: true },
-    { date: '04 JUN', text: 'New Batch for BPSC Foundation Starts from 15th June 2025', isNew: false },
-    { date: '30 MAY', text: 'Free Demo Classes Available for New Students', isNew: false }
-  ];
+
+
 
   return (
     <div className="w-full flex flex-col min-h-screen bg-[var(--bg-color)]">
 
-      {/* 1. HERO SECTION WITH RESPONSIVE LAYOUT (IMAGE ABOVE CONTENT ON MOBILE, BLENDED BACKDROP ON DESKTOP) */}
-      <section className="relative pt-6 lg:pt-12 pb-16 lg:pb-20 overflow-hidden bg-[var(--bg-color)]">
+      {/* 1. HERO BANNER SLIDER (FIXED ASPECT RATIO 3840x1326) */}
+      <section className="relative w-full overflow-hidden bg-[var(--bg-color)]">
+        {heroImages.length > 0 && (
+          <div className="relative w-full aspect-[3840/1326] overflow-hidden bg-slate-900 shadow-md">
+            {heroImages.map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt={`Hero Banner Slide ${idx + 1}`}
+                referrerPolicy="no-referrer"
+                className={`absolute inset-0 w-full h-full object-cover sm:object-contain mx-auto transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-100' : 'opacity-0'}`}
+              />
+            ))}
 
-        {/* Soft Radial Glow backdrop */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full opacity-[0.06] blur-[130px] pointer-events-none"
-          style={{ background: 'radial-gradient(circle, #6366f1 0%, #3b82f6 50%, transparent 100%)' }} />
-
-        {/* Wireframe Left Margin Dotted Matrix Pattern */}
-        <div className="absolute left-4 top-12 w-12 h-48 opacity-[0.3] pointer-events-none select-none hidden xl:block">
-          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-            <pattern id="dotPattern" x="0" y="0" width="14" height="14" patternUnits="userSpaceOnUse">
-              <circle cx="2" cy="2" r="1.2" fill="#1E3A8A" />
-            </pattern>
-            <rect width="100%" height="100%" fill="url(#dotPattern)" />
-          </svg>
-        </div>
-
-        {/* Desktop Full-Width Blended Backdrop (Hidden on mobile where image is stacked on top) */}
-        <div className="hidden lg:block absolute inset-0 z-0 opacity-95 pointer-events-none">
-          <div className="relative w-full h-full">
-            <div className="absolute inset-0 z-0">
-              {heroImages.map((url, idx) => (
-                <img
-                  key={idx}
-                  src={url}
-                  alt={`Bihar Vidhan Sabha Patna Secretariat - Slide ${idx + 1}`}
-                  referrerPolicy="no-referrer"
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-90' : 'opacity-0'}`}
-                />
-              ))}
-            </div>
-            {/* Backdrop gradient confined to left 40% of screen to keep image clear and visible across 60% of right screen */}
-            <div
-              className="absolute inset-0 z-10 pointer-events-none"
-              style={{
-                background: 'linear-gradient(to right, var(--bg-color) 0%, var(--bg-color) 20%, rgba(255,251,242,0.85) 25%, transparent 55%)'
-              }}
-            />
-            {/* Soft top and bottom vignetting to blend with Header and Stats bar */}
-            <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[var(--bg-color)] to-transparent z-10" />
-            <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-[var(--bg-color)] to-transparent z-10" />
-          </div>
-        </div>
-
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 items-center">
-
-            {/* MOBILE ONLY IMAGE DISPLAY: Full screen width edge-to-edge slider (no boxed frame) */}
-            <div className="block lg:hidden w-screen -mx-4 sm:-mx-6 aspect-[16/9] sm:aspect-[21/9] overflow-hidden relative shadow-md">
-              {heroImages.map((url, idx) => (
-                <img
-                  key={idx}
-                  src={url}
-                  alt={`Bihar Vidhan Sabha Patna Secretariat - Slide ${idx + 1}`}
-                  referrerPolicy="no-referrer"
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-100' : 'opacity-0'}`}
-                />
-              ))}
-              <div className="absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-[var(--bg-color)] via-black/40 to-transparent flex items-end p-3 justify-center">
-                <div className="flex gap-1.5 pb-1">
-                  {heroImages.map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`h-1.5 rounded-full transition-all ${idx === activeImageIndex ? 'w-5 bg-amber-500' : 'w-1.5 bg-white/70'}`}
-                    />
-                  ))}
-                </div>
+            {/* Slider Indicator Dots */}
+            {heroImages.length > 1 && (
+              <div className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
+                {heroImages.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setActiveImageIndex(idx)}
+                    className={`h-2 rounded-full transition-all cursor-pointer ${idx === activeImageIndex ? 'w-8 bg-amber-500 shadow-md' : 'w-2 bg-white/70 hover:bg-white'}`}
+                  />
+                ))}
               </div>
-            </div>
-
-            {/* Left Content (Positioned BELOW image on mobile, side-by-side on desktop) */}
-            <div className="w-full lg:col-span-8 space-y-5 lg:space-y-6 pt-2 lg:pt-6">
-              {heroSettings.tagline && (
-                <span className="inline-flex items-center px-3 py-1.5 rounded-xl bg-blue-600/10 border border-blue-500/20 text-[11px] sm:text-[12px] font-bold uppercase tracking-widest text-blue-800 dark:text-blue-400">
-                  {heroSettings.tagline}
-                </span>
-              )}
-              <h1 className="text-3xl sm:text-4xl lg:text-6.5xl font-heading font-black tracking-tight leading-tight max-w-[450px]" style={{ color: 'var(--text-color)' }}>
-                {heroSettings.heroTitle}
-              </h1>
-
-              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-200 font-semibold leading-relaxed max-w-md">
-                {heroSettings.heroSubtitle}
-              </p>
-
-              <div className="flex flex-wrap gap-3 sm:gap-4 pt-2">
-                <Link
-                  href="/courses"
-                  className="btn-primary flex items-center gap-2 text-xs sm:text-sm py-3 px-6"
-                >
-                  <span>Explore Courses</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-
-                <a
-                  href="/contact?enquiry=enroll"
-                  className="btn-outline flex items-center gap-2 text-xs sm:text-sm py-3 px-6"
-                >
-                  <Play className="w-4 h-4 text-[#1E3A8A] fill-[#1E3A8A] dark:text-amber-500 dark:fill-amber-500" />
-                  <span>Watch Intro Video</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Right Column (Desktop space) */}
-            <div className="lg:col-span-4 hidden lg:block" />
-
+            )}
           </div>
-        </div>
+        )}
       </section>
 
-      {/* 2. STATS BANNER */}
-      <section className="max-w-8xl mx-auto w-full px-4 sm:px-6 lg:px-8 -mt-6 mb-16 relative z-20">
-        <div className="bg-white rounded-3xl border border-slate-100 p-6 sm:p-8 shadow-xl hover-lift">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 divide-x divide-slate-100">
-            {[
-              { val: '5000+', lbl: 'Students Enrolled', icon: Users, color: 'text-purple-500 bg-purple-50 hover:bg-purple-100' },
-              { val: '250+', lbl: 'Study Materials', icon: BookOpen, color: 'text-amber-500 bg-amber-50 hover:bg-amber-100' },
-              { val: '1000+', lbl: 'Mock Tests', icon: FileText, color: 'text-emerald-500 bg-emerald-50 hover:bg-emerald-100' },
-              { val: '100+', lbl: 'Selections', icon: Trophy, color: 'text-pink-500 bg-pink-50 hover:bg-pink-100' }
-            ].map((stat, idx) => (
-              <div key={idx} className="flex flex-col sm:flex-row items-center sm:items-start gap-4 px-4 text-center sm:text-left first:pl-0 group cursor-default">
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${stat.color} shrink-0 transition-transform duration-300 group-hover:scale-110`}>
-                  <stat.icon className="w-6 h-6 transition-transform duration-300 group-hover:rotate-6" />
-                </div>
-                <div>
-                  <div className="text-2xl sm:text-3xl font-heading font-extrabold text-slate-900 tracking-tight group-hover:text-amber-600 transition-colors">{stat.val}</div>
-                  <div className="text-xs text-slate-500 font-bold uppercase tracking-wider mt-0.5">{stat.lbl}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+      {/* 2. WELCOME BANNER WITH DYNAMIC LIVE COLOR WAVE EFFECT */}
+      <section className="max-w-8xl mx-auto w-full px-4 sm:px-6 lg:px-8 mt-6 mb-12 relative z-20">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-white/10 p-6 sm:p-10 shadow-md text-center hover-lift relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-amber-500/5 pointer-events-none" />
+          <h2 className="font-inlander text-3xl sm:text-3.5xl lg:text-5xl font-black uppercase tracking-widest leading-snug">
+            <span className="text-wave-gradient font-black">WELCOME TO FINAL ATTEMPT</span>
+          </h2>
         </div>
       </section>
 
@@ -281,7 +261,7 @@ export default function Home() {
             <div className="flex justify-between items-end border-b border-slate-150 pb-4">
               <div>
                 <span className="text-xs font-bold text-[#1E3A8A] uppercase tracking-widest">Our Popular Courses</span>
-                <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">Explore Top Classes</h2>
+                <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">Explore Our Classes</h2>
               </div>
               <Link
                 href="/courses"
@@ -380,129 +360,121 @@ export default function Home() {
           {/* Right Column: Announcements & Why Choose Us */}
           <div className="lg:col-span-4 space-y-8">
 
-            {/* Announcements Card */}
-            <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm hover-lift">
-              <div className="flex justify-between items-center border-b border-slate-50 pb-4 mb-4">
-                <h3 className="font-heading font-extrabold text-sm text-slate-900 uppercase tracking-wider flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-purple-600 animate-pulse" />
-                  <span>Latest Announcements</span>
+            {/* BPSC "What's New" Official Bulletin Card */}
+            <div className="bg-[#F3F4F6] dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 shadow-md hover-lift space-y-4">
+              <div className="flex justify-between items-center border-b border-blue-900/20 dark:border-white/10 pb-3">
+                <h3 className="font-heading font-black text-base text-[#1E3A8A] dark:text-amber-400 uppercase tracking-wide flex items-center gap-2 border-b-2 border-[#1E3A8A] pb-1">
+                  <span>What's New</span>
                 </h3>
+                <a
+                  href="https://bpsc.bihar.gov.in/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-extrabold text-blue-800 dark:text-amber-400 hover:underline flex items-center gap-1"
+                >
+                  <span>View All</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
-              <div className="space-y-4">
+
+              {/* Official BPSC Scraped Notice Board List */}
+              <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1">
                 {dynamicAnnouncements.map((ann, idx) => (
-                  <div key={idx} className="flex gap-4 items-start p-2.5 rounded-2xl hover:bg-amber-500/10 border border-transparent hover:border-amber-500/20 transition-all duration-300 group cursor-pointer">
-                    <div className="bg-blue-50 text-[#1E3A8A] p-2 rounded-xl text-center shrink-0 w-12 flex flex-col justify-center transition-transform duration-300 group-hover:scale-105">
-                      <span className="text-[10px] font-extrabold leading-none">{(ann.date || 'NOTICE').split(' ')[0]}</span>
-                      <span className="text-[8px] font-bold text-slate-400 mt-1">{(ann.date || 'NOTICE').split(' ')[1] || ''}</span>
+                  <a
+                    key={idx}
+                    href={ann.link || 'https://bpsc.bihar.gov.in/'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block p-4 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xs transition-all cursor-pointer hover:border-amber-500/50 group"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                            {ann.date || 'BPSC NOTICE'}
+                          </span>
+                          {ann.isNew && (
+                            <span className="text-[8px] font-extrabold bg-red-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
+                              NEW
+                            </span>
+                          )}
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-500 transition-colors" />
+                      </div>
+                      <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 leading-snug group-hover:text-blue-800 dark:group-hover:text-amber-400 transition-colors">
+                        {ann.text}
+                      </p>
                     </div>
-                    <div className="flex-grow">
-                      <p className="text-xs font-bold text-slate-700 leading-snug group-hover:text-[#1E3A8A] transition-colors">{ann.text}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-all duration-300 group-hover:translate-x-1 self-center" />
-                  </div>
+                  </a>
                 ))}
               </div>
-              <button className="w-full mt-4 py-2.5 bg-[#5B21B6] hover:bg-purple-800 text-white font-bold rounded-xl text-xs transition-all duration-300 hover:shadow-md cursor-pointer">
-                View All Announcements
-              </button>
             </div>
 
             {/* Why Choose Us checklist */}
-            <div className="bg-amber-50/40 rounded-3xl border border-amber-100/60 p-6 shadow-sm hover-lift">
-              <h3 className="font-heading font-extrabold text-sm text-slate-900 uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                <span>Why Choose Final Attempt?</span>
-              </h3>
-              <ul className="space-y-3">
-                {[
-                  'BPSC Focused Curriculum',
-                  'Experienced & Dedicated Faculty',
-                  'Regular Tests & Performance Analysis',
-                  'Updated Content as per Latest Pattern',
-                  'Doubt Support & Mentorship'
-                ].map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-3 text-xs font-semibold text-slate-700 group cursor-default">
-                    <CheckCircle className="w-4 h-4 text-[#F59E0B] shrink-0 transition-transform duration-300 group-hover:scale-125" />
-                    <span className="group-hover:text-slate-900 transition-colors">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            
 
           </div>
 
         </div>
       </section>
 
-      {/* 3.4 WHY FINAL ATTEMPT STANDS OUT SECTION */}
-      <section className="py-20 bg-[var(--bg-color)] border-t border-slate-100 dark:border-white/[0.06]">
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+      {/* 3.4 WHY FINAL ATTEMPT STANDS OUT SECTION (REAL GLASSMORPHISM DESIGN) */}
+      <section className="py-24 bg-[var(--bg-color)] relative overflow-hidden">
+        {/* Background Ambient Glow Orbs for Glassmorphism Reflection */}
+        <div className="absolute top-1/4 left-1/12 w-96 h-96 bg-amber-500/15 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/12 w-96 h-96 bg-blue-600/15 dark:bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14 relative z-10">
           <div className="text-center max-w-2xl mx-auto space-y-4">
-            <span className="text-xs font-bold text-[#1E3A8A] bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
+            <span className="text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3.5 py-1.5 rounded-xl uppercase tracking-widest">
               Core Pillars
             </span>
-            <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
+            <h2 className="text-3.5xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white leading-tight tracking-tight">
               Why Final Attempt Stands Out
             </h2>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Our unique learning framework combines academic excellence, personal development, and tracking technology to deliver BPSC success.
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-lg mx-auto font-medium">
+              Our unique learning framework combines academic excellence, personal mentorship, and interactive AI evaluation to deliver BPSC success.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             {[
               {
-                title: 'Mentorship That Puts You First',
-                desc: "At Final Attempt, mentorship is not just an add-on—it's the foundation of our learning ecosystem. Every aspirant receives personalized one-to-one guidance, regular progress reviews, strategic planning, and continuous support throughout the preparation journey.",
-                emoji: '🤝',
-                bg: 'bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600'
+                title: 'Mentorship First',
+                desc: '1-on-1 personalized guidance, regular progress reviews, and strategic preparation routines tailored to your BPSC goals.'
               },
               {
-                title: 'Learn from Experienced Mentors',
-                desc: 'Learn from experienced educators, BPSC experts, and mentors who simplify complex concepts, provide practical exam strategies, and guide you with years of teaching and examination expertise.',
-                emoji: '🎓',
-                bg: 'bg-blue-50 dark:bg-blue-950/30 text-blue-600'
+                title: 'Expert Faculty',
+                desc: 'Learn from experienced educators and BPSC experts who simplify complex concepts and share proven exam strategies.'
               },
               {
-                title: 'Personalized Learning Journey',
-                desc: 'Every aspirant receives a customized study plan based on their strengths, weaknesses, learning pace, and performance—ensuring focused preparation and maximum improvement.',
-                emoji: '🎯',
-                bg: 'bg-amber-50 dark:bg-amber-950/30 text-amber-600'
+                title: 'Personal Plan',
+                desc: 'Customized study plans adapted to your strengths, learning pace, and performance for maximum score improvement.'
               },
               {
-                title: 'Expert Answer Evaluation & Feedback',
-                desc: 'Improve your answer writing with detailed, mentor-driven copy evaluation. Every answer is assessed using BPSC standards, with personalized feedback, score analysis, model approaches, and actionable suggestions to help you maximize your mains score.',
-                emoji: '✍️',
-                bg: 'bg-purple-50 dark:bg-purple-950/30 text-purple-600'
+                title: 'Copy Evaluation',
+                desc: 'Detailed mentor-driven evaluation of copies on BPSC standards, complete with score analysis and model approaches.'
               },
               {
-                title: 'AI-Powered Performance Analytics',
-                desc: 'Monitor your progress through advanced performance analytics, test insights, accuracy reports, and improvement recommendations. Our data-driven approach helps you identify weak areas and prepare more efficiently.',
-                emoji: '📊',
-                bg: 'bg-cyan-50 dark:bg-cyan-950/30 text-cyan-600'
+                title: 'AI Analytics',
+                desc: 'Monitor progress with test insights, accuracy metrics, and data-driven recommendations that pinpoint weak spots.'
               },
               {
-                title: 'Complete BPSC Learning Ecosystem',
-                desc: 'Access everything you need under one platform—high-quality study material, structured courses, test series, answer writing practice, current affairs, mentorship, performance tracking, and interview guidance—covering every stage of your BPSC journey.',
-                emoji: '📚',
-                bg: 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600'
-              },
-              {
-                title: 'Designed to Make This Your Final Attempt',
-                desc: 'Final Attempt combines personalized mentorship, expert evaluation, technology-driven learning, and strategic preparation into one integrated ecosystem—helping aspirants prepare with confidence and move one step closer to selection.',
-                emoji: '🚀',
-                bg: 'bg-rose-50 dark:bg-rose-950/30 text-rose-600',
-                colSpan: 'md:col-span-2 lg:col-span-3'
+                title: 'Complete System',
+                desc: 'Structured courses, test series, answer writing practice, current affairs, and mentorship all under one roof.'
               }
             ].map((item, idx) => (
-              <div key={idx} className={`bg-white dark:bg-slate-900/40 p-8 rounded-3xl border border-slate-100 dark:border-white/[0.06] space-y-4 shadow-sm hover-lift group ${item.colSpan || ''}`}>
-                <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center text-2xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
-                  <span>{item.emoji}</span>
+              <div
+                key={idx}
+                ref={(el) => { tiltRefs.current[idx] = el; }}
+                className="real-glass-card group"
+              >
+                <div className="content-body space-y-3">
+                  <h3 className="font-heading font-black">{item.title}</h3>
+                  <p className="text-xs sm:text-sm leading-relaxed">
+                    {item.desc}
+                  </p>
                 </div>
-                <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">{item.title}</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  {item.desc}
-                </p>
               </div>
             ))}
           </div>
@@ -638,7 +610,7 @@ export default function Home() {
                       {blog.title}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
-                      {blog.blurb || blog.content ? (blog.blurb || blog.content).replace(/<[^>]*>?/gm, '').slice(0, 140) + '...' : 'Read our comprehensive exam strategy breakdown...'}
+                      {(blog.blurb || blog.content) ? String(blog.blurb || blog.content).replace(/<[^>]*>?/gm, '').slice(0, 140) + '...' : 'Read our comprehensive exam strategy breakdown...'}
                     </p>
                   </div>
                 </div>
@@ -647,12 +619,13 @@ export default function Home() {
                 <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-[10px]">
-                      {(blog.author || 'Final Attempt IAS').charAt(0)}
+                      {(blog.author ? String(blog.author) : 'Final Attempt IAS').charAt(0)}
                     </div>
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       {blog.author || 'Final Attempt IAS'}
                     </span>
                   </div>
+
 
                   <span className="text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
                     <ArrowRight className="w-4 h-4 -rotate-45" />
@@ -746,14 +719,14 @@ export default function Home() {
       <section className="py-20 bg-gradient-to-b from-[var(--bg-color)] to-slate-50 border-t border-slate-100 overflow-hidden">
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="text-center max-w-2xl mx-auto space-y-4">
-            <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
-              Success Stories
+            <span className="text-s font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
+              From the Mentor’s Pen
             </span>
-            <h3 className="text-3xl font-heading font-black text-slate-900 leading-tight">
-              Aspirants to Officers: Our Hall of Fame
+            <h3 className="text-xs font-heading font-black text-slate-900 leading-tight">
+              
             </h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
-              Hear from our selected toppers about how our personalized micro-scheduling and answer evaluation changed their preparation journey.
+            <p className="text-s font-black text-slate-900 max-w-md mx-auto">
+              Words from those who have guided the journey.
             </p>
           </div>
 
@@ -892,7 +865,7 @@ export default function Home() {
                       <span>Book My Session</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
-                    
+
 
                     <a
                       href="https://wa.me/919709992093"
@@ -900,13 +873,14 @@ export default function Home() {
                       rel="noreferrer"
                       className="flex items-center justify-center gap-2 p-4 bg-[#22C55E] hover:bg-green-600 text-white font-bold rounded-2xl shadow-3xs text-xs transition-colors"
                     >
-                      <Image
+                      <NextImage
                         src="/whatsapp-icon.svg"
                         alt="WhatsApp"
                         width={20}
                         height={20}
                         className="w-4 h-4"
                       />
+
                       <span>WhatsApp Chat</span>
                     </a>
                   </div>

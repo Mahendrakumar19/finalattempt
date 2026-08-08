@@ -36,7 +36,7 @@ import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTop
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 
-type AdminTab = 'Dashboard' | 'Home' | 'About' | 'Contact' | 'Download Hub' | 'PYQ' | 'Blogs' | 'Settings' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Home' | 'About' | 'Contact' | 'Download Hub' | 'PYQ' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
 interface FeaturePageConnection {
   featureId: string;
@@ -250,7 +250,7 @@ export default function AdminPortal() {
   const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '', imageUrl: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '', category: 'Prelims', subcategory: '' });
   const [resourceUploading, setResourceUploading] = useState(false);
-  const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'LMS Program', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
+  const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'BPSC Course', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
 
   const getBackendUrl = () => {
     if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -264,26 +264,43 @@ export default function AdminPortal() {
 
   const fetchCMSData = useCallback(async () => {
     try {
-      const setRes = await fetch(`${BACKEND_URL}/api/settings`);
-      if (setRes.ok) {
-        const setJson = await setRes.json();
+      const setRes = await fetch(`${BACKEND_URL}/api/settings`).catch(() => null);
+      if (setRes && setRes.ok) {
+        const setJson = await setRes.json().catch(() => null);
         if (setJson) setSettings(prev => ({ ...prev, ...setJson }));
       }
-      const courseRes = await fetch(`${BACKEND_URL}/api/lms/courses`);
-      if (courseRes.ok) {
-        const cData = await courseRes.json();
-        if (cData.success && Array.isArray(cData.data)) setCoursesList(cData.data);
+      const courseRes = await fetch(`${BACKEND_URL}/api/lms/courses`).catch(() => null);
+      if (courseRes && courseRes.ok) {
+        const cData = await courseRes.json().catch(() => null);
+        if (cData && cData.success && Array.isArray(cData.data)) setCoursesList(cData.data);
       }
-      const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`);
-      if (usersRes.ok) setUsersList(await usersRes.json());
-      const leadsRes = await fetch(`${BACKEND_URL}/api/leads`);
-      if (leadsRes.ok) setLeadsList(await leadsRes.json());
-      const caRes = await fetch(`${BACKEND_URL}/api/current-affairs`);
-      if (caRes.ok) setCaList(await caRes.json());
-      const blogRes = await fetch(`${BACKEND_URL}/api/blogs`);
-      if (blogRes.ok) setBlogsList(await blogRes.json());
-      const resRes = await fetch(`${BACKEND_URL}/api/resources`);
-      if (resRes.ok) setResourcesList(await resRes.json());
+      const blogRes = await fetch(`${BACKEND_URL}/api/blogs`).catch(() => null);
+      if (blogRes && blogRes.ok) {
+        const bData = await blogRes.json().catch(() => null);
+        if (bData && bData.success && Array.isArray(bData.data)) setBlogsList(bData.data);
+      }
+      const resRes = await fetch(`${BACKEND_URL}/api/resources`).catch(() => null);
+      if (resRes && resRes.ok) {
+        const rData = await resRes.json().catch(() => null);
+        if (rData && rData.success && Array.isArray(rData.data)) setResourcesList(rData.data);
+      }
+      const caRes = await fetch(`${BACKEND_URL}/api/current-affairs`).catch(() => null);
+      if (caRes && caRes.ok) {
+        const caData = await caRes.json().catch(() => null);
+        if (caData && caData.success && Array.isArray(caData.data)) setCaList(caData.data);
+      }
+      const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`).catch(() => null);
+      if (usersRes && usersRes.ok) {
+        const uData = await usersRes.json().catch(() => null);
+        if (uData && Array.isArray(uData)) setUsersList(uData);
+        else if (uData && uData.success && Array.isArray(uData.data)) setUsersList(uData.data);
+      }
+      const leadsRes = await fetch(`${BACKEND_URL}/api/leads`).catch(() => null);
+      if (leadsRes && leadsRes.ok) {
+        const lData = await leadsRes.json().catch(() => null);
+        if (lData && lData.success && Array.isArray(lData.data)) setLeadsList(lData.data);
+      }
+
       const facRes = await fetch(`${BACKEND_URL}/api/faculty`);
       if (facRes.ok) setFacultyList(await facRes.json());
       const topRes = await fetch(`${BACKEND_URL}/api/results`);
@@ -655,7 +672,6 @@ export default function AdminPortal() {
               { id: 'Download Hub', icon: Download },
               { id: 'PYQ', icon: Layers },
               { id: 'Blogs', icon: Bookmark },
-              { id: 'Settings', icon: Settings },
               { id: 'Courses', icon: BookOpen },
               { id: 'Test Series', icon: FileText },
               { id: 'Users', icon: Users },
@@ -794,9 +810,9 @@ export default function AdminPortal() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 { label: 'Registered Users', value: usersList.length.toString(), desc: 'Active student profiles', icon: Users, color: 'text-blue-500' },
-                { label: 'LMS Courses', value: coursesList.length.toString(), desc: 'Published programs & batches', icon: BookOpen, color: 'text-amber-500' },
+                { label: 'Published Courses', value: coursesList.length.toString(), desc: 'Published programs & batches', icon: BookOpen, color: 'text-amber-500' },
                 { label: 'Total Enquiries', value: leadsList.length.toString(), desc: 'Direct lead records', icon: MessageSquare, color: 'text-emerald-500' },
-                { label: 'Current Articles', value: caList.length.toString(), desc: 'Magazine current affairs', icon: FileText, color: 'text-purple-500' }
+                { label: 'Current Articles', value: caList.length.toString(), desc: 'Published articles & notes', icon: FileText, color: 'text-purple-500' }
               ].map((metric, idx) => (
                 <div key={idx} className="p-5 bg-white border border-slate-200 space-y-3 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-center">
@@ -818,253 +834,15 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* TAB 2: SETTINGS */}
-        {activeTab === 'Settings' && (
-          <div className="p-6 sm:p-8 bg-white border border-slate-200 w-full rounded-3xl shadow-sm">
-            <form onSubmit={handleSaveSettings} className="space-y-6">
-              <h3 className="font-extrabold text-sm text-slate-900 border-b border-slate-100 pb-3">
-                Homepage Hero Configurations
-              </h3>
-
-              {/* ── Hero Background Image ─────────────────────────── */}
-              <div className="space-y-3">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <svg className="w-3 h-3 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9l4-4 4 4 4-5 6 7" /><circle cx="8.5" cy="8.5" r="1.5" /></svg>
-                  Hero Background Image
-                </label>
-
-                {/* Multi-Image Live Slider Gallery Preview */}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
-                      Active Hero Slider Images ({settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean).length : 1})
-                    </span>
-                    {settings.heroImageUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setSettings(prev => ({ ...prev, heroImageUrl: '' }))}
-                        className="text-[10px] font-bold text-red-500 hover:text-red-700 hover:underline cursor-pointer"
-                      >
-                        Clear All Custom Images
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {(settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean) : ["https://upload.wikimedia.org/wikipedia/commons/f/f6/Front_view_of_bihar_vidhan_sabha.jpg"]).map((url, idx) => (
-                      <div key={idx} className="relative aspect-video rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 group">
-                        <img
-                          src={url}
-                          alt={`Hero Slide ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).src = ''; }}
-                        />
-                        <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold text-amber-500 bg-slate-950/80 px-2 py-0.5 rounded-md border border-amber-500/20">
-                          Slide #{idx + 1}
-                        </span>
-                        {settings.heroImageUrl && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const list = settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean) : [];
-                              list.splice(idx, 1);
-                              setSettings(prev => ({ ...prev, heroImageUrl: list.join(', ') }));
-                            }}
-                            className="absolute top-1.5 right-1.5 p-1 bg-red-500 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-sm"
-                            title="Remove slide image"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Media Library Selector */}
-                <div className="flex items-center gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setMediaPickerConfig({ isOpen: true, field: 'heroImageUrl', allowedTypes: ['IMAGE'] })}
-                    className="relative flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 hover:border-amber-400 hover:bg-amber-50 text-slate-600 hover:text-amber-600 rounded-2xl cursor-pointer transition-all text-xs font-semibold"
-                  >
-                    <FolderOpen className="w-3.5 h-3.5" />
-                    + Add Image from Media Library (DAM)
-                  </button>
-                </div>
-
-                {/* Direct Comma-Separated URL Input */}
-                <div className="space-y-1">
-                  <label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">— or paste image URLs directly (comma-separated for multi-slides) —</label>
-                  <textarea
-                    rows={2}
-                    placeholder="https://example.com/slide1.jpg, https://example.com/slide2.jpg"
-                    value={settings.heroImageUrl || ''}
-                    onChange={(e) => setSettings(prev => ({ ...prev, heroImageUrl: e.target.value }))}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-amber-400 focus:ring-2 focus:ring-amber-100 outline-none text-slate-900 font-mono placeholder:font-sans placeholder:text-slate-300"
-                  />
-                  <p className="text-[9px] text-slate-400 font-medium">
-                    Supports unlimited dynamic slider background images. Pick from DAM Media Manager or paste image URLs separated by commas.
-                  </p>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-100 pt-5 space-y-5">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Main Tagline</label>
-                  <input
-                    type="text"
-                    value={settings.tagline}
-                    onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hero Main Title</label>
-                  <input
-                    type="text"
-                    value={settings.heroTitle}
-                    onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hero Subtitle</label>
-                  <textarea
-                    value={settings.heroSubtitle}
-                    rows={3}
-                    onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                  />
-                </div>
-              </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Working Hours</label>
-                  <input
-                    type="text"
-                    placeholder="Monday - Sunday: 9:00 AM - 7:00 PM"
-                    value={settings.contactHours || ''}
-                    onChange={(e) => setSettings({ ...settings, contactHours: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">WhatsApp Link</label>
-                    <input
-                      type="text"
-                      placeholder="https://wa.me/919709992093"
-                      value={settings.whatsappLink || ''}
-                      onChange={(e) => setSettings({ ...settings, whatsappLink: e.target.value })}
-                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900 font-mono"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Telegram Link</label>
-                    <input
-                      type="text"
-                      placeholder="https://t.me/Finalattemptofficial"
-                      value={settings.telegramLink || ''}
-                      onChange={(e) => setSettings({ ...settings, telegramLink: e.target.value })}
-                      className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900 font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Google Map Embed URL</label>
-                  <textarea
-                    rows={2}
-                    placeholder="https://www.google.com/maps/embed?..."
-                    value={settings.googleMapUrl || ''}
-                    onChange={(e) => setSettings({ ...settings, googleMapUrl: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-2xl focus:border-slate-400 outline-none text-slate-900 font-mono"
-                  />
-                </div>
-
-              <button
-                type="submit"
-                className="w-full px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase rounded-2xl shadow-md transition-all cursor-pointer"
-              >
-                💾 Save All Configurations
-              </button>
-            </form>
-
-            {/* YouTube Synchronizer Dashboard */}
-            <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6 mt-8">
-              <div className="border-b border-slate-100 pb-4 space-y-1">
-                <h3 className="font-heading font-extrabold text-sm text-slate-900">YouTube Channel Automatic Sync</h3>
-                <p className="text-[10px] text-slate-500 font-medium">
-                  Direct connection with YouTube Data API v3. Synchronizes content from `@finalattemptofficial` every 30 minutes.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-1">
-                  <span className="block text-[9px] uppercase font-bold text-slate-400">Last Sync Time</span>
-                  <span className="text-xs font-bold text-slate-800">
-                    {youtubeStatus.lastSyncTime ? youtubeStatus.lastSyncTime : 'Never Synced'}
-                  </span>
-                </div>
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-1">
-                  <span className="block text-[9px] uppercase font-bold text-slate-400">Videos Synced</span>
-                  <span className="text-xs font-bold text-slate-800">{youtubeStatus.videosSynced}</span>
-                </div>
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-1">
-                  <span className="block text-[9px] uppercase font-bold text-slate-400">Sync Status</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${youtubeStatus.status === 'SUCCESS'
-                      ? 'bg-emerald-50 text-emerald-705 border-emerald-200'
-                      : youtubeStatus.status === 'FAILURE'
-                        ? 'bg-red-50 text-red-705 border-red-200'
-                        : 'bg-blue-50 text-blue-705 border-blue-200'
-                    }`}>
-                    {youtubeStatus.status}
-                  </span>
-                </div>
-              </div>
-
-              {youtubeStatus.error && (
-                <div className="p-4 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-medium space-y-1">
-                  <span className="block text-[9px] uppercase font-bold text-red-500">Last Execution Error</span>
-                  <p>{youtubeStatus.error}</p>
-                </div>
-              )}
-
-              <button
-                type="button"
-                disabled={syncingYoutube}
-                onClick={handleTriggerYoutubeSync}
-                className="px-6 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-slate-950 font-bold text-xs uppercase rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer w-full md:w-auto"
-              >
-                {syncingYoutube ? (
-                  <>
-                    <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                    <span>Synchronizing YouTube...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>🔄 Sync YouTube Now</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* TAB: HOME PAGE CMS */}
-        {(activeTab === ('Home' as any) || activeTab === ('Home Page CMS' as any)) && (
+        {/* TAB 2: HOME CMS (SIMPLIFIED & CLEAN) */}
+        {(activeTab === 'Home' || (activeTab as any) === 'Settings') && (
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
               <div>
                 <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Public Content Manager</span>
-                <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Home Page CMS Editor</h2>
+                <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Home Page Editor</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Manage Hero Title, Subtitles, Background Slider Images, Tagline, and Real-Time Announcements.
+                  Manage Hero Slider Images, Announcement Bulletins, Social Links & YouTube Sync.
                 </p>
               </div>
               <a
@@ -1078,76 +856,76 @@ export default function AdminPortal() {
               </a>
             </div>
 
-            <form onSubmit={handleSaveSettings} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl space-y-6 shadow-sm">
-              {/* 1. Hero Content & Dynamic Slider Images */}
+            <form onSubmit={handleSaveSettings} className="p-6 sm:p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 w-full rounded-3xl shadow-sm space-y-8">
+              {/* ── 1. Hero Background Images (Fixed 3840x1326 Aspect Ratio) ─────────────────────────── */}
               <div className="space-y-4">
-                <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-white/10 pb-3">
-                  1. Hero Banner, Tagline & Slider Images
+                <h3 className="font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-100 dark:border-white/10 pb-3 flex items-center justify-between">
+                  <span>1. Hero Slider Banner Images (Fixed 3840x1326 px)</span>
+                  <span className="text-[10px] text-amber-500 font-mono font-bold">
+                    Active Images: {settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean).length : 0}
+                  </span>
                 </h3>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Top Tagline Badge</label>
-                  <input
-                    type="text"
-                    value={settings.tagline || ''}
-                    onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
-                  />
-                </div>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {(settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean) : []).map((url, idx) => (
+                      <div key={idx} className="relative aspect-[3840/1326] rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-white/10 group shadow-sm">
+                        <img
+                          src={url}
+                          alt={`Hero Slide ${idx + 1}`}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.target as HTMLImageElement).src = ''; }}
+                        />
+                        <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold text-amber-500 bg-slate-950/80 px-2 py-0.5 rounded-md border border-amber-500/20">
+                          Slide #{idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const list = settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean) : [];
+                            list.splice(idx, 1);
+                            setSettings(prev => ({ ...prev, heroImageUrl: list.join(', ') }));
+                          }}
+                          className="absolute top-1.5 right-1.5 p-1 bg-red-500 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-sm"
+                          title="Remove slide image"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hero Main Title</label>
-                  <input
-                    type="text"
-                    value={settings.heroTitle || ''}
-                    onChange={(e) => setSettings({ ...settings, heroTitle: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-bold text-slate-900 dark:text-white"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hero Subtitle Paragraph</label>
-                  <textarea
-                    rows={3}
-                    value={settings.heroSubtitle || ''}
-                    onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white"
-                  />
-                </div>
-
-                {/* Slider background image selector */}
-                <div className="space-y-2 pt-2">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Background Slider Images (DAM Media Library)</label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 pt-2">
                     <button
                       type="button"
                       onClick={() => setMediaPickerConfig({ isOpen: true, field: 'heroImageUrl', allowedTypes: ['IMAGE'] })}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-300 dark:border-white/20 hover:border-amber-400 hover:bg-amber-50 text-slate-600 dark:text-slate-300 hover:text-amber-600 rounded-2xl cursor-pointer transition-all text-xs font-semibold"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 dark:border-white/20 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-600 dark:text-slate-300 hover:text-amber-600 rounded-2xl cursor-pointer transition-all text-xs font-bold"
                     >
-                      <FolderOpen className="w-4 h-4" />
-                      <span>+ Pick Image from DAM Media Manager</span>
+                      <FolderOpen className="w-4 h-4 text-amber-500" />
+                      <span>+ Pick Banner Image from Media Manager (DAM)</span>
                     </button>
                   </div>
-                  <textarea
-                    rows={2}
-                    placeholder="https://example.com/slide1.jpg, https://example.com/slide2.jpg"
-                    value={settings.heroImageUrl || ''}
-                    onChange={(e) => setSettings({ ...settings, heroImageUrl: e.target.value })}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-mono text-slate-900 dark:text-white"
-                  />
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Image URLs (Comma Separated)</label>
+                    <textarea
+                      rows={2}
+                      placeholder="https://example.com/banner1.jpg, https://example.com/banner2.jpg"
+                      value={settings.heroImageUrl || ''}
+                      onChange={(e) => setSettings(prev => ({ ...prev, heroImageUrl: e.target.value }))}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-mono text-slate-900 dark:text-white"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* 2. Dynamic Announcements Section Editor */}
+              {/* ── 2. Live Announcements ─────────────────────────── */}
               <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-6">
                 <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
                   <div>
                     <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">
                       2. Live Home Page Announcements
                     </h3>
-                    <p className="text-[10px] text-slate-400">
-                      Add, update, or remove live bulletin announcements shown in the home page sidebar card.
-                    </p>
                   </div>
                   <button
                     type="button"
@@ -1171,7 +949,7 @@ export default function AdminPortal() {
                 </div>
 
                 {(settings.announcements || []).length === 0 ? (
-                  <p className="text-xs text-slate-400 italic py-2">No custom announcements configured. Default system notices will display.</p>
+                  <p className="text-xs text-slate-400 italic py-2">No custom announcements configured.</p>
                 ) : (
                   <div className="space-y-3">
                     {(settings.announcements || []).map((ann, idx) => (
@@ -1225,13 +1003,103 @@ export default function AdminPortal() {
                 )}
               </div>
 
+              {/* ── 3. Contact & Social Links ─────────────────────────── */}
+              <div className="border-t border-slate-100 dark:border-white/10 pt-6 space-y-4">
+                <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+                  3. Contact & Social Media Links
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">WhatsApp Link</label>
+                    <input
+                      type="text"
+                      placeholder="https://wa.me/919709992093"
+                      value={settings.whatsappLink || ''}
+                      onChange={(e) => setSettings({ ...settings, whatsappLink: e.target.value })}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Telegram Link</label>
+                    <input
+                      type="text"
+                      placeholder="https://t.me/Finalattemptofficial"
+                      value={settings.telegramLink || ''}
+                      onChange={(e) => setSettings({ ...settings, telegramLink: e.target.value })}
+                      className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <button
                 type="submit"
-                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-md transition-all cursor-pointer"
+                className="w-full px-6 py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-md transition-all cursor-pointer"
               >
-                💾 Save Home Page Changes
+                💾 Save Home Page Configurations
               </button>
             </form>
+
+            {/* YouTube Synchronizer Dashboard */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
+              <div className="border-b border-slate-100 dark:border-white/10 pb-4 space-y-1">
+                <h3 className="font-heading font-extrabold text-sm text-slate-900 dark:text-white">YouTube Channel Automatic Sync</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                  Direct connection with YouTube Data API v3. Synchronizes content from `@finalattemptofficial` every 30 minutes.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-white/10 rounded-2xl space-y-1">
+                  <span className="block text-[9px] uppercase font-bold text-slate-400">Last Sync Time</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                    {youtubeStatus.lastSyncTime ? youtubeStatus.lastSyncTime : 'Never Synced'}
+                  </span>
+                </div>
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-white/10 rounded-2xl space-y-1">
+                  <span className="block text-[9px] uppercase font-bold text-slate-400">Videos Synced</span>
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{youtubeStatus.videosSynced}</span>
+                </div>
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-white/10 rounded-2xl space-y-1">
+                  <span className="block text-[9px] uppercase font-bold text-slate-400">Sync Status</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border ${youtubeStatus.status === 'SUCCESS'
+                      ? 'bg-emerald-50 text-emerald-705 border-emerald-200'
+                      : youtubeStatus.status === 'FAILURE'
+                        ? 'bg-red-50 text-red-705 border-red-200'
+                        : 'bg-blue-50 text-blue-705 border-blue-200'
+                    }`}>
+                    {youtubeStatus.status}
+                  </span>
+                </div>
+              </div>
+
+              {youtubeStatus.error && (
+                <div className="p-4 bg-red-50 border border-red-100 text-red-800 rounded-2xl text-xs font-medium space-y-1">
+                  <span className="block text-[9px] uppercase font-bold text-red-500">Last Execution Error</span>
+                  <p>{youtubeStatus.error}</p>
+                </div>
+              )}
+
+              <button
+                type="button"
+                disabled={syncingYoutube}
+                onClick={handleTriggerYoutubeSync}
+                className="px-6 py-3 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-slate-950 font-bold text-xs uppercase rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer w-full md:w-auto"
+              >
+                {syncingYoutube ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                    <span>Synchronizing YouTube...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>🔄 Sync YouTube Now</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
@@ -1774,17 +1642,10 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* TAB: STRATEGY & VALUES CMS */}
+        {/* TAB: STRATEGY CMS */}
         {((activeTab as any) === 'Strategy & Values' || (activeTab as any) === 'Strategy CMS') && (
           <div className="space-y-6">
             <SyllabusStrategyCMS defaultTab="strategy" />
-          </div>
-        )}
-
-        {/* TAB: VALUES CMS */}
-        {(activeTab as any) === 'Values CMS' && (
-          <div className="space-y-6">
-            <SyllabusStrategyCMS defaultTab="values" />
           </div>
         )}
 
@@ -2103,7 +1964,7 @@ export default function AdminPortal() {
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                📅 Daily Digest Editions (Bihar, National, International)
+                📅 Daily, Weekly, Monthly, Yearly
               </button>
               <button
                 type="button"
@@ -2114,7 +1975,7 @@ export default function AdminPortal() {
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                📝 Mains & GS Papers Articles
+                🌐 National, International & Bihar Special
               </button>
             </div>
 
@@ -2122,49 +1983,49 @@ export default function AdminPortal() {
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Daily Digest Editions</h3>
-                    <p className="text-[10px] text-slate-500">Add or edit multi-column daily current affairs feeds for students.</p>
+                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Current Affairs</h3>
+                    <p className="text-[10px] text-slate-500 font-medium">Manage current affairs updates for students.</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => {
-                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Weekly Compilation Digest', articles: [] });
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Daily Edition', articles: [] });
                         setIsEditionModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Create Daily Edition</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Weekly Edition', articles: [] });
+                        setIsEditionModalOpen(true);
+                      }}
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Create Weekly Edition</span>
                     </button>
                     <button
                       onClick={() => {
-                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Monthly Compendium Edition', articles: [] });
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Monthly Edition', articles: [] });
                         setIsEditionModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Create Monthly Edition</span>
                     </button>
                     <button
                       onClick={() => {
-                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Yearly Compilation Booklet', articles: [] });
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Yearly Edition', articles: [] });
                         setIsEditionModalOpen(true);
                       }}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                      className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Create Yearly Edition</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: '', articles: [] });
-                        setIsEditionModalOpen(true);
-                      }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Create Daily Edition</span>
                     </button>
                   </div>
                 </div>
@@ -2219,19 +2080,41 @@ export default function AdminPortal() {
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Current Affairs GS/Mains Articles</h3>
+                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">National, International & Bihar Special Articles</h3>
                     <p className="text-[10px] text-slate-500">Publish descriptive topic analyses, editorials, and GS syllabus-aligned articles.</p>
                   </div>
-                  <button
-                    onClick={() => {
-                      setCaForm({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
-                      setActiveModal({ type: 'add' });
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-850 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>Add Article</span>
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        setCaForm({ id: '', title: '', category: 'National', publishDate: new Date().toISOString().split('T')[0], summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
+                        setActiveModal({ type: 'add' });
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add National Article</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCaForm({ id: '', title: '', category: 'International', publishDate: new Date().toISOString().split('T')[0], summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
+                        setActiveModal({ type: 'add' });
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add International Article</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setCaForm({ id: '', title: '', category: 'Bihar Special', publishDate: new Date().toISOString().split('T')[0], summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
+                        setActiveModal({ type: 'add' });
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Bihar Special Article</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -2270,13 +2153,21 @@ export default function AdminPortal() {
               </div>
             )}
 
-            {/* Modal add/edit CA (Mains GS Articles) */}
+            {/* Modal add/edit CA (Topic Articles) */}
             {activeModal && activeTab === 'Current Affairs' && (
               <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <form onSubmit={handleSaveCA} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-xl w-full space-y-4 shadow-2xl">
-                  <h3 className="font-extrabold text-sm text-slate-900">
-                    {activeModal.type === 'add' ? 'Add Current Affairs Article' : 'Edit Current Affairs Article'}
-                  </h3>
+                <form onSubmit={handleSaveCA} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 sm:p-8 rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col space-y-4 shadow-2xl">
+                  <div className="flex justify-between items-center border-b pb-3 shrink-0">
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                      {activeModal.type === 'add' ? 'Add Current Affairs Article' : 'Edit Current Affairs Article'}
+                    </h3>
+                    <button
+                      type="button" onClick={() => setActiveModal(null)}
+                      className="text-slate-400 hover:text-slate-650 cursor-pointer font-bold text-sm"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
@@ -2294,22 +2185,20 @@ export default function AdminPortal() {
                         onChange={(e) => setCaForm({ ...caForm, category: e.target.value as CurrentAffairArticle['category'] })}
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       >
-                        <option>GS Paper I</option>
-                        <option>GS Paper II</option>
-                        <option>GS Paper III</option>
-                        <option>Bihar Special</option>
-                        <option>Editorials</option>
+                        <option value="National">National</option>
+                        <option value="International">International</option>
+                        <option value="Bihar Special">Bihar Special</option>
                       </select>
                     </div>
                   </div>
 
-                  <div className="max-h-[50vh] overflow-y-auto space-y-4 pr-1">
+                  <div className="flex-1 overflow-y-auto space-y-5 pr-2">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Relevance (GS Syllabus Mapping)</label>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Syllabus & Topic Mapping</label>
                       <input
                         type="text" value={caForm.relevance || ''}
                         onChange={(e) => setCaForm({ ...caForm, relevance: e.target.value })}
-                        placeholder="e.g. GS Paper II: Constitutional Autonomy..."
+                        placeholder="e.g. Constitutional Amendments, Economic Policy..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
                     </div>
@@ -2352,11 +2241,11 @@ export default function AdminPortal() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Practice Question (Mains/MCQ Challenge)</label>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Practice Question</label>
                       <textarea
                         rows={2} value={caForm.practiceQuestion || ''}
                         onChange={(e) => setCaForm({ ...caForm, practiceQuestion: e.target.value })}
-                        placeholder="Enter the practice question based on this article..."
+                        placeholder="Enter practice question based on this article..."
                         className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                       />
                     </div>
@@ -2374,13 +2263,13 @@ export default function AdminPortal() {
               </div>
             )}
 
-            {/* Daily Edition Designer Modal */}
+            {/* Edition Designer Modal */}
             {isEditionModalOpen && editingEdition && (
-              <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto space-y-6 shadow-2xl relative">
+              <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 sm:p-8 rounded-3xl max-w-6xl w-full max-h-[90vh] flex flex-col space-y-6 shadow-2xl relative">
                   <div className="flex justify-between items-center border-b pb-4">
                     <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
-                      {editingEdition.id ? 'Edit Daily Current Affairs Edition' : 'Create Daily Current Affairs Edition'}
+                      {editingEdition.id ? 'Edit Current Affairs Edition' : 'Create Current Affairs Edition'}
                     </h3>
                     <button
                       type="button" onClick={() => setIsEditionModalOpen(false)}
@@ -2411,58 +2300,55 @@ export default function AdminPortal() {
                       </div>
                     </div>
 
-                    {/* CATEGORY COLUMNS */}
-                    <div className="space-y-6 pt-4 border-t">
-                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Edition Article Layout</h4>
+                    {/* ARTICLE LIST CONTAINER */}
+                    <div className="flex-1 overflow-y-auto space-y-6 pr-1 border-t pt-4">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-350 tracking-wider">Edition Articles List ({(editingEdition.articles || []).length})</h4>
+                        <button
+                          type="button" onClick={() => handleAddArticleToEdition('NATIONAL')}
+                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>+ Add Article to Edition</span>
+                        </button>
+                      </div>
 
-                      {(['BIHAR', 'NATIONAL', 'INTERNATIONAL'] as const).map(cat => {
-                        const catArticles = (editingEdition.articles || []).filter(a => a.category === cat);
-                        return (
-                          <div key={cat} className="p-4 bg-slate-50 dark:bg-slate-950/20 rounded-2xl space-y-3 border border-slate-100 dark:border-white/[0.04]">
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-slate-350">{cat} Section ({catArticles.length})</span>
-                              <button
-                                type="button" onClick={() => handleAddArticleToEdition(cat)}
-                                className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-bold rounded-lg cursor-pointer"
-                              >
-                                + Add {cat === 'BIHAR' ? 'Bihar' : cat === 'NATIONAL' ? 'National' : 'International'} Article
-                              </button>
-                            </div>
-
-                            <div className="space-y-2">
-                              {catArticles.length === 0 ? (
-                                <p className="text-[10px] text-slate-450 italic">No articles mapped in this category yet.</p>
-                              ) : (
-                                catArticles.map((art) => (
-                                  <div key={art.id} className="flex justify-between items-center p-3 bg-white dark:bg-slate-900 border border-slate-150 dark:border-white/[0.04] rounded-xl">
-                                    <div>
-                                      <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200">{art.title}</h5>
-                                      <span className="text-[9px] font-semibold text-slate-400">{art.importance} Importance &bull; {art.readingTime}</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <button
-                                        type="button" onClick={() => {
-                                          setEditingArticle(art);
-                                          setIsArticleModalOpen(true);
-                                        }}
-                                        className="p-1.5 border border-slate-250 rounded-lg hover:bg-slate-100 text-slate-600 cursor-pointer"
-                                      >
-                                        <Edit3 className="w-3 h-3" />
-                                      </button>
-                                      <button
-                                        type="button" onClick={() => handleDeleteArticleFromEdition(art.id)}
-                                        className="p-1.5 border border-red-200 rounded-lg hover:bg-red-50 text-red-500 cursor-pointer"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))
-                              )}
-                            </div>
+                      <div className="space-y-2">
+                        {(!editingEdition.articles || editingEdition.articles.length === 0) ? (
+                          <div className="p-8 text-center bg-slate-50 dark:bg-slate-950/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                            <p className="text-xs text-slate-500 font-medium">No articles added to this edition yet. Click &quot;+ Add Article to Edition&quot; above.</p>
                           </div>
-                        );
-                      })}
+                        ) : (
+                          editingEdition.articles.map((art) => (
+                            <div key={art.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-white/[0.04] rounded-2xl">
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20">{art.category}</span>
+                                  <span className="text-[10px] text-slate-400">{art.importance} Importance &bull; {art.readingTime}</span>
+                                </div>
+                                <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100">{art.title}</h5>
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button" onClick={() => {
+                                    setEditingArticle(art);
+                                    setIsArticleModalOpen(true);
+                                  }}
+                                  className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button" onClick={() => handleDeleteArticleFromEdition(art.id)}
+                                  className="p-2 border border-red-200 dark:border-red-900/50 rounded-xl hover:bg-red-50 text-red-500 cursor-pointer"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-4 border-t">
@@ -2476,7 +2362,7 @@ export default function AdminPortal() {
                         type="submit"
                         className="px-6 py-2 bg-slate-900 hover:bg-slate-850 dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 text-white text-xs font-bold rounded-2xl cursor-pointer"
                       >
-                        Publish Daily Edition
+                        Save & Publish Edition
                       </button>
                     </div>
                   </form>
@@ -2486,8 +2372,8 @@ export default function AdminPortal() {
 
             {/* Dynamic Article Creator Sub-Modal */}
             {isArticleModalOpen && editingArticle && (
-              <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 rounded-3xl max-w-3xl w-full max-h-[85vh] overflow-y-auto space-y-6 shadow-2xl relative">
+              <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 sm:p-8 rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col space-y-6 shadow-2xl relative">
                   <div className="flex justify-between items-center border-b pb-4">
                     <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
                       Add / Edit Article ({activeArticleCategory})
@@ -3099,13 +2985,13 @@ export default function AdminPortal() {
                 {editMode && (
                   <button
                     onClick={() => {
-                      setCourseForm({ id: `course-${Date.now()}`, title: '', category: 'LMS Program', description: '', fee: 99900, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
+                      setCourseForm({ id: `course-${Date.now()}`, title: '', category: 'BPSC Course', description: '', fee: 99900, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
                       setActiveModal({ type: 'add' });
                     }}
                     className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs animate-in shadow-sm"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Create LMS Course</span>
+                    <span>Create Course</span>
                   </button>
                 )}
               </div>
@@ -3263,7 +3149,7 @@ export default function AdminPortal() {
                   setActiveModal(null);
                 }} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
                   <h3 className="font-extrabold text-sm text-slate-900">
-                    {activeModal.type === 'add' ? 'Create LMS Course' : 'Edit LMS Course'}
+                    {activeModal.type === 'add' ? 'Create Course' : 'Edit Course'}
                   </h3>
 
                   <div className="space-y-1.5">
@@ -3475,32 +3361,122 @@ export default function AdminPortal() {
                 </div>
               </div>
 
-              {/* Course Enrollments & Payments Info */}
-              {selectedUserModal.enrollments && selectedUserModal.enrollments.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-100 dark:border-white/[0.06] pb-2">
-                    Enrolled Courses & Transaction Logs
+              {/* Dynamic Course & Test Series Enrollment Management */}
+              <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-white/[0.06]">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                    Assigned Programs & Test Series
                   </h4>
-                  <div className="space-y-2">
-                    {selectedUserModal.enrollments.map((enr, i) => (
+                  <span className="text-[10px] text-slate-400 font-semibold">
+                    {selectedUserModal.enrollments?.length || 0} Programs Active
+                  </span>
+                </div>
+
+                {/* Instant Program Assigner Controls */}
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-3">
+                  <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider block">
+                    + Assign New Course or Test Series
+                  </span>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <select
+                      id="assignCourseSelect"
+                      className="flex-1 px-3 py-2 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-bold"
+                    >
+                      <option value="">-- Select Course or Test Series --</option>
+                      {coursesList.map(c => (
+                        <option key={c.id} value={c.id}>{c.title} ({c.category})</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const selectEl = document.getElementById('assignCourseSelect') as HTMLSelectElement;
+                        const courseId = selectEl?.value;
+                        if (!courseId) {
+                          alert('Please select a course or test series to assign.');
+                          return;
+                        }
+                        try {
+                          const res = await fetch(`${BACKEND_URL}/api/lms/admin/enrollments`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ userId: selectedUserModal.id, courseId })
+                          });
+                          const data = await res.json();
+                          if (data.success) {
+                            alert('Program assigned successfully to user!');
+                            // Refresh users list
+                            const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`);
+                            const usersData = await usersRes.json();
+                            setUsersList(usersData);
+                            const updatedUser = usersData.find((u: any) => u.id === selectedUserModal.id);
+                            if (updatedUser) setSelectedUserModal(updatedUser);
+                          } else {
+                            alert(`Failed to assign program: ${data.error || 'Already assigned'}`);
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          alert('Connection error');
+                        }
+                      }}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-xl cursor-pointer shadow-xs whitespace-nowrap"
+                    >
+                      Assign Program
+                    </button>
+                  </div>
+                </div>
+
+                {/* Currently Assigned Enrollments List with Revoke Action */}
+                <div className="space-y-2">
+                  {(!selectedUserModal.enrollments || selectedUserModal.enrollments.length === 0) ? (
+                    <p className="text-xs text-slate-400 italic p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl">
+                      No active course or test series assigned to this user yet.
+                    </p>
+                  ) : (
+                    selectedUserModal.enrollments.map((enr, i) => (
                       <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/40 border border-slate-150 dark:border-white/5 rounded-2xl flex items-center justify-between text-xs">
                         <div>
                           <div className="font-bold text-slate-900 dark:text-white">{enr.courseTitle}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">Order ID: {enr.paymentOrderId} • Batch: {enr.batch}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">ID: {enr.courseId} • Status: {enr.paymentStatus}</div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-mono font-bold text-slate-900 dark:text-white">
-                            {enr.amountPaid ? `₹${(enr.amountPaid / (enr.amountPaid > 10000 ? 100 : 1)).toLocaleString('en-IN')}` : 'Free'}
-                          </div>
-                          <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded uppercase">
-                            {enr.paymentStatus}
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                            Active Access
                           </span>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!confirm(`Revoke access to ${enr.courseTitle} for ${selectedUserModal.fullName}?`)) return;
+                              try {
+                                const res = await fetch(`${BACKEND_URL}/api/lms/admin/enrollments`, {
+                                  method: 'DELETE',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ userId: selectedUserModal.id, courseId: enr.courseId })
+                                });
+                                const data = await res.json();
+                                if (data.success) {
+                                  alert('Access revoked successfully.');
+                                  const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`);
+                                  const usersData = await usersRes.json();
+                                  setUsersList(usersData);
+                                  const updatedUser = usersData.find((u: any) => u.id === selectedUserModal.id);
+                                  if (updatedUser) setSelectedUserModal(updatedUser);
+                                }
+                              } catch (err) {
+                                console.error(err);
+                              }
+                            }}
+                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/50 border border-red-200 dark:border-red-900 rounded-xl cursor-pointer"
+                            title="Revoke Access"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    ))
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* Modal Footer */}
