@@ -109,19 +109,23 @@ export default function Home() {
 
   useEffect(() => {
     let VanillaTilt: any;
-    import('vanilla-tilt').then((mod) => {
-      VanillaTilt = mod.default || mod;
-      tiltRefs.current.forEach((el) => {
-        if (el) {
-          VanillaTilt.init(el, {
-            max: 25,
-            speed: 400,
-            glare: true,
-            'max-glare': 1
-          });
-        }
+    import('vanilla-tilt')
+      .then((mod) => {
+        VanillaTilt = mod.default || mod;
+        tiltRefs.current.forEach((el) => {
+          if (el) {
+            VanillaTilt.init(el, {
+              max: 25,
+              speed: 400,
+              glare: true,
+              'max-glare': 1
+            });
+          }
+        });
+      })
+      .catch(() => {
+        // Fallback gracefully if vanilla-tilt is not installed on the production server
       });
-    });
 
     return () => {
       tiltRefs.current.forEach((el) => {
