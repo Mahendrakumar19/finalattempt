@@ -1238,10 +1238,11 @@ class BackendDB {
   }
 
   public async deleteFaculty(id: string): Promise<boolean> {
+    let deletedInMySQL = false;
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query('DELETE FROM faculty WHERE id = ?', [id]);
-        return result.affectedRows > 0;
+        deletedInMySQL = result.affectedRows > 0;
       } catch (err) {
         console.error('MySQL delete error, using local fallback:', err);
       }
@@ -1252,7 +1253,7 @@ class BackendDB {
       this.saveLocalData();
       return true;
     }
-    return false;
+    return deletedInMySQL;
   }
 
   // RESULTS
@@ -1307,10 +1308,11 @@ class BackendDB {
   }
 
   public async deleteResult(id: string): Promise<boolean> {
+    let deletedInMySQL = false;
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query('DELETE FROM results WHERE id = ?', [id]);
-        return result.affectedRows > 0;
+        deletedInMySQL = result.affectedRows > 0;
       } catch (err) {
         console.error('MySQL delete error:', err);
       }
@@ -1321,7 +1323,7 @@ class BackendDB {
       this.saveLocalData();
       return true;
     }
-    return false;
+    return deletedInMySQL;
   }
 
   // CURRENT AFFAIRS

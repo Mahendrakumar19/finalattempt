@@ -366,12 +366,12 @@ class FinalAttemptDB {
 
   public async getFaculty() {
     const data = await this.apiFetch('/api/faculty');
-    return data || facultyData;
+    return Array.isArray(data) ? data : facultyData;
   }
 
   public async getResults(): Promise<ResultTopper[]> {
     const data = await this.apiFetch('/api/results');
-    return data || resultData;
+    return Array.isArray(data) ? data : resultData;
   }
 
   public async getCurrentAffairs() {
