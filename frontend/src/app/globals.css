@@ -381,6 +381,55 @@ html.dark .text-wave-gradient {
   filter: drop-shadow(0 4px 16px rgba(245, 158, 11, 0.35));
 }
 
+/* ── Center Expand Reveal Animation (Reveals outward left & right from center) ── */
+@keyframes typeInCenter {
+  0% {
+    clip-path: inset(0 50% 0 50%);
+    transform: scale(0.92);
+    opacity: 0.2;
+  }
+  50% {
+    clip-path: inset(0 0% 0 0%);
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    clip-path: inset(0 50% 0 50%);
+    transform: scale(0.92);
+    opacity: 0.2;
+  }
+}
+
+@keyframes pulseCenterCursor {
+  0%, 100% { filter: drop-shadow(0 0 0px transparent); }
+  50% { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.8)); }
+}
+
+@keyframes textBlinkSmooth {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+  }
+  50% {
+    opacity: 0.3;
+    text-shadow: 0 0 0px transparent;
+  }
+}
+
+.animate-text-blink {
+  animation: textBlinkSmooth 2.5s ease-in-out infinite;
+}
+
+.typewriter-text {
+  display: inline-block;
+  white-space: nowrap;
+  animation: 
+    typeInCenter 6s cubic-bezier(0.16, 1, 0.3, 1) infinite,
+    pulseCenterCursor 2s ease-in-out infinite;
+  margin: 0 auto;
+  will-change: clip-path, transform;
+}
+
 .hover-lift {
   transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -885,5 +934,61 @@ main .text-6xl, main .text-6\.5xl {
   padding-bottom: 0.5rem;
   border-radius: 0 8px 8px 0;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   SCROLL-TRIGGERED 3D CENTER EXPANSION ANIMATION FOR CORE PILLARS
+   ═══════════════════════════════════════════════════════════ */
+.pillars-grid-container {
+  perspective: 1200px;
+  transform-style: preserve-3d;
+}
+
+.pillars-grid-container > div {
+  opacity: 0;
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1), transform 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+  transform-style: preserve-3d;
+}
+
+/* Card 1: Top-Left (Starts folded in center with 3D rotation & depth) */
+.pillars-grid-container > div:nth-child(1) {
+  transform: translate3d(120px, 120px, -300px) rotateX(25deg) rotateY(-30deg) rotateZ(12deg) scale(0.35);
+}
+/* Card 2: Top-Center */
+.pillars-grid-container > div:nth-child(2) {
+  transform: translate3d(0px, 140px, -350px) rotateX(30deg) rotateY(0deg) scale(0.35);
+}
+/* Card 3: Top-Right */
+.pillars-grid-container > div:nth-child(3) {
+  transform: translate3d(-120px, 120px, -300px) rotateX(25deg) rotateY(30deg) rotateZ(-12deg) scale(0.35);
+}
+/* Card 4: Bottom-Left */
+.pillars-grid-container > div:nth-child(4) {
+  transform: translate3d(120px, -120px, -300px) rotateX(-25deg) rotateY(-30deg) rotateZ(-12deg) scale(0.35);
+}
+/* Card 5: Bottom-Center */
+.pillars-grid-container > div:nth-child(5) {
+  transform: translate3d(0px, -140px, -350px) rotateX(-30deg) rotateY(0deg) scale(0.35);
+}
+/* Card 6: Bottom-Right */
+.pillars-grid-container > div:nth-child(6) {
+  transform: translate3d(-120px, -120px, -300px) rotateX(-25deg) rotateY(30deg) rotateZ(12deg) scale(0.35);
+}
+
+/* When scrolled INTO view: Burst out smoothly from 3D center origin to grid slot */
+.pillars-grid-container.pillars-visible > div {
+  opacity: 1 !important;
+  transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1) !important;
+}
+
+/* Staggered delay for organic 3D explosion burst effect */
+.pillars-grid-container.pillars-visible > div:nth-child(1) { transition-delay: 0.04s; }
+.pillars-grid-container.pillars-visible > div:nth-child(2) { transition-delay: 0.12s; }
+.pillars-grid-container.pillars-visible > div:nth-child(3) { transition-delay: 0.20s; }
+.pillars-grid-container.pillars-visible > div:nth-child(4) { transition-delay: 0.28s; }
+.pillars-grid-container.pillars-visible > div:nth-child(5) { transition-delay: 0.36s; }
+.pillars-grid-container.pillars-visible > div:nth-child(6) { transition-delay: 0.44s; }
+
+
 
 

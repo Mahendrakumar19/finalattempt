@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { 
+import {
   FileText, CheckCircle, ArrowRight, Layers, BookOpen, Search, Filter
 } from 'lucide-react';
 import { db, TestSeriesItem } from '@/services/db';
@@ -92,7 +92,7 @@ export default function TestSeriesPage() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-color)] py-10 px-4 sm:px-6 lg:px-8 space-y-8 font-body">
-      
+
       {/* ── Dynamic Category Filter Tabs & Filter Bar ───────────────────── */}
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Dynamic Category Pill Tabs */}
@@ -103,11 +103,10 @@ export default function TestSeriesPage() {
                 key={cat}
                 type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${
-                  selectedCategory === cat
+                className={`px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all cursor-pointer flex items-center gap-2 ${selectedCategory === cat
                     ? 'bg-amber-500 text-slate-950 shadow-md scale-[1.02]'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 bg-[var(--card-bg)] border border-[var(--card-border)]'
-                }`}
+                  }`}
               >
                 <span>{cat === 'All' ? 'All Test Series' : `${cat} Series`}</span>
               </button>
@@ -190,59 +189,64 @@ export default function TestSeriesPage() {
               return (
                 <div
                   key={series.id}
-                  className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden hover:border-amber-500/40 hover:shadow-xl transition-all flex flex-col justify-between group relative"
+                  className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden hover:border-amber-500/40 shadow-xs hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group relative"
                 >
                   {/* Category & Status Badges Overlay */}
                   <div className="p-6 space-y-4">
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                    <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
+                      <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
                         {series.exam || series.category}
                       </span>
                       {series.status === 'coming_soon' ? (
-                        <span className="px-2.5 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-orange-500 text-white">
+                        <span className="px-3 py-1 rounded-xl text-[9px] font-extrabold uppercase tracking-wider bg-orange-500/10 text-orange-600 border border-orange-500/20">
                           Coming Soon
                         </span>
                       ) : (
-                        <span className="px-2.5 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          Active & Enrollment Open
+                        <span className="px-3 py-1 rounded-xl text-[9px] font-extrabold uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Enrollment Open
                         </span>
                       )}
                     </div>
 
-                    {/* Title & Language */}
+                    {/* Title & Description */}
                     <div className="space-y-2">
                       <h3 className="font-heading font-black text-lg text-[var(--text-color)] group-hover:text-amber-500 transition-colors leading-snug">
                         {series.title}
                       </h3>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
                         {series.description}
                       </p>
                     </div>
 
                     {/* Quick Specs Metrics Pills */}
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[var(--card-border)]">
-                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                        <Layers className="w-4 h-4 text-amber-500 shrink-0" />
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <div className="flex items-center gap-2.5 p-2.5 bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-xs">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                          <Layers className="w-4 h-4" />
+                        </div>
                         <div>
-                          <span className="text-[9px] font-bold text-slate-400 block uppercase">Total Mocks</span>
-                          <span className="text-xs font-black text-[var(--text-color)]">{series.totalTests} Tests</span>
+                          <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Total Mocks</span>
+                          <span className="text-xs font-black text-slate-900 dark:text-white">{series.totalTests} Tests</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
-                        <BookOpen className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <div className="flex items-center gap-2.5 p-2.5 bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-xs">
+                        <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+                          <BookOpen className="w-4 h-4" />
+                        </div>
                         <div>
-                          <span className="text-[9px] font-bold text-slate-400 block uppercase">Questions</span>
-                          <span className="text-xs font-black text-[var(--text-color)]">{series.totalQuestions} Qs</span>
+                          <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Questions</span>
+                          <span className="text-xs font-black text-slate-900 dark:text-white">{series.totalQuestions} Qs</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Highlights Bullet List (Top 3) */}
                     {series.highlights && series.highlights.length > 0 && (
-                      <ul className="space-y-1.5 pt-2">
+                      <ul className="space-y-2 pt-2 border-t border-slate-100 dark:border-white/5">
                         {series.highlights.slice(0, 3).map((feat, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-[11px] font-medium text-slate-600 dark:text-slate-300">
-                            <CheckCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                          <li key={idx} className="flex items-start gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">
+                            <CheckCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                             <span className="line-clamp-1">{feat}</span>
                           </li>
                         ))}
@@ -251,11 +255,11 @@ export default function TestSeriesPage() {
                   </div>
 
                   {/* Pricing & Footer CTA */}
-                  <div className="p-6 bg-slate-50/50 dark:bg-slate-900/40 border-t border-[var(--card-border)] flex items-center justify-between">
+                  <div className="p-5 bg-white dark:bg-slate-900/60 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between">
                     <div>
                       <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Course Fee</span>
                       <div className="flex items-baseline gap-2">
-                        <span className="text-lg font-black text-[var(--text-color)]">
+                        <span className="text-xl font-heading font-black text-slate-900 dark:text-white">
                           ₹{displayPrice?.toLocaleString()}
                         </span>
                         {hasDiscount && (
@@ -268,7 +272,7 @@ export default function TestSeriesPage() {
 
                     <Link
                       href={`/test-series/${series.slug}`}
-                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs flex items-center gap-1.5 transition-all shadow-xs group-hover:scale-[1.03]"
+                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs flex items-center gap-1.5 transition-all shadow-md group-hover:scale-[1.03]"
                     >
                       <span>Explore Program</span>
                       <ArrowRight className="w-3.5 h-3.5" />

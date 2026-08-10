@@ -193,20 +193,12 @@ function CBTTestEngineContent() {
     return () => clearInterval(interval);
   }, [isExamStarted, isTestSubmitted, loading]);
 
-  // Enter Fullscreen & Start Exam
+  // Enter In-App Exam Workbench Mode
   const handleStartExam = () => {
     if (!hasAgreedDisclaimer) {
       alert('Please check the declaration checkbox to confirm you have read the instructions.');
       return;
     }
-
-    // Attempt browser Fullscreen API
-    if (typeof document !== 'undefined' && document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {
-        // Fullscreen request may be blocked by browser policy, proceed safely
-      });
-    }
-
     setIsExamStarted(true);
   };
 
@@ -356,7 +348,7 @@ function CBTTestEngineContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-300 font-body">
+      <div className="min-h-screen bg-[var(--bg-color)] flex items-center justify-center text-[var(--text-color)] font-body">
         <div className="text-center space-y-3">
           <Clock className="w-10 h-10 text-amber-500 animate-spin mx-auto" />
           <p className="text-xs font-bold uppercase tracking-wider">Launching Computer Based Test (CBT) Interface...</p>
@@ -370,60 +362,59 @@ function CBTTestEngineContent() {
   // ──────────────────────────────────────────────────────────────────────────
   if (!isExamStarted) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 font-body py-10 px-4 sm:px-6 lg:px-8 space-y-8 flex flex-col items-center justify-center">
-        <div className="max-w-4xl w-full bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-10 space-y-8 shadow-2xl relative overflow-hidden">
+      <div className="min-h-screen bg-[var(--bg-color)] text-[var(--text-color)] font-body py-10 px-4 sm:px-6 lg:px-8 space-y-8 flex flex-col items-center justify-center">
+        <div className="max-w-4xl w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-10 space-y-8 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Header */}
-          <div className="border-b border-slate-800 pb-6 space-y-2">
+          <div className="border-b border-[var(--card-border)] pb-6 space-y-2">
             <div className="flex justify-between items-center">
-              <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg">
+              <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-lg">
                 OFFICIAL CBT EXAM DISCLAIMER & INSTRUCTIONS
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-400">Language:</span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Language:</span>
                 <select
                   value={examLanguage}
                   onChange={e => setExamLanguage(e.target.value as 'English' | 'Hindi')}
-                  className="bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-700 outline-none"
+                  className="bg-[var(--bg-color)] text-[var(--text-color)] text-xs font-bold px-3 py-1.5 rounded-xl border border-[var(--card-border)] outline-none cursor-pointer"
                 >
-
                   <option value="English">English</option>
                   <option value="Hindi">Hindi (हिंदी)</option>
                 </select>
               </div>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-heading font-black text-white">
+            <h1 className="text-2xl sm:text-3xl font-heading font-black text-[var(--text-color)]">
               {series?.title || 'BPSC Computer Based Test (CBT)'}
             </h1>
-            <p className="text-xs text-slate-400">
-              Total Questions: <span className="font-bold text-white">{questions.length} Qs</span> • Total Time: <span className="font-bold text-amber-400">60 Minutes</span> • Negative Marking: <span className="font-bold text-red-400">-0.33 per wrong answer</span>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Total Questions: <span className="font-bold text-[var(--text-color)]">{questions.length} Qs</span> • Total Time: <span className="font-bold text-amber-500">60 Minutes</span> • Negative Marking: <span className="font-bold text-red-500">-0.33 per wrong answer</span>
             </p>
           </div>
 
           {/* General Instructions Box */}
-          <div className="space-y-4 text-xs text-slate-300 leading-relaxed max-h-72 overflow-y-auto pr-2 border-b border-slate-800 pb-6">
-            <h3 className="font-heading font-extrabold text-sm text-white flex items-center gap-2">
+          <div className="space-y-4 text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-h-72 overflow-y-auto pr-2 border-b border-[var(--card-border)] pb-6">
+            <h3 className="font-heading font-extrabold text-sm text-[var(--text-color)] flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-amber-500" />
               <span>General Examination Instructions:</span>
             </h3>
 
-            <ol className="list-decimal list-inside space-y-2 pl-2 text-slate-300">
+            <ol className="list-decimal list-inside space-y-2 pl-2 text-slate-600 dark:text-slate-300">
               <li>The clock will be set at the server. The countdown timer at the top right of your screen will display the remaining time available to complete the examination.</li>
               <li>When the timer reaches zero, the examination will automatically end. You do not need to submit or end your test manually if time runs out.</li>
               <li>The Question Palette displayed on the right side of screen will show the status of each question using one of the following symbols:
                 <ul className="grid grid-cols-2 gap-2 my-2 text-[11px] font-bold">
-                  <li className="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800">
-                    <span className="w-3 h-3 rounded-full bg-slate-700" /> Not Visited Yet
+                  <li className="flex items-center gap-2 p-2 bg-[var(--bg-color)] rounded-xl border border-[var(--card-border)]">
+                    <span className="w-3 h-3 rounded-full bg-slate-400 dark:bg-slate-700" /> Not Visited Yet
                   </li>
-                  <li className="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800">
+                  <li className="flex items-center gap-2 p-2 bg-[var(--bg-color)] rounded-xl border border-[var(--card-border)]">
                     <span className="w-3 h-3 rounded-full bg-red-500" /> Visited but Not Answered
                   </li>
-                  <li className="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800">
+                  <li className="flex items-center gap-2 p-2 bg-[var(--bg-color)] rounded-xl border border-[var(--card-border)]">
                     <span className="w-3 h-3 rounded-full bg-emerald-500" /> Answered & Saved
                   </li>
-                  <li className="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800">
+                  <li className="flex items-center gap-2 p-2 bg-[var(--bg-color)] rounded-xl border border-[var(--card-border)]">
                     <span className="w-3 h-3 rounded-full bg-purple-500" /> Marked for Review
                   </li>
                 </ul>
@@ -438,13 +429,13 @@ function CBTTestEngineContent() {
             <button
               type="button"
               onClick={() => setHasAgreedDisclaimer(!hasAgreedDisclaimer)}
-              className="mt-0.5 text-amber-400 shrink-0 cursor-pointer"
+              className="mt-0.5 text-amber-500 shrink-0 cursor-pointer"
             >
-              {hasAgreedDisclaimer ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5 text-slate-500" />}
+              {hasAgreedDisclaimer ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5 text-slate-400" />}
             </button>
             <label
               onClick={() => setHasAgreedDisclaimer(!hasAgreedDisclaimer)}
-              className="text-xs text-slate-300 leading-snug cursor-pointer select-none font-medium"
+              className="text-xs text-slate-600 dark:text-slate-300 leading-snug cursor-pointer select-none font-medium"
             >
               I have read and understood all the official examination instructions. I declare that I am taking this test under genuine exam conditions without any unfair assistance.
             </label>
@@ -454,7 +445,7 @@ function CBTTestEngineContent() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
             <Link
               href={`/test-series/${slug}`}
-              className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1"
+              className="text-xs font-bold text-slate-500 hover:text-amber-500 flex items-center gap-1 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Cancel & Exit to Program</span>
@@ -466,11 +457,11 @@ function CBTTestEngineContent() {
               className={`w-full sm:w-auto px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-wider shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
                 hasAgreedDisclaimer
                   ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 scale-[1.02]'
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-60'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-60'
               }`}
             >
               <Maximize2 className="w-4 h-4" />
-              <span>Begin Examination (Enter Full Screen)</span>
+              <span>Begin Examination Workspace</span>
             </button>
           </div>
         </div>
@@ -621,22 +612,22 @@ function CBTTestEngineContent() {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // SCREEN 3: LIVE CBT EXAM INTERFACE (TESTBOOK-STYLE)
+  // SCREEN 3: LIVE CBT EXAM INTERFACE (DYNAMIC IN-APP FULLSCREEN WORKBENCH)
   // ──────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-body flex flex-col justify-between select-none">
+    <div className="fixed inset-0 z-50 bg-[var(--bg-color)] text-[var(--text-color)] font-body flex flex-col justify-between select-none overflow-hidden">
       
       {/* ── TOP HEADER BAR ──────────────────────────────────────────────── */}
-      <header className="bg-slate-900 border-b border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between shrink-0">
+      <header className="bg-[var(--card-bg)] border-b border-[var(--card-border)] px-4 sm:px-8 py-3 flex items-center justify-between shrink-0 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-xs">
+          <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 font-black flex items-center justify-center text-xs shadow-xs">
             CBT
           </div>
           <div>
-            <h1 className="font-heading font-extrabold text-xs sm:text-sm text-white truncate max-w-xs sm:max-w-md">
+            <h1 className="font-heading font-extrabold text-xs sm:text-sm text-[var(--text-color)] truncate max-w-xs sm:max-w-md">
               {series?.title || 'BPSC All India Mock Test'}
             </h1>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+            <span className="text-[10px] text-slate-400 dark:text-slate-400 font-bold uppercase tracking-wider block">
               Official CBT Exam Mode ({examLanguage})
             </span>
           </div>
@@ -645,7 +636,7 @@ function CBTTestEngineContent() {
         <div className="flex items-center gap-4">
           {/* Countdown Clock */}
           <div className={`px-4 py-2 rounded-2xl border flex items-center gap-2 font-mono font-black text-sm sm:text-base ${
-            timeLeftSecs < 300 ? 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse' : 'bg-slate-800 text-amber-400 border-slate-700'
+            timeLeftSecs < 300 ? 'bg-red-500/20 text-red-500 border-red-500/40 animate-pulse' : 'bg-[var(--bg-color)] text-amber-500 border-[var(--card-border)]'
           }`}>
             <Clock className="w-4 h-4 shrink-0" />
             <span>{formatTime(timeLeftSecs)}</span>
@@ -668,21 +659,21 @@ function CBTTestEngineContent() {
         <div className="flex-1 p-6 sm:p-8 flex flex-col justify-between overflow-y-auto space-y-6">
           
           {/* Question Meta Bar */}
-          <div className="flex justify-between items-center border-b border-slate-800 pb-4">
+          <div className="flex justify-between items-center border-b border-[var(--card-border)] pb-4">
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-black rounded-lg">
+              <span className="px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-black rounded-lg">
                 Question No. {currentIndex + 1} of {questions.length}
               </span>
             </div>
             <div className="flex items-center gap-3 text-[11px] font-extrabold">
-              <span className="text-emerald-400">Marks: +{currentQuestion.marks}</span>
-              <span className="text-red-400">Negative: -{currentQuestion.negativeMarks}</span>
+              <span className="text-emerald-500">Marks: +{currentQuestion.marks}</span>
+              <span className="text-red-500">Negative: -{currentQuestion.negativeMarks}</span>
             </div>
           </div>
 
           {/* Question Statement */}
           <div className="space-y-6 flex-1">
-            <h2 className="text-base sm:text-lg font-bold text-white leading-relaxed">
+            <h2 className="text-base sm:text-lg font-bold text-[var(--text-color)] leading-relaxed">
               {currentQuestion.questionText}
             </h2>
 
@@ -697,12 +688,12 @@ function CBTTestEngineContent() {
                     onClick={() => handleSelectOption(optKey)}
                     className={`w-full p-4 rounded-2xl border text-left flex items-center gap-4 transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold shadow-md'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'
+                        ? 'bg-amber-500/15 border-amber-500 text-amber-600 dark:text-amber-400 font-bold shadow-md'
+                        : 'bg-[var(--card-bg)] border-[var(--card-border)] text-slate-700 dark:text-slate-300 hover:border-amber-500/40'
                     }`}
                   >
                     <span className={`w-7 h-7 rounded-xl font-black text-xs flex items-center justify-center shrink-0 ${
-                      isSelected ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
+                      isSelected ? 'bg-amber-500 text-slate-950' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                     }`}>
                       {optKey}
                     </span>
@@ -714,12 +705,12 @@ function CBTTestEngineContent() {
           </div>
 
           {/* BOTTOM ACTION BUTTONS */}
-          <div className="pt-6 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div className="pt-6 border-t border-[var(--card-border)] flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={handleMarkForReviewAndNext}
-                className="px-4 py-2.5 bg-purple-600/20 hover:bg-purple-600/30 text-purple-300 border border-purple-500/30 text-xs font-bold rounded-xl cursor-pointer"
+                className="px-4 py-2.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-400 border border-purple-500/20 text-xs font-bold rounded-xl cursor-pointer"
               >
                 Mark for Review & Next
               </button>
@@ -727,7 +718,7 @@ function CBTTestEngineContent() {
               <button
                 type="button"
                 onClick={handleClearResponse}
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs font-bold rounded-xl cursor-pointer"
+                className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl cursor-pointer border border-[var(--card-border)]"
               >
                 Clear Response
               </button>
@@ -745,37 +736,37 @@ function CBTTestEngineContent() {
         </div>
 
         {/* RIGHT: TESTBOOK-STYLE QUESTION PALETTE SIDEBAR */}
-        <div className="w-full lg:w-80 bg-slate-900 border-t lg:border-t-0 lg:border-l border-slate-800 p-6 space-y-6 flex flex-col justify-between shrink-0">
+        <div className="w-full lg:w-80 bg-[var(--card-bg)] border-t lg:border-t-0 lg:border-l border-[var(--card-border)] p-6 space-y-6 flex flex-col justify-between shrink-0">
           <div className="space-y-6">
             
             {/* Candidate Info Box */}
-            <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 font-black flex items-center justify-center text-sm">
+            <div className="p-4 bg-[var(--bg-color)] rounded-2xl border border-[var(--card-border)] flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-500 font-black flex items-center justify-center text-sm">
                 BPSC
               </div>
               <div className="min-w-0">
                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Candidate Name</span>
-                <span className="text-xs font-extrabold text-white truncate block">Civil Services Aspirant</span>
+                <span className="text-xs font-extrabold text-[var(--text-color)] truncate block">Civil Services Aspirant</span>
               </div>
             </div>
 
             {/* Status Legend */}
             <div className="grid grid-cols-2 gap-2 text-[10px] font-bold">
-              <div className="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="flex items-center gap-2 p-2 bg-[var(--bg-color)] rounded-xl border border-[var(--card-border)]">
                 <span className="w-3.5 h-3.5 rounded-md bg-emerald-500 shrink-0" />
-                <span className="text-slate-300">Answered ({summaryCounts.answered})</span>
+                <span className="text-[var(--text-color)]">Answered ({summaryCounts.answered})</span>
               </div>
-              <div className="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="flex items-center gap-2 p-2 bg-[var(--bg-color)] rounded-xl border border-[var(--card-border)]">
                 <span className="w-3.5 h-3.5 rounded-md bg-red-500 shrink-0" />
-                <span className="text-slate-300">Not Answered ({summaryCounts.notAnswered})</span>
+                <span className="text-[var(--text-color)]">Not Answered ({summaryCounts.notAnswered})</span>
               </div>
-              <div className="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800">
+              <div className="flex items-center gap-2 p-2 bg-[var(--bg-color)] rounded-xl border border-[var(--card-border)]">
                 <span className="w-3.5 h-3.5 rounded-md bg-purple-500 shrink-0" />
-                <span className="text-slate-300">Marked Review ({summaryCounts.markedForReview})</span>
+                <span className="text-[var(--text-color)]">Marked Review ({summaryCounts.markedForReview})</span>
               </div>
-              <div className="flex items-center gap-2 p-2 bg-slate-950 rounded-xl border border-slate-800">
-                <span className="w-3.5 h-3.5 rounded-md bg-slate-700 shrink-0" />
-                <span className="text-slate-300">Not Visited ({summaryCounts.notVisited})</span>
+              <div className="flex items-center gap-2 p-2 bg-[var(--bg-color)] rounded-xl border border-[var(--card-border)]">
+                <span className="w-3.5 h-3.5 rounded-md bg-slate-300 dark:bg-slate-700 shrink-0" />
+                <span className="text-[var(--text-color)]">Not Visited ({summaryCounts.notVisited})</span>
               </div>
             </div>
 
@@ -789,7 +780,7 @@ function CBTTestEngineContent() {
                   const status = questionStatuses[q.id] || 'not_visited';
                   const isCurrent = idx === currentIndex;
 
-                  let colorClass = 'bg-slate-800 text-slate-400 border-slate-700';
+                  let colorClass = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-[var(--card-border)]';
                   if (status === 'answered') colorClass = 'bg-emerald-500 text-slate-950 border-emerald-400 font-black';
                   else if (status === 'not_answered') colorClass = 'bg-red-500 text-white border-red-400 font-black';
                   else if (status === 'marked_for_review') colorClass = 'bg-purple-500 text-white border-purple-400 font-black';
@@ -801,7 +792,7 @@ function CBTTestEngineContent() {
                       type="button"
                       onClick={() => handleJumpToQuestion(idx)}
                       className={`h-10 rounded-xl border text-xs flex items-center justify-center transition-all cursor-pointer ${colorClass} ${
-                        isCurrent ? 'ring-2 ring-amber-400 scale-105' : ''
+                        isCurrent ? 'ring-2 ring-amber-500 scale-105' : ''
                       }`}
                     >
                       {idx + 1}
@@ -818,30 +809,30 @@ function CBTTestEngineContent() {
 
       {/* SUBMIT CONFIRMATION MODAL */}
       {showSubmitConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-6 shadow-2xl">
             <div className="space-y-1">
-              <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">Test Submission Summary</span>
-              <h3 className="font-heading font-black text-xl text-white">Are you sure you want to submit?</h3>
+              <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Test Submission Summary</span>
+              <h3 className="font-heading font-black text-xl text-[var(--text-color)]">Are you sure you want to submit?</h3>
               <p className="text-xs text-slate-400">Once submitted, your answers cannot be changed.</p>
             </div>
 
-            <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2 text-xs">
-              <div className="flex justify-between py-1 border-b border-slate-850">
+            <div className="p-4 bg-[var(--bg-color)] rounded-2xl border border-[var(--card-border)] space-y-2 text-xs">
+              <div className="flex justify-between py-1 border-b border-[var(--card-border)]">
                 <span className="text-slate-400">Total Questions:</span>
-                <span className="font-bold text-white">{questions.length}</span>
+                <span className="font-bold text-[var(--text-color)]">{questions.length}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-850">
-                <span className="text-emerald-400">Answered:</span>
-                <span className="font-bold text-emerald-400">{summaryCounts.answered + summaryCounts.answeredAndMarked}</span>
+              <div className="flex justify-between py-1 border-b border-[var(--card-border)]">
+                <span className="text-emerald-500">Answered:</span>
+                <span className="font-bold text-emerald-500">{summaryCounts.answered + summaryCounts.answeredAndMarked}</span>
               </div>
-              <div className="flex justify-between py-1 border-b border-slate-850">
-                <span className="text-red-400">Not Answered:</span>
-                <span className="font-bold text-red-400">{summaryCounts.notAnswered}</span>
+              <div className="flex justify-between py-1 border-b border-[var(--card-border)]">
+                <span className="text-red-500">Not Answered:</span>
+                <span className="font-bold text-red-500">{summaryCounts.notAnswered}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-purple-400">Marked for Review:</span>
-                <span className="font-bold text-purple-400">{summaryCounts.markedForReview}</span>
+                <span className="text-purple-500">Marked for Review:</span>
+                <span className="font-bold text-purple-500">{summaryCounts.markedForReview}</span>
               </div>
             </div>
 
@@ -849,7 +840,7 @@ function CBTTestEngineContent() {
               <button
                 type="button"
                 onClick={() => setShowSubmitConfirmModal(false)}
-                className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs cursor-pointer"
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl text-xs cursor-pointer border border-[var(--card-border)]"
               >
                 Resume Test
               </button>

@@ -14,6 +14,7 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
   const [pages, setPages] = useState<CustomPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [activeMediaTargetId, setActiveMediaTargetId] = useState<string | null>(null);
 
   const [form, setForm] = useState<Partial<CustomPage>>({
     id: '',
@@ -48,11 +49,11 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
     let cleanSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const isDownload = (form.showLocation || defaultLocation) === 'DOWNLOADS_HUB';
-    const generatedSlug = isDownload ? `downloads/${cleanSlug}` : cleanSlug;
+    const generatedSlug = `downloads/${cleanSlug}`;
     setForm(prev => ({
       ...prev,
       title,
+      showLocation: 'DOWNLOADS_HUB',
       slug: isEditing ? prev.slug : generatedSlug
     }));
   };
@@ -273,21 +274,22 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
 
                 {/* URL Slug Path (Strictly /downloads/[slug]) */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">URL Slug Path</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Download URL</label>
                   <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 px-4 py-3 rounded-2xl text-xs font-mono text-slate-600 dark:text-slate-300">
                     <span className="text-amber-500 font-bold">/downloads/</span>
                     <input
                       type="text"
                       value={(form.slug || '').replace(/^downloads\//, '').replace(/^page\//, '')}
                       onChange={(e) => {
-                        const raw = e.target.value;
-                        setForm({ ...form, showLocation: 'DOWNLOADS_HUB', slug: `downloads/${raw.replace(/^downloads\//, '')}` });
+                        const raw = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                        setForm({ ...form, showLocation: 'DOWNLOADS_HUB', slug: `downloads/${raw}` });
                       }}
                       className="w-full bg-transparent outline-none font-bold text-slate-900 dark:text-white"
                       placeholder="ncert"
                       required
                     />
                   </div>
+                  <p className="text-[10px] text-slate-400">This automatically creates the sub-page under Downloads Hub (e.g., /downloads/ncert, /downloads/bpsc-notes).</p>
                 </div>
 
                 {/* Content Editor */}
@@ -398,19 +400,73 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
                             </div>
                           </div>
 
-                          <input
-                            type="text"
-                            placeholder="File Download URL (e.g. uploads/documents/notes.pdf)"
-                            value={item.url || ''}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setForm(prev => ({
-                                ...prev,
-                                downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, url: val } : i)
-                              }));
-                            }}
-                            className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl font-mono text-slate-900 dark:text-white"
-                          />
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              placeholder="File Download URL or Upload Path (e.g. /uploads/documents/notes.pdf)"
+                              value={item.url || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setForm(prev => ({
+                                  ...prev,
+                                  downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? { ...i, url: val } : i)
+                                }));
+                              }}
+                              className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border rounded-xl font-mono text-slate-900 dark:text-white outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveMediaTargetId(item.id);
+                                setShowMediaPicker(true);
+                              }}
+                              className="px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl cursor-pointer shrink-0 flex items-center gap-1 shadow-xs"
+                            >
+                              📁 Pick from Media Folders
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt,.mp4,.jpg,.jpeg,.png';
+                                input.onchange = async (evt: any) => {
+                                  const file = evt.target?.files?.[0];
+                                  if (!file) return;
+                                  const fd = new FormData();
+                                  fd.append('file', file);
+                                  try {
+                                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+                                    const res = await fetch(`${backendUrl}/api/upload`, { method: 'POST', body: fd });
+                                    const data = await res.json();
+                                    if (data.success && data.url) {
+                                      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                                      const ext = file.name.split('.').pop()?.toUpperCase() || 'PDF';
+                                      setForm(prev => ({
+                                        ...prev,
+                                        downloadItems: (prev.downloadItems || []).map(i => i.id === item.id ? {
+                                          ...i,
+                                          url: data.url,
+                                          size: `${sizeMB} MB`,
+                                          type: ext,
+                                          title: i.title === 'New Study Document' ? file.name.replace(/\.[^.]+$/, '') : i.title
+                                        } : i)
+                                      }));
+                                    } else {
+                                      alert('File upload failed');
+                                    }
+                                  } catch (e) {
+                                    console.error(e);
+                                    alert('Failed uploading file');
+                                  }
+                                };
+                                input.click();
+                              }}
+                              className="px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl cursor-pointer shrink-0"
+                            >
+                              ⬆ Upload File
+                            </button>
+                          </div>
                         </div>
                       ))
                     )}
@@ -445,6 +501,33 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
             setShowMediaPicker(false);
           }}
           onClose={() => setShowMediaPicker(false)}
+        />
+      )}
+      {/* Media Picker Modal Overlay */}
+      {showMediaPicker && (
+        <MediaPicker
+          onClose={() => {
+            setShowMediaPicker(false);
+            setActiveMediaTargetId(null);
+          }}
+          onSelect={(url, item) => {
+            if (activeMediaTargetId) {
+              const ext = (item.extension || item.mimeType?.split('/')[1] || 'PDF').toUpperCase();
+              const sizeMB = (item.size ? (item.size / (1024 * 1024)).toFixed(1) : '1.0');
+              setForm(prev => ({
+                ...prev,
+                downloadItems: (prev.downloadItems || []).map(i => i.id === activeMediaTargetId ? {
+                  ...i,
+                  url,
+                  type: ext,
+                  size: `${sizeMB} MB`,
+                  title: i.title === 'New Study Document' ? item.title || item.originalName : i.title
+                } : i)
+              }));
+            }
+            setShowMediaPicker(false);
+            setActiveMediaTargetId(null);
+          }}
         />
       )}
     </div>

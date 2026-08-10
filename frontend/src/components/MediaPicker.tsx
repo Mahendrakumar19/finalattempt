@@ -315,8 +315,16 @@ export default function MediaPicker({ onSelect, onClose, allowedTypes }: MediaPi
 
               {/* Media Items */}
               {items.map((item) => {
-                const fileUrl = `${BACKEND_URL}/${item.storagePath}`;
-                const thumbUrl = item.thumbnailPath ? `${BACKEND_URL}/${item.thumbnailPath}` : fileUrl;
+                const cleanStorage = (item.storagePath || '').replace(/^\//, '');
+                const cleanThumb = item.thumbnailPath ? item.thumbnailPath.replace(/^\//, '') : cleanStorage;
+                
+                const fileUrl = cleanStorage.startsWith('http://') || cleanStorage.startsWith('https://') 
+                  ? cleanStorage 
+                  : `${BACKEND_URL}/${cleanStorage}`;
+                
+                const thumbUrl = cleanThumb.startsWith('http://') || cleanThumb.startsWith('https://')
+                  ? cleanThumb
+                  : `${BACKEND_URL}/${cleanThumb}`;
 
                 return (
                   <div
@@ -331,6 +339,13 @@ export default function MediaPicker({ onSelect, onClose, allowedTypes }: MediaPi
                           <img
                             src={thumbUrl}
                             alt={item.title}
+                            onError={(e) => {
+                              // If WebP variant thumbnail fails, fallback to main fileUrl
+                              const target = e.currentTarget;
+                              if (target.src !== fileUrl) {
+                                target.src = fileUrl;
+                              }
+                            }}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             loading="lazy"
                           />

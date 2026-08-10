@@ -271,7 +271,15 @@ export default function Header() {
           { heading: 'Downloads', items: [
               { label: 'All Downloads',       href: '/downloads',       desc: 'Central repository of study material', icon: IC.download },
               { label: 'PYQs Library',        href: '/downloads/pyq',   desc: 'Previous year question papers',        icon: IC.pyq     },
-              { label: 'NCERT & Free Books',  href: '/downloads/ncert', desc: 'Class 6–12 NCERT PDFs & notes',        icon: IC.ncert   },
+              ...customPages.filter(p => p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/')).map(p => {
+                const cleanSlug = p.slug.startsWith('downloads/') ? p.slug : `downloads/${p.slug}`;
+                return {
+                  label: p.title,
+                  href: `/${cleanSlug}`,
+                  desc: p.metaDescription || `${p.downloadItems?.length || 0} Files Package`,
+                  icon: IC.globe
+                };
+              })
             ],
           },
           { heading: 'Strategy & Guidance', items: [
@@ -322,6 +330,14 @@ export default function Header() {
         cta: { label: 'Contact Admissions', href: '/contact' },
       },
     },
+
+    /* Dynamic Admin-Created Navbar Pages (Real-Time from DB) */
+    ...navbarCustom.map(p => ({
+      id: `custom-page-${p.id}`,
+      label: p.title,
+      href: p.slug.startsWith('/') ? p.slug : `/${p.slug}`,
+      icon: IC.globe
+    })),
 
 
   ];

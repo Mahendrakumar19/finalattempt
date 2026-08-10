@@ -106,6 +106,7 @@ export default function Home() {
   }, [heroImages.length]);
 
   const tiltRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const pillarsGridRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let VanillaTilt: any;
@@ -134,6 +135,28 @@ export default function Home() {
         }
       });
     };
+  }, []);
+
+  // Scroll animation: Grid cards shrink & fade into center when out of view, expand when scrolled into view
+  useEffect(() => {
+    const el = pillarsGridRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            el.classList.add('pillars-visible');
+          } else {
+            el.classList.remove('pillars-visible');
+          }
+        });
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   const [dynamicAnnouncements, setDynamicAnnouncements] = useState<AnnouncementItem[]>([
@@ -246,13 +269,16 @@ export default function Home() {
         )}
       </section>
 
-      {/* 2. WELCOME BANNER WITH DYNAMIC LIVE COLOR WAVE EFFECT */}
-      <section className="max-w-8xl mx-auto w-full px-4 sm:px-6 lg:px-8 mt-6 mb-12 relative z-20">
+      {/* 2. WELCOME BANNER WITH TYPEWRITER ANIMATION EFFECT */}
+      <section className="max-w-8xl mx-auto w-full px-1 sm:px-6 lg:px-8 mt-6 mb-12 relative z-0">
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-white/10 p-6 sm:p-10 shadow-md text-center hover-lift relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-amber-500/5 pointer-events-none" />
-          <h2 className="font-inlander text-3xl sm:text-3.5xl lg:text-5xl font-black uppercase tracking-widest leading-snug">
-            <span className="text-wave-gradient font-black">WELCOME TO FINAL ATTEMPT</span>
+          <h2 className="font-inlander text-3xl sm:text-3.5xl lg:text-5xl font-black uppercase tracking-widest leading-snug overflow-hidden">
+            <span className="typewriter-text text-wave-gradient font-black">WELCOME TO FINAL ATTEMPT</span>
           </h2>
+          <p className="font-bold text-lg sm:text-2xl text-wave-gradient font-black mt-2">
+            We are Next-Generation Mentorship & Learning Platform for Civil Services Examination.
+          </p>
         </div>
       </section>
 
@@ -423,86 +449,248 @@ export default function Home() {
       </section>
 
       {/* 3.4 WHY FINAL ATTEMPT STANDS OUT SECTION (REAL GLASSMORPHISM DESIGN) */}
-      <section className="py-24 bg-[var(--bg-color)] relative overflow-hidden">
-        {/* Background Ambient Glow Orbs for Glassmorphism Reflection */}
-        <div className="absolute top-1/4 left-1/12 w-96 h-96 bg-amber-500/15 dark:bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 right-1/12 w-96 h-96 bg-blue-600/15 dark:bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      
+  {/* 3.4 WHY FINAL ATTEMPT STANDS OUT */}
+<section className="py-24 bg-[var(--bg-color)] relative overflow-hidden">
 
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14 relative z-10">
-          <div className="text-center max-w-2xl mx-auto space-y-4">
-            <span className="text-xs font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3.5 py-1.5 rounded-xl uppercase tracking-widest">
-              Core Pillars
-            </span>
-            <h2 className="text-3.5xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white leading-tight tracking-tight">
-              Why Final Attempt Stands Out
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-lg mx-auto font-medium">
-              Our unique learning framework combines academic excellence, personal mentorship, and interactive AI evaluation to deliver BPSC success.
-            </p>
+  {/* Ambient Background */}
+  <div className="absolute top-1/4 left-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+  <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+  <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14 relative z-10">
+
+    {/* Heading */}
+    <div className="text-center max-w-2xl mx-auto space-y-4">
+
+      <h2 className="text-3.5xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white ">
+        Why Final Attempt?
+      </h2>
+
+      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-lg mx-auto font-medium">
+        Our unique learning framework combines academic excellence,
+        personal mentorship, and interactive AI evaluation to deliver
+        BPSC success.
+      </p>
+
+    </div>
+
+    {/* Cards Grid with Scroll-Triggered Center Burst Animation */}
+    <div
+      ref={pillarsGridRef}
+      className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pillars-grid-container"
+    >
+
+      {[
+        {
+          title: 'Mentorship First',
+          desc: '1-on-1 personalized guidance, regular progress reviews, and strategic preparation routines tailored to your BPSC goals.',
+          icon: '👥',
+          gradient: 'from-amber-100/80 to-orange-50/40'
+        },
+        {
+          title: 'Expert Faculty',
+          desc: 'Learn from experienced educators and BPSC experts who simplify complex concepts and share proven exam strategies.',
+          icon: '🎓',
+          gradient: 'from-blue-100/70 to-indigo-50/40'
+        },
+        {
+          title: 'Personal Plan',
+          desc: 'Customized study plans adapted to your strengths, learning pace, and performance for maximum score improvement.',
+          icon: '🎯',
+          gradient: 'from-emerald-100/70 to-green-50/40'
+        },
+        {
+          title: 'Copy Evaluation',
+          desc: 'Detailed mentor-driven evaluation of copies on BPSC standards, complete with score analysis and model approaches.',
+          icon: '📝',
+          gradient: 'from-purple-100/70 to-violet-50/40'
+        },
+        {
+          title: 'AI Analytics',
+          desc: 'Monitor progress with test insights, accuracy metrics, and data-driven recommendations that pinpoint weak spots.',
+          icon: '📊',
+          gradient: 'from-cyan-100/70 to-sky-50/40'
+        },
+        {
+          title: 'Complete System',
+          desc: 'Structured courses, test series, answer writing practice, current affairs, and mentorship all under one roof.',
+          icon: '🚀',
+          gradient: 'from-orange-100/70 to-amber-50/40'
+        }
+      ].map((item, idx) => (
+
+        <div
+          key={idx}
+          ref={(el) => {
+            tiltRefs.current[idx] = el;
+          }}
+          className="
+            real-glass-card
+            group
+            relative
+            min-h-[270px]
+            overflow-hidden
+            rounded-[28px]
+            border border-amber-200/70
+            bg-white/80
+            dark:bg-slate-900/80
+            backdrop-blur-xl
+            shadow-[0_12px_40px_rgba(15,23,42,0.06)]
+            transition-all duration-500
+            hover:-translate-y-2
+            hover:shadow-[0_25px_60px_rgba(15,23,42,0.14)]
+          "
+        >
+
+          {/* Fixed visual background */}
+          <div
+            className={`
+              absolute
+              inset-0
+              bg-gradient-to-br
+              ${item.gradient}
+              opacity-60
+              dark:opacity-10
+              pointer-events-none
+            `}
+          />
+
+          {/* Decorative grid */}
+          <div
+            className="
+              absolute inset-0
+              opacity-[0.035]
+              dark:opacity-[0.04]
+              pointer-events-none
+              bg-[radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)]
+              [background-size:18px_18px]
+            "
+          />
+
+          {/* Large watermark icon */}
+          <div
+            className="
+              absolute
+              -right-5
+              -bottom-8
+              text-[130px]
+              leading-none
+              grayscale
+              opacity-[0.07]
+              pointer-events-none
+              select-none
+              transition-all
+              duration-700
+              group-hover:scale-110
+              group-hover:rotate-6
+              group-hover:opacity-[0.12]
+            "
+          >
+            {item.icon}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-            {[
-              {
-                title: 'Mentorship First',
-                desc: '1-on-1 personalized guidance, regular progress reviews, and strategic preparation routines tailored to your BPSC goals.'
-              },
-              {
-                title: 'Expert Faculty',
-                desc: 'Learn from experienced educators and BPSC experts who simplify complex concepts and share proven exam strategies.'
-              },
-              {
-                title: 'Personal Plan',
-                desc: 'Customized study plans adapted to your strengths, learning pace, and performance for maximum score improvement.'
-              },
-              {
-                title: 'Copy Evaluation',
-                desc: 'Detailed mentor-driven evaluation of copies on BPSC standards, complete with score analysis and model approaches.'
-              },
-              {
-                title: 'AI Analytics',
-                desc: 'Monitor progress with test insights, accuracy metrics, and data-driven recommendations that pinpoint weak spots.'
-              },
-              {
-                title: 'Complete System',
-                desc: 'Structured courses, test series, answer writing practice, current affairs, and mentorship all under one roof.'
-              }
-            ].map((item, idx) => (
-              <div
-                key={idx}
-                ref={(el) => { tiltRefs.current[idx] = el; }}
-                className="real-glass-card group"
+          {/* Content */}
+          <div
+            className="
+              relative
+              z-10
+              h-full
+              p-7 sm:p-8
+              flex
+              flex-col
+              justify-between
+            "
+          >
+
+            {/* Icon */}
+            <div
+              className="
+                w-14 h-14
+                rounded-2xl
+                bg-white/80
+                dark:bg-slate-800/80
+                border border-amber-200/60
+                shadow-sm
+                flex items-center justify-center
+                text-2xl
+                transition-all duration-500
+                group-hover:scale-110
+                group-hover:-rotate-3
+              "
+            >
+              {item.icon}
+            </div>
+
+            {/* Text */}
+            <div className="mt-8 space-y-3">
+
+              <div className="w-8 h-1 rounded-full bg-amber-500 transition-all duration-500 group-hover:w-14" />
+
+              <h3
+                className="
+                  font-heading
+                  font-black
+                  text-xl
+                  text-slate-900
+                  dark:text-white
+                "
               >
-                <div className="content-body space-y-3">
-                  <h3 className="font-heading font-black">{item.title}</h3>
-                  <p className="text-xs sm:text-sm leading-relaxed">
-                    {item.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+                {item.title}
+              </h3>
 
+              <p
+                className="
+                  text-sm
+                  leading-relaxed
+                  text-slate-600
+                  dark:text-slate-300
+                  max-w-sm
+                "
+              >
+                {item.desc}
+              </p>
+
+            </div>
+
+          </div>
+
+          {/* Hover shine */}
+          <div
+            className="
+              absolute
+              inset-0
+              pointer-events-none
+              opacity-0
+              group-hover:opacity-100
+              transition-opacity
+              duration-500
+              bg-[linear-gradient(120deg,transparent_20%,rgba(255,255,255,0.35)_50%,transparent_80%)]
+              translate-x-[-100%]
+              group-hover:translate-x-[100%]
+              transition-transform
+            "
+          />
+
+        </div>
+
+      ))}
+
+    </div>
+  </div>
+</section>
       {/* 3.45 YOUTUBE INTEGRATION VIDEOS SECTION */}
       {latestVideos.length > 0 && (
         <section className="py-20 bg-[var(--bg-color)] border-t border-slate-100 dark:border-white/[0.06]">
           <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 max-w-7xl mx-auto">
               <div className="space-y-3">
-                <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
-                  Official Channel
-                </span>
                 <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
-                  Latest from Our YouTube Channel
+                  Latest from Our Channel
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
-                  Keep up to date with BPSC exam strategies, toppers interviews, and current affairs discussions.
-                </p>
+                
               </div>
               <Link
-                href="/current-affairs/videos"
+                href="https://www.youtube.com/@FinalAttemptOfficial/videos"
                 className="btn-outline text-xs flex items-center gap-1.5 shrink-0"
               >
                 <span>View All Videos</span>
@@ -566,15 +754,10 @@ export default function Home() {
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 max-w-7xl mx-auto">
             <div className="space-y-3">
-              <span className="text-xs font-bold text-[#1E3A8A] bg-blue-500/10 border border-blue-500/20 px-3.5 py-1.5 rounded-xl uppercase tracking-widest inline-block">
-                Articles & Insights
-              </span>
+              
               <h2 className="text-3xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white leading-tight">
                 Latest Articles & Expert Analysis
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
-                In-depth strategy guides, current affairs breakdowns, and mentorship insights from senior civil servants.
-              </p>
             </div>
             <Link
               href="/blog"
@@ -745,9 +928,7 @@ export default function Home() {
 
             {/* Left Column: About Final Attempt */}
             <div className="lg:col-span-7 space-y-6">
-              <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
-                Our Journey
-              </span>
+              
               <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
                 About Final Attempt
               </h2>
@@ -900,17 +1081,22 @@ export default function Home() {
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { text: 'Daily Current Affairs', sub: 'Stay updated every day', icon: Calendar },
-              { text: 'Expert Strategy', sub: 'Smart approach to BPSC', icon: Compass },
-              { text: 'Performance Tracking', sub: 'Monitor your prep progress', icon: TrendingUp },
-              { text: 'Accessible Anytime', sub: 'Learn anytime, anywhere', icon: ShieldCheck }
+              { text: 'Daily Current Affairs', sub: 'Stay updated every day', icon: Calendar, delay: '0s' },
+              { text: 'Expert Strategy', sub: 'Smart approach to BPSC', icon: Compass, delay: '0.4s' },
+              { text: 'Performance Tracking', sub: 'Monitor your prep progress', icon: TrendingUp, delay: '0.8s' },
+              { text: 'Accessible Anytime', sub: 'Learn anytime, anywhere', icon: ShieldCheck, delay: '1.2s' }
             ].map((hl, idx) => (
               <div key={idx} className="flex items-center gap-4 border-r border-slate-800 last:border-none px-4">
                 <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-amber-400 shrink-0">
                   <hl.icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-white tracking-wide">{hl.text}</h4>
+                  <h4
+                    className="text-xs font-bold text-amber-400 tracking-wide animate-text-blink"
+                    style={{ animationDelay: hl.delay }}
+                  >
+                    {hl.text}
+                  </h4>
                   <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{hl.sub}</p>
                 </div>
               </div>

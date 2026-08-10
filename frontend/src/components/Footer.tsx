@@ -142,15 +142,6 @@ export default function Footer() {
               Final Attempt is Bihar's premier coaching and mentorship platform for civil service aspirants. We combine micro-scheduled syllabus coverage, daily answer evaluation, analytics diagnostics, and officer mentorship to deliver your target results.
             </p>
 
-            <div className="flex items-center gap-3 text-xs text-slate-300">
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-amber-400 font-bold">
-                <ShieldCheck className="w-4 h-4" /> BPSC Focused
-              </span>
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-amber-400 font-bold">
-                <Award className="w-4 h-4" /> Expert Mentors
-              </span>
-            </div>
-
             {/* Social Media Channels */}
             <div className="pt-2">
               <p className="text-xs uppercase font-extrabold tracking-widest text-slate-400 mb-3">
@@ -211,9 +202,9 @@ export default function Footer() {
                 { label: "Home", href: "/" },
                 { label: "About Us", href: "/about" },
                 { label: "Courses & Batches", href: "/courses" },
-                { label: "Test Series", href: "/test-series" },
+                // { label: "Test Series", href: "/test-series" },
                 { label: "Current Affairs", href: "/current-affairs" },
-                { label: "Downloads Hub", href: "/downloads" },
+                { label: "Resources", href: "/downloads" },
                 { label: "Strategy & Syllabus", href: "/syllabus-strategy" },
                 { label: "Blogs & News", href: "/blog" },
               ].map((item) => (
@@ -240,11 +231,11 @@ export default function Footer() {
               {[
                 { label: "BPSC Foundation Batch", href: "/courses?category=Foundation" },
                 { label: "BPSC Prelims Target", href: "/courses?category=Prelims" },
-                { label: "Mains Answer Writing", href: "/courses?category=Mains" },
+                // { label: "Mains Answer Writing", href: "/courses?category=Mains" },
                 { label: "Prelims Test Series", href: "/test-series?stage=PRELIMS" },
                 { label: "Mains Test Series", href: "/test-series?stage=MAINS" },
-                { label: "Interview Guidance", href: "/courses" },
-                { label: "Official PYQ Library", href: "/downloads/pyq" },
+                // { label: "Interview Guidance", href: "/courses" },
+                { label: "Official PYQ", href: "/downloads/pyq" },
               ].map((program) => (
                 <li key={program.label}>
                   <Link
@@ -306,9 +297,9 @@ export default function Footer() {
                 </div>
                 <div>
                   <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-                    Patna Center Location
+                    Location
                   </p>
-                  <p className="mt-0.5 text-xs font-semibold text-slate-300 leading-snug">
+                  <p className="mt-0.5 text-sm font-semibold text-slate-300 leading-snug">
                     {address}
                   </p>
                 </div>

@@ -39,14 +39,16 @@ export default function DedicatedDownloadsPage() {
   const [activeSection, setActiveSection] = useState<string>('All');
   const [loading, setLoading] = useState(true);
   const [customDownloadPages, setCustomDownloadPages] = useState<CustomPage[]>([]);
+  const [pyqList, setPyqList] = useState<any[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [res, pages] = await Promise.all([
+        const [res, pages, pyqRes] = await Promise.all([
           db.getResources(),
-          db.getCustomPages(true)
+          db.getCustomPages(true),
+          fetch(`${BACKEND_URL}/api/pyqs?limit=500`).then(r => r.json()).catch(() => null)
         ]);
         if (res && res.length > 0) setResourcesList(res);
         if (pages && pages.length > 0) {
@@ -54,6 +56,9 @@ export default function DedicatedDownloadsPage() {
             (p: any) => p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/') || (p.downloadItems && p.downloadItems.length > 0)
           );
           setCustomDownloadPages(downloadPages);
+        }
+        if (pyqRes && pyqRes.success && Array.isArray(pyqRes.data)) {
+          setPyqList(pyqRes.data);
         }
       } catch (err) {
         console.error('Failed loading downloads hub:', err);
@@ -87,38 +92,131 @@ export default function DedicatedDownloadsPage() {
     }, 3000);
   };
 
-  // Build category tabs from live data + fixed vaults
+  // Build category tabs from live data
   const categoryTabs = useMemo(() => {
     const cats = new Set<string>();
     resourcesList.forEach(res => {
       if (res.category && res.category !== 'General Downloads') cats.add(res.category);
     });
-    const tabs = ['All', ...Array.from(cats)];
-    if (customDownloadPages.length > 0) tabs.push('Portals');
-    return tabs;
-  }, [resourcesList, customDownloadPages]);
+    return ['All', ...Array.from(cats)];
+  }, [resourcesList]);
 
-  const filteredResources = useMemo(() => {
-    return resourcesList.filter(res => {
-      const title = res.title || '';
-      const category = res.category || '';
-      const subcategory = res.subcategory || '';
-      const matchesSearch = title.toLowerCase().includes(searchQuery.toLowerCase());
-      if (activeSection === 'All') return matchesSearch;
-      if (activeSection === 'Portals') return false;
-      return matchesSearch && category === activeSection;
-    });
-  }, [resourcesList, activeSection, searchQuery]);
+  // Universal search results across both Resources list AND Custom Download Pages & Embedded Files
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    const q = searchQuery.toLowerCase();
 
-  const groupedResources = useMemo(() => {
-    const g: Record<string, ResourceItem[]> = {};
-    filteredResources.forEach(res => {
-      const cat = res.category && res.category !== 'General Downloads' ? res.category : '';
-      if (!g[cat]) g[cat] = [];
-      g[cat].push(res);
+    const matches: Array<{
+      id: string;
+      title: string;
+      description?: string;
+      type: string;
+      size?: string;
+      url: string;
+      pageTitle: string;
+      pageSlug: string;
+    }> = [];
+
+    // Search inside resourcesList
+    resourcesList.forEach(res => {
+      if ((res.title || '').toLowerCase().includes(q) || (res.category || '').toLowerCase().includes(q)) {
+        matches.push({
+          id: res.id,
+          title: res.title,
+          type: res.type || 'PDF',
+          size: res.size,
+          url: res.url,
+          pageTitle: res.category || 'General Resource',
+          pageSlug: 'downloads'
+        });
+      }
     });
-    return g;
-  }, [filteredResources]);
+
+    // Search inside custom download pages & embedded downloadItems
+    customDownloadPages.forEach(page => {
+      const pageTitleMatch = (page.title || '').toLowerCase().includes(q) || (page.slug || '').toLowerCase().includes(q);
+      const cleanSlug = page.slug.startsWith('downloads/') ? page.slug : `downloads/${page.slug}`;
+
+      (page.downloadItems || []).forEach(item => {
+        if (pageTitleMatch || (item.title || '').toLowerCase().includes(q) || (item.description || '').toLowerCase().includes(q)) {
+          matches.push({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            type: item.type || 'PDF',
+            size: item.size,
+            url: item.url,
+            pageTitle: page.title,
+            pageSlug: cleanSlug
+          });
+        }
+      });
+    });
+
+    // Universal Search inside PYQ Vault (Exams & Individual Question Papers / Answer Keys / Solutions)
+    pyqList.forEach(pyq => {
+      const examName = pyq.exam?.name || pyq.examId || 'BPSC Exam';
+      const paperName = pyq.paperName || '';
+      const description = pyq.description || '';
+      const stage = pyq.stage || 'PYQ';
+      const year = pyq.year || '';
+
+      if (
+        paperName.toLowerCase().includes(q) ||
+        examName.toLowerCase().includes(q) ||
+        description.toLowerCase().includes(q) ||
+        String(year).includes(q) ||
+        stage.toLowerCase().includes(q)
+      ) {
+        // Question Paper match
+        if (pyq.questionPaper) {
+          const paperPath = pyq.questionPaper.storagePath || pyq.questionPaper.url || pyq.questionPaper.path || (typeof pyq.questionPaper === 'string' ? pyq.questionPaper : '');
+          matches.push({
+            id: `pyq-qp-${pyq.id}`,
+            title: `${paperName} (${year} ${stage})`,
+            description: `Official ${examName} Question Paper - ${stage} Stage`,
+            type: 'PYQ PDF',
+            size: 'PDF',
+            url: paperPath,
+            pageTitle: `PYQ Vault • ${examName}`,
+            pageSlug: 'downloads/pyq'
+          });
+        }
+
+        // Answer Key match
+        if (pyq.answerKey) {
+          const keyPath = pyq.answerKey.storagePath || pyq.answerKey.url || pyq.answerKey.path || (typeof pyq.answerKey === 'string' ? pyq.answerKey : '');
+          matches.push({
+            id: `pyq-ak-${pyq.id}`,
+            title: `${paperName} Answer Key (${year})`,
+            description: `Official Answer Key for ${examName} - ${paperName}`,
+            type: 'ANSWER KEY',
+            size: 'PDF',
+            url: keyPath,
+            pageTitle: `PYQ Vault • ${examName}`,
+            pageSlug: 'downloads/pyq'
+          });
+        }
+
+        // Solution match
+        if (pyq.solution) {
+          const solPath = pyq.solution.storagePath || pyq.solution.url || pyq.solution.path || (typeof pyq.solution === 'string' ? pyq.solution : '');
+          matches.push({
+            id: `pyq-sol-${pyq.id}`,
+            title: `${paperName} Solution (${year})`,
+            description: `Detailed Solution & Explanation for ${examName} - ${paperName}`,
+            type: 'SOLUTION',
+            size: 'PDF',
+            url: solPath,
+            pageTitle: `PYQ Vault • ${examName}`,
+            pageSlug: 'downloads/pyq'
+          });
+        }
+      }
+    });
+
+    return matches;
+  }, [searchQuery, resourcesList, customDownloadPages, pyqList]);
 
   return (
     <div className="min-h-screen bg-[var(--bg-color)]">
@@ -155,152 +253,134 @@ export default function DedicatedDownloadsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-        {/* ── Featured Vaults Row ───────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Link
-            href="/downloads/pyq"
-            className="group p-5 bg-gradient-to-br from-amber-500/12 via-amber-500/5 to-transparent border border-amber-500/30 rounded-2xl transition-all hover:border-amber-500 hover:shadow-lg flex items-center gap-4"
-          >
-            <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-500">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider block">Official Question Bank</span>
-              <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] group-hover:text-amber-500 transition-colors leading-snug">
-                PYQ
-              </h4>
-            </div>
-            <ArrowRight className="w-4 h-4 text-amber-500 group-hover:translate-x-1 transition-transform ml-auto shrink-0" />
-          </Link>
-
-          <Link
-            href="/downloads/ncert"
-            className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-blue-500/40 rounded-2xl transition-all hover:shadow-lg flex items-center gap-4"
-          >
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 text-blue-500">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider block">Core Syllabus Books</span>
-              <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] group-hover:text-amber-500 transition-colors leading-snug">
-                NCERT
-              </h4>
-            </div>
-            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all ml-auto shrink-0" />
-          </Link>
-        </div>
-
-        {/* ── Category Pill Tabs ────────────────────────────────────── */}
-        {categoryTabs.length > 1 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <Filter className="w-4 h-4 text-slate-400 shrink-0" />
-            {categoryTabs.map(cat => (
+        {/* ── Universal Search Results Overlay / Section ───────────── */}
+        {searchResults !== null ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="font-heading font-black text-xl text-[var(--text-color)]">
+                Search Results for &ldquo;{searchQuery}&rdquo; ({searchResults.length} Files Found)
+              </h3>
               <button
-                key={cat}
-                type="button"
-                onClick={() => { setActiveSection(cat); setSearchQuery(''); }}
-                className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${activeSection === cat
-                    ? 'bg-amber-500 text-slate-950 shadow-md'
-                    : 'bg-[var(--card-bg)] border border-[var(--card-border)] text-slate-600 dark:text-slate-300 hover:border-amber-500/40 hover:text-amber-600 dark:hover:text-amber-400'
-                  }`}
+                onClick={() => setSearchQuery('')}
+                className="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline cursor-pointer"
               >
-                {cat === 'All' ? 'All Downloads' : cat}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* ── Content Area ─────────────────────────────────────────── */}
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-20 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        ) : activeSection === 'Portals' ? (
-          /* Custom Admin Portals view */
-          <div className="space-y-4">
-            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Admin Created Portals</p>
-            {customDownloadPages.length === 0 ? (
-              <div className="p-10 text-center text-slate-400 font-semibold text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl">
-                No download portals created yet.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {customDownloadPages.map((pg: any) => {
-                  const cleanSlug = pg.slug.startsWith('downloads/') ? pg.slug : `downloads/${pg.slug}`;
-                  return (
-                    <Link
-                      key={pg.id}
-                      href={`/${cleanSlug}`}
-                      className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all flex items-center gap-4"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 text-amber-500">
-                        <Folder className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-bold text-sm text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">{pg.title}</h4>
-                        <span className="text-[10px] text-slate-400 font-medium">{pg.downloadItems?.length || 0} files</span>
-                      </div>
-                      <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ) : filteredResources.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 font-semibold text-sm bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl space-y-2">
-            <Layers className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-700" />
-            <p>No downloads found{searchQuery ? ` for "${searchQuery}"` : ` in "${activeSection}"`}.</p>
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="text-xs text-amber-600 dark:text-amber-400 font-bold hover:underline cursor-pointer">
                 Clear Search
               </button>
+            </div>
+
+            {searchResults.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 font-semibold text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-2">
+                <Layers className="w-10 h-10 mx-auto text-slate-300 dark:text-slate-700" />
+                <p>No matching study files or documents found for &ldquo;{searchQuery}&rdquo; across any download pages.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {searchResults.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-[var(--card-bg)] border border-[var(--card-border)] p-6 rounded-3xl shadow-xs hover:border-amber-500/50 hover:shadow-xl transition-all flex flex-col justify-between space-y-4 group"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-lg uppercase tracking-wider truncate max-w-[180px]">
+                          📍 {item.pageTitle}
+                        </span>
+                        <span className="text-[9px] font-extrabold text-slate-400 uppercase">
+                          {item.type} {item.size ? `• ${item.size}` : ''}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h4 className="font-heading font-black text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors leading-snug">
+                          {item.title}
+                        </h4>
+                        {item.description && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2">
+                            {item.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-[var(--card-border)] flex items-center gap-2">
+                      <Link
+                        href={`/${item.pageSlug}`}
+                        className="flex-1 py-2.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 border border-[var(--card-border)] transition-all cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4 text-amber-500" />
+                        <span>Open Page</span>
+                      </Link>
+
+                      {item.url && (
+                        <a
+                          href={resolveUrl(item.url)}
+                          download
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex-1 py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md hover:scale-[1.02] transition-all cursor-pointer"
+                        >
+                          <Download className="w-4 h-4" />
+                          <span>Download</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         ) : (
-          <div className="space-y-8">
-            {Object.keys(groupedResources).map(catName => (
-              <div key={catName} className="space-y-3">
-                {activeSection === 'All' && catName && (
-                  <div className="flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-amber-500" />
-                    <h3 className="font-heading font-extrabold text-sm text-[var(--text-color)] uppercase tracking-wider">{catName}</h3>
-                  </div>
-                )}
+          /* Default Page Grid View */
+          <div className="space-y-4 pt-4 border-t border-[var(--card-border)]">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-widest block">
+                Download Pages & Vaults ({customDownloadPages.length + 1})
+              </span>
+            </div>
 
-
-              </div>
-            ))}
-
-            {/* Inline custom portals when browsing All */}
-            {activeSection === 'All' && customDownloadPages.length > 0 && (
-              <div className="space-y-3 pt-2 border-t border-[var(--card-border)]">
-                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Download Portals</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {customDownloadPages.map((pg: any) => {
-                    const cleanSlug = pg.slug.startsWith('downloads/') ? pg.slug : `downloads/${pg.slug}`;
-                    return (
-                      <Link
-                        key={pg.id}
-                        href={`/${cleanSlug}`}
-                        className="group p-4 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all flex items-center gap-3"
-                      >
-                        <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0 text-amber-500">
-                          <Folder className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-bold text-xs text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">{pg.title}</h4>
-                          <span className="text-[10px] text-slate-400">{pg.downloadItems?.length || 0} files</span>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
-                      </Link>
-                    );
-                  })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {/* Built-in PYQ Vault */}
+              <Link
+                href="/downloads/pyq"
+                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-500">
+                  <FileText className="w-6 h-6" />
                 </div>
-              </div>
-            )}
+                <div className="min-w-0 flex-1">
+                  <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider block">Question Bank</span>
+                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                    PYQ Vault
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-medium">Official Exam Papers</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+              </Link>
+
+              {/* Custom Created Download Sub-Pages */}
+              {customDownloadPages.map((pg: any) => {
+                const cleanSlug = pg.slug.startsWith('downloads/') ? pg.slug : `downloads/${pg.slug}`;
+                return (
+                  <Link
+                    key={pg.id}
+                    href={`/${cleanSlug}`}
+                    className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 text-blue-500">
+                      <Folder className="w-6 h-6" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider block">Resource Page</span>
+                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        {pg.title}
+                      </h4>
+                      <span className="text-[10px] text-slate-400 font-medium">{pg.downloadItems?.length || 0} Files Package</span>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
