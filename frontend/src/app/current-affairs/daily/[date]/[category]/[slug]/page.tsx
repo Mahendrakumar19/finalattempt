@@ -77,13 +77,13 @@ export default function ArticleDetailViewer() {
       />
 
       {/* Back button */}
-      <Link
-        href={`/current-affairs/daily/${dateStr}`}
-        className="text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors flex items-center gap-1.5 w-fit"
+      <button
+        onClick={() => typeof window !== 'undefined' && window.history.length > 1 ? window.history.back() : window.location.href = `/current-affairs/daily/${dateStr}`}
+        className="text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors flex items-center gap-1.5 w-fit cursor-pointer"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
-        <span>Back to {dateStr} Daily Edition</span>
-      </Link>
+        <span>Back to Previous Page</span>
+      </button>
 
       {/* Article Header */}
       <div className="space-y-4 border-b border-slate-100 dark:border-white/[0.06] pb-6">

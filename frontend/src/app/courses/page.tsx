@@ -1,15 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { Search, SlidersHorizontal, BookOpen, Clock, Calendar } from 'lucide-react';
+import { Search, SlidersHorizontal, BookOpen, Clock, Calendar, ChevronDown } from 'lucide-react';
 import { db } from '@/services/db';
 import { courseData } from '@/services/seedData';
 
-type CategoryType = 'All' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview';
+import { useSearchParams } from 'next/navigation';
 
-export default function Courses() {
-  const [selectedCategory, setSelectedCategory] = useState<CategoryType>('All');
+type CategoryType = 'All' | 'Prelims' | 'Mains' | 'Interview';
+type ExamType = 'All' | 'BPSC' | 'Arunachal PCS';
+
+function CoursesContent() {
+  const searchParams = useSearchParams();
+  const initialCat = (searchParams.get('category') as CategoryType) || 'All';
+  const initialExam = (searchParams.get('exam') as ExamType) || 'All';
+
+  const [selectedExam, setSelectedExam] = useState<ExamType>(initialExam);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryType>(initialCat);
   const [searchQuery, setSearchQuery] = useState('');
   const [coursesList, setCoursesList] = useState<any[]>([]);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
@@ -17,6 +25,13 @@ export default function Courses() {
   const toggleFlip = (id: string) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }));
   };
+
+  useEffect(() => {
+    const cat = searchParams.get('category') as CategoryType;
+    const ex = searchParams.get('exam') as ExamType;
+    if (cat) setSelectedCategory(cat);
+    if (ex) setSelectedExam(ex);
+  }, [searchParams]);
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -32,20 +47,26 @@ export default function Courses() {
     loadCourses();
   }, []);
 
-  const categories: CategoryType[] = ['All', 'Foundation', 'Prelims', 'Mains', 'Interview'];
+  const exams: ExamType[] = ['All', 'BPSC', 'Arunachal PCS'];
+  const categories: CategoryType[] = ['All', 'Prelims', 'Mains', 'Interview'];
 
   const filteredCourses = coursesList.filter(course => {
+    const matchesExam = selectedExam === 'All' || 
+      (course.exam && course.exam.toLowerCase().includes(selectedExam.toLowerCase())) ||
+      (course.title && course.title.toLowerCase().includes(selectedExam.toLowerCase())) ||
+      (selectedExam === 'BPSC' && (!course.exam || course.title.includes('BPSC')));
+
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
     const matchesSearch = (course.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (course.description || '').toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesExam && matchesCategory && matchesSearch;
   });
 
   return (
     <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
       {/* Page Header */}
       <div className="space-y-4">
-        <span className="text-xs font-bold text-blue-600 uppercase tracking-widest">Our Programs</span>
+        
         <h1 className="text-4xl font-heading font-extrabold text-brand-primary tracking-tight">
           Explore Our Courses
         </h1>
@@ -56,9 +77,9 @@ export default function Courses() {
       </div>
 
         {/* Filters and Search Bar */}
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-[var(--card-bg)] p-4 rounded-2xl border border-[var(--card-border)] shadow-xs">
+        <div className="flex flex-col lg:flex-row gap-4 items-center justify-between bg-[var(--card-bg)] p-5 rounded-3xl border border-[var(--card-border)] shadow-xs">
           {/* Search */}
-          <div className="relative w-full md:w-80">
+          <div className="relative w-full lg:w-72">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
@@ -69,21 +90,50 @@ export default function Courses() {
             />
           </div>
 
-          {/* Category Pills */}
-          <div className="flex flex-wrap gap-2 w-full md:w-auto">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                  selectedCategory === cat
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                    : 'text-[var(--text-color)] hover:bg-amber-500/10 bg-[var(--card-bg)] border border-[var(--card-border)]'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+          <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto items-center">
+            {/* Exam Dropdown */}
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900/60 px-3.5 py-2 rounded-2xl border border-[var(--card-border)] w-full sm:w-auto shadow-xs">
+              <label htmlFor="exam-select" className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 shrink-0">
+                Exam:
+              </label>
+              <div className="relative flex-1 sm:flex-none">
+                <select
+                  id="exam-select"
+                  value={selectedExam}
+                  onChange={(e) => setSelectedExam(e.target.value as ExamType)}
+                  className="w-full sm:w-40 appearance-none bg-transparent pr-7 pl-1 text-xs font-extrabold text-[var(--text-color)] outline-none cursor-pointer"
+                >
+                  {exams.map((ex) => (
+                    <option key={ex} value={ex} className="bg-[var(--card-bg)] text-[var(--text-color)] font-extrabold py-1">
+                      {ex === 'All' ? 'All State Exams' : ex}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Stage Dropdown */}
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900/60 px-3.5 py-2 rounded-2xl border border-[var(--card-border)] w-full sm:w-auto shadow-xs">
+              <label htmlFor="stage-select" className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 shrink-0">
+                Stage:
+              </label>
+              <div className="relative flex-1 sm:flex-none">
+                <select
+                  id="stage-select"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value as CategoryType)}
+                  className="w-full sm:w-36 appearance-none bg-transparent pr-7 pl-1 text-xs font-extrabold text-[var(--text-color)] outline-none cursor-pointer"
+                >
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat} className="bg-[var(--card-bg)] text-[var(--text-color)] font-extrabold py-1">
+                      {cat === 'All' ? 'All Stages' : cat}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -222,10 +272,22 @@ export default function Courses() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16 bg-slate-50 rounded-3xl border border-slate-100">
+        <div className="text-center py-16 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-white/10">
           <p className="text-slate-500 text-sm font-semibold">No courses match your selection or search query.</p>
         </div>
       )}
     </div>
+  );
+}
+
+export default function Courses() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[var(--bg-color)] flex items-center justify-center text-[var(--text-color)] text-xs font-bold uppercase tracking-wider">
+        Loading Courses...
+      </div>
+    }>
+      <CoursesContent />
+    </Suspense>
   );
 }

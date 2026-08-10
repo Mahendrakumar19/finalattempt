@@ -63,6 +63,22 @@ export interface ResultTopper {
   story: string;
 }
 
+export interface Course {
+  id: string;
+  title: string;
+  exam?: 'BPSC' | 'Arunachal PCS' | string;
+  category: 'Prelims' | 'Mains' | 'Interview' | 'Foundation' | string;
+  description: string;
+  duration: string;
+  fee: string;
+  syllabus: string[];
+  features: string[];
+  schedule: string;
+  faq: { q: string; a: string }[];
+  enrolledCount: number;
+  isPublished?: boolean;
+}
+
 export interface CurrentAffairArticle {
   id: string;
   title: string;
@@ -691,6 +707,10 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query('ALTER TABLE custom_pages ADD COLUMN bannerUrl TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE custom_pages ADD COLUMN downloadItems JSON'); } catch (_) {}
 
+    // LMS Courses column migrations (add exam & schedule columns if not present)
+    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS exam VARCHAR(100) DEFAULT 'BPSC'"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS schedule VARCHAR(255)"); } catch (_) {}
+
     console.log('MySQL Database tables initialized successfully.');
 
     
@@ -1241,13 +1261,13 @@ class BackendDB {
     let deletedInMySQL = false;
     if (mysqlPool) {
       try {
-        const [result]: any = await mysqlPool.query('DELETE FROM faculty WHERE id = ?', [id]);
+        const [result]: any = await mysqlPool.query('DELETE FROM faculty WHERE id = ? OR name = ?', [id, id]);
         deletedInMySQL = result.affectedRows > 0;
       } catch (err) {
         console.error('MySQL delete error, using local fallback:', err);
       }
     }
-    const idx = this.localStore.faculty.findIndex(f => f.id === id);
+    const idx = this.localStore.faculty.findIndex(f => f.id === id || f.name === id);
     if (idx >= 0) {
       this.localStore.faculty.splice(idx, 1);
       this.saveLocalData();
@@ -1290,15 +1310,15 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query(
-          'UPDATE results SET name = ?, rank = ?, exam = ?, course = ?, service = ?, district = ?, photo = ?, year = ?, story = ? WHERE id = ?',
-          [updated.name, updated.rank, updated.exam, updated.course, updated.service, updated.district, updated.photo, updated.year, updated.story, id]
+          'UPDATE results SET name = ?, rank = ?, exam = ?, course = ?, service = ?, district = ?, photo = ?, year = ?, story = ? WHERE id = ? OR name = ?',
+          [updated.name, updated.rank, updated.exam, updated.course, updated.service, updated.district, updated.photo, updated.year, updated.story, id, id]
         );
         return result.affectedRows > 0;
       } catch (err) {
         console.error('MySQL update error:', err);
       }
     }
-    const idx = this.localStore.results.findIndex(r => r.id === id);
+    const idx = this.localStore.results.findIndex(r => r.id === id || r.name === id);
     if (idx >= 0) {
       this.localStore.results[idx] = updated;
       this.saveLocalData();
@@ -1311,13 +1331,13 @@ class BackendDB {
     let deletedInMySQL = false;
     if (mysqlPool) {
       try {
-        const [result]: any = await mysqlPool.query('DELETE FROM results WHERE id = ?', [id]);
+        const [result]: any = await mysqlPool.query('DELETE FROM results WHERE id = ? OR name = ?', [id, id]);
         deletedInMySQL = result.affectedRows > 0;
       } catch (err) {
         console.error('MySQL delete error:', err);
       }
     }
-    const idx = this.localStore.results.findIndex(r => r.id === id);
+    const idx = this.localStore.results.findIndex(r => r.id === id || r.name === id);
     if (idx >= 0) {
       this.localStore.results.splice(idx, 1);
       this.saveLocalData();
@@ -2867,24 +2887,30 @@ const lmsLocalProgress: Array<{ id: string; userId: string; courseId: string; le
 
 class LmsDB {
   // ── Courses ────────────────────────────────────────────────────────────────
-  async getCourses(): Promise<any[]> {
+  async getCourses(includeUnpublished: boolean = false): Promise<any[]> {
     if (mysqlPool) {
       try {
-        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_courses WHERE isActive = 1 AND isPublished = 1 ORDER BY enrolledCount DESC');
+        const query = includeUnpublished
+          ? 'SELECT * FROM lms_courses WHERE isActive = 1 ORDER BY enrolledCount DESC'
+          : 'SELECT * FROM lms_courses WHERE isActive = 1 AND isPublished = 1 ORDER BY enrolledCount DESC';
+        const [rows]: any = await mysqlPool.query(query);
         return rows.map((r: any) => ({
           ...r,
+          isPublished: Boolean(r.isPublished),
           syllabus: typeof r.syllabus === 'string' ? JSON.parse(r.syllabus) : r.syllabus,
           features: typeof r.features === 'string' ? JSON.parse(r.features) : r.features,
           faq:      typeof r.faq      === 'string' ? JSON.parse(r.faq)      : r.faq,
-          fee: `₹${(r.fee / 100 || r.fee).toLocaleString('en-IN')}`
+          fee: typeof r.fee === 'string' ? r.fee : `₹${(r.fee / 100 || r.fee).toLocaleString('en-IN')}`
         }));
       } catch (err) { 
         console.error('[LmsDB] getCourses MySQL error, serving local fallback:', err); 
         handlePoolDegrade(err);
-        return db.localStore.courses;
+        const courses = db.localStore.courses || [];
+        return includeUnpublished ? courses : courses.filter(c => c.isPublished !== false);
       }
     }
-    return db.localStore.courses;
+    const courses = db.localStore.courses || [];
+    return includeUnpublished ? courses : courses.filter(c => c.isPublished !== false);
   }
 
   async getCourseById(id: string): Promise<any | null> {
@@ -2913,10 +2939,10 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO lms_courses (id, title, slug, category, description, fee, duration, schedule, enrolledCount, syllabus, features, faq, isPublished)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+          `INSERT INTO lms_courses (id, title, slug, exam, category, description, fee, duration, schedule, enrolledCount, syllabus, features, faq, isPublished)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
           [
-            data.id, data.title, slug, data.category, data.description,
+            data.id, data.title, slug, data.exam || 'BPSC', data.category || 'Prelims', data.description,
             data.fee || 0, data.duration || '', data.schedule || '',
             JSON.stringify(data.syllabus || []),
             JSON.stringify(data.features || []),
@@ -2950,6 +2976,7 @@ class LmsDB {
         const vals: any[] = [];
         if (updates.title !== undefined) { fields.push('title = ?'); vals.push(updates.title); }
         if (updates.description !== undefined) { fields.push('description = ?'); vals.push(updates.description); }
+        if (updates.exam !== undefined) { fields.push('exam = ?'); vals.push(updates.exam); }
         if (updates.category !== undefined) { fields.push('category = ?'); vals.push(updates.category); }
         if (updates.fee !== undefined) { fields.push('fee = ?'); vals.push(updates.fee); }
         if (updates.duration !== undefined) { fields.push('duration = ?'); vals.push(updates.duration); }

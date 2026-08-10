@@ -8,9 +8,10 @@ import { db, CustomPage, DownloadItem } from '@/services/db';
 
 interface CustomPagesCMSProps {
   defaultLocation?: 'DOWNLOADS_HUB' | 'NAVBAR' | 'HEADER_TOP' | 'FOOTER' | 'SLUG_ONLY';
+  targetSlug?: string;
 }
 
-export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPagesCMSProps) {
+export default function CustomPagesCMS({ defaultLocation = 'NAVBAR', targetSlug }: CustomPagesCMSProps) {
   const [pages, setPages] = useState<CustomPage[]>([]);
   const [loading, setLoading] = useState(true);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
@@ -37,7 +38,27 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
   const fetchPages = async () => {
     setLoading(true);
     try {
-      const data = await db.getCustomPages(false);
+      let data = await db.getCustomPages(false);
+      if (data && targetSlug) {
+        let filtered = data.filter(p => p.slug === targetSlug || p.slug === targetSlug.replace(/^downloads\//, ''));
+        if (filtered.length === 0) {
+          // Auto create base page object so user can immediately edit & upload files
+          const autoTitle = targetSlug.split('/').pop()?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'New Download Portal';
+          const defaultNewPage: CustomPage = {
+            id: `page-${Date.now()}`,
+            title: autoTitle,
+            slug: targetSlug,
+            content: `<h3>${autoTitle}</h3><p>Official study materials and downloadable booklets repository.</p>`,
+            showLocation: defaultLocation || 'DOWNLOADS_HUB',
+            displayOrder: 1,
+            isPublished: true,
+            downloadItems: []
+          };
+          await db.saveCustomPage(defaultNewPage);
+          filtered = [defaultNewPage];
+        }
+        data = filtered;
+      }
       setPages(data || []);
     } catch (err) {
       console.error('Failed fetching custom pages:', err);
@@ -101,7 +122,7 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
     setForm({
       id: '',
       title: '',
-      slug: '',
+      slug: targetSlug || '',
       content: '',
       showLocation: defaultLocation || 'DOWNLOADS_HUB',
       displayOrder: 0,
@@ -439,6 +460,39 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR' }: CustomPag
                                     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
                                     const res = await fetch(`${backendUrl}/api/upload`, { method: 'POST', body: fd });
                                     const data = await res.json();
+                                    // Auto organize NCERT books into dynamic folders
+                                    if (form.title?.toLowerCase().includes('ncert') || form.slug?.includes('ncert')) {
+                                      const mediaRes = await fetch(`${backendUrl}/api/media/upload`, { method: 'POST', body: fd });
+                                      const mediaData = await mediaRes.json();
+                                      if (mediaData.success && mediaData.data?.id) {
+                                        let subject = '';
+                                        let className = '';
+                                        const fileNameLower = file.name.toLowerCase();
+                                        if (fileNameLower.includes('geo')) subject = 'Geography';
+                                        else if (fileNameLower.includes('hist')) subject = 'History';
+                                        else if (fileNameLower.includes('pol')) subject = 'Polity';
+                                        else if (fileNameLower.includes('eco')) subject = 'Economics';
+                                        
+                                        if (fileNameLower.includes('class 6') || fileNameLower.includes('class_6') || fileNameLower.includes('c6')) className = 'Class 6';
+                                        else if (fileNameLower.includes('class 7') || fileNameLower.includes('class_7') || fileNameLower.includes('c7')) className = 'Class 7';
+                                        else if (fileNameLower.includes('class 8') || fileNameLower.includes('class_8') || fileNameLower.includes('c8')) className = 'Class 8';
+                                        else if (fileNameLower.includes('class 9') || fileNameLower.includes('class_9') || fileNameLower.includes('c9')) className = 'Class 9';
+                                        else if (fileNameLower.includes('class 10') || fileNameLower.includes('class_10') || fileNameLower.includes('c10')) className = 'Class 10';
+                                        else if (fileNameLower.includes('class 11') || fileNameLower.includes('class_11') || fileNameLower.includes('c11')) className = 'Class 11';
+                                        else if (fileNameLower.includes('class 12') || fileNameLower.includes('class_12') || fileNameLower.includes('c12')) className = 'Class 12';
+
+                                        await fetch(`${backendUrl}/api/ncert/auto-upload`, {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            mediaId: mediaData.data.id,
+                                            rootName: 'NCERT Books',
+                                            subject,
+                                            className
+                                          })
+                                        });
+                                      }
+                                    }
                                     if (data.success && data.url) {
                                       const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
                                       const ext = file.name.split('.').pop()?.toUpperCase() || 'PDF';

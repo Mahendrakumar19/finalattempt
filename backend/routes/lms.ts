@@ -11,7 +11,8 @@ const router = Router();
 
 router.get('/courses', async (req, res) => {
   try {
-    const courses = await lmsDB.getCourses();
+    const includeUnpublished = req.query.includeUnpublished === 'true';
+    const courses = await lmsDB.getCourses(includeUnpublished);
     res.json({ success: true, data: courses });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

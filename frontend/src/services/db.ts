@@ -29,7 +29,8 @@ export interface SiteSettings {
 export interface Course {
   id: string;
   title: string;
-  category: 'BPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview';
+  exam?: 'BPSC' | 'Arunachal PCS' | string;
+  category: 'BPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview' | string;
   description: string;
   duration: string;
   fee: string;
@@ -38,6 +39,7 @@ export interface Course {
   schedule: string;
   faq: { q: string; a: string }[];
   enrolledCount: number;
+  isPublished?: boolean;
 }
 
 export interface BlogItem {
@@ -103,7 +105,7 @@ export interface DynamicCurrentAffairArticle {
   slug: string;
   title: string;
   summary: string;
-  category: 'NATIONAL' | 'INTERNATIONAL' | 'BIHAR';
+  category: 'NATIONAL' | 'INTERNATIONAL' | 'BIHAR' | 'ARUNACHAL';
   publishStatus: 'DRAFT' | 'PUBLISHED';
   publishedDate: string;
   readingTime: string;
@@ -265,10 +267,10 @@ class FinalAttemptDB {
     return res?.success || false;
   }
 
-  public async getCourses(): Promise<Course[]> {
-    const res = await this.apiFetch('/api/lms/courses');
+  public async getCourses(includeUnpublished: boolean = false): Promise<Course[]> {
+    const res = await this.apiFetch(`/api/lms/courses?includeUnpublished=${includeUnpublished}`);
     if (res && res.success && Array.isArray(res.data)) {
-      return res.data;
+      return includeUnpublished ? res.data : res.data.filter((c: Course) => c.isPublished !== false);
     }
     return [];
   }
@@ -369,9 +371,23 @@ class FinalAttemptDB {
     return Array.isArray(data) ? data : facultyData;
   }
 
+  public async deleteFaculty(id: string): Promise<boolean> {
+    const ok = await this.apiFetch(`/api/faculty/${id}`, {
+      method: 'DELETE'
+    });
+    return ok?.success || false;
+  }
+
   public async getResults(): Promise<ResultTopper[]> {
     const data = await this.apiFetch('/api/results');
     return Array.isArray(data) ? data : resultData;
+  }
+
+  public async deleteResult(id: string): Promise<boolean> {
+    const ok = await this.apiFetch(`/api/results/${id}`, {
+      method: 'DELETE'
+    });
+    return ok?.success || false;
   }
 
   public async getCurrentAffairs() {

@@ -424,10 +424,18 @@ html.dark .text-wave-gradient {
   display: inline-block;
   white-space: nowrap;
   animation: 
-    typeInCenter 6s cubic-bezier(0.16, 1, 0.3, 1) infinite,
+    typeInCenter 3.5s cubic-bezier(0.16, 1, 0.3, 1) infinite,
     pulseCenterCursor 2s ease-in-out infinite;
   margin: 0 auto;
   will-change: clip-path, transform;
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  .typewriter-text {
+    font-size: clamp(0.95rem, 4.5vw, 1.4rem);
+    letter-spacing: 0.02em;
+  }
 }
 
 .hover-lift {

@@ -64,7 +64,16 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   const [loading, setLoading] = useState(true);
 
   // Course metadata state
-  const [courseTitle, setCourseTitle] = useState('');
+  const [courseData, setCourseData] = useState<any>({
+    title: '',
+    exam: 'BPSC',
+    category: 'Prelims',
+    description: '',
+    fee: '0',
+    schedule: '',
+    isPublished: true
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // Curriculum State
   const [sections, setSections] = useState<Section[]>([]);
@@ -97,7 +106,15 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
       const curRes = await fetch(`${BACKEND_URL}/api/lms/courses/${courseId}/sections`);
       const curData = await curRes.json();
       if (curData.success) {
-        setCourseTitle(curData.data.course.title);
+        setCourseData({
+          title: curData.data.course.title || '',
+          exam: curData.data.course.exam || 'BPSC',
+          category: curData.data.course.category || 'Prelims',
+          description: curData.data.course.description || '',
+          fee: curData.data.course.fee || '0',
+          schedule: curData.data.course.schedule || '',
+          isPublished: curData.data.course.isPublished !== false
+        });
         setSections(curData.data.sections || []);
       }
 
@@ -317,13 +334,123 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
       <div className="max-w-6xl mx-auto space-y-6">
         
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Link href="/admin" className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
-            <ChevronLeft className="w-4 h-4 text-slate-700" />
-          </Link>
-          <div>
-            <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">LMS Program Editor</span>
-            <h1 className="text-xl font-bold text-slate-950 mt-0.5">{courseTitle}</h1>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
+          <div className="flex items-center gap-4">
+            <Link href="/admin" className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors">
+              <ChevronLeft className="w-4 h-4 text-slate-700" />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-amber-500 font-extrabold uppercase tracking-wider">LMS Program Editor</span>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                  courseData.isPublished ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-100 text-slate-600 border border-slate-300'
+                }`}>
+                  {courseData.isPublished ? 'Published' : 'Draft / Hidden'}
+                </span>
+              </div>
+              <h1 className="text-xl font-black text-slate-950 mt-0.5">{courseData.title || 'Course Details'}</h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={async () => {
+                const nextStatus = !courseData.isPublished;
+                setCourseData((prev: any) => ({ ...prev, isPublished: nextStatus }));
+                try {
+                  await fetch(`${BACKEND_URL}/api/lms/courses/${courseId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isPublished: nextStatus })
+                  });
+                  alert(`Course ${nextStatus ? 'Published' : 'Unpublished (Draft)'} successfully!`);
+                } catch (err) { console.error(err); }
+              }}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider cursor-pointer shadow-xs transition-all ${
+                courseData.isPublished
+                  ? 'bg-slate-200 hover:bg-slate-300 text-slate-800'
+                  : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+              }`}
+            >
+              {courseData.isPublished ? '⏸ Unpublish Course' : '🚀 Publish Live'}
+            </button>
+          </div>
+        </div>
+
+        {/* Settings Box: Exam State & Stage Category parameters */}
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+          <h3 className="font-extrabold text-sm text-slate-900 border-b pb-3">Course Target Parameters (Exam, Stage Category & Fee in ₹)</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold text-slate-400 uppercase">Target Exam State</label>
+              <select
+                value={courseData.exam || 'BPSC'}
+                onChange={(e) => setCourseData({ ...courseData, exam: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none text-slate-900"
+              >
+                <option value="BPSC">BPSC (Bihar PCS)</option>
+                <option value="Arunachal PCS">Arunachal PCS (APPSC)</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold text-slate-400 uppercase">Stage Category Filter</label>
+              <select
+                value={courseData.category || 'Prelims'}
+                onChange={(e) => setCourseData({ ...courseData, category: e.target.value })}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none text-slate-900"
+              >
+                <option value="Prelims">Prelims</option>
+                <option value="Mains">Mains</option>
+                <option value="Interview">Interview</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-extrabold text-slate-400 uppercase">Course Fee (in ₹ INR)</label>
+              <div className="relative flex items-center">
+                <span className="absolute left-3 text-slate-500 font-bold text-xs">₹</span>
+                <input
+                  type="text"
+                  value={courseData.fee || ''}
+                  placeholder="e.g. ₹4,999"
+                  onChange={(e) => setCourseData({ ...courseData, fee: e.target.value })}
+                  className="w-full pl-7 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none text-slate-900"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5 flex items-end">
+              <button
+                type="button"
+                disabled={savingSettings}
+                onClick={async () => {
+                  setSavingSettings(true);
+                  try {
+                    await fetch(`${BACKEND_URL}/api/lms/courses/${courseId}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        title: courseData.title,
+                        exam: courseData.exam,
+                        category: courseData.category,
+                        description: courseData.description,
+                        fee: courseData.fee,
+                        schedule: courseData.schedule,
+                        isPublished: courseData.isPublished
+                      })
+                    });
+                    alert('Course parameters saved successfully!');
+                  } catch (err) {
+                    console.error(err);
+                    alert('Failed saving course parameters.');
+                  } finally {
+                    setSavingSettings(false);
+                  }
+                }}
+                className="w-full py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer shadow-xs transition-all"
+              >
+                {savingSettings ? 'Saving...' : '💾 Save Parameters'}
+              </button>
+            </div>
           </div>
         </div>
 

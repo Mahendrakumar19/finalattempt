@@ -23,6 +23,8 @@ import mediaRouter from './media/media.routes';
 import syllabusStrategyRouter from './routes/syllabusStrategy';
 import pyqsRouter from './routes/pyqs';
 import bpscScraperRouter from './routes/bpscScraper';
+import ncertRouter from './routes/ncert';
+import ncertBooksRouter from './routes/ncertBooks';
 import { verifyEmailConnection } from './services/email';
 
 const app = express();
@@ -111,6 +113,8 @@ app.use('/api/media', mediaRouter);
 app.use('/api/syllabus-strategy', syllabusStrategyRouter);
 app.use('/api/pyqs', pyqsRouter);
 app.use('/api/bpsc', bpscScraperRouter);
+app.use('/api/ncert', ncertRouter);
+app.use('/api/ncert-books', ncertBooksRouter);
 app.use('/uploads', (req, res, next) => {
   // Allow cross-origin file serving for the frontend domain
   res.setHeader('Access-Control-Allow-Origin', '*');

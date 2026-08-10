@@ -299,36 +299,6 @@ export default function TestSeriesDetailPage() {
               </div>
             )}
 
-            {/* Interactive Teaser / Sample Question Teaser (Better than iasvalley) */}
-            <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/30 rounded-3xl p-6 sm:p-8 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20">
-                  SAMPLE TEST TEASER PREVIEW
-                </span>
-                <span className="text-xs font-bold text-slate-500">Official Exam Format</span>
-              </div>
-
-              <h4 className="font-heading font-black text-base text-[var(--text-color)]">
-                Sample Question Preview: BPSC General Studies Model
-              </h4>
-
-              <div className="p-4 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl space-y-3 text-xs text-[var(--text-color)]">
-                <p className="font-bold">
-                  Q1. With reference to the Bihar Peasant Movement, who among the following led the Bakasht movement in 1937-38?
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 dark:text-slate-300 font-medium">
-                  <span className="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-[var(--card-border)]">(A) Swami Sahajanand Saraswati</span>
-                  <span className="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-[var(--card-border)]">(B) Rahul Sankrityayan</span>
-                  <span className="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-[var(--card-border)]">(C) Karyanand Sharma</span>
-                  <span className="p-2 bg-slate-50 dark:bg-slate-900 rounded-xl border border-[var(--card-border)]">(D) Yadunandan Sharma</span>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-slate-500 italic">
-                Enrolled students get instant full-length interactive timed tests, negative marking calculator, and detailed video solution breakdowns.
-              </p>
-            </div>
-
             {/* FAQs Accordion */}
             {series.faq && series.faq.length > 0 && (
               <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">

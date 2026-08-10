@@ -187,7 +187,7 @@ export default function SyllabusStrategyPage() {
                         setSelectedExamId(exam.id);
                         setSelectedStage('ALL'); // Reset stage filter
                       }}
-                      className="w-full flex justify-between items-center p-6 bg-slate-50/60 dark:bg-slate-800/40 text-left cursor-pointer border-b border-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors select-none"
+                      className="w-full flex justify-between items-center p-6 bg-white dark:bg-slate-800/40 text-left cursor-pointer border-b border-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors select-none"
                     >
                       <div className="flex items-center gap-4 min-w-0 flex-1">
                         {exam.logo ? (
@@ -344,7 +344,7 @@ export default function SyllabusStrategyPage() {
                   {/* Strategy Accordion Trigger Header */}
                   <div
                     onClick={() => setExpandedStrategyId(isStratExpanded ? null : block.id)}
-                    className="w-full flex justify-between items-center p-6 bg-slate-50/60 dark:bg-slate-800/40 text-left cursor-pointer border-b border-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors select-none"
+                    className="w-full flex justify-between items-center p-6 bg-white dark:bg-slate-800/40 text-left cursor-pointer border-b border-transparent hover:bg-slate-100/50 dark:hover:bg-slate-800/60 transition-colors select-none"
                   >
                     <div className="space-y-1 min-w-0 flex-1 pr-4">
                       <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-lg uppercase tracking-wider inline-block">

@@ -273,10 +273,10 @@ export default function Home() {
       <section className="max-w-8xl mx-auto w-full px-1 sm:px-6 lg:px-8 mt-6 mb-12 relative z-0">
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-white/10 p-6 sm:p-10 shadow-md text-center hover-lift relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-amber-500/5 pointer-events-none" />
-          <h2 className="font-inlander text-3xl sm:text-3.5xl lg:text-5xl font-black uppercase tracking-widest leading-snug overflow-hidden">
+          <h2 className="font-inlander text-xl sm:text-3.5xl lg:text-5xl font-black uppercase tracking-normal sm:tracking-widest leading-snug overflow-hidden">
             <span className="typewriter-text text-wave-gradient font-black">WELCOME TO FINAL ATTEMPT</span>
           </h2>
-          <p className="font-bold text-lg sm:text-2xl text-wave-gradient font-black mt-2">
+          <p className="font-bold text-sm sm:text-2xl text-wave-gradient font-black mt-2">
             We are Next-Generation Mentorship & Learning Platform for Civil Services Examination.
           </p>
         </div>
@@ -441,7 +441,7 @@ export default function Home() {
             </div>
 
             {/* Why Choose Us checklist */}
-            
+
 
           </div>
 
@@ -449,82 +449,85 @@ export default function Home() {
       </section>
 
       {/* 3.4 WHY FINAL ATTEMPT STANDS OUT SECTION (REAL GLASSMORPHISM DESIGN) */}
-      
-  {/* 3.4 WHY FINAL ATTEMPT STANDS OUT */}
-<section className="py-24 bg-[var(--bg-color)] relative overflow-hidden">
 
-  {/* Ambient Background */}
-  <div className="absolute top-1/4 left-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-  <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* 3.4 WHY FINAL ATTEMPT STANDS OUT */}
+      <section className="py-24 bg-[var(--bg-color)] relative overflow-hidden">
 
-  <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14 relative z-10">
+        {/* Ambient Background */}
+        <div className="absolute top-1/4 left-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-    {/* Heading */}
-    <div className="text-center max-w-2xl mx-auto space-y-4">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14 relative z-10">
 
-      <h2 className="text-3.5xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white ">
-        Why Final Attempt?
-      </h2>
+          {/* Heading */}
+          <div className="text-center max-w-7xl mx-auto space-y-4">
 
-      <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-lg mx-auto font-medium">
-        Our unique learning framework combines academic excellence,
-        personal mentorship, and interactive AI evaluation to deliver
-        BPSC success.
-      </p>
+            <h2 className="text-3.5xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white ">
+              Why Final Attempt?
+            </h2>
 
-    </div>
+            <p className="text-m sm:text-base text-slate-600 dark:text-slate-300 max-w-6xl mx-auto font-medium leading-relaxed">
+              A complete, exam-focused preparation ecosystem for Civil Services Examinations—UPSC & State PCS—covering Prelims, Mains and Interview.
+              We combine rigorous practice, structured preparation, one-to-one personalised mentorship, expert human guidance and AI-powered evaluation for in-depth, actionable feedback at every stage.
+              <br/>
+              <span className='font-bold'>
+              Prepare smarter. Practice relentlessly. Improve continuously — to make your attempt, FINAL.
+              </span>
+            </p>
 
-    {/* Cards Grid with Scroll-Triggered Center Burst Animation */}
-    <div
-      ref={pillarsGridRef}
-      className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pillars-grid-container"
-    >
+          </div>
 
-      {[
-        {
-          title: 'Mentorship First',
-          desc: '1-on-1 personalized guidance, regular progress reviews, and strategic preparation routines tailored to your BPSC goals.',
-          icon: '👥',
-          gradient: 'from-amber-100/80 to-orange-50/40'
-        },
-        {
-          title: 'Expert Faculty',
-          desc: 'Learn from experienced educators and BPSC experts who simplify complex concepts and share proven exam strategies.',
-          icon: '🎓',
-          gradient: 'from-blue-100/70 to-indigo-50/40'
-        },
-        {
-          title: 'Personal Plan',
-          desc: 'Customized study plans adapted to your strengths, learning pace, and performance for maximum score improvement.',
-          icon: '🎯',
-          gradient: 'from-emerald-100/70 to-green-50/40'
-        },
-        {
-          title: 'Copy Evaluation',
-          desc: 'Detailed mentor-driven evaluation of copies on BPSC standards, complete with score analysis and model approaches.',
-          icon: '📝',
-          gradient: 'from-purple-100/70 to-violet-50/40'
-        },
-        {
-          title: 'AI Analytics',
-          desc: 'Monitor progress with test insights, accuracy metrics, and data-driven recommendations that pinpoint weak spots.',
-          icon: '📊',
-          gradient: 'from-cyan-100/70 to-sky-50/40'
-        },
-        {
-          title: 'Complete System',
-          desc: 'Structured courses, test series, answer writing practice, current affairs, and mentorship all under one roof.',
-          icon: '🚀',
-          gradient: 'from-orange-100/70 to-amber-50/40'
-        }
-      ].map((item, idx) => (
+          {/* Cards Grid with Scroll-Triggered Center Burst Animation */}
+          <div
+            ref={pillarsGridRef}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pillars-grid-container"
+          >
 
-        <div
-          key={idx}
-          ref={(el) => {
-            tiltRefs.current[idx] = el;
-          }}
-          className="
+            {[
+              {
+                title: 'Mentorship First',
+                desc: '1-on-1 personalized guidance, regular progress reviews, and strategic preparation routines tailored to your BPSC goals.',
+                icon: '👥',
+                gradient: 'from-amber-100/80 to-orange-50/40'
+              },
+              {
+                title: 'Expert Faculty',
+                desc: 'Learn from experienced educators and BPSC experts who simplify complex concepts and share proven exam strategies.',
+                icon: '🎓',
+                gradient: 'from-blue-100/70 to-indigo-50/40'
+              },
+              {
+                title: 'Personal Plan',
+                desc: 'Customized study plans adapted to your strengths, learning pace, and performance for maximum score improvement.',
+                icon: '🎯',
+                gradient: 'from-emerald-100/70 to-green-50/40'
+              },
+              {
+                title: 'Copy Evaluation',
+                desc: 'Detailed mentor-driven evaluation of copies on BPSC standards, complete with score analysis and model approaches.',
+                icon: '📝',
+                gradient: 'from-purple-100/70 to-violet-50/40'
+              },
+              {
+                title: 'AI Analytics',
+                desc: 'Monitor progress with test insights, accuracy metrics, and data-driven recommendations that pinpoint weak spots.',
+                icon: '📊',
+                gradient: 'from-cyan-100/70 to-sky-50/40'
+              },
+              {
+                title: 'Complete System',
+                desc: 'Structured courses, test series, answer writing practice, current affairs, and mentorship all under one roof.',
+                icon: '🚀',
+                gradient: 'from-orange-100/70 to-amber-50/40'
+              }
+            ].map((item, idx) => (
+
+              <div
+                key={idx}
+                ref={(el) => {
+                  tiltRefs.current[idx] = el;
+                }}
+                className="
             real-glass-card
             group
             relative
@@ -540,11 +543,11 @@ export default function Home() {
             hover:-translate-y-2
             hover:shadow-[0_25px_60px_rgba(15,23,42,0.14)]
           "
-        >
+              >
 
-          {/* Fixed visual background */}
-          <div
-            className={`
+                {/* Fixed visual background */}
+                <div
+                  className={`
               absolute
               inset-0
               bg-gradient-to-br
@@ -553,11 +556,11 @@ export default function Home() {
               dark:opacity-10
               pointer-events-none
             `}
-          />
+                />
 
-          {/* Decorative grid */}
-          <div
-            className="
+                {/* Decorative grid */}
+                <div
+                  className="
               absolute inset-0
               opacity-[0.035]
               dark:opacity-[0.04]
@@ -565,11 +568,11 @@ export default function Home() {
               bg-[radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)]
               [background-size:18px_18px]
             "
-          />
+                />
 
-          {/* Large watermark icon */}
-          <div
-            className="
+                {/* Large watermark icon */}
+                <div
+                  className="
               absolute
               -right-5
               -bottom-8
@@ -585,13 +588,13 @@ export default function Home() {
               group-hover:rotate-6
               group-hover:opacity-[0.12]
             "
-          >
-            {item.icon}
-          </div>
+                >
+                  {item.icon}
+                </div>
 
-          {/* Content */}
-          <div
-            className="
+                {/* Content */}
+                <div
+                  className="
               relative
               z-10
               h-full
@@ -600,11 +603,11 @@ export default function Home() {
               flex-col
               justify-between
             "
-          >
+                >
 
-            {/* Icon */}
-            <div
-              className="
+                  {/* Icon */}
+                  <div
+                    className="
                 w-14 h-14
                 rounded-2xl
                 bg-white/80
@@ -617,46 +620,46 @@ export default function Home() {
                 group-hover:scale-110
                 group-hover:-rotate-3
               "
-            >
-              {item.icon}
-            </div>
+                  >
+                    {item.icon}
+                  </div>
 
-            {/* Text */}
-            <div className="mt-8 space-y-3">
+                  {/* Text */}
+                  <div className="mt-8 space-y-3">
 
-              <div className="w-8 h-1 rounded-full bg-amber-500 transition-all duration-500 group-hover:w-14" />
+                    <div className="w-8 h-1 rounded-full bg-amber-500 transition-all duration-500 group-hover:w-14" />
 
-              <h3
-                className="
+                    <h3
+                      className="
                   font-heading
                   font-black
                   text-xl
                   text-slate-900
                   dark:text-white
                 "
-              >
-                {item.title}
-              </h3>
+                    >
+                      {item.title}
+                    </h3>
 
-              <p
-                className="
+                    <p
+                      className="
                   text-sm
                   leading-relaxed
                   text-slate-600
                   dark:text-slate-300
                   max-w-sm
                 "
-              >
-                {item.desc}
-              </p>
+                    >
+                      {item.desc}
+                    </p>
 
-            </div>
+                  </div>
 
-          </div>
+                </div>
 
-          {/* Hover shine */}
-          <div
-            className="
+                {/* Hover shine */}
+                <div
+                  className="
               absolute
               inset-0
               pointer-events-none
@@ -669,15 +672,15 @@ export default function Home() {
               group-hover:translate-x-[100%]
               transition-transform
             "
-          />
+                />
 
+              </div>
+
+            ))}
+
+          </div>
         </div>
-
-      ))}
-
-    </div>
-  </div>
-</section>
+      </section>
       {/* 3.45 YOUTUBE INTEGRATION VIDEOS SECTION */}
       {latestVideos.length > 0 && (
         <section className="py-20 bg-[var(--bg-color)] border-t border-slate-100 dark:border-white/[0.06]">
@@ -687,7 +690,7 @@ export default function Home() {
                 <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
                   Latest from Our Channel
                 </h2>
-                
+
               </div>
               <Link
                 href="https://www.youtube.com/@FinalAttemptOfficial/videos"
@@ -754,7 +757,7 @@ export default function Home() {
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 max-w-7xl mx-auto">
             <div className="space-y-3">
-              
+
               <h2 className="text-3xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white leading-tight">
                 Latest Articles & Expert Analysis
               </h2>
@@ -910,7 +913,7 @@ export default function Home() {
               From the Mentor’s Pen
             </span>
             <h3 className="text-xs font-heading font-black text-slate-900 leading-tight">
-              
+
             </h3>
             <p className="text-s font-black text-slate-900 max-w-md mx-auto">
               Words from those who have guided the journey.
@@ -928,7 +931,7 @@ export default function Home() {
 
             {/* Left Column: About Final Attempt */}
             <div className="lg:col-span-7 space-y-6">
-              
+
               <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
                 About Final Attempt
               </h2>

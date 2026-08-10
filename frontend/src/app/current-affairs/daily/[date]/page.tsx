@@ -37,13 +37,13 @@ export default function DailyEditionViewer() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 font-body space-y-8">
       {/* Back button */}
-      <Link
-        href="/current-affairs/daily"
-        className="text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors flex items-center gap-1 w-fit"
+      <button
+        onClick={() => typeof window !== 'undefined' && window.history.length > 1 ? window.history.back() : window.location.href = `/current-affairs/daily/${dateStr}`}
+        className="text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors flex items-center gap-1.5 w-fit cursor-pointer"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
-        <span>Back to Daily Editions</span>
-      </Link>
+        <span>Back to Previous Page</span>
+      </button>
 
       {/* Header */}
       <div className="bg-linear-to-br from-slate-900 via-indigo-950 to-slate-950 text-white rounded-3xl p-8 sm:p-10 border border-white/[0.06] space-y-3">

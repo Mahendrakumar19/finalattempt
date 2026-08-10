@@ -23,6 +23,7 @@ import {
   Menu,
   MessageSquare,
   Download,
+  Sparkles,
   X
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
@@ -31,11 +32,13 @@ import MediaDashboard from '@/components/MediaDashboard';
 import MediaPicker from '@/components/MediaPicker';
 import SyllabusStrategyCMS from '@/components/SyllabusStrategyCMS';
 import PYQsManagerCMS from '@/components/PYQsManagerCMS';
+import NCERTBooksManagerCMS from '@/components/NCERTBooksManagerCMS';
+import NcertStyleResourceCMS from '@/components/NcertStyleResourceCMS';
 import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTopper } from '@/services/db';
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 
-type AdminTab = 'Dashboard' | 'Home' | 'About' | 'Contact' | 'Download Hub' | 'PYQ' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
 interface FeaturePageConnection {
   featureId: string;
@@ -120,6 +123,7 @@ interface ResourceDownload {
 interface Course {
   id: string;
   title: string;
+  exam?: string;
   category: string;
   description: string;
   fee: number | string;
@@ -186,7 +190,7 @@ export default function AdminPortal() {
   const [dynamicEditionsList, setDynamicEditionsList] = useState<DynamicCurrentAffairEdition[]>([]);
   const [editingEdition, setEditingEdition] = useState<DynamicCurrentAffairEdition | null>(null);
   const [editingArticle, setEditingArticle] = useState<Partial<DynamicCurrentAffairArticle> | null>(null);
-  const [activeArticleCategory, setActiveArticleCategory] = useState<'NATIONAL' | 'INTERNATIONAL' | 'BIHAR'>('NATIONAL');
+  const [activeArticleCategory, setActiveArticleCategory] = useState<'NATIONAL' | 'INTERNATIONAL' | 'BIHAR' | 'ARUNACHAL'>('NATIONAL');
   const [isEditionModalOpen, setIsEditionModalOpen] = useState(false);
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
   const [caSubTab, setCaSubTab] = useState<'daily' | 'mains'>('daily');
@@ -268,7 +272,7 @@ export default function AdminPortal() {
         const setJson = await setRes.json().catch(() => null);
         if (setJson) setSettings(prev => ({ ...prev, ...setJson }));
       }
-      const courseRes = await fetch(`${BACKEND_URL}/api/lms/courses`).catch(() => null);
+      const courseRes = await fetch(`${BACKEND_URL}/api/lms/courses?includeUnpublished=true`).catch(() => null);
       if (courseRes && courseRes.ok) {
         const cData = await courseRes.json().catch(() => null);
         if (cData && cData.success && Array.isArray(cData.data)) setCoursesList(cData.data);
@@ -276,7 +280,11 @@ export default function AdminPortal() {
       const blogRes = await fetch(`${BACKEND_URL}/api/blogs`).catch(() => null);
       if (blogRes && blogRes.ok) {
         const bData = await blogRes.json().catch(() => null);
-        if (bData && bData.success && Array.isArray(bData.data)) setBlogsList(bData.data);
+        if (Array.isArray(bData)) {
+          setBlogsList(bData);
+        } else if (bData && bData.success && Array.isArray(bData.data)) {
+          setBlogsList(bData.data);
+        }
       }
       const resRes = await fetch(`${BACKEND_URL}/api/resources`).catch(() => null);
       if (resRes && resRes.ok) {
@@ -441,7 +449,7 @@ export default function AdminPortal() {
     }
   };
 
-  const handleAddArticleToEdition = (category: 'NATIONAL' | 'INTERNATIONAL' | 'BIHAR') => {
+  const handleAddArticleToEdition = (category: 'NATIONAL' | 'INTERNATIONAL' | 'BIHAR' | 'ARUNACHAL') => {
     if (!editingEdition) return;
     setActiveArticleCategory(category);
     setEditingArticle({
@@ -668,8 +676,12 @@ export default function AdminPortal() {
               { id: 'Home', icon: Sun },
               { id: 'About', icon: FileText },
               { id: 'Contact', icon: MessageSquare },
-              { id: 'Download Hub', icon: Download },
               { id: 'PYQ', icon: Layers },
+              { id: 'NCERT', icon: BookOpen },
+              { id: 'Publications', icon: Award },
+              { id: 'Rapid Revision', icon: Sparkles },
+              { id: 'Value Addition', icon: FileText },
+              { id: 'Toppers Copies', icon: FolderOpen },
               { id: 'Blogs', icon: Bookmark },
               { id: 'Courses', icon: BookOpen },
               { id: 'Test Series', icon: FileText },
@@ -758,16 +770,40 @@ export default function AdminPortal() {
                     <option value="Home">→ Home Page (/)</option>
                   </>
                 )}
-                {activeTab === 'Download Hub' && (
+                {(activeTab as string) === 'Download Hub' && (
                   <>
-                    <option value="Download Hub">📍 Downloads Hub (/downloads) - Connected</option>
                     <option value="PYQ">→ PYQ Vault (/downloads/pyq)</option>
+                    <option value="NCERT">→ NCERT Books (/downloads/ncert)</option>
                   </>
                 )}
                 {activeTab === 'PYQ' && (
                   <>
                     <option value="PYQ">📍 PYQ Page (/downloads/pyq) - Connected</option>
-                    <option value="Download Hub">→ Downloads Hub (/downloads)</option>
+                  </>
+                )}
+                {activeTab === 'NCERT' && (
+                  <>
+                    <option value="NCERT">📍 NCERT Books (/downloads/ncert) - Connected</option>
+                  </>
+                )}
+                {activeTab === 'Publications' && (
+                  <>
+                    <option value="Publications">📍 Final Attempt Publications (/downloads/fa-publications) - Connected</option>
+                  </>
+                )}
+                {activeTab === 'Rapid Revision' && (
+                  <>
+                    <option value="Rapid Revision">📍 Rapid Revision Materials (/downloads/rapid-revision) - Connected</option>
+                  </>
+                )}
+                {activeTab === 'Value Addition' && (
+                  <>
+                    <option value="Value Addition">📍 Value Added Materials (/downloads/value-added-mains) - Connected</option>
+                  </>
+                )}
+                {activeTab === 'Toppers Copies' && (
+                  <>
+                    <option value="Toppers Copies">📍 Toppers Copies (/downloads/toppers-copies) - Connected</option>
                   </>
                 )}
                 {activeTab === 'Blogs' && (
@@ -1318,15 +1354,15 @@ export default function AdminPortal() {
                               onClick={async () => {
                                 if (!confirm(`Delete faculty "${fac.name}"?`)) return;
                                 try {
-                                  setFacultyList(prev => prev.filter(f => f.id !== fac.id));
-                                  await fetch(`${BACKEND_URL}/api/faculty/${fac.id}`, {
-                                    method: 'DELETE',
-                                    headers: adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}
-                                  });
+                                  const identifier = fac.id || fac.name;
+                                  setFacultyList(prev => prev.filter((f, idx) => f.id ? f.id !== fac.id : idx !== i));
+                                  if (identifier) {
+                                    await db.deleteFaculty(identifier);
+                                  }
                                   fetchCMSData();
-                                } catch (err) { console.error(err); }
+                                } catch (err) { console.error('Error deleting faculty:', err); }
                               }}
-                              className="px-2 py-1 bg-red-50 text-red-600 rounded-lg border border-red-200 font-bold hover:bg-red-100"
+                              className="px-2 py-1 bg-red-50 text-red-600 rounded-lg border border-red-200 font-bold hover:bg-red-100 cursor-pointer"
                             >
                               Remove
                             </button>
@@ -1389,15 +1425,15 @@ export default function AdminPortal() {
                             onClick={async () => {
                               if (!confirm(`Delete topper "${top.name}"?`)) return;
                               try {
-                                setToppersList(prev => prev.filter(t => t.id !== top.id));
-                                await fetch(`${BACKEND_URL}/api/results/${top.id}`, {
-                                  method: 'DELETE',
-                                  headers: adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {}
-                                });
+                                const identifier = top.id || top.name;
+                                setToppersList(prev => prev.filter((t, idx) => t.id ? t.id !== top.id : idx !== i));
+                                if (identifier) {
+                                  await db.deleteResult(identifier);
+                                }
                                 fetchCMSData();
-                              } catch (err) { console.error(err); }
+                              } catch (err) { console.error('Error deleting topper:', err); }
                             }}
-                            className="px-2 py-1 bg-red-50 text-red-600 rounded-lg border border-red-200 font-bold hover:bg-red-100"
+                            className="px-2 py-1 bg-red-50 text-red-600 rounded-lg border border-red-200 font-bold hover:bg-red-100 cursor-pointer"
                           >
                             Remove
                           </button>
@@ -1606,12 +1642,6 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* TAB: DOWNLOAD HUB */}
-        {(activeTab === 'Download Hub' || (activeTab as any) === 'Downloads Hub') && (
-          <div className="space-y-6">
-            <CustomPagesCMS defaultLocation="DOWNLOADS_HUB" />
-          </div>
-        )}
 
         {/* TAB: PYQ */}
         {(activeTab === 'PYQ' || (activeTab as any) === 'PYQs Manager') && (
@@ -1619,6 +1649,62 @@ export default function AdminPortal() {
             <PYQsManagerCMS />
           </div>
         )}
+
+        {/* TAB: NCERT */}
+        {activeTab === 'NCERT' && (
+          <div className="space-y-6">
+            <NCERTBooksManagerCMS />
+          </div>
+        )}
+
+        {/* TAB: PUBLICATIONS */}
+        {activeTab === 'Publications' && (
+          <NcertStyleResourceCMS
+            pageSlug="fa-publications"
+            pageTitle="Final Attempt Publications"
+            portalCategoryLabel="Publications Console"
+            portalDescription="Upload & manage downloadable publications, yearbooks, handbooks & model answers."
+            themeColor="purple"
+            typeOptions={['BPSC', 'Arunachal PCS (APPSC)', 'Arunachal Pradesh Staff Selection Board (APSSB)', 'Books', 'Yearbooks']}
+          />
+        )}
+
+        {/* TAB: RAPID REVISION */}
+        {activeTab === 'Rapid Revision' && (
+          <NcertStyleResourceCMS
+            pageSlug="rapid-revision"
+            pageTitle="Rapid Revision Materials"
+            portalCategoryLabel="Rapid Revision Console"
+            portalDescription="Upload BPSC prelims 100 quick revision formulas, economic survey tables & notes."
+            themeColor="rose"
+            typeOptions={['Quick Tables', 'Formula Sheets', 'Economic Survey', 'Budget Summary', 'General']}
+          />
+        )}
+
+        {/* TAB: VALUE ADDITION */}
+        {activeTab === 'Value Addition' && (
+          <NcertStyleResourceCMS
+            pageSlug="value-added-mains"
+            pageTitle="Value Added Materials — Mains"
+            portalCategoryLabel="Value Addition Console"
+            portalDescription="Manage Mains data booklets, SC judgments, case studies & Bihar state schemes."
+            themeColor="cyan"
+            typeOptions={['Mains Data', 'SC Judgments', 'Quotes & Intro', 'Bihar Schemes', 'General']}
+          />
+        )}
+
+        {/* TAB: TOPPERS COPIES */}
+        {activeTab === 'Toppers Copies' && (
+          <NcertStyleResourceCMS
+            pageSlug="toppers-copies"
+            pageTitle="Toppers' Copies"
+            portalCategoryLabel="Toppers Copies Console"
+            portalDescription="Upload BPSC rankers evaluated GS & essay answer copies for student downloads."
+            themeColor="blue"
+            typeOptions={['69th BPSC Rankers', '68th BPSC Rankers', 'GS Paper 1 & 2', 'Essay Copies', 'General']}
+          />
+        )}
+
 
         {/* TAB: CUSTOM PAGES (FALLBACK) */}
         {(activeTab as any) === 'Custom Pages' && (
@@ -1647,7 +1733,127 @@ export default function AdminPortal() {
             <SyllabusStrategyCMS defaultTab="strategy" />
           </div>
         )}
+        {/* TAB: BLOGS CMS */}
+        {activeTab === 'Blogs' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
+              <div>
+                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Editorial & Blog Posts</span>
+                <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Blog Articles CMS Manager</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Create, update, and manage published articles, strategy posts, and BPSC preparation guides for `/blog`.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <a
+                  href="/blog"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>Preview /blog ↗</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBlogForm({
+                      id: '',
+                      title: '',
+                      publishDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+                      readTime: '5 min read',
+                      category: 'Strategy',
+                      content: '',
+                      imageUrl: '',
+                      seoTitle: '',
+                      seoKeywords: '',
+                      seoDescription: '',
+                      blurb: ''
+                    });
+                    setActiveModal({ type: 'add' });
+                  }}
+                  className="flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs cursor-pointer shadow-md transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Create New Blog Post</span>
+                </button>
+              </div>
+            </div>
 
+            {/* Blogs Table */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 overflow-hidden rounded-3xl shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-white/10 font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px]">
+                      <th className="p-4">Article Title</th>
+                      <th className="p-4">Category</th>
+                      <th className="p-4">Publish Date</th>
+                      <th className="p-4">Read Time</th>
+                      <th className="p-4">Cover Image</th>
+                      <th className="p-4">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {blogsList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-12 text-center text-slate-400 text-xs">
+                          No blog posts found. Click <strong>&quot;Create New Blog Post&quot;</strong> above to publish your first article.
+                        </td>
+                      </tr>
+                    ) : (
+                      blogsList.map((blog, idx) => (
+                        <tr key={blog.id || idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                          <td className="p-4 max-w-sm">
+                            <div className="font-extrabold text-slate-900 dark:text-white line-clamp-1">{blog.title}</div>
+                            {blog.blurb && <div className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{blog.blurb}</div>}
+                          </td>
+                          <td className="p-4">
+                            <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                              {blog.category || 'General'}
+                            </span>
+                          </td>
+                          <td className="p-4 font-mono text-slate-600 dark:text-slate-300 text-[11px]">{blog.publishDate}</td>
+                          <td className="p-4 text-slate-500 dark:text-slate-400 text-[11px]">{blog.readTime}</td>
+                          <td className="p-4">
+                            {blog.imageUrl ? (
+                              <img src={blog.imageUrl} alt={blog.title} className="w-12 h-8 rounded-lg object-cover border border-slate-200 dark:border-white/10" />
+                            ) : (
+                              <span className="text-[10px] text-slate-400 italic">No image</span>
+                            )}
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBlogForm({ ...blog });
+                                  setActiveModal({ type: 'edit', index: idx });
+                                }}
+                                className="p-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl font-bold transition-all cursor-pointer border border-amber-500/20"
+                                title="Edit Article"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBlog(blog.id)}
+                                className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 rounded-xl font-bold transition-all cursor-pointer border border-red-500/20"
+                                title="Delete Article"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
         {/* TAB 3: LEADS */}
         {activeTab === 'Leads' && (
           <div className="space-y-6">
@@ -2113,6 +2319,16 @@ export default function AdminPortal() {
                       <Plus className="w-4 h-4" />
                       <span>Add Bihar Special Article</span>
                     </button>
+                    <button
+                      onClick={() => {
+                        setCaForm({ id: '', title: '', category: 'Arunachal Special', publishDate: new Date().toISOString().split('T')[0], summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
+                        setActiveModal({ type: 'add' });
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add Arunachal Special Article</span>
+                    </button>
                   </div>
                 </div>
 
@@ -2187,6 +2403,7 @@ export default function AdminPortal() {
                         <option value="National">National</option>
                         <option value="International">International</option>
                         <option value="Bihar Special">Bihar Special</option>
+                        <option value="Arunachal Special">Arunachal Special</option>
                       </select>
                     </div>
                   </div>
@@ -2256,6 +2473,119 @@ export default function AdminPortal() {
                     </button>
                     <button type="submit" className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl">
                       Publish Article
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* Modal add/edit Blog Post */}
+            {activeModal && (activeTab as any) === 'Blogs' && (
+              <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <form onSubmit={handleSaveBlog} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 sm:p-8 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col space-y-4 shadow-2xl">
+                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3 shrink-0">
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                      {activeModal.type === 'add' ? 'Create New Blog Post' : 'Edit Blog Post'}
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setActiveModal(null)}
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer font-bold text-sm"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Article Title *</label>
+                        <input
+                          type="text"
+                          required
+                          value={blogForm.title}
+                          onChange={(e) => setBlogForm({ ...blogForm, title: e.target.value })}
+                          placeholder="e.g. 71st BPSC Prelims Strategy & Syllabus Breakdown..."
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none font-bold"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Category</label>
+                        <input
+                          type="text"
+                          value={blogForm.category}
+                          onChange={(e) => setBlogForm({ ...blogForm, category: e.target.value })}
+                          placeholder="Strategy, Current Affairs, Economy..."
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Estimated Read Time</label>
+                        <input
+                          type="text"
+                          value={blogForm.readTime}
+                          onChange={(e) => setBlogForm({ ...blogForm, readTime: e.target.value })}
+                          placeholder="5 min read"
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Cover Image URL</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={blogForm.imageUrl || ''}
+                            onChange={(e) => setBlogForm({ ...blogForm, imageUrl: e.target.value })}
+                            placeholder="https://..."
+                            className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMediaPickerConfig({ isOpen: true, field: 'blogImage' })}
+                            className="px-3 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold shrink-0 cursor-pointer"
+                          >
+                            🖼️ Media
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Short Summary (Blurb)</label>
+                      <textarea
+                        rows={2}
+                        value={blogForm.blurb || ''}
+                        onChange={(e) => setBlogForm({ ...blogForm, blurb: e.target.value })}
+                        placeholder="Brief summary sentence that appears on blog cards..."
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Full Article Content (Rich Editor)</label>
+                      <RichTextEditor
+                        value={blogForm.content || ''}
+                        onChange={(html) => setBlogForm({ ...blogForm, content: html })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-white/10 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setActiveModal(null)}
+                      className="px-5 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-2xl cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-2xl cursor-pointer shadow-md"
+                    >
+                      Save & Publish Blog Post
                     </button>
                   </div>
                 </form>
@@ -2406,7 +2736,20 @@ export default function AdminPortal() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Category</label>
+                        <select
+                          value={editingArticle.category || 'NATIONAL'}
+                          onChange={(e) => setEditingArticle({ ...editingArticle, category: e.target.value as any })}
+                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        >
+                          <option value="NATIONAL">NATIONAL</option>
+                          <option value="INTERNATIONAL">INTERNATIONAL</option>
+                          <option value="BIHAR">BIHAR</option>
+                          <option value="ARUNACHAL">ARUNACHAL</option>
+                        </select>
+                      </div>
                       <div className="space-y-1.5">
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Importance</label>
                         <select
@@ -2984,7 +3327,7 @@ export default function AdminPortal() {
                 {editMode && (
                   <button
                     onClick={() => {
-                      setCourseForm({ id: `course-${Date.now()}`, title: '', category: 'BPSC Course', description: '', fee: 99900, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
+                      setCourseForm({ id: `course-${Date.now()}`, title: '', exam: 'BPSC', category: 'Prelims', description: '', fee: 4999, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
                       setActiveModal({ type: 'add' });
                     }}
                     className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs animate-in shadow-sm"
@@ -3029,11 +3372,21 @@ export default function AdminPortal() {
                         </div>
                       )}
                     </div>
-                    <div className="flex justify-between items-center mt-1">
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">{course.category} &bull; {course.duration}</p>
+                    <div className="flex justify-between items-center mt-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          {course.exam || 'BPSC'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-600 border border-blue-500/20">
+                          {course.category}
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-bold">
+                          {typeof course.fee === 'number' ? `₹${course.fee.toLocaleString('en-IN')}` : (course.fee || '₹0')}
+                        </span>
+                      </div>
                       <Link
                         href={`/admin/courses/${course.id}`}
-                        className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg text-[10px] flex items-center gap-1 transition-all"
+                        className="px-3 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg text-[10px] flex items-center gap-1 transition-all shadow-2xs"
                       >
                         <ExternalLink className="w-3 h-3" />
                         <span>Open Editor</span>
@@ -3181,12 +3534,43 @@ export default function AdminPortal() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Fee (in Paise)</label>
-                      <input
-                        type="number" required value={courseForm.fee}
-                        onChange={(e) => setCourseForm({ ...courseForm, fee: Number(e.target.value) })}
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Target Exam State</label>
+                      <select
+                        value={courseForm.exam || 'BPSC'}
+                        onChange={(e) => setCourseForm({ ...courseForm, exam: e.target.value })}
                         className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400"
-                      />
+                      >
+                        <option value="BPSC">BPSC (Bihar PCS)</option>
+                        <option value="Arunachal PCS">Arunachal PCS (APPSC)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Exam Stage / Category</label>
+                      <select
+                        value={courseForm.category || 'Prelims'}
+                        onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400"
+                      >
+                        <option value="Prelims">Prelims</option>
+                        <option value="Mains">Mains</option>
+                        <option value="Interview">Interview</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Course Fee (in ₹ INR)</label>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-3 text-slate-500 font-bold text-xs">₹</span>
+                        <input
+                          type="number" required value={courseForm.fee}
+                          placeholder="0"
+                          onChange={(e) => setCourseForm({ ...courseForm, fee: Number(e.target.value) })}
+                          className="w-full pl-7 pr-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 font-semibold"
+                        />
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Duration</label>

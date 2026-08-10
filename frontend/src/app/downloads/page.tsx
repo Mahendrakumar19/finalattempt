@@ -52,8 +52,16 @@ export default function DedicatedDownloadsPage() {
         ]);
         if (res && res.length > 0) setResourcesList(res);
         if (pages && pages.length > 0) {
+          const CORE_SLUGS = new Set([
+            'downloads/fa-publications', 'fa-publications',
+            'downloads/rapid-revision', 'rapid-revision',
+            'downloads/value-added-mains', 'value-added-mains',
+            'downloads/toppers-copies', 'toppers-copies',
+            'downloads/ncert', 'ncert',
+            'downloads/pyq', 'pyq'
+          ]);
           const downloadPages = pages.filter(
-            (p: any) => p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/') || (p.downloadItems && p.downloadItems.length > 0)
+            (p: any) => !CORE_SLUGS.has(p.slug) && (p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/') || (p.downloadItems && p.downloadItems.length > 0))
           );
           setCustomDownloadPages(downloadPages);
         }
@@ -178,7 +186,7 @@ export default function DedicatedDownloadsPage() {
             type: 'PYQ PDF',
             size: 'PDF',
             url: paperPath,
-            pageTitle: `PYQ Vault • ${examName}`,
+            pageTitle: `PYQ• ${examName}`,
             pageSlug: 'downloads/pyq'
           });
         }
@@ -193,7 +201,7 @@ export default function DedicatedDownloadsPage() {
             type: 'ANSWER KEY',
             size: 'PDF',
             url: keyPath,
-            pageTitle: `PYQ Vault • ${examName}`,
+            pageTitle: `PYQ • ${examName}`,
             pageSlug: 'downloads/pyq'
           });
         }
@@ -208,7 +216,7 @@ export default function DedicatedDownloadsPage() {
             type: 'SOLUTION',
             size: 'PDF',
             url: solPath,
-            pageTitle: `PYQ Vault • ${examName}`,
+            pageTitle: `PYQ • ${examName}`,
             pageSlug: 'downloads/pyq'
           });
         }
@@ -333,9 +341,6 @@ export default function DedicatedDownloadsPage() {
           /* Default Page Grid View */
           <div className="space-y-4 pt-4 border-t border-[var(--card-border)]">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-widest block">
-                Download Pages & Vaults ({customDownloadPages.length + 1})
-              </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -348,11 +353,96 @@ export default function DedicatedDownloadsPage() {
                   <FileText className="w-6 h-6" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider block">Question Bank</span>
+                  {/* <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider block">Question Bank</span> */}
                   <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                    PYQ Vault
+                    PYQs
                   </h4>
-                  <span className="text-[10px] text-slate-400 font-medium">Official Exam Papers</span>
+                  
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+              </Link>
+
+              {/* Dynamic Hierarchical NCERT Repository */}
+              <Link
+                href="/downloads/ncert"
+                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-500">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                    NCERT
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-medium">History, Geography, Polity, Economics</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+              </Link>
+
+              {/* 1. Final Attempt Publications */}
+              <Link
+                href="/downloads/fa-publications"
+                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center shrink-0 text-purple-500">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                    Final Attempt Publications
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-medium">Books, Handbooks & Yearbooks</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+              </Link>
+
+              {/* 2. Rapid Revision Materials */}
+              <Link
+                href="/downloads/rapid-revision"
+                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 text-rose-500">
+                  <Layers className="w-6 h-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                    Rapid Revision Materials
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-medium">Quick Revision Notes & Tables</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+              </Link>
+
+              {/* 3. Value Added Materials Mains */}
+              <Link
+                href="/downloads/value-added-mains"
+                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center shrink-0 text-cyan-500">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                    Value Added Materials — Mains
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-medium">Mains Data, Quotes & Case Studies</span>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+              </Link>
+
+              {/* 4. Toppers Copies */}
+              <Link
+                href="/downloads/toppers-copies"
+                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-500">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                    Toppers&apos; Copies
+                  </h4>
+                  <span className="text-[10px] text-slate-400 font-medium">Evaluated Copies of BPSC Toppers</span>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
               </Link>
@@ -370,7 +460,7 @@ export default function DedicatedDownloadsPage() {
                       <Folder className="w-6 h-6" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <span className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider block">Resource Page</span>
+                      {/* <span className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider block">Resource Page</span> */}
                       <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
                         {pg.title}
                       </h4>

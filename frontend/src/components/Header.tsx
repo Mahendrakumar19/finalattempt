@@ -139,43 +139,25 @@ export default function Header() {
   const navbarCustom    = showPageBuilder ? customPages.filter(p => p.showLocation === 'NAVBAR')     : [];
   const headerTopCustom = showPageBuilder ? customPages.filter(p => p.showLocation === 'HEADER_TOP') : [];
 
-  /* ── build course categories from live data ─ */
-  const courseCategories = (() => {
-    const cats: Record<string, any[]> = {};
-    liveCourses.forEach(c => {
-      const cat = c.category || 'General';
-      if (!cats[cat]) cats[cat] = [];
-      cats[cat].push(c);
-    });
-    return cats;
-  })();
-
-  const courseGroups: MegaGroup[] = Object.entries(courseCategories).map(([cat, items]) => ({
-    heading: cat,
-    items: items.slice(0, 4).map(c => ({
-      label: c.title,
-      href:  `/courses/${c.id}`,
-      desc:  c.duration || c.description?.slice(0, 55),
-      icon:  IC.courses,
-    })),
-  }));
-
-  /* fallback if no live courses yet */
-  if (courseGroups.length === 0) {
-    courseGroups.push(
-      { heading: 'Foundation', items: [
-          { label: 'BPSC Foundation Batch',  href: '/courses?category=Foundation', desc: 'Complete GS + Bihar focused', icon: IC.foundation },
-          { label: 'BPSC Foundation Course', href: '/courses?category=Foundation', desc: 'Prelims + Mains strategy',    icon: IC.foundation },
-        ],
-      },
-      { heading: 'Prelims & Mains', items: [
-          { label: 'Prelims Crash Course', href: '/courses?category=Prelims', desc: 'Targeted 60-day sprint',       icon: IC.prelims },
-          { label: 'Mains Answer Writing', href: '/courses?category=Mains',   desc: 'Daily writing + evaluation',  icon: IC.mains },
-          { label: 'Test Series',          href: '/test-series',              desc: 'Mock tests + analysis',       icon: IC.test, badge: 'New' },
-        ],
-      },
-    );
-  }
+  /* ── build course categories for Header Mega Menu: BPSC & Arunachal PCS ─ */
+  const courseGroups: MegaGroup[] = [
+    {
+      heading: 'BPSC',
+      items: [
+        { label: 'Prelims', href: '/courses?exam=BPSC&category=Prelims', desc: '71st & 72nd BPSC Prelims Sprint & GS', icon: IC.prelims },
+        { label: 'Mains', href: '/courses?exam=BPSC&category=Mains', desc: 'GS Paper I, II & Essay Evaluation', icon: IC.mains },
+        { label: 'Interview', href: '/courses?exam=BPSC&category=Interview', desc: '1-on-1 Interview & DAF Guidance', icon: IC.faculty },
+      ]
+    },
+    {
+      heading: 'Arunachal PCS (APPCS)',
+      items: [
+        { label: 'Prelims', href: '/courses?exam=Arunachal+PCS&category=Prelims', desc: 'APPSC CEE GS & CSAT Foundation', icon: IC.prelims },
+        { label: 'Mains', href: '/courses?exam=Arunachal+PCS&category=Mains', desc: 'Mains GS & Optional Answer Writing', icon: IC.mains },
+        { label: 'Interview', href: '/courses?exam=Arunachal+PCS&category=Interview', desc: 'State Specific Personality Test Guidance', icon: IC.results },
+      ]
+    }
+  ];
 
   /* ── nav entries ────────────────────────── */
   const navEntries: NavEntry[] = [
@@ -268,22 +250,40 @@ export default function Header() {
         tagline: 'Study Material Hub',
         description: 'Free books, PYQs, notes and NCERT material for exam prep.',
         groups: [
-          { heading: 'Downloads', items: [
-              { label: 'All Downloads',       href: '/downloads',       desc: 'Central repository of study material', icon: IC.download },
-              { label: 'PYQs Library',        href: '/downloads/pyq',   desc: 'Previous year question papers',        icon: IC.pyq     },
-              ...customPages.filter(p => p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/')).map(p => {
-                const cleanSlug = p.slug.startsWith('downloads/') ? p.slug : `downloads/${p.slug}`;
-                return {
-                  label: p.title,
-                  href: `/${cleanSlug}`,
-                  desc: p.metaDescription || `${p.downloadItems?.length || 0} Files Package`,
-                  icon: IC.globe
-                };
-              })
-            ],
+          { heading: 'Downloads', items: (() => {
+              const baseItems = [
+                // { label: 'All Downloads', href: '/downloads', desc: 'Central repository of study material', icon: IC.download },
+                { label: 'PYQ', href: '/downloads/pyq', desc: 'Previous year question papers', icon: IC.pyq },
+                { label: 'NCERT', href: '/downloads/ncert', desc: 'NCERT Class 6 to 12 Textbooks', icon: IC.ncert },
+                { label: 'Final Attempt Publications', href: '/downloads/fa-publications', desc: 'Books & Yearbooks', icon: IC.ncert },
+                { label: 'Rapid Revision', href: '/downloads/rapid-revision', desc: 'Quick Revision Notes & Tables', icon: IC.sparkle },
+                { label: 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: 'Mains Data & SC Judgments', icon: IC.mains },
+                { label: 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: 'Evaluated Topper Copies', icon: IC.pyq }
+              ];
+              const seenHrefs = new Set(baseItems.map(i => i.href.toLowerCase()));
+
+              const dynamicItems = customPages
+                .filter(p => p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/'))
+                .map(p => {
+                  const cleanSlug = p.slug.startsWith('downloads/') ? p.slug : `downloads/${p.slug}`;
+                  return {
+                    label: p.title,
+                    href: `/${cleanSlug}`,
+                    desc: p.metaDescription || `${p.downloadItems?.length || 0} Files Package`,
+                    icon: IC.globe
+                  };
+                })
+                .filter(i => {
+                  if (seenHrefs.has(i.href.toLowerCase())) return false;
+                  seenHrefs.add(i.href.toLowerCase());
+                  return true;
+                });
+
+              return [...baseItems, ...dynamicItems];
+            })()
           },
           { heading: 'Strategy & Guidance', items: [
-              { label: 'Syllabus & Strategy',  href: '/syllabus-strategy', desc: 'Exam-wise topic plans & timetables',  icon: IC.syllabus },
+              { label: 'Syllabus & Strategy', href: '/syllabus-strategy', desc: 'Exam-wise topic plans & timetables', icon: IC.syllabus },
             ],
           },
         ],
@@ -539,26 +539,26 @@ export default function Header() {
                   </div>
 
                   {/* ── Right Groups ─────── */}
-                  <div className="flex-1 grid gap-x-8 gap-y-0" style={{ gridTemplateColumns: `repeat(${Math.min(entry.mega.groups.length, 3)}, 1fr)` }}>
+                  <div className="flex-1 grid gap-x-6 gap-y-0 max-w-2xl" style={{ gridTemplateColumns: `repeat(${Math.min(entry.mega.groups.length, 3)}, minmax(0, 220px))` }}>
                     {entry.mega.groups.map((grp) => (
-                      <div key={grp.heading}>
-                        <p className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-100 dark:border-white/[0.06] pb-2">
+                      <div key={grp.heading} className="w-full">
+                        <p className="text-xs font-black font-heading text-slate-900 dark:text-amber-400 uppercase tracking-widest mb-3 border-b-2 border-amber-500/40 pb-2 font-bold">
                           {grp.heading}
                         </p>
-                        <div className="space-y-0.5">
-                          {grp.items.map((item) => (
+                        <div className="space-y-1">
+                          {grp.items.map((item, idx) => (
                             <Link
-                              key={item.label}
+                              key={`${item.href}-${idx}`}
                               href={item.href}
                               onClick={() => setActiveMega(null)}
-                              className="group/item flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-amber-50 dark:hover:bg-white/[0.04] transition-all duration-150"
+                              className="group/item flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/5 hover:border-amber-500/40 hover:bg-amber-50 dark:hover:bg-white/[0.06] transition-all duration-150"
                             >
-                              <span className="shrink-0 mt-0.5 w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 group-hover/item:bg-amber-500 group-hover/item:text-white flex items-center justify-center transition-all duration-150">
+                              <span className="shrink-0 w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover/item:bg-amber-500 group-hover/item:text-slate-950 flex items-center justify-center transition-all duration-150 text-xs font-black">
                                 {item.icon || IC.globe}
                               </span>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 group-hover/item:text-amber-600 dark:group-hover/item:text-amber-400 transition-colors truncate">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className="text-xs font-black text-slate-900 dark:text-slate-100 group-hover/item:text-amber-600 dark:group-hover/item:text-amber-400 transition-colors truncate">
                                     {item.label}
                                   </span>
                                   {item.isNew && (

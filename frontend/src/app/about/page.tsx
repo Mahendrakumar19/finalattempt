@@ -141,8 +141,8 @@ export default function AboutPage() {
           <p className="text-xs text-slate-400 text-center">Loading toppers records...</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            {results.slice(0, 8).map((topper) => (
-              <div key={topper.id} className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl overflow-hidden shadow-3xs p-4 text-center space-y-2 hover-lift">
+            {results.slice(0, 8).map((topper, idx) => (
+              <div key={topper.id ? `topper-${topper.id}-${idx}` : `topper-idx-${idx}`} className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl overflow-hidden shadow-3xs p-4 text-center space-y-2 hover-lift">
                 <div className="w-24 h-24 rounded-full overflow-hidden mx-auto bg-slate-100 border border-slate-200 shadow-sm">
                   <img
                     src={topper.image || topper.photo || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'}
@@ -173,8 +173,8 @@ export default function AboutPage() {
           <p className="text-xs text-slate-400 text-center">Loading faculty profiles...</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {faculty.map((mentor) => (
-              <div key={mentor.id} className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 shadow-3xs space-y-4 hover-lift">
+            {faculty.map((mentor, idx) => (
+              <div key={mentor.id ? `mentor-${mentor.id}-${idx}` : `mentor-idx-${idx}`} className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 shadow-3xs space-y-4 hover-lift">
                 <div className="flex gap-4 items-center">
                   <div className="w-16 h-16 rounded-2xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
                     <img src={mentor.avatar || 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=200'} alt={mentor.name} className="w-full h-full object-cover" />
