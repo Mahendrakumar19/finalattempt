@@ -682,7 +682,7 @@ const io = new Server(httpServer, {
 });
 
 io.on('connection', (socket) => {
-  console.log(`[Socket] Student connected: ${socket.id}`);
+  console.log(`[Socket] Client connected: ${socket.id}`);
 
   // Join designated channel room (general discussion or doubts)
   socket.on('join_room', (roomId) => {
@@ -690,21 +690,31 @@ io.on('connection', (socket) => {
     console.log(`[Socket] Client ${socket.id} joined chat room: ${roomId}`);
   });
 
+  // Admin socket watcher join
+  socket.on('admin_join_all', () => {
+    socket.join('admin_watchers');
+    console.log(`[Socket] Admin watcher joined: ${socket.id}`);
+  });
+
   // Real-time message exchange and database persistence
-  socket.on('send_message', async (data: { roomId: string; senderId: string; messageText: string }) => {
-    const { roomId, senderId, messageText } = data;
+  socket.on('send_message', async (data: { roomId: string; senderId: string; messageText: string; senderName?: string; senderRole?: string }) => {
+    const { roomId, senderId, messageText, senderName, senderRole } = data;
     try {
       // Save message to database and retrieve full payload (joins details)
-      const savedMsg = await lmsDB.saveChatMessage(roomId, senderId, messageText);
+      const savedMsg = await lmsDB.saveChatMessage(roomId, senderId, messageText, senderName, senderRole);
+      if (!savedMsg) return;
       // Dispatch in real-time to everyone in the room
       io.to(roomId).emit('new_message', savedMsg);
+      // Also dispatch to admin watchers watching for real-time incoming student chats
+      io.to('admin_watchers').emit('new_message', savedMsg);
+      console.log(`[Socket] Message delivered: room=${roomId} sender=${senderName || senderId}`);
     } catch (err) {
       console.error('[Socket] Chat delivery failed:', err);
     }
   });
 
   socket.on('disconnect', () => {
-    console.log(`[Socket] Student disconnected: ${socket.id}`);
+    console.log(`[Socket] Client disconnected: ${socket.id}`);
   });
 });
 

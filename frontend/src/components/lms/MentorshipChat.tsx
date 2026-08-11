@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Send, MessageSquare, ShieldAlert, Sparkles, Hash, Volume2 } from 'lucide-react';
+import { Send, MessageSquare, ShieldAlert, Sparkles, Hash, Volume2, ShieldCheck, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { getChatRooms, getChatMessages } from '@/services/auth';
+import { getChatRooms, getChatMessages, getSupportRoom } from '@/services/auth';
 
 interface MentorshipChatProps {
   courseId: string;
@@ -34,14 +34,13 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  // 1. Fetch Rooms List and Assigned Faculty Members on Mount
+  // 1. Fetch Rooms List, Personal Admin Support Room, and Assigned Faculty Members
   useEffect(() => {
-    if (!accessToken) return;
-
     const loadInitialData = async () => {
       try {
-        const [roomsRes, facultyRes] = await Promise.all([
-          getChatRooms(courseId, accessToken),
+        const [supportRes, roomsRes, facultyRes] = await Promise.all([
+          accessToken ? getSupportRoom(accessToken).catch(() => null) : null,
+          accessToken ? getChatRooms(courseId || 'bpsc-foundation', accessToken).catch(() => null) : null,
           fetch(`${BACKEND_URL}/api/faculty`).then(r => r.json()).catch(() => [])
         ]);
 
@@ -49,16 +48,35 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
           setFaculties(facultyRes);
         }
 
-        if (roomsRes.success && roomsRes.data) {
-          setRooms(roomsRes.data);
-          if (roomsRes.data.length > 0) {
-            setActiveRoom(roomsRes.data[0]); // default to general
-          }
+        const roomList: any[] = [];
+        
+        // 1. Direct Admin Support Room
+        if (supportRes?.success && supportRes.data) {
+          roomList.push({
+            id: supportRes.data.id,
+            title: 'Direct Chat with Admin & Mentors',
+            type: 'admin_support',
+            isDirect: true
+          });
         } else {
-          // If no specific course channels exist, create fallback channel state
-          setRooms([{ id: `general-${courseId}`, title: 'General Mentor Doubts', type: 'general' }]);
-          setActiveRoom({ id: `general-${courseId}`, title: 'General Mentor Doubts', type: 'general' });
+          const fallbackSupportId = user?.id ? `support-${user.id}` : 'admin-support-general';
+          roomList.push({
+            id: fallbackSupportId,
+            title: 'Direct Chat with Admin & Mentors',
+            type: 'admin_support',
+            isDirect: true
+          });
         }
+
+        // 2. Course Rooms
+        if (roomsRes?.success && Array.isArray(roomsRes.data) && roomsRes.data.length > 0) {
+          roomList.push(...roomsRes.data);
+        } else {
+          roomList.push({ id: `general-${courseId || 'general'}`, title: 'General Doubt Box', type: 'general' });
+        }
+
+        setRooms(roomList);
+        setActiveRoom(roomList[0]); // Default to direct admin support
       } catch (err) {
         setError('Network error loading mentorship channels.');
       } finally {
@@ -67,17 +85,18 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
     };
 
     loadInitialData();
-  }, [courseId, accessToken, BACKEND_URL]);
+  }, [courseId, accessToken, BACKEND_URL, user]);
 
   // 2. Fetch Chat History & Connect Socket when active room changes
   useEffect(() => {
-    if (!activeRoom || !accessToken || !user) return;
+    if (!activeRoom) return;
+    const currentUserId = user?.id || 'guest-student-user';
 
     // Fetch Room History
     const loadHistory = async () => {
       try {
-        const res = await getChatMessages(activeRoom.id, accessToken);
-        if (res.success && res.data) {
+        const res = await getChatMessages(activeRoom.id, accessToken || 'guest-token');
+        if (res?.success && res.data) {
           setMessages(res.data);
         }
       } catch (err) {
@@ -116,20 +135,39 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     const text = inputMessage.trim();
-    if (!text || !socketRef.current || !activeRoom || !user) return;
+    if (!text || !socketRef.current || !activeRoom) return;
 
-    socketRef.current.emit('send_message', {
+    const senderId = user?.id || 'guest-student-user';
+    const senderName = user?.fullName || user?.email || 'Student';
+    const senderRole = user?.role || 'student';
+
+    const payload = {
       roomId: activeRoom.id,
-      senderId: user.id,
+      senderId,
+      senderName,
+      senderRole,
       messageText: text
-    });
+    };
 
+    // Optimistically push to local state
+    const optimisticMsg = {
+      id: `temp-${Date.now()}`,
+      roomId: activeRoom.id,
+      senderId,
+      fullName: senderName,
+      role: senderRole,
+      messageText: text,
+      createdAt: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+
+    socketRef.current.emit('send_message', payload);
     setInputMessage('');
   };
 
   if (loading) {
     return (
-      <div className="h-[500px] flex flex-col items-center justify-center bg-slate-900/50 border border-white/10 rounded-2xl animate-pulse">
+      <div className="h-[500px] flex flex-col items-center justify-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl animate-pulse">
         <MessageSquare className="w-8 h-8 text-blue-400/50 animate-bounce mb-3" />
         <p className="text-slate-500 text-xs font-semibold">Connecting to mentorship portal...</p>
       </div>
@@ -194,23 +232,23 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
           </div>
         </div>
       ) : (
-        <div className="bg-slate-900/60 border border-white/10 rounded-3xl p-6 text-center space-y-2">
-          <MessageSquare className="w-10 h-10 text-slate-600 mx-auto" />
-          <h3 className="text-white font-bold text-sm">No Dedicated Mentor Assigned Yet</h3>
-          <p className="text-slate-400 text-xs max-w-sm mx-auto">
+        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 text-center space-y-2">
+          <MessageSquare className="w-10 h-10 text-slate-400 mx-auto" />
+          <h3 className="text-[var(--text-color)] font-bold text-sm">No Dedicated Mentor Assigned Yet</h3>
+          <p className="text-slate-500 text-xs max-w-sm mx-auto">
             You can still post your doubts in the General Doubts Box channel below. Our subject matter experts respond within 24 hours.
           </p>
         </div>
       )}
 
       {/* ── Real-Time Chat Component ── */}
-      <div className="h-[550px] grid grid-cols-1 md:grid-cols-4 bg-slate-900 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+      <div className="h-[550px] grid grid-cols-1 md:grid-cols-4 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-xl overflow-hidden">
         
         {/* ── Sidebar: Channels List ── */}
-        <div className="border-r border-white/5 bg-slate-900/40 p-4 space-y-4 flex flex-col h-full md:col-span-1">
-          <div className="flex items-center gap-2 pb-3 border-b border-white/5">
-            <Sparkles className="w-4 h-4 text-blue-400" />
-            <span className="text-white text-xs font-bold uppercase tracking-wider">Group Channels</span>
+        <div className="border-r border-[var(--card-border)] bg-[var(--bg-color)] p-4 space-y-4 flex flex-col h-full md:col-span-1">
+          <div className="flex items-center gap-2 pb-3 border-b border-[var(--card-border)]">
+            <Sparkles className="w-4 h-4 text-blue-500" />
+            <span className="text-[var(--text-color)] text-xs font-bold uppercase tracking-wider">Group Channels</span>
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto">
@@ -222,8 +260,8 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
                   onClick={() => setActiveRoom(room)}
                   className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all ${
                     isActive
-                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+                      ? 'bg-blue-600/15 text-blue-600 border border-blue-500/20'
+                      : 'text-slate-500 hover:text-[var(--text-color)] hover:bg-slate-100 dark:hover:bg-white/[0.04]'
                   }`}
                 >
                   {room.type === 'announcement' ? (
@@ -241,23 +279,23 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
         {/* ── Main Chat Area ── */}
         <div className="flex flex-col h-full md:col-span-3">
           {/* Header */}
-          <div className="p-4 border-b border-white/5 bg-slate-900/80 backdrop-blur flex items-center gap-2">
+          <div className="p-4 border-b border-[var(--card-border)] bg-[var(--card-bg)] flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <MessageSquare className="w-4 h-4 text-blue-400" />
+              <MessageSquare className="w-4 h-4 text-blue-500" />
             </div>
             <div>
-              <h4 className="text-white text-xs font-bold">{activeRoom?.title || 'Mentor Doubts Box'}</h4>
-              <p className="text-slate-500 text-[10px] mt-0.5">Real-Time Mentor Doubts Box</p>
+              <h4 className="text-[var(--text-color)] text-xs font-bold">{activeRoom?.title || 'Mentor Doubts Box'}</h4>
+              <p className="text-slate-400 text-[10px] mt-0.5">Real-Time Mentor Doubts Box</p>
             </div>
           </div>
 
         {/* Messages Body */}
-        <div className="flex-1 p-6 space-y-4 overflow-y-auto bg-slate-950/20 styled-scrollbar">
+        <div className="flex-1 p-6 space-y-4 overflow-y-auto bg-[var(--bg-color)] styled-scrollbar">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs">
-              <MessageSquare className="w-8 h-8 text-slate-700 mb-2" />
+            <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 text-xs">
+              <MessageSquare className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2" />
               <p>No messages yet in this group channel.</p>
-              <p className="text-[10px] text-slate-600 mt-1">Start the conversation by typing your doubts below.</p>
+              <p className="text-[10px] text-slate-400 mt-1">Start the conversation by typing your doubts below.</p>
             </div>
           ) : (
             messages.map((msg) => {
@@ -266,15 +304,15 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
                 <div key={msg.id} className={`flex items-start gap-2.5 ${isSelf ? 'justify-end' : ''}`}>
                   {!isSelf && (
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                      {msg.fullName.charAt(0).toUpperCase()}
+                      {msg.fullName?.charAt(0).toUpperCase() || '?'}
                     </div>
                   )}
                   <div className="max-w-[70%]">
                     {!isSelf && (
                       <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-white text-[10px] font-bold">{msg.fullName}</span>
-                        <span className={`px-1.5 py-0.2 rounded text-[8px] font-extrabold uppercase ${
-                          msg.role === 'admin' ? 'bg-red-500/25 text-red-400' : msg.role === 'faculty' ? 'bg-amber-500/25 text-amber-400' : 'bg-blue-500/25 text-blue-400'
+                        <span className="text-[var(--text-color)] text-[10px] font-bold">{msg.fullName}</span>
+                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase ${
+                          msg.role === 'admin' ? 'bg-red-100 text-red-600 dark:bg-red-500/25 dark:text-red-400' : msg.role === 'faculty' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/25 dark:text-amber-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-500/25 dark:text-blue-400'
                         }`}>
                           {msg.role}
                         </span>
@@ -283,11 +321,11 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
                     <div className={`p-3.5 rounded-2xl text-xs font-semibold leading-relaxed ${
                       isSelf
                         ? 'bg-blue-600 text-white rounded-tr-none shadow-md shadow-blue-900/10'
-                        : 'bg-slate-800 border border-white/5 text-slate-200 rounded-tl-none'
+                        : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 rounded-tl-none'
                     }`}>
                       {msg.messageText}
                     </div>
-                    <span className={`block text-[8px] text-slate-600 mt-1 ${isSelf ? 'text-right' : ''}`}>
+                    <span className={`block text-[8px] text-slate-400 mt-1 ${isSelf ? 'text-right' : ''}`}>
                       {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -299,13 +337,13 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
         </div>
 
         {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-white/5 bg-slate-900/80 flex gap-2">
+        <form onSubmit={handleSendMessage} className="p-4 border-t border-[var(--card-border)] bg-[var(--card-bg)] flex gap-2">
           <input
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             placeholder="Type your doubts here..."
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all"
+            className="flex-1 bg-[var(--bg-color)] border border-[var(--card-border)] rounded-xl px-4 py-3 text-xs text-[var(--text-color)] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all"
           />
           <button
             type="submit"

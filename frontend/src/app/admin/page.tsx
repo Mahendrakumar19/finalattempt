@@ -38,8 +38,9 @@ import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTop
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 import MainsEvaluationCMS from '@/components/MainsEvaluationCMS';
+import AdminChatPanel from '@/components/admin/AdminChatPanel';
 
-type AdminTab = 'Dashboard' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Student Chats' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
 interface FeaturePageConnection {
   featureId: string;
@@ -674,6 +675,7 @@ export default function AdminPortal() {
           <nav className="flex flex-col gap-1.5">
             {[
               { id: 'Dashboard', icon: LayoutDashboard },
+              { id: 'Student Chats', icon: MessageSquare },
               { id: 'Home', icon: Sun },
               { id: 'About', icon: FileText },
               { id: 'Contact', icon: MessageSquare },
@@ -840,6 +842,11 @@ export default function AdminPortal() {
             )}
           </div>
         </div>
+
+        {/* TAB: STUDENT CHATS */}
+        {activeTab === 'Student Chats' && (
+          <AdminChatPanel adminToken={adminToken || ''} />
+        )}
 
         {/* TAB 1: DASHBOARD */}
         {activeTab === 'Dashboard' && (

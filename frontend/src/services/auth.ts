@@ -219,6 +219,15 @@ export async function getChatRooms(courseId: string, accessToken: string) {
   return apiFetch<any[]>(`/api/chats/rooms/${courseId}`, {}, accessToken);
 }
 
+// ─── Chats: Support Room & Admin Chat Rooms ─────────────────────────────────
+export async function getSupportRoom(accessToken: string) {
+  return apiFetch<any>('/api/chats/support-room', {}, accessToken);
+}
+
+export async function getAdminChatRooms(accessToken: string) {
+  return apiFetch<any[]>('/api/chats/admin/all-rooms', {}, accessToken);
+}
+
 // ─── Chats: Get Messages History ─────────────────────────────────────────────
 export async function getChatMessages(roomId: string, accessToken: string) {
   return apiFetch<any[]>(`/api/chats/messages/${roomId}`, {}, accessToken);

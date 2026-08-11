@@ -3641,6 +3641,45 @@ class LmsDB {
   }
 
   // ── Chat Helpers ───────────────────────────────────────────────────────────
+  async getOrCreateSupportRoom(studentId: string, studentName?: string): Promise<any> {
+    const roomId = `support-${studentId}`;
+    const roomTitle = `Direct Chat: ${studentName || 'Student'} & Admin/Mentor`;
+    if (mysqlPool) {
+      try {
+        const [existing]: any = await mysqlPool.query('SELECT * FROM lms_chat_rooms WHERE id = ? LIMIT 1', [roomId]);
+        if (existing && existing.length > 0) return existing[0];
+
+        // Get any valid courseId for DB foreign key constraint if required, or null
+        const [courses]: any = await mysqlPool.query('SELECT id FROM lms_courses LIMIT 1');
+        const courseId = courses && courses.length > 0 ? courses[0].id : 'bpsc-foundation';
+
+        await mysqlPool.query(
+          'INSERT INTO lms_chat_rooms (id, courseId, title, type) VALUES (?, ?, ?, ?)',
+          [roomId, courseId, roomTitle, 'general']
+        );
+        return { id: roomId, courseId, title: roomTitle, type: 'general' };
+      } catch (err) { console.error('[LmsDB] getOrCreateSupportRoom MySQL error:', err); }
+    }
+    return { id: roomId, courseId: 'bpsc-foundation', title: roomTitle, type: 'general' };
+  }
+
+  async getAllChatRoomsForAdmin(): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          `SELECT r.*, 
+                  (SELECT m.messageText FROM lms_chat_messages m WHERE m.roomId = r.id ORDER BY m.createdAt DESC LIMIT 1) as lastMessageText,
+                  (SELECT m.createdAt FROM lms_chat_messages m WHERE m.roomId = r.id ORDER BY m.createdAt DESC LIMIT 1) as lastMessageTime,
+                  (SELECT u.fullName FROM lms_chat_messages m JOIN users u ON u.id = m.senderId WHERE m.roomId = r.id AND u.role = 'student' ORDER BY m.createdAt DESC LIMIT 1) as studentName
+           FROM lms_chat_rooms r
+           ORDER BY lastMessageTime DESC`
+        );
+        return rows;
+      } catch (err) { console.error('[LmsDB] getAllChatRoomsForAdmin MySQL error:', err); }
+    }
+    return [];
+  }
+
   async getChatRoomsByCourseId(courseId: string): Promise<any[]> {
     if (mysqlPool) {
       try {
@@ -3671,7 +3710,7 @@ class LmsDB {
     return [];
   }
 
-  async saveChatMessage(roomId: string, senderId: string, messageText: string): Promise<any> {
+  async saveChatMessage(roomId: string, senderId: string, messageText: string, senderName?: string, senderRole?: string): Promise<any> {
     const { v4: uuid } = await import('uuid');
     const msgId = uuid();
     const msg = {
@@ -3679,28 +3718,40 @@ class LmsDB {
       roomId,
       senderId,
       messageText,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      fullName: senderName || 'Student',
+      role: senderRole || 'student',
+      avatarUrl: null as null | string
     };
 
     if (mysqlPool) {
       try {
+        // INSERT IGNORE: skip FK constraint failures gracefully
         await mysqlPool.query(
-          'INSERT INTO lms_chat_messages (id, roomId, senderId, messageText) VALUES (?, ?, ?, ?)',
+          'INSERT IGNORE INTO lms_chat_messages (id, roomId, senderId, messageText) VALUES (?, ?, ?, ?)',
           [msg.id, msg.roomId, msg.senderId, msg.messageText]
         );
         
-        // Fetch message sender details for real-time dispatch payloads
-        const [userRows]: any = await mysqlPool.query(
-          'SELECT fullName, role, avatarUrl FROM users WHERE id = ? LIMIT 1', [senderId]
-        );
-        
-        return {
-          ...msg,
-          fullName: userRows[0]?.fullName || 'Anonymous',
-          role: userRows[0]?.role || 'student',
-          avatarUrl: userRows[0]?.avatarUrl || null
-        };
-      } catch (err) { console.error('[LmsDB] saveChatMessage MySQL error:', err); }
+        // Try to fetch sender details from DB (may not exist for unregistered senderIds)
+        try {
+          const [userRows]: any = await mysqlPool.query(
+            'SELECT fullName, role, avatarUrl FROM users WHERE id = ? LIMIT 1', [senderId]
+          );
+          if (userRows && userRows.length > 0) {
+            msg.fullName = userRows[0].fullName || senderName || 'Student';
+            msg.role = userRows[0].role || senderRole || 'student';
+            msg.avatarUrl = userRows[0].avatarUrl || null;
+          }
+        } catch {
+          // Sender not in users table — use provided fallback info
+        }
+
+        return msg;
+      } catch (err) {
+        console.error('[LmsDB] saveChatMessage MySQL error:', err);
+        // Still return msg so socket can emit it (in-memory fallback)
+        return msg;
+      }
     }
     return msg;
   }
