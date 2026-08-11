@@ -242,17 +242,29 @@ export default function Header() {
         groups: [
           { heading: 'Downloads', items: (() => {
               const baseItems = [
-                // { label: 'All Downloads', href: '/downloads', desc: 'Central repository of study material', icon: IC.download },
                 { label: 'PYQ', href: '/downloads/pyq', desc: 'Previous year question papers', icon: IC.pyq },
                 { label: 'NCERT', href: '/downloads/ncert', desc: 'NCERT Class 6 to 12 Textbooks', icon: IC.ncert },
                 { label: 'Rapid Revision', href: '/downloads/rapid-revision', desc: 'Quick Revision Notes & Tables', icon: IC.sparkle },
                 { label: 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: 'Mains Data & SC Judgments', icon: IC.mains },
                 { label: 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: 'Evaluated Topper Copies', icon: IC.pyq },
+                { label: 'Final Attempt Publication', href: '/downloads/fa-publication', desc: 'Books & Publication Storefront', icon: IC.globe },
               ];
+
+              const CORE_SLUGS = new Set([
+                'downloads/fa-publication', 'fa-publication',
+                'downloads/fa-publications', 'fa-publications',
+                'downloads/fa_publications', 'fa_publications',
+                'downloads/rapid-revision', 'rapid-revision',
+                'downloads/value-added-mains', 'value-added-mains',
+                'downloads/toppers-copies', 'toppers-copies',
+                'downloads/ncert', 'ncert',
+                'downloads/pyq', 'pyq'
+              ]);
+
               const seenHrefs = new Set(baseItems.map(i => i.href.toLowerCase()));
 
               const dynamicItems = customPages
-                .filter(p => p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/'))
+                .filter(p => !CORE_SLUGS.has(p.slug.toLowerCase()) && (p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/')))
                 .map(p => {
                   const cleanSlug = p.slug.startsWith('downloads/') ? p.slug : `downloads/${p.slug}`;
                   return {

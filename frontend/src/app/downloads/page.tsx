@@ -56,6 +56,8 @@ export default function DedicatedDownloadsPage() {
         if (pages && pages.length > 0) {
           const CORE_SLUGS = new Set([
             'downloads/fa-publication', 'fa-publication',
+            'downloads/fa-publications', 'fa-publications',
+            'downloads/fa_publications', 'fa_publications',
             'downloads/rapid-revision', 'rapid-revision',
             'downloads/value-added-mains', 'value-added-mains',
             'downloads/toppers-copies', 'toppers-copies',
