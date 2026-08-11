@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, FileText, Eye, Upload } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Edit2, Trash2 } from 'lucide-react';
 import MediaPicker from './MediaPicker';
 import RichTextEditor from './RichTextEditor';
 
@@ -51,11 +51,7 @@ export default function NCERTBooksManagerCMS() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  useEffect(() => {
-    fetchBooks();
-  }, []);
-
-  const fetchBooks = async () => {
+  const fetchBooks = useCallback(async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/ncert-books?limit=500`);
       const data = await res.json();
@@ -65,7 +61,11 @@ export default function NCERTBooksManagerCMS() {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [BACKEND_URL]);
+
+  useEffect(() => {
+    fetchBooks();
+  }, [fetchBooks]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

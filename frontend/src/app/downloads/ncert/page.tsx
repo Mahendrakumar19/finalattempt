@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { Search, FileText, Download, BookOpen, Eye, Home, ChevronRight, X, Layers } from 'lucide-react';
+import { Search, Download, BookOpen, Eye, Home, ChevronRight, X, Layers } from 'lucide-react';
 
 interface NCERTBookItem {
   id: string;
@@ -11,7 +11,7 @@ interface NCERTBookItem {
   bookName: string;
   title: string;
   language: string;
-  fileMedia?: { storagePath: string } | null;
+  fileMedia?: { storagePath?: string; url?: string; path?: string } | string | null;
   description?: string | null;
   sortOrder: number;
 }
@@ -67,9 +67,9 @@ export default function NcertPage() {
     fetchBooks();
   }, [fetchBooks]);
 
-  const getMediaUrl = (mediaObj?: any) => {
+  const getMediaUrl = (mediaObj?: { storagePath?: string; url?: string; path?: string } | string | null) => {
     if (!mediaObj) return '';
-    const pathStr = mediaObj.storagePath || mediaObj.url || mediaObj.path || (typeof mediaObj === 'string' ? mediaObj : '');
+    const pathStr = typeof mediaObj === 'string' ? mediaObj : (mediaObj.storagePath || mediaObj.url || mediaObj.path || '');
     if (!pathStr) return '';
     if (pathStr.startsWith('http://') || pathStr.startsWith('https://')) return pathStr;
     if (pathStr.startsWith('/api/')) return `${BACKEND_URL}${pathStr}`;

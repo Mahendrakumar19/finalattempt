@@ -8,12 +8,12 @@ import {
   BookOpen, FileText, Video, Download, Newspaper,
   Users, Phone, Info, Home, Target, Star,
   BarChart2, Calendar, Layers, BookMarked,
-  GraduationCap, Award, MapPin, Sparkles,
-  ChevronRight, ExternalLink, Lightbulb, Globe
+  GraduationCap, Award, Sparkles,
+  ChevronRight, Lightbulb, Globe
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
-import { db } from '@/services/db';
+import { db, CustomPage } from '@/services/db';
 
 /* ─── helpers ───────────────────────────────────── */
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -81,35 +81,38 @@ export default function Header() {
   const [scrolled,       setScrolled]       = useState(false);
 
   /* backend data */
-  const [customPages,   setCustomPages]   = useState<any[]>([]);
-  const [siteSettings,  setSiteSettings]  = useState<any>({});
-  const [liveCourses,   setLiveCourses]   = useState<any[]>([]);
-  const [liveTestSeries, setLiveTestSeries] = useState<any[]>([]);
+  const [customPages,   setCustomPages]   = useState<CustomPage[]>([]);
+  const [siteSettings,  setSiteSettings]  = useState<Record<string, any>>({});
 
   const megaRef  = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setMounted(true);
+    let isSubscribed = true;
     Promise.all([
       db.getCustomPages(true),
       db.getSettings(),
-      db.getCourses(),
-      db.getTestSeries(false),
-    ]).then(([pages, settings, courses, testSeries]) => {
-      setCustomPages(pages  || []);
-      setSiteSettings(settings || {});
-      setLiveCourses(courses || []);
-      setLiveTestSeries(testSeries || []);
+    ]).then(([pages, settings]) => {
+      if (isSubscribed) {
+        setCustomPages(pages || []);
+        setSiteSettings(settings || {});
+        setMounted(true);
+      }
     });
 
     const onScroll = () => setScrolled(window.scrollY > 12);
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    return () => {
+      isSubscribed = false;
+      window.removeEventListener('scroll', onScroll);
+    };
   }, []);
 
   /* close mega on route change */
-  useEffect(() => { setActiveMega(null); setMobileOpen(false); }, [pathname]);
+  useEffect(() => {
+    setActiveMega(null);
+    setMobileOpen(false);
+  }, [pathname]);
 
   /* ── portal guard (computed but NOT used as early return — hooks must all run first) ── */
   const isPortal = pathname.startsWith('/student') || pathname.startsWith('/faculty') ||

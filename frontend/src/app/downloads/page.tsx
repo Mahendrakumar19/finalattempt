@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  Download, FileText, ArrowRight, CheckCircle, Search,
-  BookOpen, Eye, File, Film, Archive, Layers, Filter, Folder, Sparkles
+  Download, FileText, ArrowRight, Search,
+  BookOpen, Eye, Layers, Folder
 } from 'lucide-react';
 import { db, CustomPage } from '@/services/db';
 
@@ -19,28 +19,29 @@ interface ResourceItem {
   subcategory?: string;
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-
-function getFileIcon(type: string) {
-  const t = (type || '').toUpperCase();
-  if (t === 'PDF') return { icon: FileText, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-950/30' };
-  if (['DOC', 'DOCX'].includes(t)) return { icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-950/30' };
-  if (['PPT', 'PPTX'].includes(t)) return { icon: File, color: 'text-orange-500', bg: 'bg-orange-50 dark:bg-orange-950/30' };
-  if (['XLS', 'XLSX'].includes(t)) return { icon: File, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-950/30' };
-  if (['MP4', 'WEBM', 'OGG'].includes(t)) return { icon: Film, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-950/30' };
-  if (t === 'ZIP') return { icon: Archive, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/30' };
-  return { icon: FileText, color: 'text-slate-500', bg: 'bg-slate-50 dark:bg-slate-900/40' };
+interface PYQItem {
+  id: string;
+  paperName?: string;
+  description?: string;
+  stage?: string;
+  year?: number | string;
+  exam?: { name?: string };
+  examId?: string;
+  questionPaper?: any;
+  answerKey?: any;
+  solution?: any;
 }
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 export default function DedicatedDownloadsPage() {
   const [downloadStates, setDownloadStates] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [resourcesList, setResourcesList] = useState<ResourceItem[]>([]);
-  const [activeSection, setActiveSection] = useState<string>('All');
-  const [loading, setLoading] = useState(true);
   const [customDownloadPages, setCustomDownloadPages] = useState<CustomPage[]>([]);
   const [allPagesList, setAllPagesList] = useState<CustomPage[]>([]);
-  const [pyqList, setPyqList] = useState<any[]>([]);
+  const [pyqList, setPyqList] = useState<PYQItem[]>([]);
 
   useEffect(() => {
     const loadData = async () => {

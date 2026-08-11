@@ -1,12 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { X, CheckCircle2, ShieldCheck, MapPin, Truck, CreditCard, ArrowRight, BookOpen, AlertCircle, Sparkles } from 'lucide-react';
+import { X, CheckCircle2, MapPin, CreditCard, ArrowRight, BookOpen, AlertCircle, ShieldCheck, Truck } from 'lucide-react';
 import { DownloadItem } from '@/services/db';
 
 interface PublicationCheckoutModalProps {
   item: DownloadItem;
   onClose: () => void;
+}
+
+interface CompletedOrderData {
+  orderId?: string;
+  paymentId?: string;
+  [key: string]: unknown;
 }
 
 export default function PublicationCheckoutModal({ item, onClose }: PublicationCheckoutModalProps) {
@@ -26,7 +32,7 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
     state: 'Bihar'
   });
 
-  const [completedOrder, setCompletedOrder] = useState<any | null>(null);
+  const [completedOrder, setCompletedOrder] = useState<CompletedOrderData | null>(null);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 

@@ -404,7 +404,7 @@ export default function Home() {
             <div className="bg-[#F3F4F6] dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 shadow-md hover-lift space-y-4">
               <div className="flex justify-between items-center border-b border-blue-900/20 dark:border-white/10 pb-3">
                 <h3 className="font-heading font-black text-base text-[#1E3A8A] dark:text-amber-400 uppercase tracking-wide flex items-center gap-2 border-b-2 border-[#1E3A8A] pb-1">
-                  <span>What's New</span>
+                  <span>What&apos;s New</span>
                 </h3>
                 <a
                   href="https://bpsc.bihar.gov.in/"
