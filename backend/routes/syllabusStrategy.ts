@@ -41,7 +41,11 @@ router.post('/exams', async (req: Request, res: Response) => {
 
 router.put('/exams/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     const { name, code, slug, description, displayOrder, isActive, logoMediaId, logoUrl } = req.body;
     const exam = await prisma.exam.update({
       where: { id },
@@ -65,7 +69,11 @@ router.put('/exams/:id', async (req: Request, res: Response) => {
 
 router.delete('/exams/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     await prisma.exam.delete({ where: { id } });
     res.json({ success: true, message: 'Exam deleted successfully.' });
   } catch (err: any) {
@@ -75,7 +83,11 @@ router.delete('/exams/:id', async (req: Request, res: Response) => {
 
 router.delete('/exam/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     await prisma.exam.delete({ where: { id } });
     res.json({ success: true, message: 'Exam deleted successfully.' });
   } catch (err: any) {
@@ -126,7 +138,11 @@ router.post('/syllabus', async (req: Request, res: Response) => {
 
 router.put('/syllabus/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     const { examId, stage, version, mediaId, lastUpdated, description, isPublished, sortOrder } = req.body;
     const item = await prisma.syllabus.update({
       where: { id },
@@ -153,7 +169,11 @@ router.put('/syllabus/:id', async (req: Request, res: Response) => {
 
 router.delete('/syllabus/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     await prisma.syllabus.delete({ where: { id } });
     res.json({ success: true, message: 'Syllabus deleted successfully.' });
   } catch (err: any) {
@@ -207,7 +227,11 @@ router.post('/strategy', async (req: Request, res: Response) => {
 
 router.put('/strategy/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     const { title, slug, content, category, featuredImageMediaId, attachmentMediaId, videoUrl, ctaText, ctaUrl, sortOrder, isPublished } = req.body;
     const block = await prisma.strategyBlock.update({
       where: { id },
@@ -237,7 +261,11 @@ router.put('/strategy/:id', async (req: Request, res: Response) => {
 
 router.delete('/strategy/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     await prisma.strategyBlock.delete({ where: { id } });
     res.json({ success: true, message: 'Strategy block deleted.' });
   } catch (err: any) {

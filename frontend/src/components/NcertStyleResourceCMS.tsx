@@ -65,7 +65,7 @@ export default function NcertStyleResourceCMS({
       }
       if (!data) {
         const allPages = await db.getCustomPages(false);
-        data = allPages.find(p => p.slug === `downloads/${pageSlug}` || p.slug === pageSlug || p.slug.endsWith(pageSlug)) || null;
+        data = allPages.find(p => p.slug === `downloads/${pageSlug}` || p.slug === pageSlug) || null;
       }
 
       if (data) {

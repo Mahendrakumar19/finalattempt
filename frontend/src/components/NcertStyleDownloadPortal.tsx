@@ -122,7 +122,7 @@ export default function NcertStyleDownloadPortal({
   const downloadItems: DownloadItem[] = pageData?.downloadItems || [];
 
   // Check if current page is the Publications Catalogue section
-  const isPublicationPage = pageSlug === 'fa-publication' || pageSlug === 'fa-publications';
+  const isPublicationPage = pageSlug === 'fa-publication';
 
   // Dynamic Categories derived directly from database items
   const dynamicPubCategories = Array.from(new Set(

@@ -54,7 +54,11 @@ export class MediaController {
 
   public async getMediaById(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      if (!id || typeof id !== 'string') {
+        res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+        return;
+      }
       const item = await mediaRepository.findById(id);
       if (!item) {
         res.status(404).json({ success: false, error: 'Media asset not found.' });
@@ -92,7 +96,11 @@ export class MediaController {
 
   public async updateMedia(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      if (!id || typeof id !== 'string') {
+        res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+        return;
+      }
       const { title, description, visibility, folderId } = req.body;
 
       const updated = await mediaRepository.update(id, {
@@ -110,7 +118,11 @@ export class MediaController {
 
   public async renameMedia(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      if (!id || typeof id !== 'string') {
+        res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+        return;
+      }
       const { title } = req.body;
 
       if (!title) {
@@ -127,7 +139,11 @@ export class MediaController {
 
   public async replaceMedia(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      if (!id || typeof id !== 'string') {
+        res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+        return;
+      }
       if (!req.file) {
         res.status(400).json({ success: false, error: 'No replacement file provided.' });
         return;
@@ -168,7 +184,11 @@ export class MediaController {
 
   public async deleteMedia(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      if (!id || typeof id !== 'string') {
+        res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+        return;
+      }
       const permanent = req.query.permanent === 'true';
 
       // Check usage tracking first
@@ -191,7 +211,11 @@ export class MediaController {
 
   public async restoreMedia(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      if (!id || typeof id !== 'string') {
+        res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+        return;
+      }
       const restored = await mediaRepository.restore(id);
       res.json({ success: true, data: restored });
     } catch (err: any) {
@@ -228,7 +252,11 @@ export class MediaController {
 
   public async deleteFolder(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+      if (!id || typeof id !== 'string') {
+        res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+        return;
+      }
       await mediaRepository.deleteFolder(id);
       res.json({ success: true, message: 'Folder deleted successfully.' });
     } catch (err: any) {

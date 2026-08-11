@@ -95,7 +95,11 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     const { subject, classLevel, bookName, title, language, fileMediaId, description, sortOrder, isPublished } = req.body;
 
     const item = await prisma.nCERTBook.update({
@@ -124,7 +128,11 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     await prisma.nCERTBook.delete({ where: { id } });
     res.json({ success: true, message: 'NCERT book deleted successfully.' });
   } catch (err: any) {

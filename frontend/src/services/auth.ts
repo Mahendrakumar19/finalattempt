@@ -209,6 +209,11 @@ export async function getQuizLeaderboard(quizId: string, accessToken: string) {
   return apiFetch<any[]>(`/api/quizzes/${quizId}/leaderboard`, {}, accessToken);
 }
 
+// ─── Quizzes: Get My Attempts ────────────────────────────────────────────────
+export async function getMyQuizAttempts(accessToken: string) {
+  return apiFetch<any[]>('/api/quizzes/attempts/me', {}, accessToken);
+}
+
 // ─── Chats: Get Rooms ────────────────────────────────────────────────────────
 export async function getChatRooms(courseId: string, accessToken: string) {
   return apiFetch<any[]>(`/api/chats/rooms/${courseId}`, {}, accessToken);

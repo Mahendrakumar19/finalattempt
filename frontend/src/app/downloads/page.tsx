@@ -55,7 +55,6 @@ export default function DedicatedDownloadsPage() {
         if (pages && pages.length > 0) {
           const CORE_SLUGS = new Set([
             'downloads/fa-publication', 'fa-publication',
-            'downloads/fa-publications', 'fa-publications',
             'downloads/rapid-revision', 'rapid-revision',
             'downloads/value-added-mains', 'value-added-mains',
             'downloads/toppers-copies', 'toppers-copies',
@@ -477,6 +476,32 @@ export default function DedicatedDownloadsPage() {
                         Toppers&apos; Copies
                       </h4>
                       {/* <span className="text-[10px] text-slate-400 font-medium">Evaluated Copies of BPSC Toppers</span> */}
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                );
+              })()}
+
+              {/* 5. FA Publication */}
+              {(() => {
+                const faPage = allPagesList.find(p => p.slug === 'downloads/fa-publication' || p.slug === 'fa-publication');
+                const logoUrl = faPage?.logoUrl;
+                return (
+                  <Link
+                    href="/downloads/fa-publication"
+                    className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white text-blue-600 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="FA Publication" className="w-full h-full object-contain" />
+                      ) : (
+                        <BookOpen className="w-6 h-6 text-blue-600" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        Final Attempt Publication
+                      </h4>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
                   </Link>

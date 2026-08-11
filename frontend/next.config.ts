@@ -12,21 +12,15 @@ const nextConfig: NextConfig = {
     'localhost:3000'
   ],
   async redirects() {
-    return [
-      {
-        source: '/downloads/fa-publications',
-        destination: '/downloads/fa-publication',
-        permanent: true,
-      },
-      {
-        source: '/fa-publications',
-        destination: '/downloads/fa-publication',
-        permanent: true,
-      },
-    ];
+    return [];
   },
   async rewrites() {
     return [
+      // Proxy all API routes through Next.js → backend
+      {
+        source: '/api/:path*',
+        destination: `${BACKEND_ORIGIN}/api/:path*`,
+      },
       // Proxy all uploaded file requests through Next.js → backend
       {
         source: '/uploads/:path*',

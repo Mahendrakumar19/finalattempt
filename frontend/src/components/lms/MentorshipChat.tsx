@@ -10,11 +10,21 @@ interface MentorshipChatProps {
   courseId: string;
 }
 
+interface FacultyMember {
+  id: string;
+  name: string;
+  role: string;
+  experience?: string;
+  avatar?: string;
+  bio?: string;
+}
+
 export default function MentorshipChat({ courseId }: MentorshipChatProps) {
   const { user, accessToken } = useAuth();
   const [rooms, setRooms] = useState<any[]>([]);
   const [activeRoom, setActiveRoom] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
+  const [faculties, setFaculties] = useState<FacultyMember[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,20 +34,30 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  // 1. Fetch Rooms List on Mount
+  // 1. Fetch Rooms List and Assigned Faculty Members on Mount
   useEffect(() => {
     if (!accessToken) return;
 
-    const loadRooms = async () => {
+    const loadInitialData = async () => {
       try {
-        const res = await getChatRooms(courseId, accessToken);
-        if (res.success && res.data) {
-          setRooms(res.data);
-          if (res.data.length > 0) {
-            setActiveRoom(res.data[0]); // default to general
+        const [roomsRes, facultyRes] = await Promise.all([
+          getChatRooms(courseId, accessToken),
+          fetch(`${BACKEND_URL}/api/faculty`).then(r => r.json()).catch(() => [])
+        ]);
+
+        if (Array.isArray(facultyRes)) {
+          setFaculties(facultyRes);
+        }
+
+        if (roomsRes.success && roomsRes.data) {
+          setRooms(roomsRes.data);
+          if (roomsRes.data.length > 0) {
+            setActiveRoom(roomsRes.data[0]); // default to general
           }
         } else {
-          setError('Failed to fetch group channels.');
+          // If no specific course channels exist, create fallback channel state
+          setRooms([{ id: `general-${courseId}`, title: 'General Mentor Doubts', type: 'general' }]);
+          setActiveRoom({ id: `general-${courseId}`, title: 'General Mentor Doubts', type: 'general' });
         }
       } catch (err) {
         setError('Network error loading mentorship channels.');
@@ -46,8 +66,8 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
       }
     };
 
-    loadRooms();
-  }, [courseId, accessToken]);
+    loadInitialData();
+  }, [courseId, accessToken, BACKEND_URL]);
 
   // 2. Fetch Chat History & Connect Socket when active room changes
   useEffect(() => {
@@ -128,53 +148,108 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
     );
   }
 
+  const primaryFaculty = faculties.length > 0 ? faculties[0] : null;
+
   return (
-    <div className="h-[550px] grid grid-cols-1 md:grid-cols-4 bg-slate-900 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
-      
-      {/* ── Sidebar: Channels List ── */}
-      <div className="border-r border-white/5 bg-slate-900/40 p-4 space-y-4 flex flex-col h-full md:col-span-1">
-        <div className="flex items-center gap-2 pb-3 border-b border-white/5">
-          <Sparkles className="w-4 h-4 text-blue-400" />
-          <span className="text-white text-xs font-bold uppercase tracking-wider">Group Channels</span>
-        </div>
-
-        <nav className="flex-1 space-y-1 overflow-y-auto">
-          {rooms.map((room) => {
-            const isActive = activeRoom?.id === room.id;
-            return (
-              <button
-                key={room.id}
-                onClick={() => setActiveRoom(room)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all ${
-                  isActive
-                    ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
-                }`}
-              >
-                {room.type === 'announcement' ? (
-                  <Volume2 className="w-4 h-4 shrink-0" />
+    <div className="space-y-6">
+      {/* ── Assigned Mentor Profile Banner ── */}
+      {primaryFaculty ? (
+        <div className="bg-gradient-to-r from-blue-900/30 via-indigo-900/20 to-slate-900 border border-blue-500/20 rounded-3xl p-6 shadow-xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                {primaryFaculty.avatar ? (
+                  <img
+                    src={primaryFaculty.avatar}
+                    alt={primaryFaculty.name}
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-blue-500/30 shadow-lg"
+                  />
                 ) : (
-                  <Hash className="w-4 h-4 shrink-0" />
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-xl shadow-lg">
+                    {primaryFaculty.name.charAt(0)}
+                  </div>
                 )}
-                <span className="truncate">{room.type === 'general' ? 'General Chat' : 'Doubts Box'}</span>
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+                <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full" title="Active Online" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-blue-400 font-extrabold uppercase tracking-wider bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full">
+                    Assigned Officer Mentor
+                  </span>
+                </div>
+                <h3 className="text-white font-extrabold text-lg sm:text-xl mt-1">{primaryFaculty.name}</h3>
+                <p className="text-slate-400 text-xs mt-0.5">{primaryFaculty.role} {primaryFaculty.experience ? `• ${primaryFaculty.experience}` : ''}</p>
+                {primaryFaculty.bio && (
+                  <p className="text-slate-400 text-xs mt-1.5 line-clamp-1 italic max-w-xl">{primaryFaculty.bio}</p>
+                )}
+              </div>
+            </div>
 
-      {/* ── Main Chat Area ── */}
-      <div className="flex flex-col h-full md:col-span-3">
-        {/* Header */}
-        <div className="p-4 border-b border-white/5 bg-slate-900/80 backdrop-blur flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-            <MessageSquare className="w-4 h-4 text-blue-400" />
-          </div>
-          <div>
-            <h4 className="text-white text-xs font-bold">{activeRoom?.title}</h4>
-            <p className="text-slate-500 text-[10px] mt-0.5">Real-Time Mentor Doubts Box</p>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                Officer Online
+              </span>
+            </div>
           </div>
         </div>
+      ) : (
+        <div className="bg-slate-900/60 border border-white/10 rounded-3xl p-6 text-center space-y-2">
+          <MessageSquare className="w-10 h-10 text-slate-600 mx-auto" />
+          <h3 className="text-white font-bold text-sm">No Dedicated Mentor Assigned Yet</h3>
+          <p className="text-slate-400 text-xs max-w-sm mx-auto">
+            You can still post your doubts in the General Doubts Box channel below. Our subject matter experts respond within 24 hours.
+          </p>
+        </div>
+      )}
+
+      {/* ── Real-Time Chat Component ── */}
+      <div className="h-[550px] grid grid-cols-1 md:grid-cols-4 bg-slate-900 border border-white/10 rounded-2xl shadow-xl overflow-hidden">
+        
+        {/* ── Sidebar: Channels List ── */}
+        <div className="border-r border-white/5 bg-slate-900/40 p-4 space-y-4 flex flex-col h-full md:col-span-1">
+          <div className="flex items-center gap-2 pb-3 border-b border-white/5">
+            <Sparkles className="w-4 h-4 text-blue-400" />
+            <span className="text-white text-xs font-bold uppercase tracking-wider">Group Channels</span>
+          </div>
+
+          <nav className="flex-1 space-y-1 overflow-y-auto">
+            {rooms.map((room) => {
+              const isActive = activeRoom?.id === room.id;
+              return (
+                <button
+                  key={room.id}
+                  onClick={() => setActiveRoom(room)}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all ${
+                    isActive
+                      ? 'bg-blue-600/20 text-blue-400 border border-blue-500/20'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {room.type === 'announcement' ? (
+                    <Volume2 className="w-4 h-4 shrink-0" />
+                  ) : (
+                    <Hash className="w-4 h-4 shrink-0" />
+                  )}
+                  <span className="truncate">{room.title || (room.type === 'general' ? 'General Chat' : 'Doubts Box')}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* ── Main Chat Area ── */}
+        <div className="flex flex-col h-full md:col-span-3">
+          {/* Header */}
+          <div className="p-4 border-b border-white/5 bg-slate-900/80 backdrop-blur flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+              <MessageSquare className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <h4 className="text-white text-xs font-bold">{activeRoom?.title || 'Mentor Doubts Box'}</h4>
+              <p className="text-slate-500 text-[10px] mt-0.5">Real-Time Mentor Doubts Box</p>
+            </div>
+          </div>
 
         {/* Messages Body */}
         <div className="flex-1 p-6 space-y-4 overflow-y-auto bg-slate-950/20 styled-scrollbar">
@@ -241,5 +316,6 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
         </form>
       </div>
     </div>
-  );
+  </div>
+);
 }

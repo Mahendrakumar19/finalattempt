@@ -101,7 +101,11 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     const { examId, year, stage, paperName, questionPaperMediaId, answerKeyMediaId, solutionMediaId, description, sortOrder, isPublished } = req.body;
     
     const item = await prisma.pYQ.update({
@@ -134,7 +138,11 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
     await prisma.pYQ.delete({ where: { id } });
     res.json({ success: true, message: 'PYQ deleted successfully.' });
   } catch (err: any) {

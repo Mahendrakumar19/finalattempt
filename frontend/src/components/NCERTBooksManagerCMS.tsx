@@ -268,7 +268,7 @@ export default function NCERTBooksManagerCMS() {
           </div>
 
           <button type="submit" className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-md cursor-pointer">
-            {form.id ? '💾 Save Changes' : '🚀 Publish NCERT Book'}
+            {form.id ? '💾 Save Changes' : '🚀 Upload NCERT Book'}
           </button>
         </form>
 

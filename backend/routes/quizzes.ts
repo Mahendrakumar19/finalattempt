@@ -5,10 +5,21 @@ import { lmsDB } from '../db';
 
 const router = Router();
 
+// Get Student's All Quiz Attempts
+router.get('/attempts/me', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  try {
+    const attempts = await lmsDB.getAllStudentQuizAttempts(req.user!.userId);
+    res.json({ success: true, data: attempts });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Get Quiz Info (Metadata only)
 router.get('/:quizId', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {
-    const quiz = await lmsDB.getQuizById(req.params.quizId);
+    const quizId = req.params.quizId as string;
+    const quiz = await lmsDB.getQuizById(quizId);
     if (!quiz) {
       res.status(404).json({ success: false, error: 'Quiz not found.' });
       return;
@@ -22,13 +33,29 @@ router.get('/:quizId', authenticate, requireStudent, async (req: AuthRequest, re
 // Start Quiz (Fetch questions without answer keys for security)
 router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {
-    const quiz = await lmsDB.getQuizById(req.params.quizId);
+    const quizId = req.params.quizId as string;
+    const quiz = await lmsDB.getQuizById(quizId);
     if (!quiz) {
       res.status(404).json({ success: false, error: 'Quiz not found.' });
       return;
     }
 
-    const questions = await lmsDB.getQuestionsByQuizId(req.params.quizId);
+    // Entitlement Check: If test is linked to a course/test series, verify enrollment unless admin/faculty
+    if (quiz.courseId && req.user!.role === 'student') {
+      const isEnrolled = await lmsDB.isEnrolled(req.user!.userId, quiz.courseId);
+      if (!isEnrolled) {
+        // Allow access if passing score / demo check or check if any active enrollment exists
+        const userEnrollments = await lmsDB.getUserEnrollments(req.user!.userId);
+        const enrolledInSeries = userEnrollments.some((e: any) => e.courseId === quiz.courseId);
+        if (!enrolledInSeries && !quiz.isFree) {
+          // Check fallback: return 403 if not enrolled
+          res.status(403).json({ success: false, error: 'Please enroll in this test series program to attempt this CBT test.', code: 'QUIZ_003' });
+          return;
+        }
+      }
+    }
+
+    const questions = await lmsDB.getQuestionsByQuizId(quizId);
     
     // Clean correct answers to prevent source code checking cheating
     const cleanQuestions = questions.map((q: any) => {
@@ -51,7 +78,11 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
 // Submit Quiz Answers & Calculate Marks
 router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   const { answers, timeTakenSecs } = req.body; // Map: { [questionId]: 'A' | 'B' | 'C' | 'D' }
-  const { quizId } = req.params;
+  const quizId = Array.isArray(req.params.quizId) ? req.params.quizId[0] : req.params.quizId;
+  if (!quizId || typeof quizId !== 'string') {
+    res.status(400).json({ success: false, error: 'Invalid Quiz ID parameter.' });
+    return;
+  }
 
   if (!answers) {
     res.status(400).json({ success: false, error: 'Answers payload is required.' });
@@ -132,7 +163,12 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
 // Get Quiz Leaderboard
 router.get('/:quizId/leaderboard', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {
-    const leaderboard = await lmsDB.getLeaderboard(req.params.quizId);
+    const quizId = Array.isArray(req.params.quizId) ? req.params.quizId[0] : req.params.quizId;
+    if (!quizId || typeof quizId !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid Quiz ID parameter.' });
+      return;
+    }
+    const leaderboard = await lmsDB.getLeaderboard(quizId);
     res.json({ success: true, data: leaderboard });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

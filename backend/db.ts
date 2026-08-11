@@ -3569,14 +3569,21 @@ class LmsDB {
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query(
-          `SELECT e.*, c.title, c.category, c.thumbnailUrl, c.duration
+          `SELECT e.*, c.title, c.category, c.thumbnailUrl, c.duration,
+                  (SELECT COUNT(DISTINCT lessonId) FROM lms_progress WHERE userId = e.userId AND courseId = e.courseId AND completed = 1) as completedLessons,
+                  (SELECT COUNT(l.id) FROM lms_lessons l WHERE l.courseId = e.courseId AND l.isPublished = 1) as totalLessons
            FROM lms_enrollments e
            JOIN lms_courses c ON c.id = e.courseId
            WHERE e.userId = ?
            ORDER BY e.enrolledAt DESC`,
           [userId]
         );
-        return rows;
+        return rows.map((r: any) => ({
+          ...r,
+          completedLessons: Number(r.completedLessons || 0),
+          totalLessons: Number(r.totalLessons || 0),
+          completionPercentage: Number(r.totalLessons) > 0 ? Math.round((Number(r.completedLessons) / Number(r.totalLessons)) * 100) : 0
+        }));
       } catch (err) { console.error('[LmsDB] getUserEnrollments MySQL error:', err); }
     }
     return lmsLocalEnrollments.filter(e => e.userId === userId);
@@ -4070,6 +4077,29 @@ class LmsDB {
         );
         return rows.map((r: any) => ({ ...r, passed: !!r.passed, answers: typeof r.answers === 'string' ? JSON.parse(r.answers) : r.answers }));
       } catch (err) { console.error('[LmsDB] getQuizAttempts MySQL error:', err); }
+    }
+    return [];
+  }
+
+  async getAllStudentQuizAttempts(userId: string): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          `SELECT a.*, q.title as quizTitle, q.passingScore, q.timeLimitMins, ts.title as testSeriesTitle, ex.name as examName
+           FROM lms_quiz_attempts a
+           JOIN lms_quizzes q ON q.id = a.quizId
+           LEFT JOIN TestSeries ts ON ts.id = q.courseId
+           LEFT JOIN Exam ex ON ex.id = ts.examId
+           WHERE a.userId = ?
+           ORDER BY a.submittedAt DESC`,
+          [userId]
+        );
+        return rows.map((r: any) => ({
+          ...r,
+          passed: !!r.passed,
+          answers: typeof r.answers === 'string' ? JSON.parse(r.answers) : r.answers
+        }));
+      } catch (err) { console.error('[LmsDB] getAllStudentQuizAttempts MySQL error:', err); }
     }
     return [];
   }

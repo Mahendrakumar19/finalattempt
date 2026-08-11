@@ -48,6 +48,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [completedCount, setCompletedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,14 +110,28 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           setOpenSections(new Set([data.data.sections[0].id]));
         }
 
-        // 2. Fetch Quizzes for enrolled student
+        // 2. Fetch Real User Progress if enrolled
+        if (data.data.isEnrolled && accessToken) {
+          try {
+            const progRes = await fetch(`${BACKEND_URL}/api/lms/progress/${courseId}`, { headers });
+            const progData = await progRes.json();
+            if (progData.success && Array.isArray(progData.data)) {
+              const completedList = progData.data.filter((p: any) => p.completed);
+              setCompletedCount(completedList.length);
+            }
+          } catch (pErr) {
+            console.error('Error loading course progress:', pErr);
+          }
+        }
+
+        // 3. Fetch Quizzes for enrolled student
         const quizRes = await fetch(`${BACKEND_URL}/api/lms/courses/${courseId}/quizzes`, { headers });
         const quizData = await quizRes.json();
         if (quizData.success) {
           setQuizzes(quizData.data || []);
         }
 
-        // 3. Fetch Assignments
+        // 4. Fetch Assignments
         const assignRes = await fetch(`${BACKEND_URL}/api/lms/courses/${courseId}/assignments`, { headers });
         const assignData = await assignRes.json();
         if (assignData.success) {
@@ -142,8 +157,22 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
     });
   };
 
-  const handleLessonClick = (lesson: Lesson) => {
+  const handleLessonClick = async (lesson: Lesson) => {
     if (lesson.isLocked) return;
+
+    // Save lesson progress if student is authenticated
+    if (accessToken) {
+      try {
+        const { saveLessonProgress } = await import('@/services/auth');
+        await saveLessonProgress(accessToken, {
+          courseId,
+          lessonId: lesson.id,
+          completed: true
+        });
+      } catch (err) {
+        console.error('Error auto-saving lesson progress:', err);
+      }
+    }
     
     const isVideo = lesson.type !== 'pdf' && lesson.type !== 'resource';
     if (isVideo && lesson.videoUrl) {
@@ -521,10 +550,13 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
             <div>
               <div className="flex justify-between text-xs text-slate-400 font-semibold mb-2">
                 <span>Completed</span>
-                <span>0%</span>
+                <span>{totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0}%</span>
               </div>
               <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full w-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full" />
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
+                  style={{ width: `${totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0}%` }}
+                />
               </div>
             </div>
             <div className="pt-2 grid grid-cols-2 gap-3">
@@ -533,7 +565,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                 <p className="text-slate-500 text-[10px] mt-0.5">Total Lessons</p>
               </div>
               <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                <p className="text-emerald-400 font-bold text-lg">0</p>
+                <p className="text-emerald-400 font-bold text-lg">{completedCount}</p>
                 <p className="text-slate-500 text-[10px] mt-0.5">Completed</p>
               </div>
             </div>

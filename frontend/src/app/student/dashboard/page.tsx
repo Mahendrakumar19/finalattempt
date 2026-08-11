@@ -28,6 +28,9 @@ interface Enrollment {
   thumbnailUrl?: string;
   duration?: string;
   enrolledAt: string;
+  completedLessons?: number;
+  totalLessons?: number;
+  completionPercentage?: number;
 }
 
 export default function StudentDashboard() {
@@ -117,10 +120,10 @@ export default function StudentDashboard() {
   const sidebarLinks: { name: string; icon: any; href?: string; tab?: DashTab }[] = [
     { name: 'Dashboard',         icon: LayoutDashboard, tab: 'Dashboard' },
     { name: 'My Courses',        icon: BookOpen,        tab: 'My Courses' },
-    { name: 'Prelims',           icon: FileText,        href: '/test-series' },
+    { name: 'Prelims',           icon: FileText,        href: '/student/prelims' },
     { name: 'Mains',             icon: Target,          href: '/student/mains' },
     { name: 'Upload Mains Copy', icon: Upload,          href: '/student/upload-mains' },
-    { name: 'Resources',         icon: BookOpen,        href: '/resources' },
+    { name: 'Resources',         icon: BookOpen,        href: '/downloads' },
     { name: 'Mentor Connect',    icon: MessageSquare,   tab: 'Mentor Connect' },
     { name: 'Performance',       icon: TrendingUp,      tab: 'Performance' },
   ];
@@ -320,14 +323,17 @@ export default function StudentDashboard() {
                           <div className="min-w-0 flex-1">
                             <h3 className="text-slate-900 dark:text-white text-sm font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">{e.title}</h3>
                             <p className="text-slate-500 text-xs mt-0.5">{e.category} · {e.duration || 'Ongoing'}</p>
-                            {/* Progress bar (mock) */}
+                            {/* Progress bar (Real DB metrics) */}
                             <div className="mt-2.5">
                               <div className="flex justify-between text-[10px] text-slate-500 mb-1">
                                 <span>Progress</span>
-                                <span>25%</span>
+                                <span>{e.completionPercentage || 0}%</span>
                               </div>
-                              <div className="h-1.5 bg-slate-800 rounded-full">
-                                <div className="h-1.5 w-1/4 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full" />
+                              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                  className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
+                                  style={{ width: `${e.completionPercentage || 0}%` }}
+                                />
                               </div>
                             </div>
                           </div>
@@ -397,10 +403,14 @@ export default function StudentDashboard() {
                           <p className="text-slate-500 text-xs mb-3">{e.category} · Enrolled {new Date(e.enrolledAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
                           <div>
                             <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                              <span>Progress</span><span>25%</span>
+                              <span>Progress</span>
+                              <span>{e.completionPercentage || 0}%</span>
                             </div>
-                            <div className="h-1.5 bg-slate-800 rounded-full">
-                              <div className="h-1.5 w-1/4 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full" />
+                            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                              <div
+                                className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
+                                style={{ width: `${e.completionPercentage || 0}%` }}
+                              />
                             </div>
                           </div>
                         </div>
@@ -455,7 +465,7 @@ export default function StudentDashboard() {
                   <p className="text-slate-500 text-xs mt-0.5">Instant chat doubts resolution portal connected with Selected Officers.</p>
                 </div>
               </div>
-              <MentorshipChat courseId="bpsc-foundation" />
+              <MentorshipChat courseId={enrollments[0]?.courseId || 'bpsc-foundation'} />
             </div>
           )}
 

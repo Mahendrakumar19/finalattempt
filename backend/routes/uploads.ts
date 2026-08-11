@@ -116,7 +116,12 @@ const MIME_TYPES: Record<string, string> = {
 const INLINE_EXTS = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.mp4', '.webm', '.ogg', '.txt']);
 
 router.get('/files/:filename', (req: Request, res: Response) => {
-  const filename = path.basename(req.params.filename); // prevent path traversal
+  const rawFilename = Array.isArray(req.params.filename) ? req.params.filename[0] : req.params.filename;
+  if (!rawFilename || typeof rawFilename !== 'string') {
+    res.status(400).json({ success: false, error: 'Invalid filename parameter.' });
+    return;
+  }
+  const filename = path.basename(rawFilename); // prevent path traversal
   const filePath = path.join(UPLOADS_DIR, filename);
 
   if (!fs.existsSync(filePath)) {

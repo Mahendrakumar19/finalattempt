@@ -51,7 +51,11 @@ router.get('/courses/:id', async (req, res) => {
 // Protected: get course curriculum (requires enrollment check)
 
 router.get('/courses/:id/sections', async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!id || typeof id !== 'string') {
+    res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+    return;
+  }
   try {
     // Verify auth token and check enrollment
     let enrolled = false;
@@ -109,7 +113,12 @@ router.get('/courses/:id/sections', async (req: Request, res: Response) => {
 
 router.get('/enrollments/check/:courseId', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const enrolled = await lmsDB.isEnrolled(req.user!.userId, req.params.courseId);
+    const courseId = Array.isArray(req.params.courseId) ? req.params.courseId[0] : req.params.courseId;
+    if (!courseId || typeof courseId !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid courseId parameter.' });
+      return;
+    }
+    const enrolled = await lmsDB.isEnrolled(req.user!.userId, courseId);
     res.json({ success: true, data: { enrolled } });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -191,7 +200,12 @@ router.delete('/admin/enrollments', async (req: Request, res: Response) => {
 
 router.get('/progress/:courseId', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {
-    const progress = await lmsDB.getUserProgress(req.user!.userId, req.params.courseId);
+    const courseId = Array.isArray(req.params.courseId) ? req.params.courseId[0] : req.params.courseId;
+    if (!courseId || typeof courseId !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid courseId parameter.' });
+      return;
+    }
+    const progress = await lmsDB.getUserProgress(req.user!.userId, courseId);
     res.json({ success: true, data: progress });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -241,7 +255,12 @@ router.get('/analytics/me', authenticate, requireStudent, async (req: AuthReques
 // Update course details
 router.put('/courses/:id', async (req: Request, res: Response) => {
   try {
-    await lmsDB.updateCourse(req.params.id, req.body);
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
+    await lmsDB.updateCourse(id, req.body);
     res.json({ success: true, message: 'Course updated successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -252,7 +271,12 @@ router.put('/courses/:id', async (req: Request, res: Response) => {
 // Delete a course
 router.delete('/courses/:id', async (req: Request, res: Response) => {
   try {
-    await lmsDB.deleteCourse(req.params.id);
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id || typeof id !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
+      return;
+    }
+    await lmsDB.deleteCourse(id);
     res.json({ success: true, message: 'Course deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -262,7 +286,11 @@ router.delete('/courses/:id', async (req: Request, res: Response) => {
 // ─────────────────────────── POST /api/lms/courses/:courseId/sections ──────────
 // Add a section to a course
 router.post('/courses/:courseId/sections', async (req: Request, res: Response) => {
-  const { courseId } = req.params;
+  const courseId = Array.isArray(req.params.courseId) ? req.params.courseId[0] : req.params.courseId;
+  if (!courseId || typeof courseId !== 'string') {
+    res.status(400).json({ success: false, error: 'Invalid courseId parameter.' });
+    return;
+  }
   const { title } = req.body;
   try {
     const id = `sect-${courseId}-${Date.now()}`;
@@ -282,7 +310,12 @@ router.post('/courses/:courseId/sections', async (req: Request, res: Response) =
 // Update section title
 router.put('/sections/:sectionId', async (req: Request, res: Response) => {
   try {
-    await lmsDB.updateSection(req.params.sectionId, req.body.title);
+    const sectionId = Array.isArray(req.params.sectionId) ? req.params.sectionId[0] : req.params.sectionId;
+    if (!sectionId || typeof sectionId !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid sectionId parameter.' });
+      return;
+    }
+    await lmsDB.updateSection(sectionId, req.body.title);
     res.json({ success: true, message: 'Section updated successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -293,7 +326,12 @@ router.put('/sections/:sectionId', async (req: Request, res: Response) => {
 // Delete a section
 router.delete('/sections/:sectionId', async (req: Request, res: Response) => {
   try {
-    await lmsDB.deleteSection(req.params.sectionId);
+    const sectionId = Array.isArray(req.params.sectionId) ? req.params.sectionId[0] : req.params.sectionId;
+    if (!sectionId || typeof sectionId !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid sectionId parameter.' });
+      return;
+    }
+    await lmsDB.deleteSection(sectionId);
     res.json({ success: true, message: 'Section deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -303,7 +341,11 @@ router.delete('/sections/:sectionId', async (req: Request, res: Response) => {
 // ─────────────────────────── POST /api/lms/sections/:sectionId/lessons ─────────
 // Add a lesson/lecture to a section
 router.post('/sections/:sectionId/lessons', async (req: Request, res: Response) => {
-  const { sectionId } = req.params;
+  const sectionId = Array.isArray(req.params.sectionId) ? req.params.sectionId[0] : req.params.sectionId;
+  if (!sectionId || typeof sectionId !== 'string') {
+    res.status(400).json({ success: false, error: 'Invalid sectionId parameter.' });
+    return;
+  }
   const { courseId, title, type, videoUrl, duration } = req.body;
   try {
     const id = `les-${sectionId}-${Date.now()}`;
@@ -330,7 +372,12 @@ router.post('/sections/:sectionId/lessons', async (req: Request, res: Response) 
 // Update a lesson/lecture details
 router.put('/lessons/:lessonId', async (req: Request, res: Response) => {
   try {
-    await lmsDB.updateLesson(req.params.lessonId, req.body);
+    const lessonId = Array.isArray(req.params.lessonId) ? req.params.lessonId[0] : req.params.lessonId;
+    if (!lessonId || typeof lessonId !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid lessonId parameter.' });
+      return;
+    }
+    await lmsDB.updateLesson(lessonId, req.body);
     res.json({ success: true, message: 'Lesson updated successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -341,7 +388,12 @@ router.put('/lessons/:lessonId', async (req: Request, res: Response) => {
 // Delete a lesson/lecture
 router.delete('/lessons/:lessonId', async (req: Request, res: Response) => {
   try {
-    await lmsDB.deleteLesson(req.params.lessonId);
+    const lessonId = Array.isArray(req.params.lessonId) ? req.params.lessonId[0] : req.params.lessonId;
+    if (!lessonId || typeof lessonId !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid lessonId parameter.' });
+      return;
+    }
+    await lmsDB.deleteLesson(lessonId);
     res.json({ success: true, message: 'Lesson deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

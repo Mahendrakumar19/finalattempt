@@ -184,8 +184,8 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
           <div className="p-4 bg-slate-800/40 border border-slate-700/30 rounded-2xl max-w-md mx-auto text-left space-y-2 text-[11px] text-slate-400">
             <p className="font-bold text-slate-300">Rules & Warnings:</p>
-            <p>• Correct answer adds +1.0 Marks.</p>
-            <p>• Incorrect answer deducts -0.33 Marks (BPSC negative marking pattern).</p>
+            <p>• Correct answer adds +{questions[0]?.marks || 1.0} Marks.</p>
+            <p>• Incorrect answer deducts -{questions[0]?.negativeMarks !== undefined ? questions[0]?.negativeMarks : 0.33} Marks as configured for this test.</p>
             <p>• Do not reload the page or navigate away, or your test will submit automatically.</p>
           </div>
 
