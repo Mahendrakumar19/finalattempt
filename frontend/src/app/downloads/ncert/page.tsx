@@ -10,6 +10,7 @@ interface NCERTBookItem {
   classLevel: number;
   bookName: string;
   title: string;
+  language: string;
   fileMedia?: { storagePath: string } | null;
   description?: string | null;
   sortOrder: number;
@@ -32,11 +33,13 @@ export default function NcertPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string>('ALL');
   const [selectedClassLevel, setSelectedClassLevel] = useState<string>('ALL');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('ALL');
   const [loading, setLoading] = useState(false);
 
   // Active Subject Modal popup (like PYQ Exam Vault)
   const [activeSubjectModal, setActiveSubjectModal] = useState<string | null>(null);
   const [modalClassFilter, setModalClassFilter] = useState<string>('ALL');
+  const [modalLanguageFilter, setModalLanguageFilter] = useState<string>('ALL');
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -46,6 +49,7 @@ export default function NcertPage() {
       let url = `${BACKEND_URL}/api/ncert-books?limit=500`;
       if (selectedSubject !== 'ALL') url += `&subject=${encodeURIComponent(selectedSubject)}`;
       if (selectedClassLevel !== 'ALL') url += `&classLevel=${selectedClassLevel}`;
+      if (selectedLanguage !== 'ALL') url += `&language=${encodeURIComponent(selectedLanguage)}`;
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
 
       const res = await fetch(url);
@@ -57,7 +61,7 @@ export default function NcertPage() {
       console.error('Error fetching NCERT books:', err);
     }
     setLoading(false);
-  }, [BACKEND_URL, selectedSubject, selectedClassLevel, searchQuery]);
+  }, [BACKEND_URL, selectedSubject, selectedClassLevel, selectedLanguage, searchQuery]);
 
   useEffect(() => {
     fetchBooks();
@@ -141,6 +145,27 @@ export default function NcertPage() {
         </div>
 
         <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
+          {/* Language Pill Toggle */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
+            {[{ val: 'ALL', label: '🌐 All' }, { val: 'Hindi', label: '🇮🇳 Hindi' }, { val: 'English', label: '🇬🇧 English' }].map(({ val, label }) => (
+              <button
+                key={val}
+                onClick={() => setSelectedLanguage(val)}
+                className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
+                  selectedLanguage === val
+                    ? val === 'Hindi'
+                      ? 'bg-orange-500 text-white shadow-md'
+                      : val === 'English'
+                      ? 'bg-blue-500 text-white shadow-md'
+                      : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           {/* Subject Filter */}
           <select
             value={selectedSubject}
@@ -203,6 +228,7 @@ export default function NcertPage() {
                 onClick={() => {
                   setActiveSubjectModal(subject);
                   setModalClassFilter('ALL');
+                  setModalLanguageFilter('ALL');
                 }}
                 className={`group bg-gradient-to-br ${theme.bg} bg-white dark:bg-slate-900 border ${theme.border} p-6 rounded-3xl space-y-5 shadow-xs hover:shadow-2xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group-hover:-translate-y-1`}
               >
@@ -245,8 +271,9 @@ export default function NcertPage() {
         const subjectBooks = booksList.filter(b => b.subject?.toLowerCase() === activeSubjectModal.toLowerCase());
 
         const filteredModalBooks = subjectBooks.filter(b => {
-          if (modalClassFilter === 'ALL') return true;
-          return String(b.classLevel) === modalClassFilter;
+          if (modalClassFilter !== 'ALL' && String(b.classLevel) !== modalClassFilter) return false;
+          if (modalLanguageFilter !== 'ALL' && b.language !== modalLanguageFilter) return false;
+          return true;
         });
 
         return (
@@ -279,20 +306,41 @@ export default function NcertPage() {
 
               {/* Class Filter Dropdown Bar */}
               <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-white/[0.06] flex flex-wrap items-center justify-between gap-3 shrink-0">
-                <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
-                    Filter by Class:
-                  </span>
-                  <select
-                    value={modalClassFilter}
-                    onChange={(e) => setModalClassFilter(e.target.value)}
-                    className="px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-250 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-extrabold cursor-pointer shadow-xs"
-                  >
-                    <option value="ALL">All Classes (6th - 12th)</option>
-                    {CLASS_LEVELS.map((cls) => (
-                      <option key={cls} value={String(cls)}>Class {cls}th</option>
+                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                  {/* Language Pill Toggle inside modal */}
+                  <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-1 rounded-xl">
+                    {[{ val: 'ALL', label: '🌐 All' }, { val: 'Hindi', label: '🇮🇳 Hindi' }, { val: 'English', label: '🇬🇧 English' }].map(({ val, label }) => (
+                      <button
+                        key={val}
+                        onClick={() => setModalLanguageFilter(val)}
+                        className={`px-3 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                          modalLanguageFilter === val
+                            ? val === 'Hindi'
+                              ? 'bg-orange-500 text-white shadow'
+                              : val === 'English'
+                              ? 'bg-blue-500 text-white shadow'
+                              : 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 shadow'
+                            : 'text-slate-400 hover:text-slate-700 dark:hover:text-white'
+                        }`}
+                      >
+                        {label}
+                      </button>
                     ))}
-                  </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Class:</span>
+                    <select
+                      value={modalClassFilter}
+                      onChange={(e) => setModalClassFilter(e.target.value)}
+                      className="px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-250 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-extrabold cursor-pointer shadow-xs"
+                    >
+                      <option value="ALL">All Classes (6th - 12th)</option>
+                      {CLASS_LEVELS.map((cls) => (
+                        <option key={cls} value={String(cls)}>Class {cls}th</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-lg">
@@ -318,9 +366,20 @@ export default function NcertPage() {
                             <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                               Class {item.classLevel}th NCERT
                             </span>
-                            <span className="text-[8px] font-extrabold uppercase tracking-wider text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
-                              {item.subject}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              <span className={`text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                                item.language === 'English'
+                                  ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/40'
+                                  : item.language === 'Bilingual'
+                                  ? 'text-purple-600 bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800/40'
+                                  : 'text-orange-600 bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800/40'
+                              }`}>
+                                {item.language === 'Hindi' ? '🇮🇳 Hindi' : item.language === 'English' ? '🇬🇧 English' : '🔄 Bilingual'}
+                              </span>
+                              <span className="text-[8px] font-extrabold uppercase tracking-wider text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
+                                {item.subject}
+                              </span>
+                            </div>
                           </div>
 
                           <h4 className="font-heading font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white leading-snug line-clamp-2">

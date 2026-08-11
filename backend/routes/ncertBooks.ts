@@ -9,6 +9,7 @@ router.get('/', async (req: Request, res: Response) => {
     const subject = req.query.subject as string;
     const classLevel = req.query.classLevel ? parseInt(req.query.classLevel as string, 10) : undefined;
     const search = req.query.search as string;
+    const language = req.query.language as string;
 
     const page = parseInt(req.query.page as string || '1', 10);
     const limit = parseInt(req.query.limit as string || '500', 10);
@@ -21,6 +22,9 @@ router.get('/', async (req: Request, res: Response) => {
     }
     if (classLevel) {
       where.classLevel = classLevel;
+    }
+    if (language && language !== 'ALL') {
+      where.language = language;
     }
     if (search) {
       where.OR = [
@@ -64,7 +68,7 @@ router.get('/', async (req: Request, res: Response) => {
 // Admin CMS Endpoints
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { subject, classLevel, bookName, title, fileMediaId, description, sortOrder, isPublished } = req.body;
+    const { subject, classLevel, bookName, title, language, fileMediaId, description, sortOrder, isPublished } = req.body;
 
     const item = await prisma.nCERTBook.create({
       data: {
@@ -72,6 +76,7 @@ router.post('/', async (req: Request, res: Response) => {
         classLevel: parseInt(classLevel, 10),
         bookName,
         title: title || bookName,
+        language: language || 'Hindi',
         fileMediaId: fileMediaId || null,
         description: description || null,
         sortOrder: parseInt(sortOrder || '0', 10),
@@ -91,7 +96,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { subject, classLevel, bookName, title, fileMediaId, description, sortOrder, isPublished } = req.body;
+    const { subject, classLevel, bookName, title, language, fileMediaId, description, sortOrder, isPublished } = req.body;
 
     const item = await prisma.nCERTBook.update({
       where: { id },
@@ -100,6 +105,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         classLevel: parseInt(classLevel, 10),
         bookName,
         title: title || bookName,
+        language: language || 'Hindi',
         fileMediaId: fileMediaId || null,
         description: description || null,
         sortOrder: parseInt(sortOrder || '0', 10),

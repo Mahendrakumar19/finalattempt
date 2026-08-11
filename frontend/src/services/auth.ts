@@ -223,3 +223,44 @@ export async function getChatMessages(roomId: string, accessToken: string) {
 export async function getStudentAnalytics(accessToken: string) {
   return apiFetch<{ courseCompletion: any[]; quizAnalytics: any[] }>('/api/lms/analytics/me', {}, accessToken);
 }
+
+// ─── Mains: Get Tests ────────────────────────────────────────────────────────
+export async function getMainsTests(testSeriesId?: string) {
+  const query = testSeriesId ? `?testSeriesId=${encodeURIComponent(testSeriesId)}` : '';
+  return apiFetch<any[]>(`/api/lms/mains/tests${query}`);
+}
+
+// ─── Mains: Get Single Test Detail ───────────────────────────────────────────
+export async function getMainsTestDetail(testId: string, accessToken?: string) {
+  return apiFetch<{ test: any; submission?: any }>(`/api/lms/mains/tests/${testId}`, {}, accessToken);
+}
+
+// ─── Mains: Student Submit Answer Copy (PDF) ──────────────────────────────────
+export async function submitMainsCopy(testId: string, payload: { submissionUrl: string; submissionText?: string }, accessToken: string) {
+  return apiFetch<any>(`/api/lms/mains/tests/${testId}/submit`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }, accessToken);
+}
+
+// ─── Mains: Student Get My Submissions ───────────────────────────────────────
+export async function getMyMainsSubmissions(accessToken: string) {
+  return apiFetch<any[]>('/api/lms/mains/submissions/me', {}, accessToken);
+}
+
+// ─── Mains Admin: Get All Submissions ────────────────────────────────────────
+export async function getAllMainsSubmissionsAdmin(accessToken: string) {
+  return apiFetch<any[]>('/api/lms/admin/mains-submissions', {}, accessToken);
+}
+
+// ─── Mains Admin: Evaluate Submission ───────────────────────────────────────
+export async function evaluateMainsSubmissionAdmin(
+  submissionId: string,
+  payload: { grade?: number; feedback?: string; evaluatedCopyUrl?: string; status?: string },
+  accessToken: string
+) {
+  return apiFetch<any>(`/api/lms/admin/mains-submissions/${submissionId}/evaluate`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }, accessToken);
+}

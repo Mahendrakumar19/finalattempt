@@ -481,4 +481,108 @@ router.get('/assignments/:assignmentId/submissions', async (req, res) => {
   }
 });
 
+// ─────────────────────────── MAINS TESTS & UPLOADS ─────────────────────────────
+
+// Get all published Mains tests (assignments) across all test series or filtered by testSeriesId
+router.get('/mains/tests', async (req: Request, res: Response) => {
+  try {
+    const { testSeriesId } = req.query;
+    let list: any[] = [];
+    if (testSeriesId && typeof testSeriesId === 'string') {
+      list = await lmsDB.getAssignmentsByTestSeriesId(testSeriesId);
+    } else {
+      list = await lmsDB.getAllMainsAssignments();
+    }
+    res.json({ success: true, data: list });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get single Mains test detail
+router.get('/mains/tests/:id', async (req: Request, res: Response) => {
+  try {
+    const testId = req.params.id as string;
+    const test = await lmsDB.getAssignmentById(testId);
+    if (!test) {
+      res.status(404).json({ success: false, error: 'Mains test not found.' });
+      return;
+    }
+
+    let userSubmission = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const { verifyAccessToken } = await import('../services/jwt');
+        const token = authHeader.split(' ')[1];
+        const payload = verifyAccessToken(token);
+        userSubmission = await lmsDB.getStudentSubmissionForTest(payload.userId, testId);
+      } catch (e) {
+        // Unauthenticated or expired token
+      }
+    }
+
+    res.json({ success: true, data: { test, submission: userSubmission } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Student Submit Mains Answer Copy (PDF)
+router.post('/mains/tests/:id/submit', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  const assignmentId = req.params.id as string;
+  const { submissionUrl, submissionText } = req.body;
+
+  if (!submissionUrl) {
+    res.status(400).json({ success: false, error: 'Answer Copy PDF file is required.' });
+    return;
+  }
+
+  try {
+    const test = await lmsDB.getAssignmentById(assignmentId);
+    if (!test) {
+      res.status(404).json({ success: false, error: 'Mains test not found.' });
+      return;
+    }
+
+    const sub = await lmsDB.submitAssignmentResponse(req.user!.userId, assignmentId, submissionUrl, submissionText);
+    res.status(201).json({ success: true, data: sub, message: 'Answer Copy submitted successfully for evaluation.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Student Get My Mains Copy Submissions
+router.get('/mains/submissions/me', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  try {
+    const submissions = await lmsDB.getStudentMainsSubmissions(req.user!.userId);
+    res.json({ success: true, data: submissions });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Get All Mains Submissions for Evaluation
+router.get('/admin/mains-submissions', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const submissions = await lmsDB.getAllMainsSubmissionsForAdmin();
+    res.json({ success: true, data: submissions });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Evaluate Mains Submission
+router.put('/admin/mains-submissions/:submissionId/evaluate', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const submissionId = req.params.submissionId as string;
+  const { grade, feedback, evaluatedCopyUrl, status } = req.body;
+
+  try {
+    const ok = await lmsDB.evaluateMainsSubmission(submissionId, { grade, feedback, evaluatedCopyUrl, status: status || 'Evaluated' });
+    res.json({ success: ok, message: 'Mains submission evaluated successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;

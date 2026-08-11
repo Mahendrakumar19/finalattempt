@@ -275,7 +275,6 @@ export default function NcertStyleResourceCMS({
               >
                 <option value="English">🇬🇧 English</option>
                 <option value="Hindi">🇮🇳 Hindi</option>
-                <option value="Bilingual">🌐 Bilingual</option>
               </select>
             </div>
 

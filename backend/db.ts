@@ -668,8 +668,15 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         feedback TEXT,
         INDEX idx_submission_user (userId),
         INDEX idx_submission_assignment (assignmentId)
-      )
     `);
+
+    // Dynamically ensure new Mains columns exist on lms_assignments & lms_assignment_submissions
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN testSeriesId VARCHAR(255) NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN questionPaperUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN syllabus TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN status VARCHAR(50) DEFAULT 'Submitted'"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedCopyUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedAt TIMESTAMP NULL"); } catch (e) {}
 
     // 15. YouTube Videos Cached Metadata Table
     await pool.query(`
@@ -3828,16 +3835,19 @@ class LmsDB {
     return [];
   }
 
-  // ── Assignment Methods ────────────────────────────────────────────────────
+  // ── Assignment Methods (Mains Tests & Submissions) ────────────────────────────────────
   async createAssignment(data: any): Promise<any> {
     const { v4: uuid } = await import('uuid');
     const id = data.id || `assign-${Date.now()}`;
     const assign = {
       id,
-      courseId: data.courseId,
+      courseId: data.courseId || null,
+      testSeriesId: data.testSeriesId || null,
       lessonId: data.lessonId || null,
       title: data.title,
       description: data.description || '',
+      questionPaperUrl: data.questionPaperUrl || '',
+      syllabus: data.syllabus || '',
       dueDate: data.dueDate || '',
       maxMarks: Number(data.maxMarks || 100),
       submissionType: data.submissionType || 'pdf',
@@ -3847,8 +3857,8 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_assignments (id, courseId, lessonId, title, description, dueDate, maxMarks, submissionType, isPublished) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [assign.id, assign.courseId, assign.lessonId, assign.title, assign.description, assign.dueDate, assign.maxMarks, assign.submissionType, assign.isPublished]
+          'INSERT INTO lms_assignments (id, courseId, testSeriesId, lessonId, title, description, questionPaperUrl, syllabus, dueDate, maxMarks, submissionType, isPublished) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [assign.id, assign.courseId, assign.testSeriesId, assign.lessonId, assign.title, assign.description, assign.questionPaperUrl, assign.syllabus, assign.dueDate, assign.maxMarks, assign.submissionType, assign.isPublished]
         );
         return assign;
       } catch (err) { console.error('[LmsDB] createAssignment MySQL error:', err); }
@@ -3860,8 +3870,8 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'UPDATE lms_assignments SET title = ?, description = ?, dueDate = ?, maxMarks = ?, submissionType = ?, isPublished = ? WHERE id = ?',
-          [data.title, data.description, data.dueDate, Number(data.maxMarks || 100), data.submissionType, data.isPublished ? 1 : 0, id]
+          'UPDATE lms_assignments SET title = ?, description = ?, questionPaperUrl = ?, syllabus = ?, dueDate = ?, maxMarks = ?, submissionType = ?, isPublished = ? WHERE id = ?',
+          [data.title, data.description, data.questionPaperUrl || '', data.syllabus || '', data.dueDate, Number(data.maxMarks || 100), data.submissionType, data.isPublished ? 1 : 0, id]
         );
         return true;
       } catch (err) { console.error('[LmsDB] updateAssignment MySQL error:', err); }
@@ -3880,6 +3890,16 @@ class LmsDB {
     return true;
   }
 
+  async getAssignmentById(id: string): Promise<any | null> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_assignments WHERE id = ? LIMIT 1', [id]);
+        return rows && rows.length > 0 ? rows[0] : null;
+      } catch (err) { console.error('[LmsDB] getAssignmentById MySQL error:', err); }
+    }
+    return null;
+  }
+
   async getAssignmentsByCourseId(courseId: string): Promise<any[]> {
     if (mysqlPool) {
       try {
@@ -3890,15 +3910,42 @@ class LmsDB {
     return [];
   }
 
-  async submitAssignmentResponse(userId: string, assignmentId: string, submissionUrl: string, submissionText: string): Promise<any> {
+  async getAssignmentsByTestSeriesId(testSeriesId: string): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_assignments WHERE testSeriesId = ? AND isPublished = 1 ORDER BY createdAt DESC', [testSeriesId]);
+        return rows;
+      } catch (err) { console.error('[LmsDB] getAssignmentsByTestSeriesId MySQL error:', err); }
+    }
+    return [];
+  }
+
+  async getAllMainsAssignments(): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          `SELECT a.*, ts.title as testSeriesTitle, ex.name as examName
+           FROM lms_assignments a
+           LEFT JOIN TestSeries ts ON ts.id = a.testSeriesId
+           LEFT JOIN Exam ex ON ex.id = ts.examId
+           WHERE a.isPublished = 1
+           ORDER BY a.createdAt DESC`
+        );
+        return rows;
+      } catch (err) { console.error('[LmsDB] getAllMainsAssignments MySQL error:', err); }
+    }
+    return [];
+  }
+
+  async submitAssignmentResponse(userId: string, assignmentId: string, submissionUrl: string, submissionText?: string): Promise<any> {
     const { v4: uuid } = await import('uuid');
     const id = uuid();
-    const sub = { id, userId, assignmentId, submissionUrl, submissionText, submittedAt: new Date() };
+    const sub = { id, userId, assignmentId, submissionUrl, submissionText: submissionText || null, submittedAt: new Date(), status: 'Submitted' };
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_assignment_submissions (id, userId, assignmentId, submissionUrl, submissionText) VALUES (?, ?, ?, ?, ?)',
-          [id, userId, assignmentId, submissionUrl || null, submissionText || null]
+          'INSERT INTO lms_assignment_submissions (id, userId, assignmentId, submissionUrl, submissionText, status) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, userId, assignmentId, submissionUrl || null, submissionText || null, 'Submitted']
         );
         return sub;
       } catch (err) { console.error('[LmsDB] submitAssignmentResponse MySQL error:', err); }
@@ -3921,6 +3968,71 @@ class LmsDB {
       } catch (err) { console.error('[LmsDB] getAssignmentSubmissions MySQL error:', err); }
     }
     return [];
+  }
+
+  async getStudentMainsSubmissions(userId: string): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          `SELECT s.*, a.title as testTitle, a.maxMarks, a.questionPaperUrl, a.syllabus, ts.title as testSeriesTitle, ex.name as examName
+           FROM lms_assignment_submissions s
+           JOIN lms_assignments a ON a.id = s.assignmentId
+           LEFT JOIN TestSeries ts ON ts.id = a.testSeriesId
+           LEFT JOIN Exam ex ON ex.id = ts.examId
+           WHERE s.userId = ?
+           ORDER BY s.submittedAt DESC`,
+          [userId]
+        );
+        return rows;
+      } catch (err) { console.error('[LmsDB] getStudentMainsSubmissions MySQL error:', err); }
+    }
+    return [];
+  }
+
+  async getStudentSubmissionForTest(userId: string, assignmentId: string): Promise<any | null> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          'SELECT * FROM lms_assignment_submissions WHERE userId = ? AND assignmentId = ? ORDER BY submittedAt DESC LIMIT 1',
+          [userId, assignmentId]
+        );
+        return rows && rows.length > 0 ? rows[0] : null;
+      } catch (err) { console.error('[LmsDB] getStudentSubmissionForTest MySQL error:', err); }
+    }
+    return null;
+  }
+
+  async getAllMainsSubmissionsForAdmin(): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          `SELECT s.*, u.fullName as studentName, u.email as studentEmail, a.title as testTitle, a.maxMarks, ts.title as testSeriesTitle
+           FROM lms_assignment_submissions s
+           JOIN users u ON u.id = s.userId
+           JOIN lms_assignments a ON a.id = s.assignmentId
+           LEFT JOIN TestSeries ts ON ts.id = a.testSeriesId
+           ORDER BY s.submittedAt DESC`
+        );
+        return rows;
+      } catch (err) { console.error('[LmsDB] getAllMainsSubmissionsForAdmin MySQL error:', err); }
+    }
+    return [];
+  }
+
+  async evaluateMainsSubmission(submissionId: string, data: { grade?: number; feedback?: string; evaluatedCopyUrl?: string; status?: string }): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const status = data.status || 'Evaluated';
+        await mysqlPool.query(
+          `UPDATE lms_assignment_submissions 
+           SET grade = ?, feedback = ?, evaluatedCopyUrl = ?, status = ?, evaluatedAt = NOW() 
+           WHERE id = ?`,
+          [data.grade !== undefined ? data.grade : null, data.feedback || '', data.evaluatedCopyUrl || null, status, submissionId]
+        );
+        return true;
+      } catch (err) { console.error('[LmsDB] evaluateMainsSubmission MySQL error:', err); }
+    }
+    return true;
   }
 
   async submitQuizAttempt(userId: string, quizId: string, answers: any, score: number, maxScore: number, passed: boolean, timeTakenSecs: number): Promise<any> {

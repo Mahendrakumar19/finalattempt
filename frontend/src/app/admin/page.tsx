@@ -37,8 +37,9 @@ import NcertStyleResourceCMS from '@/components/NcertStyleResourceCMS';
 import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTopper } from '@/services/db';
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
+import MainsEvaluationCMS from '@/components/MainsEvaluationCMS';
 
-type AdminTab = 'Dashboard' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
 interface FeaturePageConnection {
   featureId: string;
@@ -685,6 +686,7 @@ export default function AdminPortal() {
               { id: 'Blogs', icon: Bookmark },
               { id: 'Courses', icon: BookOpen },
               { id: 'Test Series', icon: FileText },
+              { id: 'Mains Evaluation', icon: Award },
               { id: 'Users', icon: Users },
               { id: 'Leads', icon: MessageSquare },
               { id: 'Media Library', icon: FolderOpen },
@@ -3264,7 +3266,7 @@ export default function AdminPortal() {
                           <option value="Rapid Revision Material">Rapid Revision Material</option>
                           <option value="PYQ Solutions">PYQ Solutions</option>
                           <option value="Value Added Materials">Value Added Materials</option>
-                          <option value="FA Publications">FA Publications</option>
+                          <option value="FA Publications">Final Attempt Publication</option>
                         </select>
                       </div>
                       <div className="space-y-1.5">
@@ -3603,6 +3605,11 @@ export default function AdminPortal() {
         {/* TAB: TEST SERIES */}
         {activeTab === 'Test Series' && (
           <TestSeriesAdmin BACKEND_URL={BACKEND_URL} />
+        )}
+
+        {/* TAB: MAINS EVALUATION */}
+        {activeTab === 'Mains Evaluation' && (
+          <MainsEvaluationCMS accessToken={adminToken || undefined} />
         )}
       </main>
 

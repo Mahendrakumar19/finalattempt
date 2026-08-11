@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  FileText, BookOpen, Layers, Award, Sparkles, Folder, Download, Eye, ChevronRight, Search, CheckCircle, ArrowRight
+  FileText, BookOpen, Layers, Sparkles, Folder, Download, Eye, ChevronRight, Search, CheckCircle, ArrowRight
 } from 'lucide-react';
 import { db, CustomPage } from '@/services/db';
 
@@ -38,20 +38,7 @@ const MAIN_RESOURCE_BOXES = [
     iconBg: 'bg-emerald-500 text-slate-950',
     countText: 'Class 6–12 Vault'
   },
-  {
-    id: 'fa-publication',
-    title: 'FA Publications',
-    subtitle: 'Official books, Bihar special handbooks, yearbooks & model answer compilations.',
-    slug: 'downloads/fa-publication',
-    href: '/downloads/fa-publication',
-    icon: Award,
-    bg: 'from-purple-500/15 via-purple-500/5 to-transparent',
-    border: 'border-purple-500/30 hover:border-purple-500',
-    text: 'text-purple-600 dark:text-purple-400',
-    badge: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30',
-    iconBg: 'bg-purple-500 text-white',
-    countText: 'Publications'
-  },
+
   {
     id: 'rapid-revision',
     title: 'Rapid Revision Materials',
@@ -144,7 +131,7 @@ export default function ResourcesPage() {
               Resources &amp; Study Material Hub
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              6 Core Resource Vaults: PYQs, NCERT Books, Final Attempt Publication, Rapid Revision Materials, Value Added Mains Materials &amp; Toppers Copies.
+              5 Core Resource Vaults: PYQs, NCERT Books, Rapid Revision Materials, Value Added Mains Materials &amp; Toppers Copies.
             </p>
           </div>
 
@@ -168,7 +155,7 @@ export default function ResourcesPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 tracking-widest block">
-              Core Study Resource Folders (6 Vaults)
+              Core Study Resource Folders (5 Vaults)
             </span>
           </div>
 

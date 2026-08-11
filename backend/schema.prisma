@@ -761,6 +761,7 @@ model NCERTBook {
   classLevel  Int      // e.g. 6, 7, 8, 9, 10, 11, 12
   bookName    String   // e.g. "Our Pasts - I", "Fundamentals of Physical Geography"
   title       String   // e.g. "Class 11 Physical Geography Book"
+  language    String   @default("Hindi") // "Hindi", "English", "Bilingual"
   fileMediaId String?
   fileMedia   Media?   @relation("NCERTBookFile", fields: [fileMediaId], references: [id], onDelete: SetNull)
   description String?  @db.Text

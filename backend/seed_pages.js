@@ -42,14 +42,14 @@ async function main() {
           title: 'State PCS Prelims Solved Papers & Practice Manual',
           examCategory: 'State PCS',
           type: 'State PCS',
-          language: 'Bilingual',
+          language: 'English',
           editionYear: '2025-26 Edition',
           price: 550,
           discountedPrice: 380,
           samplePdfUrl: '/uploads/documents/fa_mains_answers.pdf',
           url: '/uploads/documents/fa_mains_answers.pdf',
           thumbnailUrl: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=400',
-          description: 'Bilingual question bank featuring 10 years topic-wise solved papers with detailed explanations for BPSC and APPSC.'
+          description: 'English question bank featuring 10 years topic-wise solved papers with detailed explanations for BPSC and APPSC.'
         },
         {
           id: 'fa-4',

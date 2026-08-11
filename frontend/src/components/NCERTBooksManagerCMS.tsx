@@ -11,6 +11,7 @@ interface NCERTBookItem {
   classLevel: number;
   bookName: string;
   title: string;
+  language: string;
   fileMediaId?: string | null;
   fileMedia?: { originalName: string; storagePath: string } | null;
   description?: string | null;
@@ -34,6 +35,7 @@ export default function NCERTBooksManagerCMS() {
   const [showPicker, setShowPicker] = useState(false);
   const [filterSubject, setFilterSubject] = useState('ALL');
   const [filterClass, setFilterClass] = useState('ALL');
+  const [filterLanguage, setFilterLanguage] = useState('ALL');
 
   const [form, setForm] = useState({
     id: '',
@@ -41,6 +43,7 @@ export default function NCERTBooksManagerCMS() {
     classLevel: 6,
     bookName: '',
     title: '',
+    language: 'Hindi',
     fileMediaId: '',
     description: '',
     sortOrder: 0
@@ -88,6 +91,7 @@ export default function NCERTBooksManagerCMS() {
           classLevel: 6,
           bookName: '',
           title: '',
+          language: 'Hindi',
           fileMediaId: '',
           description: '',
           sortOrder: 0
@@ -123,6 +127,7 @@ export default function NCERTBooksManagerCMS() {
   const filteredBooks = books.filter(b => {
     if (filterSubject !== 'ALL' && b.subject !== filterSubject) return false;
     if (filterClass !== 'ALL' && String(b.classLevel) !== filterClass) return false;
+    if (filterLanguage !== 'ALL' && b.language !== filterLanguage) return false;
     return true;
   });
 
@@ -208,6 +213,29 @@ export default function NCERTBooksManagerCMS() {
             />
           </div>
 
+          {/* Language Version */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase block">Language Version</label>
+            <div className="flex gap-2">
+              {['Hindi', 'English'].map((lang) => (
+                <button
+                  key={lang}
+                  type="button"
+                  onClick={() => setForm({ ...form, language: lang })}
+                  className={`flex-1 py-2 text-xs font-extrabold rounded-xl border transition-all cursor-pointer ${
+                    form.language === lang
+                      ? lang === 'Hindi'
+                        ? 'bg-orange-500 text-white border-orange-500 shadow-md'
+                        : 'bg-blue-500 text-white border-blue-500 shadow-md'
+                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-slate-400'
+                  }`}
+                >
+                  {lang === 'Hindi' ? '🇮🇳 हिंदी' : '🇬🇧 English'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* PDF File Picker (DAM) */}
           <div className="space-y-2">
             <label className="text-[10px] font-bold text-slate-400 uppercase block">PDF Textbook File (Media DAM)</label>
@@ -253,7 +281,17 @@ export default function NCERTBooksManagerCMS() {
               NCERT Books Vault ({filteredBooks.length})
             </h4>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <select
+                value={filterLanguage}
+                onChange={(e) => setFilterLanguage(e.target.value)}
+                className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-slate-900 dark:text-white cursor-pointer"
+              >
+                <option value="ALL">🌐 All Languages</option>
+                <option value="Hindi">🇮🇳 Hindi</option>
+                <option value="English">🇬🇧 English</option>
+              </select>
+
               <select
                 value={filterSubject}
                 onChange={(e) => setFilterSubject(e.target.value)}
@@ -284,6 +322,7 @@ export default function NCERTBooksManagerCMS() {
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/10 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
                   <th className="p-3">Subject</th>
                   <th className="p-3">Class</th>
+                  <th className="p-3">Language</th>
                   <th className="p-3">Book Name</th>
                   <th className="p-3">PDF Attachment</th>
                   <th className="p-3 text-right">Actions</th>
@@ -292,7 +331,7 @@ export default function NCERTBooksManagerCMS() {
               <tbody>
                 {filteredBooks.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-slate-400 italic">
+                    <td colSpan={6} className="p-8 text-center text-slate-400 italic">
                       No NCERT books matching the filter.
                     </td>
                   </tr>
@@ -305,6 +344,15 @@ export default function NCERTBooksManagerCMS() {
                         </span>
                       </td>
                       <td className="p-3 font-bold font-mono text-slate-900 dark:text-white">Class {bk.classLevel}th</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${
+                          bk.language === 'English'
+                            ? 'bg-blue-50 text-blue-600 border-blue-200'
+                            : 'bg-orange-50 text-orange-600 border-orange-200'
+                        }`}>
+                          {bk.language === 'Hindi' ? '🇮🇳 Hindi' : '🇬🇧 English'}
+                        </span>
+                      </td>
                       <td className="p-3 font-bold text-slate-900 dark:text-white">{bk.title || bk.bookName}</td>
                       <td className="p-3 text-slate-500 font-mono text-[10px]">
                         {bk.fileMedia ? '📄 PDF Attached' : '❌ No File'}
@@ -318,6 +366,7 @@ export default function NCERTBooksManagerCMS() {
                               classLevel: bk.classLevel,
                               bookName: bk.bookName,
                               title: bk.title,
+                              language: bk.language || 'Hindi',
                               fileMediaId: bk.fileMediaId || '',
                               description: bk.description || '',
                               sortOrder: bk.sortOrder

@@ -208,7 +208,7 @@ export interface DownloadItem {
   thumbnailUrl?: string; // Cover Image / Book Thumbnail
 
   // Catalogue & Publication Extensions (Optional & Backward Compatible)
-  language?: 'English' | 'Hindi' | 'Bilingual' | string;
+  language?: 'English' | 'Hindi' | string;
   editionYear?: string;      // e.g. "2025-26 Edition"
   price?: number;            // Original MRP in ₹ (e.g. 450)
   discountedPrice?: number;  // Offer Price in ₹ (e.g. 299)

@@ -242,10 +242,9 @@ export default function Header() {
                 // { label: 'All Downloads', href: '/downloads', desc: 'Central repository of study material', icon: IC.download },
                 { label: 'PYQ', href: '/downloads/pyq', desc: 'Previous year question papers', icon: IC.pyq },
                 { label: 'NCERT', href: '/downloads/ncert', desc: 'NCERT Class 6 to 12 Textbooks', icon: IC.ncert },
-                { label: 'Final Attempt Publication', href: '/downloads/fa-publication', desc: 'Books & Yearbooks', icon: IC.ncert },
                 { label: 'Rapid Revision', href: '/downloads/rapid-revision', desc: 'Quick Revision Notes & Tables', icon: IC.sparkle },
                 { label: 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: 'Mains Data & SC Judgments', icon: IC.mains },
-                { label: 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: 'Evaluated Topper Copies', icon: IC.pyq }
+                { label: 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: 'Evaluated Topper Copies', icon: IC.pyq },
               ];
               const seenHrefs = new Set(baseItems.map(i => i.href.toLowerCase()));
 

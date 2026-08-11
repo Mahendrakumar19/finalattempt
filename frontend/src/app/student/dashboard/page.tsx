@@ -7,7 +7,7 @@ import {
   Users, Bell, Award, CheckCircle, Play, LogOut,
   ChevronRight, Sparkles, Search, MessageSquare,
   LayoutDashboard, Settings, Target, Zap, Lock,
-  Sun, Moon, Menu, X
+  Sun, Moon, Menu, X, Upload
 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -114,12 +114,15 @@ export default function StudentDashboard() {
   }, [accessToken]);
 
 
-  const sidebarLinks: { name: DashTab; icon: any }[] = [
-    { name: 'Dashboard',      icon: LayoutDashboard },
-    { name: 'My Courses',     icon: BookOpen },
-    { name: 'Performance',    icon: TrendingUp },
-    { name: 'Tests',          icon: FileText },
-    { name: 'Mentor Connect', icon: MessageSquare },
+  const sidebarLinks: { name: string; icon: any; href?: string; tab?: DashTab }[] = [
+    { name: 'Dashboard',         icon: LayoutDashboard, tab: 'Dashboard' },
+    { name: 'My Courses',        icon: BookOpen,        tab: 'My Courses' },
+    { name: 'Prelims',           icon: FileText,        href: '/test-series' },
+    { name: 'Mains',             icon: Target,          href: '/student/mains' },
+    { name: 'Upload Mains Copy', icon: Upload,          href: '/student/upload-mains' },
+    { name: 'Resources',         icon: BookOpen,        href: '/resources' },
+    { name: 'Mentor Connect',    icon: MessageSquare,   tab: 'Mentor Connect' },
+    { name: 'Performance',       icon: TrendingUp,      tab: 'Performance' },
   ];
 
   const stats = [
@@ -174,12 +177,24 @@ export default function StudentDashboard() {
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {sidebarLinks.map(({ name, icon: Icon }) => {
-            const isActive = activeTab === name;
+          {sidebarLinks.map(({ name, icon: Icon, href, tab }) => {
+            const isActive = tab && activeTab === tab;
+            if (href) {
+              return (
+                <Link
+                  key={name}
+                  href={href}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04]"
+                >
+                  <Icon className="w-4 h-4 shrink-0 text-indigo-500" />
+                  <span>{name}</span>
+                </Link>
+              );
+            }
             return (
               <button
                 key={name}
-                onClick={() => setActiveTab(name)}
+                onClick={() => tab && setActiveTab(tab)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   isActive
                     ? 'bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/20'
