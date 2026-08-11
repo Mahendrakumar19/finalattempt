@@ -184,19 +184,29 @@ export default function Home() {
 
         // Fetch live scraped BPSC notices from backend
         try {
-          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-          const bpscRes = await fetch(`${backendUrl}/api/bpsc/bpsc-notices`);
-          const bpscData = await bpscRes.json();
-          if (bpscData.success && Array.isArray(bpscData.data) && bpscData.data.length > 0) {
-            setDynamicAnnouncements(bpscData.data.map((item: any) => ({
-              date: item.category || 'NOTICE',
-              text: item.title,
-              isNew: item.isNew,
-              link: item.link
-            })));
+          const getBackendUrl = () => {
+            if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
+            if (typeof window !== 'undefined') {
+              const hostname = window.location.hostname || 'localhost';
+              return `http://${hostname}:5000`;
+            }
+            return 'http://127.0.0.1:5000';
+          };
+          const backendUrl = getBackendUrl();
+          const bpscRes = await fetch(`${backendUrl}/api/bpsc/bpsc-notices`).catch(() => null);
+          if (bpscRes && bpscRes.ok) {
+            const bpscData = await bpscRes.json().catch(() => null);
+            if (bpscData && bpscData.success && Array.isArray(bpscData.data) && bpscData.data.length > 0) {
+              setDynamicAnnouncements(bpscData.data.map((item: any) => ({
+                date: item.category || 'NOTICE',
+                text: item.title,
+                isNew: item.isNew,
+                link: item.link
+              })));
+            }
           }
         } catch (err) {
-          console.error('BPSC web scraper fetch error:', err);
+          console.warn('BPSC web scraper fetch error:', err);
         }
 
         const c = await db.getCourses();
