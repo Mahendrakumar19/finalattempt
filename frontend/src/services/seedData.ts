@@ -264,12 +264,14 @@ export const resourceData = [
 
 export interface TestSeriesItem {
   id: string;
+  examId?: string;
+  stageId?: string | null;
   title: string;
   slug: string;
-  category: 'Prelims' | 'Mains' | 'PYQ' | 'Interview';
+  category?: 'Prelims' | 'Mains' | 'PYQ' | 'Interview' | string | null;
   exam: string;
-  language: 'Bilingual (Hindi & English)' | 'English' | 'Hindi';
-  status: 'active' | 'coming_soon' | 'archived';
+  language: 'Bilingual (Hindi & English)' | 'English' | 'Hindi' | string;
+  status: 'active' | 'coming_soon' | 'archived' | string;
   thumbnailUrl?: string;
   bannerUrl?: string;
   price: number;

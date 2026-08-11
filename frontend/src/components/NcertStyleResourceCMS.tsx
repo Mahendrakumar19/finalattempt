@@ -37,9 +37,17 @@ export default function NcertStyleResourceCMS({
     id: '',
     title: '',
     description: '',
-    type: typeOptions[0] || 'PDF',
+    type: typeOptions[0] || 'BPSC',
+    examCategory: 'BPSC',
+    language: 'English',
+    editionYear: '2025-26 Edition',
+    price: undefined,
+    discountedPrice: undefined,
     size: '2.5 MB',
-    url: ''
+    url: '',
+    thumbnailUrl: '',
+    samplePdfUrl: '',
+    buyUrl: ''
   });
 
   const [pageOverviewContent, setPageOverviewContent] = useState('');
@@ -55,12 +63,16 @@ export default function NcertStyleResourceCMS({
       if (!data) {
         data = await db.getCustomPageBySlug(pageSlug);
       }
+      if (!data) {
+        const allPages = await db.getCustomPages(false);
+        data = allPages.find(p => p.slug === `downloads/${pageSlug}` || p.slug === pageSlug || p.slug.endsWith(pageSlug)) || null;
+      }
+
       if (data) {
         setPage(data);
         setDownloadItems(data.downloadItems || []);
         setPageOverviewContent(data.content || '');
       } else {
-        // Create initial placeholder if not present
         const initPage: CustomPage = {
           id: `page-${Date.now()}`,
           title: pageTitle,
@@ -71,7 +83,6 @@ export default function NcertStyleResourceCMS({
           isPublished: true,
           downloadItems: []
         };
-        await db.saveCustomPage(initPage);
         setPage(initPage);
         setDownloadItems([]);
         setPageOverviewContent(initPage.content);
@@ -85,8 +96,8 @@ export default function NcertStyleResourceCMS({
 
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.url) {
-      alert('Item Title and File URL / Upload Path are required.');
+    if (!form.title || (!form.url && !form.buyUrl)) {
+      alert('Item Title and File URL / Buy Link are required.');
       return;
     }
 
@@ -118,11 +129,19 @@ export default function NcertStyleResourceCMS({
           id: '',
           title: '',
           description: '',
-          type: typeOptions[0] || 'PDF',
+          type: typeOptions[0] || 'BPSC',
+          examCategory: 'BPSC',
+          language: 'English',
+          editionYear: '2025-26 Edition',
+          price: undefined,
+          discountedPrice: undefined,
           size: '2.5 MB',
-          url: ''
+          url: '',
+          thumbnailUrl: '',
+          samplePdfUrl: '',
+          buyUrl: ''
         });
-        alert('Item saved successfully!');
+        alert('Publication / Study Item saved successfully!');
       } else {
         alert('Failed to save item.');
       }
@@ -245,42 +264,129 @@ export default function NcertStyleResourceCMS({
             />
           </div>
 
-          {/* File Size */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase">File Size (e.g. 14.2 MB)</label>
-            <input
-              type="text"
-              placeholder="e.g. 4.8 MB"
-              value={form.size || ''}
-              onChange={(e) => setForm({ ...form, size: e.target.value })}
-              className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none text-slate-900 dark:text-white"
-            />
+          {/* Language & Edition Year */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Language</label>
+              <select
+                value={form.language || 'English'}
+                onChange={(e) => setForm({ ...form, language: e.target.value })}
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none font-bold text-slate-900 dark:text-white cursor-pointer"
+              >
+                <option value="English">🇬🇧 English</option>
+                <option value="Hindi">🇮🇳 Hindi</option>
+                <option value="Bilingual">🌐 Bilingual</option>
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Edition / Year</label>
+              <input
+                type="text"
+                placeholder="e.g. 2025-26 Edition"
+                value={form.editionYear || ''}
+                onChange={(e) => setForm({ ...form, editionYear: e.target.value })}
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none text-slate-900 dark:text-white"
+              />
+            </div>
           </div>
 
-          {/* File Path / Media Picker */}
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold text-slate-400 uppercase block">Download File Path / URL</label>
+          {/* Pricing: MRP & Offer Price (Optional for Free Items) */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">MRP Price (₹)</label>
+              <input
+                type="number"
+                placeholder="e.g. 450 (Leave empty if FREE)"
+                value={form.price !== undefined ? form.price : ''}
+                onChange={(e) => setForm({ ...form, price: e.target.value !== '' ? Number(e.target.value) : undefined })}
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Offer Price (₹)</label>
+              <input
+                type="number"
+                placeholder="e.g. 299 (Leave empty if FREE)"
+                value={form.discountedPrice !== undefined ? form.discountedPrice : ''}
+                onChange={(e) => setForm({ ...form, discountedPrice: e.target.value !== '' ? Number(e.target.value) : undefined })}
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none font-bold text-emerald-600 dark:text-emerald-400"
+              />
+            </div>
+          </div>
+
+          {/* Book Cover Image Thumbnail */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase">Book Cover Image URL (Thumbnail)</label>
             <div className="flex gap-2">
               <input
                 type="text"
-                placeholder="/uploads/documents/notes.pdf"
-                value={form.url || ''}
-                onChange={(e) => setForm({ ...form, url: e.target.value })}
+                placeholder="e.g. /uploads/images/book-cover.png"
+                value={form.thumbnailUrl || ''}
+                onChange={(e) => setForm({ ...form, thumbnailUrl: e.target.value })}
                 className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none font-mono text-slate-900 dark:text-white"
-                required
               />
               <button
                 type="button"
                 onClick={() => {
+                  setActiveMediaTargetId('thumbnail');
+                  setShowMediaPicker(true);
+                }}
+                className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white font-bold text-xs rounded-xl shrink-0 cursor-pointer"
+              >
+                Cover DAM
+              </button>
+            </div>
+          </div>
+
+          {/* Sample PDF URL */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase">Free Sample PDF URL (Optional for "Read Sample")</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g. /uploads/documents/sample-chapter.pdf"
+                value={form.samplePdfUrl || ''}
+                onChange={(e) => setForm({ ...form, samplePdfUrl: e.target.value })}
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none font-mono text-slate-900 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMediaTargetId('sample');
+                  setShowMediaPicker(true);
+                }}
+                className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white font-bold text-xs rounded-xl shrink-0 cursor-pointer"
+              >
+                Sample DAM
+              </button>
+            </div>
+          </div>
+
+          {/* Main Download PDF or Custom Buy URL */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-slate-400 uppercase block">Main Full Book PDF / Buy Link</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g. /uploads/documents/full-book.pdf or https://wa.me/..."
+                value={form.url || ''}
+                onChange={(e) => setForm({ ...form, url: e.target.value })}
+                className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none font-mono text-slate-900 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveMediaTargetId('main');
                   setShowMediaPicker(true);
                 }}
                 className={`px-3 py-2 ${THEME_CLASSES.bg} text-slate-950 text-xs font-extrabold rounded-xl shrink-0 cursor-pointer shadow-xs`}
               >
-                Media DAM
+                File DAM
               </button>
             </div>
 
-            {/* Local Upload file button */}
             <button
               type="button"
               onClick={() => {
@@ -319,10 +425,10 @@ export default function NcertStyleResourceCMS({
 
           {/* Description */}
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase">File Description / Details</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase">Book Description &amp; Details</label>
             <textarea
               rows={3}
-              placeholder="Brief summary of what this document contains..."
+              placeholder="Brief summary of syllabus coverage, key features, author, etc..."
               value={form.description || ''}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
               className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none text-slate-900 dark:text-white"
@@ -359,7 +465,7 @@ export default function NcertStyleResourceCMS({
                   className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-slate-900 dark:text-white cursor-pointer"
                 >
                   <option value="ALL">All Categories</option>
-                  {Array.from(new Set([...typeOptions, ...downloadItems.map(i => i.type || 'General Notes')])).map((opt) => (
+                  {Array.from(new Set([...typeOptions, ...downloadItems.map(i => i.examCategory || i.type || 'General Notes')])).map((opt) => (
                     <option key={opt} value={opt}>{opt}</option>
                   ))}
                 </select>
@@ -370,17 +476,19 @@ export default function NcertStyleResourceCMS({
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/10 font-bold text-slate-500 uppercase tracking-wider text-[10px]">
+                    <th className="p-3">Cover</th>
                     <th className="p-3">Category</th>
                     <th className="p-3">Title &amp; Details</th>
-                    <th className="p-3">Size</th>
-                    <th className="p-3">File URL</th>
+                    <th className="p-3">Lang / Ed</th>
+                    <th className="p-3">Price / Offer</th>
+                    <th className="p-3">Sample</th>
                     <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredItems.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-8 text-center text-slate-400 italic">
+                      <td colSpan={7} className="p-8 text-center text-slate-400 italic">
                         No materials uploaded for {pageTitle} matching the filter.
                       </td>
                     </tr>
@@ -388,16 +496,44 @@ export default function NcertStyleResourceCMS({
                     filteredItems.map((item) => (
                       <tr key={item.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-amber-500/5 transition-colors">
                         <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${THEME_CLASSES.badge} border`}>
-                            {item.type || 'PDF'}
-                          </span>
+                          {item.thumbnailUrl ? (
+                            <img src={item.thumbnailUrl} alt={item.title} className="w-9 h-12 rounded object-cover border border-slate-200 dark:border-white/10 shadow-xs" />
+                          ) : (
+                            <div className="w-9 h-12 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center text-[10px] text-slate-400 font-bold">No Cover</div>
+                          )}
                         </td>
                         <td className="p-3">
-                          <div className="font-bold text-slate-900 dark:text-white">{item.title}</div>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${THEME_CLASSES.badge} border`}>
+                            {item.examCategory || item.type || 'BPSC'}
+                          </span>
+                        </td>
+                        <td className="p-3 max-w-xs">
+                          <div className="font-bold text-slate-900 dark:text-white line-clamp-1">{item.title}</div>
                           {item.description && <div className="text-[10px] text-slate-400 line-clamp-1">{item.description}</div>}
                         </td>
-                        <td className="p-3 font-mono text-[10px] font-bold text-slate-600 dark:text-slate-400">{item.size || 'PDF'}</td>
-                        <td className="p-3 font-mono text-[10px] text-amber-600 dark:text-amber-400 max-w-[150px] truncate">{item.url}</td>
+                        <td className="p-3">
+                          <div className="font-bold text-[10px] text-slate-700 dark:text-slate-300">{item.language || 'English'}</div>
+                          {item.editionYear && <div className="text-[9px] text-slate-400">{item.editionYear}</div>}
+                        </td>
+                        <td className="p-3 font-mono text-[11px]">
+                          {item.discountedPrice !== undefined || item.price !== undefined ? (
+                            <div className="flex flex-col">
+                              <span className="font-extrabold text-emerald-600 dark:text-emerald-400">₹{item.discountedPrice || item.price}</span>
+                              {item.price && item.discountedPrice && item.price > item.discountedPrice && (
+                                <span className="text-[9px] line-through text-slate-400">₹{item.price}</span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">FREE</span>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          {item.samplePdfUrl ? (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-blue-500/10 text-blue-600 border border-blue-500/20">✓ Sample</span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 italic">-</span>
+                          )}
+                        </td>
                         <td className="p-3 text-right">
                           <div className="flex justify-end gap-2">
                             <button
@@ -450,17 +586,28 @@ export default function NcertStyleResourceCMS({
 
       {showMediaPicker && (
         <MediaPicker
-          onClose={() => setShowMediaPicker(false)}
-          onSelect={(url, item) => {
-            const ext = (item.extension || item.mimeType?.split('/')[1] || 'PDF').toUpperCase();
-            const sizeMB = (item.size ? (item.size / (1024 * 1024)).toFixed(1) : '1.0');
-            setForm(prev => ({
-              ...prev,
-              url,
-              size: `${sizeMB} MB`,
-              title: prev.title || item.title || item.originalName
-            }));
+          onClose={() => {
             setShowMediaPicker(false);
+            setActiveMediaTargetId(null);
+          }}
+          onSelect={(url, item) => {
+            const sizeMB = (item.size ? (item.size / (1024 * 1024)).toFixed(1) : '1.0');
+            setForm(prev => {
+              if (activeMediaTargetId === 'thumbnail') {
+                return { ...prev, thumbnailUrl: url };
+              } else if (activeMediaTargetId === 'sample') {
+                return { ...prev, samplePdfUrl: url };
+              } else {
+                return {
+                  ...prev,
+                  url,
+                  size: `${sizeMB} MB`,
+                  title: prev.title || item.title || item.originalName
+                };
+              }
+            });
+            setShowMediaPicker(false);
+            setActiveMediaTargetId(null);
           }}
         />
       )}

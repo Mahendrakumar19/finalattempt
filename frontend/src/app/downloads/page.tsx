@@ -39,6 +39,7 @@ export default function DedicatedDownloadsPage() {
   const [activeSection, setActiveSection] = useState<string>('All');
   const [loading, setLoading] = useState(true);
   const [customDownloadPages, setCustomDownloadPages] = useState<CustomPage[]>([]);
+  const [allPagesList, setAllPagesList] = useState<CustomPage[]>([]);
   const [pyqList, setPyqList] = useState<any[]>([]);
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export default function DedicatedDownloadsPage() {
         if (res && res.length > 0) setResourcesList(res);
         if (pages && pages.length > 0) {
           const CORE_SLUGS = new Set([
+            'downloads/fa-publication', 'fa-publication',
             'downloads/fa-publications', 'fa-publications',
             'downloads/rapid-revision', 'rapid-revision',
             'downloads/value-added-mains', 'value-added-mains',
@@ -64,6 +66,7 @@ export default function DedicatedDownloadsPage() {
             (p: any) => !CORE_SLUGS.has(p.slug) && (p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/') || (p.downloadItems && p.downloadItems.length > 0))
           );
           setCustomDownloadPages(downloadPages);
+          setAllPagesList(pages);
         }
         if (pyqRes && pyqRes.success && Array.isArray(pyqRes.data)) {
           setPyqList(pyqRes.data);
@@ -345,122 +348,184 @@ export default function DedicatedDownloadsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {/* Built-in PYQ Vault */}
-              <Link
-                href="/downloads/pyq"
-                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
-              >
-                <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-500">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  {/* <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider block">Question Bank</span> */}
-                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                    PYQs
-                  </h4>
-                  
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
-              </Link>
+              {(() => {
+                const pyqPage = allPagesList.find(p => p.slug === 'downloads/pyq' || p.slug === 'pyq');
+                const logoUrl = pyqPage?.logoUrl;
+                return (
+                  <Link
+                    href="/downloads/pyq"
+                    className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white text-amber-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="PYQs" className="w-full h-full object-contain" />
+                      ) : (
+                        <FileText className="w-6 h-6 text-amber-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        PYQs
+                      </h4>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                );
+              })()}
 
               {/* Dynamic Hierarchical NCERT Repository */}
-              <Link
-                href="/downloads/ncert"
-                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
-              >
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0 text-emerald-500">
-                  <BookOpen className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                    NCERT
-                  </h4>
-                  <span className="text-[10px] text-slate-400 font-medium">History, Geography, Polity, Economics</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
-              </Link>
+              {(() => {
+                const ncertPage = allPagesList.find(p => p.slug === 'downloads/ncert' || p.slug === 'ncert');
+                const logoUrl = ncertPage?.logoUrl;
+                return (
+                  <Link
+                    href="/downloads/ncert"
+                    className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white text-emerald-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="NCERT" className="w-full h-full object-contain" />
+                      ) : (
+                        <BookOpen className="w-6 h-6 text-emerald-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        NCERT
+                      </h4>
+                      {/* <span className="text-[10px] text-slate-400 font-medium">History, Geography, Polity, Economics</span> */}
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                );
+              })()}
 
               {/* 1. Final Attempt Publications */}
-              <Link
-                href="/downloads/fa-publications"
-                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
-              >
-                <div className="w-12 h-12 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center shrink-0 text-purple-500">
-                  <BookOpen className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                    Final Attempt Publications
-                  </h4>
-                  <span className="text-[10px] text-slate-400 font-medium">Books, Handbooks & Yearbooks</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
-              </Link>
+              {(() => {
+                const faPubPage = allPagesList.find(p => p.slug === 'downloads/fa-publication' || p.slug === 'fa-publication' || p.slug === 'downloads/fa-publications' || p.slug === 'fa-publications');
+                const logoUrl = faPubPage?.logoUrl;
+                return (
+                  <Link
+                    href="/downloads/fa-publication"
+                    className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white text-purple-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Publications" className="w-full h-full object-contain" />
+                      ) : (
+                        <BookOpen className="w-6 h-6 text-purple-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        Final Attempt Publication
+                      </h4>
+                      {/* <span className="text-[10px] text-slate-400 font-medium">Books, Handbooks & Yearbooks</span> */}
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                );
+              })()}
 
               {/* 2. Rapid Revision Materials */}
-              <Link
-                href="/downloads/rapid-revision"
-                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
-              >
-                <div className="w-12 h-12 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center shrink-0 text-rose-500">
-                  <Layers className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                    Rapid Revision Materials
-                  </h4>
-                  <span className="text-[10px] text-slate-400 font-medium">Quick Revision Notes & Tables</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
-              </Link>
+              {(() => {
+                const rrPage = allPagesList.find(p => p.slug === 'downloads/rapid-revision' || p.slug === 'rapid-revision');
+                const logoUrl = rrPage?.logoUrl;
+                return (
+                  <Link
+                    href="/downloads/rapid-revision"
+                    className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white text-rose-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Rapid Revision" className="w-full h-full object-contain" />
+                      ) : (
+                        <Layers className="w-6 h-6 text-rose-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        Rapid Revision Materials
+                      </h4>
+                      {/* <span className="text-[10px] text-slate-400 font-medium">Quick Revision Notes & Tables</span> */}
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                );
+              })()}
 
               {/* 3. Value Added Materials Mains */}
-              <Link
-                href="/downloads/value-added-mains"
-                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
-              >
-                <div className="w-12 h-12 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center shrink-0 text-cyan-500">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                    Value Added Materials — Mains
-                  </h4>
-                  <span className="text-[10px] text-slate-400 font-medium">Mains Data, Quotes & Case Studies</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
-              </Link>
+              {(() => {
+                const vaPage = allPagesList.find(p => p.slug === 'downloads/value-added-mains' || p.slug === 'value-added-mains');
+                const logoUrl = vaPage?.logoUrl;
+                return (
+                  <Link
+                    href="/downloads/value-added-mains"
+                    className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white text-cyan-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Value Added Materials" className="w-full h-full object-contain" />
+                      ) : (
+                        <FileText className="w-6 h-6 text-cyan-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        Value Added Materials — Mains
+                      </h4>
+                      {/* <span className="text-[10px] text-slate-400 font-medium">Mains Data, Quotes & Case Studies</span> */}
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                );
+              })()}
 
               {/* 4. Toppers Copies */}
-              <Link
-                href="/downloads/toppers-copies"
-                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
-              >
-                <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0 text-amber-500">
-                  <FileText className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                    Toppers&apos; Copies
-                  </h4>
-                  <span className="text-[10px] text-slate-400 font-medium">Evaluated Copies of BPSC Toppers</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
-              </Link>
+              {(() => {
+                const tcPage = allPagesList.find(p => p.slug === 'downloads/toppers-copies' || p.slug === 'toppers-copies');
+                const logoUrl = tcPage?.logoUrl;
+                return (
+                  <Link
+                    href="/downloads/toppers-copies"
+                    className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white text-amber-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt="Toppers Copies" className="w-full h-full object-contain" />
+                      ) : (
+                        <FileText className="w-6 h-6 text-amber-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        Toppers&apos; Copies
+                      </h4>
+                      {/* <span className="text-[10px] text-slate-400 font-medium">Evaluated Copies of BPSC Toppers</span> */}
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+                  </Link>
+                );
+              })()}
 
               {/* Custom Created Download Sub-Pages */}
               {customDownloadPages.map((pg: any) => {
                 const cleanSlug = pg.slug.startsWith('downloads/') ? pg.slug : `downloads/${pg.slug}`;
+                const logoUrl = pg.logoUrl;
                 return (
                   <Link
                     key={pg.id}
                     href={`/${cleanSlug}`}
                     className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 text-blue-500">
-                      <Folder className="w-6 h-6" />
+                    <div className="w-12 h-12 rounded-xl bg-white text-blue-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                      {logoUrl ? (
+                        <img src={logoUrl} alt={pg.title} className="w-full h-full object-contain" />
+                      ) : (
+                        <Folder className="w-6 h-6 text-blue-500" />
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      {/* <span className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 tracking-wider block">Resource Page</span> */}
                       <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
                         {pg.title}
                       </h4>

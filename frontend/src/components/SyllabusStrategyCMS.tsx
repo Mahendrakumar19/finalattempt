@@ -12,6 +12,7 @@ interface Exam {
   slug: string;
   description?: string;
   logoMediaId?: string | null;
+  logoUrl?: string | null;
   logo?: { storagePath: string } | null;
   displayOrder: number;
 }
@@ -70,7 +71,7 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
   const [pickerTarget, setPickerTarget] = useState<string | null>(null);
 
   // Form states
-  const [examForm, setExamForm] = useState({ id: '', name: '', code: '', slug: '', description: '', displayOrder: 0, logoMediaId: '' });
+  const [examForm, setExamForm] = useState({ id: '', name: '', code: '', slug: '', description: '', displayOrder: 0, logoMediaId: '', logoUrl: '' });
   const [syllabusForm, setSyllabusForm] = useState({ id: '', examId: '', stage: 'PRELIMS', version: '1.0', mediaId: '', description: '', sortOrder: 0 });
   const [strategyForm, setStrategyForm] = useState({ id: '', title: '', slug: '', content: '', category: 'Beginner Strategy', featuredImageMediaId: '', attachmentMediaId: '', videoUrl: '', ctaText: '', ctaUrl: '', sortOrder: 0 });
   
@@ -119,7 +120,7 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
       });
       const data = await res.json();
       if (data.success) {
-        setExamForm({ id: '', name: '', code: '', slug: '', description: '', displayOrder: 0, logoMediaId: '' });
+        setExamForm({ id: '', name: '', code: '', slug: '', description: '', displayOrder: 0, logoMediaId: '', logoUrl: '' });
         fetchData();
         alert('Exam saved successfully!');
       }
@@ -293,22 +294,58 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-400 uppercase block">Logo Media ID (DAM)</label>
-              <div className="flex gap-2">
+            <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+              <label className="text-[10px] font-bold text-amber-600 uppercase block">Exam Logo Image Box</label>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden p-1 shrink-0 shadow-2xs">
+                  {examForm.logoUrl ? (
+                    <img src={examForm.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                  ) : (
+                    <span className="text-[9px] font-bold text-slate-400">No Logo</span>
+                  )}
+                </div>
+                <div className="flex-1 space-y-1.5">
+                  <input
+                    type="text"
+                    placeholder="Image URL (or pick/upload below)"
+                    value={examForm.logoUrl}
+                    onChange={(e) => setExamForm({ ...examForm, logoUrl: e.target.value })}
+                    className="w-full px-2.5 py-1.5 text-xs border bg-white rounded-xl outline-none font-medium"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) {
+                            setExamForm({ ...examForm, logoUrl: ev.target.result as string });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="w-full text-[10px] text-slate-500 file:mr-2 file:py-0.5 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
                 <input
                   type="text"
-                  placeholder="Linked media asset ID"
+                  placeholder="DAM Media ID"
                   value={examForm.logoMediaId}
-                  className="w-full px-3 py-2 text-xs border bg-slate-100 rounded-xl outline-none"
+                  className="w-full px-2.5 py-1 text-[11px] border bg-slate-100 rounded-lg outline-none font-mono"
                   readOnly
                 />
                 <button
                   type="button"
                   onClick={() => { setPickerTarget('examLogo'); setShowPicker(true); }}
-                  className="btn-outline px-3 text-xs"
+                  className="btn-outline px-2.5 text-[11px] shrink-0"
                 >
-                  Pick
+                  Pick DAM
                 </button>
               </div>
             </div>
@@ -330,7 +367,11 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
                 {exams.map((ex) => (
                   <tr key={ex.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                     <td className="p-4">
-                      {ex.logo ? (
+                      {ex.logoUrl ? (
+                        <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 overflow-hidden p-0.5 shadow-2xs">
+                          <img src={ex.logoUrl} alt={ex.name} className="w-full h-full object-contain" />
+                        </div>
+                      ) : ex.logo ? (
                         <img src={`${BACKEND_URL}/${ex.logo.storagePath}`} className="w-8 h-8 object-contain" />
                       ) : (
                         <span>-</span>
@@ -339,7 +380,7 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
                     <td className="p-4 font-bold">{ex.name}</td>
                     <td className="p-4 font-mono">{ex.code}</td>
                     <td className="p-4 flex gap-2">
-                      <button onClick={() => setExamForm({ id: ex.id, name: ex.name, code: ex.code, slug: ex.slug, description: ex.description || '', displayOrder: ex.displayOrder, logoMediaId: ex.logoMediaId || '' })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
+                      <button onClick={() => setExamForm({ id: ex.id, name: ex.name, code: ex.code, slug: ex.slug, description: ex.description || '', displayOrder: ex.displayOrder, logoMediaId: ex.logoMediaId || '', logoUrl: ex.logoUrl || '' })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
                         <Edit2 className="w-3.5 h-3.5 text-slate-500" />
                       </button>
                       <button onClick={() => handleDeleteItem('exam', ex.id)} className="p-1 bg-slate-50 rounded hover:bg-red-50">

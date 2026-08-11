@@ -209,9 +209,18 @@ export interface DownloadItem {
   title: string;
   description?: string;
   size?: string;
-  type?: string;
-  url: string;
-  thumbnailUrl?: string;
+  type?: string;          // Category / Vault Section (e.g. "BPSC", "State PCS")
+  url: string;           // Main File / Full PDF / Buy Link
+  thumbnailUrl?: string; // Cover Image / Book Thumbnail
+
+  // Catalogue & Publication Extensions (Optional & Backward Compatible)
+  language?: 'English' | 'Hindi' | 'Bilingual' | string;
+  editionYear?: string;      // e.g. "2025-26 Edition"
+  price?: number;            // Original MRP in ₹ (e.g. 450)
+  discountedPrice?: number;  // Offer Price in ₹ (e.g. 299)
+  samplePdfUrl?: string;     // Free Sample PDF URL
+  examCategory?: string;     // Primary Exam Subcategory (e.g. "BPSC", "State PCS")
+  buyUrl?: string;           // Custom Order / WhatsApp Buy Link
   displayOrder?: number;
   downloadCount?: number;
 }
@@ -252,6 +261,7 @@ interface LocalDBStore {
   youtubeVideos?: any[];
   youtubeSyncLogs?: any[];
   customPages?: CustomPage[];
+  exams?: any[];
 }
 
 export let mysqlPool: mysql.Pool | null = null;
@@ -1346,6 +1356,336 @@ class BackendDB {
     return deletedInMySQL;
   }
 
+  // ── TEST SERIES & EXAM HIERARCHY METHODS ────────────────────────────────────
+  public async getExamsHierarchy(includeUnpublished: boolean = false): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [examRows]: any = await mysqlPool.query(
+          `SELECT e.id, e.name, e.code, e.slug, e.logoUrl, e.logoMediaId, e.description, e.hasStages, e.displayOrder, e.isActive,
+                  m.storagePath AS logoStoragePath
+           FROM Exam e
+           LEFT JOIN Media m ON m.id = e.logoMediaId
+           WHERE e.isActive = 1 ORDER BY e.displayOrder ASC`
+        );
+        const exams: any[] = [];
+        for (const ex of examRows) {
+          const [stageRows]: any = await mysqlPool.query(
+            `SELECT * FROM ExamStageModel WHERE examId = ? AND isActive = 1 ORDER BY sortOrder ASC`,
+            [ex.id]
+          );
+          
+          let seriesQuery = `SELECT * FROM TestSeries WHERE examId = ?`;
+          if (!includeUnpublished) seriesQuery += ` AND isPublished = 1`;
+          seriesQuery += ` ORDER BY displayOrder ASC`;
+          
+          const [seriesRows]: any = await mysqlPool.query(seriesQuery, [ex.id]);
+
+          const parsedSeries = seriesRows.map((s: any) => ({
+            ...s,
+            highlights: typeof s.highlights === 'string' ? JSON.parse(s.highlights) : s.highlights || [],
+            syllabus: typeof s.syllabus === 'string' ? JSON.parse(s.syllabus) : s.syllabus || [],
+            faq: typeof s.faq === 'string' ? JSON.parse(s.faq) : s.faq || []
+          }));
+
+          // Resolve the best logo URL: prefer direct logoUrl, fall back to DAM storagePath
+          const resolvedLogoUrl = ex.logoUrl || 
+            (ex.logoStoragePath 
+              ? (ex.logoStoragePath.startsWith('http') ? ex.logoStoragePath : `uploads/${ex.logoStoragePath}`)
+              : null);
+
+          exams.push({
+            ...ex,
+            logoUrl: resolvedLogoUrl,
+            hasStages: !!ex.hasStages,
+            stages: stageRows,
+            testSeries: parsedSeries
+          });
+        }
+        return exams;
+      } catch (err) {
+        console.error('[BackendDB] getExamsHierarchy MySQL error:', err);
+      }
+    }
+    
+    // Fallback store
+    if (!this.localStore.exams) this.seedInitialExamsStore();
+    return this.localStore.exams || [];
+  }
+
+  public async getExamBySlug(slug: string): Promise<any | null> {
+    const exams = await this.getExamsHierarchy(true);
+    return exams.find((e: any) => e.slug.toLowerCase() === slug.toLowerCase() || e.id === slug) || null;
+  }
+
+  public async getTestSeriesBySlugOrId(identifier: string): Promise<any | null> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          `SELECT * FROM TestSeries WHERE slug = ? OR id = ? LIMIT 1`,
+          [identifier, identifier]
+        );
+        if (rows && rows.length > 0) {
+          const s = rows[0];
+          return {
+            ...s,
+            highlights: typeof s.highlights === 'string' ? JSON.parse(s.highlights) : s.highlights || [],
+            syllabus: typeof s.syllabus === 'string' ? JSON.parse(s.syllabus) : s.syllabus || [],
+            faq: typeof s.faq === 'string' ? JSON.parse(s.faq) : s.faq || []
+          };
+        }
+      } catch (err) {
+        console.error('[BackendDB] getTestSeriesBySlugOrId MySQL error:', err);
+      }
+    }
+    const exams = await this.getExamsHierarchy(true);
+    for (const ex of exams) {
+      const found = (ex.testSeries || []).find((s: any) => s.slug === identifier || s.id === identifier);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  public async saveTestSeriesRecord(item: any): Promise<any> {
+    const now = new Date().toISOString();
+    const id = item.id || `ts-${Date.now()}`;
+    const slug = item.slug || item.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO TestSeries (
+            id, examId, stageId, title, slug, category, language, status, thumbnailUrl, bannerUrl,
+            price, discountedPrice, totalTests, totalQuestions, duration, description, highlights, syllabus, faq,
+            batchStartDate, enrolledCount, validityDays, isPublished, displayOrder, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+          ON DUPLICATE KEY UPDATE
+            examId = VALUES(examId),
+            stageId = VALUES(stageId),
+            title = VALUES(title),
+            slug = VALUES(slug),
+            category = VALUES(category),
+            language = VALUES(language),
+            status = VALUES(status),
+            thumbnailUrl = VALUES(thumbnailUrl),
+            bannerUrl = VALUES(bannerUrl),
+            price = VALUES(price),
+            discountedPrice = VALUES(discountedPrice),
+            totalTests = VALUES(totalTests),
+            totalQuestions = VALUES(totalQuestions),
+            duration = VALUES(duration),
+            description = VALUES(description),
+            highlights = VALUES(highlights),
+            syllabus = VALUES(syllabus),
+            faq = VALUES(faq),
+            batchStartDate = VALUES(batchStartDate),
+            enrolledCount = VALUES(enrolledCount),
+            validityDays = VALUES(validityDays),
+            isPublished = VALUES(isPublished),
+            displayOrder = VALUES(displayOrder),
+            updatedAt = NOW()`,
+          [
+            id, item.examId, item.stageId || null, item.title, slug, item.category || null, item.language || 'Bilingual (Hindi & English)',
+            item.status || 'active', item.thumbnailUrl || null, item.bannerUrl || null, Number(item.price) || 0,
+            item.discountedPrice ? Number(item.discountedPrice) : null, Number(item.totalTests) || 0, Number(item.totalQuestions) || 0,
+            item.duration || '6 Months Validity', item.description || null, JSON.stringify(item.highlights || []),
+            JSON.stringify(item.syllabus || []), JSON.stringify(item.faq || []), item.batchStartDate || null,
+            Number(item.enrolledCount) || 0, Number(item.validityDays) || 180, item.isPublished !== false ? 1 : 0, Number(item.displayOrder) || 1
+          ]
+        );
+        return { ...item, id, slug };
+      } catch (err) {
+        console.error('[BackendDB] saveTestSeriesRecord MySQL error:', err);
+      }
+    }
+
+    // Local fallback
+    if (!this.localStore.exams) this.seedInitialExamsStore();
+    return { ...item, id, slug };
+  }
+
+  public async deleteTestSeriesRecord(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const [result]: any = await mysqlPool.query('DELETE FROM TestSeries WHERE id = ? OR slug = ?', [id, id]);
+        return result.affectedRows > 0;
+      } catch (err) {
+        console.error('[BackendDB] deleteTestSeriesRecord MySQL error:', err);
+      }
+    }
+    return true;
+  }
+
+  public async saveExamRecord(item: any): Promise<any> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `UPDATE Exam SET 
+            name = ?,
+            code = ?,
+            logoUrl = ?,
+            description = ?,
+            hasStages = ?,
+            displayOrder = ?,
+            updatedAt = NOW()
+           WHERE id = ? OR slug = ? OR code = ?`,
+          [
+            item.name, item.code, item.logoUrl || null, item.description || null,
+            item.hasStages ? 1 : 0, Number(item.displayOrder) || 1,
+            item.id, item.slug || item.id, item.code || item.id
+          ]
+        );
+        return item;
+      } catch (err) {
+        console.error('[BackendDB] saveExamRecord MySQL error:', err);
+      }
+    }
+    // Update local store fallback
+    if (this.localStore.exams) {
+      const ex = this.localStore.exams.find((e: any) => e.id === item.id || e.slug === item.slug || e.code === item.code);
+      if (ex) {
+        ex.logoUrl = item.logoUrl;
+        if (item.name) ex.name = item.name;
+        if (item.code) ex.code = item.code;
+        if (item.description) ex.description = item.description;
+      }
+    }
+    return item;
+  }
+
+  private seedInitialExamsStore() {
+    this.localStore.exams = [
+      {
+        id: 'exam-bpsc',
+        name: 'BPSC',
+        code: 'BPSC',
+        slug: 'bpsc',
+        description: 'Bihar Public Service Commission Civil Services Examination',
+        hasStages: true,
+        displayOrder: 1,
+        isActive: true,
+        stages: [
+          { id: 'stage-bpsc-prelims', examId: 'exam-bpsc', name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
+          { id: 'stage-bpsc-mains', examId: 'exam-bpsc', name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
+        ],
+        testSeries: [
+          {
+            id: 'bpsc-71st-prelims-mock-vault',
+            examId: 'exam-bpsc',
+            stageId: 'stage-bpsc-prelims',
+            title: '71st All India Standard Test Series 2025-26',
+            slug: 'bpsc-71st-prelims-mock-vault',
+            category: 'Prelims',
+            language: 'Bilingual (Hindi & English)',
+            status: 'active',
+            price: 4999,
+            discountedPrice: 2499,
+            totalTests: 45,
+            totalQuestions: 6750,
+            duration: '6 Months Validity',
+            description: 'Comprehensive 45-Test Series engineered strictly according to the latest BPSC micro-pattern.',
+            highlights: ['20 Micro Sectional Tests', '10 Bihar Special Exclusive Mock Tests', '15 Full Length Grand Mock Papers'],
+            syllabus: [{ subject: 'General Studies & Bihar Special', topics: ['History of Bihar', 'Geography & Polity'] }],
+            faq: [{ q: 'Can I attempt tests anytime?', a: 'Yes, tests are accessible 24/7 once unlocked.' }],
+            isPublished: true,
+            displayOrder: 1
+          },
+          {
+            id: 'bpsc-70th-mains-evaluator-workbench',
+            examId: 'exam-bpsc',
+            stageId: 'stage-bpsc-mains',
+            title: '70th Daily Answer Evaluation & Grand Mock Series',
+            slug: 'bpsc-70th-mains-evaluator-workbench',
+            category: 'Mains',
+            language: 'Bilingual (Hindi & English)',
+            status: 'active',
+            price: 8999,
+            discountedPrice: 4499,
+            totalTests: 24,
+            totalQuestions: 192,
+            duration: 'Until Mains Exam',
+            description: 'Expert evaluation by selected BPSC officers within 48 hours for GS Paper I, GS Paper II, Essay paper.',
+            highlights: ['8 Full Length GS Paper I Mocks', '8 Full Length GS Paper II Mocks', '4 Dedicated Essay Paper Mocks'],
+            syllabus: [{ subject: 'GS Paper I & II', topics: ['Modern History & Culture', 'Polity & Economy'] }],
+            faq: [{ q: 'How do I submit answers?', a: 'Upload photos/scans of handwritten answer sheets.' }],
+            isPublished: true,
+            displayOrder: 2
+          }
+        ]
+      },
+      {
+        id: 'exam-appsc',
+        name: 'APPSC',
+        code: 'APPSC',
+        slug: 'appsc',
+        description: 'Arunachal Pradesh Public Service Commission Combined Competitive Examination',
+        hasStages: true,
+        displayOrder: 2,
+        isActive: true,
+        stages: [
+          { id: 'stage-appsc-prelims', examId: 'exam-appsc', name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
+          { id: 'stage-appsc-mains', examId: 'exam-appsc', name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
+        ],
+        testSeries: [
+          {
+            id: 'appsc-cee-prelims-standard',
+            examId: 'exam-appsc',
+            stageId: 'stage-appsc-prelims',
+            title: 'CEE Prelims GS & CSAT Standard Mock Series',
+            slug: 'appsc-cee-prelims-standard',
+            category: 'Prelims',
+            language: 'English',
+            status: 'active',
+            price: 3999,
+            discountedPrice: 1999,
+            totalTests: 25,
+            totalQuestions: 3750,
+            duration: '6 Months Validity',
+            description: 'Targeted test series for APPSC CEE General Studies Paper I and CSAT Paper II.',
+            highlights: ['15 Sectional Tests', '10 Full Length Mock Papers', 'State Specific GS Special Modules'],
+            syllabus: [{ subject: 'General Studies Paper I', topics: ['History & Geography of Arunachal Pradesh', 'Indian Polity'] }],
+            faq: [{ q: 'Are video solutions provided?', a: 'Yes, detailed solution booklets are provided.' }],
+            isPublished: true,
+            displayOrder: 1
+          }
+        ]
+      },
+      {
+        id: 'exam-apssb',
+        name: 'APSSB',
+        code: 'APSSB',
+        slug: 'apssb',
+        description: 'Arunachal Pradesh Staff Selection Board Combined Examinations',
+        hasStages: false,
+        displayOrder: 3,
+        isActive: true,
+        stages: [],
+        testSeries: [
+          {
+            id: 'apssb-combined-mock-vault',
+            examId: 'exam-apssb',
+            stageId: null,
+            title: 'General Combined Recruitment Practice Series 2025',
+            slug: 'apssb-combined-mock-vault',
+            category: null,
+            language: 'English',
+            status: 'active',
+            price: 1999,
+            discountedPrice: 999,
+            totalTests: 30,
+            totalQuestions: 4500,
+            duration: '1 Year Validity',
+            description: 'Comprehensive practice tests for APSSB CGL, CHSL, and General Officers competitive exams.',
+            highlights: ['Full Mock Tests', 'General Knowledge & English Language Practice', 'Instant Automated CBT Scorecard'],
+            syllabus: [{ subject: 'General Knowledge & English', topics: ['General Awareness', 'Basic Mathematics & Reasoning'] }],
+            faq: [{ q: 'Is this test series bilingual?', a: 'Tests are in English medium.' }],
+            isPublished: true,
+            displayOrder: 1
+          }
+        ]
+      }
+    ];
+  }
+
   // CURRENT AFFAIRS
   public async getCurrentAffairs(): Promise<CurrentAffairArticle[]> {
     if (mysqlPool) {
@@ -2050,9 +2390,15 @@ class BackendDB {
   }
 
   public async getCustomPageBySlug(slug: string): Promise<CustomPage | null> {
+    const cleanSlug = slug.replace(/^\/+|\/+$/g, '');
+    const altSlug = cleanSlug.startsWith('downloads/') ? cleanSlug.replace('downloads/', '') : `downloads/${cleanSlug}`;
+
     if (mysqlPool) {
       try {
-        const [rows]: any = await mysqlPool.query('SELECT * FROM custom_pages WHERE slug = ? LIMIT 1', [slug]);
+        const [rows]: any = await mysqlPool.query(
+          'SELECT * FROM custom_pages WHERE slug = ? OR slug = ? OR slug = ? OR slug = ? LIMIT 1',
+          [slug, cleanSlug, altSlug, `downloads/${altSlug}`]
+        );
         if (rows.length > 0) {
           return {
             ...rows[0],
@@ -2066,7 +2412,7 @@ class BackendDB {
     }
     const store = this.localStore;
     const pages = store.customPages || [];
-    return pages.find(p => p.slug === slug) || null;
+    return pages.find(p => p.slug === slug || p.slug === cleanSlug || p.slug === altSlug) || null;
   }
 
   public async saveCustomPage(pageData: Partial<CustomPage>): Promise<CustomPage> {

@@ -788,7 +788,7 @@ export default function AdminPortal() {
                 )}
                 {activeTab === 'Publications' && (
                   <>
-                    <option value="Publications">📍 Final Attempt Publications (/downloads/fa-publications) - Connected</option>
+                    <option value="Publications">📍 Final Attempt Publications (/downloads/fa-publication) - Connected</option>
                   </>
                 )}
                 {activeTab === 'Rapid Revision' && (
@@ -1660,8 +1660,8 @@ export default function AdminPortal() {
         {/* TAB: PUBLICATIONS */}
         {activeTab === 'Publications' && (
           <NcertStyleResourceCMS
-            pageSlug="fa-publications"
-            pageTitle="Final Attempt Publications"
+            pageSlug="fa-publication"
+            pageTitle="Final Attempt Publication"
             portalCategoryLabel="Publications Console"
             portalDescription="Upload & manage downloadable publications, yearbooks, handbooks & model answers."
             themeColor="purple"
@@ -2596,102 +2596,105 @@ export default function AdminPortal() {
             {isEditionModalOpen && editingEdition && (
               <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 sm:p-8 rounded-3xl max-w-6xl w-full max-h-[90vh] flex flex-col space-y-6 shadow-2xl relative">
-                  <div className="flex justify-between items-center border-b pb-4">
-                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-4 shrink-0">
+                    <h3 className="font-heading font-black text-base text-slate-900 dark:text-white">
                       {editingEdition.id ? 'Edit Current Affairs Edition' : 'Create Current Affairs Edition'}
                     </h3>
                     <button
                       type="button" onClick={() => setIsEditionModalOpen(false)}
-                      className="text-slate-400 hover:text-slate-650 cursor-pointer font-bold text-sm"
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer font-bold text-xs"
                     >
                       ✕ Close
                     </button>
                   </div>
 
-                  <form onSubmit={handleSaveDynamicEdition} className="space-y-6">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Date <span className="text-red-500">*</span></label>
-                        <input
-                          type="date" required value={editingEdition.publishDate}
-                          onChange={(e) => setEditingEdition({ ...editingEdition, publishDate: e.target.value })}
-                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Edition Summary Brief</label>
-                        <input
-                          type="text" value={editingEdition.summary || ''}
-                          onChange={(e) => setEditingEdition({ ...editingEdition, summary: e.target.value })}
-                          placeholder="Quick summary summary mapping the day's highlights..."
-                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    {/* ARTICLE LIST CONTAINER */}
-                    <div className="flex-1 overflow-y-auto space-y-6 pr-1 border-t pt-4">
-                      <div className="flex justify-between items-center">
-                        <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-350 tracking-wider">Edition Articles List ({(editingEdition.articles || []).length})</h4>
-                        <button
-                          type="button" onClick={() => handleAddArticleToEdition('NATIONAL')}
-                          className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm"
-                        >
-                          <Plus className="w-4 h-4" />
-                          <span>+ Add Article to Edition</span>
-                        </button>
+                  <form onSubmit={handleSaveDynamicEdition} className="flex flex-col flex-1 min-h-0 space-y-4">
+                    <div className="flex-1 overflow-y-auto space-y-5 pr-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Date <span className="text-red-500">*</span></label>
+                          <input
+                            type="date" required value={editingEdition.publishDate}
+                            onChange={(e) => setEditingEdition({ ...editingEdition, publishDate: e.target.value })}
+                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs font-bold focus:border-amber-500 outline-none"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Edition Summary Brief</label>
+                          <input
+                            type="text" value={editingEdition.summary || ''}
+                            onChange={(e) => setEditingEdition({ ...editingEdition, summary: e.target.value })}
+                            placeholder="Quick summary mapping the day's highlights..."
+                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs focus:border-amber-500 outline-none"
+                          />
+                        </div>
                       </div>
 
-                      <div className="space-y-2">
-                        {(!editingEdition.articles || editingEdition.articles.length === 0) ? (
-                          <div className="p-8 text-center bg-slate-50 dark:bg-slate-950/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
-                            <p className="text-xs text-slate-500 font-medium">No articles added to this edition yet. Click &quot;+ Add Article to Edition&quot; above.</p>
-                          </div>
-                        ) : (
-                          editingEdition.articles.map((art) => (
-                            <div key={art.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-white/[0.04] rounded-2xl">
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20">{art.category}</span>
-                                  <span className="text-[10px] text-slate-400">{art.importance} Importance &bull; {art.readingTime}</span>
-                                </div>
-                                <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100">{art.title}</h5>
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  type="button" onClick={() => {
-                                    setEditingArticle(art);
-                                    setIsArticleModalOpen(true);
-                                  }}
-                                  className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
-                                >
-                                  <Edit3 className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                  type="button" onClick={() => handleDeleteArticleFromEdition(art.id)}
-                                  className="p-2 border border-red-200 dark:border-red-900/50 rounded-xl hover:bg-red-50 text-red-500 cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
+                      {/* ARTICLE LIST CONTAINER */}
+                      <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-4">
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-xs font-black uppercase text-slate-600 dark:text-slate-350 tracking-wider">Edition Articles List ({(editingEdition.articles || []).length})</h4>
+                          <button
+                            type="button" onClick={() => handleAddArticleToEdition('NATIONAL')}
+                            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm"
+                          >
+                            <Plus className="w-4 h-4" />
+                            <span>+ Add Article to Edition</span>
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {(!editingEdition.articles || editingEdition.articles.length === 0) ? (
+                            <div className="p-8 text-center bg-slate-50 dark:bg-slate-950/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
+                              <p className="text-xs text-slate-500 font-medium">No articles added to this edition yet. Click &quot;+ Add Article to Edition&quot; above.</p>
                             </div>
-                          ))
-                        )}
+                          ) : (
+                            editingEdition.articles.map((art) => (
+                              <div key={art.id} className="flex justify-between items-center p-4 bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-white/[0.04] rounded-2xl">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20">{art.category}</span>
+                                    <span className="text-[10px] text-slate-400">{art.importance} Importance &bull; {art.readingTime}</span>
+                                  </div>
+                                  <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100">{art.title}</h5>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button" onClick={() => {
+                                      setEditingArticle(art);
+                                      setIsArticleModalOpen(true);
+                                    }}
+                                    className="p-2 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button" onClick={() => handleDeleteArticleFromEdition(art.id)}
+                                    className="p-2 border border-red-200 dark:border-red-900/50 rounded-xl hover:bg-red-50 text-red-500 cursor-pointer"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t">
+                    {/* Modal Footer Actions - Fixed at Bottom */}
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/10 shrink-0">
                       <button
                         type="button" onClick={() => setIsEditionModalOpen(false)}
-                        className="px-4 py-2 border border-slate-300 text-slate-700 dark:text-slate-350 text-xs font-semibold rounded-2xl cursor-pointer"
+                        className="px-5 py-2.5 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-2xl cursor-pointer"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="px-6 py-2 bg-slate-900 hover:bg-slate-850 dark:bg-amber-500 dark:hover:bg-amber-600 dark:text-slate-950 text-white text-xs font-bold rounded-2xl cursor-pointer"
+                        className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-extrabold rounded-2xl shadow-md cursor-pointer flex items-center gap-1.5"
                       >
-                        Save & Publish Edition
+                        <span>Save &amp; Publish Edition</span>
                       </button>
                     </div>
                   </form>
@@ -2703,19 +2706,19 @@ export default function AdminPortal() {
             {isArticleModalOpen && editingArticle && (
               <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 sm:p-8 rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col space-y-6 shadow-2xl relative">
-                  <div className="flex justify-between items-center border-b pb-4">
-                    <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">
+                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-4 shrink-0">
+                    <h3 className="font-heading font-black text-base text-slate-900 dark:text-white">
                       Add / Edit Article ({activeArticleCategory})
                     </h3>
                     <button
                       type="button" onClick={() => setIsArticleModalOpen(false)}
-                      className="text-slate-400 hover:text-slate-650 cursor-pointer font-bold text-xs"
+                      className="text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer font-bold text-xs"
                     >
                       ✕ Close
                     </button>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="flex-1 overflow-y-auto space-y-5 pr-2">
                     {/* Basic Meta */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
@@ -2723,7 +2726,7 @@ export default function AdminPortal() {
                         <input
                           type="text" required value={editingArticle.title}
                           onChange={(e) => setEditingArticle({ ...editingArticle, title: e.target.value })}
-                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs font-bold focus:border-amber-500 outline-none"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -2731,7 +2734,7 @@ export default function AdminPortal() {
                         <input
                           type="text" value={editingArticle.slug || ''}
                           onChange={(e) => setEditingArticle({ ...editingArticle, slug: e.target.value })}
-                          className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                          className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs font-mono focus:border-amber-500 outline-none"
                         />
                       </div>
                     </div>
@@ -2885,21 +2888,22 @@ export default function AdminPortal() {
                         </div>
                       </div>
                     </div>
+                  </div>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t">
-                      <button
-                        type="button" onClick={() => setIsArticleModalOpen(false)}
-                        className="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-2xl cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button" onClick={handleSaveArticleToEdition}
-                        className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-2xl cursor-pointer"
-                      >
-                        Save Article
-                      </button>
-                    </div>
+                  {/* Modal Footer Actions - Fixed at Bottom */}
+                  <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-white/10 shrink-0">
+                    <button
+                      type="button" onClick={() => setIsArticleModalOpen(false)}
+                      className="px-5 py-2.5 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-2xl cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button" onClick={handleSaveArticleToEdition}
+                      className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-2xl shadow-md cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>✓ Save Article to Layout</span>
+                    </button>
                   </div>
                 </div>
               </div>

@@ -997,6 +997,47 @@ main .text-6xl, main .text-6\.5xl {
 .pillars-grid-container.pillars-visible > div:nth-child(5) { transition-delay: 0.36s; }
 .pillars-grid-container.pillars-visible > div:nth-child(6) { transition-delay: 0.44s; }
 
+/* ── Article Prose High Contrast System (Strict Light #0F172A / Dark #FFFFFF theme switching) ── */
+.article-prose-container,
+.article-prose-container p,
+.article-prose-container li,
+.article-prose-container span,
+.article-prose-container td,
+.article-prose-container th,
+.article-prose-container div,
+.article-prose-container blockquote {
+  color: #0F172A !important;
+}
+
+html.dark .article-prose-container,
+html.dark .article-prose-container p,
+html.dark .article-prose-container li,
+html.dark .article-prose-container span,
+html.dark .article-prose-container td,
+html.dark .article-prose-container th,
+html.dark .article-prose-container div,
+html.dark .article-prose-container blockquote,
+.dark .article-prose-container,
+.dark .article-prose-container p,
+.dark .article-prose-container li,
+.dark .article-prose-container span,
+.dark .article-prose-container td,
+.dark .article-prose-container th,
+.dark .article-prose-container div,
+.dark .article-prose-container blockquote {
+  color: #FFFFFF !important;
+}
+
+.article-prose-container a {
+  color: #D97706 !important;
+}
+
+html.dark .article-prose-container a,
+.dark .article-prose-container a {
+  color: #FBBF24 !important;
+}
+
+
 
 
 

@@ -20,7 +20,8 @@ interface QuizItem {
 
 export default function TestSeriesDetailPage() {
   const params = useParams();
-  const slug = params.slug as string;
+  const rawSlug = params.slug || params.seriesSlug || params.stageSlug || params.examSlug;
+  const slug = Array.isArray(rawSlug) ? rawSlug[rawSlug.length - 1] : (rawSlug as string);
 
   const [series, setSeries] = useState<TestSeriesItem | null>(null);
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
@@ -170,7 +171,7 @@ export default function TestSeriesDetailPage() {
                   <h4 className="font-bold text-sm text-[var(--text-color)]">Primary Grand Mock Test Available</h4>
                   <p className="text-xs text-slate-500">Attempt our standard official BPSC Prelims CBT Exam Mock Paper.</p>
                   <Link
-                    href={`/test-series/${slug}/attempt`}
+                    href={`/test-series/program/${slug}/attempt`}
                     className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs hover:bg-amber-600 transition-colors"
                   >
                     <span>Start Mock Exam Now</span>
@@ -201,7 +202,7 @@ export default function TestSeriesDetailPage() {
                         </div>
 
                         <Link
-                          href={`/test-series/${slug}/attempt?quiz=${quiz.id}`}
+                          href={`/test-series/program/${slug}/attempt?quiz=${quiz.id}`}
                           className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition-transform hover:scale-105 inline-flex items-center gap-1.5 shadow-sm"
                         >
                           <span>Attempt Now</span>
@@ -388,7 +389,7 @@ export default function TestSeriesDetailPage() {
               </button>
 
               <Link
-                href={`/test-series/${slug}/attempt`}
+                href={`/test-series/program/${slug}/attempt`}
                 className="w-full py-3.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-extrabold rounded-2xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border border-amber-500/30"
               >
                 <Award className="w-4 h-4 text-amber-400" />

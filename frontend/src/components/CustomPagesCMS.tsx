@@ -313,6 +313,46 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR', targetSlug 
                   <p className="text-[10px] text-slate-400">This automatically creates the sub-page under Downloads Hub (e.g., /downloads/ncert, /downloads/bpsc-notes).</p>
                 </div>
 
+                {/* Custom Page Category Logo */}
+                <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-2xl space-y-3">
+                  <label className="text-[10px] font-bold text-amber-500 uppercase tracking-wider block">Custom Category Logo Box</label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden p-1.5 shrink-0 shadow-xs">
+                      {form.logoUrl ? (
+                        <img src={form.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-400">No Logo</span>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <input
+                        type="text"
+                        placeholder="Image Logo URL (e.g. https://domain.com/logo.png)"
+                        value={form.logoUrl || ''}
+                        onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
+                        className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                      />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              if (ev.target?.result) {
+                                setForm({ ...form, logoUrl: ev.target.result as string });
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="w-full text-[11px] text-slate-500 file:mr-3 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Content Editor */}
                 <div className="space-y-1 pt-2">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Page Body Content (Rich Text Editor)</label>

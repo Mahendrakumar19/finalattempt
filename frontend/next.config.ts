@@ -11,6 +11,20 @@ const nextConfig: NextConfig = {
     'localhost',
     'localhost:3000'
   ],
+  async redirects() {
+    return [
+      {
+        source: '/downloads/fa-publications',
+        destination: '/downloads/fa-publication',
+        permanent: true,
+      },
+      {
+        source: '/fa-publications',
+        destination: '/downloads/fa-publication',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       // Proxy all uploaded file requests through Next.js → backend

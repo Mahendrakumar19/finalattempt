@@ -9,6 +9,8 @@ interface Exam {
   name: string;
   code: string;
   slug: string;
+  logoUrl?: string | null;
+  logo?: { storagePath: string } | null;
   isActive?: boolean;
 }
 
@@ -39,6 +41,17 @@ export default function PyqPage() {
   const [activeExamModal, setActiveExamModal] = useState<{ id: string; name: string } | null>(null);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
+  // Resolves logo from direct URL or DAM storagePath
+  const getExamLogo = (exam: Exam): string | null => {
+    if (exam.logoUrl) return exam.logoUrl;
+    if (exam.logo?.storagePath) {
+      const p = exam.logo.storagePath;
+      if (p.startsWith('http://') || p.startsWith('https://')) return p;
+      return `${BACKEND_URL}/${p.replace(/^\//, '')}`;
+    }
+    return null;
+  };
 
   const fetchExams = useCallback(async () => {
     try {
@@ -208,8 +221,12 @@ export default function PyqPage() {
             >
               <div className="space-y-4 relative">
                 <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-sm group-hover:bg-amber-500 group-hover:text-slate-950 transition-all">
-                    <BookOpen className="w-6 h-6" />
+                  <div className="w-14 h-14 rounded-2xl bg-white text-amber-600 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-black text-sm shadow-xs overflow-hidden p-1.5 shrink-0 group-hover:scale-105 transition-transform">
+                    {getExamLogo(exam) ? (
+                      <img src={getExamLogo(exam)!} alt={exam.name} className="w-full h-full object-contain" />
+                    ) : (
+                      <span className="font-extrabold text-amber-600 text-xs">{exam.code || exam.name}</span>
+                    )}
                   </div>
                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl">
                     {papers.length} Papers
@@ -265,9 +282,18 @@ export default function PyqPage() {
               {/* Modal Header */}
               <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-slate-100 dark:border-white/[0.08] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-md">
-                    <BookOpen className="w-5 h-5" />
-                  </div>
+                  {(() => {
+                    const currentExamObj = exams.find(e => e.id === activeExamModal.id);
+                    return (
+                      <div className="w-12 h-12 rounded-xl bg-white text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden p-1">
+                        {currentExamObj && getExamLogo(currentExamObj) ? (
+                          <img src={getExamLogo(currentExamObj)!} alt={activeExamModal.name} className="w-full h-full object-contain" />
+                        ) : (
+                          <BookOpen className="w-5 h-5 text-amber-500" />
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div>
                     <h2 className="font-heading font-black text-lg sm:text-xl text-slate-900 dark:text-white leading-tight">
                       {activeExamModal.name} Papers Collection

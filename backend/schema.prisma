@@ -622,19 +622,73 @@ enum CompanyValueType {
 }
 
 model Exam {
-  id           String     @id @default(uuid())
+  id           String      @id @default(uuid())
   name         String
-  code         String     @unique
-  slug         String     @unique
-  description  String?    @db.Text
-  displayOrder Int        @default(0)
-  isActive     Boolean    @default(true)
+  code         String      @unique
+  slug         String      @unique
+  description  String?     @db.Text
+  hasStages    Boolean     @default(true)
+  displayOrder Int         @default(0)
+  isActive     Boolean     @default(true)
   logoMediaId  String?
-  logo         Media?     @relation(fields: [logoMediaId], references: [id], onDelete: SetNull)
+  logoUrl      String?     @db.Text
+  logo         Media?      @relation(fields: [logoMediaId], references: [id], onDelete: SetNull)
+  stages       ExamStageModel[]
+  testSeries   TestSeries[]
   syllabusList Syllabus[]
   pyqList      PYQ[]
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model ExamStageModel {
+  id          String       @id @default(uuid())
+  examId      String
+  exam        Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  name        String
+  slug        String
+  sortOrder   Int          @default(0)
+  isActive    Boolean      @default(true)
+  testSeries  TestSeries[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([examId, slug])
+  @@index([examId])
+}
+
+model TestSeries {
+  id              String          @id @default(uuid())
+  examId          String
+  exam            Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  stageId         String?
+  stage           ExamStageModel? @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  title           String
+  slug            String          @unique
+  category        String?         @default("Prelims")
+  language        String          @default("Bilingual (Hindi & English)")
+  status          String          @default("active")
+  thumbnailUrl    String?         @db.Text
+  bannerUrl       String?         @db.Text
+  price           Int             @default(0)
+  discountedPrice Int?
+  totalTests      Int             @default(0)
+  totalQuestions  Int             @default(0)
+  duration        String?         @db.VarChar(100)
+  description     String?         @db.Text
+  highlights      Json?
+  syllabus        Json?
+  faq             Json?
+  batchStartDate  String?         @db.VarChar(100)
+  enrolledCount   Int             @default(0)
+  validityDays    Int             @default(180)
+  isPublished     Boolean         @default(true)
+  displayOrder    Int             @default(1)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([examId])
+  @@index([stageId])
 }
 
 model Syllabus {

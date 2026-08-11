@@ -176,47 +176,34 @@ export default function Header() {
     {
       id: 'test', label: 'Test Series', href: '/test-series', icon: IC.test,
       mega: (() => {
-        /* Build dynamic groups — Prelims first, then Mains */
-        const prelimsSeries = liveTestSeries.filter(ts => ts.category === 'Prelims').slice(0, 4);
-        const mainsSeries   = liveTestSeries.filter(ts => ts.category === 'Mains').slice(0, 4);
-
-        const dynamicGroups: MegaGroup[] = [];
-
-        if (prelimsSeries.length > 0) {
-          dynamicGroups.push({
-            heading: 'Prelims Tests',
-            items: prelimsSeries.map(ts => ({ label: ts.title, href: `/test-series/${ts.slug}`, icon: IC.test })),
-          });
-        } else {
-          dynamicGroups.push({
-            heading: 'Prelims Tests',
+        const dynamicGroups: MegaGroup[] = [
+          {
+            heading: 'BPSC',
             items: [
-              { label: 'Full Mock Tests',   href: '/test-series?category=Prelims', icon: IC.test },
-              { label: 'Sectional Tests',   href: '/test-series?category=Prelims', icon: IC.prelims },
-            ],
-          });
-        }
-
-        if (mainsSeries.length > 0) {
-          dynamicGroups.push({
-            heading: 'Mains Tests',
-            items: mainsSeries.map(ts => ({ label: ts.title, href: `/test-series/${ts.slug}`, icon: IC.mains })),
-          });
-        } else {
-          dynamicGroups.push({
-            heading: 'Mains Tests',
+              { label: 'Prelims Test Series', href: '/test-series/bpsc/prelims', icon: IC.prelims },
+              { label: 'Mains Test Series', href: '/test-series/bpsc/mains', icon: IC.mains }
+            ]
+          },
+          {
+            heading: 'APPSC',
             items: [
-              { label: 'GS Mains Series',  href: '/test-series?category=Mains', icon: IC.mains },
-              { label: 'Essay Evaluation', href: '/test-series?category=Mains', icon: IC.blog },
-            ],
-          });
-        }
+              { label: 'Prelims Test Series', href: '/test-series/appsc/prelims', icon: IC.prelims },
+              { label: 'Mains Test Series', href: '/test-series/appsc/mains', icon: IC.mains }
+            ]
+          },
+          {
+            heading: 'APSSB',
+            items: [
+              { label: 'Combined Practice Series', href: '/test-series/apssb', icon: IC.test }
+            ]
+          }
+        ];
 
         return {
           tagline: 'Practice & Evaluate',
-          description: 'Simulate exam conditions with timed mocks and analytics.',
+          description: 'Simulate exam conditions with timed mocks and detailed solution booklets.',
           groups: dynamicGroups,
-          cta: { label: 'View All Tests', href: '/test-series' },
+          cta: { label: 'Explore All Exams', href: '/test-series' },
         };
       })(),
     },
@@ -255,7 +242,7 @@ export default function Header() {
                 // { label: 'All Downloads', href: '/downloads', desc: 'Central repository of study material', icon: IC.download },
                 { label: 'PYQ', href: '/downloads/pyq', desc: 'Previous year question papers', icon: IC.pyq },
                 { label: 'NCERT', href: '/downloads/ncert', desc: 'NCERT Class 6 to 12 Textbooks', icon: IC.ncert },
-                { label: 'Final Attempt Publications', href: '/downloads/fa-publications', desc: 'Books & Yearbooks', icon: IC.ncert },
+                { label: 'Final Attempt Publication', href: '/downloads/fa-publication', desc: 'Books & Yearbooks', icon: IC.ncert },
                 { label: 'Rapid Revision', href: '/downloads/rapid-revision', desc: 'Quick Revision Notes & Tables', icon: IC.sparkle },
                 { label: 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: 'Mains Data & SC Judgments', icon: IC.mains },
                 { label: 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: 'Evaluated Topper Copies', icon: IC.pyq }
@@ -281,18 +268,14 @@ export default function Header() {
 
               return [...baseItems, ...dynamicItems];
             })()
-          },
-          { heading: 'Strategy & Guidance', items: [
-              { label: 'Syllabus & Strategy', href: '/syllabus-strategy', desc: 'Exam-wise topic plans & timetables', icon: IC.syllabus },
-            ],
-          },
+          }
         ],
         cta: { label: 'Download Free Material', href: '/downloads' },
       },
     },
 
     {
-      id: 'blog', label: 'Blogs & News', href: '/blog', icon: IC.blog,
+      id: 'blog', label: 'Blogs & More', href: '/blog', icon: IC.blog,
       mega: {
         tagline: 'Insights & Articles',
         description: 'Expert blogs on exam strategy, analysis and news updates.',
@@ -300,6 +283,10 @@ export default function Header() {
           { heading: 'Explore', items: [
               { label: 'All Articles',       href: '/blog',              desc: 'Strategy & analysis posts',    icon: IC.blog },
               { label: 'Current Affairs',    href: '/current-affairs',   desc: 'Exam-relevant news breakdown', icon: IC.daily },
+            ],
+          },
+          { heading: 'Strategy & Guidance', items: [
+              { label: 'Syllabus & Strategy', href: '/syllabus-strategy', desc: 'Exam-wise topic plans & timetables', icon: IC.syllabus },
             ],
           },
           ...navbarCustom.slice(0, 4).map(p => ({

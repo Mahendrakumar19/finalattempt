@@ -343,7 +343,7 @@ export default function CurrentAffairsLanding() {
                   {recentArticles.map((art, i) => (
                     <Link
                       key={i}
-                      href={`/current-affairs/article/${art.slug}`}
+                      href={`/current-affairs/daily/${art.date}/${art.category.toLowerCase()}/${art.slug}`}
                       className="group bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl overflow-hidden hover:border-amber-500/30 hover:-translate-y-1 transition-all duration-200 shadow-xs"
                     >
                       <div className={`h-1 w-full ${art.category === 'BIHAR' ? 'bg-amber-500' : art.category === 'ARUNACHAL' ? 'bg-emerald-500' : art.category === 'INTERNATIONAL' ? 'bg-violet-500' : 'bg-blue-500'}`} />

@@ -19,7 +19,7 @@ router.get('/exams', async (req: Request, res: Response) => {
 
 router.post('/exams', async (req: Request, res: Response) => {
   try {
-    const { name, code, slug, description, displayOrder, isActive, logoMediaId } = req.body;
+    const { name, code, slug, description, displayOrder, isActive, logoMediaId, logoUrl } = req.body;
     const exam = await prisma.exam.create({
       data: {
         name,
@@ -28,7 +28,8 @@ router.post('/exams', async (req: Request, res: Response) => {
         description,
         displayOrder: parseInt(displayOrder || '0', 10),
         isActive: isActive !== false,
-        logoMediaId: logoMediaId || null
+        logoMediaId: logoMediaId || null,
+        logoUrl: logoUrl || null
       },
       include: { logo: true }
     });
@@ -41,7 +42,7 @@ router.post('/exams', async (req: Request, res: Response) => {
 router.put('/exams/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, code, slug, description, displayOrder, isActive, logoMediaId } = req.body;
+    const { name, code, slug, description, displayOrder, isActive, logoMediaId, logoUrl } = req.body;
     const exam = await prisma.exam.update({
       where: { id },
       data: {
@@ -51,7 +52,8 @@ router.put('/exams/:id', async (req: Request, res: Response) => {
         description,
         displayOrder: parseInt(displayOrder || '0', 10),
         isActive: isActive !== false,
-        logoMediaId: logoMediaId || null
+        logoMediaId: logoMediaId || null,
+        logoUrl: logoUrl !== undefined ? (logoUrl || null) : undefined
       },
       include: { logo: true }
     });

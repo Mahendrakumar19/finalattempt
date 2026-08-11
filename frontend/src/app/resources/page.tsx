@@ -39,11 +39,11 @@ const MAIN_RESOURCE_BOXES = [
     countText: 'Class 6–12 Vault'
   },
   {
-    id: 'fa-publications',
-    title: 'Final Attempt Publications',
-    subtitle: 'Special Bihar GK Master Books, Handbooks & Yearbooks',
-    slug: 'downloads/fa-publications',
-    href: '/downloads/fa-publications',
+    id: 'fa-publication',
+    title: 'FA Publications',
+    subtitle: 'Official books, Bihar special handbooks, yearbooks & model answer compilations.',
+    slug: 'downloads/fa-publication',
+    href: '/downloads/fa-publication',
     icon: Award,
     bg: 'from-purple-500/15 via-purple-500/5 to-transparent',
     border: 'border-purple-500/30 hover:border-purple-500',
@@ -144,7 +144,7 @@ export default function ResourcesPage() {
               Resources &amp; Study Material Hub
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              6 Core Resource Vaults: PYQs, NCERT Books, Final Attempt Publications, Rapid Revision Materials, Value Added Mains Materials &amp; Toppers Copies.
+              6 Core Resource Vaults: PYQs, NCERT Books, Final Attempt Publication, Rapid Revision Materials, Value Added Mains Materials &amp; Toppers Copies.
             </p>
           </div>
 
