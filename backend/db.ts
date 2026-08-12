@@ -262,6 +262,8 @@ interface LocalDBStore {
   youtubeSyncLogs?: any[];
   customPages?: CustomPage[];
   exams?: any[];
+  chatRooms?: any[];
+  chatMessages?: any[];
 }
 
 export let mysqlPool: mysql.Pool | null = null;
@@ -3667,17 +3669,28 @@ class LmsDB {
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query(
-          `SELECT r.*, 
-                  (SELECT m.messageText FROM lms_chat_messages m WHERE m.roomId = r.id ORDER BY m.createdAt DESC LIMIT 1) as lastMessageText,
-                  (SELECT m.createdAt FROM lms_chat_messages m WHERE m.roomId = r.id ORDER BY m.createdAt DESC LIMIT 1) as lastMessageTime,
-                  (SELECT u.fullName FROM lms_chat_messages m JOIN users u ON u.id = m.senderId WHERE m.roomId = r.id AND u.role = 'student' ORDER BY m.createdAt DESC LIMIT 1) as studentName
-           FROM lms_chat_rooms r
+          `SELECT DISTINCT 
+             m.roomId as id,
+             COALESCE(r.title, CONCAT('Direct Chat: ', COALESCE(u.fullName, 'Student'))) as title,
+             r.type as type,
+             (SELECT m2.messageText FROM lms_chat_messages m2 WHERE m2.roomId = m.roomId ORDER BY m2.createdAt DESC LIMIT 1) as lastMessageText,
+             (SELECT m2.createdAt FROM lms_chat_messages m2 WHERE m2.roomId = m.roomId ORDER BY m2.createdAt DESC LIMIT 1) as lastMessageTime,
+             (SELECT COALESCE(u2.fullName, 'Student') FROM lms_chat_messages m2 LEFT JOIN users u2 ON u2.id = m2.senderId WHERE m2.roomId = m.roomId AND (u2.role = 'student' OR u2.role IS NULL) ORDER BY m2.createdAt DESC LIMIT 1) as studentName
+           FROM lms_chat_messages m
+           LEFT JOIN lms_chat_rooms r ON r.id = m.roomId
+           LEFT JOIN users u ON u.id = m.senderId
            ORDER BY lastMessageTime DESC`
         );
-        return rows;
+        if (rows && rows.length > 0) return rows;
+
+        // Fallback: query lms_chat_rooms if no messages exist yet
+        const [roomRows]: any = await mysqlPool.query('SELECT * FROM lms_chat_rooms ORDER BY createdAt DESC');
+        if (roomRows && roomRows.length > 0) return roomRows;
       } catch (err) { console.error('[LmsDB] getAllChatRoomsForAdmin MySQL error:', err); }
     }
-    return [];
+    // Local memory fallback
+    if (!db.localStore.chatRooms) db.localStore.chatRooms = [];
+    return db.localStore.chatRooms;
   }
 
   async getChatRoomsByCourseId(courseId: string): Promise<any[]> {
@@ -3689,25 +3702,27 @@ class LmsDB {
         return rows;
       } catch (err) { console.error('[LmsDB] getChatRoomsByCourseId MySQL error:', err); }
     }
-    return [];
+    if (!db.localStore.chatRooms) db.localStore.chatRooms = [];
+    return db.localStore.chatRooms.filter(r => r.courseId === courseId);
   }
 
-  async getChatMessagesByRoomId(roomId: string, limit = 50): Promise<any[]> {
+  async getChatMessagesByRoomId(roomId: string, limit = 100): Promise<any[]> {
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query(
-          `SELECT m.*, u.fullName, u.role, u.avatarUrl
+          `SELECT m.*, COALESCE(u.fullName, 'Student') as fullName, COALESCE(u.role, 'student') as role, u.avatarUrl
            FROM lms_chat_messages m
-           JOIN users u ON u.id = m.senderId
+           LEFT JOIN users u ON u.id = m.senderId
            WHERE m.roomId = ?
            ORDER BY m.createdAt ASC
            LIMIT ?`,
           [roomId, limit]
         );
-        return rows;
+        if (rows && rows.length > 0) return rows;
       } catch (err) { console.error('[LmsDB] getChatMessagesByRoomId MySQL error:', err); }
     }
-    return [];
+    if (!db.localStore.chatMessages) db.localStore.chatMessages = [];
+    return db.localStore.chatMessages.filter(m => m.roomId === roomId).slice(-limit);
   }
 
   async saveChatMessage(roomId: string, senderId: string, messageText: string, senderName?: string, senderRole?: string): Promise<any> {
@@ -3724,8 +3739,39 @@ class LmsDB {
       avatarUrl: null as null | string
     };
 
+    // Always update local memory store for instant fallback availability
+    if (!db.localStore.chatMessages) db.localStore.chatMessages = [];
+    db.localStore.chatMessages.push(msg);
+
+    if (!db.localStore.chatRooms) db.localStore.chatRooms = [];
+    const existingLocalRoom = db.localStore.chatRooms.find(r => r.id === roomId);
+    if (!existingLocalRoom) {
+      db.localStore.chatRooms.unshift({
+        id: roomId,
+        courseId: 'bpsc-foundation',
+        title: `Direct Chat: ${senderName || 'Student'}`,
+        type: 'admin_support',
+        lastMessageText: messageText,
+        lastMessageTime: msg.createdAt,
+        studentName: senderName || 'Student'
+      });
+    } else {
+      existingLocalRoom.lastMessageText = messageText;
+      existingLocalRoom.lastMessageTime = msg.createdAt;
+      if (senderRole === 'student') {
+        existingLocalRoom.studentName = senderName || existingLocalRoom.studentName;
+      }
+    }
+    db.saveLocalData();
+
     if (mysqlPool) {
       try {
+        // Ensure room exists in lms_chat_rooms table so admin queries can join if needed
+        await mysqlPool.query(
+          'INSERT IGNORE INTO lms_chat_rooms (id, courseId, title, type) VALUES (?, ?, ?, ?)',
+          [roomId, 'bpsc-foundation', `Direct Support: ${senderName || 'Student'}`, 'admin_support']
+        );
+
         // INSERT IGNORE: skip FK constraint failures gracefully
         await mysqlPool.query(
           'INSERT IGNORE INTO lms_chat_messages (id, roomId, senderId, messageText) VALUES (?, ?, ?, ?)',
@@ -3749,11 +3795,147 @@ class LmsDB {
         return msg;
       } catch (err) {
         console.error('[LmsDB] saveChatMessage MySQL error:', err);
-        // Still return msg so socket can emit it (in-memory fallback)
         return msg;
       }
     }
     return msg;
+  }
+
+  async editChatMessage(messageId: string, newMessageText: string, userId?: string, isAdmin?: boolean): Promise<any> {
+    if (!db.localStore.chatMessages) db.localStore.chatMessages = [];
+    const localMsg = db.localStore.chatMessages.find(m => m.id === messageId);
+    if (localMsg) {
+      if (!isAdmin && userId && localMsg.senderId !== userId) {
+        throw new Error('Unauthorized to edit this message');
+      }
+      localMsg.messageText = newMessageText;
+      localMsg.isEdited = true;
+      localMsg.editedAt = new Date().toISOString();
+      db.saveLocalData();
+    }
+    if (mysqlPool) {
+      try {
+        if (!isAdmin && userId) {
+          await mysqlPool.query(
+            'UPDATE lms_chat_messages SET messageText = ? WHERE id = ? AND senderId = ?',
+            [newMessageText, messageId, userId]
+          );
+        } else {
+          await mysqlPool.query(
+            'UPDATE lms_chat_messages SET messageText = ? WHERE id = ?',
+            [newMessageText, messageId]
+          );
+        }
+      } catch (err) {
+        console.error('[LmsDB] editChatMessage MySQL error:', err);
+      }
+    }
+    return localMsg || { id: messageId, messageText: newMessageText, isEdited: true };
+  }
+
+  async deleteChatMessage(messageId: string, userId?: string, isAdmin?: boolean): Promise<boolean> {
+    let deleted = false;
+    if (!db.localStore.chatMessages) db.localStore.chatMessages = [];
+    const idx = db.localStore.chatMessages.findIndex(m => m.id === messageId);
+    if (idx >= 0) {
+      const msg = db.localStore.chatMessages[idx];
+      if (!isAdmin && userId && msg.senderId !== userId) {
+        throw new Error('Unauthorized to delete this message');
+      }
+      db.localStore.chatMessages.splice(idx, 1);
+      db.saveLocalData();
+      deleted = true;
+    }
+    if (mysqlPool) {
+      try {
+        if (!isAdmin && userId) {
+          const [res]: any = await mysqlPool.query('DELETE FROM lms_chat_messages WHERE id = ? AND senderId = ?', [messageId, userId]);
+          if (res.affectedRows > 0) deleted = true;
+        } else {
+          const [res]: any = await mysqlPool.query('DELETE FROM lms_chat_messages WHERE id = ?', [messageId]);
+          if (res.affectedRows > 0) deleted = true;
+        }
+      } catch (err) {
+        console.error('[LmsDB] deleteChatMessage MySQL error:', err);
+      }
+    }
+    return deleted;
+  }
+
+  async deleteChatRoom(roomId: string): Promise<boolean> {
+    if (!db.localStore.chatRooms) db.localStore.chatRooms = [];
+    db.localStore.chatRooms = db.localStore.chatRooms.filter(r => r.id !== roomId);
+    if (db.localStore.chatMessages) {
+      db.localStore.chatMessages = db.localStore.chatMessages.filter(m => m.roomId !== roomId);
+    }
+    db.saveLocalData();
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM lms_chat_messages WHERE roomId = ?', [roomId]);
+        await mysqlPool.query('DELETE FROM lms_chat_rooms WHERE id = ?', [roomId]);
+      } catch (err) {
+        console.error('[LmsDB] deleteChatRoom MySQL error:', err);
+      }
+    }
+    return true;
+  }
+
+  async blockUser(userId: string, isBlocked: boolean): Promise<boolean> {
+    if (!(db.localStore as any).blockedUsers) (db.localStore as any).blockedUsers = [];
+    const blockedList: string[] = (db.localStore as any).blockedUsers;
+    if (isBlocked) {
+      if (!blockedList.includes(userId)) {
+        blockedList.push(userId);
+      }
+    } else {
+      (db.localStore as any).blockedUsers = blockedList.filter(id => id !== userId);
+    }
+    db.saveLocalData();
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('CREATE TABLE IF NOT EXISTS blocked_users (userId VARCHAR(255) PRIMARY KEY, createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
+        if (isBlocked) {
+          await mysqlPool.query('INSERT IGNORE INTO blocked_users (userId) VALUES (?)', [userId]);
+        } else {
+          await mysqlPool.query('DELETE FROM blocked_users WHERE userId = ?', [userId]);
+        }
+      } catch (err) {
+        console.error('[LmsDB] blockUser MySQL error:', err);
+      }
+    }
+    return true;
+  }
+
+  async isUserBlocked(userId: string): Promise<boolean> {
+    const blockedList: string[] = (db.localStore as any).blockedUsers || [];
+    if (blockedList.includes(userId)) return true;
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('CREATE TABLE IF NOT EXISTS blocked_users (userId VARCHAR(255) PRIMARY KEY, createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
+        const [rows]: any = await mysqlPool.query('SELECT userId FROM blocked_users WHERE userId = ? LIMIT 1', [userId]);
+        return rows && rows.length > 0;
+      } catch (err) {
+        console.error('[LmsDB] isUserBlocked MySQL error:', err);
+      }
+    }
+    return false;
+  }
+
+  async getBlockedUsers(): Promise<string[]> {
+    const list: string[] = (db.localStore as any).blockedUsers || [];
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('CREATE TABLE IF NOT EXISTS blocked_users (userId VARCHAR(255) PRIMARY KEY, createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP)');
+        const [rows]: any = await mysqlPool.query('SELECT userId FROM blocked_users');
+        if (rows && rows.length > 0) {
+          return rows.map((r: any) => r.userId);
+        }
+      } catch (err) {
+        console.error('[LmsDB] getBlockedUsers MySQL error:', err);
+      }
+    }
+    return list;
   }
 
   // ── Quiz Methods ──────────────────────────────────────────────────────────

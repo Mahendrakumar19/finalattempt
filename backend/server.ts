@@ -700,6 +700,13 @@ io.on('connection', (socket) => {
   socket.on('send_message', async (data: { roomId: string; senderId: string; messageText: string; senderName?: string; senderRole?: string }) => {
     const { roomId, senderId, messageText, senderName, senderRole } = data;
     try {
+      // Check if student sender is blocked
+      const isBlocked = await lmsDB.isUserBlocked(senderId);
+      if (isBlocked && senderRole !== 'admin') {
+        socket.emit('user_blocked_error', { message: 'You have been blocked from sending messages by Admin.' });
+        return;
+      }
+
       // Save message to database and retrieve full payload (joins details)
       const savedMsg = await lmsDB.saveChatMessage(roomId, senderId, messageText, senderName, senderRole);
       if (!savedMsg) return;
@@ -710,6 +717,41 @@ io.on('connection', (socket) => {
       console.log(`[Socket] Message delivered: room=${roomId} sender=${senderName || senderId}`);
     } catch (err) {
       console.error('[Socket] Chat delivery failed:', err);
+    }
+  });
+
+  // Real-time message edit
+  socket.on('edit_message', async (data: { messageId: string; roomId: string; newMessageText: string; senderId?: string; isAdmin?: boolean }) => {
+    const { messageId, roomId, newMessageText, senderId, isAdmin } = data;
+    try {
+      const updated = await lmsDB.editChatMessage(messageId, newMessageText, senderId, isAdmin);
+      io.to(roomId).emit('message_edited', { messageId, roomId, newMessageText, isEdited: true });
+      io.to('admin_watchers').emit('message_edited', { messageId, roomId, newMessageText, isEdited: true });
+    } catch (err) {
+      console.error('[Socket] Edit message failed:', err);
+    }
+  });
+
+  // Real-time message deletion
+  socket.on('delete_message', async (data: { messageId: string; roomId: string; senderId?: string; isAdmin?: boolean }) => {
+    const { messageId, roomId, senderId, isAdmin } = data;
+    try {
+      await lmsDB.deleteChatMessage(messageId, senderId, isAdmin);
+      io.to(roomId).emit('message_deleted', { messageId, roomId });
+      io.to('admin_watchers').emit('message_deleted', { messageId, roomId });
+    } catch (err) {
+      console.error('[Socket] Delete message failed:', err);
+    }
+  });
+
+  // Real-time user block action
+  socket.on('block_user', async (data: { userId: string; isBlocked: boolean }) => {
+    const { userId, isBlocked } = data;
+    try {
+      await lmsDB.blockUser(userId, isBlocked);
+      io.emit('user_blocked_status', { userId, isBlocked });
+    } catch (err) {
+      console.error('[Socket] Block user failed:', err);
     }
   });
 

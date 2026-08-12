@@ -27,13 +27,13 @@ const cinzel = Cinzel({
 });
 
 export const metadata: Metadata = {
-  title: "Final Attempt | Premier BPSC Mentorship & Coaching Platform",
+  title: "Final Attempt | Next-Generation Mentorship & Learning Platform for UPSC & State PCS",
   description: "Bihar's most trusted premium mentorship platform for BPSC aspirants. Personalized preparation, real results, current affairs, and mock test tracking.",
   keywords: ["BPSC Preparation", "Bihar PCS", "Patna BPSC Coaching", "BPSC Answer Writing", "Final Attempt"],
   authors: [{ name: "Final Attempt" }],
   openGraph: {
-    title: "Final Attempt | BPSC Mentorship Platform",
-    description: "Bihar's premium technology-driven learning platform for BPSC aspirants.",
+    title: "Final Attempt | Next-Generation Mentorship & Learning Platform for UPSC & State PCS",
+    description: "Bihar's most trusted premium mentorship platform for BPSC aspirants. Personalized preparation, real results, current affairs, and mock test tracking.",
     type: "website",
   },
   icons: {

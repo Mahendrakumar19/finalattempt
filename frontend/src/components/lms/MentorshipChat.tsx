@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Send, MessageSquare, ShieldAlert, Sparkles, Hash, Volume2, ShieldCheck, UserCheck } from 'lucide-react';
+import {
+  Send, MessageSquare, ShieldAlert, Sparkles, Hash, Volume2,
+  ShieldCheck, UserCheck, Edit2, Trash2, Ban, Check, X, AlertTriangle
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getChatRooms, getChatMessages, getSupportRoom } from '@/services/auth';
 
@@ -28,55 +31,54 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [editingMsg, setEditingMsg] = useState<{ id: string; text: string } | null>(null);
+
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  const getBackendUrl = () => {
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname || 'localhost';
+      return `http://${hostname}:5000`;
+    }
+    return 'http://localhost:5000';
+  };
+  const BACKEND_URL = getBackendUrl();
 
-  // 1. Fetch Rooms List, Personal Admin Support Room, and Assigned Faculty Members
+  // 1. Fetch Initial Data & Block Status
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const [supportRes, roomsRes, facultyRes] = await Promise.all([
-          accessToken ? getSupportRoom(accessToken).catch(() => null) : null,
-          accessToken ? getChatRooms(courseId || 'bpsc-foundation', accessToken).catch(() => null) : null,
-          fetch(`${BACKEND_URL}/api/faculty`).then(r => r.json()).catch(() => [])
-        ]);
+        const supportRes = accessToken ? await getSupportRoom(accessToken).catch(() => null) : null;
+        const facultyRes = await fetch(`${BACKEND_URL}/api/faculty`).then(r => r.json()).catch(() => []);
 
         if (Array.isArray(facultyRes)) {
           setFaculties(facultyRes);
         }
 
-        const roomList: any[] = [];
-        
-        // 1. Direct Admin Support Room
-        if (supportRes?.success && supportRes.data) {
-          roomList.push({
-            id: supportRes.data.id,
-            title: 'Direct Chat with Admin & Mentors',
-            type: 'admin_support',
-            isDirect: true
-          });
-        } else {
-          const fallbackSupportId = user?.id ? `support-${user.id}` : 'admin-support-general';
-          roomList.push({
-            id: fallbackSupportId,
-            title: 'Direct Chat with Admin & Mentors',
-            type: 'admin_support',
-            isDirect: true
-          });
-        }
+        const supportRoomId = supportRes?.success && supportRes?.data?.id 
+          ? supportRes.data.id 
+          : (user?.id ? `support-${user.id}` : 'admin-support-general');
 
-        // 2. Course Rooms
-        if (roomsRes?.success && Array.isArray(roomsRes.data) && roomsRes.data.length > 0) {
-          roomList.push(...roomsRes.data);
-        } else {
-          roomList.push({ id: `general-${courseId || 'general'}`, title: 'General Doubt Box', type: 'general' });
-        }
+        const mainRoom = {
+          id: supportRoomId,
+          title: 'Direct Chat with Admin & Mentors',
+          type: 'admin_support',
+          isDirect: true
+        };
 
-        setRooms(roomList);
-        setActiveRoom(roomList[0]); // Default to direct admin support
+        setRooms([mainRoom]);
+        setActiveRoom(mainRoom);
+
+        // Check if current user is blocked
+        if (user?.id) {
+          const blockRes = await fetch(`${BACKEND_URL}/api/chats/blocked-users/check/${user.id}`).then(r => r.json()).catch(() => null);
+          if (blockRes && blockRes.isBlocked) {
+            setIsBlocked(true);
+          }
+        }
       } catch (err) {
         setError('Network error loading mentorship channels.');
       } finally {
@@ -85,14 +87,12 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
     };
 
     loadInitialData();
-  }, [courseId, accessToken, BACKEND_URL, user]);
+  }, [courseId, accessToken, user]);
 
-  // 2. Fetch Chat History & Connect Socket when active room changes
+  // 2. Fetch Chat History & Connect Socket
   useEffect(() => {
     if (!activeRoom) return;
-    const currentUserId = user?.id || 'guest-student-user';
 
-    // Fetch Room History
     const loadHistory = async () => {
       try {
         const res = await getChatMessages(activeRoom.id, accessToken || 'guest-token');
@@ -105,7 +105,6 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
     };
     loadHistory();
 
-    // Initialize Socket connection
     const socket = io(BACKEND_URL, {
       withCredentials: true
     });
@@ -113,13 +112,42 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
 
     socket.emit('join_room', activeRoom.id);
 
-    // Socket message listener
     socket.on('new_message', (msg: any) => {
       setMessages(prev => {
-        // Prevent duplicate loads
         if (prev.some(m => m.id === msg.id)) return prev;
+
+        const tempIdx = prev.findIndex(m =>
+          (m.id?.toString().startsWith('temp-') || m.id?.toString().startsWith('admin-temp-')) &&
+          m.messageText === msg.messageText
+        );
+
+        if (tempIdx !== -1) {
+          const updated = [...prev];
+          updated[tempIdx] = msg;
+          return updated;
+        }
+
         return [...prev, msg];
       });
+    });
+
+    socket.on('message_edited', (data: { messageId: string; newMessageText: string }) => {
+      setMessages(prev => prev.map(m => m.id === data.messageId ? { ...m, messageText: data.newMessageText, isEdited: true } : m));
+    });
+
+    socket.on('message_deleted', (data: { messageId: string }) => {
+      setMessages(prev => prev.filter(m => m.id !== data.messageId));
+    });
+
+    socket.on('user_blocked_status', (data: { userId: string; isBlocked: boolean }) => {
+      if (user?.id === data.userId) {
+        setIsBlocked(data.isBlocked);
+      }
+    });
+
+    socket.on('user_blocked_error', (data: { message: string }) => {
+      setIsBlocked(true);
+      alert(data.message);
     });
 
     return () => {
@@ -127,13 +155,15 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
     };
   }, [activeRoom, accessToken, user]);
 
-  // 3. Scroll to Bottom on New Messages
+  // Scroll to Bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Send Message
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBlocked) return;
     const text = inputMessage.trim();
     if (!text || !socketRef.current || !activeRoom) return;
 
@@ -149,7 +179,6 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
       messageText: text
     };
 
-    // Optimistically push to local state
     const optimisticMsg = {
       id: `temp-${Date.now()}`,
       roomId: activeRoom.id,
@@ -163,6 +192,57 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
 
     socketRef.current.emit('send_message', payload);
     setInputMessage('');
+  };
+
+  // Student Edit Own Message
+  const handleSaveEdit = async () => {
+    if (!editingMsg || !editingMsg.text.trim()) return;
+    const { id, text } = editingMsg;
+
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, messageText: text.trim(), isEdited: true } : m));
+    setEditingMsg(null);
+
+    await fetch(`${BACKEND_URL}/api/chats/messages/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+      },
+      body: JSON.stringify({ messageText: text.trim(), senderId: user?.id })
+    }).catch(() => null);
+
+    if (socketRef.current && activeRoom) {
+      socketRef.current.emit('edit_message', {
+        messageId: id,
+        roomId: activeRoom.id,
+        newMessageText: text.trim(),
+        senderId: user?.id
+      });
+    }
+  };
+
+  // Student Delete Own Message
+  const handleDeleteMessage = async (msgId: string) => {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+
+    setMessages(prev => prev.filter(m => m.id !== msgId));
+
+    await fetch(`${BACKEND_URL}/api/chats/messages/${msgId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {})
+      },
+      body: JSON.stringify({ senderId: user?.id })
+    }).catch(() => null);
+
+    if (socketRef.current && activeRoom) {
+      socketRef.current.emit('delete_message', {
+        messageId: msgId,
+        roomId: activeRoom.id,
+        senderId: user?.id
+      });
+    }
   };
 
   if (loading) {
@@ -190,7 +270,7 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
 
   return (
     <div className="space-y-6">
-      {/* ── Assigned Mentor Profile Banner ── */}
+      {/* Assigned Mentor Profile Banner */}
       {primaryFaculty ? (
         <div className="bg-gradient-to-r from-blue-900/30 via-indigo-900/20 to-slate-900 border border-blue-500/20 rounded-3xl p-6 shadow-xl">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -241,91 +321,113 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
         </div>
       )}
 
-      {/* ── Real-Time Chat Component ── */}
-      <div className="h-[550px] grid grid-cols-1 md:grid-cols-4 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-xl overflow-hidden">
-        
-        {/* ── Sidebar: Channels List ── */}
-        <div className="border-r border-[var(--card-border)] bg-[var(--bg-color)] p-4 space-y-4 flex flex-col h-full md:col-span-1">
-          <div className="flex items-center gap-2 pb-3 border-b border-[var(--card-border)]">
-            <Sparkles className="w-4 h-4 text-blue-500" />
-            <span className="text-[var(--text-color)] text-xs font-bold uppercase tracking-wider">Group Channels</span>
-          </div>
-
-          <nav className="flex-1 space-y-1 overflow-y-auto">
-            {rooms.map((room) => {
-              const isActive = activeRoom?.id === room.id;
-              return (
-                <button
-                  key={room.id}
-                  onClick={() => setActiveRoom(room)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all ${
-                    isActive
-                      ? 'bg-blue-600/15 text-blue-600 border border-blue-500/20'
-                      : 'text-slate-500 hover:text-[var(--text-color)] hover:bg-slate-100 dark:hover:bg-white/[0.04]'
-                  }`}
-                >
-                  {room.type === 'announcement' ? (
-                    <Volume2 className="w-4 h-4 shrink-0" />
-                  ) : (
-                    <Hash className="w-4 h-4 shrink-0" />
-                  )}
-                  <span className="truncate">{room.title || (room.type === 'general' ? 'General Chat' : 'Doubts Box')}</span>
-                </button>
-              );
-            })}
-          </nav>
+      {/* Blocked Warning Banner */}
+      {isBlocked && (
+        <div className="p-4 bg-red-500/15 border border-red-500/30 rounded-2xl flex items-center gap-3 text-red-400 text-xs font-bold shadow-lg">
+          <AlertTriangle className="w-5 h-5 shrink-0 animate-bounce text-red-500" />
+          <span>You are currently blocked from sending messages by Admin support. Contact support for assistance.</span>
         </div>
+      )}
 
-        {/* ── Main Chat Area ── */}
-        <div className="flex flex-col h-full md:col-span-3">
-          {/* Header */}
-          <div className="p-4 border-b border-[var(--card-border)] bg-[var(--card-bg)] flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <MessageSquare className="w-4 h-4 text-blue-500" />
+      {/* Real-Time Direct Admin Chat Box */}
+      <div className="h-[550px] flex flex-col bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl shadow-xl overflow-hidden">
+        {/* Header */}
+        <div className="p-4 border-b border-[var(--card-border)] bg-[var(--card-bg)] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center font-bold">
+              <MessageSquare className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="text-[var(--text-color)] text-xs font-bold">{activeRoom?.title || 'Mentor Doubts Box'}</h4>
-              <p className="text-slate-400 text-[10px] mt-0.5">Real-Time Mentor Doubts Box</p>
+              <h4 className="text-[var(--text-color)] text-xs font-bold">Direct Support &amp; Mentorship Line</h4>
+              <p className="text-slate-500 dark:text-slate-400 text-[10px] mt-0.5">Send doubts directly to Admin &amp; Officer Mentors</p>
             </div>
           </div>
+          <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-[10px] font-bold flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            Direct Admin Line Active
+          </span>
+        </div>
 
         {/* Messages Body */}
         <div className="flex-1 p-6 space-y-4 overflow-y-auto bg-[var(--bg-color)] styled-scrollbar">
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 text-xs">
-              <MessageSquare className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2" />
-              <p>No messages yet in this group channel.</p>
-              <p className="text-[10px] text-slate-400 mt-1">Start the conversation by typing your doubts below.</p>
+              <MessageSquare className="w-8 h-8 text-slate-400 mb-2" />
+              <p>No messages in your direct admin chat yet.</p>
+              <p className="text-[10px] text-slate-400 mt-1">Send a message directly to the Admin below. Our officers &amp; mentors reply promptly.</p>
             </div>
           ) : (
             messages.map((msg) => {
-              const isSelf = msg.senderId === user?.id;
+              const isSelf = msg.senderId === (user?.id || 'guest-student-user');
+              const isEditingThis = editingMsg?.id === msg.id;
+
               return (
-                <div key={msg.id} className={`flex items-start gap-2.5 ${isSelf ? 'justify-end' : ''}`}>
+                <div key={msg.id || Math.random()} className={`group relative flex items-start gap-2.5 ${isSelf ? 'justify-end' : ''}`}>
                   {!isSelf && (
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                       {msg.fullName?.charAt(0).toUpperCase() || '?'}
                     </div>
                   )}
-                  <div className="max-w-[70%]">
-                    {!isSelf && (
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-[var(--text-color)] text-[10px] font-bold">{msg.fullName}</span>
-                        <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase ${
-                          msg.role === 'admin' ? 'bg-red-100 text-red-600 dark:bg-red-500/25 dark:text-red-400' : msg.role === 'faculty' ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/25 dark:text-amber-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-500/25 dark:text-blue-400'
+                  <div className="max-w-[70%] space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      {!isSelf && (
+                        <span className="text-[var(--text-color)] text-[10px] font-bold">{msg.fullName || 'Admin Support'}</span>
+                      )}
+                      {msg.isEdited && (
+                        <span className="text-[9px] text-slate-400 italic ml-auto">(edited)</span>
+                      )}
+                    </div>
+
+                    {/* Content or Edit Form */}
+                    {isEditingThis ? (
+                      <div className="flex items-center gap-2 bg-[var(--card-bg)] border border-blue-500/50 p-2 rounded-xl shadow-lg">
+                        <input
+                          type="text"
+                          value={editingMsg?.text || ''}
+                          onChange={(e) => setEditingMsg(prev => prev ? { ...prev, text: e.target.value } : null)}
+                          className="flex-1 text-xs text-[var(--text-color)] bg-transparent outline-none"
+                          autoFocus
+                        />
+                        <button onClick={handleSaveEdit} className="p-1 text-emerald-500 hover:bg-emerald-500/10 rounded cursor-pointer">
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setEditingMsg(null)} className="p-1 text-slate-400 hover:bg-slate-500/10 rounded cursor-pointer">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="relative group/bubble">
+                        <div className={`p-3.5 rounded-2xl text-xs font-semibold leading-relaxed break-words whitespace-pre-wrap ${
+                          isSelf
+                            ? 'bg-blue-600 text-white rounded-tr-none shadow-md shadow-blue-900/10'
+                            : 'bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] rounded-tl-none'
                         }`}>
-                          {msg.role}
-                        </span>
+                          {msg.messageText}
+                        </div>
+
+                        {/* Hover Actions for Student's Own Messages */}
+                        {isSelf && (
+                          <div className="absolute top-1/2 -translate-y-1/2 -left-16 opacity-0 group-hover/bubble:opacity-100 transition-opacity flex items-center gap-1 bg-[var(--card-bg)] border border-[var(--card-border)] p-1 rounded-xl shadow-lg">
+                            <button
+                              onClick={() => setEditingMsg({ id: msg.id, text: msg.messageText })}
+                              className="p-1 text-slate-400 hover:text-blue-500 transition-colors cursor-pointer"
+                              title="Edit your message"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              className="p-1 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                              title="Delete message"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
-                    <div className={`p-3.5 rounded-2xl text-xs font-semibold leading-relaxed ${
-                      isSelf
-                        ? 'bg-blue-600 text-white rounded-tr-none shadow-md shadow-blue-900/10'
-                        : 'bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 rounded-tl-none'
-                    }`}>
-                      {msg.messageText}
-                    </div>
-                    <span className={`block text-[8px] text-slate-400 mt-1 ${isSelf ? 'text-right' : ''}`}>
+
+                    <span className={`block text-[8px] text-slate-400 ${isSelf ? 'text-right' : ''}`}>
                       {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -342,18 +444,19 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            placeholder="Type your doubts here..."
-            className="flex-1 bg-[var(--bg-color)] border border-[var(--card-border)] rounded-xl px-4 py-3 text-xs text-[var(--text-color)] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all"
+            disabled={isBlocked}
+            placeholder={isBlocked ? "You are blocked from sending messages..." : "Type your doubts here..."}
+            className="flex-1 bg-[var(--bg-color)] border border-[var(--card-border)] rounded-xl px-4 py-3 text-xs text-[var(--text-color)] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
-            className="p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all shadow-md shrink-0 flex items-center justify-center"
+            disabled={isBlocked}
+            className="p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all shadow-md shrink-0 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" />
           </button>
         </form>
       </div>
     </div>
-  </div>
-);
+  );
 }

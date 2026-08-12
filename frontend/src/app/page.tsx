@@ -23,7 +23,25 @@ import {
   Calendar,
   Compass,
   TrendingUp,
-  ShieldCheck
+  ShieldCheck,
+  UserCheck,
+  Clock,
+  Award,
+  Download,
+  Newspaper,
+  Timer,
+  Zap,
+  Lightbulb,
+  Radio,
+  Puzzle,
+  FileCheck,
+  Search,
+  Target,
+  Edit3,
+  BarChart2,
+  Rocket,
+  Library,
+  BookMarked
 } from 'lucide-react';
 
 import { db, Course } from '@/services/db';
@@ -479,9 +497,9 @@ export default function Home() {
             <p className="text-m sm:text-base text-slate-600 dark:text-slate-300 max-w-6xl mx-auto font-medium leading-relaxed">
               A complete, exam-focused preparation ecosystem for Civil Services Examinations—UPSC & State PCS—covering Prelims, Mains and Interview.
               We combine rigorous practice, structured preparation, one-to-one personalised mentorship, expert human guidance and AI-powered evaluation for in-depth, actionable feedback at every stage.
-              <br/>
+              <br />
               <span className='font-bold'>
-              Prepare smarter. Practice relentlessly. Improve continuously — to make your attempt, FINAL.
+                Prepare smarter. Practice relentlessly. Improve continuously — to make your attempt, FINAL.
               </span>
             </p>
 
@@ -497,38 +515,50 @@ export default function Home() {
               {
                 title: 'Mentorship First',
                 desc: '1-on-1 personalized guidance, regular progress reviews, and strategic preparation routines tailored to your BPSC goals.',
-                icon: '👥',
-                gradient: 'from-amber-100/80 to-orange-50/40'
+                icon: Users,
+                iconColor: 'text-blue-600 dark:text-blue-400',
+                bgColor: 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-100 dark:border-blue-900/40',
+                gradient: 'from-blue-100/60 to-indigo-50/30'
               },
               {
                 title: 'Expert Faculty',
                 desc: 'Learn from experienced educators and BPSC experts who simplify complex concepts and share proven exam strategies.',
-                icon: '🎓',
-                gradient: 'from-blue-100/70 to-indigo-50/40'
+                icon: GraduationCap,
+                iconColor: 'text-amber-600 dark:text-amber-400',
+                bgColor: 'bg-amber-50/90 dark:bg-amber-950/50 border-amber-100 dark:border-amber-900/40',
+                gradient: 'from-amber-100/60 to-orange-50/30'
               },
               {
                 title: 'Personal Plan',
                 desc: 'Customized study plans adapted to your strengths, learning pace, and performance for maximum score improvement.',
-                icon: '🎯',
-                gradient: 'from-emerald-100/70 to-green-50/40'
+                icon: Target,
+                iconColor: 'text-red-600 dark:text-red-400',
+                bgColor: 'bg-red-50/90 dark:bg-red-950/50 border-red-100 dark:border-red-900/40',
+                gradient: 'from-red-100/60 to-rose-50/30'
               },
               {
                 title: 'Copy Evaluation',
                 desc: 'Detailed mentor-driven evaluation of copies on BPSC standards, complete with score analysis and model approaches.',
-                icon: '📝',
-                gradient: 'from-purple-100/70 to-violet-50/40'
+                icon: Edit3,
+                iconColor: 'text-orange-600 dark:text-orange-400',
+                bgColor: 'bg-orange-50/90 dark:bg-orange-950/50 border-orange-100 dark:border-orange-900/40',
+                gradient: 'from-orange-100/60 to-amber-50/30'
               },
               {
                 title: 'AI Analytics',
                 desc: 'Monitor progress with test insights, accuracy metrics, and data-driven recommendations that pinpoint weak spots.',
-                icon: '📊',
-                gradient: 'from-cyan-100/70 to-sky-50/40'
+                icon: BarChart2,
+                iconColor: 'text-teal-600 dark:text-teal-400',
+                bgColor: 'bg-teal-50/90 dark:bg-teal-950/50 border-teal-100 dark:border-teal-900/40',
+                gradient: 'from-teal-100/60 to-emerald-50/30'
               },
               {
                 title: 'Complete System',
                 desc: 'Structured courses, test series, answer writing practice, current affairs, and mentorship all under one roof.',
-                icon: '🚀',
-                gradient: 'from-orange-100/70 to-amber-50/40'
+                icon: Rocket,
+                iconColor: 'text-purple-600 dark:text-purple-400',
+                bgColor: 'bg-purple-50/90 dark:bg-purple-950/50 border-purple-100 dark:border-purple-900/40',
+                gradient: 'from-purple-100/60 to-indigo-50/30'
               }
             ].map((item, idx) => (
 
@@ -568,6 +598,8 @@ export default function Home() {
             `}
                 />
 
+
+
                 {/* Decorative grid */}
                 <div
                   className="
@@ -599,7 +631,7 @@ export default function Home() {
               group-hover:opacity-[0.12]
             "
                 >
-                  {item.icon}
+                  <item.icon className="w-full h-full" />
                 </div>
 
                 {/* Content */}
@@ -615,23 +647,20 @@ export default function Home() {
             "
                 >
 
-                  {/* Icon */}
+                  {/* Icon Badge */}
                   <div
                     className="
-                w-14 h-14
-                rounded-2xl
-                bg-white/80
-                dark:bg-slate-800/80
-                border border-amber-200/60
-                shadow-sm
-                flex items-center justify-center
-                text-2xl
-                transition-all duration-500
-                group-hover:scale-110
-                group-hover:-rotate-3
-              "
+                      w-12 h-12
+                      rounded-xl
+                      bg-white
+                      border border-slate-100
+                      shadow-sm
+                      flex items-center justify-center
+                      transition-all duration-500
+                      group-hover:scale-110
+                    "
                   >
-                    {item.icon}
+                    <item.icon className={`w-6 h-6 ${item.iconColor}`} />
                   </div>
 
                   {/* Text */}
@@ -691,6 +720,97 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* 3.44 CORE PREPARATION PORTAL QUICK ACCESS GRID (MATCHING ORIGINAL DESIGN) */}
+      <section className="py-20 bg-[var(--bg-color)] border-y border-slate-150 dark:border-white/10 relative z-10">
+        {/* SVG Gradient Definition matching User Palette image (#8A2387 -> #E94057 -> #F27121) */}
+        <svg className="w-0 h-0 absolute pointer-events-none" aria-hidden="true">
+          <defs>
+            <linearGradient id="icon-palette-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#8A2387" />
+              <stop offset="50%" stopColor="#E94057" />
+              <stop offset="100%" stopColor="#F27121" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 max-w-7xl mx-auto">
+            {[
+              {
+                title: 'CURRENT AFFAIRS',
+                icon: Newspaper,
+                iconColor: 'text-red-500',
+                link: '/current-affairs'
+              },
+              {
+                title: 'PYQ',
+                icon: FileText,
+                iconColor: 'text-blue-500',
+                link: '/downloads/pyq'
+              },
+              {
+                title: 'NCERT',
+                icon: BookOpen,
+                iconColor: 'text-emerald-500',
+                link: '/downloads/ncert'
+              },
+              {
+                title: 'RAPID REVISION',
+                icon: Zap,
+                iconColor: 'text-amber-500',
+                link: '/downloads/rapid-revision'
+              },
+              {
+                title: 'VALUE ADDED MATERIALS — MAINS',
+                icon: Lightbulb,
+                iconColor: 'text-purple-500',
+                link: '/downloads/value-added-mains'
+              },
+              {
+                title: 'TOPPERS\' COPIES',
+                icon: FileCheck,
+                iconColor: 'text-teal-500',
+                link: '/downloads/toppers-copies'
+              },
+              
+              {
+                title: 'SYLLABUS & STRATEGY',
+                icon: Compass,
+                iconColor: 'text-indigo-500',
+                link: '/syllabus-strategy'
+              },
+              {
+                title: 'FINAL ATTEMPT PUBLICATION',
+                imgSrc: '/favicon.png',
+                link: '/downloads/fa-publication'
+              }
+            ].map((item, idx) => (
+              <Link
+                key={idx}
+                href={item.link}
+                className="group relative overflow-hidden rounded-3xl p-8 sm:p-10 text-center flex flex-col items-center justify-center gap-5 transition-all duration-300 hover-lift bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl hover:scale-[1.03] border border-slate-200/80 dark:border-slate-800 cursor-pointer"
+              >
+                <div className="flex items-center justify-center p-2">
+                  {item.imgSrc ? (
+                    <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                      <img src={item.imgSrc} alt={item.title} className="w-full h-full object-cover" />
+                    </div>
+                  ) : item.icon ? (
+                    <item.icon className={`w-10 h-10 sm:w-12 sm:h-12 ${item.iconColor} stroke-[2.2] group-hover:scale-110 transition-all duration-300`} />
+                  ) : null}
+                </div>
+                <h3 className="font-heading font-black text-xs sm:text-sm text-slate-800 dark:text-white uppercase tracking-wider leading-relaxed">
+                  {item.title}
+                </h3>
+              </Link>
+            ))}
+          </div>
+
+        </div>
+      </section>
+
       {/* 3.45 YOUTUBE INTEGRATION VIDEOS SECTION */}
       {latestVideos.length > 0 && (
         <section className="py-20 bg-[var(--bg-color)] border-t border-slate-100 dark:border-white/[0.06]">

@@ -4,7 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Download, FileText, ArrowRight, Search,
-  BookOpen, Eye, Layers, Folder
+  BookOpen, Eye, Layers, Folder,
+  Zap, Lightbulb, FileCheck
 } from 'lucide-react';
 import { db, CustomPage } from '@/services/db';
 
@@ -358,11 +359,11 @@ export default function DedicatedDownloadsPage() {
                     href="/downloads/pyq"
                     className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-white text-amber-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                    <div className="w-12 h-12 rounded-xl bg-white text-blue-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
                       {logoUrl ? (
                         <img src={logoUrl} alt="PYQs" className="w-full h-full object-contain" />
                       ) : (
-                        <FileText className="w-6 h-6 text-amber-500" />
+                        <FileText className="w-6 h-6 text-blue-500" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -395,14 +396,11 @@ export default function DedicatedDownloadsPage() {
                       <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
                         NCERT
                       </h4>
-                      {/* <span className="text-[10px] text-slate-400 font-medium">History, Geography, Polity, Economics</span> */}
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
                   </Link>
                 );
               })()}
-
-
 
               {/* 2. Rapid Revision Materials */}
               {(() => {
@@ -413,18 +411,17 @@ export default function DedicatedDownloadsPage() {
                     href="/downloads/rapid-revision"
                     className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-white text-rose-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                    <div className="w-12 h-12 rounded-xl bg-white text-amber-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
                       {logoUrl ? (
                         <img src={logoUrl} alt="Rapid Revision" className="w-full h-full object-contain" />
                       ) : (
-                        <Layers className="w-6 h-6 text-rose-500" />
+                        <Zap className="w-6 h-6 text-amber-500" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
                         Rapid Revision Materials
                       </h4>
-                      {/* <span className="text-[10px] text-slate-400 font-medium">Quick Revision Notes & Tables</span> */}
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
                   </Link>
@@ -440,18 +437,17 @@ export default function DedicatedDownloadsPage() {
                     href="/downloads/value-added-mains"
                     className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-white text-cyan-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                    <div className="w-12 h-12 rounded-xl bg-white text-purple-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
                       {logoUrl ? (
                         <img src={logoUrl} alt="Value Added Materials" className="w-full h-full object-contain" />
                       ) : (
-                        <FileText className="w-6 h-6 text-cyan-500" />
+                        <Lightbulb className="w-6 h-6 text-purple-500" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
                         Value Added Materials — Mains
                       </h4>
-                      {/* <span className="text-[10px] text-slate-400 font-medium">Mains Data, Quotes & Case Studies</span> */}
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
                   </Link>
@@ -467,18 +463,17 @@ export default function DedicatedDownloadsPage() {
                     href="/downloads/toppers-copies"
                     className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-white text-amber-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                    <div className="w-12 h-12 rounded-xl bg-white text-teal-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
                       {logoUrl ? (
                         <img src={logoUrl} alt="Toppers Copies" className="w-full h-full object-contain" />
                       ) : (
-                        <FileText className="w-6 h-6 text-amber-500" />
+                        <FileCheck className="w-6 h-6 text-teal-500" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
                         Toppers&apos; Copies
                       </h4>
-                      {/* <span className="text-[10px] text-slate-400 font-medium">Evaluated Copies of BPSC Toppers</span> */}
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
                   </Link>
@@ -494,11 +489,11 @@ export default function DedicatedDownloadsPage() {
                     href="/downloads/fa-publication"
                     className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-white text-blue-600 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                    <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
                       {logoUrl ? (
                         <img src={logoUrl} alt="FA Publication" className="w-full h-full object-contain" />
                       ) : (
-                        <BookOpen className="w-6 h-6 text-blue-600" />
+                        <img src="/favicon.png" alt="FA Publication" className="w-7 h-7 rounded-full object-cover" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">

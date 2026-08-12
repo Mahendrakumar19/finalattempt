@@ -729,8 +729,8 @@ html.dark ::-webkit-scrollbar-track {
   background: #0d1627;
 }
 
-/* Preserve line breaks for all dynamic content blocks */
-p, .prose, .prose p, [class*="prose"] p, .whitespace-pre-wrap, .text-xs, .text-sm, .text-base {
+/* Preserve line breaks for content blocks */
+.whitespace-pre-wrap {
   white-space: pre-wrap;
 }
 
@@ -1035,6 +1035,26 @@ html.dark .article-prose-container blockquote,
 html.dark .article-prose-container a,
 .dark .article-prose-container a {
   color: #FBBF24 !important;
+}
+
+/* Custom Styled Scrollbar for Chat & Modal Containers */
+.styled-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.styled-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+}
+html.dark .styled-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+.styled-scrollbar::-webkit-scrollbar-thumb {
+  background: #f59e0b;
+  border-radius: 8px;
+}
+.styled-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #d97706;
 }
 
 

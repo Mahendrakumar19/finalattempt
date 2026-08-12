@@ -9,7 +9,8 @@ import {
   Users, Phone, Info, Home, Target, Star,
   BarChart2, Calendar, Layers, BookMarked,
   GraduationCap, Award, Sparkles,
-  ChevronRight, Lightbulb, Globe
+  ChevronRight, Lightbulb, Globe,
+  Zap, FileCheck, Compass
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
@@ -52,11 +53,16 @@ const IC = {
   monthly:       <BookMarked className="w-4 h-4" />,
   yearly:        <Star className="w-4 h-4" />,
   download:      <Download className="w-4 h-4" />,
-  pyq:           <Award className="w-4 h-4" />,
-  ncert:         <BookOpen className="w-4 h-4" />,
-  blog:          <Newspaper className="w-4 h-4" />,
+  pyq:           <FileText className="w-4 h-4 text-blue-500" />,
+  ncert:         <BookOpen className="w-4 h-4 text-emerald-500" />,
+  rapid:         <Zap className="w-4 h-4 text-amber-500" />,
+  valmains:      <Lightbulb className="w-4 h-4 text-purple-500" />,
+  toppers:       <FileCheck className="w-4 h-4 text-teal-500" />,
+  fa:            <img src="/favicon.png" alt="FA" className="w-4 h-4 rounded-full object-cover" />,
+  compass:       <Compass className="w-4 h-4 text-indigo-500" />,
+  blog:          <Newspaper className="w-4 h-4 text-red-500" />,
   video:         <Video className="w-4 h-4" />,
-  syllabus:      <Lightbulb className="w-4 h-4" />,
+  syllabus:      <Compass className="w-4 h-4 text-indigo-500" />,
   about:         <Info className="w-4 h-4" />,
   faculty:       <Users className="w-4 h-4" />,
   results:       <Award className="w-4 h-4" />,
@@ -226,7 +232,7 @@ export default function Header() {
           },
           { heading: 'Topics', items: [
               { label: 'Daily Analysis', href: '/current-affairs/daily', desc: 'Daily news & editorials', icon: IC.sparkle, badge: 'Hot' },
-              { label: 'Video Lectures', href: '/current-affairs/videos',  desc: 'Current affairs video updates',    icon: IC.video },
+              // { label: 'Video Lectures', href: '/current-affairs/videos',  desc: 'Current affairs video updates',    icon: IC.video },
             ],
           },
         ],
@@ -244,10 +250,10 @@ export default function Header() {
               const baseItems = [
                 { label: 'PYQ', href: '/downloads/pyq', desc: 'Previous year question papers', icon: IC.pyq },
                 { label: 'NCERT', href: '/downloads/ncert', desc: 'NCERT Class 6 to 12 Textbooks', icon: IC.ncert },
-                { label: 'Rapid Revision', href: '/downloads/rapid-revision', desc: 'Quick Revision Notes & Tables', icon: IC.sparkle },
-                { label: 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: 'Mains Data & SC Judgments', icon: IC.mains },
-                { label: 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: 'Evaluated Topper Copies', icon: IC.pyq },
-                { label: 'Final Attempt Publication', href: '/downloads/fa-publication', desc: 'Books & Publication Storefront', icon: IC.globe },
+                { label: 'Rapid Revision', href: '/downloads/rapid-revision', desc: 'Quick Revision Notes & Tables', icon: IC.rapid },
+                { label: 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: 'Mains Data & SC Judgments', icon: IC.valmains },
+                { label: 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: 'Evaluated Topper Copies', icon: IC.toppers },
+                { label: 'Final Attempt Publication', href: '/downloads/fa-publication', desc: 'Books & Publication Storefront', icon: IC.fa },
               ];
 
               const CORE_SLUGS = new Set([
