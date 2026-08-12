@@ -65,9 +65,33 @@ interface CompanyValue {
 export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultTab?: 'exams' | 'syllabus' | 'strategy' | 'values' }) {
   const [activeSubTab, setActiveSubTab] = useState<'exams' | 'syllabus' | 'strategy' | 'values'>(defaultTab);
 
+  // Restore activeSubTab on mount and sync to URL & localStorage
   useEffect(() => {
-    setActiveSubTab(defaultTab);
+    if (typeof window !== 'undefined') {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlSub = urlParams.get('subtab') as any;
+        const savedSub = localStorage.getItem('syllabus_cms_subtab') as any;
+        const validSub = urlSub || savedSub || defaultTab;
+        if (validSub && ['exams', 'syllabus', 'strategy', 'values'].includes(validSub)) {
+          setActiveSubTab(validSub);
+        }
+      } catch (_) {}
+    }
   }, [defaultTab]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && activeSubTab) {
+      try {
+        localStorage.setItem('syllabus_cms_subtab', activeSubTab);
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('subtab') !== activeSubTab) {
+          url.searchParams.set('subtab', activeSubTab);
+          window.history.replaceState(null, '', url.pathname + url.search);
+        }
+      } catch (_) {}
+    }
+  }, [activeSubTab]);
 
   // Data lists
   const [exams, setExams] = useState<Exam[]>([]);

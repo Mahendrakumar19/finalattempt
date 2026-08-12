@@ -3,28 +3,32 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Award, ArrowRight, Layers, ShieldCheck, ChevronRight } from 'lucide-react';
-import { db, ExamData } from '@/services/db';
+import { db, ExamData, TestSeriesItem } from '@/services/db';
+import TestSeriesComparisonTable from '@/components/TestSeriesComparisonTable';
 
 export default function TestSeriesRootPage() {
   const [exams, setExams] = useState<ExamData[]>([]);
+  const [allSeries, setAllSeries] = useState<TestSeriesItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadExams() {
+    async function loadData() {
       try {
         const list = await db.getExamsHierarchy(false);
         setExams(list || []);
+        const seriesList = await db.getTestSeries(false);
+        setAllSeries(seriesList || []);
       } catch (err) {
         console.error('Error loading exams hierarchy:', err);
       } finally {
         setLoading(false);
       }
     }
-    loadExams();
+    loadData();
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-color)] py-12 px-4 sm:px-6 lg:px-8 font-body space-y-10">
+    <div className="min-h-screen bg-[var(--bg-color)] py-12 px-4 sm:px-6 lg:px-8 font-body space-y-16">
       {/* Header Banner */}
       <div className="max-w-5xl mx-auto text-center space-y-4">
         <span className="px-3.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full text-xs font-black uppercase tracking-widest inline-block">
@@ -39,7 +43,7 @@ export default function TestSeriesRootPage() {
       </div>
 
       {/* Exam Folder Cards */}
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
@@ -103,6 +107,16 @@ export default function TestSeriesRootPage() {
           </div>
         )}
       </div>
+
+      {/* Comparison Table Section */}
+      <div className="max-w-7xl mx-auto pt-8 border-t border-[var(--card-border)]">
+        <TestSeriesComparisonTable
+          programs={allSeries}
+          title="Choose the Right Prelims Mock Test Series for You"
+          subtitle="Compare the benefits of each series and choose the best fit for your preparation goals. Select a structured program or a personalized approach to enhance your readiness for the Preliminary Examination."
+        />
+      </div>
+
     </div>
   );
 }

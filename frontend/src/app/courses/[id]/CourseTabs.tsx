@@ -259,19 +259,21 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
         {activeTab === 'Overview' && (
           <div className="space-y-6">
             <h3 className="font-heading font-extrabold text-lg text-brand-primary">Program Overview</h3>
-            <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
-              This course is crafted to align with the core requirements of BPSC administrative services. You will receive customized notes, continuous performance tracking, and direct access to selected officials.
+            <p className="text-xs text-slate-600 leading-relaxed max-w-2xl whitespace-pre-line">
+              {course.overview || course.description || 'This course is crafted to align with the core requirements of BPSC administrative services. You will receive customized notes, continuous performance tracking, and direct access to selected officials.'}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl pt-2">
-              {course.features.map((feature, idx) => (
-                <div key={idx} className="flex gap-3 items-start">
-                  <div className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                    <Check className="w-3 h-3" />
+            {course.features && course.features.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl pt-2">
+                {course.features.map((feature, idx) => (
+                  <div key={idx} className="flex gap-3 items-start">
+                    <div className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs text-slate-600 font-semibold">{feature}</span>
                   </div>
-                  <span className="text-xs text-slate-600 font-semibold">{feature}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -396,15 +398,15 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
           <div className="space-y-6">
             <h3 className="font-heading font-extrabold text-lg text-brand-primary">Faculty & Mentorship Board</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
-              {faculty.map((member) => (
-                <div key={member.id} className="flex gap-4 items-start p-4 rounded-xl border border-slate-100">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0">
-                    <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
+              {((course as any).faculty && (course as any).faculty.length > 0 ? (course as any).faculty : faculty).map((member: any, idx: number) => (
+                <div key={member.id || idx} className="flex gap-4 items-start p-4 rounded-xl border border-slate-100 shadow-2xs bg-white">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
+                    <img src={member.avatar || member.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'} alt={member.name} className="w-full h-full object-cover" />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <div>
                       <h4 className="font-heading font-extrabold text-sm text-slate-900">{member.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">{member.role} &bull; {member.experience} exp</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase">{member.role} {member.experience ? `• ${member.experience} exp` : ''}</p>
                     </div>
                     <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{member.bio}</p>
                   </div>
@@ -419,11 +421,11 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
           <div className="space-y-6">
             <h3 className="font-heading font-extrabold text-lg text-brand-primary">Free Demo Lectures</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
-              {(faculty || []).flatMap((f) => Array.isArray(f.demoLectures) ? f.demoLectures.map((lec) => ({ ...lec, teacher: f.name })) : []).map((lec, idx) => (
+              {(course.demoLectures && course.demoLectures.length > 0 ? course.demoLectures : (faculty || []).flatMap((f) => Array.isArray(f.demoLectures) ? f.demoLectures.map((lec) => ({ ...lec, teacher: f.name })) : [])).map((lec: any, idx: number) => (
                 <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center hover:bg-white hover:border-blue-100 transition-all">
                   <div className="space-y-1">
                     <h5 className="font-bold text-xs text-slate-900">{lec.title}</h5>
-                    <p className="text-[10px] text-slate-400">By {lec.teacher} &bull; {lec.duration}</p>
+                    <p className="text-[10px] text-slate-400">{lec.teacher ? `By ${lec.teacher} • ` : ''}{lec.duration || '15 mins'}</p>
                   </div>
                   <button
                     onClick={() => setPlayingVideo(lec.url)}
@@ -472,22 +474,26 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
           <div className="space-y-6">
             <h3 className="font-heading font-extrabold text-lg text-brand-primary">Frequently Asked Questions</h3>
             <div className="space-y-3.5 max-w-3xl">
-              {course.faq.map((item, idx) => (
-                <div key={idx} className="border border-slate-100 rounded-xl overflow-hidden">
-                  <button
-                    onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                    className="w-full flex justify-between items-center p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <span className="font-bold text-xs text-brand-primary">{item.q}</span>
-                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openFaq === idx ? 'rotate-180' : ''}`} />
-                  </button>
-                  {openFaq === idx && (
-                    <div className="p-4 border-t border-slate-100 bg-white">
-                      <p className="text-xs text-slate-500 leading-relaxed">{item.a}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {course.faq && course.faq.length > 0 ? (
+                course.faq.map((item, idx) => (
+                  <div key={idx} className="border border-slate-100 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                      className="w-full flex justify-between items-center p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors text-left"
+                    >
+                      <span className="font-bold text-xs text-brand-primary">{item.q}</span>
+                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${openFaq === idx ? 'rotate-180' : ''}`} />
+                    </button>
+                    {openFaq === idx && (
+                      <div className="p-4 border-t border-slate-100 bg-white">
+                        <p className="text-xs text-slate-500 leading-relaxed">{item.a}</p>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400 italic">No FAQs available for this course yet.</p>
+              )}
             </div>
           </div>
         )}

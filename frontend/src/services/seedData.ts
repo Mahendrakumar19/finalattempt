@@ -270,7 +270,7 @@ export interface TestSeriesItem {
   slug: string;
   category?: 'Prelims' | 'Mains' | 'PYQ' | 'Interview' | string | null;
   exam: string;
-  language: 'Bilingual (Hindi & English)' | 'English' | 'Hindi' | string;
+  language: 'English' | 'Hindi' | string;
   status: 'active' | 'coming_soon' | 'archived' | string;
   thumbnailUrl?: string;
   bannerUrl?: string;
@@ -288,6 +288,11 @@ export interface TestSeriesItem {
   validityDays: number;
   isPublished: boolean;
   displayOrder: number;
+  // Comparison & Schedule Table Extension Fields
+  moduleCode?: string;
+  medium?: 'English' | 'Hindi' | string;
+  programDetails?: string;
+  schedulePdfUrl?: string;
 }
 
 export const testSeriesData: TestSeriesItem[] = [
@@ -297,7 +302,7 @@ export const testSeriesData: TestSeriesItem[] = [
     slug: 'bpsc-71st-prelims-mock-vault',
     category: 'Prelims',
     exam: 'BPSC 71st CCE',
-    language: 'Bilingual (Hindi & English)',
+    language: 'English',
     status: 'active',
     thumbnailUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=600',
     bannerUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1200',
@@ -323,60 +328,26 @@ export const testSeriesData: TestSeriesItem[] = [
     ],
     faq: [
       { q: 'Can I attempt tests anytime or is there a fixed time window?', a: 'You can attempt tests anytime 24/7 once unlocked, as per your own revision schedule.' },
-      { q: 'Are questions available in both English and Hindi?', a: 'Yes, every question paper and answer key is 100% bilingual (Hindi & English).' },
+      { q: 'Are questions available in English?', a: 'Yes, every question paper and answer key is available in English.' },
       { q: 'Is offline test series available in Patna center?', a: 'Yes, enrolled online students can also take mock tests offline at Boring Road Patna center.' }
     ],
-    batchStartDate: '2026-08-15',
+    batchStartDate: '09 August 2026',
     enrolledCount: 1840,
     validityDays: 180,
     isPublished: true,
-    displayOrder: 1
-  },
-  {
-    id: 'bpsc-pyq-mastery-decades',
-    title: 'BPSC 20-Year PYQ Topic-wise Interactive Test Series (60th to 70th CCE)',
-    slug: 'pyq-eng',
-    category: 'PYQ',
-    exam: 'BPSC All Previous Exams',
-    language: 'Bilingual (Hindi & English)',
-    status: 'active',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600',
-    bannerUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=1200',
-    price: 1999,
-    discountedPrice: 999,
-    totalTests: 35,
-    totalQuestions: 5250,
-    duration: '1 Year Validity',
-    description: 'The Ultimate BPSC PYQ Mastery Vault — practice 20 years of real BPSC questions topic-by-topic with detailed elimination techniques, official answer key resolutions and repeated question trend maps.',
-    highlights: [
-      'Coverage of 60th to 70th BPSC Prelims official question papers',
-      'Segmented into 12 Subject Categories for targeted practice',
-      'Includes Option E vs 4-Option transition analysis notes',
-      'Bihar Special 1000+ Past Questions solved with updated statistics',
-      'Unlimited retakes with timing analytics'
-    ],
-    syllabus: [
-      { subject: 'History PYQs (1500+ Qs)', topics: ['Modern India & National Movement', 'Bihar Specific Historical Events', 'Ancient & Medieval Art'] },
-      { subject: 'Science PYQs (1200+ Qs)', topics: ['Repeated Physics Formulas', 'Biology Disease & Human Body', 'Chemistry Daily Life'] },
-      { subject: 'Polity & Bihar State Admin PYQs', topics: ['Governor & State Legislature', 'Constitutional Amendments', 'Panchayat & Municipal Elections'] }
-    ],
-    faq: [
-      { q: 'How does this compare to iasvalley PYQs?', a: 'This includes interactive analytics, extra explanation notes, updated current context for old questions, and instant score comparison.' },
-      { q: 'Will I get printable PDFs?', a: 'Yes, full topic-wise PYQ PDFs with answer keys are included.' }
-    ],
-    batchStartDate: '2026-08-01',
-    enrolledCount: 3120,
-    validityDays: 365,
-    isPublished: true,
-    displayOrder: 2
+    displayOrder: 1,
+    moduleCode: '4186',
+    medium: 'English',
+    programDetails: '45 Tests'
   },
   {
     id: 'bpsc-70th-mains-evaluator-workbench',
-    title: '70th BPSC Mains Daily Answer Evaluation & Grand Mock Series',
+    title: '70th Daily Answer Evaluation & Grand Mock Series',
     slug: 'bpsc-70th-mains-evaluator-workbench',
     category: 'Mains',
     exam: 'BPSC 70th Mains',
-    language: 'Bilingual (Hindi & English)',
+    examId: 'bpsc',
+    language: 'English',
     status: 'active',
     thumbnailUrl: 'https://images.unsplash.com/photo-1517842645767-c639042777db?auto=format&fit=crop&q=80&w=600',
     bannerUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=1200',
@@ -385,28 +356,86 @@ export const testSeriesData: TestSeriesItem[] = [
     totalTests: 24,
     totalQuestions: 192,
     duration: 'Until Mains Exam',
-    description: 'Expert evaluation by selected BPSC officers within 48 hours. Includes GS Paper I, GS Paper II, Essay paper mocks & 1-on-1 feedback calls to raise your score.',
+    description: 'Expert evaluation by selected BPSC officers within 48 hours. Includes GS Paper I, GS Paper II, Essay paper mocks & 1-on-1 feedback calls.',
     highlights: [
       '8 Full Length GS Paper I Mocks + 8 Full Length GS Paper II Mocks',
       '4 Dedicated Essay Paper Mocks tailored to Bihar themes',
-      'Personalized copy correction with line-by-line mark breakdown',
-      'Model Answers PDF & Model Diagrammatic Maps for every test',
-      'Exclusive Toppers Copy compilation access'
+      'Personalized copy correction with line-by-line mark breakdown'
     ],
-    syllabus: [
-      { subject: 'GS Paper I', topics: ['Modern History & Indian Culture', 'Current Events of National & Intl Importance', 'Statistical Analysis, Graphs & Diagrams'] },
-      { subject: 'GS Paper II', topics: ['Indian & Bihar Polity', 'Indian & Bihar Economy & Geography', 'Role & Impact of Science & Tech'] },
-      { subject: 'Essay Section', topics: ['Bihar Cultural & Social Essays', 'Philosophical & Reflective Essays', 'Economic & Political Dilemmas'] }
-    ],
-    faq: [
-      { q: 'How do I submit my answers for evaluation?', a: 'Upload photos/scans of your handwritten answer sheet directly in the student dashboard.' },
-      { q: 'Who evaluates my answer script?', a: 'Evaluation is strictly done by selected BPSC officers and experienced senior faculty.' }
-    ],
-    batchStartDate: '2026-08-20',
+    syllabus: [],
+    faq: [],
+    batchStartDate: '09 August 2026',
     enrolledCount: 650,
     validityDays: 180,
     isPublished: true,
-    displayOrder: 3
+    displayOrder: 2,
+    moduleCode: '4187',
+    medium: 'English',
+    programDetails: '24 Tests'
+  },
+  {
+    id: 'appcs-cee-prelims-mock',
+    title: 'CEE Prelims GS & CSAT Standard Mock Series',
+    slug: 'appcs-cee-prelims-mock',
+    category: 'Prelims',
+    exam: 'APPCS CEE Prelims',
+    examId: 'appcs',
+    language: 'English',
+    status: 'active',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=600',
+    bannerUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&q=80&w=1200',
+    price: 3999,
+    discountedPrice: 1999,
+    totalTests: 25,
+    totalQuestions: 3750,
+    duration: '6 Months Validity',
+    description: 'State PSC examination practice series with comprehensive coverage of General Studies and CSAT papers.',
+    highlights: [
+      '15 GS Sectional & Full Length Tests',
+      '10 CSAT Practice Test Papers with detailed solutions'
+    ],
+    syllabus: [],
+    faq: [],
+    batchStartDate: '09 August 2026',
+    enrolledCount: 420,
+    validityDays: 180,
+    isPublished: true,
+    displayOrder: 3,
+    moduleCode: '4188',
+    medium: 'English',
+    programDetails: '25 Tests'
+  },
+  {
+    id: 'apssb-gcr-practice-series',
+    title: 'General Combined Recruitment Practice Series 2025',
+    slug: 'apssb-gcr-practice-series',
+    category: 'Prelims',
+    exam: 'APSSB Combined Recruitment',
+    examId: 'apssb',
+    language: 'English',
+    status: 'active',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=600',
+    bannerUrl: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=1200',
+    price: 1999,
+    discountedPrice: 999,
+    totalTests: 30,
+    totalQuestions: 3000,
+    duration: '6 Months Validity',
+    description: 'Targeted practice papers for Staff Selection Board Combined Recruitment Examinations.',
+    highlights: [
+      'Comprehensive Coverage of General English, GK & Elementary Math',
+      'Instant Diagnostic Rank Radar & Answer Keys'
+    ],
+    syllabus: [],
+    faq: [],
+    batchStartDate: '09 August 2026',
+    enrolledCount: 890,
+    validityDays: 180,
+    isPublished: true,
+    displayOrder: 4,
+    moduleCode: '4189',
+    medium: 'English',
+    programDetails: '30 Tests'
   }
 ];
 

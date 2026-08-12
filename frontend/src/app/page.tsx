@@ -189,42 +189,51 @@ export default function Home() {
   useEffect(() => {
     const loadLiveData = async () => {
       try {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        
+        // 1. Prioritize CMS-defined announcements
+        let hasCmsAnnouncements = false;
         const s = await db.getSettings();
         if (s) {
           setHeroSettings(prev => ({
-            ...prev,
             heroTitle: s.heroTitle || prev.heroTitle,
             heroSubtitle: s.heroSubtitle || prev.heroSubtitle,
             tagline: s.tagline || prev.tagline,
             heroImageUrl: s.heroImageUrl || ''
           }));
+          if (s.announcements && Array.isArray(s.announcements) && s.announcements.length > 0) {
+            hasCmsAnnouncements = true;
+            setDynamicAnnouncements(s.announcements.map((a: any) => typeof a === 'string' ? { date: 'NOTICE', text: a, isNew: true } : a));
+          }
         }
 
-        // Fetch live scraped BPSC notices from backend
-        try {
-          const getBackendUrl = () => {
-            if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
-            if (typeof window !== 'undefined') {
-              const hostname = window.location.hostname || 'localhost';
-              return `http://${hostname}:5000`;
+        // Fetch live scraped BPSC notices from backend if CMS announcements not available
+        if (!hasCmsAnnouncements) {
+          try {
+            const getBackendUrl = () => {
+              if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
+              if (typeof window !== 'undefined') {
+                const hostname = window.location.hostname || 'localhost';
+                return `http://${hostname}:5000`;
+              }
+              return 'http://127.0.0.1:5000';
+            };
+            const backendUrl = getBackendUrl();
+            const bpscRes = await fetch(`${backendUrl}/api/bpsc/bpsc-notices`).catch(() => null);
+            if (bpscRes && bpscRes.ok) {
+              const bpscData = await bpscRes.json().catch(() => null);
+              if (bpscData && bpscData.success && Array.isArray(bpscData.data) && bpscData.data.length > 0) {
+                setDynamicAnnouncements(bpscData.data.map((item: any) => ({
+                  date: item.category || 'NOTICE',
+                  text: item.title,
+                  isNew: item.isNew,
+                  link: item.link
+                })));
+              }
             }
-            return 'http://127.0.0.1:5000';
-          };
-          const backendUrl = getBackendUrl();
-          const bpscRes = await fetch(`${backendUrl}/api/bpsc/bpsc-notices`).catch(() => null);
-          if (bpscRes && bpscRes.ok) {
-            const bpscData = await bpscRes.json().catch(() => null);
-            if (bpscData && bpscData.success && Array.isArray(bpscData.data) && bpscData.data.length > 0) {
-              setDynamicAnnouncements(bpscData.data.map((item: any) => ({
-                date: item.category || 'NOTICE',
-                text: item.title,
-                isNew: item.isNew,
-                link: item.link
-              })));
-            }
+          } catch (err) {
+            console.warn('BPSC web scraper fetch error:', err);
           }
-        } catch (err) {
-          console.warn('BPSC web scraper fetch error:', err);
         }
 
         const c = await db.getCourses();

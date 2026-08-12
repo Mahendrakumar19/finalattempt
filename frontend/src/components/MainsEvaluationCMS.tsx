@@ -148,24 +148,25 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-body">
       {/* Header Banner */}
-      <div className="p-6 bg-gradient-to-br from-indigo-900/30 via-slate-900 to-slate-950 border border-indigo-500/20 rounded-3xl space-y-4">
+      <div className="p-6 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">
+            <span className="px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">
               Mains Evaluation Engine
             </span>
-            <h2 className="text-2xl font-heading font-black text-white">
+            <h2 className="text-2xl font-heading font-black text-[var(--text-color)]">
               Student Mains Answer Copy Evaluation
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
               Review submitted answer PDFs, assign marks out of Max Marks, write feedback, and attach annotated copies.
             </p>
           </div>
           <button
+            type="button"
             onClick={loadSubmissions}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 font-bold text-xs rounded-2xl transition-all self-start sm:self-auto"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-2xl transition-all self-start sm:self-auto cursor-pointer shadow-sm"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh Submissions
@@ -181,18 +182,19 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
               placeholder="Search by student name, email, or test title…"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 outline-none focus:border-indigo-500"
+              className="w-full pl-10 pr-4 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl text-xs text-[var(--text-color)] placeholder-slate-400 outline-none focus:border-amber-500 font-medium"
             />
           </div>
           <div className="flex gap-1.5 overflow-x-auto">
             {(['ALL', 'Submitted', 'Under Evaluation', 'Evaluated'] as const).map((st) => (
               <button
                 key={st}
+                type="button"
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all shrink-0 ${
+                className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all shrink-0 cursor-pointer ${
                   statusFilter === st
-                    ? 'bg-indigo-600 text-white border-indigo-500 shadow-md'
-                    : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-white'
+                    ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md'
+                    : 'bg-[var(--card-bg)] text-slate-600 dark:text-slate-300 border-[var(--card-border)] hover:text-amber-500'
                 }`}
               >
                 {st}
@@ -204,15 +206,15 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
 
       {/* Submissions Table / Cards */}
       {loading ? (
-        <div className="p-12 text-center bg-slate-900/50 border border-slate-800 rounded-3xl">
-          <RefreshCw className="w-8 h-8 text-indigo-400 animate-spin mx-auto mb-3" />
-          <p className="text-slate-400 text-xs font-bold">Loading Mains Submissions…</p>
+        <div className="p-12 text-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl">
+          <RefreshCw className="w-8 h-8 text-amber-500 animate-spin mx-auto mb-3" />
+          <p className="text-slate-500 dark:text-slate-400 text-xs font-bold">Loading Mains Submissions…</p>
         </div>
       ) : filteredSubmissions.length === 0 ? (
-        <div className="p-12 text-center bg-slate-900/50 border border-slate-800 rounded-3xl space-y-3">
-          <FileText className="w-10 h-10 text-slate-600 mx-auto" />
-          <h3 className="text-white font-bold text-base">No Mains Submissions Found</h3>
-          <p className="text-slate-400 text-xs max-w-sm mx-auto">
+        <div className="p-12 text-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-3">
+          <FileText className="w-10 h-10 text-slate-400 mx-auto" />
+          <h3 className="text-[var(--text-color)] font-bold text-base">No Mains Submissions Found</h3>
+          <p className="text-slate-500 dark:text-slate-400 text-xs max-w-sm mx-auto">
             {submissions.length === 0
               ? 'No student answer copies have been submitted yet.'
               : 'No submissions match your current search and filter criteria.'}
@@ -221,25 +223,25 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filteredSubmissions.map((sub) => {
-            const isGraded = sub.status === 'Evaluated' || sub.grade !== undefined && sub.grade !== null;
+            const isGraded = sub.status === 'Evaluated' || (sub.grade !== undefined && sub.grade !== null);
             return (
               <div
                 key={sub.id}
-                className="p-5 bg-slate-900/80 border border-slate-800 hover:border-indigo-500/40 rounded-2xl transition-all space-y-4 shadow-sm"
+                className="p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/40 rounded-2xl transition-all space-y-4 shadow-xs"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   {/* Student & Test Info */}
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-indigo-400 font-extrabold text-sm">
+                      <span className="text-amber-600 dark:text-amber-400 font-extrabold text-sm">
                         {sub.studentName || 'Student'}
                       </span>
-                      <span className="text-slate-500 text-xs">({sub.studentEmail})</span>
+                      <span className="text-slate-400 text-xs">({sub.studentEmail})</span>
                     </div>
-                    <h4 className="text-white font-heading font-black text-base">
+                    <h4 className="text-[var(--text-color)] font-heading font-black text-base">
                       {sub.testTitle || 'Mains Test'}
                     </h4>
-                    <p className="text-slate-400 text-xs">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs">
                       {sub.testSeriesTitle ? `Series: ${sub.testSeriesTitle} · ` : ''}
                       Submitted: {new Date(sub.submittedAt).toLocaleString('en-IN')}
                     </p>
@@ -250,10 +252,10 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                     <span
                       className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                         sub.status === 'Evaluated'
-                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                           : sub.status === 'Under Evaluation'
-                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                          : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30'
                       }`}
                     >
                       {sub.status || 'Submitted'}
@@ -264,16 +266,17 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                         href={sub.submissionUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-colors border border-slate-700"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-[var(--card-bg)] text-[var(--text-color)] text-xs font-bold rounded-xl transition-colors border border-[var(--card-border)]"
                       >
-                        <Eye className="w-3.5 h-3.5 text-blue-400" />
+                        <Eye className="w-3.5 h-3.5 text-blue-500" />
                         View Student PDF
                       </a>
                     )}
 
                     <button
+                      type="button"
                       onClick={() => openEvaluationModal(sub)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all shadow-md"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-sm cursor-pointer"
                     >
                       <Award className="w-3.5 h-3.5" />
                       {isGraded ? 'Edit Evaluation' : 'Grade & Evaluate'}
@@ -283,16 +286,16 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
 
                 {/* Grade & Feedback snippet if already evaluated */}
                 {isGraded && (
-                  <div className="pt-3 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                    <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                  <div className="pt-3 border-t border-[var(--card-border)] grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                    <div className="bg-[var(--card-bg)] p-3 rounded-xl border border-[var(--card-border)]">
                       <span className="text-slate-400 text-[10px] font-bold uppercase block">Marks Awarded</span>
-                      <span className="text-emerald-400 font-black text-sm">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">
                         {sub.grade} / {sub.maxMarks || 100} Marks
                       </span>
                     </div>
-                    <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 md:col-span-2">
+                    <div className="bg-[var(--card-bg)] p-3 rounded-xl border border-[var(--card-border)] md:col-span-2">
                       <span className="text-slate-400 text-[10px] font-bold uppercase block">Evaluator Feedback</span>
-                      <p className="text-slate-300 font-medium line-clamp-2 mt-0.5">
+                      <p className="text-slate-700 dark:text-slate-300 font-medium line-clamp-2 mt-0.5">
                         {sub.feedback || 'No written feedback provided.'}
                       </p>
                     </div>
@@ -306,17 +309,18 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
 
       {/* EVALUATION POPUP MODAL */}
       {selectedSub && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 space-y-6 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-2xl w-full p-6 space-y-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider">Evaluation Portal</span>
-                <h3 className="text-lg font-heading font-black text-white">{selectedSub.testTitle}</h3>
-                <p className="text-xs text-slate-400">Student: {selectedSub.studentName} ({selectedSub.studentEmail})</p>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Evaluation Portal</span>
+                <h3 className="text-lg font-heading font-black text-[var(--text-color)]">{selectedSub.testTitle}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Student: {selectedSub.studentName} ({selectedSub.studentEmail})</p>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedSub(null)}
-                className="p-1 rounded-xl text-slate-400 hover:text-white bg-slate-800"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-[var(--text-color)] bg-[var(--card-bg)] border border-[var(--card-border)] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -324,13 +328,13 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
 
             <form onSubmit={handleSaveEvaluation} className="space-y-5">
               {/* Submitted Answer Copy Link */}
-              <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
-                <span className="text-xs text-slate-300 font-medium">Student Submitted Copy (PDF)</span>
+              <div className="p-3 bg-[var(--card-bg)] rounded-xl border border-[var(--card-border)] flex items-center justify-between">
+                <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">Student Submitted Copy (PDF)</span>
                 <a
                   href={selectedSub.submissionUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-xs font-bold text-blue-400 hover:underline"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 dark:text-amber-400 hover:underline"
                 >
                   <Download className="w-3.5 h-3.5" /> Open PDF File
                 </a>
@@ -342,7 +346,7 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                 <select
                   value={evalStatus}
                   onChange={e => setEvalStatus(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-indigo-500"
+                  className="w-full px-3 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl text-xs text-[var(--text-color)] outline-none focus:border-amber-500 font-bold cursor-pointer"
                 >
                   <option value="Under Evaluation">Under Evaluation</option>
                   <option value="Evaluated">Evaluated (Completed)</option>
@@ -361,7 +365,7 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                   placeholder={`Enter score (0 - ${selectedSub.maxMarks || 100})`}
                   value={evalGrade}
                   onChange={e => setEvalGrade(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-bold"
+                  className="w-full px-3 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl text-xs text-[var(--text-color)] outline-none focus:border-amber-500 font-bold"
                 />
               </div>
 
@@ -376,9 +380,9 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                     placeholder="URL of Evaluated Copy PDF"
                     value={evalPdfUrl}
                     onChange={e => setEvalPdfUrl(e.target.value)}
-                    className="flex-1 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-indigo-500 font-mono"
+                    className="flex-1 px-3 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl text-xs text-[var(--text-color)] outline-none focus:border-amber-500 font-mono"
                   />
-                  <label className="px-4 py-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 font-bold text-xs rounded-xl cursor-pointer inline-flex items-center gap-1.5 shrink-0">
+                  <label className="px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-bold text-xs rounded-xl cursor-pointer inline-flex items-center gap-1.5 shrink-0">
                     <Upload className="w-3.5 h-3.5" />
                     {uploadingEvaluatedPdf ? 'Uploading…' : 'Browse PDF'}
                     <input type="file" accept="application/pdf" onChange={handleFileUpload} className="hidden" />
@@ -394,26 +398,24 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                   placeholder="Provide constructive feedback on introduction, body structure, conclusion, map diagrams, and factual coverage…"
                   value={evalFeedback}
                   onChange={e => setEvalFeedback(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-indigo-500 leading-relaxed"
+                  className="w-full px-3 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none focus:border-amber-500 leading-relaxed font-medium"
                 />
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setSelectedSub(null)}
-                  className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl"
+                  className="px-4 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] text-slate-600 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submittingEval}
-                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg flex items-center gap-2"
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md cursor-pointer disabled:opacity-50"
                 >
-                  <Check className="w-4 h-4" />
-                  {submittingEval ? 'Saving…' : 'Save & Publish Evaluation'}
+                  {submittingEval ? 'Saving…' : 'Save Evaluation'}
                 </button>
               </div>
             </form>

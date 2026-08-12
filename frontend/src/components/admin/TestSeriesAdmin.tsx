@@ -12,7 +12,7 @@ const BLANK_SERIES: Partial<TestSeriesItem> = {
   slug: '',
   category: 'Prelims',
   exam: '71st BPSC CCE',
-  language: 'Bilingual (Hindi & English)',
+  language: 'English',
   status: 'active',
   price: 2999,
   discountedPrice: 1499,
@@ -147,7 +147,8 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   // Open modal to Edit
   const handleOpenEditSeries = (item: TestSeriesItem) => {
     setSeriesModalType('edit');
-    setEditingSeries({ ...item });
+    const cleanLang = (item.language && item.language.toLowerCase().includes('hindi')) ? 'Hindi' : 'English';
+    setEditingSeries({ ...item, language: cleanLang, medium: cleanLang });
     setHighlightsInput((item.highlights || []).join('\n'));
     setIsSeriesModalOpen(true);
   };
@@ -174,7 +175,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
       slug: finalSlug,
       category: editingSeries.category || 'Prelims',
       exam: editingSeries.exam || 'BPSC',
-      language: editingSeries.language || 'Bilingual (Hindi & English)',
+      language: (editingSeries.language && editingSeries.language.toLowerCase().includes('hindi')) ? 'Hindi' : 'English',
       status: editingSeries.status || 'active',
       thumbnailUrl: editingSeries.thumbnailUrl || '',
       bannerUrl: editingSeries.bannerUrl || '',
@@ -191,7 +192,11 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
       enrolledCount: Number(editingSeries.enrolledCount) || 0,
       validityDays: Number(editingSeries.validityDays) || 180,
       isPublished: editingSeries.isPublished !== false,
-      displayOrder: Number(editingSeries.displayOrder) || 1
+      displayOrder: Number(editingSeries.displayOrder) || 1,
+      moduleCode: editingSeries.moduleCode || '',
+      medium: editingSeries.medium || editingSeries.language || 'English',
+      programDetails: editingSeries.programDetails || '',
+      schedulePdfUrl: editingSeries.schedulePdfUrl || ''
     };
 
     try {
@@ -1055,7 +1060,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                       setEditingSeries({
                         ...editingSeries,
                         examId: selectedExId,
-                        exam: selectedExObj?.name || 'BPSC',
+                        exam: selectedExObj?.code || selectedExObj?.name || 'BPSC',
                         stageId: defaultStageId,
                         category: defaultCategory
                       });
@@ -1104,17 +1109,16 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
 
               {/* Language Selector */}
               <div>
-                <label className="block text-slate-400 mb-1">Language *</label>
+                <label className="block text-slate-400 mb-1">Medium / Language *</label>
                 <select
-                  value={editingSeries.language || 'Bilingual (Hindi & English)'}
-                    onChange={e => setEditingSeries({ ...editingSeries, language: e.target.value as any })}
-                    className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
-                  >
-                    <option value="Bilingual (Hindi & English)">Bilingual (Hindi & English)</option>
-                    <option value="English">English Medium</option>
-                    <option value="Hindi">Hindi Medium</option>
-                  </select>
-                </div>
+                  value={(editingSeries.language && editingSeries.language.toLowerCase().includes('hindi')) ? 'Hindi' : 'English'}
+                  onChange={e => setEditingSeries({ ...editingSeries, language: e.target.value as any, medium: e.target.value })}
+                  className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
+                >
+                  <option value="English">English Medium</option>
+                  <option value="Hindi">Hindi Medium</option>
+                </select>
+              </div>
               </div>
 
               {/* Price, Discounted Price, Total Tests, Questions */}

@@ -51,14 +51,26 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
             </div>
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Fee Structure</span>
-              <p className="text-sm font-extrabold text-blue-600">{course.fee}</p>
+              <p className="text-sm font-extrabold text-blue-600">
+                {(() => {
+                  const strFee = String(course.fee).trim();
+                  if (strFee.startsWith('₹')) return strFee;
+                  const numFee = parseInt(strFee.replace(/[^\d]/g, ''), 10);
+                  if (numFee && !isNaN(numFee)) return `₹${numFee.toLocaleString('en-IN')}`;
+                  return strFee;
+                })()}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Pricing / Booking Card */}
         <div className="lg:col-span-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-lg space-y-6 lg:sticky lg:top-24">
-          <EnrollmentCard courseId={course.id} fee={course.fee} />
+          <EnrollmentCard 
+            courseId={String(course.id)} 
+            fee={String(course.fee)} 
+            originalPrice={(course as any).originalPrice}
+            discount={(course as any).discount}
+          />
 
           <div className="space-y-3.5 pt-4 border-t border-slate-100">
             <div className="flex gap-2.5 text-xs text-slate-500">

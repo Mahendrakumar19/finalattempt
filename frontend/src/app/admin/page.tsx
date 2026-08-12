@@ -129,6 +129,8 @@ interface Course {
   category: string;
   description: string;
   fee: number | string;
+  originalPrice?: number | string | null;
+  discount?: string | null;
   duration: string;
   schedule: string;
   isPublished: boolean;
@@ -221,8 +223,35 @@ export default function AdminPortal() {
       const superFlag = localStorage.getItem('is_super_admin') === 'true';
       if (token) setAdminToken(token);
       if (superFlag) setIsSuperAdmin(true);
+
+      // Restore working tab on refresh
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTab = urlParams.get('tab') as AdminTab | null;
+        const savedTab = localStorage.getItem('admin_active_tab') as AdminTab | null;
+        const validTab = urlTab || savedTab;
+        if (validTab) {
+          setActiveTab(validTab);
+        }
+      } catch (err) {
+        console.error('Failed restoring active tab:', err);
+      }
     });
   }, []);
+
+  // Sync activeTab state to localStorage & URL query param
+  useEffect(() => {
+    if (isMounted && activeTab) {
+      try {
+        localStorage.setItem('admin_active_tab', activeTab);
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('tab') !== activeTab) {
+          url.searchParams.set('tab', activeTab);
+          window.history.replaceState(null, '', url.pathname + url.search);
+        }
+      } catch (_) {}
+    }
+  }, [activeTab, isMounted]);
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -963,13 +992,17 @@ export default function AdminPortal() {
                 </div>
               </div>
 
-              {/* ── 2. Live Announcements ─────────────────────────── */}
+              {/* ── 2. Live "What's New" Updates Manager ─────────────────────────── */}
               <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-6">
                 <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
                   <div>
-                    <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">
-                      2. Live Home Page Announcements
+                    <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
+                      <span>2. Live &quot;What&apos;s New&quot; Updates Manager</span>
                     </h3>
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                      Create, edit, reorder updates, set target URLs, and toggle the pulsing &quot;NEW&quot; badge ON/OFF for each item.
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -980,47 +1013,141 @@ export default function AdminPortal() {
                       setSettings({
                         ...settings,
                         announcements: [
-                          ...current,
-                          { date: dateStr, text: 'New Batch Announcement', isNew: true }
+                          { date: dateStr, text: 'New Batch Announcement', link: '/courses', isNew: true },
+                          ...current
                         ]
                       });
                     }}
-                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm"
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm transition-all"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Add Announcement</span>
+                    <span>+ Add What&apos;s New Item</span>
                   </button>
                 </div>
 
                 {(settings.announcements || []).length === 0 ? (
-                  <p className="text-xs text-slate-400 italic py-2">No custom announcements configured.</p>
+                  <div className="p-6 bg-slate-50 dark:bg-slate-800/40 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-center space-y-2">
+                    <p className="text-xs text-slate-400 italic">No &quot;What&apos;s New&quot; items currently published.</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSettings({
+                          ...settings,
+                          announcements: [
+                            { date: 'ADMISSIONS', text: 'Admissions open for 72nd BPSC Prelims & Mains Mentorship Program.', link: '/contact?enquiry=enroll', isNew: true },
+                            { date: 'TEST SERIES', text: '71st BPSC Prelims All India Mock Test Series schedule announced.', link: '/test-series', isNew: true },
+                            { date: 'DOWNLOADS', text: 'Free Mains Value Added Notes & Model Topper Answer Copies available.', link: '/downloads', isNew: false }
+                          ]
+                        });
+                      }}
+                      className="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl hover:bg-amber-500 hover:text-slate-950 transition-colors"
+                    >
+                      Load Sample Platform Updates
+                    </button>
+                  </div>
                 ) : (
                   <div className="space-y-3">
                     {(settings.announcements || []).map((ann, idx) => (
-                      <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-2xl space-y-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Notice #{idx + 1}</span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = (settings.announcements || []).filter((_, i) => i !== idx);
-                              setSettings({ ...settings, announcements: updated });
-                            }}
-                            className="text-xs font-bold text-red-500 hover:underline"
-                          >
-                            Remove
-                          </button>
+                      <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-white/10 rounded-2xl space-y-3 relative group">
+                        <div className="flex items-center justify-between gap-3 border-b border-slate-200/60 dark:border-white/10 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-lg uppercase tracking-widest font-mono">
+                              Item #{idx + 1}
+                            </span>
+
+                            {/* NEW BADGE TOGGLE BUTTON */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...(settings.announcements || [])];
+                                updated[idx] = { ...updated[idx], isNew: !(updated[idx].isNew !== false) };
+                                setSettings({ ...settings, announcements: updated });
+                              }}
+                              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-black transition-all cursor-pointer border ${
+                                ann.isNew !== false
+                                  ? 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 shadow-2xs'
+                                  : 'bg-slate-200/80 dark:bg-slate-700/80 border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400'
+                              }`}
+                              title="Click to toggle NEW badge"
+                            >
+                              <span className={`w-2 h-2 rounded-full ${ann.isNew !== false ? 'bg-red-500 animate-pulse' : 'bg-slate-400'}`} />
+                              <span>{ann.isNew !== false ? '🔴 NEW BADGE ON' : '⚪ NEW BADGE OFF'}</span>
+                            </button>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            {/* Reorder Buttons */}
+                            {idx > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...(settings.announcements || [])];
+                                  const temp = updated[idx];
+                                  updated[idx] = updated[idx - 1];
+                                  updated[idx - 1] = temp;
+                                  setSettings({ ...settings, announcements: updated });
+                                }}
+                                className="px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg cursor-pointer"
+                                title="Move Up"
+                              >
+                                ⬆️
+                              </button>
+                            )}
+                            {idx < (settings.announcements || []).length - 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...(settings.announcements || [])];
+                                  const temp = updated[idx];
+                                  updated[idx] = updated[idx + 1];
+                                  updated[idx + 1] = temp;
+                                  setSettings({ ...settings, announcements: updated });
+                                }}
+                                className="px-2 py-1 text-[10px] font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg cursor-pointer"
+                                title="Move Down"
+                              >
+                                ⬇️
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = (settings.announcements || []).filter((_, i) => i !== idx);
+                                setSettings({ ...settings, announcements: updated });
+                              }}
+                              className="text-xs font-bold text-red-500 hover:text-red-700 hover:underline cursor-pointer ml-2"
+                            >
+                              Remove 🗑️
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                          <div className="space-y-1">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase">Date Tag (e.g. 15 JUN)</label>
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                          <div className="sm:col-span-3 space-y-1">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Date / Tag (e.g. ADMISSIONS)</label>
                             <input
                               type="text"
-                              value={ann.date}
+                              value={ann.date || ''}
+                              placeholder="ADMISSIONS"
                               onChange={(e) => {
                                 const updated = [...(settings.announcements || [])];
                                 updated[idx] = { ...updated[idx], date: e.target.value };
+                                setSettings({ ...settings, announcements: updated });
+                              }}
+                              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white uppercase tracking-wider"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-6 space-y-1">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Update / Notice Text</label>
+                            <input
+                              type="text"
+                              value={ann.text || ''}
+                              placeholder="Enter What's New update description..."
+                              onChange={(e) => {
+                                const updated = [...(settings.announcements || [])];
+                                updated[idx] = { ...updated[idx], text: e.target.value };
                                 setSettings({ ...settings, announcements: updated });
                               }}
                               className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
@@ -1028,16 +1155,17 @@ export default function AdminPortal() {
                           </div>
 
                           <div className="sm:col-span-3 space-y-1">
-                            <label className="text-[9px] font-bold text-slate-400 uppercase">Announcement Text</label>
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Target Link URL (Optional)</label>
                             <input
                               type="text"
-                              value={ann.text}
+                              value={ann.link || ''}
+                              placeholder="/test-series or https://..."
                               onChange={(e) => {
                                 const updated = [...(settings.announcements || [])];
-                                updated[idx] = { ...updated[idx], text: e.target.value };
+                                updated[idx] = { ...updated[idx], link: e.target.value };
                                 setSettings({ ...settings, announcements: updated });
                               }}
-                              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                              className="w-full px-3 py-2 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-mono text-slate-800 dark:text-slate-200"
                             />
                           </div>
                         </div>
@@ -3460,7 +3588,21 @@ export default function AdminPortal() {
                   )}
 
                   <div className="flex justify-between items-center border-t border-slate-100 pt-3">
-                    <span className="text-xs font-bold text-slate-900">{typeof course.fee === 'number' ? `₹${(course.fee / 100).toLocaleString('en-IN')}` : course.fee}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-extrabold text-amber-600">
+                        {typeof course.fee === 'number' ? `₹${course.fee.toLocaleString('en-IN')}` : (course.fee || '₹0')}
+                      </span>
+                      {course.originalPrice ? (
+                        <span className="text-xs text-slate-400 line-through font-semibold">
+                          {typeof course.originalPrice === 'number' ? `₹${course.originalPrice.toLocaleString('en-IN')}` : course.originalPrice}
+                        </span>
+                      ) : null}
+                      {course.discount ? (
+                        <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 uppercase">
+                          {course.discount}
+                        </span>
+                      ) : null}
+                    </div>
 
                     {/* iOS Designer Switch Toggle */}
                     <div className="flex items-center gap-2">
@@ -3572,27 +3714,51 @@ export default function AdminPortal() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Course Fee (in ₹ INR)</label>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Discounted Fee (₹)</label>
                       <div className="relative flex items-center">
-                        <span className="absolute left-3 text-slate-500 font-bold text-xs">₹</span>
+                        <span className="absolute left-2.5 text-slate-500 font-bold text-xs">₹</span>
                         <input
                           type="number" required value={courseForm.fee}
-                          placeholder="0"
+                          placeholder="4999"
                           onChange={(e) => setCourseForm({ ...courseForm, fee: Number(e.target.value) })}
-                          className="w-full pl-7 pr-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 font-semibold"
+                          className="w-full pl-6 pr-2 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 font-semibold"
                         />
                       </div>
                     </div>
+
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Duration</label>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Original Price (₹)</label>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-2.5 text-slate-500 font-bold text-xs">₹</span>
+                        <input
+                          type="number" value={courseForm.originalPrice || ''}
+                          placeholder="9999"
+                          onChange={(e) => setCourseForm({ ...courseForm, originalPrice: e.target.value ? Number(e.target.value) : '' })}
+                          className="w-full pl-6 pr-2 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 font-semibold text-slate-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Discount Tag</label>
                       <input
-                        type="text" required value={courseForm.duration}
-                        onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })}
-                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400"
+                        type="text" value={courseForm.discount || ''}
+                        placeholder="50% OFF"
+                        onChange={(e) => setCourseForm({ ...courseForm, discount: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 font-bold text-emerald-600"
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase">Duration</label>
+                    <input
+                      type="text" required value={courseForm.duration}
+                      onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })}
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400"
+                    />
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">

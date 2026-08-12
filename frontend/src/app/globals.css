@@ -748,14 +748,14 @@ html.dark ::-webkit-scrollbar-track {
 .flip-card-container {
   perspective: 1500px;
   width: 100%;
-  min-height: 380px;
+  min-height: 240px;
   position: relative;
-  border-radius: 24px;
+  border-radius: 20px;
 }
 
 @media (max-width: 640px) {
   .flip-card-container {
-    min-height: 360px;
+    min-height: 220px;
   }
 }
 

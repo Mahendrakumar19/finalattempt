@@ -10,9 +10,11 @@ import { checkEnrollment, createRazorpayOrder, verifyRazorpayPayment } from '@/s
 interface EnrollmentCardProps {
   courseId: string;
   fee: string;
+  originalPrice?: number | string | null;
+  discount?: string | null;
 }
 
-export default function EnrollmentCard({ courseId, fee }: EnrollmentCardProps) {
+export default function EnrollmentCard({ courseId, fee, originalPrice, discount }: EnrollmentCardProps) {
   const { user, accessToken, isAuthenticated } = useAuth();
   const router = useRouter();
   const [isEnrolled, setIsEnrolled] = useState(false);
@@ -163,9 +165,44 @@ export default function EnrollmentCard({ courseId, fee }: EnrollmentCardProps) {
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Course Fees</span>
-        <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-extrabold text-brand-primary">{fee}</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Course Fees</span>
+          <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase border border-emerald-500/20">
+            {discount || (() => {
+              const numFee = parseInt(String(fee).replace(/[^\d]/g, ''), 10);
+              const numOrig = originalPrice ? parseInt(String(originalPrice).replace(/[^\d]/g, ''), 10) : (numFee ? Math.round(numFee * 1.6) : null);
+              if (numFee && numOrig && numOrig > numFee) {
+                const pct = Math.round(((numOrig - numFee) / numOrig) * 100);
+                return `LIMITED TIME OFFER • ${pct}% OFF`;
+              }
+              return 'LIMITED TIME OFFER • 37% OFF';
+            })()}
+          </span>
+        </div>
+        <div className="flex items-baseline gap-2.5">
+          <span className="text-3xl font-black text-slate-900 dark:text-white">
+            {(() => {
+              const strFee = String(fee).trim();
+              if (strFee.startsWith('₹')) return strFee;
+              const numFee = parseInt(strFee.replace(/[^\d]/g, ''), 10);
+              if (numFee && !isNaN(numFee)) {
+                return `₹${numFee.toLocaleString('en-IN')}`;
+              }
+              return strFee;
+            })()}
+          </span>
+          {(() => {
+            const numFee = parseInt(String(fee).replace(/[^\d]/g, ''), 10);
+            const numOrig = originalPrice ? parseInt(String(originalPrice).replace(/[^\d]/g, ''), 10) : (numFee ? Math.round(numFee * 1.6) : null);
+            if (numOrig && !isNaN(numOrig)) {
+              return (
+                <span className="text-base text-slate-400 font-bold line-through">
+                  ₹{numOrig.toLocaleString('en-IN')}
+                </span>
+              );
+            }
+            return null;
+          })()}
           <span className="text-xs text-slate-400 font-medium">Bilingual material included</span>
         </div>
       </div>

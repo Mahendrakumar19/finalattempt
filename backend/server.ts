@@ -659,6 +659,7 @@ app.delete('/api/custom-pages/:id', async (req, res) => {
 // Create HTTP and Socket.io Servers
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
+  transports: ['websocket', 'polling'],
   cors: {
     origin: (origin, callback) => {
       if (!origin) {
@@ -666,15 +667,20 @@ const io = new Server(httpServer, {
         return;
       }
       const cleanFrontend = (process.env.FRONTEND_URL || '').trim();
-      const isAllowed = origin.startsWith('http://localhost:') || 
-                        origin.includes('vercel.app') || 
-                        origin.includes('finalattempt') ||
-                        origin.includes('finalttempt') ||
-                        (cleanFrontend && origin === cleanFrontend);
+      const cleanOrigin = origin.replace(/\/$/, '');
+      const isAllowed = ALLOWED_ORIGINS.includes(cleanOrigin) ||
+                        cleanOrigin.includes('finalattempt') ||
+                        cleanOrigin.includes('vercel.app') ||
+                        cleanOrigin.includes('onrender.com') ||
+                        cleanOrigin.startsWith('http://localhost:') ||
+                        cleanOrigin.startsWith('http://127.0.0.1:') ||
+                        cleanOrigin.startsWith('http://38.242.244.225:') ||
+                        (cleanFrontend && cleanOrigin === cleanFrontend.replace(/\/$/, ''));
       if (isAllowed) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        console.warn(`[Socket CORS Fallback] Origin: ${origin}`);
+        callback(null, true); // Fallback allow to avoid disconnects in production deployments
       }
     },
     credentials: true

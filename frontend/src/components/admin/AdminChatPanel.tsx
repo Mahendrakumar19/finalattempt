@@ -26,7 +26,20 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+  const getBackendUrl = () => {
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      return process.env.NEXT_PUBLIC_BACKEND_URL.replace(/\/$/, '');
+    }
+    if (typeof window !== 'undefined') {
+      const { protocol, hostname, port } = window.location;
+      if (hostname === 'localhost' || hostname === '127.0.0.1') {
+        return 'http://localhost:5000';
+      }
+      return `${protocol}//${hostname}${port ? `:${port}` : ''}`;
+    }
+    return 'http://localhost:5000';
+  };
+  const BACKEND_URL = getBackendUrl();
 
   // Fetch Rooms & Blocked Users
   const loadRooms = async () => {
@@ -58,7 +71,11 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
   // Socket Connection & Real-Time Event Handlers
   useEffect(() => {
     const socket = io(BACKEND_URL, {
-      withCredentials: true
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000
     });
     socketRef.current = socket;
 

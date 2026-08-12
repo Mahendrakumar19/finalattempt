@@ -55,11 +55,17 @@ export interface Course {
   exam?: 'BPSC' | 'Arunachal PCS' | string;
   category: 'BPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview' | string;
   description: string;
+  overview?: string;
   duration: string;
-  fee: string;
+  fee: string | number;
+  price?: number;
+  originalPrice?: number | string | null;
+  discount?: string | null;
+  discountedPrice?: number;
   syllabus: string[];
   features: string[];
   schedule: string;
+  demoLectures?: { title: string; duration: string; url: string; teacher?: string }[];
   faq: { q: string; a: string }[];
   enrolledCount: number;
   isPublished?: boolean;
@@ -310,7 +316,7 @@ class FinalAttemptDB {
 
   public async getCourseById(id: string): Promise<Course | undefined> {
     const courses = await this.getCourses();
-    return courses.find(c => c.id === id);
+    return courses.find(c => String(c.id) === String(id));
   }
 
   public async getSectionsByCourseId(courseId: string): Promise<CourseSection[]> {
@@ -569,7 +575,7 @@ class FinalAttemptDB {
             title: '71st All India Standard Test Series 2025-26',
             slug: 'bpsc-71st-prelims-mock-vault',
             category: 'Prelims',
-            language: 'Bilingual (Hindi & English)',
+            language: 'English',
             status: 'active',
             price: 4999,
             discountedPrice: 2499,
@@ -593,7 +599,7 @@ class FinalAttemptDB {
             title: '70th Daily Answer Evaluation & Grand Mock Series',
             slug: 'bpsc-70th-mains-evaluator-workbench',
             category: 'Mains',
-            language: 'Bilingual (Hindi & English)',
+            language: 'English',
             status: 'active',
             price: 8999,
             discountedPrice: 4499,

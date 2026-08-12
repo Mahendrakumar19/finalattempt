@@ -43,16 +43,16 @@ interface NavEntry  {
 
 /* ─── icon map helpers ───────────────────────────── */
 const IC = {
-  courses:       <BookOpen className="w-4 h-4" />,
-  prelims:       <Target className="w-4 h-4" />,
-  mains:         <FileText className="w-4 h-4" />,
-  foundation:    <GraduationCap className="w-4 h-4" />,
-  test:          <BarChart2 className="w-4 h-4" />,
-  daily:         <Calendar className="w-4 h-4" />,
-  weekly:        <Layers className="w-4 h-4" />,
-  monthly:       <BookMarked className="w-4 h-4" />,
-  yearly:        <Star className="w-4 h-4" />,
-  download:      <Download className="w-4 h-4" />,
+  courses:       <BookOpen className="w-4 h-4 text-blue-500" />,
+  prelims:       <Target className="w-4 h-4 text-rose-500" />,
+  mains:         <FileText className="w-4 h-4 text-violet-500" />,
+  foundation:    <GraduationCap className="w-4 h-4 text-emerald-500" />,
+  test:          <BarChart2 className="w-4 h-4 text-indigo-500" />,
+  daily:         <Calendar className="w-4 h-4 text-amber-500" />,
+  weekly:        <Layers className="w-4 h-4 text-cyan-500" />,
+  monthly:       <BookMarked className="w-4 h-4 text-purple-500" />,
+  yearly:        <Star className="w-4 h-4 text-pink-500" />,
+  download:      <Download className="w-4 h-4 text-teal-500" />,
   pyq:           <FileText className="w-4 h-4 text-blue-500" />,
   ncert:         <BookOpen className="w-4 h-4 text-emerald-500" />,
   rapid:         <Zap className="w-4 h-4 text-amber-500" />,
@@ -60,16 +60,16 @@ const IC = {
   toppers:       <FileCheck className="w-4 h-4 text-teal-500" />,
   fa:            <img src="/favicon.png" alt="FA" className="w-4 h-4 rounded-full object-cover" />,
   compass:       <Compass className="w-4 h-4 text-indigo-500" />,
-  blog:          <Newspaper className="w-4 h-4 text-red-500" />,
-  video:         <Video className="w-4 h-4" />,
-  syllabus:      <Compass className="w-4 h-4 text-indigo-500" />,
-  about:         <Info className="w-4 h-4" />,
-  faculty:       <Users className="w-4 h-4" />,
-  results:       <Award className="w-4 h-4" />,
-  contact:       <Phone className="w-4 h-4" />,
-  home:          <Home className="w-4 h-4" />,
-  globe:         <Globe className="w-4 h-4" />,
-  sparkle:       <Sparkles className="w-4 h-4" />,
+  blog:          <Newspaper className="w-4 h-4 text-rose-500" />,
+  video:         <Video className="w-4 h-4 text-red-500" />,
+  syllabus:      <Compass className="w-4 h-4 text-sky-500" />,
+  about:         <Info className="w-4 h-4 text-blue-500" />,
+  faculty:       <Users className="w-4 h-4 text-emerald-500" />,
+  results:       <Award className="w-4 h-4 text-amber-500" />,
+  contact:       <Phone className="w-4 h-4 text-violet-500" />,
+  home:          <Home className="w-4 h-4 text-amber-500" />,
+  globe:         <Globe className="w-4 h-4 text-teal-500" />,
+  sparkle:       <Sparkles className="w-4 h-4 text-amber-400" />,
 };
 
 /* ═══════════════════════════════════════════════════
@@ -560,7 +560,7 @@ export default function Header() {
                               onClick={() => setActiveMega(null)}
                               className="group/item flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-white/5 hover:border-amber-500/40 hover:bg-amber-50 dark:hover:bg-white/[0.06] transition-all duration-150"
                             >
-                              <span className="shrink-0 w-6 h-6 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 group-hover/item:bg-amber-500 group-hover/item:text-slate-950 flex items-center justify-center transition-all duration-150 text-xs font-black">
+                              <span className="shrink-0 w-6 h-6 rounded-lg bg-slate-100 dark:bg-slate-800/80 group-hover/item:bg-amber-500 group-hover/item:text-slate-950 flex items-center justify-center transition-all duration-150 text-xs font-black">
                                 {item.icon || IC.globe}
                               </span>
                               <div className="min-w-0 flex-1">
@@ -688,7 +688,7 @@ export default function Header() {
                                 onClick={() => setMobileOpen(false)}
                                 className="flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-colors"
                               >
-                                <span className="text-slate-400 dark:text-slate-500">{item.icon}</span>
+                                <span className="shrink-0 flex items-center justify-center">{item.icon}</span>
                                 <span>{item.label}</span>
                                 {item.isNew && <span className="px-1.5 py-0.5 bg-emerald-500 text-white text-[9px] font-extrabold rounded uppercase">New</span>}
                               </Link>

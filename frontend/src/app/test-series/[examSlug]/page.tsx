@@ -175,12 +175,37 @@ export default function ExamFolderPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <h3 className="font-heading font-black text-lg text-[var(--text-color)] group-hover:text-amber-500 transition-colors leading-snug">
-                            {series.title}
-                          </h3>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-heading font-black text-lg text-[var(--text-color)] group-hover:text-amber-500 transition-colors leading-snug">
+                              {series.title}
+                            </h3>
+                          </div>
+                          {series.moduleCode && (
+                            <span className="inline-block px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px] font-bold rounded-md border border-[var(--card-border)]">
+                              Module Code - {series.moduleCode.replace(/^Module Code\s*-\s*/i, '')}
+                            </span>
+                          )}
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                             {series.description}
                           </p>
+                        </div>
+
+                        {/* Additional Key Attributes: Medium, Start Date, Program Details */}
+                        <div className="space-y-1.5 pt-2 border-t border-[var(--card-border)] text-xs font-semibold text-[var(--text-color)]">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase text-slate-400">Medium</span>
+                            <span className="text-amber-600 dark:text-amber-400 font-extrabold">{series.medium || series.language || 'English'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase text-slate-400">Start Date</span>
+                            <span className="font-bold">{series.batchStartDate || '09 August 2026'}</span>
+                          </div>
+                          {series.programDetails && (
+                            <div className="flex items-start justify-between gap-2 pt-0.5">
+                              <span className="text-[10px] font-bold uppercase text-slate-400 shrink-0">Details</span>
+                              <span className="text-[11px] text-right font-medium text-slate-600 dark:text-slate-300">{series.programDetails}</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="grid grid-cols-2 gap-3 pt-2">
@@ -229,6 +254,17 @@ export default function ExamFolderPage() {
                               </span>
                             )}
                           </div>
+
+                          {series.schedulePdfUrl && (
+                            <a
+                              href={series.schedulePdfUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline block mt-0.5"
+                            >
+                              Download Schedule
+                            </a>
+                          )}
                         </div>
 
                         <Link

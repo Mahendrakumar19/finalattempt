@@ -71,6 +71,8 @@ export interface Course {
   description: string;
   duration: string;
   fee: string;
+  price?: number;
+  discountedPrice?: number;
   syllabus: string[];
   features: string[];
   schedule: string;
@@ -3255,7 +3257,11 @@ class LmsDB {
           syllabus: typeof r.syllabus === 'string' ? JSON.parse(r.syllabus) : r.syllabus,
           features: typeof r.features === 'string' ? JSON.parse(r.features) : r.features,
           faq:      typeof r.faq      === 'string' ? JSON.parse(r.faq)      : r.faq,
-          fee: typeof r.fee === 'string' ? r.fee : `₹${(r.fee / 100 || r.fee).toLocaleString('en-IN')}`
+          faculty:  typeof r.faculty  === 'string' ? JSON.parse(r.faculty)  : r.faculty,
+          demoLectures: typeof r.demoLectures === 'string' ? JSON.parse(r.demoLectures) : r.demoLectures,
+          fee: r.fee,
+          originalPrice: r.originalPrice || null,
+          discount: r.discount || null
         }));
       } catch (err) { 
         console.error('[LmsDB] getCourses MySQL error, serving local fallback:', err); 
@@ -3279,7 +3285,11 @@ class LmsDB {
           syllabus: typeof r.syllabus === 'string' ? JSON.parse(r.syllabus) : r.syllabus,
           features: typeof r.features === 'string' ? JSON.parse(r.features) : r.features,
           faq:      typeof r.faq      === 'string' ? JSON.parse(r.faq)      : r.faq,
-          fee: `₹${(r.fee).toLocaleString('en-IN')}`
+          faculty:  typeof r.faculty  === 'string' ? JSON.parse(r.faculty)  : r.faculty,
+          demoLectures: typeof r.demoLectures === 'string' ? JSON.parse(r.demoLectures) : r.demoLectures,
+          fee: r.fee,
+          originalPrice: r.originalPrice || null,
+          discount: r.discount || null
         };
       } catch (err) { 
         console.error('[LmsDB] getCourseById MySQL error, serving local fallback:', err); 
@@ -3294,17 +3304,33 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO lms_courses (id, title, slug, exam, category, description, fee, duration, schedule, enrolledCount, syllabus, features, faq, isPublished)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+          `INSERT INTO lms_courses (id, title, slug, exam, category, description, overview, fee, originalPrice, discount, duration, schedule, enrolledCount, syllabus, features, faq, faculty, demoLectures, isPublished)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
           [
-            data.id, data.title, slug, data.exam || 'BPSC', data.category || 'Prelims', data.description,
-            data.fee || 0, data.duration || '', data.schedule || '',
+            data.id, data.title, slug, data.exam || 'BPSC', data.category || 'Prelims', data.description || '', data.overview || '',
+            data.fee || 0, data.originalPrice || null, data.discount || null, data.duration || '', data.schedule || '',
             JSON.stringify(data.syllabus || []),
             JSON.stringify(data.features || []),
             JSON.stringify(data.faq || []),
+            JSON.stringify(data.faculty || []),
+            JSON.stringify(data.demoLectures || []),
             data.isPublished ? 1 : 0
           ]
-        );
+        ).catch(async () => {
+          // Fallback if extra columns are missing in older MySQL schemas
+          await mysqlPool.query(
+            `INSERT INTO lms_courses (id, title, slug, exam, category, description, fee, duration, schedule, enrolledCount, syllabus, features, faq, isPublished)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+            [
+              data.id, data.title, slug, data.exam || 'BPSC', data.category || 'Prelims', data.description,
+              data.fee || 0, data.duration || '', data.schedule || '',
+              JSON.stringify(data.syllabus || []),
+              JSON.stringify(data.features || []),
+              JSON.stringify(data.faq || []),
+              data.isPublished ? 1 : 0
+            ]
+          );
+        });
         return data;
       } catch (err) {
         console.error('[LmsDB] createCourse MySQL error:', err);
@@ -3317,7 +3343,9 @@ class LmsDB {
         ...data,
         syllabus: typeof data.syllabus === 'string' ? JSON.parse(data.syllabus) : data.syllabus || [],
         features: typeof data.features === 'string' ? JSON.parse(data.features) : data.features || [],
-        faq: typeof data.faq === 'string' ? JSON.parse(data.faq) : data.faq || []
+        faq: typeof data.faq === 'string' ? JSON.parse(data.faq) : data.faq || [],
+        faculty: typeof data.faculty === 'string' ? JSON.parse(data.faculty) : data.faculty || [],
+        demoLectures: typeof data.demoLectures === 'string' ? JSON.parse(data.demoLectures) : data.demoLectures || []
       });
       db.saveLocalData();
     }
@@ -3331,15 +3359,40 @@ class LmsDB {
         const vals: any[] = [];
         if (updates.title !== undefined) { fields.push('title = ?'); vals.push(updates.title); }
         if (updates.description !== undefined) { fields.push('description = ?'); vals.push(updates.description); }
+        if (updates.overview !== undefined) { fields.push('overview = ?'); vals.push(updates.overview); }
         if (updates.exam !== undefined) { fields.push('exam = ?'); vals.push(updates.exam); }
         if (updates.category !== undefined) { fields.push('category = ?'); vals.push(updates.category); }
         if (updates.fee !== undefined) { fields.push('fee = ?'); vals.push(updates.fee); }
+        if (updates.originalPrice !== undefined) { fields.push('originalPrice = ?'); vals.push(updates.originalPrice); }
+        if (updates.discount !== undefined) { fields.push('discount = ?'); vals.push(updates.discount); }
         if (updates.duration !== undefined) { fields.push('duration = ?'); vals.push(updates.duration); }
         if (updates.schedule !== undefined) { fields.push('schedule = ?'); vals.push(updates.schedule); }
         if (updates.isPublished !== undefined) { fields.push('isPublished = ?'); vals.push(updates.isPublished ? 1 : 0); }
+        if (updates.syllabus !== undefined) { fields.push('syllabus = ?'); vals.push(typeof updates.syllabus === 'string' ? updates.syllabus : JSON.stringify(updates.syllabus)); }
+        if (updates.features !== undefined) { fields.push('features = ?'); vals.push(typeof updates.features === 'string' ? updates.features : JSON.stringify(updates.features)); }
+        if (updates.faq !== undefined) { fields.push('faq = ?'); vals.push(typeof updates.faq === 'string' ? updates.faq : JSON.stringify(updates.faq)); }
+        if (updates.faculty !== undefined) { fields.push('faculty = ?'); vals.push(typeof updates.faculty === 'string' ? updates.faculty : JSON.stringify(updates.faculty)); }
+        if (updates.demoLectures !== undefined) { fields.push('demoLectures = ?'); vals.push(typeof updates.demoLectures === 'string' ? updates.demoLectures : JSON.stringify(updates.demoLectures)); }
+
         if (fields.length === 0) return true;
         vals.push(id);
-        await mysqlPool.query(`UPDATE lms_courses SET ${fields.join(', ')} WHERE id = ?`, vals);
+        await mysqlPool.query(`UPDATE lms_courses SET ${fields.join(', ')} WHERE id = ?`, vals).catch(async (e) => {
+          // If optional columns aren't in MySQL schema, fallback to basic updates
+          const safeFields: string[] = [];
+          const safeVals: any[] = [];
+          if (updates.title !== undefined) { safeFields.push('title = ?'); safeVals.push(updates.title); }
+          if (updates.description !== undefined) { safeFields.push('description = ?'); safeVals.push(updates.description); }
+          if (updates.exam !== undefined) { safeFields.push('exam = ?'); safeVals.push(updates.exam); }
+          if (updates.category !== undefined) { safeFields.push('category = ?'); safeVals.push(updates.category); }
+          if (updates.fee !== undefined) { safeFields.push('fee = ?'); safeVals.push(updates.fee); }
+          if (updates.duration !== undefined) { safeFields.push('duration = ?'); safeVals.push(updates.duration); }
+          if (updates.schedule !== undefined) { safeFields.push('schedule = ?'); safeVals.push(updates.schedule); }
+          if (updates.isPublished !== undefined) { safeFields.push('isPublished = ?'); safeVals.push(updates.isPublished ? 1 : 0); }
+          if (safeFields.length > 0) {
+            safeVals.push(id);
+            await mysqlPool.query(`UPDATE lms_courses SET ${safeFields.join(', ')} WHERE id = ?`, safeVals);
+          }
+        });
         return true;
       } catch (err) {
         console.error('[LmsDB] updateCourse MySQL error:', err);
@@ -4357,54 +4410,54 @@ class LmsDB {
 
   // ── Analytics & Performance Metrics ────────────────────────────────────────
   async getStudentProgressMetrics(userId: string): Promise<any> {
-    if (mysqlPool) {
-      try {
-        // 1. Total lessons count per course vs completed progress count
-        const [progressRows]: any = await mysqlPool.query(
-          `SELECT p.courseId, c.title,
-                  COUNT(p.id) as completedLessons,
-                  (SELECT COUNT(l.id) FROM lms_lessons l WHERE l.courseId = p.courseId AND l.isPublished = 1) as totalLessons
-           FROM lms_progress p
-           JOIN lms_courses c ON c.id = p.courseId
-           WHERE p.userId = ? AND p.completed = 1
-           GROUP BY p.courseId`,
-          [userId]
-        );
+    try {
+      // 1. Get course completions from user enrollments
+      const enrollments = await this.getUserEnrollments(userId);
+      const courseCompletion = enrollments.map((e: any) => ({
+        courseId: e.courseId,
+        title: e.title,
+        completedLessons: Number(e.completedLessons || 0),
+        totalLessons: Number(e.totalLessons || 0),
+        completionPercentage: Number(e.completionPercentage || 0)
+      }));
 
-        // 2. Average Quiz Scores and passed checks
-        const [quizRows]: any = await mysqlPool.query(
-          `SELECT quizId,
-                  AVG(score) as averageScore,
-                  MAX(score) as maxScore,
-                  COUNT(id) as attemptsCount,
-                  SUM(passed) as passesCount
-           FROM lms_quiz_attempts
-           WHERE userId = ?
-           GROUP BY quizId`,
-          [userId]
-        );
-
-        return {
-          courseCompletion: progressRows.map((r: any) => ({
-            courseId: r.courseId,
-            title: r.title,
-            completedLessons: Number(r.completedLessons),
-            totalLessons: Number(r.totalLessons),
-            completionPercentage: r.totalLessons > 0 ? (r.completedLessons / r.totalLessons) * 100 : 0
-          })),
-          quizAnalytics: quizRows.map((q: any) => ({
-            quizId: q.quizId,
-            averageScore: Number(q.averageScore || 0),
-            maxScore: Number(q.maxScore || 0),
-            attemptsCount: Number(q.attemptsCount || 0),
-            passesCount: Number(q.passesCount || 0)
-          }))
-        };
-      } catch (err) {
-        console.error('[LmsDB] getStudentProgressMetrics MySQL error:', err);
+      // 2. Get quiz analytics if quiz_attempts table exists
+      let quizAnalytics: any[] = [];
+      if (mysqlPool) {
+        try {
+          const [quizRows]: any = await mysqlPool.query(
+            `SELECT quizId,
+                    AVG(score) as averageScore,
+                    MAX(score) as maxScore,
+                    COUNT(id) as attemptsCount,
+                    SUM(passed) as passesCount
+             FROM lms_quiz_attempts
+             WHERE userId = ?
+             GROUP BY quizId`,
+            [userId]
+          );
+          if (Array.isArray(quizRows)) {
+            quizAnalytics = quizRows.map((q: any) => ({
+              quizId: q.quizId,
+              averageScore: Number(q.averageScore || 0),
+              maxScore: Number(q.maxScore || 0),
+              attemptsCount: Number(q.attemptsCount || 0),
+              passesCount: Number(q.passesCount || 0)
+            }));
+          }
+        } catch (quizErr) {
+          // Table doesn't exist yet or query failed — return empty list
+        }
       }
+
+      return {
+        courseCompletion,
+        quizAnalytics
+      };
+    } catch (err) {
+      console.error('[LmsDB] getStudentProgressMetrics error:', err);
+      return { courseCompletion: [], quizAnalytics: [] };
     }
-    return { courseCompletion: [], quizAnalytics: [] };
   }
 }
 
