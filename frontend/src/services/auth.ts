@@ -26,7 +26,7 @@ async function apiFetch<T>(
     ...(options?.headers as Record<string, string>)
   };
 
-  if (accessToken) {
+  if (accessToken && accessToken !== 'guest-token' && accessToken !== 'null' && accessToken !== 'undefined') {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 

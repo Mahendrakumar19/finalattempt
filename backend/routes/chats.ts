@@ -2,6 +2,7 @@ import { Router, Response, NextFunction } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireStudent, requireAdmin } from '../middleware/role';
 import { lmsDB } from '../db';
+import { verifyAccessToken } from '../services/jwt';
 
 const ADMIN_MASTER_KEYS = [
   'finalattempt-superadmin-master-access-key-999',
@@ -34,14 +35,17 @@ function optionalAuthenticate(req: AuthRequest, res: Response, next: NextFunctio
     return;
   }
   const token = authHeader.split(' ')[1];
+  if (!token || token === 'guest-token' || token === 'null' || token === 'undefined') {
+    next();
+    return;
+  }
   if (ADMIN_MASTER_KEYS.includes(token)) {
     req.user = { userId: 'admin-master', email: 'admin@finalattempt.com', role: 'admin', sessionId: 'master' };
     next();
     return;
   }
   try {
-    const jwt = require('jsonwebtoken');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super-secret-jwt-key');
+    const decoded = verifyAccessToken(token);
     req.user = decoded;
   } catch {
     // Ignore invalid token for optional auth
@@ -52,9 +56,9 @@ function optionalAuthenticate(req: AuthRequest, res: Response, next: NextFunctio
 const router = Router();
 
 // Get or Create Personal Support Room (Student <-> Admin/Mentor)
-router.get('/support-room', authenticate, async (req: AuthRequest, res: Response) => {
+router.get('/support-room', optionalAuthenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const studentId = req.user!.userId;
+    const studentId = req.user?.userId || req.query.studentId as string || 'guest-student-user';
     const room = await lmsDB.getOrCreateSupportRoom(studentId, req.user?.email);
     res.json({ success: true, data: room });
   } catch (err: any) {

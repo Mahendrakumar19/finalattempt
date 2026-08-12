@@ -111,13 +111,17 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
     loadHistory();
 
     const socket = io(BACKEND_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       withCredentials: true,
       reconnection: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000
     });
     socketRef.current = socket;
+
+    socket.on('connect_error', (err) => {
+      console.warn('[Mentorship Socket] Transport connection retry:', err.message);
+    });
 
     socket.emit('join_room', activeRoom.id);
 
