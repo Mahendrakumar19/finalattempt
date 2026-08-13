@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+import { initEnv } from './bootstrap';
 
-// Load .env from workspace root
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// Ensure .env is deterministically loaded
+initEnv();
 
 // Seed Data
 import { courseData, facultyData, resultData, currentAffairsData, pyqData, blogData, resourceData } from '../frontend/src/services/seedData';

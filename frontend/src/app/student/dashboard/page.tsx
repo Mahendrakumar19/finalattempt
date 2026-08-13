@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   BookOpen, TrendingUp, FileText, HelpCircle,
   Users, Bell, Award, CheckCircle, Play, LogOut,
@@ -19,8 +20,6 @@ import PerformanceAnalytics from '@/components/lms/PerformanceAnalytics';
 import StudentPortalShell from '@/components/StudentPortalShell';
 import { db } from '@/services/db';
 
-
-
 type DashTab = 'Dashboard' | 'My Courses' | 'Performance' | 'Tests' | 'Notes' | 'Mentor Connect' | 'Certificates';
 
 interface Enrollment {
@@ -35,17 +34,31 @@ interface Enrollment {
   completionPercentage?: number;
 }
 
-export default function StudentDashboard() {
-
+function StudentDashboardContent() {
   const { user, accessToken, logout, isLoading, requireAuth } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<DashTab>('Dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState(true);
   const [allQuizzes, setAllQuizzes] = useState<{ quiz: any; courseTitle: string; courseId: string; slug?: string }[]>([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+
+  // Sync searchParams ?tab=... to activeTab
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      const decodedTab = tabParam.replace(/\+/g, ' ');
+      const validTabs: DashTab[] = ['Dashboard', 'My Courses', 'Performance', 'Tests', 'Notes', 'Mentor Connect', 'Certificates'];
+      if (validTabs.includes(decodedTab as DashTab)) {
+        setActiveTab(decodedTab as DashTab);
+      }
+    } else {
+      setActiveTab('Dashboard');
+    }
+  }, [searchParams]);
 
   // Authentication guard
   useEffect(() => {
@@ -138,7 +151,7 @@ export default function StudentDashboard() {
     { label: t('student.downloads'), value: '—', icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20' }
   ];
 
-  const activeNavKey = activeTab === 'My Courses' ? 'courses' : activeTab === 'Mentor Connect' ? 'mentor' : 'dashboard';
+  const activeNavKey = activeTab === 'My Courses' ? 'courses' : activeTab === 'Mentor Connect' ? 'mentor' : activeTab === 'Performance' ? 'performance' : 'dashboard';
 
   return (
     <StudentPortalShell activeNav={activeNavKey}>
@@ -466,5 +479,17 @@ export default function StudentDashboard() {
         </div>
       </div>
     </StudentPortalShell>
+  );
+}
+
+export default function StudentDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <StudentDashboardContent />
+    </Suspense>
   );
 }

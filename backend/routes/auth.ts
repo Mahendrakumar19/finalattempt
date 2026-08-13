@@ -145,8 +145,8 @@ router.post('/register', authLimiter, async (req: Request, res: Response) => {
     // Send real email via Zoho SMTP
     try {
       await sendOTPEmail(email, otp, 'register', fullName);
-    } catch (mailErr) {
-      console.warn(`[OTP] Email delivery failed for ${email}, OTP: ${otp}`, mailErr);
+    } catch (mailErr: any) {
+      console.warn('[OTP] Registration email delivery failed:', mailErr?.message || mailErr);
     }
 
     const { accessToken } = await issueTokens(res, user);
@@ -241,8 +241,8 @@ router.post('/send-otp', otpLimiter, async (req: Request, res: Response) => {
     if (type === 'email') {
       try {
         await sendOTPEmail(identifier, otp, purpose as any);
-      } catch (mailErr) {
-        console.warn(`[OTP] Email delivery failed for ${identifier}, OTP: ${otp}`, mailErr);
+      } catch (mailErr: any) {
+        console.warn(`[OTP] Email delivery failed for purpose ${purpose}:`, mailErr?.message || mailErr);
       }
     } else {
       // SMS fallback: log to console until MSG91 is wired up
@@ -470,8 +470,8 @@ router.post('/forgot-password', authLimiter, async (req: Request, res: Response)
       // Send real reset OTP email via Zoho SMTP
       try {
         await sendOTPEmail(email, otp, 'reset', user.fullName);
-      } catch (mailErr) {
-        console.warn(`[OTP] Reset email delivery failed for ${email}, OTP: ${otp}`, mailErr);
+      } catch (mailErr: any) {
+        console.warn('[OTP] Reset email delivery failed:', mailErr?.message || mailErr);
       }
     }
 

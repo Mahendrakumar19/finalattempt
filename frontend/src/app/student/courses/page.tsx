@@ -7,7 +7,7 @@ export default function StudentCoursesRedirectPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace('/student/dashboard');
+    router.replace('/student/dashboard?tab=My+Courses');
   }, [router]);
 
   return (

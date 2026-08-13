@@ -12,7 +12,7 @@ import { useTranslation } from '@/context/LocaleContext';
 
 interface StudentPortalShellProps {
   children: ReactNode;
-  activeNav?: 'dashboard' | 'courses' | 'prelims' | 'mains' | 'upload-mains' | 'resources' | 'mentor';
+  activeNav?: 'dashboard' | 'courses' | 'prelims' | 'mains' | 'upload-mains' | 'resources' | 'mentor' | 'performance';
 }
 
 export default function StudentPortalShell({ children, activeNav }: StudentPortalShellProps) {
@@ -30,6 +30,7 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
     { key: 'upload-mains', name: t('student.uploadMainsCopy'),   icon: Upload,          href: '/student/upload-mains' },
     { key: 'resources',    name: t('student.resources'),         icon: BookOpen,        href: '/downloads' },
     { key: 'mentor',       name: t('student.mentorConnect'),     icon: MessageSquare,   href: '/student/dashboard?tab=Mentor+Connect' },
+    { key: 'performance',  name: t('student.performance'),       icon: TrendingUp,      href: '/student/dashboard?tab=Performance' },
   ];
 
   return (

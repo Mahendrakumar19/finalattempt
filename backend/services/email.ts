@@ -1,24 +1,42 @@
 import nodemailer from 'nodemailer';
+import { validateEmailEnv } from '../bootstrap';
 
 // ─── Zoho Mail SMTP Transporter ───────────────────────────────────────────────
 // Uses Zoho SMTP with STARTTLS on port 587.
 // Set ZOHO_EMAIL and ZOHO_PASSWORD in your .env file.
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.zoho.in',
-  port: 587,
-  secure: false,          // STARTTLS — NOT SSL. Zoho requires this on port 587.
-  auth: {
-    user: process.env.ZOHO_EMAIL || 'contact@finalattemptias.com',
-    pass: process.env.ZOHO_PASSWORD,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
+function getTransporter() {
+  const email = process.env.ZOHO_EMAIL?.trim();
+  const password = process.env.ZOHO_PASSWORD?.trim();
 
-const FROM_NAME = 'Final Attempt';
-const FROM_EMAIL = process.env.ZOHO_EMAIL || 'contact@finalattemptias.com';
+  if (!email || !password) {
+    const missing: string[] = [];
+    if (!email) missing.push('ZOHO_EMAIL');
+    if (!password) missing.push('ZOHO_PASSWORD');
+    throw new Error(`Zoho SMTP configuration missing: ${missing.join(', ')}`);
+  }
+
+  return nodemailer.createTransport({
+    host: 'smtp.zoho.in',
+    port: 587,
+    secure: false,          // STARTTLS — NOT SSL. Zoho requires this on port 587.
+    auth: {
+      user: email,
+      pass: password,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
+}
+
+function getFromDetails() {
+  const email = process.env.ZOHO_EMAIL?.trim() || 'contact@finalattemptias.com';
+  return {
+    name: 'Final Attempt',
+    email,
+  };
+}
 
 // ─── OTP Email Templates ──────────────────────────────────────────────────────
 
@@ -110,8 +128,11 @@ export async function sendOTPEmail(
     register: `[Final Attempt] Welcome! Verify your email — OTP ${otp}`,
   };
 
+  const transporter = getTransporter();
+  const { name: fromName, email: fromEmail } = getFromDetails();
+
   const mailOptions = {
-    from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+    from: `"${fromName}" <${fromEmail}>`,
     to: toEmail,
     subject: subjectMap[purpose] || `[Final Attempt] Your OTP — ${otp}`,
     html: otpEmailHTML(otp, purpose, recipientName),
@@ -119,16 +140,29 @@ export async function sendOTPEmail(
   };
 
   await transporter.sendMail(mailOptions);
-  console.log(`[Email] OTP sent to ${toEmail} for purpose: ${purpose}`);
+  console.log(`[Email] OTP email sent successfully for purpose: ${purpose}`);
 }
 
 // ─── Verify SMTP connection (called on server start) ─────────────────────────
 
 export async function verifyEmailConnection(): Promise<void> {
+  const { emailSet, passSet } = validateEmailEnv();
+  console.log(`[Email] Configuration status — ZOHO_EMAIL: ${emailSet ? 'SET' : 'MISSING'}, ZOHO_PASSWORD: ${passSet ? 'SET' : 'MISSING'}`);
+
+  if (!emailSet || !passSet) {
+    const missing: string[] = [];
+    if (!emailSet) missing.push('ZOHO_EMAIL');
+    if (!passSet) missing.push('ZOHO_PASSWORD');
+    console.warn(`[Email] ⚠️ Zoho SMTP configuration missing: ${missing.join(', ')} — OTP email delivery unavailable.`);
+    return;
+  }
+
   try {
+    const transporter = getTransporter();
     await transporter.verify();
     console.log('[Email] ✅ Zoho SMTP connection verified — ready to send OTPs');
   } catch (err: any) {
-    console.warn('[Email] ⚠️  SMTP connection failed — OTP emails will be logged to console only:', err.message);
+    const cleanMsg = err?.message ? String(err.message).replace(/:.*/, '') : 'Connection failed';
+    console.warn(`[Email] ⚠️ Zoho SMTP authentication/connection failed: ${cleanMsg}`);
   }
 }
