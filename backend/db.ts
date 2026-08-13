@@ -672,6 +672,7 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         feedback TEXT,
         INDEX idx_submission_user (userId),
         INDEX idx_submission_assignment (assignmentId)
+      )
     `);
 
     // Dynamically ensure new Mains columns exist on lms_assignments & lms_assignment_submissions
@@ -2789,7 +2790,7 @@ async function initializeAuthTables(pool: mysql.Pool) {
     // Chat Rooms Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS lms_chat_rooms (
-        id            VARCHAR(36) PRIMARY KEY,
+        id            VARCHAR(255) PRIMARY KEY,
         courseId      VARCHAR(100) NOT NULL,
         title         VARCHAR(255) NOT NULL,
         type          ENUM('general','doubts','announcement') DEFAULT 'general',
@@ -2798,18 +2799,23 @@ async function initializeAuthTables(pool: mysql.Pool) {
       )
     `);
 
+    // Ensure ID length is VARCHAR(255) on existing production tables to avoid truncation of support-${uuid}
+    try { await pool.query("ALTER TABLE lms_chat_rooms MODIFY COLUMN id VARCHAR(255)"); } catch (e) {}
+
     // Chat Messages Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS lms_chat_messages (
-        id            VARCHAR(36) PRIMARY KEY,
-        roomId        VARCHAR(36) NOT NULL,
-        senderId      VARCHAR(36) NOT NULL,
+        id            VARCHAR(255) PRIMARY KEY,
+        roomId        VARCHAR(255) NOT NULL,
+        senderId      VARCHAR(255) NOT NULL,
         messageText   TEXT NOT NULL,
         createdAt     DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (roomId) REFERENCES lms_chat_rooms(id) ON DELETE CASCADE,
         FOREIGN KEY (senderId) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
+
+    try { await pool.query("ALTER TABLE lms_chat_messages MODIFY COLUMN id VARCHAR(255), MODIFY COLUMN roomId VARCHAR(255), MODIFY COLUMN senderId VARCHAR(255)"); } catch (e) {}
 
     // Seed lms_courses from existing course data if empty
     const [courseCount]: any = await pool.query('SELECT COUNT(*) as count FROM lms_courses');
@@ -3709,9 +3715,13 @@ class LmsDB {
         const courseId = courses && courses.length > 0 ? courses[0].id : 'bpsc-foundation';
 
         await mysqlPool.query(
-          'INSERT INTO lms_chat_rooms (id, courseId, title, type) VALUES (?, ?, ?, ?)',
+          'INSERT IGNORE INTO lms_chat_rooms (id, courseId, title, type) VALUES (?, ?, ?, ?)',
           [roomId, courseId, roomTitle, 'general']
         );
+
+        const [created]: any = await mysqlPool.query('SELECT * FROM lms_chat_rooms WHERE id = ? LIMIT 1', [roomId]);
+        if (created && created.length > 0) return created[0];
+
         return { id: roomId, courseId, title: roomTitle, type: 'general' };
       } catch (err) { console.error('[LmsDB] getOrCreateSupportRoom MySQL error:', err); }
     }
