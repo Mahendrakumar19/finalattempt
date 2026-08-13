@@ -42,7 +42,12 @@ interface StrategyBlock {
 }
 
 export default function SyllabusStrategyPage() {
-  const [activeTab, setActiveTab] = useState<'syllabus' | 'strategy'>('syllabus');
+  const [activeTab, setActiveTab] = useState<'syllabus' | 'strategy'>(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#strategy') {
+      return 'strategy';
+    }
+    return 'syllabus';
+  });
   const [exams, setExams] = useState<Exam[]>([]);
   const [syllabusList, setSyllabusList] = useState<SyllabusItem[]>([]);
   const [strategyBlocks, setStrategyBlocks] = useState<StrategyBlock[]>([]);
@@ -58,18 +63,12 @@ export default function SyllabusStrategyPage() {
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const hash = window.location.hash;
-      if (hash === '#strategy') {
-        setActiveTab('strategy');
-      }
-    }
-
+    let ignore = false;
     const fetchData = async () => {
       try {
         const examsRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
         const examsData = await examsRes.json();
-        if (examsData.success && Array.isArray(examsData.data)) {
+        if (!ignore && examsData.success && Array.isArray(examsData.data)) {
           const activeExams = examsData.data.filter((e: any) => e.isActive);
           setExams(activeExams);
           if (activeExams.length > 0) {
@@ -79,7 +78,7 @@ export default function SyllabusStrategyPage() {
 
         const syllabusRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/syllabus`);
         const syllabusData = await syllabusRes.json();
-        if (syllabusData.success && Array.isArray(syllabusData.data)) {
+        if (!ignore && syllabusData.success && Array.isArray(syllabusData.data)) {
           setSyllabusList(syllabusData.data);
           if (syllabusData.data.length > 0) {
             setSelectedSyllabusId(syllabusData.data[0].id);
@@ -88,7 +87,7 @@ export default function SyllabusStrategyPage() {
 
         const strategyRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/strategy`);
         const strategyData = await strategyRes.json();
-        if (strategyData.success && Array.isArray(strategyData.data)) {
+        if (!ignore && strategyData.success && Array.isArray(strategyData.data)) {
           setStrategyBlocks(strategyData.data);
           if (strategyData.data.length > 0) {
             setSelectedStrategyId(strategyData.data[0].id);
@@ -100,7 +99,8 @@ export default function SyllabusStrategyPage() {
     };
 
     fetchData();
-  }, []);
+    return () => { ignore = true; };
+  }, [BACKEND_URL]);
 
   const handleTabChange = (tab: 'syllabus' | 'strategy') => {
     setActiveTab(tab);

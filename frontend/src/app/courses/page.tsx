@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, SlidersHorizontal, BookOpen, Clock, Calendar, ChevronDown } from 'lucide-react';
 import { db } from '@/services/db';
 import { courseData } from '@/services/seedData';
+import { useTranslation } from '@/context/LocaleContext';
 
 import { useSearchParams } from 'next/navigation';
 
@@ -12,6 +13,7 @@ type CategoryType = 'All' | 'Prelims' | 'Mains' | 'Interview';
 type ExamType = 'All' | 'BPSC' | 'Arunachal PCS';
 
 function CoursesContent() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   const initialCat = (searchParams.get('category') as CategoryType) || 'All';
   const initialExam = (searchParams.get('exam') as ExamType) || 'All';
@@ -66,13 +68,11 @@ function CoursesContent() {
     <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
       {/* Page Header */}
       <div className="space-y-4">
-        
         <h1 className="text-4xl font-heading font-extrabold text-brand-primary tracking-tight">
-          Explore Our Courses
+          {t('courses.subtitle')}
         </h1>
         <p className="text-slate-500 text-sm max-w-xl">
-          {/* Courses Header */}
-          Choose from BPSC batches curated by industry-leading mentors. Restrained pricing structures and result-oriented schedules.
+          {t('courses.personalizedDesc')}
         </p>
       </div>
 
@@ -83,7 +83,7 @@ function CoursesContent() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
-              placeholder="Search courses..."
+              placeholder={t('common.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 text-xs bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)] focus:ring-2 focus:ring-amber-500/20"
@@ -184,14 +184,14 @@ function CoursesContent() {
                           <div className="flex items-center gap-2 p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-150 dark:border-white/5">
                             <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                             <div className="min-w-0">
-                              <p className="text-[8px] text-slate-400 uppercase font-black tracking-wider leading-none">Duration</p>
+                              <p className="text-[8px] text-slate-400 uppercase font-black tracking-wider leading-none">{t('courses.duration')}</p>
                               <p className="mt-0.5 text-slate-800 dark:text-slate-200 text-[11px] font-extrabold truncate">{course.duration || 'Flexible'}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 p-1.5 rounded-lg bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20">
                             <Calendar className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
                             <div className="min-w-0">
-                              <p className="text-[8px] text-slate-400 dark:text-slate-400 uppercase font-black tracking-wider leading-none">Course Fee</p>
+                              <p className="text-[8px] text-slate-400 dark:text-slate-400 uppercase font-black tracking-wider leading-none">{t('courses.fee')}</p>
                               {(() => {
                                 const feeStr = course.fee ? (String(course.fee).startsWith('₹') ? String(course.fee) : `₹${Number(course.fee).toLocaleString('en-IN')}`) : '';
                                 const numFee = parseInt(String(course.fee).replace(/[^\d]/g, ''), 10);
@@ -223,7 +223,7 @@ function CoursesContent() {
                         </div>
 
                         <div className="text-[8.5px] text-center text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-widest bg-amber-500/10 py-1 rounded-lg border border-amber-500/20">
-                          Tap / Hover to View Details
+                          {t('courses.tapToFlip')}
                         </div>
                       </div>
                     </div>
@@ -278,7 +278,7 @@ function CoursesContent() {
                           }}
                           className="text-[9px] font-black text-slate-400 hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
                         >
-                          Flip Back
+                          {t('courses.flipBack')}
                         </button>
                         
                         <Link
@@ -286,7 +286,7 @@ function CoursesContent() {
                           onClick={(e) => e.stopPropagation()}
                           className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[9px] font-black rounded-lg transition-all shadow-xs inline-flex items-center gap-1 uppercase tracking-wider"
                         >
-                          <span>Details</span>
+                          <span>{t('courses.details')}</span>
                           <SlidersHorizontal className="w-3 h-3" />
                         </Link>
                       </div>
@@ -298,7 +298,7 @@ function CoursesContent() {
         </div>
       ) : (
         <div className="text-center py-16 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-white/10">
-          <p className="text-slate-500 text-sm font-semibold">No courses match your selection or search query.</p>
+          <p className="text-slate-500 text-sm font-semibold">{t('courses.noCourses')}</p>
         </div>
       )}
     </div>

@@ -12,9 +12,11 @@ import {
 
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
+import { useTranslation } from '@/context/LocaleContext';
 import { getMyEnrollments, getCourseQuizzes } from '@/services/auth';
 import MentorshipChat from '@/components/lms/MentorshipChat';
 import PerformanceAnalytics from '@/components/lms/PerformanceAnalytics';
+import StudentPortalShell from '@/components/StudentPortalShell';
 import { db } from '@/services/db';
 
 
@@ -37,6 +39,7 @@ export default function StudentDashboard() {
 
   const { user, accessToken, logout, isLoading, requireAuth } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<DashTab>('Dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -54,7 +57,7 @@ export default function StudentDashboard() {
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">Verifying Session...</p>
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{t('student.verifyingSession')}</p>
         </div>
       </div>
     );
@@ -118,137 +121,38 @@ export default function StudentDashboard() {
 
 
   const sidebarLinks: { name: string; icon: any; href?: string; tab?: DashTab }[] = [
-    { name: 'Dashboard',         icon: LayoutDashboard, tab: 'Dashboard' },
-    { name: 'My Courses',        icon: BookOpen,        tab: 'My Courses' },
-    { name: 'Prelims',           icon: FileText,        href: '/student/prelims' },
-    { name: 'Mains',             icon: Target,          href: '/student/mains' },
-    { name: 'Upload Mains Copy', icon: Upload,          href: '/student/upload-mains' },
-    { name: 'Resources',         icon: BookOpen,        href: '/downloads' },
-    { name: 'Mentor Connect',    icon: MessageSquare,   tab: 'Mentor Connect' },
-    { name: 'Performance',       icon: TrendingUp,      tab: 'Performance' },
+    { name: t('student.dashboard'),         icon: LayoutDashboard, tab: 'Dashboard' },
+    { name: t('student.myCourses'),         icon: BookOpen,        tab: 'My Courses' },
+    { name: t('student.prelims'),           icon: FileText,        href: '/student/prelims' },
+    { name: t('student.mains'),             icon: Target,          href: '/student/mains' },
+    { name: t('student.uploadMainsCopy'),   icon: Upload,          href: '/student/upload-mains' },
+    { name: t('student.resources'),         icon: BookOpen,        href: '/downloads' },
+    { name: t('student.mentorConnect'),     icon: MessageSquare,   tab: 'Mentor Connect' },
+    { name: t('student.performance'),       icon: TrendingUp,      tab: 'Performance' },
   ];
 
   const stats = [
-    { label: 'Courses Enrolled', value: enrollments.length || 0, icon: BookOpen, color: 'text-blue-600 dark:text-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-200 dark:border-blue-500/20' },
-    { label: 'Tests Attempted', value: allQuizzes.length || 0, icon: FileText, color: 'text-amber-600 dark:text-amber-400', iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20' },
-    { label: 'Current Affairs', value: '—', icon: TrendingUp, color: 'text-violet-600 dark:text-violet-400', iconColor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-500/10', border: 'border-violet-200 dark:border-violet-500/20' },
-    { label: 'Downloads', value: '—', icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20' }
+    { label: t('student.coursesEnrolled'), value: enrollments.length || 0, icon: BookOpen, color: 'text-blue-600 dark:text-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-200 dark:border-blue-500/20' },
+    { label: t('student.testsAttempted'), value: allQuizzes.length || 0, icon: FileText, color: 'text-amber-600 dark:text-amber-400', iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20' },
+    { label: t('student.currentAffairs'), value: '—', icon: TrendingUp, color: 'text-violet-600 dark:text-violet-400', iconColor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-500/10', border: 'border-violet-200 dark:border-violet-500/20' },
+    { label: t('student.downloads'), value: '—', icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20' }
   ];
 
+  const activeNavKey = activeTab === 'My Courses' ? 'courses' : activeTab === 'Mentor Connect' ? 'mentor' : 'dashboard';
+
   return (
-    <div className="portal-page min-h-screen bg-slate-50 dark:bg-slate-950 flex font-body transition-colors duration-200">
-      
-      {/* ──────────────── Sidebar ──────────────── */}
-      <aside className={`w-64 flex-col bg-white dark:bg-slate-900/80 border-r border-slate-200 dark:border-white/[0.06] h-screen sticky top-0 z-40 transition-all duration-300 ${isSidebarOpen ? 'flex fixed inset-y-0 left-0 shadow-2xl' : 'hidden lg:flex'}`}>
-        {/* Logo */}
-        <div className="p-5 border-b border-slate-200 dark:border-white/[0.06] flex items-center justify-between">
-          <Link href="/" className="flex flex-col gap-1">
-            <div className="w-40 h-10 relative shrink-0">
-              <img
-                src="/darklogofull.png"
-                alt="Final Attempt"
-                className="w-full h-full object-contain logo-light"
-              />
-              <img
-                src="/lightlogofull.png"
-                alt="Final Attempt"
-                className="w-full h-full object-contain logo-dark"
-              />
-            </div>
-            <span className="text-slate-500 text-[9px] font-bold uppercase tracking-wider pl-1">Student Portal</span>
-          </Link>
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden p-1 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* User Info */}
-        <div className="p-4 border-b border-slate-200 dark:border-white/[0.06]">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06]">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
-              {user?.fullName?.charAt(0)?.toUpperCase() || 'S'}
-            </div>
-            <div className="min-w-0">
-              <p className="text-slate-900 dark:text-white text-xs font-semibold truncate">{user?.fullName || 'Student'}</p>
-              <p className="text-slate-500 dark:text-slate-400 text-[10px] truncate">{user?.email || ''}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {sidebarLinks.map(({ name, icon: Icon, href, tab }) => {
-            const isActive = tab && activeTab === tab;
-            if (href) {
-              return (
-                <Link
-                  key={name}
-                  href={href}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04]"
-                >
-                  <Icon className="w-4 h-4 shrink-0 text-indigo-500" />
-                  <span>{name}</span>
-                </Link>
-              );
-            }
-            return (
-              <button
-                key={name}
-                onClick={() => tab && setActiveTab(tab)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04]'
-                }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span>{name}</span>
-                {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto opacity-60" />}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Bottom actions */}
-        <div className="p-3 border-t border-slate-200 dark:border-white/[0.06] space-y-0.5">
-          <Link href="/student/profile" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-all">
-            <Settings className="w-4 h-4" />
-            <span>Settings</span>
-          </Link>
-          <button
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Logout</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* ──────────────── Main Content ──────────────── */}
+    <StudentPortalShell activeNav={activeNavKey}>
       <div className="flex-1 overflow-y-auto">
         
         {/* Top Bar */}
         <header className="sticky top-0 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/[0.06] px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-700 dark:text-slate-300"
-              aria-label="Open Sidebar"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-              <div>
-                <h1 className="text-slate-900 dark:text-white font-bold text-lg">
-                  {activeTab === 'Dashboard' ? `Good ${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'}, ${user?.fullName ? user.fullName.split(' ')[0] : 'Student'} 👋` : activeTab}
-                </h1>
-                {activeTab === 'Dashboard' && (
-                  <p className="text-slate-500 dark:text-slate-500 text-xs mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                )}
-              </div>
+          <div>
+            <h1 className="text-slate-900 dark:text-white font-bold text-lg">
+              {activeTab === 'Dashboard' ? `${new Date().getHours() < 12 ? t('student.morning') : new Date().getHours() < 17 ? t('student.afternoon') : t('student.evening')}, ${user?.fullName ? user.fullName.split(' ')[0] : 'Student'} 👋` : activeTab}
+            </h1>
+            {activeTab === 'Dashboard' && (
+              <p className="text-slate-500 dark:text-slate-500 text-xs mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <button 
@@ -257,12 +161,6 @@ export default function StudentDashboard() {
               aria-label="Toggle Theme"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-500" />}
-            </button>
-            <button className="p-2 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/[0.08] transition-all">
-              <Bell className="w-4 h-4" />
-            </button>
-            <button className="p-2 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/[0.08] transition-all">
-              <Search className="w-4 h-4" />
             </button>
           </div>
         </header>
@@ -288,8 +186,8 @@ export default function StudentDashboard() {
               {/* Enrolled Courses */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-slate-900 dark:text-white font-bold text-base">My Enrolled Courses</h2>
-                  <button onClick={() => setActiveTab('My Courses')} className="text-blue-600 dark:text-blue-400 text-xs hover:text-blue-500 dark:hover:text-blue-300 font-medium transition-colors">View all →</button>
+                  <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.myEnrolledCourses')}</h2>
+                  <button onClick={() => setActiveTab('My Courses')} className="text-blue-600 dark:text-blue-400 text-xs hover:text-blue-500 dark:hover:text-blue-300 font-medium transition-colors">{t('student.viewAll')}</button>
                 </div>
 
                 {loadingEnrollments ? (
@@ -301,11 +199,11 @@ export default function StudentDashboard() {
                 ) : enrollments.length === 0 ? (
                   <div className="p-8 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-center">
                     <BookOpen className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
-                    <h3 className="text-slate-700 dark:text-slate-300 font-semibold text-sm mb-1">No courses yet</h3>
-                    <p className="text-slate-500 text-xs mb-4">Browse our BPSC programs and start your preparation journey.</p>
+                    <h3 className="text-slate-700 dark:text-slate-300 font-semibold text-sm mb-1">{t('student.noCoursesYet')}</h3>
+                    <p className="text-slate-500 text-xs mb-4">{t('student.noCoursesDesc')}</p>
                     <Link href="/courses" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all">
                       <BookOpen className="w-3.5 h-3.5" />
-                      Explore Courses
+                      {t('student.exploreCourses')}
                     </Link>
                   </div>
                 ) : (
@@ -347,13 +245,13 @@ export default function StudentDashboard() {
 
               {/* Quick Actions */}
               <div>
-                <h2 className="text-slate-900 dark:text-white font-bold text-base mb-4">Quick Actions</h2>
+                <h2 className="text-slate-900 dark:text-white font-bold text-base mb-4">{t('student.quickActions')}</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { label: 'Browse Courses',   href: '/courses',          icon: BookOpen,  color: 'from-blue-600 to-blue-700' },
-                    { label: 'Test Series',       href: '/test-series',      icon: FileText,  color: 'from-amber-600 to-amber-700' },
-                    { label: 'Current Affairs',   href: '/current-affairs',  icon: Zap,       color: 'from-violet-600 to-violet-700' },
-                    { label: 'Downloads',         href: '/downloads',        icon: Target,    color: 'from-cyan-600 to-cyan-700' }
+                    { label: t('student.browseCourses'),  href: '/courses',         icon: BookOpen,  color: 'from-blue-600 to-blue-700' },
+                    { label: t('student.testSeries'),     href: '/test-series',     icon: FileText,  color: 'from-amber-600 to-amber-700' },
+                    { label: t('student.currentAffairs'), href: '/current-affairs', icon: Zap,       color: 'from-violet-600 to-violet-700' },
+                    { label: t('student.downloads'),      href: '/downloads',       icon: Target,    color: 'from-cyan-600 to-cyan-700' }
                   ].map(a => (
                     <Link
                       key={a.label}
@@ -383,11 +281,11 @@ export default function StudentDashboard() {
               ) : enrollments.length === 0 ? (
                 <div className="p-12 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-center">
                   <Lock className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
-                  <h3 className="text-slate-800 dark:text-slate-200 font-bold text-base mb-2">No Enrolled Courses</h3>
-                  <p className="text-slate-500 text-sm mb-6">Enroll in a BPSC program to unlock access to lessons, quizzes, and mentorship.</p>
+                  <h3 className="text-slate-800 dark:text-slate-200 font-bold text-base mb-2">{t('student.noEnrolledCourses')}</h3>
+                  <p className="text-slate-500 text-sm mb-6">{t('student.noEnrolledDesc')}</p>
                   <Link href="/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold rounded-xl hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg shadow-blue-900/30">
                     <BookOpen className="w-4 h-4" />
-                    Browse BPSC Programs
+                    {t('student.browseBPSCPrograms')}
                   </Link>
                 </div>
               ) : (
@@ -433,12 +331,12 @@ export default function StudentDashboard() {
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-blue-500/20 flex items-center justify-center">
                 <Award className="w-7 h-7 text-yellow-400" />
               </div>
-              <h3 className="text-slate-900 dark:text-white font-bold text-base">Certificates</h3>
+              <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.certificates')}</h2>
               <p className="text-slate-600 dark:text-slate-400 text-sm max-w-xs">
-                PDF certificates with QR verification are coming in Phase 5.
+                {t('student.certificatesDesc')}
               </p>
               <div className="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
-                Coming Soon
+                {t('student.comingSoon')}
               </div>
             </div>
           )}
@@ -448,8 +346,8 @@ export default function StudentDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-slate-900 dark:text-white font-bold text-base">Performance Analytics</h2>
-                  <p className="text-slate-500 text-xs mt-0.5">Mock averages, curriculum completion analytics, and BPSC exam metrics.</p>
+                  <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.performanceAnalytics')}</h2>
+                  <p className="text-slate-500 text-xs mt-0.5">{t('student.performanceDesc')}</p>
                 </div>
               </div>
               <PerformanceAnalytics accessToken={accessToken || ''} />
@@ -461,8 +359,8 @@ export default function StudentDashboard() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-slate-900 dark:text-white font-bold text-base">Mentorship Portal</h2>
-                  <p className="text-slate-500 text-xs mt-0.5">Instant chat doubts resolution portal connected with Selected Officers.</p>
+                  <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.mentorshipPortal')}</h2>
+                  <p className="text-slate-500 text-xs mt-0.5">{t('student.mentorshipDesc')}</p>
                 </div>
               </div>
               <MentorshipChat courseId={enrollments[0]?.courseId || 'bpsc-foundation'} />
@@ -474,8 +372,8 @@ export default function StudentDashboard() {
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-slate-900 dark:text-white font-bold text-base">Test Series</h2>
-                  <p className="text-slate-500 text-xs mt-0.5">Attempt mock tests for your enrolled courses. Results are saved automatically.</p>
+                  <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.testSeries')}</h2>
+                  <p className="text-slate-500 text-xs mt-0.5">{t('student.noTestsDesc')}</p>
                 </div>
               </div>
 
@@ -491,17 +389,17 @@ export default function StudentDashboard() {
                     <FileText className="w-7 h-7 text-amber-500" />
                   </div>
                   <h3 className="text-slate-900 dark:text-white font-bold text-sm">
-                    {enrollments.length === 0 ? 'No courses enrolled' : 'No test series available yet'}
+                    {enrollments.length === 0 ? t('student.noCourseEnrolled') : t('student.noTestsAvailable')}
                   </h3>
                   <p className="text-slate-500 text-xs leading-relaxed max-w-xs mx-auto">
                     {enrollments.length === 0
-                      ? 'Enroll in a course to access its test series and mock tests.'
-                      : 'Your instructor has not published any quizzes yet. Check back soon!'}
+                      ? t('student.noCourseTestDesc')
+                      : t('student.noTestsDesc')}
                   </p>
                   {enrollments.length === 0 && (
                     <Link href="/courses" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all">
                       <BookOpen className="w-3.5 h-3.5" />
-                      Browse Courses
+                      {t('student.browseCourses')}
                     </Link>
                   )}
                 </div>
@@ -524,7 +422,7 @@ export default function StudentDashboard() {
                           </div>
                         </div>
                         <span className="shrink-0 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[9px] font-bold uppercase">
-                          Active
+                          {t('student.active')}
                         </span>
                       </div>
 
@@ -555,7 +453,7 @@ export default function StudentDashboard() {
                         className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
                       >
                         <Play className="w-3.5 h-3.5" />
-                        Start Test
+                        {t('student.startTest')}
                       </Link>
                     </div>
                   ))}
@@ -567,6 +465,6 @@ export default function StudentDashboard() {
 
         </div>
       </div>
-    </div>
+    </StudentPortalShell>
   );
 }

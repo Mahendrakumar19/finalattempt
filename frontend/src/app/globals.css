@@ -1,4 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════
+   GLOBAL DEVANAGARI / HINDI TYPOGRAPHY SYSTEM
+   Fixes unnatural glyph spacing, Matra separation & broken Shirorekha
+   ═══════════════════════════════════════════════════════════ */
+html[lang="hi"],
+html.locale-hi,
+:lang(hi) {
+  font-family: 'Noto Sans Devanagari', var(--font-body), system-ui, -apple-system, sans-serif;
+}
+
+html[lang="hi"] body,
+html.locale-hi body {
+  font-family: 'Noto Sans Devanagari', var(--font-body), system-ui, -apple-system, sans-serif;
+}
+
+/* Reset letter-spacing and tracking in Hindi mode to preserve natural Devanagari conjuncts & Matras */
+html[lang="hi"] *,
+html.locale-hi * {
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+}
+
+/* Preserve monospaced code / Latin badges if explicitly marked */
+html[lang="hi"] .font-mono,
+html.locale-hi .font-mono,
+html[lang="hi"] [lang="en"],
+html.locale-hi [lang="en"] {
+  letter-spacing: inherit !important;
+}
 
 @theme inline {
   --variant-dark: class;

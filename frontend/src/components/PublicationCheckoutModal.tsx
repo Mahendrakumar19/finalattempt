@@ -138,7 +138,7 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
         key,
         amount,
         currency,
-        name: 'Final Attempt IAS Publications',
+        name: 'Final Attempt Publications',
         description: item.title,
         image: 'https://finalattemptias.com/logo.png',
         order_id: razorpayOrderId,

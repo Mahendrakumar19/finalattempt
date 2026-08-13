@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const FROM_NAME = 'Final Attempt IAS';
+const FROM_NAME = 'Final Attempt';
 const FROM_EMAIL = process.env.ZOHO_EMAIL || 'contact@finalattemptias.com';
 
 // ─── OTP Email Templates ──────────────────────────────────────────────────────
@@ -36,7 +36,7 @@ function otpEmailHTML(otp: string, purpose: string, recipientName?: string): str
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>${heading} – Final Attempt IAS</title>
+  <title>${heading} – Final Attempt</title>
 </head>
 <body style="margin:0;padding:0;font-family:'Inter',Arial,sans-serif;background:#F8FAFC;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;padding:40px 0;">
@@ -46,7 +46,7 @@ function otpEmailHTML(otp: string, purpose: string, recipientName?: string): str
           <!-- Header Bar -->
           <tr>
             <td style="background:linear-gradient(135deg,#0F172A 0%,#1E3A8A 100%);padding:28px 40px;text-align:center;">
-              <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#F59E0B;">Final Attempt IAS</p>
+              <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#F59E0B;">Final Attempt</p>
               <h1 style="margin:8px 0 0;font-size:20px;font-weight:800;color:#FFFFFF;">${heading}</h1>
             </td>
           </tr>
@@ -57,7 +57,7 @@ function otpEmailHTML(otp: string, purpose: string, recipientName?: string): str
                 ${recipientName ? `Hi <strong>${recipientName}</strong>,` : 'Hello,'}
               </p>
               <p style="margin:0 0 28px;font-size:14px;color:#64748B;line-height:1.6;">
-                Your <strong>${action}</strong> OTP for Final Attempt IAS is:
+                Your <strong>${action}</strong> OTP for Final Attempt is:
               </p>
 
               <!-- OTP Box -->
@@ -83,7 +83,7 @@ function otpEmailHTML(otp: string, purpose: string, recipientName?: string): str
           <tr>
             <td style="background:#F8FAFC;padding:20px 40px;text-align:center;border-top:1px solid #E2E8F0;">
               <p style="margin:0;font-size:11px;color:#94A3B8;">
-                &copy; ${new Date().getFullYear()} Final Attempt IAS · Patna, Bihar
+                &copy; ${new Date().getFullYear()} Final Attempt · Patna, Bihar
               </p>
             </td>
           </tr>
@@ -104,18 +104,18 @@ export async function sendOTPEmail(
   recipientName?: string
 ): Promise<void> {
   const subjectMap: Record<string, string> = {
-    verify:   `[Final Attempt IAS] Verify your email — OTP ${otp}`,
-    login:    `[Final Attempt IAS] Your login OTP — ${otp}`,
-    reset:    `[Final Attempt IAS] Password reset OTP — ${otp}`,
-    register: `[Final Attempt IAS] Welcome! Verify your email — OTP ${otp}`,
+    verify:   `[Final Attempt] Verify your email — OTP ${otp}`,
+    login:    `[Final Attempt] Your login OTP — ${otp}`,
+    reset:    `[Final Attempt] Password reset OTP — ${otp}`,
+    register: `[Final Attempt] Welcome! Verify your email — OTP ${otp}`,
   };
 
   const mailOptions = {
     from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
     to: toEmail,
-    subject: subjectMap[purpose] || `[Final Attempt IAS] Your OTP — ${otp}`,
+    subject: subjectMap[purpose] || `[Final Attempt] Your OTP — ${otp}`,
     html: otpEmailHTML(otp, purpose, recipientName),
-    text: `Your Final Attempt IAS OTP for ${purpose} is: ${otp}\nThis OTP expires in 10 minutes. Do not share it with anyone.`,
+    text: `Your Final Attempt OTP for ${purpose} is: ${otp}\nThis OTP expires in 10 minutes. Do not share it with anyone.`,
   };
 
   await transporter.sendMail(mailOptions);

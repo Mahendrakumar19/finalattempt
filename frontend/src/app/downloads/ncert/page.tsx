@@ -43,29 +43,30 @@ export default function NcertPage() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  const fetchBooks = useCallback(async () => {
-    setLoading(true);
-    try {
-      let url = `${BACKEND_URL}/api/ncert-books?limit=500`;
-      if (selectedSubject !== 'ALL') url += `&subject=${encodeURIComponent(selectedSubject)}`;
-      if (selectedClassLevel !== 'ALL') url += `&classLevel=${selectedClassLevel}`;
-      if (selectedLanguage !== 'ALL') url += `&language=${encodeURIComponent(selectedLanguage)}`;
-      if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
-        setBooksList(data.data);
-      }
-    } catch (err) {
-      console.error('Error fetching NCERT books:', err);
-    }
-    setLoading(false);
-  }, [BACKEND_URL, selectedSubject, selectedClassLevel, selectedLanguage, searchQuery]);
-
   useEffect(() => {
+    let ignore = false;
+    const fetchBooks = async () => {
+      setLoading(true);
+      try {
+        let url = `${BACKEND_URL}/api/ncert-books?limit=500`;
+        if (selectedSubject !== 'ALL') url += `&subject=${encodeURIComponent(selectedSubject)}`;
+        if (selectedClassLevel !== 'ALL') url += `&classLevel=${selectedClassLevel}`;
+        if (selectedLanguage !== 'ALL') url += `&language=${encodeURIComponent(selectedLanguage)}`;
+        if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!ignore && data.success && Array.isArray(data.data)) {
+          setBooksList(data.data);
+        }
+      } catch (err) {
+        console.error('Error fetching NCERT books:', err);
+      }
+      if (!ignore) setLoading(false);
+    };
     fetchBooks();
-  }, [fetchBooks]);
+    return () => { ignore = true; };
+  }, [BACKEND_URL, selectedSubject, selectedClassLevel, selectedLanguage, searchQuery]);
 
   const getMediaUrl = (mediaObj?: { storagePath?: string; url?: string; path?: string } | string | null) => {
     if (!mediaObj) return '';

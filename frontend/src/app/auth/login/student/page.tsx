@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { Eye, EyeOff, Mail, Lock, Sparkles, ArrowRight, Phone, BookOpen, GraduationCap, Trophy, Target, Star } from 'lucide-react';
 import { loginUser, sendOTP, verifyOTP } from '@/services/auth';
 import { useAuthStore } from '@/stores/authStore';
+import { useTranslation } from '@/context/LocaleContext';
 
 const LoginSchema = z.object({
   email:    z.string().email('Enter a valid email address'),
@@ -28,6 +29,7 @@ function LoginFormContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/student/dashboard';
   const { setAuth } = useAuthStore();
+  const { t } = useTranslation();
 
   const [mode, setMode] = useState<LoginMode>('password');
   const [otpIdentifier, setOtpIdentifier] = useState('');
@@ -109,13 +111,13 @@ function LoginFormContent() {
         <div className="space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl border border-amber-500/25 bg-amber-500/10">
             <Sparkles className="w-4 h-4 text-amber-400" />
-            <span className="text-xs text-amber-200 font-extrabold uppercase tracking-widest">Student Portal</span>
+            <span className="text-xs text-amber-200 font-extrabold uppercase tracking-widest">{t('auth.studentPortal')}</span>
           </div>
           <h2 className="text-3xl font-heading font-black text-white leading-tight">
             
           </h2>
           <p className="text-slate-400 text-xs leading-relaxed">
-            Welcome to the Student learning dashboard. Access courses, assignments, syllabus, test series and more.
+            {t('auth.dashboardAccess')}
           </p>
         </div>
 
@@ -123,7 +125,7 @@ function LoginFormContent() {
           <div className="flex items-center gap-3">
             <GraduationCap className="w-10 h-10 text-amber-500 shrink-0" />
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider"> Dashboard</h4>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider"> {t('student.dashboard')}</h4>
             </div>
           </div>
         </div>
@@ -134,11 +136,11 @@ function LoginFormContent() {
         style={{ background: 'rgba(2, 6, 23, 0.88)', backdropFilter: 'blur(32px)' }}>
 
         <div className="flex lg:hidden items-center gap-2 mb-8">
-          <span className="text-white font-bold tracking-tight">Final Attempt Student</span>
+          <span className="text-white font-bold tracking-tight">Final Attempt {t('auth.studentPortal')}</span>
         </div>
 
-        <h2 className="text-2xl font-bold text-white mb-1">Student Login</h2>
-        <p className="text-slate-400 text-xs mb-6">Sign in to access your student space</p>
+        <h2 className="text-2xl font-bold text-white mb-1">{t('auth.studentLogin')}</h2>
+        <p className="text-slate-400 text-xs mb-6">{t('auth.studentLoginDesc')}</p>
 
         {/* Mode toggle */}
         <div className="flex gap-1 p-1 rounded-xl mb-6 border border-white/[0.08]"
@@ -150,7 +152,7 @@ function LoginFormContent() {
             }`}
             style={mode === 'password' ? { background: 'linear-gradient(135deg, #92400e, #D97706)' } : {}}
           >
-            Password Login
+            {t('auth.loginWithPassword')}
           </button>
           <button
             onClick={() => { setMode('otp-send'); setError(''); }}
@@ -159,7 +161,7 @@ function LoginFormContent() {
             }`}
             style={mode !== 'password' ? { background: 'linear-gradient(135deg, #92400e, #D97706)' } : {}}
           >
-            OTP Login
+            {t('auth.loginWithOTP')}
           </button>
         </div>
 
@@ -175,13 +177,13 @@ function LoginFormContent() {
         {mode === 'password' && (
           <form onSubmit={loginForm.handleSubmit(handlePasswordLogin)} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email Address</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('auth.emailAddress')}</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   {...loginForm.register('email')}
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm placeholder:text-slate-600 focus:outline-none transition-all"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
                   onFocus={e => { e.currentTarget.style.border = '1px solid rgba(245,158,11,0.7)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.12)'; }}
@@ -195,9 +197,9 @@ function LoginFormContent() {
 
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Password</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('auth.password')}</label>
                 <Link href="/auth/forgot-password" className="text-[10px] text-amber-500 hover:text-amber-400 font-medium transition-colors">
-                  Forgot password?
+                  {t('auth.forgotPassword')}
                 </Link>
               </div>
               <div className="relative">
@@ -205,7 +207,7 @@ function LoginFormContent() {
                 <input
                   {...loginForm.register('password')}
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder={t('auth.passwordPlaceholder')}
                   className="w-full pl-10 pr-11 py-3 rounded-xl text-white text-sm placeholder:text-slate-600 focus:outline-none transition-all"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
                   onFocus={e => { e.currentTarget.style.border = '1px solid rgba(245,158,11,0.7)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.12)'; }}
@@ -230,7 +232,7 @@ function LoginFormContent() {
               className="w-full flex items-center justify-center gap-2 py-3.5 text-white font-bold rounded-xl text-sm transition-all hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
               style={{ background: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)', boxShadow: '0 4px 24px rgba(217,119,6,0.35)' }}
             >
-              {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Sign In</span><ArrowRight className="w-4 h-4" /></>}
+              {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.signIn')}</span><ArrowRight className="w-4 h-4" /></>}
             </button>
           </form>
         )}
@@ -239,13 +241,13 @@ function LoginFormContent() {
         {mode === 'otp-send' && (
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Email or Mobile Number</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('auth.emailOrMobile')}</label>
               <div className="relative">
                 <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   value={otpIdentifier}
                   onChange={e => setOtpIdentifier(e.target.value)}
-                  placeholder="email@example.com or 9876543210"
+                  placeholder={t('auth.emailOrMobilePlaceholder')}
                   className="w-full pl-10 pr-4 py-3 rounded-xl text-white text-sm placeholder:text-slate-600 focus:outline-none transition-all"
                   style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
                   onFocus={e => { e.currentTarget.style.border = '1px solid rgba(99,102,241,0.6)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.12)'; }}
@@ -259,7 +261,7 @@ function LoginFormContent() {
               className="w-full flex items-center justify-center gap-2 py-3.5 text-white font-bold rounded-xl text-sm transition-all hover:-translate-y-0.5 disabled:opacity-60"
               style={{ background: 'linear-gradient(135deg, #D97706, #F59E0B)', boxShadow: '0 4px 24px rgba(217,119,6,0.35)' }}
             >
-              {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>Send OTP</span><ArrowRight className="w-4 h-4" /></>}
+              {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><span>{t('auth.sendOTP')}</span><ArrowRight className="w-4 h-4" /></>}
             </button>
           </div>
         )}
@@ -269,10 +271,10 @@ function LoginFormContent() {
           <form onSubmit={otpForm.handleSubmit(handleVerifyOTP)} className="space-y-4">
             <div className="p-3 rounded-xl text-blue-300 text-xs border border-blue-500/20"
               style={{ background: 'rgba(59,130,246,0.08)' }}>
-              OTP sent to <span className="font-bold">{otpIdentifier}</span>. Check your inbox.
+              {t('auth.otpSentTo')} <span className="font-bold">{otpIdentifier}</span>{t('auth.checkInbox')}
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Enter 6-Digit OTP</label>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('auth.enterOTP')}</label>
               <input
                 {...otpForm.register('otp')}
                 placeholder="• • • • • •"
@@ -291,7 +293,7 @@ function LoginFormContent() {
                 className="flex-1 flex items-center justify-center gap-2 py-3.5 text-white font-bold rounded-xl text-sm transition-all hover:-translate-y-0.5 disabled:opacity-60"
                 style={{ background: 'linear-gradient(135deg, #D97706, #F59E0B)', boxShadow: '0 4px 24px rgba(217,119,6,0.35)' }}
               >
-                {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Verify OTP'}
+                {isSubmitting ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : t('auth.verifyOTP')}
               </button>
               <button
                 type="button"
@@ -300,20 +302,20 @@ function LoginFormContent() {
                 className="px-4 py-3.5 text-slate-300 font-semibold rounded-xl text-xs disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:text-white"
                 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
               >
-                {otpCountdown > 0 ? `${otpCountdown}s` : 'Resend'}
+                {otpCountdown > 0 ? `${otpCountdown}s` : t('auth.resend')}
               </button>
             </div>
           </form>
         )}
 
         <p className="mt-6 text-center text-white text-xs">
-          Don&apos;t have an account?{' '}
+          {t('auth.noAccount')}{' '}
           <Link href="/auth/register" className="text-amber-500 font-bold hover:text-amber-400 transition-colors">
-            Create one free
+            {t('auth.createFree')}
           </Link>
         </p>
         <Link href="/" className="mt-4 text-center block text-slate-500 hover:text-slate-400 text-xs transition-colors">
-          ← Back to main site
+          {t('auth.backToMainSite')}
         </Link>
       </div>
     </div>
@@ -365,6 +367,7 @@ export default function StudentLoginPage() {
         <Suspense fallback={
           <div className="p-8 text-center text-white">
             <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            {/* t() not available in fallback — use bilingual fallback string */}
             Loading student console...
           </div>
         }>

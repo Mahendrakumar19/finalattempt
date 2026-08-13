@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 
 import { db, Course } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 import TestimonialCarousel from '@/components/TestimonialCarousel';
 import NextImage from 'next/image';
 
@@ -82,6 +83,7 @@ export interface AnnouncementItem {
 }
 
 export default function Home() {
+  const { t } = useTranslation();
   // Real-time dynamic states
   const [heroSettings, setHeroSettings] = useState({
     heroTitle: 'The Next Generation Mentorship & Learning Platform',
@@ -178,21 +180,15 @@ export default function Home() {
   }, []);
 
   const [dynamicAnnouncements, setDynamicAnnouncements] = useState<AnnouncementItem[]>([
-    { date: 'NOTICE', text: 'Important Notice :- Regarding Postponement of 72nd CCE (Preliminary) Competitive Examination.', isNew: true, link: 'https://bpsc.bihar.gov.in/' },
-    { date: 'NOTICES', text: 'Important Notices :- Regarding raising dispute for refund/chargeback of unsuccessful/pending/failed transactions.', isNew: true, link: 'https://bpsc.bihar.gov.in/' },
-    { date: 'NOTICE', text: 'Important Notice: Regarding postponement of 33rd Bihar Judicial Services (Preliminary) Competitive Examination in compliance of order passed by Hon\'ble Supreme Court.', isNew: false, link: 'https://bpsc.bihar.gov.in/' },
-    { date: 'PROGRAM', text: 'Important Notice-cum-Examination Program: 33rd Bihar Judicial Services (Preliminary) Competitive Examination. (Advt. No. 12/2026)', isNew: false, link: 'https://bpsc.bihar.gov.in/' },
-    { date: 'NOTICE', text: 'Important Notice: Date of Commencement of Examination for the Post of Stenographer in Bihar Public Service Commission, Patna. (Advt. No. 01/2026)', isNew: false, link: 'https://bpsc.bihar.gov.in/' },
-    { date: 'CORRIGENDUM', text: 'Corrigendum: Integrated 72nd Combined (Preliminary) Competitive Examination.', isNew: false, link: 'https://bpsc.bihar.gov.in/' }
+    { date: 'NOTICE', text: 'BPSC Prelims & Mains Answer Writing Program Enrolling Now.', isNew: true },
+    { date: 'NOTICES', text: 'Important Update :- Sectional Test Series & Classroom Batch Schedule Announced.', isNew: true },
+    { date: 'NOTICE', text: 'Free Demo Classes for BPSC Foundation Batch starting this week at Boring Road Center.', isNew: false },
+    { date: 'PROGRAM', text: 'Interview Guidance Program by Selected Civil Services Officers.', isNew: false },
   ]);
 
   useEffect(() => {
     const loadLiveData = async () => {
       try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-        
-        // 1. Prioritize CMS-defined announcements
-        let hasCmsAnnouncements = false;
         const s = await db.getSettings();
         if (s) {
           setHeroSettings(prev => ({
@@ -202,37 +198,7 @@ export default function Home() {
             heroImageUrl: s.heroImageUrl || ''
           }));
           if (s.announcements && Array.isArray(s.announcements) && s.announcements.length > 0) {
-            hasCmsAnnouncements = true;
             setDynamicAnnouncements(s.announcements.map((a: any) => typeof a === 'string' ? { date: 'NOTICE', text: a, isNew: true } : a));
-          }
-        }
-
-        // Fetch live scraped BPSC notices from backend if CMS announcements not available
-        if (!hasCmsAnnouncements) {
-          try {
-            const getBackendUrl = () => {
-              if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
-              if (typeof window !== 'undefined') {
-                const hostname = window.location.hostname || 'localhost';
-                return `http://${hostname}:5000`;
-              }
-              return 'http://127.0.0.1:5000';
-            };
-            const backendUrl = getBackendUrl();
-            const bpscRes = await fetch(`${backendUrl}/api/bpsc/bpsc-notices`).catch(() => null);
-            if (bpscRes && bpscRes.ok) {
-              const bpscData = await bpscRes.json().catch(() => null);
-              if (bpscData && bpscData.success && Array.isArray(bpscData.data) && bpscData.data.length > 0) {
-                setDynamicAnnouncements(bpscData.data.map((item: any) => ({
-                  date: item.category || 'NOTICE',
-                  text: item.title,
-                  isNew: item.isNew,
-                  link: item.link
-                })));
-              }
-            }
-          } catch (err) {
-            console.warn('BPSC web scraper fetch error:', err);
           }
         }
 
@@ -311,10 +277,10 @@ export default function Home() {
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-white/10 p-6 sm:p-10 shadow-md text-center hover-lift relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-amber-500/5 pointer-events-none" />
           <h2 className="font-inlander text-xl sm:text-3.5xl lg:text-5xl font-black uppercase tracking-normal sm:tracking-widest leading-snug overflow-hidden">
-            <span className="typewriter-text text-wave-gradient font-black">WELCOME TO FINAL ATTEMPT</span>
+            <span className="typewriter-text text-wave-gradient font-black">{t('home.welcome')}</span>
           </h2>
           <p className="font-bold text-sm sm:text-2xl text-wave-gradient font-black mt-2">
-            We are Next-Generation Mentorship & Learning Platform for Civil Services Examination.
+            {t('home.welcomeDesc')}
           </p>
         </div>
       </section>
@@ -327,14 +293,14 @@ export default function Home() {
           <div className="lg:col-span-8 space-y-6">
             <div className="flex justify-between items-end border-b border-slate-150 pb-4">
               <div>
-                <span className="text-xs font-bold text-[#1E3A8A] uppercase tracking-widest">Our Popular Courses</span>
-                <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">Explore Our Classes</h2>
+                <span className="text-xs font-bold text-[#1E3A8A] uppercase tracking-widest">{t('home.popularCourses')}</span>
+                <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">{t('home.exploreClasses')}</h2>
               </div>
               <Link
                 href="/courses"
                 className="text-xs font-bold text-[#1E3A8A] hover:text-amber-600 transition-colors flex items-center gap-1 group"
               >
-                <span>View All Courses</span>
+                <span>{t('home.viewAllCourses')}</span>
                 <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             </div>
@@ -428,37 +394,22 @@ export default function Home() {
           <div className="lg:col-span-4 space-y-8">
 
             {/* BPSC "What's New" Official Bulletin Card */}
-            <div className="bg-[#F3F4F6] dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 shadow-md hover-lift space-y-4">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 shadow-md hover-lift space-y-4">
               <div className="flex justify-between items-center border-b border-blue-900/20 dark:border-white/10 pb-3">
                 <h3 className="font-heading font-black text-base text-[#1E3A8A] dark:text-amber-400 uppercase tracking-wide flex items-center gap-2 border-b-2 border-[#1E3A8A] pb-1">
-                  <span>What&apos;s New</span>
+                  <span>{t('home.whatsNew')}</span>
                 </h3>
-                <a
-                  href="https://bpsc.bihar.gov.in/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-extrabold text-blue-800 dark:text-amber-400 hover:underline flex items-center gap-1"
-                >
-                  <span>View All</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
               </div>
 
-              {/* Official BPSC Scraped Notice Board List */}
+              {/* CMS Notice Board List */}
               <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1">
-                {dynamicAnnouncements.map((ann, idx) => (
-                  <a
-                    key={idx}
-                    href={ann.link || 'https://bpsc.bihar.gov.in/'}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="block p-4 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xs transition-all cursor-pointer hover:border-amber-500/50 group"
-                  >
+                {dynamicAnnouncements.map((ann, idx) => {
+                  const content = (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                            {ann.date || 'BPSC NOTICE'}
+                            {ann.date || 'NOTICE'}
                           </span>
                           {ann.isNew && (
                             <span className="text-[8px] font-extrabold bg-red-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
@@ -466,14 +417,33 @@ export default function Home() {
                             </span>
                           )}
                         </div>
-                        <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-500 transition-colors" />
+                        {ann.link && <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-500 transition-colors" />}
                       </div>
                       <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 leading-snug group-hover:text-blue-800 dark:group-hover:text-amber-400 transition-colors">
                         {ann.text}
                       </p>
                     </div>
-                  </a>
-                ))}
+                  );
+
+                  return ann.link ? (
+                    <a
+                      key={idx}
+                      href={ann.link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block p-4 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xs transition-all cursor-pointer hover:border-amber-500/50 group"
+                    >
+                      {content}
+                    </a>
+                  ) : (
+                    <div
+                      key={idx}
+                      className="block p-4 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xs transition-all hover:border-amber-500/50 group"
+                    >
+                      {content}
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -500,7 +470,7 @@ export default function Home() {
           <div className="text-center max-w-7xl mx-auto space-y-4">
 
             <h2 className="text-3.5xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white ">
-              Why Final Attempt?
+              {t('home.whyFinalAttempt')}
             </h2>
 
             <p className="text-m sm:text-base text-slate-600 dark:text-slate-300 max-w-6xl mx-auto font-medium leading-relaxed">
@@ -948,10 +918,10 @@ export default function Home() {
                 <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-[10px]">
-                      {(blog.author ? String(blog.author) : 'Final Attempt IAS').charAt(0)}
+                      {(blog.author ? String(blog.author) : 'Final Attempt').charAt(0)}
                     </div>
                     <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                      {blog.author || 'Final Attempt IAS'}
+                      {blog.author || 'Final Attempt'}
                     </span>
                   </div>
 
@@ -1011,7 +981,7 @@ export default function Home() {
                   {expandedBlog.title}
                 </h2>
                 <div className="flex items-center gap-3 text-xs text-slate-400 font-medium border-b border-slate-100 dark:border-white/10 pb-4">
-                  <span>Written by <strong className="text-slate-700 dark:text-slate-200">{expandedBlog.author || 'Final Attempt IAS'}</strong></span>
+                  <span>Written by <strong className="text-slate-700 dark:text-slate-200">{expandedBlog.author || 'Final Attempt'}</strong></span>
                   <span>•</span>
                   <span>Published {expandedBlog.publishDate || 'Recent'}</span>
                 </div>

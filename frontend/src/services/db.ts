@@ -769,35 +769,11 @@ class FinalAttemptDB {
   // ── Quiz & Question Bank Methods ──────────────────────────────────────────
   public async getTestSeriesQuizzes(seriesId: string): Promise<any[]> {
     const data = await this.apiFetch(`/api/lms/courses/${seriesId}/quizzes`);
-    let list: any[] = [];
-    if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
-      list = data.data;
-    } else {
-      if (typeof window !== 'undefined') {
-        try {
-          const stored = localStorage.getItem(`finalattempt_quizzes_${seriesId}`);
-          if (stored) {
-            list = JSON.parse(stored);
-          }
-        } catch (_) {}
-      }
+    if (data && data.success && Array.isArray(data.data)) {
+      // Filter out any stale synthetic IDs if present
+      return data.data.filter((q: any) => !q.id?.includes('-default'));
     }
-
-    // If no quizzes exist yet, create a default Primary Mock Quiz
-    if (!list || list.length === 0) {
-      const defaultQuiz = {
-        id: `quiz-${seriesId}-default`,
-        title: 'Full Length Grand Mock Paper 1',
-        courseId: seriesId,
-        timeLimitMins: 120,
-        passingScore: 40,
-        description: 'Official 150-Question Full Length Test paper.'
-      };
-      list = [defaultQuiz];
-      this.saveQuiz(defaultQuiz);
-    }
-
-    return list;
+    return [];
   }
 
   public async saveQuiz(quiz: any): Promise<boolean> {

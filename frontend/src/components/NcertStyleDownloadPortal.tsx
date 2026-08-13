@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, FileText, Download, BookOpen, Eye, Home, ChevronRight, X, Layers, Globe, Filter } from 'lucide-react';
 import { db, CustomPage, DownloadItem } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 import PublicationCheckoutModal from './PublicationCheckoutModal';
 
 interface SpecificDownloadPageProps {
@@ -36,6 +37,7 @@ export default function NcertStyleDownloadPortal({
   defaultSubtitle,
   defaultColor
 }: SpecificDownloadPageProps) {
+  const { t } = useTranslation();
   const [pageData, setPageData] = useState<CustomPage | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('ALL');
@@ -54,51 +56,47 @@ export default function NcertStyleDownloadPortal({
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  const loadExams = useCallback(async () => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
-        setExamsList(data.data.filter((e: any) => e.isActive !== false));
-      }
-    } catch (err) {
-      console.error('Error fetching exams for download portal:', err);
-    }
-  }, [BACKEND_URL]);
-
-  const loadPage = useCallback(async () => {
-    setLoading(true);
-    try {
-      let data = await db.getCustomPageBySlug(`downloads/${pageSlug}`);
-      if (!data) {
-        data = await db.getCustomPageBySlug(pageSlug);
-      }
-      if (data) {
-        setPageData(data);
-      }
-    } catch (err) {
-      console.error(`Error loading portal downloads/${pageSlug}:`, err);
-    }
-    setLoading(false);
-  }, [pageSlug]);
-
   useEffect(() => {
-    loadPage();
-    loadExams();
-  }, [loadPage, loadExams]);
+    let ignore = false;
+    const fetchPortalData = async () => {
+      setLoading(true);
+      try {
+        let data = await db.getCustomPageBySlug(`downloads/${pageSlug}`);
+        if (!data) {
+          data = await db.getCustomPageBySlug(pageSlug);
+        }
+        if (!ignore && data) {
+          setPageData(data);
+        }
+
+        const res = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
+        const examsData = await res.json();
+        if (!ignore && examsData.success && Array.isArray(examsData.data)) {
+          setExamsList(examsData.data.filter((e: any) => e.isActive !== false));
+        }
+      } catch (err) {
+        console.error(`Error loading portal downloads/${pageSlug}:`, err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+
+    fetchPortalData();
+    return () => { ignore = true; };
+  }, [BACKEND_URL, pageSlug]);
 
   const getCategoryLogo = (categoryName: string): string | null => {
     if (!categoryName || examsList.length === 0) return null;
     const catLower = categoryName.toLowerCase();
-    
+
     const matchedExam = examsList.find(ex => {
       const name = (ex.name || '').toLowerCase();
       const code = (ex.code || '').toLowerCase();
       const slug = (ex.slug || '').toLowerCase();
-      
+
       return catLower.includes(name) || name.includes(catLower) ||
-             (code && (catLower.includes(code) || code.includes(catLower))) ||
-             (slug && (catLower.includes(slug) || slug.includes(catLower)));
+        (code && (catLower.includes(code) || code.includes(catLower))) ||
+        (slug && (catLower.includes(slug) || slug.includes(catLower)));
     });
 
     if (matchedExam) {
@@ -178,16 +176,16 @@ export default function NcertStyleDownloadPortal({
 
   return (
     <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 min-h-screen font-body">
-      
+
       {/* Breadcrumbs */}
       <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-semibold">
         <Link href="/" className="hover:text-amber-500 flex items-center gap-1">
           <Home className="w-3.5 h-3.5" />
-          <span>Home</span>
+          <span>{t('nav.home')}</span>
         </Link>
         <ChevronRight className="w-3.5 h-3.5 text-slate-350" />
         <Link href="/downloads" className="hover:text-amber-500">
-          <span>Downloads Hub</span>
+          <span>{t('downloads.title')}</span>
         </Link>
         <ChevronRight className="w-3.5 h-3.5 text-slate-350" />
         <span className="text-slate-800 dark:text-slate-200 font-bold">{defaultTitle || pageData?.title}</span>
@@ -221,13 +219,13 @@ export default function NcertStyleDownloadPortal({
 
       {/* Search & Dynamic Filter Control Panel */}
       <div className="p-6 bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200 dark:border-white/[0.08] shadow-xs flex flex-col md:flex-row gap-4 items-center justify-between">
-        
+
         {/* Search Input */}
         <div className="relative w-full md:w-80">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder={isPublicationPage ? "Search publications by title or category..." : "Search by booklet name or category..."}
+            placeholder={t('downloads.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/[0.06] rounded-2xl outline-none text-slate-900 dark:text-white font-medium"
@@ -236,7 +234,7 @@ export default function NcertStyleDownloadPortal({
 
         {/* Dynamic Filters */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          
+
           {/* Language Filter Pills (For Publications Catalogue) */}
           {isPublicationPage && (
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl border border-slate-200 dark:border-white/10">
@@ -244,19 +242,19 @@ export default function NcertStyleDownloadPortal({
                 onClick={() => setSelectedLanguage('ALL')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${selectedLanguage === 'ALL' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'}`}
               >
-                All Languages
+                {t('common.viewAll')}
               </button>
               <button
                 onClick={() => setSelectedLanguage('English')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${selectedLanguage === 'English' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'}`}
               >
-                🇬🇧 English
+                🇬🇧 {t('currentAffairs.english')}
               </button>
               <button
                 onClick={() => setSelectedLanguage('Hindi')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${selectedLanguage === 'Hindi' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'}`}
               >
-                🇮🇳 Hindi
+                🇮🇳 {t('currentAffairs.hindi')}
               </button>
             </div>
           )}
@@ -301,8 +299,7 @@ export default function NcertStyleDownloadPortal({
         ) : filteredPublications.length === 0 ? (
           <div className="text-center py-20 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-white/10 rounded-3xl max-w-md mx-auto space-y-4 shadow-sm">
             <BookOpen className="w-12 h-12 text-slate-400 mx-auto" />
-            <h3 className="font-heading font-black text-base text-slate-950 dark:text-white">No Publications Found</h3>
-            <p className="text-xs text-slate-500">No publication matches your selected filters or search query.</p>
+            <h3 className="font-heading font-black text-base text-slate-950 dark:text-white">{t('downloads.noResults')}</h3>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -313,7 +310,7 @@ export default function NcertStyleDownloadPortal({
 
               return (
                 <div key={item.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-5 space-y-4 shadow-xs hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
-                  
+
                   {/* Book Cover Image Container */}
                   <div className="relative w-full aspect-[3/4] bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 flex items-center justify-center">
                     {item.thumbnailUrl ? (
@@ -364,12 +361,12 @@ export default function NcertStyleDownloadPortal({
 
                   {/* Price & Actions Block */}
                   <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-white/10">
-                    
+
                     {/* Price Display */}
                     <div className="flex items-baseline justify-between">
                       {isFree ? (
                         <span className="px-3 py-1 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black text-xs uppercase tracking-wider border border-emerald-500/20">
-                          FREE
+                          {t('downloads.free')}
                         </span>
                       ) : (
                         <div className="flex items-baseline gap-2">
@@ -409,7 +406,7 @@ export default function NcertStyleDownloadPortal({
                             className="flex-1 py-2.5 px-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-md transition-all text-center"
                           >
                             <Download className="w-3.5 h-3.5" />
-                            <span>Download PDF</span>
+                            <span>{t('downloads.downloadFree')}</span>
                           </a>
                         )
                       ) : (
@@ -418,7 +415,7 @@ export default function NcertStyleDownloadPortal({
                           className="flex-1 py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-md transition-all text-center cursor-pointer"
                         >
                           <BookOpen className="w-3.5 h-3.5" />
-                          <span>Buy Now</span>
+                          <span>{t('courses.purchase')}</span>
                         </button>
                       )}
                     </div>
@@ -500,7 +497,7 @@ export default function NcertStyleDownloadPortal({
       {activeSampleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fade-in">
           <div className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col h-[90vh] overflow-hidden">
-            
+
             {/* Modal Header */}
             <div className="p-4 sm:p-5 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-white/10 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2 max-w-xl">
@@ -551,7 +548,7 @@ export default function NcertStyleDownloadPortal({
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
             <div className="w-full max-w-6xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
-              
+
               <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-b border-slate-100 dark:border-white/[0.08] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-white text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden p-1">

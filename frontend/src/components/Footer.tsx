@@ -23,6 +23,7 @@ import {
   FaTelegramPlane,
 } from 'react-icons/fa';
 import { db } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 
 const getBackendUrl = () => {
   if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -35,6 +36,7 @@ const getBackendUrl = () => {
 
 export default function Footer() {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [visitorsCount, setVisitorsCount] = useState<number | null>(null);
   const [footerCustomPages, setFooterCustomPages] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<any>({});
@@ -97,13 +99,13 @@ export default function Footer() {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-6 relative z-10">
             <div className="space-y-2 text-center lg:text-left">
               <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-black uppercase tracking-widest">
-                <Sparkles className="w-3.5 h-3.5" /> Start Preparing Today
+                <Sparkles className="w-3.5 h-3.5" /> {t('footer.startPreparingToday')}
               </span>
               <h2 className="text-2xl sm:text-3xl font-heading font-black text-white tracking-tight">
-                Ready to Make Your BPSC Attempt Final?
+                {t('footer.readyBPSC')}
               </h2>
               <p className="text-sm text-slate-300 max-w-xl leading-relaxed">
-                Join Patna's most outcome-focused coaching & mentorship ecosystem. Get direct Guidance from civil service experts.
+                {t('footer.joinPatna')}
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
@@ -111,7 +113,7 @@ export default function Footer() {
                 href="/contact?enquiry=enroll"
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm transition-all shadow-lg hover:shadow-amber-500/30 hover:scale-[1.02] active:scale-100"
               >
-                <span>Enroll In Batch</span>
+                <span>{t('footer.enrollInBatch')}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
               <a
@@ -119,7 +121,7 @@ export default function Footer() {
                 className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-white font-bold text-sm transition-all hover:border-slate-600"
               >
                 <PhoneCall className="w-4 h-4 text-amber-400" />
-                <span>Call Us Now</span>
+                <span>{t('footer.callUsNow')}</span>
               </a>
             </div>
           </div>
@@ -133,19 +135,19 @@ export default function Footer() {
             <Link href="/" className="inline-flex items-center">
               <img
                 src="/lightlogofull.png"
-                alt="Final Attempt IAS"
+                alt="Final Attempt"
                 className="h-14 sm:h-16 w-auto object-contain"
               />
             </Link>
 
             <p className="text-sm leading-relaxed text-slate-300 font-medium">
-              Final Attempt is Bihar's premier coaching and mentorship platform for civil service aspirants. We combine micro-scheduled syllabus coverage, daily answer evaluation, analytics diagnostics, and officer mentorship to deliver your target results.
+              {t('footer.aboutText')}
             </p>
 
             {/* Social Media Channels */}
             <div className="pt-2">
               <p className="text-xs uppercase font-extrabold tracking-widest text-slate-400 mb-3">
-                Connect With Us
+                {t('footer.connectWithUs')}
               </p>
               <div className="flex flex-wrap gap-3">
                 <a
@@ -194,27 +196,26 @@ export default function Footer() {
           {/* Quick Navigation Links */}
           <div className="lg:col-span-2 sm:col-span-1">
             <h3 className="mb-5 text-base font-extrabold uppercase tracking-widest text-white border-l-2 border-amber-500 pl-3">
-              Quick Links
+              {t('footer.quickLinks')}
             </h3>
 
             <ul className="space-y-3.5 text-base font-bold">
               {[
-                { label: "Home", href: "/" },
-                { label: "About Us", href: "/about" },
-                { label: "Courses & Batches", href: "/courses" },
-                // { label: "Test Series", href: "/test-series" },
-                { label: "Current Affairs", href: "/current-affairs" },
-                { label: "Resources", href: "/downloads" },
-                { label: "Strategy & Syllabus", href: "/syllabus-strategy" },
-                { label: "Blogs & News", href: "/blog" },
+                { labelKey: 'footer.home',           href: '/' },
+                { labelKey: 'footer.aboutUs',        href: '/about' },
+                { labelKey: 'footer.coursesLink',    href: '/courses' },
+                { labelKey: 'footer.currentAffairs', href: '/current-affairs' },
+                { labelKey: 'footer.resources',      href: '/downloads' },
+                { labelKey: 'footer.syllabusStrategy', href: '/syllabus-strategy' },
+                { labelKey: 'footer.blogsNews',      href: '/blog' },
               ].map((item) => (
-                <li key={item.label}>
+                <li key={item.labelKey}>
                   <Link
                     href={item.href}
                     className="group flex items-center text-slate-200 transition-colors duration-200 hover:text-amber-400"
                   >
                     <ChevronRight className="mr-1.5 h-4 w-4 text-slate-400 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-amber-400" />
-                    {item.label}
+                    {t(item.labelKey)}
                   </Link>
                 </li>
               ))}
@@ -224,26 +225,24 @@ export default function Footer() {
           {/* Core Programs Column */}
           <div className="lg:col-span-2 sm:col-span-1">
             <h3 className="mb-5 text-base font-extrabold uppercase tracking-widest text-white border-l-2 border-amber-500 pl-3">
-              Courses & Batches
+              {t('footer.coursesAndBatches')}
             </h3>
 
             <ul className="space-y-3.5 text-base font-bold">
               {[
-                { label: "BPSC Foundation Batch", href: "/courses?category=Foundation" },
-                { label: "BPSC Prelims Target", href: "/courses?category=Prelims" },
-                // { label: "Mains Answer Writing", href: "/courses?category=Mains" },
-                { label: "Prelims Test Series", href: "/test-series?stage=PRELIMS" },
-                { label: "Mains Test Series", href: "/test-series?stage=MAINS" },
-                // { label: "Interview Guidance", href: "/courses" },
-                { label: "Official PYQ", href: "/downloads/pyq" },
+                { labelKey: 'footer.bpscFoundation',   href: '/courses?category=Foundation' },
+                { labelKey: 'footer.bpscPrelims',      href: '/courses?category=Prelims' },
+                { labelKey: 'footer.prelimsTestSeries',href: '/test-series?stage=PRELIMS' },
+                { labelKey: 'footer.mainsTestSeries',  href: '/test-series?stage=MAINS' },
+                { labelKey: 'footer.officialPYQ',      href: '/downloads/pyq' },
               ].map((program) => (
-                <li key={program.label}>
+                <li key={program.labelKey}>
                   <Link
                     href={program.href}
                     className="group flex items-center text-slate-200 transition-colors duration-200 hover:text-amber-400"
                   >
                     <ChevronRight className="mr-1.5 h-4 w-4 text-slate-400 transition-transform duration-200 group-hover:translate-x-1 group-hover:text-amber-400" />
-                    {program.label}
+                    {t(program.labelKey)}
                   </Link>
                 </li>
               ))}
@@ -253,7 +252,7 @@ export default function Footer() {
           {/* Contact Details Card */}
           <div className="lg:col-span-4">
             <h3 className="mb-5 text-sm font-extrabold uppercase tracking-widest text-white border-l-2 border-amber-500 pl-3">
-              Head Office Contact
+              {t('footer.headOfficeContact')}
             </h3>
 
             <div className="w-full rounded-2xl border border-slate-800 bg-slate-900/90 p-5 space-y-4 shadow-xl">
@@ -263,7 +262,7 @@ export default function Footer() {
                 </div>
                 <div>
                   <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-                    Admission Helpline
+                    {t('footer.admissionHelpline')}
                   </p>
                   <a
                     href={`tel:${phone.replace(/\s+/g, '')}`}
@@ -280,7 +279,7 @@ export default function Footer() {
                 </div>
                 <div>
                   <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-                    Official Email
+                    {t('footer.officialEmail')}
                   </p>
                   <a
                     href={`mailto:${email}`}
@@ -297,7 +296,7 @@ export default function Footer() {
                 </div>
                 <div>
                   <p className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">
-                    Location
+                    {t('footer.location')}
                   </p>
                   <p className="mt-0.5 text-sm font-semibold text-slate-300 leading-snug">
                     {address}
@@ -317,24 +316,24 @@ export default function Footer() {
             {/* Copyright & Legal Links */}
             <div className="space-y-3 text-center lg:text-left">
               <p className="text-sm font-medium text-slate-300">
-                © {new Date().getFullYear()} <span className="font-extrabold text-white">Final Attempt</span>. All Rights Reserved.
+                © {new Date().getFullYear()} <span className="font-extrabold text-white">Final Attempt</span>. {t('footer.allRightsReserved')}
               </p>
 
               <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-bold text-slate-300 lg:justify-start">
                 <Link href="/privacy-policy" className="hover:text-amber-400 transition-colors">
-                  Privacy Policy
+                  {t('footer.privacyPolicy')}
                 </Link>
                 <span className="text-slate-700">•</span>
                 <Link href="/terms" className="hover:text-amber-400 transition-colors">
-                  Terms & Conditions
+                  {t('footer.termsConditions')}
                 </Link>
                 <span className="text-slate-700">•</span>
                 <Link href="/refund-policy" className="hover:text-amber-400 transition-colors">
-                  Refund Policy
+                  {t('footer.refundPolicy')}
                 </Link>
                 <span className="text-slate-700">•</span>
                 <Link href="/disclaimer" className="hover:text-amber-400 transition-colors">
-                  Disclaimer
+                  {t('footer.disclaimer')}
                 </Link>
 
                 {footerCustomPages.map(p => (
@@ -364,7 +363,7 @@ export default function Footer() {
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                       </span>
                       <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-300">
-                        Live Visitor Counter
+                        {t('footer.liveVisitorCounter')}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 mt-0.5 font-mono">
@@ -389,7 +388,7 @@ export default function Footer() {
                 className="group inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900 px-4 py-2.5 text-xs text-slate-300 transition-all duration-300 hover:border-amber-500/40 hover:bg-slate-800 hover:text-white"
               >
                 <span className="h-2 w-2 rounded-full bg-amber-400 group-hover:animate-pulse" />
-                <span>Designed & Developed by</span>
+                <span>{t('footer.designedBy')}</span>
                 <span className="font-extrabold text-white group-hover:text-amber-400">
                   Nighwan Technology Pvt. Ltd.
                 </span>

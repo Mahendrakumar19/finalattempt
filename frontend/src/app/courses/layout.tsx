@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "BPSC Batches & Programs | Final Attempt IAS",
+  title: "BPSC Batches & Programs | Final Attempt",
   description: "Browse BPSC Foundation, Target, Answer Writing, and Interview Guidance programs with expert mentorship.",
   keywords: ["BPSC batches", "BPSC foundation batch", "Patna BPSC classes", "BPSC civil services course"],
 };

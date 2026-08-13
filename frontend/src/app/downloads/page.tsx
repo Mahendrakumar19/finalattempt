@@ -8,6 +8,7 @@ import {
   Zap, Lightbulb, FileCheck
 } from 'lucide-react';
 import { db, CustomPage } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 
 interface ResourceItem {
   id: string;
@@ -36,6 +37,7 @@ interface PYQItem {
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 export default function DedicatedDownloadsPage() {
+  const { t } = useTranslation();
   const [downloadStates, setDownloadStates] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -240,14 +242,11 @@ export default function DedicatedDownloadsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-5">
           <div className="space-y-1">
             <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest">
-              Resource Library
+              {t('downloads.subtitle')}
             </span>
             <h1 className="text-2xl sm:text-3xl font-heading font-black text-[var(--text-color)] tracking-tight">
-              Study Material Downloads
+              {t('downloads.title')}
             </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xl">
-              Free books, question papers, notes &amp; NCERT material for BPSC preparation.
-            </p>
           </div>
 
           {/* Search */}
@@ -256,7 +255,7 @@ export default function DedicatedDownloadsPage() {
             <input
               type="text"
               id="downloads-search"
-              placeholder="Search books, notes, PYQs…"
+              placeholder={t('downloads.searchPlaceholder')}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-11 pr-4 py-3.5 text-sm bg-[var(--bg-color)] border border-[var(--card-border)] rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 text-[var(--text-color)] font-medium shadow-sm"
@@ -334,7 +333,7 @@ export default function DedicatedDownloadsPage() {
                           className="flex-1 py-2.5 px-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-md hover:scale-[1.02] transition-all cursor-pointer"
                         >
                           <Download className="w-4 h-4" />
-                          <span>Download</span>
+                          <span>{t('downloads.download')}</span>
                         </a>
                       )}
                     </div>

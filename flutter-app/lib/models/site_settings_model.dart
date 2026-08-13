@@ -32,7 +32,7 @@ class SiteSettingsModel {
   });
 
   factory SiteSettingsModel.fromJson(Map<String, dynamic> json) => SiteSettingsModel(
-    heroTitle: json['heroTitle'] ?? 'Final Attempt — IAS & BPSC Mentorship',
+    heroTitle: json['heroTitle'] ?? 'Final Attempt — & BPSC Mentorship',
     heroSubtitle: json['heroSubtitle'] ?? 'Your journey to success starts here.',
     tagline: json['tagline'],
     heroImageUrl: json['heroImageUrl'],
@@ -49,7 +49,7 @@ class SiteSettingsModel {
   );
 
   static SiteSettingsModel get fallback => const SiteSettingsModel(
-    heroTitle: 'Final Attempt — IAS & BPSC Mentorship',
+    heroTitle: 'Final Attempt — & BPSC Mentorship',
     heroSubtitle: 'Empowering aspirants through personalized mentorship and high-quality content.',
     tagline: "Let's Make Your Attempt Final",
   );

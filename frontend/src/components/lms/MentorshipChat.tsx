@@ -7,6 +7,7 @@ import {
   ShieldCheck, UserCheck, Edit2, Trash2, Ban, Check, X, AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/context/LocaleContext';
 import { getChatRooms, getChatMessages, getSupportRoom } from '@/services/auth';
 
 interface MentorshipChatProps {
@@ -24,6 +25,7 @@ interface FacultyMember {
 
 export default function MentorshipChat({ courseId }: MentorshipChatProps) {
   const { user, accessToken } = useAuth();
+  const { t } = useTranslation();
   const [rooms, setRooms] = useState<any[]>([]);
   const [activeRoom, setActiveRoom] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -262,7 +264,7 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
     return (
       <div className="h-[500px] flex flex-col items-center justify-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl animate-pulse">
         <MessageSquare className="w-8 h-8 text-blue-400/50 animate-bounce mb-3" />
-        <p className="text-slate-500 text-xs font-semibold">Connecting to mentorship portal...</p>
+        <p className="text-slate-500 text-xs font-semibold">{t('common.loading')}</p>
       </div>
     );
   }
@@ -458,7 +460,7 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             disabled={isBlocked}
-            placeholder={isBlocked ? "You are blocked from sending messages..." : "Type your doubts here..."}
+            placeholder={isBlocked ? "Blocked" : t('common.search')}
             className="flex-1 bg-[var(--bg-color)] border border-[var(--card-border)] rounded-xl px-4 py-3 text-xs text-[var(--text-color)] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <button

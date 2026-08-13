@@ -4,6 +4,8 @@ import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { LocaleProvider } from "@/context/LocaleContext";
+import LanguageSelectionModal from "@/components/LanguageSelectionModal";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-heading",
@@ -58,11 +60,14 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-body bg-brand-neutral text-brand-primary">
-        <ThemeProvider>
-          <Header />
-          <main className="flex-grow">{children}</main>
-          <Footer />
-        </ThemeProvider>
+        <LocaleProvider>
+          <ThemeProvider>
+            <LanguageSelectionModal />
+            <Header />
+            <main className="flex-grow">{children}</main>
+            <Footer />
+          </ThemeProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

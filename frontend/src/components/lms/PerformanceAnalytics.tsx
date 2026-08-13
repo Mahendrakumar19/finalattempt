@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, Award, CheckCircle, ShieldAlert, Sparkles, BookOpen } from 'lucide-react';
 import { getStudentAnalytics } from '@/services/auth';
+import { useTranslation } from '@/context/LocaleContext';
 
 interface PerformanceAnalyticsProps {
   accessToken: string;
 }
 
 export default function PerformanceAnalytics({ accessToken }: PerformanceAnalyticsProps) {
+  const { t } = useTranslation();
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -67,7 +69,7 @@ export default function PerformanceAnalytics({ accessToken }: PerformanceAnalyti
             <CheckCircle className="w-5 h-5 text-blue-500" />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Courses Active</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('student.coursesEnrolled')}</p>
             <p className="text-xl font-black text-[var(--text-color)] mt-0.5">{courseCompletions.length}</p>
           </div>
         </div>
@@ -77,7 +79,7 @@ export default function PerformanceAnalytics({ accessToken }: PerformanceAnalyti
             <Award className="w-5 h-5 text-violet-500" />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Quiz Attempts</p>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{t('student.testsAttempted')}</p>
             <p className="text-xl font-black text-[var(--text-color)] mt-0.5">
               {quizAnalytics.reduce((sum: number, q: any) => sum + q.attemptsCount, 0)}
             </p>

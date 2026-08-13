@@ -216,7 +216,7 @@ class _HeroSection extends StatelessWidget {
               border: Border.all(color: AppTheme.amber.withOpacity(0.3)),
             ),
             child: const Text(
-              '🏆 #1 BPSC & IAS Prep Platform',
+              '🏆 #1 BPSC Prep Platform',
               style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppTheme.amber, letterSpacing: 0.5),
             ),
           ),

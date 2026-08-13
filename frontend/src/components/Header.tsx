@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
+import { useTranslation, useLocale } from '@/context/LocaleContext';
 import { db, CustomPage } from '@/services/db';
 
 /* ─── helpers ───────────────────────────────────── */
@@ -79,6 +80,8 @@ export default function Header() {
   const pathname  = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useTranslation();
+  const { locale, setLocale } = useLocale();
 
   const [mounted,        setMounted]        = useState(false);
   const [mobileOpen,     setMobileOpen]     = useState(false);
@@ -170,20 +173,20 @@ export default function Header() {
 
   /* ── nav entries ────────────────────────── */
   const navEntries: NavEntry[] = [
-    { id: 'home', label: 'Home', href: '/', icon: IC.home },
+    { id: 'home', label: t('nav.home'), href: '/', icon: IC.home },
 
     {
-      id: 'courses', label: 'Courses', href: '/courses', icon: IC.courses,
+      id: 'courses', label: t('nav.courses'), href: '/courses', icon: IC.courses,
       mega: {
-        tagline: 'Learning Programs',
-        description: 'Structured courses designed by experts and civil servants.',
+        tagline: t('mega.courses.tagline'),
+        description: t('mega.courses.description'),
         groups: courseGroups,
-        cta: { label: 'Browse All Courses', href: '/courses' },
+        cta: { label: t('nav.browseAllCourses'), href: '/courses' },
       },
     },
 
     {
-      id: 'test', label: 'Test Series', href: '/test-series', icon: IC.test,
+      id: 'test', label: t('nav.testSeries'), href: '/test-series', icon: IC.test,
       mega: (() => {
         const dynamicGroups: MegaGroup[] = [
           {
@@ -209,42 +212,42 @@ export default function Header() {
         ];
 
         return {
-          tagline: 'Practice & Evaluate',
-          description: 'Simulate exam conditions with timed mocks and detailed solution booklets.',
+          tagline: t('mega.test.tagline'),
+          description: t('mega.test.description'),
           groups: dynamicGroups,
-          cta: { label: 'Explore All Exams', href: '/test-series' },
+          cta: { label: t('nav.exploreAllExams'), href: '/test-series' },
         };
       })(),
     },
 
     ...(showCA ? [{
-      id: 'ca', label: 'Current Affairs', href: '/current-affairs', icon: IC.daily,
+      id: 'ca', label: t('nav.currentAffairs'), href: '/current-affairs', icon: IC.daily,
       mega: {
-        tagline: 'Stay Updated Daily',
-        description: 'Curated, exam-relevant current affairs for BPSC.',
+        tagline: t('mega.ca.tagline'),
+        description: t('mega.ca.description'),
         groups: [
-          { heading: 'By Frequency', items: [
-              { label: 'Daily',   href: '/current-affairs/daily',                                                                        desc: 'Read news updated every day',        icon: IC.daily,   isNew: true },
-              { label: 'Weekly',   href: `/current-affairs/weekly/week-${getCurrentISOWeek()}-${new Date().getFullYear()}`,                desc: 'Weekly news highlights', icon: IC.weekly  },
-              { label: 'Monthly',href: `/current-affairs/monthly/${MONTH_NAMES[new Date().getMonth()]}-${new Date().getFullYear()}`,    desc: 'Monthly PDF notes',        icon: IC.monthly },
-              { label: 'Yearly',href: `/current-affairs/yearly/${new Date().getFullYear()}`,                                            desc: 'Full year news notes',        icon: IC.yearly  },
+          { heading: t('mega.ca.byFrequency'), items: [
+              { label: t('mega.ca.daily'),   href: '/current-affairs/daily',                                                                        desc: t('mega.ca.dailyDesc'),        icon: IC.daily,   isNew: true },
+              { label: t('mega.ca.weekly'),   href: `/current-affairs/weekly/week-${getCurrentISOWeek()}-${new Date().getFullYear()}`,                desc: t('mega.ca.weeklyDesc'), icon: IC.weekly  },
+              { label: t('mega.ca.monthly'),href: `/current-affairs/monthly/${MONTH_NAMES[new Date().getMonth()]}-${new Date().getFullYear()}`,    desc: t('mega.ca.monthlyDesc'),        icon: IC.monthly },
+              { label: t('mega.ca.yearly'),href: `/current-affairs/yearly/${new Date().getFullYear()}`,                                            desc: t('mega.ca.yearlyDesc'),        icon: IC.yearly  },
             ],
           },
-          { heading: 'Topics', items: [
-              { label: 'Daily Analysis', href: '/current-affairs/daily', desc: 'Daily news & editorials', icon: IC.sparkle, badge: 'Hot' },
+          { heading: t('mega.ca.topics'), items: [
+              { label: t('mega.ca.dailyAnalysis'), href: '/current-affairs/daily', desc: t('mega.ca.dailyAnalysisDesc'), icon: IC.sparkle, badge: 'Hot' },
               // { label: 'Video Lectures', href: '/current-affairs/videos',  desc: 'Current affairs video updates',    icon: IC.video },
             ],
           },
         ],
-        cta: { label: "Today's Current Affairs", href: '/current-affairs/daily' },
+        cta: { label: t('nav.todaysCA'), href: '/current-affairs/daily' },
       },
     } as NavEntry] : []),
 
     {
-      id: 'resources', label: 'Resources', href: '/downloads', icon: IC.download,
+      id: 'resources', label: t('nav.resources'), href: '/downloads', icon: IC.download,
       mega: {
-        tagline: 'Study Material Hub',
-        description: 'Free books, PYQs, notes and NCERT material for exam prep.',
+        tagline: t('mega.resources.tagline'),
+        description: t('mega.resources.description'),
         groups: [
           { heading: 'Downloads', items: (() => {
               const baseItems = [
@@ -290,23 +293,23 @@ export default function Header() {
             })()
           }
         ],
-        cta: { label: 'Download Free Material', href: '/downloads' },
+        cta: { label: t('nav.downloadFreeMaterial'), href: '/downloads' },
       },
     },
 
     {
-      id: 'blog', label: 'Blogs & More', href: '/blog', icon: IC.blog,
+      id: 'blog', label: t('nav.blogsMore'), href: '/blog', icon: IC.blog,
       mega: {
-        tagline: 'Insights & Articles',
-        description: 'Expert blogs on exam strategy, analysis and news updates.',
+        tagline: t('mega.blogs.tagline'),
+        description: t('mega.blogs.description'),
         groups: [
-          { heading: 'Explore', items: [
-              { label: 'All Articles',       href: '/blog',              desc: 'Strategy & analysis posts',    icon: IC.blog },
-              { label: 'Current Affairs',    href: '/current-affairs',   desc: 'Exam-relevant news breakdown', icon: IC.daily },
+          { heading: t('mega.blogs.explore'), items: [
+              { label: t('mega.blogs.allArticles'),       href: '/blog',              desc: t('mega.blogs.allArticlesDesc'),    icon: IC.blog },
+              { label: t('mega.blogs.currentAffairs'),    href: '/current-affairs',   desc: t('mega.blogs.currentAffairsDesc'), icon: IC.daily },
             ],
           },
-          { heading: 'Strategy & Guidance', items: [
-              { label: 'Syllabus & Strategy', href: '/syllabus-strategy', desc: 'Exam-wise topic plans & timetables', icon: IC.syllabus },
+          { heading: t('mega.blogs.strategyGuidance'), items: [
+              { label: t('mega.blogs.syllabusStrategy'), href: '/syllabus-strategy', desc: t('mega.blogs.syllabusStrategyDesc'), icon: IC.syllabus },
             ],
           },
           ...navbarCustom.slice(0, 4).map(p => ({
@@ -314,27 +317,27 @@ export default function Header() {
             items: [{ label: p.title, href: `/page/${p.slug}`, desc: p.metaDescription || '', icon: IC.globe }],
           })),
         ],
-        cta: { label: 'Read Latest Blogs', href: '/blog' },
+        cta: { label: t('nav.readLatestBlogs'), href: '/blog' },
       },
     },
 
     {
-      id: 'about', label: 'About Us', href: '/about', icon: IC.about,
+      id: 'about', label: t('nav.aboutUs'), href: '/about', icon: IC.about,
       mega: {
-        tagline: 'Who We Are',
-        description: 'Learn about our mission, faculty, and selected toppers who lead change.',
+        tagline: t('mega.about.tagline'),
+        description: t('mega.about.description'),
         groups: [
-          { heading: 'Organisation', items: [
-              { label: 'About Final Attempt', href: '/about',    desc: 'Our story, mission & vision',         icon: IC.about   },
+          { heading: t('mega.about.organisation'), items: [
+              { label: t('mega.about.aboutFA'), href: '/about',    desc: t('mega.about.aboutFADesc'),         icon: IC.about   },
             ],
           },
-          { heading: 'Connect', items: [
-              { label: 'Contact Us',     href: '/contact',              desc: 'Get in touch or visit our center', icon: IC.contact },
-              { label: 'Enroll Now',     href: '/contact?enquiry=enroll',desc: 'Start your preparation today',    icon: IC.courses, badge: 'CTA' },
+          { heading: t('mega.about.connect'), items: [
+              { label: t('mega.about.contactUs'),     href: '/contact',              desc: t('mega.about.contactUsDesc'), icon: IC.contact },
+              { label: t('mega.about.enrollNow'),     href: '/contact?enquiry=enroll',desc: t('mega.about.enrollNowDesc'),    icon: IC.courses, badge: 'CTA' },
             ],
           },
         ],
-        cta: { label: 'Contact Admissions', href: '/contact' },
+        cta: { label: t('nav.contactAdmissions'), href: '/contact' },
       },
     },
 
@@ -398,22 +401,36 @@ export default function Header() {
                   ) : (
                     <span className="w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-amber-500 border border-slate-700">👤</span>
                   )}
-                  <span>Dashboard</span>
+                  <span>{t('nav.dashboard')}</span>
                 </Link>
                 <span className="text-slate-700">|</span>
                 <button
                   onClick={logout}
                   className="hover:text-red-400 transition-colors font-bold cursor-pointer"
                 >
-                  Logout
+                  {t('nav.logout')}
                 </button>
               </div>
             ) : (
               <Link href="/auth/login/student" className="hover:text-white transition-colors flex items-center gap-1.5 font-bold shrink-0">
                 <span>👤</span>
-                <span>Student Login</span>
+                <span>{t('nav.studentLogin')}</span>
               </Link>
             )}
+            <span className="text-slate-700">|</span>
+            {/* Language Switcher */}
+            <button
+              id="header-lang-switcher"
+              onClick={() => setLocale(locale === 'en' ? 'hi' : 'en')}
+              className="hover:text-white transition-colors flex items-center gap-1 text-sm font-bold cursor-pointer shrink-0 border border-slate-700/60 rounded-lg px-2 py-0.5 hover:border-amber-500/50"
+              aria-label={locale === 'en' ? 'Switch to Hindi' : 'Switch to English'}
+              title={locale === 'en' ? 'हिंदी में देखें' : 'View in English'}
+            >
+              <Globe className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-amber-400">{locale === 'en' ? 'EN' : 'हि'}</span>
+              <span className="text-slate-600">|</span>
+              <span className="text-slate-400">{locale === 'en' ? 'हिंदी' : 'EN'}</span>
+            </button>
             <span className="text-slate-700">|</span>
             <button
               onClick={toggleTheme}
@@ -421,9 +438,9 @@ export default function Header() {
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? (
-                <><Sun className="w-4 h-4 text-amber-500" /><span>Light</span></>
+                <><Sun className="w-4 h-4 text-amber-500" /><span>{t('theme.light')}</span></>
               ) : (
-                <><Moon className="w-4 h-4 text-slate-400" /><span>Dark</span></>
+                <><Moon className="w-4 h-4 text-slate-400" /><span>{t('theme.dark')}</span></>
               )}
             </button>
           </div>
@@ -488,7 +505,7 @@ export default function Header() {
                 href="/contact?enquiry=enroll"
                 className="hidden sm:inline-flex items-center gap-2 px-5 py-2 text-[13px] font-extrabold text-slate-950 bg-amber-500 hover:bg-amber-400 transition-all rounded-xl shadow-md hover:shadow-amber-400/40 hover:scale-[1.02] active:scale-100"
               >
-                <span>Enroll Now</span>
+                <span>{t('nav.enroll')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
 

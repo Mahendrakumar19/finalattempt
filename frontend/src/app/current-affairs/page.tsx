@@ -8,6 +8,7 @@ import {
   Calendar, Zap, BookMarked, FileText
 } from 'lucide-react';
 import { db, DynamicCurrentAffairEdition } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 
 /* ── helpers ─────────────────────────────────────────────────── */
 function getISOWeek(dateStr: string): { week: number; year: number } {
@@ -78,6 +79,7 @@ function SidebarSection({ icon, title }: { icon: React.ReactNode; title: string 
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════ */
 export default function CurrentAffairsLanding() {
+  const { t } = useTranslation();
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
   const [activeTopic, setActiveTopic] = useState<'all' | 'national' | 'international' | 'bihar' | 'arunachal'>('all');
 
@@ -238,7 +240,7 @@ export default function CurrentAffairsLanding() {
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-heading font-black text-white leading-tight">
-                Current Affairs
+                {t('currentAffairs.title')}
               </h1>
             </div>
 
@@ -254,7 +256,7 @@ export default function CurrentAffairsLanding() {
                 className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl transition-all hover:scale-[1.02] shadow-md shadow-amber-500/20"
               >
                 <Zap className="w-3.5 h-3.5" />
-                <span>Read Today's Current Affairs</span>
+                <span>{t('nav.todaysCA')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -361,7 +363,7 @@ export default function CurrentAffairsLanding() {
                           {art.title}
                         </h3>
                         <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                          Read More <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                          {t('currentAffairs.readMore')} <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                         </span>
                       </div>
                     </Link>
@@ -370,7 +372,7 @@ export default function CurrentAffairsLanding() {
               ) : (
                 <div className="text-center py-10 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl">
                   <Newspaper className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500 font-semibold">No articles yet for this selection.</p>
+                  <p className="text-sm text-slate-500 font-semibold">{t('currentAffairs.noArticles')}</p>
                 </div>
               )}
             </div>
