@@ -31,6 +31,11 @@ const nextConfig: NextConfig = {
         source: '/api/files/:filename*',
         destination: `${BACKEND_ORIGIN}/api/files/:filename*`,
       },
+      // Route legacy /page/:slug URLs to the /p/:slug dynamic page handler
+      {
+        source: '/page/:slug*',
+        destination: '/p/:slug*',
+      },
     ];
   },
 };

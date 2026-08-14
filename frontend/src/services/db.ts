@@ -308,10 +308,10 @@ class FinalAttemptDB {
 
   public async getCourses(includeUnpublished: boolean = false): Promise<Course[]> {
     const res = await this.apiFetch(`/api/lms/courses?includeUnpublished=${includeUnpublished}`);
-    if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+    if (res && res.success && Array.isArray(res.data)) {
       return includeUnpublished ? res.data : res.data.filter((c: Course) => c.isPublished !== false);
     }
-    return includeUnpublished ? (courseData as Course[]) : (courseData as Course[]).filter((c: Course) => c.isPublished !== false);
+    return [];
   }
 
   public async getCourseById(id: string): Promise<Course | undefined> {

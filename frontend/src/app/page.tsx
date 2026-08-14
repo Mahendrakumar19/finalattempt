@@ -45,10 +45,11 @@ import {
 } from 'lucide-react';
 
 import { db, Course } from '@/services/db';
-import { courseData } from '@/services/seedData';
 import { useTranslation } from '@/context/LocaleContext';
 import TestimonialCarousel from '@/components/TestimonialCarousel';
 import NextImage from 'next/image';
+
+
 
 export interface YoutubeVideoItem {
   youtubeVideoId: string;
@@ -90,7 +91,7 @@ export default function Home() {
     tagline: 'Welcome to FINAL ATTEMPT',
     heroImageUrl: ''
   });
-  const [liveCourses, setLiveCourses] = useState<Course[]>(courseData as Course[]);
+  const [liveCourses, setLiveCourses] = useState<Course[]>([]);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
 
   const toggleFlip = (id: string) => {
@@ -202,7 +203,7 @@ export default function Home() {
         }
 
         const c = await db.getCourses();
-        if (c && Array.isArray(c) && c.length > 0) {
+        if (c) {
           setLiveCourses(c);
         }
 

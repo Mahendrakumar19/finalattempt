@@ -22,12 +22,7 @@ export default function TestimonialCarousel() {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   
   // Dynamic dimensions mapping by topper id
-  const [imageDims, setImageDims] = useState<Record<string, ImageDimensions>>({
-    '1': { width: 1010, height: 485 },
-    '2': { width: 1010, height: 485 },
-    '3': { width: 1010, height: 485 },
-    '4': { width: 1010, height: 485 }
-  });
+  const [imageDims, setImageDims] = useState<Record<string, ImageDimensions>>({});
 
   const minSwipeDistance = 50;
 
