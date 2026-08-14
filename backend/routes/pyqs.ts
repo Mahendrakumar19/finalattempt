@@ -1,12 +1,14 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { ExamStage, Prisma } from '@prisma/client';
+import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 
 const router = Router();
 
 // GET /api/pyqs
 router.get('/', async (req: Request, res: Response) => {
   try {
+    const targetLang = getTargetLang(req);
     const search = req.query.search as string;
     const examId = req.query.examId as string;
     const year = req.query.year ? parseInt(req.query.year as string, 10) : undefined;
@@ -50,11 +52,19 @@ router.get('/', async (req: Request, res: Response) => {
       }
     });
 
+    const localized = await ContentLocalizer.localizeEntityList(
+      'pyq',
+      items,
+      ['paperName', 'description'],
+      targetLang,
+      ['description']
+    );
+
     const total = await prisma.pYQ.count({ where });
 
     res.json({
       success: true,
-      data: items,
+      data: localized,
       pagination: {
         page,
         limit,

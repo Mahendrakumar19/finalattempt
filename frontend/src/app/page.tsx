@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
+  Flame,
   Users,
   BookOpen,
   ChevronRight,
@@ -474,11 +475,10 @@ export default function Home() {
             </h2>
 
             <p className="text-m sm:text-base text-slate-600 dark:text-slate-300 max-w-6xl mx-auto font-medium leading-relaxed">
-              A complete, exam-focused preparation ecosystem for Civil Services Examinations—UPSC & State PCS—covering Prelims, Mains and Interview.
-              We combine rigorous practice, structured preparation, one-to-one personalised mentorship, expert human guidance and AI-powered evaluation for in-depth, actionable feedback at every stage.
+              {t('home.whySubtitle')}
               <br />
               <span className='font-bold'>
-                Prepare smarter. Practice relentlessly. Improve continuously — to make your attempt, FINAL.
+                {t('home.whyTagline')}
               </span>
             </p>
 
@@ -492,48 +492,48 @@ export default function Home() {
 
             {[
               {
-                title: 'Mentorship First',
-                desc: '1-on-1 personalized guidance, regular progress reviews, and strategic preparation routines tailored to your BPSC goals.',
+                title: t('home.pillar1Title'),
+                desc: t('home.pillar1Desc'),
                 icon: Users,
                 iconColor: 'text-blue-600 dark:text-blue-400',
                 bgColor: 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-100 dark:border-blue-900/40',
                 gradient: 'from-blue-100/60 to-indigo-50/30'
               },
               {
-                title: 'Expert Faculty',
-                desc: 'Learn from experienced educators and BPSC experts who simplify complex concepts and share proven exam strategies.',
+                title: t('home.pillar2Title'),
+                desc: t('home.pillar2Desc'),
                 icon: GraduationCap,
                 iconColor: 'text-amber-600 dark:text-amber-400',
                 bgColor: 'bg-amber-50/90 dark:bg-amber-950/50 border-amber-100 dark:border-amber-900/40',
                 gradient: 'from-amber-100/60 to-orange-50/30'
               },
               {
-                title: 'Personal Plan',
-                desc: 'Customized study plans adapted to your strengths, learning pace, and performance for maximum score improvement.',
+                title: t('home.pillar3Title'),
+                desc: t('home.pillar3Desc'),
                 icon: Target,
                 iconColor: 'text-red-600 dark:text-red-400',
                 bgColor: 'bg-red-50/90 dark:bg-red-950/50 border-red-100 dark:border-red-900/40',
                 gradient: 'from-red-100/60 to-rose-50/30'
               },
               {
-                title: 'Copy Evaluation',
-                desc: 'Detailed mentor-driven evaluation of copies on BPSC standards, complete with score analysis and model approaches.',
+                title: t('home.pillar4Title'),
+                desc: t('home.pillar4Desc'),
                 icon: Edit3,
                 iconColor: 'text-orange-600 dark:text-orange-400',
                 bgColor: 'bg-orange-50/90 dark:bg-orange-950/50 border-orange-100 dark:border-orange-900/40',
                 gradient: 'from-orange-100/60 to-amber-50/30'
               },
               {
-                title: 'AI Analytics',
-                desc: 'Monitor progress with test insights, accuracy metrics, and data-driven recommendations that pinpoint weak spots.',
+                title: t('home.pillar5Title'),
+                desc: t('home.pillar5Desc'),
                 icon: BarChart2,
                 iconColor: 'text-teal-600 dark:text-teal-400',
                 bgColor: 'bg-teal-50/90 dark:bg-teal-950/50 border-teal-100 dark:border-teal-900/40',
                 gradient: 'from-teal-100/60 to-emerald-50/30'
               },
               {
-                title: 'Complete System',
-                desc: 'Structured courses, test series, answer writing practice, current affairs, and mentorship all under one roof.',
+                title: t('home.pillar6Title'),
+                desc: t('home.pillar6Desc'),
                 icon: Rocket,
                 iconColor: 'text-purple-600 dark:text-purple-400',
                 bgColor: 'bg-purple-50/90 dark:bg-purple-950/50 border-purple-100 dark:border-purple-900/40',
@@ -715,53 +715,58 @@ export default function Home() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-7xl mx-auto">
             {[
               {
-                title: 'CURRENT AFFAIRS',
+                title: t('home.quickCA'),
                 icon: Newspaper,
                 iconColor: 'text-red-500',
                 link: '/current-affairs'
               },
               {
-                title: 'PYQ',
+                title: t('home.quickQuiz'),
+                icon: Flame,
+                iconColor: 'text-amber-500',
+                link: '/daily-quiz'
+              },
+              {
+                title: t('home.quickPYQ'),
                 icon: FileText,
                 iconColor: 'text-blue-500',
                 link: '/downloads/pyq'
               },
               {
-                title: 'NCERT',
+                title: t('home.quickNCERT'),
                 icon: BookOpen,
                 iconColor: 'text-emerald-500',
                 link: '/downloads/ncert'
               },
               {
-                title: 'RAPID REVISION',
+                title: t('home.quickRapid'),
                 icon: Zap,
                 iconColor: 'text-amber-500',
                 link: '/downloads/rapid-revision'
               },
               {
-                title: 'VALUE ADDED MATERIALS — MAINS',
+                title: t('home.quickValue'),
                 icon: Lightbulb,
                 iconColor: 'text-purple-500',
                 link: '/downloads/value-added-mains'
               },
               {
-                title: 'TOPPERS\' COPIES',
+                title: t('home.quickToppers'),
                 icon: FileCheck,
                 iconColor: 'text-teal-500',
                 link: '/downloads/toppers-copies'
               },
-              
               {
-                title: 'SYLLABUS & STRATEGY',
+                title: t('home.quickSyllabus'),
                 icon: Compass,
                 iconColor: 'text-indigo-500',
                 link: '/syllabus-strategy'
               },
               {
-                title: 'FINAL ATTEMPT PUBLICATION',
+                title: t('home.quickPublication'),
                 imgSrc: '/favicon.png',
                 link: '/downloads/fa-publication'
               }
@@ -797,7 +802,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 max-w-7xl mx-auto">
               <div className="space-y-3">
                 <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
-                  Latest from Our Channel
+                  {t('home.latestChannel')}
                 </h2>
 
               </div>
@@ -805,7 +810,7 @@ export default function Home() {
                 href="https://www.youtube.com/@FinalAttemptOfficial/videos"
                 className="btn-outline text-xs flex items-center gap-1.5 shrink-0"
               >
-                <span>View All Videos</span>
+                <span>{t('home.viewAllVideos')}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -850,7 +855,7 @@ export default function Home() {
                       rel="noreferrer"
                       className="btn-primary w-full text-center text-xs flex justify-center items-center gap-1.5"
                     >
-                      <span>Watch on YouTube</span>
+                      <span>{t('home.watchOnYoutube')}</span>
                       <Video className="w-4 h-4" />
                     </a>
                   </div>
@@ -868,14 +873,14 @@ export default function Home() {
             <div className="space-y-3">
 
               <h2 className="text-3xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white leading-tight">
-                Latest Articles & Expert Analysis
+                {t('home.latestArticles')}
               </h2>
             </div>
             <Link
               href="/blog"
               className="btn-outline text-xs flex items-center gap-1.5 shrink-0"
             >
-              <span>Explore All Articles</span>
+              <span>{t('home.exploreArticles')}</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -1019,13 +1024,13 @@ export default function Home() {
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="text-center max-w-2xl mx-auto space-y-4">
             <span className="text-s font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
-              From the Mentor’s Pen
+              {t('home.mentorsPen')}
             </span>
             <h3 className="text-xs font-heading font-black text-slate-900 leading-tight">
 
             </h3>
             <p className="text-s font-black text-slate-900 max-w-md mx-auto">
-              Words from those who have guided the journey.
+              {t('home.mentorsWords')}
             </p>
           </div>
 
@@ -1042,39 +1047,31 @@ export default function Home() {
             <div className="lg:col-span-7 space-y-6">
 
               <h2 className="text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight">
-                About Final Attempt
+                {t('home.aboutTitle')}
               </h2>
 
               <div className="space-y-4 text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed">
-                <p>
-                  Final Attempt is a next-generation mentorship and learning platform dedicated to helping aspirants achieve success through structured preparation, personalized guidance, and technology-driven learning. Built on a mentorship-first philosophy, we focus on delivering measurable outcomes by combining academic excellence with continuous performance improvement.
-                </p>
-                <p>
-                  Our ecosystem integrates one-to-one personalized mentorship, strategic study planning, high-quality learning resources, advanced answer evaluation, AI-powered performance tracking, and data-driven analytics to ensure every student receives guidance tailored to their individual strengths and challenges.
-                </p>
-                <p>
-                  We believe that every aspirant&apos;s journey is unique. That&apos;s why our learning framework is designed to identify improvement areas, provide timely feedback, and create customized preparation strategies that maximize performance at every stage of the examination process.
-                </p>
-                <p>
-                  Driven by innovation, discipline, transparency, and student-centric values, Final Attempt is committed to building an ecosystem where aspirants don&apos;t just prepare for examinations—they prepare for long-term success.
-                </p>
+                <p>{t('home.aboutP1')}</p>
+                <p>{t('home.aboutP2')}</p>
+                <p>{t('home.aboutP3')}</p>
+                <p>{t('home.aboutP4')}</p>
               </div>
             </div>
 
             {/* Right Column: Community & Call to Action */}
             <div className="lg:col-span-5 bg-white dark:bg-slate-900/40 p-8 rounded-3xl border border-slate-100/80 dark:border-white/[0.06] shadow-sm space-y-6">
               <h3 className="font-heading font-extrabold text-lg text-slate-900 dark:text-white">
-                Become a Part of the Final Attempt Community
+                {t('home.communityTitle')}
               </h3>
 
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                Join a growing community of ambitious aspirants, experienced mentors, and dedicated educators committed to excellence. Stay connected through our digital platforms for expert guidance, mentorship initiatives, preparation resources, performance insights, and the latest academic updates.
+                {t('home.communityDesc')}
               </p>
 
               <div className="pt-4 border-t border-slate-50 dark:border-white/[0.04] space-y-4">
                 <div className="text-[#1E3A8A] dark:text-amber-500 font-extrabold text-sm sm:text-base tracking-wide flex items-center gap-2">
                   <span>🎯</span>
-                  <span>Let&apos;s Make Your Attempt Final with FINAL ATTEMPT.</span>
+                  <span>{t('home.communityTagline')}</span>
                 </div>
 
                 <div className="flex gap-4">
@@ -1082,7 +1079,7 @@ export default function Home() {
                     href="#book-session"
                     className="btn-primary text-xs w-full text-center flex justify-center items-center gap-1.5"
                   >
-                    <span>Get Mentorship</span>
+                    <span>{t('home.getMentorship')}</span>
                     <ChevronRight className="w-4 h-4" />
                   </a>
                 </div>
@@ -1099,10 +1096,10 @@ export default function Home() {
           <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-100 shadow-sm relative overflow-hidden">
             <div className="text-center space-y-4 mb-8">
               <h3 className="text-2xl font-heading font-extrabold text-slate-900">
-                Get Free BPSC Strategy Session
+                {t('home.counselingTitle')}
               </h3>
               <p className="text-xs text-slate-500 max-w-md mx-auto">
-                Book your FREE one-on-one strategy session with our selected civil servants and core mentors today.
+                {t('home.counselingDesc')}
               </p>
             </div>
 
@@ -1115,7 +1112,7 @@ export default function Home() {
             ) : (
               <form onSubmit={handleSubmitLead} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Full Name</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('home.fullName')}</label>
                   <input
                     type="text"
                     required
@@ -1126,7 +1123,7 @@ export default function Home() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Mobile Number</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('home.mobileNumber')}</label>
                   <input
                     type="tel"
                     required
@@ -1138,7 +1135,7 @@ export default function Home() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Target Exam</label>
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('home.targetExam')}</label>
                   <select
                     value={targetExam}
                     onChange={(e) => setTargetExam(e.target.value)}
@@ -1159,7 +1156,7 @@ export default function Home() {
                       type="submit"
                       className="flex-grow sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-[#F59E0B] hover:bg-amber-600 text-white font-bold rounded-xl text-xs shadow-md transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                     >
-                      <span>Book My Session</span>
+                      <span>{t('home.bookSessionBtn')}</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
 
@@ -1178,7 +1175,7 @@ export default function Home() {
                         className="w-4 h-4"
                       />
 
-                      <span>WhatsApp Chat</span>
+                      <span>{t('home.whatsappChat')}</span>
                     </a>
                   </div>
                 </div>

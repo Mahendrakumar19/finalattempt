@@ -1,19 +1,28 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { ExamStage, CompanyValueType } from '@prisma/client';
+import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 
 const router = Router();
 
 // ─── Exam Endpoints ──────────────────────────────────────────────────────────
 router.get('/exams', async (req: Request, res: Response) => {
   try {
+    const targetLang = getTargetLang(req);
     const exams = await prisma.exam.findMany({
       include: { logo: true }
     });
     exams.sort((a, b) =>
       (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
     );
-    res.json({ success: true, data: exams });
+    const localized = await ContentLocalizer.localizeEntityList(
+      'exam',
+      exams,
+      ['name', 'description'],
+      targetLang,
+      ['description']
+    );
+    res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -100,6 +109,7 @@ router.delete('/exam/:id', async (req: Request, res: Response) => {
 // ─── Syllabus Endpoints ──────────────────────────────────────────────────────
 router.get('/syllabus', async (req: Request, res: Response) => {
   try {
+    const targetLang = getTargetLang(req);
     const list = await prisma.syllabus.findMany({
       orderBy: { sortOrder: 'asc' },
       include: {
@@ -107,7 +117,14 @@ router.get('/syllabus', async (req: Request, res: Response) => {
         fileMedia: true
       }
     });
-    res.json({ success: true, data: list });
+    const localized = await ContentLocalizer.localizeEntityList(
+      'syllabus',
+      list,
+      ['description'],
+      targetLang,
+      ['description']
+    );
+    res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -186,6 +203,7 @@ router.delete('/syllabus/:id', async (req: Request, res: Response) => {
 // ─── Strategy Blocks Endpoints ───────────────────────────────────────────────
 router.get('/strategy', async (req: Request, res: Response) => {
   try {
+    const targetLang = getTargetLang(req);
     const list = await prisma.strategyBlock.findMany({
       orderBy: { sortOrder: 'asc' },
       include: {
@@ -193,7 +211,14 @@ router.get('/strategy', async (req: Request, res: Response) => {
         attachment: true
       }
     });
-    res.json({ success: true, data: list });
+    const localized = await ContentLocalizer.localizeEntityList(
+      'strategy_block',
+      list,
+      ['title', 'content', 'ctaText'],
+      targetLang,
+      ['content']
+    );
+    res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -278,38 +303,18 @@ router.delete('/strategy/:id', async (req: Request, res: Response) => {
 // ─── Company Values Endpoints ────────────────────────────────────────────────
 router.get('/company-values', async (req: Request, res: Response) => {
   try {
-    const values = await prisma.companyValue.findMany();
-    
-    // Seed default if empty
-    if (values.length === 0) {
-      const defaults = [
-        {
-          type: CompanyValueType.MISSION,
-          title: 'Our Mission',
-          content: 'To simplify the preparation of Civil Services Examinations (BPSC) by offering structured learning, premium customized guidance, and personalized mentorship.'
-        },
-        {
-          type: CompanyValueType.VISION,
-          title: 'Our Vision',
-          content: 'To create a support system where every student receives standard guidance to crack civil service exams in their final attempt, raising the selection rates in Bihar.'
-        },
-        {
-          type: CompanyValueType.CORE_VALUES,
-          title: 'Our Core Values',
-          content: 'Discipline, Integrity, Transformed Output, Personal Mentorship Focus, and Transparency.'
-        }
-      ];
+    const targetLang = getTargetLang(req);
+    let values = await prisma.companyValue.findMany();
 
-      await Promise.all(
-        defaults.map(d => prisma.companyValue.create({ data: d }))
-      );
+    const localized = await ContentLocalizer.localizeEntityList(
+      'company_value',
+      values,
+      ['title', 'content'],
+      targetLang,
+      ['content']
+    );
 
-      const freshValues = await prisma.companyValue.findMany();
-      res.json({ success: true, data: freshValues });
-      return;
-    }
-
-    res.json({ success: true, data: values });
+    res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -74,11 +74,17 @@ export default function NewsTodayLayout({
           setCurrentEdition(ed);
 
           if (ed && ed.articles && ed.articles.length > 0) {
-            if (currentArticleSlug) {
-              const matched = ed.articles.find(a => a.slug === currentArticleSlug || a.id === currentArticleSlug);
-              setActiveArticle(matched || ed.articles[0]);
+            let matched = currentArticleSlug
+              ? ed.articles.find(a => a.slug === currentArticleSlug || a.id === currentArticleSlug)
+              : ed.articles[0];
+
+            if (!matched) matched = ed.articles[0];
+
+            if (matched && matched.slug) {
+              const fullArt = await db.getDynamicCurrentAffairArticle(matched.slug, false);
+              setActiveArticle(fullArt || matched);
             } else {
-              setActiveArticle(ed.articles[0]);
+              setActiveArticle(matched);
             }
           }
         }
@@ -394,8 +400,12 @@ export default function NewsTodayLayout({
               return (
                 <button
                   key={art.id || idx}
-                  onClick={() => {
+                  onClick={async () => {
                     setActiveArticle(art);
+                    if (art.slug) {
+                      const fullArt = await db.getDynamicCurrentAffairArticle(art.slug, false);
+                      if (fullArt) setActiveArticle(fullArt);
+                    }
                     if (art.slug && currentDateStr) {
                       const cat = art.category ? art.category.toLowerCase().replace(/\s+/g, '-') : 'general';
                       router.push(`/current-affairs/daily/${currentDateStr}/${cat}/${art.slug}`);

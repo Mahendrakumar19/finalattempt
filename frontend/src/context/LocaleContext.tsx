@@ -94,6 +94,9 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     });
     document.documentElement.lang = newLocale;
     document.documentElement.classList.toggle('locale-hi', newLocale === 'hi');
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
   }, []);
 
   // Translation function — resolves nested dot-notation keys

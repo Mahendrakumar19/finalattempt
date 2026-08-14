@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireStudent, requireAdmin } from '../middleware/role';
 import { lmsDB } from '../db';
+import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 
 const router = Router();
 
@@ -11,9 +12,17 @@ const router = Router();
 
 router.get('/courses', async (req, res) => {
   try {
+    const targetLang = getTargetLang(req);
     const includeUnpublished = req.query.includeUnpublished === 'true';
     const courses = await lmsDB.getCourses(includeUnpublished);
-    res.json({ success: true, data: courses });
+    const localized = await ContentLocalizer.localizeEntityList(
+      'lms_course',
+      courses,
+      ['title', 'description', 'duration', 'badge'],
+      targetLang,
+      ['description']
+    );
+    res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -36,12 +45,20 @@ router.post('/courses', async (req: Request, res: Response) => {
 
 router.get('/courses/:id', async (req, res) => {
   try {
+    const targetLang = getTargetLang(req);
     const course = await lmsDB.getCourseById(req.params.id);
     if (!course) {
       res.status(404).json({ success: false, error: 'Course not found.', code: 'LMS_002' });
       return;
     }
-    res.json({ success: true, data: course });
+    const localized = await ContentLocalizer.localizeEntity(
+      'lms_course',
+      course,
+      ['title', 'description', 'duration', 'badge'],
+      targetLang,
+      ['description']
+    );
+    res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -134,14 +134,10 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
         isFree: true
       };
 
-      if (editingQuiz.id) {
-        setQuizzes(prev => prev.map(q => q.id === editingQuiz.id ? newQuiz : q));
-      } else {
-        setQuizzes(prev => [newQuiz, ...prev]);
-      }
-
+      await db.saveDailyQuiz(newQuiz);
+      await loadQuizzes();
       setIsQuizModalOpen(false);
-      alert('Daily Quiz saved successfully!');
+      alert('Daily Quiz saved and published to users successfully!');
     } catch (err) {
       console.error('Error saving quiz:', err);
       alert('Failed saving quiz.');
@@ -151,12 +147,17 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
   };
 
   // Delete Daily Quiz
-  const handleDeleteQuiz = (id: string) => {
+  const handleDeleteQuiz = async (id: string) => {
     if (!confirm('Are you sure you want to delete this Daily Quiz?')) return;
-    setQuizzes(prev => prev.filter(q => q.id !== id));
-    if (selectedQuizId === id) {
-      setSelectedQuizId(null);
-      setQuestions([]);
+    try {
+      await db.deleteDailyQuiz(id);
+      if (selectedQuizId === id) {
+        setSelectedQuizId(null);
+        setQuestions([]);
+      }
+      await loadQuizzes();
+    } catch (err) {
+      console.error('Error deleting quiz:', err);
     }
   };
 
@@ -180,14 +181,10 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
         negativeMarks: Number(editingQ.negativeMarks || 0.33)
       };
 
-      if (editingQ.id) {
-        setQuestions(prev => prev.map(q => q.id === editingQ.id ? newQ : q));
-      } else {
-        setQuestions(prev => [...prev, newQ]);
-      }
-
+      await db.saveDailyQuizQuestion(selectedQuizId, newQ);
+      await handleSelectQuizForQuestions(selectedQuizId);
       setIsQModalOpen(false);
-      alert('Question saved successfully!');
+      alert('Question saved and published to users successfully!');
     } catch (err) {
       console.error('Error saving question:', err);
       alert('Failed saving question.');
@@ -197,9 +194,15 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
   };
 
   // Delete Question
-  const handleDeleteQuestion = (qId: string) => {
+  const handleDeleteQuestion = async (qId: string) => {
+    if (!selectedQuizId) return;
     if (!confirm('Delete this question?')) return;
-    setQuestions(prev => prev.filter(q => q.id !== qId));
+    try {
+      await db.deleteDailyQuizQuestion(selectedQuizId, qId);
+      await handleSelectQuizForQuestions(selectedQuizId);
+    } catch (err) {
+      console.error('Error deleting question:', err);
+    }
   };
 
   return (

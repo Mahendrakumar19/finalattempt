@@ -100,8 +100,8 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
         {/* Footer options */}
         <div className="p-3 border-t border-slate-200 dark:border-white/[0.06] space-y-0.5">
           <Link href="/student/profile" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04] transition-all">
-            <Settings className="w-4 h-4" />
-            <span>{t('student.profile')}</span>
+            <User className="w-4 h-4" />
+            <span>{t('student.profile', 'My Profile')}</span>
           </Link>
           <button
             onClick={() => {

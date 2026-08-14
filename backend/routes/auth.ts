@@ -122,6 +122,13 @@ router.post('/register', authLimiter, async (req: Request, res: Response) => {
       return;
     }
 
+    // Check if mobile already taken
+    const existingMobile = await authDB.findUserByMobile(mobile);
+    if (existingMobile) {
+      res.status(409).json({ success: false, error: 'An account with this mobile number already exists.', code: 'MOBILE_TAKEN' });
+      return;
+    }
+
     const passwordHash = await bcrypt.hash(password, 12);
     const userId = uuidv4();
 
@@ -233,6 +240,22 @@ router.post('/send-otp', otpLimiter, async (req: Request, res: Response) => {
   const { identifier, type, purpose } = parsed.data;
 
   try {
+    if (purpose === 'register') {
+      if (type === 'email') {
+        const existing = await authDB.findUserByEmail(identifier);
+        if (existing) {
+          res.status(409).json({ success: false, error: 'An account with this email already exists.', code: 'EMAIL_TAKEN' });
+          return;
+        }
+      } else {
+        const existing = await authDB.findUserByMobile(identifier);
+        if (existing) {
+          res.status(409).json({ success: false, error: 'An account with this mobile number already exists.', code: 'MOBILE_TAKEN' });
+          return;
+        }
+      }
+    }
+
     const otp     = generateOTP();
     const otpHash = await hashOTP(otp);
     await authDB.createOTP(identifier, type, otpHash, purpose, otpExpiry());

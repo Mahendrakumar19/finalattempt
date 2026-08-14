@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, ShieldCheck, Timer, ShieldAlert, Award, FileText, Check, X, Users, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/context/LocaleContext';
 import { startQuiz, submitQuizAnswers, getQuizLeaderboard } from '@/services/auth';
 
 interface QuizEngineProps {
@@ -12,6 +13,7 @@ interface QuizEngineProps {
 
 export default function QuizEngine({ quizId }: QuizEngineProps) {
   const { accessToken } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
@@ -134,7 +136,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-slate-900 border border-white/10 rounded-3xl animate-pulse">
         <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-slate-400 text-xs font-semibold">Initializing test environment...</p>
+        <p className="text-slate-400 text-xs font-semibold">{t('dailyQuiz.initializing', 'Initializing test environment...')}</p>
       </div>
     );
   }
@@ -144,7 +146,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
       <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-3xl flex gap-3 text-red-400 text-xs max-w-md mx-auto">
         <ShieldAlert className="w-5 h-5 shrink-0" />
         <div>
-          <p className="font-bold">Error Occurred</p>
+          <p className="font-bold">{t('dailyQuiz.errorOccurred', 'Error Occurred')}</p>
           <p className="mt-1">{error}</p>
         </div>
       </div>
@@ -169,31 +171,31 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
           <div className="grid grid-cols-3 gap-4 py-4 border-y border-white/5 max-w-md mx-auto text-xs">
             <div className="space-y-1">
-              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Questions</p>
+              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">{t('dailyQuiz.questions', 'Questions')}</p>
               <p className="text-white font-extrabold text-sm">{questions.length}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Time Limit</p>
-              <p className="text-white font-extrabold text-sm">{quizInfo?.timeLimitMins} Mins</p>
+              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">{t('dailyQuiz.timeLimit', 'Time Limit')}</p>
+              <p className="text-white font-extrabold text-sm">{quizInfo?.timeLimitMins} {t('common.minutes', 'Mins')}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Passing Score</p>
+              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">{t('dailyQuiz.passingScore', 'Passing Score')}</p>
               <p className="text-white font-extrabold text-sm">{quizInfo?.passingScore}%</p>
             </div>
           </div>
 
           <div className="p-4 bg-slate-800/40 border border-slate-700/30 rounded-2xl max-w-md mx-auto text-left space-y-2 text-[11px] text-slate-400">
-            <p className="font-bold text-slate-300">Rules & Warnings:</p>
-            <p>• Correct answer adds +{questions[0]?.marks || 1.0} Marks.</p>
-            <p>• Incorrect answer deducts -{questions[0]?.negativeMarks !== undefined ? questions[0]?.negativeMarks : 0.33} Marks as configured for this test.</p>
-            <p>• Do not reload the page or navigate away, or your test will submit automatically.</p>
+            <p className="font-bold text-slate-300">{t('dailyQuiz.rulesHeader', 'Rules & Guidelines:')}</p>
+            <p>• {t('dailyQuiz.rule1', 'Each question carries +1.0 mark.')}</p>
+            <p>• {t('dailyQuiz.rule2', 'Negative marking of -0.33 for incorrect options.')}</p>
+            <p>• {t('dailyQuiz.rule3', 'Timer starts immediately on clicking Start Test.')}</p>
           </div>
 
           <button
             onClick={() => setQuizState('active')}
             className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs transition-all hover:-translate-y-0.5 shadow-lg shadow-blue-900/30"
           >
-            Start Attempt
+            {t('dailyQuiz.startQuiz', 'Start Attempt')}
           </button>
         </div>
       )}
@@ -208,7 +210,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               <span className="text-white font-bold text-sm tracking-wider font-mono">{formatTime(timeLeft)}</span>
             </div>
             <div className="text-[11px] font-bold text-slate-400">
-              Question {currentIndex + 1} of {questions.length}
+              {t('dailyQuiz.questions', 'Question')} {currentIndex + 1} / {questions.length}
             </div>
           </div>
           <div className="h-1 bg-slate-800 w-full">
@@ -256,7 +258,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               disabled={currentIndex === 0}
               className="px-4 py-2 text-xs font-bold text-slate-400 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition-colors"
             >
-              ← Previous
+              ← {t('dailyQuiz.prevQuestion', 'Previous')}
             </button>
 
             {currentIndex === questions.length - 1 ? (
@@ -264,14 +266,14 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 onClick={handleSubmit}
                 className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all shadow-md"
               >
-                Submit Answers
+                {t('dailyQuiz.submitAnswers', 'Submit Answers')}
               </button>
             ) : (
               <button
                 onClick={handleNext}
                 className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-all shadow-md"
               >
-                Next Question →
+                {t('dailyQuiz.nextQuestion', 'Next Question →')}
               </button>
             )}
           </div>
@@ -286,7 +288,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               <Award className="w-8 h-8" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Attempt Review</h2>
+              <h2 className="text-xl font-bold text-white">{t('dailyQuiz.reviewAnswers', 'Attempt Review')}</h2>
               <p className="text-slate-400 text-xs mt-1">
                 {results?.passed ? 'Congratulations! You cleared the cut-off.' : 'You did not clear the cut-off this time.'}
               </p>
@@ -295,42 +297,42 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
           <div className="grid grid-cols-4 gap-4 py-4 border-y border-white/5 text-center text-xs">
             <div className="space-y-1">
-              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Your Score</p>
+              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">{t('prelims.yourScore', 'Your Score')}</p>
               <p className={`font-extrabold text-sm ${results?.passed ? 'text-emerald-400' : 'text-red-400'}`}>{results?.score.toFixed(2)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Max Marks</p>
+              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">{t('prelims.marks', 'Max Marks')}</p>
               <p className="text-white font-extrabold text-sm">{results?.maxScore}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Accuracy</p>
+              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">{t('prelims.accuracy', 'Accuracy')}</p>
               <p className="text-white font-extrabold text-sm">{results?.percentage.toFixed(1)}%</p>
             </div>
             <div className="space-y-1">
-              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Cut-off</p>
+              <p className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">{t('dailyQuiz.passingScore', 'Cut-off')}</p>
               <p className="text-white font-extrabold text-sm">{quizInfo?.passingScore}%</p>
             </div>
           </div>
 
           {/* Details Q&A Review */}
           <div className="space-y-4 pt-2">
-            <h3 className="text-white font-bold text-sm">Detailed Answers Key:</h3>
+            <h3 className="text-white font-bold text-sm">{t('dailyQuiz.detailedSolutions', 'Detailed Answers Key:')}</h3>
             <div className="space-y-4 max-h-60 overflow-y-auto pr-2 styled-scrollbar">
               {results?.details.map((det: any, i: number) => (
                 <div key={det.questionId} className="p-4 bg-slate-800/40 border border-white/5 rounded-2xl space-y-2 text-xs">
                   <div className="flex justify-between items-start gap-3">
                     <p className="text-white font-bold leading-relaxed">{i + 1}. {det.questionText}</p>
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase shrink-0 ${det.isCorrect ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                      {det.isCorrect ? 'Correct' : 'Incorrect'}
+                      {det.isCorrect ? t('prelims.correct', 'Correct') : t('prelims.incorrect', 'Incorrect')}
                     </span>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-400 font-medium pt-1">
-                    <p className="flex items-center gap-1"><span className="text-slate-500">Your Answer:</span> <span className={det.isCorrect ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>{det.studentAnswer || 'Skipped'}</span></p>
-                    <p className="flex items-center gap-1"><span className="text-slate-500">Correct Option:</span> <span className="text-emerald-400 font-bold">{det.correctAnswer}</span></p>
+                    <p className="flex items-center gap-1"><span className="text-slate-500">{t('prelims.attempt', 'Your Answer:')}</span> <span className={det.isCorrect ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>{det.studentAnswer || t('dailyQuiz.skipped', 'Skipped')}</span></p>
+                    <p className="flex items-center gap-1"><span className="text-slate-500">{t('prelims.correct', 'Correct Option:')}</span> <span className="text-emerald-400 font-bold">{det.correctAnswer}</span></p>
                   </div>
                   {det.explanation && (
                     <div className="p-3 bg-slate-800 rounded-xl text-[10px] text-slate-400 leading-relaxed mt-2">
-                      <span className="font-bold text-slate-300">Explanation: </span>
+                      <span className="font-bold text-slate-300">{t('dailyQuiz.explanation', 'Explanation:')} </span>
                       {det.explanation}
                     </div>
                   )}
@@ -344,14 +346,14 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               onClick={() => router.push('/student/dashboard')}
               className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-all text-center"
             >
-              Exit to Portal
+              {t('dailyQuiz.exitPortal', 'Exit to Portal')}
             </button>
             <button
               onClick={loadLeaderboard}
               className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-all text-center flex items-center justify-center gap-1.5 shadow-lg shadow-blue-900/30"
             >
               <Users className="w-3.5 h-3.5" />
-              <span>View Leaderboard</span>
+              <span>{t('dailyQuiz.viewLeaderboard', 'View Leaderboard')}</span>
             </button>
           </div>
         </div>
@@ -364,13 +366,13 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
               <Award className="w-7 h-7" />
             </div>
-            <h2 className="text-xl font-bold text-white">Quiz Leaderboard</h2>
-            <p className="text-slate-400 text-xs">Top performing students in this mini mock test.</p>
+            <h2 className="text-xl font-bold text-white">{t('dailyQuiz.leaderboard', 'Quiz Leaderboard')}</h2>
+            <p className="text-slate-400 text-xs">{t('dailyQuiz.topStudents', 'Top performing students in this mini mock test.')}</p>
           </div>
 
           <div className="space-y-2">
             {leaderboard.length === 0 ? (
-              <p className="text-center text-slate-500 text-xs py-8">No attempts submitted yet. Be the first!</p>
+              <p className="text-center text-slate-500 text-xs py-8">{t('dailyQuiz.noAttempts', 'No attempts submitted yet. Be the first!')}</p>
             ) : (
               <div className="border border-white/5 rounded-2xl overflow-hidden bg-slate-800/20">
                 {leaderboard.map((item, index) => (
@@ -382,7 +384,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                       <span className="text-white">{item.fullName}</span>
                     </div>
                     <div className="flex items-center gap-4 text-slate-400">
-                      <span>{item.score.toFixed(1)} Marks</span>
+                      <span>{item.score.toFixed(1)} {t('prelims.marks', 'Marks')}</span>
                       <span className="text-[10px] text-slate-500 font-medium">{formatTime(item.timeTakenSecs)}</span>
                     </div>
                   </div>
@@ -396,13 +398,13 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               onClick={() => setQuizState('result')}
               className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs transition-all text-center"
             >
-              ← Back to Review
+              {t('dailyQuiz.backToReview', '← Back to Review')}
             </button>
             <button
               onClick={() => router.push('/student/dashboard')}
               className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs transition-all text-center shadow-lg shadow-blue-900/30"
             >
-              Back to Portal
+              {t('dailyQuiz.backToPortal', 'Back to Portal')}
             </button>
           </div>
         </div>

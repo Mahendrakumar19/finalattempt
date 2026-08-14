@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, Download, Eye, Home, ChevronRight, X, Zap, FileText, CheckCircle, Flame } from 'lucide-react';
 import { db, CustomPage, DownloadItem } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 
 export default function RapidRevisionPortal() {
+  const { t } = useTranslation();
   const [pageData, setPageData] = useState<CustomPage | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('ALL');
@@ -82,14 +84,14 @@ export default function RapidRevisionPortal() {
       <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-semibold">
         <Link href="/" className="hover:text-rose-500 flex items-center gap-1">
           <Home className="w-3.5 h-3.5" />
-          <span>Home</span>
+          <span>{t('nav.home', 'Home')}</span>
         </Link>
         <ChevronRight className="w-3.5 h-3.5 text-slate-350" />
         <Link href="/downloads" className="hover:text-rose-500">
-          <span>Downloads Hub</span>
+          <span>{t('nav.downloads', 'Downloads Hub')}</span>
         </Link>
         <ChevronRight className="w-3.5 h-3.5 text-slate-350" />
-        <span className="text-slate-800 dark:text-slate-200 font-bold">Rapid Revision Materials</span>
+        <span className="text-slate-800 dark:text-slate-200 font-bold">{t('downloads.rapidRevisionTitle', 'Rapid Revision Materials')}</span>
       </div>
 
       {/* Page Header */}
@@ -99,10 +101,10 @@ export default function RapidRevisionPortal() {
             BPSC Prelims Fast-Track Revision Vault
           </span>
           <h1 className="text-3xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white tracking-tight">
-            Rapid Revision Materials
+            {t('downloads.rapidRevisionTitle', 'Rapid Revision Materials')}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
-            {pageData?.metaDescription || 'High-yield 100 quick revision formulas, Bihar Economic Survey & Budget summary tables, and flash revision notes for last-minute preparation.'}
+            {pageData?.metaDescription || t('downloads.rapidRevisionDesc', 'Consolidated tables, timelines, and facts for last-minute revision.')}
           </p>
         </div>
 
@@ -123,7 +125,7 @@ export default function RapidRevisionPortal() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
-            placeholder="Search revision notes, tables, formulas..."
+            placeholder={t('downloads.searchPlaceholder', 'Search revision notes, tables, formulas...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/[0.06] rounded-2xl outline-none text-slate-900 dark:text-white font-medium"
@@ -243,7 +245,7 @@ export default function RapidRevisionPortal() {
                     className="flex-1 py-2.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-200 dark:border-white/10"
                   >
                     <Eye className="w-3.5 h-3.5 text-rose-500" />
-                    <span>Quick Preview</span>
+                    <span>{t('downloads.viewPDF', 'Quick Preview')}</span>
                   </button>
                 )}
 
@@ -256,7 +258,7 @@ export default function RapidRevisionPortal() {
                     className="flex-1 py-2.5 px-3 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-md transition-all text-center"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Download PDF</span>
+                    <span>{t('downloads.downloadPDF', 'Download PDF')}</span>
                   </a>
                 )}
               </div>
@@ -286,7 +288,7 @@ export default function RapidRevisionPortal() {
                   className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl flex items-center gap-1.5 shadow-sm transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Download Booklet</span>
+                  <span>{t('downloads.download', 'Download Booklet')}</span>
                 </a>
                 <button
                   onClick={() => setActivePreviewModal(null)}

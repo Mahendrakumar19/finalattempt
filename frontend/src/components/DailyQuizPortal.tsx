@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { db } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 import { 
   Sparkles, Calendar, Clock, HelpCircle, Flame, Trophy, Award, ArrowLeft, ArrowRight,
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Bookmark, ChevronRight, Share2,
@@ -55,6 +56,8 @@ interface QuizResultData {
 }
 
 export default function DailyQuizPortal() {
+  const { t } = useTranslation();
+
   // Page mode: 'landing' | 'playing' | 'result' | 'leaderboard'
   const [viewMode, setViewMode] = useState<'landing' | 'playing' | 'result' | 'leaderboard'>('landing');
 
@@ -204,28 +207,29 @@ export default function DailyQuizPortal() {
   const executeSubmitQuiz = async () => {
     if (!activeQuiz) return;
     setSubmitting(true);
-    setTimerActive(false);
+    setErrorMsg(null);
     setShowSubmitConfirmModal(false);
 
-    const timeTakenSecs = startTime ? Math.max(1, Math.floor((Date.now() - startTime) / 1000)) : 60;
+    const elapsedSecs = startTime ? Math.round((Date.now() - startTime) / 1000) : 0;
 
     try {
-      const resData = await db.submitDailyQuiz(activeQuiz.id, userAnswers, timeTakenSecs);
-      if (resData) {
-        setResultData(resData);
+      const res = await db.submitDailyQuiz(activeQuiz.id, userAnswers, elapsedSecs);
+      if (res) {
+        setResultData(res);
+        setTimerActive(false);
         setViewMode('result');
       } else {
-        setErrorMsg('Failed to process quiz evaluation. Please try submitting again.');
+        setErrorMsg('Failed to process quiz submission. Please try again.');
       }
     } catch (err) {
-      console.error('Failed submitting quiz:', err);
-      setErrorMsg('Failed submitting quiz answers. Please try again.');
+      console.error('Error submitting daily quiz:', err);
+      setErrorMsg('Network error while submitting quiz.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Fetch Leaderboard for active or selected quiz
+  // Load Leaderboard
   const handleLoadLeaderboard = async (quizId?: string) => {
     const targetId = quizId || activeQuiz?.id || todayQuiz?.id || 'daily-quiz-today';
     setLoadingLeaderboard(true);
@@ -319,15 +323,15 @@ export default function DailyQuizPortal() {
               <div className="relative z-10 space-y-4 max-w-3xl">
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider">
                   <Flame className="w-4 h-4 text-amber-500 animate-pulse" />
-                  <span>Daily Practice Quiz • BPSC & State PCS</span>
+                  <span>{t('dailyQuiz.tagline', 'Daily Practice Quiz')} • BPSC & State PCS</span>
                 </div>
 
                 <h1 className="text-3xl sm:text-5xl font-heading font-black text-[var(--text-color)] leading-tight tracking-tight">
-                  Daily Current Affairs & <span className="text-amber-500">GS Practice Hub</span>
+                  {t('dailyQuiz.title', 'Daily Current Affairs & GS Practice Hub')}
                 </h1>
 
                 <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                  Test your daily precision with high-yield multiple-choice questions aligned strictly with the latest civil services micro-syllabus. Free for all aspirants.
+                  {t('dailyQuiz.subtitle', 'Sharpen your BPSC preparation with daily 10-question MCQ practice sets & state leaderboard.')}
                 </p>
 
                 {/* Specs Pill Bar */}
@@ -342,17 +346,17 @@ export default function DailyQuizPortal() {
 
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
                       <HelpCircle className="w-3.5 h-3.5 text-amber-500" />
-                      <span>{todayQuiz.totalQuestions} Questions</span>
+                      <span>{todayQuiz.totalQuestions} {t('dailyQuiz.questions', 'Questions')}</span>
                     </div>
 
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700">
                       <Clock className="w-3.5 h-3.5 text-amber-500" />
-                      <span>{todayQuiz.timeLimitMins} Mins</span>
+                      <span>{todayQuiz.timeLimitMins} {t('common.minutes', 'Mins')}</span>
                     </div>
 
                     <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl border border-amber-500/20 font-black">
                       <Award className="w-3.5 h-3.5" />
-                      <span>{todayQuiz.difficulty} DIFFICULTY</span>
+                      <span>{todayQuiz.difficulty} {t('dailyQuiz.passingScore', 'DIFFICULTY')}</span>
                     </div>
                   </div>
                 ) : null}
@@ -370,7 +374,7 @@ export default function DailyQuizPortal() {
                       ) : (
                         <Play className="w-5 h-5 fill-current" />
                       )}
-                      <span>Start Today&apos;s Quiz</span>
+                      <span>{t('dailyQuiz.startQuiz', "Start Today's Quiz")}</span>
                     </button>
                   )}
 
@@ -379,7 +383,7 @@ export default function DailyQuizPortal() {
                     className="inline-flex items-center gap-2 px-6 py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[var(--text-color)] font-bold rounded-2xl text-xs uppercase tracking-wider border border-[var(--card-border)] transition-all cursor-pointer"
                   >
                     <Trophy className="w-4 h-4 text-amber-500" />
-                    <span>View Leaderboard</span>
+                    <span>{t('dailyQuiz.viewLeaderboard', 'View Leaderboard')}</span>
                   </button>
                 </div>
               </div>
@@ -390,7 +394,7 @@ export default function DailyQuizPortal() {
               <div className="flex items-center justify-between">
                 <h2 className="font-heading font-black text-xl text-[var(--text-color)] flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-amber-500" />
-                  <span>Today&apos;s Featured Practice Quiz</span>
+                  <span>{t('dailyQuiz.todaysQuiz', "Today's Featured Practice Quiz")}</span>
                 </h2>
                 <span className="text-xs font-bold text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
                   Updated Daily @ 08:00 AM
@@ -436,7 +440,7 @@ export default function DailyQuizPortal() {
                       className="w-full md:w-auto px-8 py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <Play className="w-4 h-4 fill-current" />
-                      <span>Attempt Quiz Now</span>
+                      <span>{t('dailyQuiz.startQuiz', 'Attempt Quiz Now')}</span>
                     </button>
                   </div>
                 </div>
@@ -444,7 +448,7 @@ export default function DailyQuizPortal() {
                 /* Intentional Empty State for Today Quiz */
                 <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-10 text-center space-y-4 shadow-sm">
                   <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
-                  <h3 className="text-lg font-heading font-bold text-[var(--text-color)]">No Daily Quiz Published Yet Today</h3>
+                  <h3 className="text-lg font-heading font-bold text-[var(--text-color)]">{t('dailyQuiz.noQuizzes', 'No Daily Quiz Published Yet Today')}</h3>
                   <p className="text-xs text-slate-500 max-w-md mx-auto">
                     Today&apos;s daily set is undergoing editorial review. You can practice from our archive of previous daily quizzes below.
                   </p>
@@ -457,7 +461,7 @@ export default function DailyQuizPortal() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="font-heading font-black text-xl text-[var(--text-color)]">
-                    Previous Daily Quizzes Archive
+                    {t('dailyQuiz.previousQuizzes', 'Previous Daily Quizzes Archive')}
                   </h2>
                   <p className="text-xs text-slate-500">
                     Browse past daily practice sets to reinforce your revision.
@@ -470,7 +474,7 @@ export default function DailyQuizPortal() {
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      placeholder="Search quiz topic..."
+                      placeholder={t('downloads.searchPlaceholder', 'Search quiz topic...')}
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="pl-9 pr-4 py-2 text-xs bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none focus:border-amber-500 w-48 sm:w-64"
@@ -482,7 +486,7 @@ export default function DailyQuizPortal() {
                     onChange={(e) => setSelectedDifficulty(e.target.value)}
                     className="px-3 py-2 text-xs bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] font-bold rounded-xl outline-none"
                   >
-                    <option value="ALL">All Difficulties</option>
+                    <option value="ALL">{t('dailyQuiz.allDifficulties', 'All Difficulties')}</option>
                     <option value="EASY">Easy</option>
                     <option value="MEDIUM">Medium</option>
                     <option value="HIGH">High Yield</option>
@@ -500,7 +504,7 @@ export default function DailyQuizPortal() {
                 /* Intentional Empty State for Previous Quizzes */
                 <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-12 text-center space-y-3">
                   <Search className="w-10 h-10 text-slate-400 mx-auto" />
-                  <h3 className="text-base font-heading font-bold text-[var(--text-color)]">No Previous Quizzes Available</h3>
+                  <h3 className="text-base font-heading font-bold text-[var(--text-color)]">{t('dailyQuiz.noQuizzes', 'No Previous Quizzes Available')}</h3>
                   <p className="text-xs text-slate-500">No daily quizzes matched your search query.</p>
                 </div>
               ) : (
@@ -540,7 +544,7 @@ export default function DailyQuizPortal() {
                           onClick={() => handleStartQuiz(quiz)}
                           className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-[var(--text-color)] font-bold rounded-xl text-xs transition-all flex items-center gap-1 cursor-pointer"
                         >
-                          <span>Take Quiz</span>
+                          <span>{t('dailyQuiz.startQuiz', 'Take Quiz')}</span>
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
@@ -558,7 +562,7 @@ export default function DailyQuizPortal() {
                   <span>Competitive Aspirant Ranks</span>
                 </div>
                 <h3 className="text-2xl font-heading font-black text-[var(--text-color)]">
-                  Compare Your Daily Score on the State Leaderboard
+                  {t('dailyQuiz.leaderboard', 'Compare Your Daily Score on the State Leaderboard')}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   Track your speed and accuracy against thousands of Serious Civil Services aspirants across Bihar & Arunachal.
@@ -570,7 +574,7 @@ export default function DailyQuizPortal() {
                   onClick={() => handleLoadLeaderboard()}
                   className="w-full sm:w-auto px-6 py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer"
                 >
-                  See Leaderboard Ranks
+                  {t('dailyQuiz.viewLeaderboard', 'See Leaderboard Ranks')}
                 </button>
 
                 {!currentUser && (
@@ -578,7 +582,7 @@ export default function DailyQuizPortal() {
                     href="/auth/register"
                     className="w-full sm:w-auto px-6 py-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[var(--text-color)] font-bold rounded-2xl text-xs uppercase tracking-wider text-center border border-[var(--card-border)] transition-all"
                   >
-                    Create Free Profile
+                    {t('auth.noAccount', 'Create Free Profile')}
                   </Link>
                 )}
               </div>
@@ -612,7 +616,7 @@ export default function DailyQuizPortal() {
                     {activeQuiz.title}
                   </h3>
                   <span className="text-[10px] font-bold text-slate-400">
-                    Question {currentQuestionIndex + 1} of {questions.length}
+                    {t('dailyQuiz.questions', 'Question')} {currentQuestionIndex + 1} of {questions.length}
                   </span>
                 </div>
               </div>
@@ -637,13 +641,13 @@ export default function DailyQuizPortal() {
             {/* Question Palette Drawer Grid (Iconic + Border Distinct States) */}
             <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-                <span>Question Palette ({answeredCount}/{questions.length} Answered)</span>
+                <span>{t('dailyQuiz.questionPalette', 'Question Palette')} ({answeredCount}/{questions.length} {t('prelims.attempted', 'Answered')})</span>
                 
                 {/* Status Legend */}
                 <div className="flex items-center gap-3 text-[10px]">
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Answered</span>
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700" /> Unanswered</span>
-                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-purple-500" /> Review</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> {t('prelims.attempted', 'Answered')}</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700" /> {t('prelims.notAttempted', 'Unanswered')}</span>
+                  <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-purple-500" /> {t('prelims.marked', 'Review')}</span>
                 </div>
               </div>
 
@@ -686,7 +690,7 @@ export default function DailyQuizPortal() {
                 {/* Question Header */}
                 <div className="flex items-center justify-between gap-4">
                   <span className="text-xs font-black text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 uppercase tracking-wider">
-                    Question {currentQuestionIndex + 1}
+                    {t('dailyQuiz.questions', 'Question')} {currentQuestionIndex + 1}
                   </span>
 
                   <button
@@ -699,7 +703,7 @@ export default function DailyQuizPortal() {
                     }`}
                   >
                     <Bookmark className="w-3.5 h-3.5" />
-                    <span>{reviewMarked[questions[currentQuestionIndex].id] ? 'Marked for Review' : 'Mark for Review'}</span>
+                    <span>{reviewMarked[questions[currentQuestionIndex].id] ? t('dailyQuiz.markForReview', 'Marked for Review') : t('dailyQuiz.markForReview', 'Mark for Review')}</span>
                   </button>
                 </div>
 
@@ -731,7 +735,7 @@ export default function DailyQuizPortal() {
                       >
                         <div className="flex items-center gap-3">
                           <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-heading font-black text-xs shrink-0 transition-colors ${
-                            selected ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            selected ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:bg-slate-800/80'
                           }`}>
                             {opt.key}
                           </span>
@@ -757,7 +761,7 @@ export default function DailyQuizPortal() {
                 className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[var(--text-color)] font-bold rounded-xl text-xs disabled:opacity-30 cursor-pointer flex items-center gap-1.5"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Previous</span>
+                <span>{t('dailyQuiz.prevQuestion', 'Previous')}</span>
               </button>
 
               <div className="flex items-center gap-3">
@@ -766,7 +770,7 @@ export default function DailyQuizPortal() {
                     onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
                     className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs cursor-pointer flex items-center gap-1.5 shadow-sm"
                   >
-                    <span>Next Question</span>
+                    <span>{t('dailyQuiz.nextQuestion', 'Next Question')}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 ) : (
@@ -775,7 +779,7 @@ export default function DailyQuizPortal() {
                     className="px-8 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl text-xs cursor-pointer flex items-center gap-1.5 shadow-md uppercase tracking-wider"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Submit Quiz</span>
+                    <span>{t('dailyQuiz.submitAnswers', 'Submit Quiz')}</span>
                   </button>
                 )}
               </div>
@@ -791,7 +795,7 @@ export default function DailyQuizPortal() {
               <HelpCircle className="w-12 h-12 text-amber-500 mx-auto" />
               
               <div className="space-y-2">
-                <h3 className="text-xl font-heading font-black text-[var(--text-color)]">Ready to Submit Quiz?</h3>
+                <h3 className="text-xl font-heading font-black text-[var(--text-color)]">{t('dailyQuiz.confirmSubmit', 'Ready to Submit Quiz?')}</h3>
                 <p className="text-xs text-slate-500">
                   You have answered <span className="font-bold text-amber-500">{answeredCount}</span> of <span className="font-bold">{questions.length}</span> questions.
                 </p>
@@ -816,7 +820,7 @@ export default function DailyQuizPortal() {
                   disabled={submitting}
                   className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : 'Confirm & Submit'}
+                  {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : t('common.confirm', 'Confirm & Submit')}
                 </button>
               </div>
             </div>
@@ -833,7 +837,7 @@ export default function DailyQuizPortal() {
 
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider mx-auto">
                 <Trophy className="w-4 h-4 text-amber-500" />
-                <span>Quiz Performance Evaluation</span>
+                <span>{t('dailyQuiz.scoreSummary', 'Quiz Performance Evaluation')}</span>
               </div>
 
               {/* Big Reward Score Display */}
@@ -843,7 +847,7 @@ export default function DailyQuizPortal() {
                 </div>
 
                 <div className="text-lg sm:text-xl font-extrabold text-[var(--text-color)]">
-                  Accuracy Score: <span className="text-amber-500">{resultData.percentage}%</span>
+                  {t('prelims.accuracy', 'Accuracy Score')}: <span className="text-amber-500">{resultData.percentage}%</span>
                 </div>
               </div>
 
@@ -862,22 +866,22 @@ export default function DailyQuizPortal() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-[var(--card-border)]">
                 <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-center">
                   <span className="text-2xl font-black text-emerald-500 block">{resultData.correctCount}</span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Correct</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('prelims.correct', 'Correct')}</span>
                 </div>
 
                 <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center">
                   <span className="text-2xl font-black text-red-500 block">{resultData.incorrectCount}</span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Incorrect</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('prelims.incorrect', 'Incorrect')}</span>
                 </div>
 
                 <div className="p-4 bg-slate-100 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-center">
                   <span className="text-2xl font-black text-slate-500 block">{resultData.unansweredCount}</span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unanswered</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('prelims.unattempted', 'Unanswered')}</span>
                 </div>
 
                 <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-center">
                   <span className="text-2xl font-black text-amber-500 block">{formatTime(resultData.timeTakenSecs)}</span>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Time Taken</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('prelims.timeLimit', 'Time Taken')}</span>
                 </div>
               </div>
 
@@ -888,7 +892,7 @@ export default function DailyQuizPortal() {
                   className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer flex items-center gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{showReviewMode ? 'Hide Explanations' : 'Review Answers & Explanations'}</span>
+                  <span>{showReviewMode ? 'Hide Explanations' : t('dailyQuiz.detailedSolutions', 'Review Answers & Explanations')}</span>
                 </button>
 
                 <button
@@ -896,7 +900,7 @@ export default function DailyQuizPortal() {
                   className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-[var(--text-color)] font-bold rounded-2xl text-xs uppercase tracking-wider border border-[var(--card-border)] transition-all cursor-pointer flex items-center gap-2"
                 >
                   <Trophy className="w-4 h-4 text-amber-500" />
-                  <span>View Leaderboard</span>
+                  <span>{t('dailyQuiz.viewLeaderboard', 'View Leaderboard')}</span>
                 </button>
 
                 <button
@@ -904,7 +908,7 @@ export default function DailyQuizPortal() {
                   className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-[var(--text-color)] font-bold rounded-2xl text-xs uppercase tracking-wider border border-[var(--card-border)] transition-all cursor-pointer flex items-center gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  <span>Back to Daily Quiz Hub</span>
+                  <span>{t('dailyQuiz.backToQuizzes', 'Back to Daily Quiz Hub')}</span>
                 </button>
               </div>
             </div>
@@ -914,7 +918,7 @@ export default function DailyQuizPortal() {
               <div className="space-y-6">
                 <h3 className="text-xl font-heading font-black text-[var(--text-color)] flex items-center gap-2">
                   <BarChart2 className="w-5 h-5 text-amber-500" />
-                  <span>Detailed Solutions & Rationales</span>
+                  <span>{t('dailyQuiz.detailedSolutions', 'Detailed Solutions & Rationales')}</span>
                 </h3>
 
                 <div className="space-y-6">
@@ -927,7 +931,7 @@ export default function DailyQuizPortal() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-black text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl">
-                          Question {idx + 1}
+                          {t('dailyQuiz.questions', 'Question')} {idx + 1}
                         </span>
 
                         <span className={`text-xs font-bold flex items-center gap-1.5 px-3 py-1 rounded-xl ${
@@ -938,11 +942,11 @@ export default function DailyQuizPortal() {
                             : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                         }`}>
                           {detail.isCorrect ? (
-                            <><CheckCircle2 className="w-4 h-4" /> Correct (+1.00)</>
+                            <><CheckCircle2 className="w-4 h-4" /> {t('prelims.correct', 'Correct')} (+1.00)</>
                           ) : detail.studentAnswer ? (
-                            <><XCircle className="w-4 h-4" /> Incorrect (-0.33)</>
+                            <><XCircle className="w-4 h-4" /> {t('prelims.incorrect', 'Incorrect')} (-0.33)</>
                           ) : (
-                            <span>Unanswered (0.00)</span>
+                            <span>{t('prelims.unattempted', 'Unanswered')} (0.00)</span>
                           )}
                         </span>
                       </div>
@@ -988,7 +992,7 @@ export default function DailyQuizPortal() {
                       {/* Explanation Section */}
                       <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-1 text-xs">
                         <span className="font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">
-                          📖 Exam Rationale & Explanation
+                          📖 {t('dailyQuiz.explanation', 'Exam Rationale & Explanation')}
                         </span>
                         <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                           {detail.explanation}
@@ -1014,7 +1018,7 @@ export default function DailyQuizPortal() {
                 className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-[var(--text-color)] font-bold rounded-xl text-xs transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>Back to Daily Quiz Hub</span>
+                <span>{t('dailyQuiz.backToQuizzes', 'Back to Daily Quiz Hub')}</span>
               </button>
 
               <span className="text-xs font-bold text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
@@ -1030,7 +1034,7 @@ export default function DailyQuizPortal() {
                 </div>
 
                 <h2 className="text-2xl sm:text-3xl font-heading font-black text-[var(--text-color)]">
-                  Daily Aspirant Leaderboard
+                  {t('dailyQuiz.leaderboard', 'Daily Aspirant Leaderboard')}
                 </h2>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
                   Ranks evaluated automatically based on accuracy score and completion speed.
@@ -1049,7 +1053,7 @@ export default function DailyQuizPortal() {
                     href="/auth/register"
                     className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shrink-0 transition-all"
                   >
-                    Register Profile
+                    {t('auth.noAccount', 'Register Profile')}
                   </Link>
                 </div>
               )}
@@ -1065,7 +1069,7 @@ export default function DailyQuizPortal() {
                 /* Intentional Empty State for Leaderboard */
                 <div className="p-12 text-center space-y-3 border border-[var(--card-border)] rounded-2xl">
                   <Trophy className="w-10 h-10 text-slate-400 mx-auto" />
-                  <h3 className="font-heading font-bold text-sm text-[var(--text-color)]">No Leaderboard Entries Yet Today</h3>
+                  <h3 className="font-heading font-bold text-sm text-[var(--text-color)]">{t('dailyQuiz.noAttempts', 'No Leaderboard Entries Yet Today')}</h3>
                   <p className="text-xs text-slate-500">Be the first aspirant to complete today&apos;s daily quiz!</p>
                 </div>
               ) : (
@@ -1073,10 +1077,10 @@ export default function DailyQuizPortal() {
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-[var(--card-border)] font-bold text-slate-400 uppercase text-[10px] tracking-wider">
-                        <th className="p-4">Rank</th>
-                        <th className="p-4">Aspirant</th>
-                        <th className="p-4">Score</th>
-                        <th className="p-4">Time Taken</th>
+                        <th className="p-4">{t('dailyQuiz.attemptRank', 'Rank')}</th>
+                        <th className="p-4">{t('auth.studentPortal', 'Aspirant')}</th>
+                        <th className="p-4">{t('prelims.yourScore', 'Score')}</th>
+                        <th className="p-4">{t('prelims.timeLimit', 'Time Taken')}</th>
                       </tr>
                     </thead>
                     <tbody>

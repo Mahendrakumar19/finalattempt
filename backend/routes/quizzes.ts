@@ -2,6 +2,7 @@ import { Router, Response } from 'express';
 import { authenticate, optionalAuth, AuthRequest } from '../middleware/auth';
 import { requireStudent } from '../middleware/role';
 import { lmsDB } from '../db';
+import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 
 const router = Router();
 
@@ -55,6 +56,7 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
       }
     }
 
+    const targetLang = getTargetLang(req);
     const questions = await lmsDB.getQuestionsByQuizId(quizId);
     
     // Clean correct answers to prevent source code checking cheating
@@ -63,11 +65,13 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
       return publicFields;
     });
 
+    const localizedQuestions = await ContentLocalizer.localizeQuizQuestions(cleanQuestions, targetLang);
+
     res.json({
       success: true,
       data: {
         quiz,
-        questions: cleanQuestions
+        questions: localizedQuestions
       }
     });
   } catch (err: any) {
@@ -358,7 +362,9 @@ const FALLBACK_DAILY_QUIZZES = [
 // Get Today's Daily Quiz Metadata
 router.get('/daily/today', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const todayQuiz = FALLBACK_DAILY_QUIZZES[0];
+    const list = await lmsDB.getAllDailyQuizzes();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayQuiz = list.find((q: any) => q.publishDate === todayStr) || list[0] || FALLBACK_DAILY_QUIZZES[0];
     res.json({ success: true, data: todayQuiz });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -368,7 +374,9 @@ router.get('/daily/today', optionalAuth, async (req: AuthRequest, res: Response)
 // Get Previous Daily Quizzes List
 router.get('/daily/list', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
-    res.json({ success: true, data: FALLBACK_DAILY_QUIZZES });
+    const list = await lmsDB.getAllDailyQuizzes();
+    const data = (list && list.length > 0) ? list : FALLBACK_DAILY_QUIZZES;
+    res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -378,22 +386,10 @@ router.get('/daily/list', optionalAuth, async (req: AuthRequest, res: Response) 
 router.get('/daily/:quizId/start', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
-    let quiz = FALLBACK_DAILY_QUIZZES.find(q => q.id === quizId);
-    if (!quiz) {
-      quiz = {
-        ...FALLBACK_DAILY_QUIZZES[0],
-        id: quizId
-      };
-    }
-
-    let questions: any[] = FALLBACK_DAILY_QUESTIONS;
-    if (lmsDB && quizId !== 'daily-quiz-today' && !quizId.startsWith('daily-quiz-prev')) {
-      try {
-        const dbQs = await lmsDB.getQuestionsByQuizId(quizId);
-        if (Array.isArray(dbQs) && dbQs.length > 0) {
-          questions = dbQs;
-        }
-      } catch (_) {}
+    let quiz = await lmsDB.getDailyQuizById(quizId) || FALLBACK_DAILY_QUIZZES.find(q => q.id === quizId) || { ...FALLBACK_DAILY_QUIZZES[0], id: quizId };
+    let questions = await lmsDB.getDailyQuizQuestions(quizId);
+    if (!questions || questions.length === 0) {
+      questions = FALLBACK_DAILY_QUESTIONS;
     }
 
     const cleanQuestions = questions.map((q: any) => {
@@ -424,15 +420,9 @@ router.post('/daily/:quizId/submit', optionalAuth, async (req: AuthRequest, res:
       return;
     }
 
-    let quiz = FALLBACK_DAILY_QUIZZES.find(q => q.id === quizId) || FALLBACK_DAILY_QUIZZES[0];
-    let questions: any[] = FALLBACK_DAILY_QUESTIONS;
-
-    if (lmsDB && quizId !== 'daily-quiz-today' && !quizId.startsWith('daily-quiz-prev')) {
-      try {
-        const dbQs = await lmsDB.getQuestionsByQuizId(quizId);
-        if (Array.isArray(dbQs) && dbQs.length > 0) questions = dbQs;
-      } catch (_) {}
-    }
+    let quiz = await lmsDB.getDailyQuizById(quizId) || FALLBACK_DAILY_QUIZZES.find(q => q.id === quizId) || FALLBACK_DAILY_QUIZZES[0];
+    let questions = await lmsDB.getDailyQuizQuestions(quizId);
+    if (!questions || questions.length === 0) questions = FALLBACK_DAILY_QUESTIONS;
 
     let score = 0;
     let maxScore = 0;
@@ -507,6 +497,49 @@ router.post('/daily/:quizId/submit', optionalAuth, async (req: AuthRequest, res:
         details
       }
     });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Save Daily Quiz Metadata
+router.post('/admin/daily', async (req: AuthRequest, res: Response) => {
+  try {
+    const quiz = await lmsDB.saveDailyQuiz(req.body);
+    res.json({ success: true, data: quiz });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Delete Daily Quiz
+router.delete('/admin/daily/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const ok = await lmsDB.deleteDailyQuiz(req.params.id as string);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Save Daily Quiz Question
+router.post('/admin/daily/:quizId/questions', async (req: AuthRequest, res: Response) => {
+  try {
+    const quizId = req.params.quizId as string;
+    const question = await lmsDB.saveDailyQuizQuestion(quizId, req.body);
+    res.json({ success: true, data: question });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Delete Daily Quiz Question
+router.delete('/admin/daily/:quizId/questions/:qId', async (req: AuthRequest, res: Response) => {
+  try {
+    const quizId = req.params.quizId as string;
+    const qId = req.params.qId as string;
+    const ok = await lmsDB.deleteDailyQuizQuestion(quizId, qId);
+    res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

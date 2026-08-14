@@ -172,6 +172,23 @@ export interface DynamicCurrentAffairEdition {
   updatedAt?: string;
 }
 
+export interface CurrentAffairCompilation {
+  id: string;
+  type: 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+  periodKey: string;
+  title: string;
+  fromDate: string;
+  toDate: string;
+  articleIds: string[];
+  articleCount: number;
+  categoryStats: Record<string, number>;
+  availableMonths?: string[];
+  missingMonths?: string[];
+  publishStatus: 'PUBLISHED' | 'DRAFT';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Lead {
   id: string;
   fullName: string;
@@ -245,10 +262,26 @@ export interface CustomPage {
 class FinalAttemptDB {
   private fallbackLeads: Lead[] = [];
 
+  private getLocale(): string {
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]*)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    return 'en';
+  }
+
   // Fetch helper to handle offline backend gracefully
   private async apiFetch(endpoint: string, options?: RequestInit) {
     try {
-      const res = await fetch(`${BACKEND_URL}${endpoint}`, options);
+      const locale = this.getLocale();
+      const headers = new Headers(options?.headers || {});
+      if (!headers.has('x-locale')) {
+        headers.set('x-locale', locale);
+      }
+      const res = await fetch(`${BACKEND_URL}${endpoint}`, {
+        ...options,
+        headers
+      });
       if (!res.ok) throw new Error('API request failed');
       return await res.json();
     } catch {
@@ -484,6 +517,38 @@ class FinalAttemptDB {
     return res?.data || [];
   }
 
+  public async saveDailyQuiz(quiz: any): Promise<any> {
+    const res = await this.apiFetch('/api/quizzes/admin/daily', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(quiz)
+    });
+    return res?.data || null;
+  }
+
+  public async deleteDailyQuiz(id: string): Promise<boolean> {
+    const res = await this.apiFetch(`/api/quizzes/admin/daily/${id}`, {
+      method: 'DELETE'
+    });
+    return res?.success || false;
+  }
+
+  public async saveDailyQuizQuestion(quizId: string, question: any): Promise<any> {
+    const res = await this.apiFetch(`/api/quizzes/admin/daily/${quizId}/questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(question)
+    });
+    return res?.data || null;
+  }
+
+  public async deleteDailyQuizQuestion(quizId: string, qId: string): Promise<boolean> {
+    const res = await this.apiFetch(`/api/quizzes/admin/daily/${quizId}/questions/${qId}`, {
+      method: 'DELETE'
+    });
+    return res?.success || false;
+  }
+
   // Dynamic Current Affairs API calls
   public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
     const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}`);
@@ -527,6 +592,72 @@ class FinalAttemptDB {
       method: 'DELETE'
     });
     return data?.success || false;
+  }
+
+  // ── Aggregation & Compilation Service Methods ─────────────────────────────
+  public async getCompilations(type?: string): Promise<CurrentAffairCompilation[]> {
+    const url = type ? `/api/dynamic-current-affairs/compilations?type=${type}` : '/api/dynamic-current-affairs/compilations';
+    const res = await this.apiFetch(url);
+    return res?.data || [];
+  }
+
+  public async getCompilationByKey(key: string): Promise<CurrentAffairCompilation | null> {
+    const res = await this.apiFetch(`/api/dynamic-current-affairs/compilations/${key}`);
+    return res?.data || null;
+  }
+
+  public async previewCombineWeekly(fromDate: string, toDate: string): Promise<any> {
+    const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/weekly/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fromDate, toDate })
+    });
+    return res;
+  }
+
+  public async combineWeekly(fromDate: string, toDate: string): Promise<any> {
+    const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/weekly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fromDate, toDate })
+    });
+    return res;
+  }
+
+  public async previewCombineMonthly(year: string, month: string): Promise<any> {
+    const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/monthly/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, month })
+    });
+    return res;
+  }
+
+  public async combineMonthly(year: string, month: string): Promise<any> {
+    const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/monthly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, month })
+    });
+    return res;
+  }
+
+  public async previewCombineYearly(year: string): Promise<any> {
+    const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/yearly/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year })
+    });
+    return res;
+  }
+
+  public async combineYearly(year: string, combineAvailableOnly: boolean = false): Promise<any> {
+    const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/yearly', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, combineAvailableOnly })
+    });
+    return res;
   }
 
   // YOUTUBE INTEGRATION API WRAPPERS

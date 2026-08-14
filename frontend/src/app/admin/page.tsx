@@ -199,7 +199,20 @@ export default function AdminPortal() {
   const [activeArticleCategory, setActiveArticleCategory] = useState<'NATIONAL' | 'INTERNATIONAL' | 'BIHAR' | 'ARUNACHAL'>('NATIONAL');
   const [isEditionModalOpen, setIsEditionModalOpen] = useState(false);
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
-  const [caSubTab, setCaSubTab] = useState<'daily' | 'mains'>('daily');
+  const [caSubTab, setCaSubTab] = useState<'daily' | 'mains' | 'aggregation'>('daily');
+
+  // Aggregation controls & preview states
+  const [weeklyFromDate, setWeeklyFromDate] = useState<string>(new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]);
+  const [weeklyToDate, setWeeklyToDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [monthlyYear, setMonthlyYear] = useState<string>(String(new Date().getFullYear()));
+  const [monthlyMonth, setMonthlyMonth] = useState<string>(String(new Date().getMonth() + 1).padStart(2, '0'));
+  const [yearlyYear, setYearlyYear] = useState<string>(String(new Date().getFullYear()));
+  const [yearlyCombineAvailableOnly, setYearlyCombineAvailableOnly] = useState<boolean>(false);
+
+  const [aggregationPreview, setAggregationPreview] = useState<any | null>(null);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState<boolean>(false);
+  const [aggregationExecuting, setAggregationExecuting] = useState<boolean>(false);
+  const [aggregationMsg, setAggregationMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Modals visibility states
   const [activeModal, setActiveModal] = useState<{ type: 'add' | 'edit'; index?: number } | null>(null);
@@ -563,6 +576,106 @@ export default function AdminPortal() {
       ...editingEdition,
       articles: (editingEdition.articles || []).filter(a => a.id !== artId)
     });
+  };
+
+  // Aggregation Actions
+  const handlePreviewWeekly = async () => {
+    setAggregationMsg(null);
+    try {
+      const res = await db.previewCombineWeekly(weeklyFromDate, weeklyToDate);
+      if (res && res.success && res.data) {
+        setAggregationPreview(res.data);
+        setIsPreviewModalOpen(true);
+      } else {
+        setAggregationMsg({ type: 'error', text: res?.error || 'Failed generating weekly preview.' });
+      }
+    } catch (err: any) {
+      setAggregationMsg({ type: 'error', text: err.message || 'Preview failed.' });
+    }
+  };
+
+  const handleExecuteWeekly = async () => {
+    setAggregationExecuting(true);
+    setAggregationMsg(null);
+    try {
+      const res = await db.combineWeekly(weeklyFromDate, weeklyToDate);
+      if (res && res.success) {
+        setAggregationMsg({ type: 'success', text: `Weekly Current Affairs (${weeklyFromDate} – ${weeklyToDate}) combined successfully! ${res.data?.isUpdate ? '(Updated existing compilation)' : '(Created new compilation)'}` });
+        setIsPreviewModalOpen(false);
+      } else {
+        setAggregationMsg({ type: 'error', text: res?.error || 'Failed combining weekly current affairs.' });
+      }
+    } catch (err: any) {
+      setAggregationMsg({ type: 'error', text: err.message || 'Weekly aggregation failed.' });
+    } finally {
+      setAggregationExecuting(false);
+    }
+  };
+
+  const handlePreviewMonthly = async () => {
+    setAggregationMsg(null);
+    try {
+      const res = await db.previewCombineMonthly(monthlyYear, monthlyMonth);
+      if (res && res.success && res.data) {
+        setAggregationPreview(res.data);
+        setIsPreviewModalOpen(true);
+      } else {
+        setAggregationMsg({ type: 'error', text: res?.error || 'Failed generating monthly preview.' });
+      }
+    } catch (err: any) {
+      setAggregationMsg({ type: 'error', text: err.message || 'Preview failed.' });
+    }
+  };
+
+  const handleExecuteMonthly = async () => {
+    setAggregationExecuting(true);
+    setAggregationMsg(null);
+    try {
+      const res = await db.combineMonthly(monthlyYear, monthlyMonth);
+      if (res && res.success) {
+        setAggregationMsg({ type: 'success', text: `Monthly Current Affairs for ${monthlyYear}-${monthlyMonth} combined successfully! ${res.data?.isUpdate ? '(Updated existing compilation)' : '(Created new compilation)'}` });
+        setIsPreviewModalOpen(false);
+      } else {
+        setAggregationMsg({ type: 'error', text: res?.error || 'Failed combining monthly current affairs.' });
+      }
+    } catch (err: any) {
+      setAggregationMsg({ type: 'error', text: err.message || 'Monthly aggregation failed.' });
+    } finally {
+      setAggregationExecuting(false);
+    }
+  };
+
+  const handlePreviewYearly = async () => {
+    setAggregationMsg(null);
+    try {
+      const res = await db.previewCombineYearly(yearlyYear);
+      if (res && res.success && res.data) {
+        setAggregationPreview(res.data);
+        setIsPreviewModalOpen(true);
+      } else {
+        setAggregationMsg({ type: 'error', text: res?.error || 'Failed generating yearly preview.' });
+      }
+    } catch (err: any) {
+      setAggregationMsg({ type: 'error', text: err.message || 'Preview failed.' });
+    }
+  };
+
+  const handleExecuteYearly = async () => {
+    setAggregationExecuting(true);
+    setAggregationMsg(null);
+    try {
+      const res = await db.combineYearly(yearlyYear, yearlyCombineAvailableOnly);
+      if (res && res.success) {
+        setAggregationMsg({ type: 'success', text: `Yearly Current Affairs Review for ${yearlyYear} combined successfully! ${res.data?.isUpdate ? '(Updated existing compilation)' : '(Created new compilation)'}` });
+        setIsPreviewModalOpen(false);
+      } else {
+        setAggregationMsg({ type: 'error', text: res?.error || 'Failed combining yearly current affairs.' });
+      }
+    } catch (err: any) {
+      setAggregationMsg({ type: 'error', text: err.message || 'Yearly aggregation failed.' });
+    } finally {
+      setAggregationExecuting(false);
+    }
   };
 
   const handleSaveBlog = async (e: React.FormEvent) => {
@@ -2299,28 +2412,39 @@ export default function AdminPortal() {
         {activeTab === 'Current Affairs' && (
           <div className="space-y-6">
             {/* Sub-tabs Selector */}
-            <div className="flex gap-2 bg-slate-100/85 dark:bg-white/[0.02] p-1.5 rounded-2xl max-w-lg">
+            <div className="flex flex-wrap gap-2 bg-slate-100/85 dark:bg-white/[0.02] p-1.5 rounded-2xl max-w-2xl">
               <button
                 type="button"
                 onClick={() => setCaSubTab('daily')}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   caSubTab === 'daily'
                     ? 'bg-amber-500 text-slate-950 shadow-sm'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                📅 Daily, Weekly, Monthly, Yearly
+                📅 Daily Editions
+              </button>
+              <button
+                type="button"
+                onClick={() => setCaSubTab('aggregation')}
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  caSubTab === 'aggregation'
+                    ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                    : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                ⚡ Content Aggregator (Weekly, Monthly, Yearly)
               </button>
               <button
                 type="button"
                 onClick={() => setCaSubTab('mains')}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   caSubTab === 'mains'
                     ? 'bg-amber-500 text-slate-950 shadow-md'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                🌐 National, International & Bihar Special
+                🌐 Topic Articles
               </button>
             </div>
 
@@ -2421,6 +2545,210 @@ export default function AdminPortal() {
                   })}
                 </div>
               </div>
+            ) : caSubTab === 'aggregation' ? (
+              <div className="space-y-8 animate-in fade-in duration-200">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50 dark:bg-slate-900/60 p-6 rounded-3xl border border-slate-200 dark:border-white/10">
+                  <div>
+                    <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">
+                      Automated Content Aggregator
+                    </span>
+                    <h3 className="text-xl font-heading font-black text-slate-900 dark:text-white mt-1">
+                      Combine Daily Current Affairs into Compilations
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Daily articles remain the canonical source of truth. Aggregation combines existing daily records without duplicating articles. Re-running updates existing compilations cleanly.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Aggregation Feedback Message */}
+                {aggregationMsg && (
+                  <div className={`p-4 rounded-2xl border text-xs font-bold flex items-center justify-between gap-4 ${
+                    aggregationMsg.type === 'success'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
+                  }`}>
+                    <span>{aggregationMsg.text}</span>
+                    <button onClick={() => setAggregationMsg(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">✕</button>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  
+                  {/* 1. WEEKLY AGGREGATION CARD */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-sm hover:border-amber-500/40 transition-all">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl">
+                          1. Weekly Compilation
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">Custom Date Range</span>
+                      </div>
+
+                      <h4 className="font-heading font-black text-base text-slate-900 dark:text-white">
+                        Combine Weekly Current Affairs
+                      </h4>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Select any valid date range (e.g. 10 Aug → 16 Aug). All published daily articles in this span will be gathered.
+                      </p>
+
+                      <div className="space-y-3 pt-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">From Date</label>
+                          <input
+                            type="date"
+                            required
+                            value={weeklyFromDate}
+                            onChange={e => setWeeklyFromDate(e.target.value)}
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">To Date</label>
+                          <input
+                            type="date"
+                            required
+                            value={weeklyToDate}
+                            onChange={e => setWeeklyToDate(e.target.value)}
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-amber-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handlePreviewWeekly}
+                      className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Preview Weekly Aggregation</span>
+                    </button>
+                  </div>
+
+                  {/* 2. MONTHLY AGGREGATION CARD */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-sm hover:border-emerald-500/40 transition-all">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase text-emerald-600 bg-emerald-500/10 px-3 py-1 rounded-xl">
+                          2. Monthly Compilation
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">Strict Calendar Month</span>
+                      </div>
+
+                      <h4 className="font-heading font-black text-base text-slate-900 dark:text-white">
+                        Combine Monthly Current Affairs
+                      </h4>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Select Month & Year. Automatically resolves to 1st calendar day through last calendar day of the month.
+                      </p>
+
+                      <div className="space-y-3 pt-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Year</label>
+                          <select
+                            value={monthlyYear}
+                            onChange={e => setMonthlyYear(e.target.value)}
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-emerald-500 font-bold"
+                          >
+                            {['2026', '2025', '2024'].map(yr => (
+                              <option key={yr} value={yr}>{yr}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Month</label>
+                          <select
+                            value={monthlyMonth}
+                            onChange={e => setMonthlyMonth(e.target.value)}
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-emerald-500 font-bold"
+                          >
+                            {[
+                              { code: '01', name: 'January' }, { code: '02', name: 'February' },
+                              { code: '03', name: 'March' }, { code: '04', name: 'April' },
+                              { code: '05', name: 'May' }, { code: '06', name: 'June' },
+                              { code: '07', name: 'July' }, { code: '08', name: 'August' },
+                              { code: '09', name: 'September' }, { code: '10', name: 'October' },
+                              { code: '11', name: 'November' }, { code: '12', name: 'December' }
+                            ].map(m => (
+                              <option key={m.code} value={m.code}>{m.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                          Resolved: {monthlyYear}-{monthlyMonth}-01 → {monthlyYear}-{monthlyMonth}-{new Date(parseInt(monthlyYear, 10), parseInt(monthlyMonth, 10), 0).getDate()}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handlePreviewMonthly}
+                      className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Preview Monthly Aggregation</span>
+                    </button>
+                  </div>
+
+                  {/* 3. YEARLY AGGREGATION CARD */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-sm hover:border-indigo-500/40 transition-all">
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase text-indigo-600 bg-indigo-500/10 px-3 py-1 rounded-xl">
+                          3. Yearly Review
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-400">Full Calendar Year</span>
+                      </div>
+
+                      <h4 className="font-heading font-black text-base text-slate-900 dark:text-white">
+                        Combine Yearly Current Affairs
+                      </h4>
+
+                      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Select Year (01 Jan → 31 Dec). Summarizes all available monthly compilations and reports any missing months.
+                      </p>
+
+                      <div className="space-y-3 pt-2">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Year</label>
+                          <select
+                            value={yearlyYear}
+                            onChange={e => setYearlyYear(e.target.value)}
+                            className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-xs font-bold text-slate-900 dark:text-white outline-none focus:border-indigo-500 font-bold"
+                          >
+                            {['2026', '2025', '2024'].map(yr => (
+                              <option key={yr} value={yr}>{yr}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 pt-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={yearlyCombineAvailableOnly}
+                            onChange={e => setYearlyCombineAvailableOnly(e.target.checked)}
+                            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500"
+                          />
+                          <span>Combine available months if incomplete</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={handlePreviewYearly}
+                      className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>Preview Yearly Aggregation</span>
+                    </button>
+                  </div>
+
+                </div>
+              </div>
             ) : (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="flex justify-between items-center">
@@ -2454,53 +2782,28 @@ export default function AdminPortal() {
                         setCaForm({ id: '', title: '', category: 'Bihar Special', publishDate: new Date().toISOString().split('T')[0], summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
                         setActiveModal({ type: 'add' });
                       }}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
+                      className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Add Bihar Special Article</span>
                     </button>
-                    <button
-                      onClick={() => {
-                        setCaForm({ id: '', title: '', category: 'Arunachal Special', publishDate: new Date().toISOString().split('T')[0], summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
-                        setActiveModal({ type: 'add' });
-                      }}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Arunachal Special Article</span>
-                    </button>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {caList.map((article, idx) => (
-                    <div key={article.id} className="p-5 bg-white border border-slate-200 flex justify-between items-start rounded-3xl shadow-sm">
-                      <div className="space-y-2">
-                        <div className="flex gap-2 items-center text-[10px] font-bold text-slate-500">
-                          <span className="text-blue-600">{article.category}</span>
-                          <span>&bull;</span>
-                          <span>{article.publishDate}</span>
+                    <div key={article.id || idx} className="p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500/10 text-amber-600">{article.category}</span>
+                          <span className="text-[10px] text-slate-400">{article.publishDate}</span>
                         </div>
-                        <h4 className="font-bold text-sm text-slate-900">{article.title}</h4>
-                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{article.summary}</p>
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">{article.title}</h4>
+                        <p className="text-xs text-slate-500 line-clamp-1">{article.summary}</p>
                       </div>
-
-                      <div className="flex gap-2 shrink-0 ml-4">
-                        <button
-                          onClick={() => {
-                            setCaForm(article);
-                            setActiveModal({ type: 'edit', index: idx });
-                          }}
-                          className="p-2 border border-slate-200 rounded-xl hover:bg-slate-55 text-slate-600"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCA(article.id)}
-                          className="p-2 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                      <div className="flex gap-2">
+                        <button onClick={() => { setCaForm(article); setActiveModal({ type: 'edit', index: idx }); }} className="p-2 border border-slate-200 dark:border-white/10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"><Edit3 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleDeleteCA(article.id)} className="p-2 border border-red-200 dark:border-red-900/50 rounded-xl hover:bg-red-50 text-red-500 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     </div>
                   ))}
@@ -3043,6 +3346,103 @@ export default function AdminPortal() {
                       className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-2xl shadow-md cursor-pointer flex items-center gap-1.5"
                     >
                       <span>✓ Save Article to Layout</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* AGGREGATION PREVIEW MODAL */}
+            {isPreviewModalOpen && aggregationPreview && (
+              <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-8 max-w-xl w-full space-y-6 shadow-2xl">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-4">
+                    <div>
+                      <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/20">
+                        {aggregationPreview.type} AGGREGATION PREVIEW
+                      </span>
+                      <h3 className="text-xl font-heading font-black text-slate-900 dark:text-white mt-1">
+                        {aggregationPreview.type === 'WEEKLY' && `Weekly Compilation (${aggregationPreview.fromDate} – ${aggregationPreview.toDate})`}
+                        {aggregationPreview.type === 'MONTHLY' && `Monthly Compilation: ${aggregationPreview.monthName} ${aggregationPreview.year}`}
+                        {aggregationPreview.type === 'YEARLY' && `Yearly Review: ${aggregationPreview.year}`}
+                      </h3>
+                    </div>
+
+                    <button onClick={() => setIsPreviewModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white cursor-pointer">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Idempotency Status Badge */}
+                  <div className={`p-4 rounded-2xl border flex items-center justify-between text-xs font-bold ${
+                    aggregationPreview.isUpdate
+                      ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      {aggregationPreview.isUpdate ? (
+                        <span>🔄 <strong>UPDATE / REBUILD:</strong> An existing compilation for this period was found and will be updated.</span>
+                      ) : (
+                        <span>✨ <strong>NEW CREATION:</strong> A new compilation record will be created for this period.</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Content Stats Overview */}
+                  <div className="space-y-4 text-xs">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-white/10 rounded-2xl flex items-center justify-between">
+                      <span className="font-bold text-slate-500 dark:text-slate-400">Eligible Daily Articles Found:</span>
+                      <span className="text-lg font-black text-amber-500">{aggregationPreview.articleCount || 0} Articles</span>
+                    </div>
+
+                    {/* Category Breakdown */}
+                    <div className="space-y-2">
+                      <span className="font-bold text-slate-400 uppercase text-[10px] tracking-wider">Category Breakdown:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(aggregationPreview.categoryStats || {}).map(([cat, cnt]) => (
+                          <span key={cat} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-extrabold text-slate-900 dark:text-white border border-slate-200 dark:border-white/10">
+                            {cat}: <span className="text-amber-500">{cnt as number}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Yearly Specific Month Availability Report */}
+                    {aggregationPreview.type === 'YEARLY' && (
+                      <div className="space-y-3 pt-3 border-t border-slate-100 dark:border-white/10">
+                        <div className="flex items-center justify-between font-bold text-xs">
+                          <span className="text-slate-600 dark:text-slate-300">Month Availability:</span>
+                          <span className="text-amber-500 font-extrabold">{aggregationPreview.availableCount} / 12 Months Available</span>
+                        </div>
+
+                        {aggregationPreview.missingCount > 0 && (
+                          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-600 dark:text-red-400 text-xs font-semibold space-y-1">
+                            <span className="font-extrabold block">⚠️ Missing Months ({aggregationPreview.missingCount}):</span>
+                            <span>{aggregationPreview.missingMonths.join(', ')}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Modal Actions */}
+                  <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-white/10">
+                    <button
+                      onClick={() => setIsPreviewModalOpen(false)}
+                      className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-2xl text-xs cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (aggregationPreview.type === 'WEEKLY') handleExecuteWeekly();
+                        else if (aggregationPreview.type === 'MONTHLY') handleExecuteMonthly();
+                        else if (aggregationPreview.type === 'YEARLY') handleExecuteYearly();
+                      }}
+                      disabled={aggregationExecuting}
+                      className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {aggregationExecuting ? <RefreshCw className="w-4 h-4 animate-spin" /> : '🚀 Combine & Save Compilation'}
                     </button>
                   </div>
                 </div>

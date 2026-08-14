@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, CheckCircle2, MapPin, CreditCard, ArrowRight, BookOpen, AlertCircle, ShieldCheck, Truck } from 'lucide-react';
 import { DownloadItem } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 
 interface PublicationCheckoutModalProps {
   item: DownloadItem;
@@ -16,6 +17,7 @@ interface CompletedOrderData {
 }
 
 export default function PublicationCheckoutModal({ item, onClose }: PublicationCheckoutModalProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<'ADDRESS' | 'SUCCESS'>('ADDRESS');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -187,10 +189,10 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
             </div>
             <div>
               <h3 className="font-heading font-black text-base text-slate-900 dark:text-white leading-tight">
-                {step === 'SUCCESS' ? 'Order Confirmation' : 'Checkout & Delivery'}
+                {step === 'SUCCESS' ? t('checkout.successMsg', 'Order Confirmation') : t('checkout.orderSummary', 'Checkout & Delivery')}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold">
-                {step === 'SUCCESS' ? 'Thank you! Your order has been placed.' : 'Step 1 of 2: Shipping Address & Order Summary'}
+                {step === 'SUCCESS' ? t('checkout.successSub', 'Thank you! Your order has been placed.') : 'Step 1 of 2: Shipping Address & Order Summary'}
               </p>
             </div>
           </div>
@@ -235,7 +237,7 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
                       <span className="text-xs font-bold text-slate-400 line-through">₹{mrp}</span>
                     )}
                     <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-                      FREE Shipping
+                      {t('checkout.freeShipping', 'FREE Shipping')}
                     </span>
                   </div>
                 </div>
@@ -253,16 +255,16 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
               <div className="space-y-4">
                 <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-white/10 text-slate-900 dark:text-white font-heading font-black text-xs uppercase tracking-wider">
                   <MapPin className="w-4 h-4 text-amber-500" />
-                  <span>Delivery Address</span>
+                  <span>{t('checkout.shippingAddress', 'Delivery Address')}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-extrabold uppercase text-slate-400">Full Name *</label>
+                    <label className="text-[10px] font-extrabold uppercase text-slate-400">{t('checkout.fullName', 'Full Name *')}</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Ramesh Kumar"
+                      placeholder={t('checkout.fullNamePlaceholder', 'e.g. Ramesh Kumar')}
                       value={address.fullName}
                       onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
                       className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-medium"
@@ -270,11 +272,11 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-extrabold uppercase text-slate-400">Mobile Number *</label>
+                    <label className="text-[10px] font-extrabold uppercase text-slate-400">{t('checkout.mobile', 'Mobile Number *')}</label>
                     <input
                       type="tel"
                       required
-                      placeholder="10-digit mobile number"
+                      placeholder={t('checkout.mobilePlaceholder', '10-digit mobile number')}
                       value={address.mobile}
                       onChange={(e) => setAddress({ ...address, mobile: e.target.value })}
                       className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-medium"
@@ -282,7 +284,7 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
                   </div>
 
                   <div className="space-y-1 sm:col-span-2">
-                    <label className="text-[10px] font-extrabold uppercase text-slate-400">Email Address *</label>
+                    <label className="text-[10px] font-extrabold uppercase text-slate-400">{t('auth.email', 'Email Address *')}</label>
                     <input
                       type="email"
                       required
@@ -294,11 +296,11 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
                   </div>
 
                   <div className="space-y-1 sm:col-span-2">
-                    <label className="text-[10px] font-extrabold uppercase text-slate-400">Full Street Address / House No. / Landmark *</label>
+                    <label className="text-[10px] font-extrabold uppercase text-slate-400">{t('checkout.address', 'Full Delivery Address *')}</label>
                     <textarea
                       required
                       rows={2}
-                      placeholder="House/Flat No., Colony, Street, Landmark"
+                      placeholder={t('checkout.addressPlaceholder', 'House/Flat No., Colony, Street, Landmark')}
                       value={address.fullAddress}
                       onChange={(e) => setAddress({ ...address, fullAddress: e.target.value })}
                       className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-medium resize-none"
@@ -306,7 +308,7 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-extrabold uppercase text-slate-400">Pincode *</label>
+                    <label className="text-[10px] font-extrabold uppercase text-slate-400">{t('checkout.pincode', 'Pincode *')}</label>
                     <input
                       type="text"
                       required
@@ -318,7 +320,7 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-extrabold uppercase text-slate-400">State / Region</label>
+                    <label className="text-[10px] font-extrabold uppercase text-slate-400">{t('checkout.state', 'State / Region')}</label>
                     <input
                       type="text"
                       placeholder="e.g. Bihar"
@@ -333,21 +335,21 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
               {/* Price Breakdown Footer */}
               <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl space-y-2 text-xs">
                 <div className="flex justify-between text-slate-500">
-                  <span>Item Price (MRP)</span>
+                  <span>{t('checkout.price', 'Item Price (MRP)')}</span>
                   <span>₹{mrp}</span>
                 </div>
                 {discount > 0 && (
                   <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold">
-                    <span>Publication Discount</span>
+                    <span>{t('checkout.subtotal', 'Publication Discount')}</span>
                     <span>- ₹{discount}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-slate-500">
-                  <span>Delivery Charges</span>
-                  <span className="text-emerald-600 font-bold">FREE</span>
+                  <span>{t('checkout.shippingFee', 'Delivery Charges')}</span>
+                  <span className="text-emerald-600 font-bold">{t('checkout.freeShipping', 'FREE')}</span>
                 </div>
                 <div className="pt-2 border-t border-slate-200 dark:border-white/10 flex justify-between font-black text-sm text-slate-900 dark:text-white">
-                  <span>Total Payable</span>
+                  <span>{t('checkout.totalAmount', 'Total Payable')}</span>
                   <span className="text-amber-500">₹{sellingPrice}</span>
                 </div>
               </div>
@@ -359,11 +361,11 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
                 className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {loading ? (
-                  <span>Initiating Razorpay Payment...</span>
+                  <span>{t('checkout.processing', 'Initiating Razorpay Payment...')}</span>
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4" />
-                    <span>Pay ₹{sellingPrice} via Razorpay</span>
+                    <span>{t('checkout.proceedToPay', 'Proceed to Payment')}</span>
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </>
                 )}
@@ -385,10 +387,10 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
 
               <div className="space-y-1">
                 <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white">
-                  Order Successfully Placed!
+                  {t('checkout.successMsg', 'Order Successfully Placed!')}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Your book order has been confirmed and dispatched for processing.
+                  {t('checkout.successSub', 'Your book order has been confirmed and dispatched for processing.')}
                 </p>
               </div>
 
@@ -415,7 +417,7 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
                 <div className="space-y-1 pt-2 border-t border-slate-200 dark:border-white/10">
                   <span className="text-[10px] font-extrabold uppercase text-slate-400 flex items-center gap-1">
                     <Truck className="w-3 h-3 text-amber-500" />
-                    <span>Shipping Address</span>
+                    <span>{t('checkout.shippingAddress', 'Shipping Address')}</span>
                   </span>
                   <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 leading-relaxed">
                     <strong>{address.fullName}</strong> ({address.mobile})<br />
@@ -429,7 +431,7 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
                 onClick={onClose}
                 className="w-full py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-md hover:bg-slate-800 transition-all cursor-pointer"
               >
-                Close &amp; Return to Storefront
+                {t('common.close', 'Close & Return to Storefront')}
               </button>
 
             </div>

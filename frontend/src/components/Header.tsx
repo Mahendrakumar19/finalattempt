@@ -234,8 +234,8 @@ export default function Header() {
             ],
           },
           { heading: t('mega.ca.topics'), items: [
-              { label: t('mega.ca.dailyAnalysis'), href: '/current-affairs/daily', desc: t('mega.ca.dailyAnalysisDesc'), icon: IC.sparkle, badge: 'Hot' },
-              { label: 'Daily Practice Quiz', href: '/daily-quiz', desc: 'Daily MCQ Practice & State Leaderboard', icon: IC.test, isNew: true },
+              { label: t('mega.ca.dailyAnalysis'), href: '/current-affairs/daily', desc: t('mega.ca.dailyAnalysisDesc'), icon: IC.sparkle},
+              { label: 'Daily MCQ Practice', href: '/daily-quiz', desc: 'Daily MCQ Practice & State Leaderboard', icon: IC.test, isNew: false },
             ],
           },
         ],
@@ -245,56 +245,62 @@ export default function Header() {
 
     {
       id: 'resources', label: t('nav.resources'), href: '/downloads', icon: IC.download,
-      mega: {
-        tagline: t('mega.resources.tagline'),
-        description: t('mega.resources.description'),
-        groups: [
-          { heading: 'Downloads', items: (() => {
-              const baseItems = [
-                { label: 'PYQ', href: '/downloads/pyq', desc: 'Previous year question papers', icon: IC.pyq },
-                { label: 'NCERT', href: '/downloads/ncert', desc: 'NCERT Class 6 to 12 Textbooks', icon: IC.ncert },
-                { label: 'Rapid Revision', href: '/downloads/rapid-revision', desc: 'Quick Revision Notes & Tables', icon: IC.rapid },
-                { label: 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: 'Mains Data & SC Judgments', icon: IC.valmains },
-                { label: 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: 'Evaluated Topper Copies', icon: IC.toppers },
-                { label: 'Final Attempt Publication', href: '/downloads/fa-publication', desc: 'Books & Publication Storefront', icon: IC.fa },
-              ];
+      mega: (() => {
+        const group1Items = [
+          { label: 'PYQ', href: '/downloads/pyq', desc: 'Previous year question papers', icon: IC.pyq },
+          { label: 'NCERT', href: '/downloads/ncert', desc: 'NCERT Class 6 to 12 Textbooks', icon: IC.ncert },
+          { label: 'Rapid Revision', href: '/downloads/rapid-revision', desc: 'Quick Revision Notes & Tables', icon: IC.rapid },
+        ];
 
-              const CORE_SLUGS = new Set([
-                'downloads/fa-publication', 'fa-publication',
-                'downloads/fa-publications', 'fa-publications',
-                'downloads/fa_publications', 'fa_publications',
-                'downloads/rapid-revision', 'rapid-revision',
-                'downloads/value-added-mains', 'value-added-mains',
-                'downloads/toppers-copies', 'toppers-copies',
-                'downloads/ncert', 'ncert',
-                'downloads/pyq', 'pyq'
-              ]);
+        const group2BaseItems = [
+          { label: 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: 'Mains Data & SC Judgments', icon: IC.valmains },
+          { label: 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: 'Evaluated Topper Copies', icon: IC.toppers },
+          { label: 'Final Attempt Publication', href: '/downloads/fa-publication', desc: 'Books & Publication Storefront', icon: IC.fa },
+        ];
 
-              const seenHrefs = new Set(baseItems.map(i => i.href.toLowerCase()));
+        const CORE_SLUGS = new Set([
+          'downloads/fa-publication', 'fa-publication',
+          'downloads/fa-publications', 'fa-publications',
+          'downloads/fa_publications', 'fa_publications',
+          'downloads/rapid-revision', 'rapid-revision',
+          'downloads/value-added-mains', 'value-added-mains',
+          'downloads/toppers-copies', 'toppers-copies',
+          'downloads/ncert', 'ncert',
+          'downloads/pyq', 'pyq'
+        ]);
 
-              const dynamicItems = customPages
-                .filter(p => !CORE_SLUGS.has(p.slug.toLowerCase()) && (p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/')))
-                .map(p => {
-                  const cleanSlug = p.slug.startsWith('downloads/') ? p.slug : `downloads/${p.slug}`;
-                  return {
-                    label: p.title,
-                    href: `/${cleanSlug}`,
-                    desc: p.metaDescription || `${p.downloadItems?.length || 0} Files Package`,
-                    icon: IC.globe
-                  };
-                })
-                .filter(i => {
-                  if (seenHrefs.has(i.href.toLowerCase())) return false;
-                  seenHrefs.add(i.href.toLowerCase());
-                  return true;
-                });
+        const seenHrefs = new Set([
+          ...group1Items.map(i => i.href.toLowerCase()),
+          ...group2BaseItems.map(i => i.href.toLowerCase())
+        ]);
 
-              return [...baseItems, ...dynamicItems];
-            })()
-          }
-        ],
-        cta: { label: t('nav.downloadFreeMaterial'), href: '/downloads' },
-      },
+        const dynamicItems = customPages
+          .filter(p => !CORE_SLUGS.has(p.slug.toLowerCase()) && (p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/')))
+          .map(p => {
+            const cleanSlug = p.slug.startsWith('downloads/') ? p.slug : `downloads/${p.slug}`;
+            return {
+              label: p.title,
+              href: `/${cleanSlug}`,
+              desc: p.metaDescription || `${p.downloadItems?.length || 0} Files Package`,
+              icon: IC.globe
+            };
+          })
+          .filter(i => {
+            if (seenHrefs.has(i.href.toLowerCase())) return false;
+            seenHrefs.add(i.href.toLowerCase());
+            return true;
+          });
+
+        return {
+          tagline: t('mega.resources.tagline'),
+          description: t('mega.resources.description'),
+          groups: [
+            { heading: 'Downloads', items: group1Items },
+            { heading: '', items: [...group2BaseItems, ...dynamicItems] }
+          ],
+          cta: { label: t('nav.downloadFreeMaterial'), href: '/downloads' },
+        };
+      })(),
     },
 
     {
@@ -567,7 +573,7 @@ export default function Header() {
                     {entry.mega.groups.map((grp) => (
                       <div key={grp.heading} className="w-full">
                         <p className="text-xs font-black font-heading text-slate-900 dark:text-amber-400 uppercase tracking-widest mb-3 border-b-2 border-amber-500/40 pb-2 font-bold">
-                          {grp.heading}
+                          {grp.heading || '\u00A0'}
                         </p>
                         <div className="space-y-1">
                           {grp.items.map((item, idx) => (

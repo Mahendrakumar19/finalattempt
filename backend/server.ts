@@ -27,6 +27,7 @@ import bpscScraperRouter from './routes/bpscScraper';
 import ncertRouter from './routes/ncert';
 import ncertBooksRouter from './routes/ncertBooks';
 import { verifyEmailConnection } from './services/email';
+import { ContentLocalizer, getTargetLang } from './services/contentLocalizer';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -344,8 +345,16 @@ app.put('/api/leads/:id', async (req, res) => {
 // FACULTY
 app.get('/api/faculty', async (req, res) => {
   try {
+    const targetLang = getTargetLang(req);
     const list = await db.getFaculty();
-    res.json(list);
+    const localized = await ContentLocalizer.localizeEntityList(
+      'faculty',
+      list,
+      ['name', 'role', 'experience', 'bio'],
+      targetLang,
+      ['bio']
+    );
+    res.json(localized);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -418,8 +427,16 @@ app.delete('/api/results/:id', async (req, res) => {
 // CURRENT AFFAIRS
 app.get('/api/current-affairs', async (req, res) => {
   try {
+    const targetLang = getTargetLang(req);
     const list = await db.getCurrentAffairs();
-    res.json(list);
+    const localized = await ContentLocalizer.localizeEntityList(
+      'current_affair',
+      list,
+      ['title', 'summary', 'relevance', 'context', 'analysis', 'wayForward', 'practiceQuestion'],
+      targetLang,
+      ['content', 'summary', 'relevance', 'context', 'analysis', 'wayForward', 'practiceQuestion']
+    );
+    res.json(localized);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -465,8 +482,18 @@ app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
 
 app.get('/api/dynamic-current-affairs/daily/:date', async (req, res) => {
   try {
+    const targetLang = getTargetLang(req);
     const includeDrafts = req.query.includeDrafts === 'true';
     const edition = await db.getDynamicCurrentAffairsEditionByDate(req.params.date, includeDrafts);
+    if (edition && Array.isArray(edition.articles)) {
+      edition.articles = await ContentLocalizer.localizeEntityList(
+        'current_affair_article',
+        edition.articles,
+        ['title', 'summary', 'content', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways'],
+        targetLang,
+        ['content', 'summary', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways']
+      );
+    }
     res.json(edition);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -475,9 +502,21 @@ app.get('/api/dynamic-current-affairs/daily/:date', async (req, res) => {
 
 app.get('/api/dynamic-current-affairs/article/:slug', async (req, res) => {
   try {
+    const targetLang = getTargetLang(req);
     const includeDrafts = req.query.includeDrafts === 'true';
     const article = await db.getDynamicCurrentAffairArticle(req.params.slug, includeDrafts);
-    res.json(article);
+    if (article) {
+      const localized = await ContentLocalizer.localizeEntity(
+        'current_affair_article',
+        article,
+        ['title', 'summary', 'content', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways'],
+        targetLang,
+        ['content', 'summary', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways']
+      );
+      res.json(localized);
+    } else {
+      res.json(null);
+    }
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -485,7 +524,19 @@ app.get('/api/dynamic-current-affairs/article/:slug', async (req, res) => {
 
 app.get('/api/dynamic-current-affairs/search', async (req, res) => {
   try {
+    const targetLang = getTargetLang(req);
     const results = await db.getDynamicCurrentAffairsSearch(req.query);
+    if (Array.isArray(results)) {
+      const localized = await ContentLocalizer.localizeEntityList(
+        'current_affair_article',
+        results,
+        ['title', 'summary'],
+        targetLang,
+        ['summary']
+      );
+      res.json(localized);
+      return;
+    }
     res.json(results);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -516,6 +567,108 @@ app.delete('/api/admin/dynamic-current-affairs/article/:id', async (req, res) =>
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// AGGREGATION & COMPILATIONS ENDPOINTS
+app.get('/api/dynamic-current-affairs/compilations', async (req, res) => {
+  try {
+    const targetLang = getTargetLang(req);
+    const type = req.query.type as string | undefined;
+    const list = await db.getCompilations(type);
+    const localized = await ContentLocalizer.localizeEntityList(
+      'current_affairs_compilation',
+      list,
+      ['title', 'summary'],
+      targetLang,
+      ['summary']
+    );
+    res.json({ success: true, data: localized });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/dynamic-current-affairs/compilations/:key', async (req, res) => {
+  try {
+    const targetLang = getTargetLang(req);
+    const compilation: any = await db.getCompilationByKey(req.params.key);
+    if (!compilation) {
+      res.status(404).json({ success: false, error: 'Compilation not found.' });
+      return;
+    }
+    if (compilation && Array.isArray(compilation.articles)) {
+      compilation.articles = await ContentLocalizer.localizeEntityList(
+        'current_affair_article',
+        compilation.articles,
+        ['title', 'summary', 'content', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways'],
+        targetLang,
+        ['content', 'summary', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways']
+      );
+    }
+    res.json({ success: true, data: compilation });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/dynamic-current-affairs/combine/weekly/preview', async (req, res) => {
+  try {
+    const { fromDate, toDate } = req.body;
+    const preview = await db.previewCombineWeekly(fromDate, toDate);
+    res.json({ success: true, data: preview });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/dynamic-current-affairs/combine/weekly', async (req, res) => {
+  try {
+    const { fromDate, toDate } = req.body;
+    const result = await db.combineWeekly(fromDate, toDate);
+    res.json({ success: true, message: 'Weekly Current Affairs combined successfully.', data: result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/dynamic-current-affairs/combine/monthly/preview', async (req, res) => {
+  try {
+    const { year, month } = req.body;
+    const preview = await db.previewCombineMonthly(year, month);
+    res.json({ success: true, data: preview });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/dynamic-current-affairs/combine/monthly', async (req, res) => {
+  try {
+    const { year, month } = req.body;
+    const result = await db.combineMonthly(year, month);
+    res.json({ success: true, message: 'Monthly Current Affairs combined successfully.', data: result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/dynamic-current-affairs/combine/yearly/preview', async (req, res) => {
+  try {
+    const { year } = req.body;
+    const preview = await db.previewCombineYearly(year);
+    res.json({ success: true, data: preview });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/dynamic-current-affairs/combine/yearly', async (req, res) => {
+  try {
+    const { year, combineAvailableOnly } = req.body;
+    const result = await db.combineYearly(year, Boolean(combineAvailableOnly));
+    res.json({ success: true, message: 'Yearly Current Affairs combined successfully.', data: result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
@@ -728,6 +881,7 @@ io.on('connection', (socket) => {
   });
 
   // Real-time message edit
+// Server touch: Trigger nodemon reload with DB auto-seeding completely disabled
   socket.on('edit_message', async (data: { messageId: string; roomId: string; newMessageText: string; senderId?: string; isAdmin?: boolean }) => {
     const { messageId, roomId, newMessageText, senderId, isAdmin } = data;
     try {

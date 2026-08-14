@@ -152,6 +152,23 @@ export interface DynamicCurrentAffairEdition {
   updatedAt?: string;
 }
 
+export interface CurrentAffairCompilation {
+  id: string;
+  type: 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+  periodKey: string;
+  title: string;
+  fromDate: string;
+  toDate: string;
+  articleIds: string[];
+  articleCount: number;
+  categoryStats: Record<string, number>;
+  availableMonths?: string[];
+  missingMonths?: string[];
+  publishStatus: 'PUBLISHED' | 'DRAFT';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BlogItem {
   id: string;
   title: string;
@@ -403,6 +420,24 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         seoDescription TEXT,
         seoKeywords TEXT
       )
+    `);
+
+    // Translation Cache Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS translation_cache (
+        id VARCHAR(255) PRIMARY KEY,
+        entityType VARCHAR(100) NOT NULL,
+        entityId VARCHAR(255) NOT NULL,
+        fieldName VARCHAR(100) NOT NULL,
+        sourceLanguage VARCHAR(10) NOT NULL DEFAULT 'en',
+        targetLanguage VARCHAR(10) NOT NULL DEFAULT 'hi',
+        sourceHash VARCHAR(64) NOT NULL,
+        translatedText LONGTEXT NOT NULL,
+        createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY entityType_entityId_fieldName_sourceLanguage_targetLanguage (entityType, entityId, fieldName, sourceLanguage, targetLanguage),
+        INDEX idx_entity (entityType, entityId)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
     await pool.query(`
@@ -2074,6 +2109,360 @@ class BackendDB {
     });
   }
 
+  // ── CURRENT AFFAIRS AGGREGATION & COMPILATIONS ─────────────────────────────
+
+  private async initCompilationsTable() {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(`
+          CREATE TABLE IF NOT EXISTS current_affair_compilations (
+            id VARCHAR(255) PRIMARY KEY,
+            type VARCHAR(50) NOT NULL,
+            periodKey VARCHAR(100) NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            fromDate VARCHAR(20) NOT NULL,
+            toDate VARCHAR(20) NOT NULL,
+            articleIds JSON NOT NULL,
+            articleCount INT NOT NULL,
+            categoryStats JSON NOT NULL,
+            availableMonths JSON,
+            missingMonths JSON,
+            publishStatus VARCHAR(20) NOT NULL DEFAULT 'PUBLISHED',
+            createdAt VARCHAR(50) NOT NULL,
+            updatedAt VARCHAR(50) NOT NULL
+          )
+        `);
+      } catch (err) {
+        console.error('[BackendDB] initCompilationsTable MySQL error:', err);
+      }
+    }
+  }
+
+  public async getCompilations(type?: string): Promise<CurrentAffairCompilation[]> {
+    await this.initCompilationsTable();
+    if (mysqlPool) {
+      try {
+        let query = 'SELECT * FROM current_affair_compilations';
+        const params: any[] = [];
+        if (type) {
+          query += ' WHERE type = ?';
+          params.push(type.toUpperCase());
+        }
+        query += ' ORDER BY fromDate DESC';
+        const [rows]: any = await mysqlPool.query(query, params);
+        return rows.map((r: any) => ({
+          ...r,
+          articleIds: typeof r.articleIds === 'string' ? JSON.parse(r.articleIds) : (r.articleIds || []),
+          categoryStats: typeof r.categoryStats === 'string' ? JSON.parse(r.categoryStats) : (r.categoryStats || {}),
+          availableMonths: typeof r.availableMonths === 'string' ? JSON.parse(r.availableMonths) : (r.availableMonths || []),
+          missingMonths: typeof r.missingMonths === 'string' ? JSON.parse(r.missingMonths) : (r.missingMonths || [])
+        }));
+      } catch (err) {
+        console.error('[BackendDB] getCompilations MySQL error:', err);
+      }
+    }
+    const store: CurrentAffairCompilation[] = (this.localStore as any).dynamicCurrentAffairCompilations || [];
+    if (!type) return store;
+    return store.filter(c => c.type.toUpperCase() === type.toUpperCase());
+  }
+
+  public async getCompilationByKey(key: string): Promise<CurrentAffairCompilation | null> {
+    const list = await this.getCompilations();
+    return list.find(c => c.id === key || c.periodKey === key) || null;
+  }
+
+  private async getPublishedArticlesInRange(fromDate: string, toDate: string): Promise<DynamicCurrentAffairArticle[]> {
+    const editions = await this.getDynamicCurrentAffairsEditions(false);
+    const sortedEditions = editions
+      .filter(ed => ed.publishDate >= fromDate && ed.publishDate <= toDate)
+      .sort((a, b) => a.publishDate.localeCompare(b.publishDate));
+
+    const articles: DynamicCurrentAffairArticle[] = [];
+    for (const ed of sortedEditions) {
+      if (ed.articles) {
+        for (const art of ed.articles) {
+          if (art.publishStatus === 'PUBLISHED') {
+            articles.push(art);
+          }
+        }
+      }
+    }
+    return articles;
+  }
+
+  private async saveCompilationRecord(record: CurrentAffairCompilation) {
+    await this.initCompilationsTable();
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO current_affair_compilations
+             (id, type, periodKey, title, fromDate, toDate, articleIds, articleCount, categoryStats, availableMonths, missingMonths, publishStatus, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             title = VALUES(title),
+             fromDate = VALUES(fromDate),
+             toDate = VALUES(toDate),
+             articleIds = VALUES(articleIds),
+             articleCount = VALUES(articleCount),
+             categoryStats = VALUES(categoryStats),
+             availableMonths = VALUES(availableMonths),
+             missingMonths = VALUES(missingMonths),
+             publishStatus = VALUES(publishStatus),
+             updatedAt = VALUES(updatedAt)`,
+          [
+            record.id,
+            record.type,
+            record.periodKey,
+            record.title,
+            record.fromDate,
+            record.toDate,
+            JSON.stringify(record.articleIds),
+            record.articleCount,
+            JSON.stringify(record.categoryStats),
+            JSON.stringify(record.availableMonths || []),
+            JSON.stringify(record.missingMonths || []),
+            record.publishStatus,
+            record.createdAt,
+            record.updatedAt
+          ]
+        );
+        return;
+      } catch (err) {
+        console.error('[BackendDB] saveCompilationRecord MySQL error:', err);
+      }
+    }
+
+    if (!(this.localStore as any).dynamicCurrentAffairCompilations) {
+      (this.localStore as any).dynamicCurrentAffairCompilations = [];
+    }
+    const store = (this.localStore as any).dynamicCurrentAffairCompilations;
+    const idx = store.findIndex((c: any) => c.id === record.id);
+    if (idx >= 0) {
+      store[idx] = record;
+    } else {
+      store.push(record);
+    }
+    this.saveLocalData();
+  }
+
+  public async previewCombineWeekly(fromDate: string, toDate: string) {
+    if (!fromDate || !toDate) throw new Error('From Date and To Date are required.');
+    if (fromDate > toDate) throw new Error('From Date cannot be later than To Date.');
+
+    const articles = await this.getPublishedArticlesInRange(fromDate, toDate);
+    const categoryStats: Record<string, number> = {};
+    for (const art of articles) {
+      const cat = (art.category || 'OTHER').toUpperCase();
+      categoryStats[cat] = (categoryStats[cat] || 0) + 1;
+    }
+
+    const key = `weekly-${fromDate}-to-${toDate}`;
+    const existing = await this.getCompilationByKey(key);
+
+    return {
+      type: 'WEEKLY',
+      periodKey: `W-${fromDate}-to-${toDate}`,
+      compilationId: key,
+      fromDate,
+      toDate,
+      articleCount: articles.length,
+      categoryStats,
+      articleIds: articles.map(a => a.id),
+      articlesPreview: articles.map(a => ({ id: a.id, title: a.title, category: a.category, publishedDate: a.publishedDate })),
+      isUpdate: Boolean(existing),
+      existingTitle: existing?.title || null
+    };
+  }
+
+  public async combineWeekly(fromDate: string, toDate: string) {
+    const preview = await this.previewCombineWeekly(fromDate, toDate);
+    if (preview.articleCount === 0) {
+      throw new Error(`No published daily articles found between ${fromDate} and ${toDate}. Cannot create an empty compilation.`);
+    }
+
+    const key = preview.compilationId;
+    const title = `Weekly Current Affairs (${fromDate} – ${toDate})`;
+    const timestamp = new Date().toISOString();
+
+    const record: CurrentAffairCompilation = {
+      id: key,
+      type: 'WEEKLY',
+      periodKey: preview.periodKey,
+      title,
+      fromDate,
+      toDate,
+      articleIds: preview.articleIds,
+      articleCount: preview.articleCount,
+      categoryStats: preview.categoryStats,
+      publishStatus: 'PUBLISHED',
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+
+    await this.saveCompilationRecord(record);
+    return { success: true, isUpdate: preview.isUpdate, compilation: record };
+  }
+
+  public async previewCombineMonthly(year: string, month: string) {
+    const mNum = String(month).padStart(2, '0');
+    const yrNum = parseInt(year, 10);
+    if (isNaN(yrNum) || parseInt(mNum, 10) < 1 || parseInt(mNum, 10) > 12) {
+      throw new Error('Invalid Year or Month parameters.');
+    }
+
+    const lastDayNum = new Date(yrNum, parseInt(mNum, 10), 0).getDate();
+    const fromDate = `${year}-${mNum}-01`;
+    const toDate = `${year}-${mNum}-${String(lastDayNum).padStart(2, '0')}`;
+
+    const articles = await this.getPublishedArticlesInRange(fromDate, toDate);
+    const categoryStats: Record<string, number> = {};
+    for (const art of articles) {
+      const cat = (art.category || 'OTHER').toUpperCase();
+      categoryStats[cat] = (categoryStats[cat] || 0) + 1;
+    }
+
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const monthName = monthNames[parseInt(mNum, 10) - 1];
+
+    const key = `monthly-${year}-${mNum}`;
+    const existing = await this.getCompilationByKey(key);
+
+    return {
+      type: 'MONTHLY',
+      periodKey: `${year}-${mNum}`,
+      compilationId: key,
+      monthName,
+      year,
+      month: mNum,
+      fromDate,
+      toDate,
+      articleCount: articles.length,
+      categoryStats,
+      articleIds: articles.map(a => a.id),
+      articlesPreview: articles.map(a => ({ id: a.id, title: a.title, category: a.category, publishedDate: a.publishedDate })),
+      isUpdate: Boolean(existing),
+      existingTitle: existing?.title || null
+    };
+  }
+
+  public async combineMonthly(year: string, month: string) {
+    const preview = await this.previewCombineMonthly(year, month);
+    if (preview.articleCount === 0) {
+      throw new Error(`No published daily articles found for ${preview.monthName} ${year}. Cannot create an empty compilation.`);
+    }
+
+    const key = preview.compilationId;
+    const title = `Monthly Current Affairs: ${preview.monthName} ${year}`;
+    const timestamp = new Date().toISOString();
+
+    const record: CurrentAffairCompilation = {
+      id: key,
+      type: 'MONTHLY',
+      periodKey: preview.periodKey,
+      title,
+      fromDate: preview.fromDate,
+      toDate: preview.toDate,
+      articleIds: preview.articleIds,
+      articleCount: preview.articleCount,
+      categoryStats: preview.categoryStats,
+      publishStatus: 'PUBLISHED',
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+
+    await this.saveCompilationRecord(record);
+    return { success: true, isUpdate: preview.isUpdate, compilation: record };
+  }
+
+  public async previewCombineYearly(year: string) {
+    const yrNum = parseInt(year, 10);
+    if (isNaN(yrNum)) throw new Error('Invalid Year parameter.');
+
+    const fromDate = `${year}-01-01`;
+    const toDate = `${year}-12-31`;
+
+    const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const availableMonths: string[] = [];
+    const missingMonths: string[] = [];
+
+    const editions = await this.getDynamicCurrentAffairsEditions(false);
+    const yrEditions = editions.filter(ed => ed.publishDate.startsWith(`${year}-`));
+
+    for (let i = 1; i <= 12; i++) {
+      const mNum = String(i).padStart(2, '0');
+      const mName = monthNames[i - 1];
+      const hasContent = yrEditions.some(ed => ed.publishDate.split('-')[1] === mNum && (ed.articles || []).length > 0);
+      if (hasContent) {
+        availableMonths.push(mName);
+      } else {
+        missingMonths.push(mName);
+      }
+    }
+
+    const articles = await this.getPublishedArticlesInRange(fromDate, toDate);
+    const categoryStats: Record<string, number> = {};
+    for (const art of articles) {
+      const cat = (art.category || 'OTHER').toUpperCase();
+      categoryStats[cat] = (categoryStats[cat] || 0) + 1;
+    }
+
+    const key = `yearly-${year}`;
+    const existing = await this.getCompilationByKey(key);
+
+    return {
+      type: 'YEARLY',
+      periodKey: `${year}`,
+      compilationId: key,
+      year,
+      fromDate,
+      toDate,
+      availableMonths,
+      missingMonths,
+      availableCount: availableMonths.length,
+      missingCount: missingMonths.length,
+      articleCount: articles.length,
+      categoryStats,
+      articleIds: articles.map(a => a.id),
+      isUpdate: Boolean(existing),
+      existingTitle: existing?.title || null
+    };
+  }
+
+  public async combineYearly(year: string, combineAvailableOnly: boolean) {
+    const preview = await this.previewCombineYearly(year);
+    if (preview.missingMonths.length > 0 && !combineAvailableOnly) {
+      throw new Error(`Cannot combine incomplete year. Missing content for: ${preview.missingMonths.join(', ')}. Enable "Combine available months" to proceed.`);
+    }
+
+    if (preview.articleCount === 0) {
+      throw new Error(`No published daily articles found for year ${year}. Cannot create an empty compilation.`);
+    }
+
+    const key = preview.compilationId;
+    const title = `Yearly Current Affairs Review: ${year}`;
+    const timestamp = new Date().toISOString();
+
+    const record: CurrentAffairCompilation = {
+      id: key,
+      type: 'YEARLY',
+      periodKey: preview.periodKey,
+      title,
+      fromDate: preview.fromDate,
+      toDate: preview.toDate,
+      articleIds: preview.articleIds,
+      articleCount: preview.articleCount,
+      categoryStats: preview.categoryStats,
+      availableMonths: preview.availableMonths,
+      missingMonths: preview.missingMonths,
+      publishStatus: 'PUBLISHED',
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+
+    await this.saveCompilationRecord(record);
+    return { success: true, isUpdate: preview.isUpdate, compilation: record };
+  }
+
   // BLOGS
   public async getBlogs(): Promise<BlogItem[]> {
     if (mysqlPool) {
@@ -2758,95 +3147,7 @@ async function initializeAuthTables(pool: mysql.Pool) {
 
     try { await pool.query("ALTER TABLE lms_chat_messages MODIFY COLUMN id VARCHAR(255), MODIFY COLUMN roomId VARCHAR(255), MODIFY COLUMN senderId VARCHAR(255)"); } catch (e) {}
 
-    // Seed lms_courses from existing course data if empty
-    const [courseCount]: any = await pool.query('SELECT COUNT(*) as count FROM lms_courses');
-    if (courseCount[0].count === 0) {
-      for (const c of courseData) {
-        await pool.query(
-          `INSERT INTO lms_courses (id, title, slug, category, description, fee, duration, schedule, enrolledCount, syllabus, features, faq, isPublished)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-          [
-            c.id, c.title, c.id, c.category,
-            c.description,
-            parseInt((c.fee || '0').replace(/[^0-9]/g, '')) || 0,
-            c.duration, c.schedule, c.enrolledCount,
-            JSON.stringify(c.syllabus),
-            JSON.stringify(c.features),
-            JSON.stringify(c.faq)
-          ]
-        );
-        // Seed sections for this course
-        const sections = [
-          { id: `sect-${c.id}-1`, title: 'Foundational Concepts & Strategy', orderIndex: 1 },
-          { id: `sect-${c.id}-2`, title: 'Core Syllabus Depth Integration', orderIndex: 2 },
-          { id: `sect-${c.id}-3`, title: 'Mock Tests & Essay Mentorship', orderIndex: 3 }
-        ];
-        for (const s of sections) {
-          await pool.query(
-            'INSERT INTO lms_sections (id, courseId, title, orderIndex) VALUES (?, ?, ?, ?)',
-            [s.id, c.id, s.title, s.orderIndex]
-          );
-          // Seed sample lessons per section
-          const lessons = [
-            { id: `les-${c.id}-${s.orderIndex}-1`, title: 'Introduction & Micro-Syllabus Analysis', type: 'video', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', duration: '45 mins', durationSeconds: 2700, orderIndex: 1, isFree: s.orderIndex === 1 },
-            { id: `les-${c.id}-${s.orderIndex}-2`, title: 'Strategic Reading & Current Affairs Integration', type: 'video', videoUrl: 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4', duration: '60 mins', durationSeconds: 3600, orderIndex: 2, isFree: false }
-          ];
-          for (const l of lessons) {
-            await pool.query(
-              'INSERT INTO lms_lessons (id, sectionId, courseId, title, type, videoUrl, duration, durationSeconds, orderIndex, isFree) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-              [l.id, s.id, c.id, l.title, l.type, l.videoUrl, l.duration, l.durationSeconds, l.orderIndex, l.isFree ? 1 : 0]
-            );
-          }
-        }
-        // Seed chat rooms for the course
-        await pool.query(
-          'INSERT INTO lms_chat_rooms (id, courseId, title, type) VALUES (?, ?, ?, ?)',
-          [`room-${c.id}-general`, c.id, `${c.title} - General Discussion`, 'general']
-        );
-        await pool.query(
-          'INSERT INTO lms_chat_rooms (id, courseId, title, type) VALUES (?, ?, ?, ?)',
-          [`room-${c.id}-doubts`, c.id, `${c.title} - Doubt Portal`, 'doubts']
-        );
-      }
-      // Seed a mock BPSC Foundation quiz
-      const bpscQuizId = 'q-bpsc-foundation-1';
-      await pool.query(
-        'INSERT INTO lms_quizzes (id, courseId, title, description, timeLimitMins, passingScore) VALUES (?, ?, ?, ?, ?, ?)',
-        [bpscQuizId, 'bpsc-foundation', 'BPSC Prelims Mini Mock Test', 'A short mock test covering Bihar History and General Mental Ability to evaluate your foundation.', 10, 40]
-      );
-
-      const questions = [
-        {
-          id: 'q-bpsc-1-1',
-          questionText: 'Who was the leader of the Santhal Rebellion of 1855-56 in Bihar?',
-          optionA: 'Sidhu and Kanhu',
-          optionB: 'Birsa Munda',
-          optionC: 'Kunwar Singh',
-          optionD: 'Bhairav and Chand',
-          correctAnswer: 'A',
-          explanation: 'The Santhal Rebellion was led by four Murmu brothers: Sidhu, Kanhu, Chand, and Bhairav. Sidhu and Kanhu were the primary leaders.',
-        },
-        {
-          id: 'q-bpsc-1-2',
-          questionText: 'Which of the following districts of Bihar has the highest forest cover percentage?',
-          optionA: 'Kaimur',
-          optionB: 'Jamui',
-          optionC: 'West Champaran',
-          optionD: 'Gaya',
-          correctAnswer: 'A',
-          explanation: 'Kaimur (Bhabua) has the highest forest cover percentage in Bihar, followed by Jamui.',
-        }
-      ];
-
-      for (const q of questions) {
-        await pool.query(
-          'INSERT INTO lms_quiz_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [q.id, bpscQuizId, q.questionText, q.optionA, q.optionB, q.optionC, q.optionD, q.correctAnswer, q.explanation]
-        );
-      }
-
-      console.log('Seeded lms_courses, lms_sections, lms_lessons, quizzes, and questions tables.');
-    }
+    console.log('Auth & LMS tables initialized.');
 
     console.log('Auth & LMS tables initialized.');
   } catch (err) {
@@ -4409,6 +4710,236 @@ class LmsDB {
       console.error('[LmsDB] getStudentProgressMetrics error:', err);
       return { courseCompletion: [], quizAnalytics: [] };
     }
+  }
+
+  // ── DAILY QUIZ CMS & PERSISTENCE METHODS ────────────────────────────────────
+
+  private async initDailyQuizTables() {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(`
+          CREATE TABLE IF NOT EXISTS daily_quizzes (
+            id VARCHAR(100) PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            description TEXT,
+            publishDate VARCHAR(20) NOT NULL,
+            timeLimitMins INT DEFAULT 10,
+            totalQuestions INT DEFAULT 10,
+            difficulty VARCHAR(50) DEFAULT 'MEDIUM',
+            category VARCHAR(100) DEFAULT 'Daily Practice',
+            attemptsCount INT DEFAULT 0,
+            passingScore INT DEFAULT 40,
+            isFree TINYINT(1) DEFAULT 1,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+          )
+        `);
+
+        await mysqlPool.query(`
+          CREATE TABLE IF NOT EXISTS daily_quiz_questions (
+            id VARCHAR(100) PRIMARY KEY,
+            quizId VARCHAR(100) NOT NULL,
+            questionText TEXT NOT NULL,
+            optionA TEXT NOT NULL,
+            optionB TEXT NOT NULL,
+            optionC TEXT NOT NULL,
+            optionD TEXT NOT NULL,
+            correctAnswer ENUM('A','B','C','D') NOT NULL,
+            explanation TEXT,
+            marks FLOAT DEFAULT 1.0,
+            negativeMarks FLOAT DEFAULT 0.33,
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (quizId) REFERENCES daily_quizzes(id) ON DELETE CASCADE
+          )
+        `);
+      } catch (err) {
+        console.error('[LmsDB] initDailyQuizTables MySQL error:', err);
+      }
+    }
+  }
+
+  public async getAllDailyQuizzes(): Promise<any[]> {
+    await this.initDailyQuizTables();
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM daily_quizzes ORDER BY publishDate DESC, createdAt DESC');
+        if (Array.isArray(rows) && rows.length > 0) {
+          return rows.map((r: any) => ({
+            ...r,
+            isFree: Boolean(r.isFree)
+          }));
+        }
+      } catch (err) {
+        console.error('[LmsDB] getAllDailyQuizzes MySQL error:', err);
+      }
+    }
+
+    const store = (db.localStore as any).dynamicDailyQuizzes || [];
+    return store;
+  }
+
+  public async getDailyQuizById(id: string): Promise<any | null> {
+    const list = await this.getAllDailyQuizzes();
+    return list.find((q: any) => q.id === id) || null;
+  }
+
+  public async saveDailyQuiz(quiz: any): Promise<any> {
+    await this.initDailyQuizTables();
+    const id = quiz.id || `dq-${Date.now()}`;
+    const record = {
+      id,
+      title: quiz.title || 'Daily Practice Quiz',
+      description: quiz.description || '',
+      publishDate: quiz.publishDate || new Date().toISOString().split('T')[0],
+      timeLimitMins: Number(quiz.timeLimitMins || 10),
+      totalQuestions: Number(quiz.totalQuestions || 10),
+      difficulty: quiz.difficulty || 'MEDIUM',
+      category: quiz.category || 'Daily Practice',
+      attemptsCount: Number(quiz.attemptsCount || 0),
+      passingScore: Number(quiz.passingScore || 40),
+      isFree: 1
+    };
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO daily_quizzes (id, title, description, publishDate, timeLimitMins, totalQuestions, difficulty, category, attemptsCount, passingScore, isFree)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             title = VALUES(title),
+             description = VALUES(description),
+             publishDate = VALUES(publishDate),
+             timeLimitMins = VALUES(timeLimitMins),
+             totalQuestions = VALUES(totalQuestions),
+             difficulty = VALUES(difficulty),
+             category = VALUES(category),
+             attemptsCount = VALUES(attemptsCount),
+             passingScore = VALUES(passingScore),
+             isFree = VALUES(isFree)`,
+          [record.id, record.title, record.description, record.publishDate, record.timeLimitMins, record.totalQuestions, record.difficulty, record.category, record.attemptsCount, record.passingScore, record.isFree]
+        );
+      } catch (err) {
+        console.error('[LmsDB] saveDailyQuiz MySQL error:', err);
+      }
+    }
+
+    if (!(db.localStore as any).dynamicDailyQuizzes) {
+      (db.localStore as any).dynamicDailyQuizzes = [];
+    }
+    const store = (db.localStore as any).dynamicDailyQuizzes;
+    const idx = store.findIndex((q: any) => q.id === record.id);
+    if (idx >= 0) {
+      store[idx] = { ...record, isFree: true };
+    } else {
+      store.unshift({ ...record, isFree: true });
+    }
+    db.saveLocalData();
+    return { ...record, isFree: true };
+  }
+
+  public async deleteDailyQuiz(id: string): Promise<boolean> {
+    await this.initDailyQuizTables();
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM daily_quizzes WHERE id = ?', [id]);
+      } catch (err) {
+        console.error('[LmsDB] deleteDailyQuiz MySQL error:', err);
+      }
+    }
+
+    if ((db.localStore as any).dynamicDailyQuizzes) {
+      (db.localStore as any).dynamicDailyQuizzes = (db.localStore as any).dynamicDailyQuizzes.filter((q: any) => q.id !== id);
+      db.saveLocalData();
+    }
+    return true;
+  }
+
+  public async getDailyQuizQuestions(quizId: string): Promise<any[]> {
+    await this.initDailyQuizTables();
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM daily_quiz_questions WHERE quizId = ? ORDER BY createdAt ASC', [quizId]);
+        if (Array.isArray(rows) && rows.length > 0) {
+          return rows;
+        }
+      } catch (err) {
+        console.error('[LmsDB] getDailyQuizQuestions MySQL error:', err);
+      }
+    }
+
+    const store = (db.localStore as any).dynamicDailyQuestions || {};
+    return store[quizId] || [];
+  }
+
+  public async saveDailyQuizQuestion(quizId: string, q: any): Promise<any> {
+    await this.initDailyQuizTables();
+    const id = q.id || `q-${Date.now()}`;
+    const question = {
+      id,
+      quizId,
+      questionText: q.questionText || '',
+      optionA: q.optionA || '',
+      optionB: q.optionB || '',
+      optionC: q.optionC || '',
+      optionD: q.optionD || '',
+      correctAnswer: q.correctAnswer || 'A',
+      explanation: q.explanation || '',
+      marks: Number(q.marks || 1.0),
+      negativeMarks: Number(q.negativeMarks || 0.33)
+    };
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO daily_quiz_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation, marks, negativeMarks)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             questionText = VALUES(questionText),
+             optionA = VALUES(optionA),
+             optionB = VALUES(optionB),
+             optionC = VALUES(optionC),
+             optionD = VALUES(optionD),
+             correctAnswer = VALUES(correctAnswer),
+             explanation = VALUES(explanation),
+             marks = VALUES(marks),
+             negativeMarks = VALUES(negativeMarks)`,
+          [question.id, question.quizId, question.questionText, question.optionA, question.optionB, question.optionC, question.optionD, question.correctAnswer, question.explanation, question.marks, question.negativeMarks]
+        );
+      } catch (err) {
+        console.error('[LmsDB] saveDailyQuizQuestion MySQL error:', err);
+      }
+    }
+
+    if (!(db.localStore as any).dynamicDailyQuestions) {
+      (db.localStore as any).dynamicDailyQuestions = {};
+    }
+    const store = (db.localStore as any).dynamicDailyQuestions;
+    if (!store[quizId]) store[quizId] = [];
+    const idx = store[quizId].findIndex((item: any) => item.id === question.id);
+    if (idx >= 0) {
+      store[quizId][idx] = question;
+    } else {
+      store[quizId].push(question);
+    }
+    db.saveLocalData();
+    return question;
+  }
+
+  public async deleteDailyQuizQuestion(quizId: string, qId: string): Promise<boolean> {
+    await this.initDailyQuizTables();
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM daily_quiz_questions WHERE id = ?', [qId]);
+      } catch (err) {
+        console.error('[LmsDB] deleteDailyQuizQuestion MySQL error:', err);
+      }
+    }
+
+    if ((db.localStore as any).dynamicDailyQuestions && (db.localStore as any).dynamicDailyQuestions[quizId]) {
+      (db.localStore as any).dynamicDailyQuestions[quizId] = (db.localStore as any).dynamicDailyQuestions[quizId].filter((item: any) => item.id !== qId);
+      db.saveLocalData();
+    }
+    return true;
   }
 }
 

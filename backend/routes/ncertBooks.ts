@@ -1,11 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../prisma';
+import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 
 const router = Router();
 
 // GET /api/ncert-books
 router.get('/', async (req: Request, res: Response) => {
   try {
+    const targetLang = getTargetLang(req);
     const subject = req.query.subject as string;
     const classLevel = req.query.classLevel ? parseInt(req.query.classLevel as string, 10) : undefined;
     const search = req.query.search as string;
@@ -48,11 +50,19 @@ router.get('/', async (req: Request, res: Response) => {
       }
     });
 
+    const localized = await ContentLocalizer.localizeEntityList(
+      'ncert_book',
+      items,
+      ['title', 'description'],
+      targetLang,
+      ['description']
+    );
+
     const total = await prisma.nCERTBook.count({ where });
 
     res.json({
       success: true,
-      data: items,
+      data: localized,
       pagination: {
         page,
         limit,
