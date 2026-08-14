@@ -24,6 +24,7 @@ import {
   MessageSquare,
   Download,
   Sparkles,
+  Flame,
   X
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
@@ -36,11 +37,12 @@ import NCERTBooksManagerCMS from '@/components/NCERTBooksManagerCMS';
 import NcertStyleResourceCMS from '@/components/NcertStyleResourceCMS';
 import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTopper } from '@/services/db';
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
+import DailyQuizCMS from '@/components/DailyQuizCMS';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 import MainsEvaluationCMS from '@/components/MainsEvaluationCMS';
 import AdminChatPanel from '@/components/admin/AdminChatPanel';
 
-type AdminTab = 'Dashboard' | 'Student Chats' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Student Chats' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Daily Quiz' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
 interface FeaturePageConnection {
   featureId: string;
@@ -717,6 +719,7 @@ export default function AdminPortal() {
               { id: 'Blogs', icon: Bookmark },
               { id: 'Courses', icon: BookOpen },
               { id: 'Test Series', icon: FileText },
+              { id: 'Daily Quiz', icon: Flame },
               { id: 'Mains Evaluation', icon: Award },
               { id: 'Users', icon: Users },
               { id: 'Leads', icon: MessageSquare },
@@ -3778,6 +3781,11 @@ export default function AdminPortal() {
         {/* TAB: TEST SERIES */}
         {activeTab === 'Test Series' && (
           <TestSeriesAdmin BACKEND_URL={BACKEND_URL} />
+        )}
+
+        {/* TAB: DAILY QUIZ */}
+        {activeTab === 'Daily Quiz' && (
+          <DailyQuizCMS BACKEND_URL={BACKEND_URL} />
         )}
 
         {/* TAB: MAINS EVALUATION */}

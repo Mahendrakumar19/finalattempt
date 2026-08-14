@@ -29,15 +29,40 @@ const cinzel = Cinzel({
 });
 
 export const metadata: Metadata = {
-  title: "Final Attempt | Next-Generation Mentorship & Learning Platform for UPSC & State PCS",
-  description: "Bihar's most trusted premium mentorship platform for BPSC aspirants. Personalized preparation, real results, current affairs, and mock test tracking.",
-  keywords: ["BPSC Preparation", "Bihar PCS", "Patna BPSC Coaching", "BPSC Answer Writing", "Final Attempt"],
-  authors: [{ name: "Final Attempt" }],
-  openGraph: {
-    title: "Final Attempt | Next-Generation Mentorship & Learning Platform for UPSC & State PCS",
-    description: "Bihar's most trusted premium mentorship platform for BPSC aspirants. Personalized preparation, real results, current affairs, and mock test tracking.",
-    type: "website",
+  metadataBase: new URL("https://finalattemptias.com"),
+
+  title: {
+    default:
+      "Final Attempt | Next-Generation Mentorship & Learning Platform for UPSC & State PCS",
+    template: "%s | Final Attempt",
   },
+
+  description:
+    "Bihar's most trusted premium mentorship platform for BPSC aspirants. Personalized preparation, real results, current affairs, and mock test tracking.",
+
+  applicationName: "Final Attempt",
+
+  keywords: [
+    "BPSC Preparation",
+    "Bihar PCS",
+    "APPSC",
+    "Patna BPSC Coaching",
+    "BPSC Answer Writing",
+    "Final Attempt",
+  ],
+
+  authors: [{ name: "Final Attempt" }],
+
+  openGraph: {
+    type: "website",
+    siteName: "Final Attempt",
+    title:
+      "Final Attempt | Next-Generation Mentorship & Learning Platform for UPSC & State PCS",
+    description:
+      "Bihar's most trusted premium mentorship platform for BPSC aspirants. Personalized preparation, real results, current affairs, and mock test tracking.",
+    url: "https://finalattemptias.com",
+  },
+
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

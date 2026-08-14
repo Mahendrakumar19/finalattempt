@@ -235,7 +235,7 @@ export default function Header() {
           },
           { heading: t('mega.ca.topics'), items: [
               { label: t('mega.ca.dailyAnalysis'), href: '/current-affairs/daily', desc: t('mega.ca.dailyAnalysisDesc'), icon: IC.sparkle, badge: 'Hot' },
-              // { label: 'Video Lectures', href: '/current-affairs/videos',  desc: 'Current affairs video updates',    icon: IC.video },
+              { label: 'Daily Practice Quiz', href: '/daily-quiz', desc: 'Daily MCQ Practice & State Leaderboard', icon: IC.test, isNew: true },
             ],
           },
         ],

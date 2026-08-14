@@ -454,6 +454,36 @@ class FinalAttemptDB {
     };
   }
 
+  // ── Daily Quiz Service Methods ─────────────────────────────────────────────
+  public async getTodayDailyQuiz(): Promise<any> {
+    const res = await this.apiFetch('/api/quizzes/daily/today');
+    return res?.data || null;
+  }
+
+  public async getPreviousDailyQuizzes(): Promise<any[]> {
+    const res = await this.apiFetch('/api/quizzes/daily/list');
+    return res?.data || [];
+  }
+
+  public async startDailyQuiz(quizId: string): Promise<any> {
+    const res = await this.apiFetch(`/api/quizzes/daily/${quizId}/start`);
+    return res?.data || null;
+  }
+
+  public async submitDailyQuiz(quizId: string, answers: Record<string, string>, timeTakenSecs: number): Promise<any> {
+    const res = await this.apiFetch(`/api/quizzes/daily/${quizId}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers, timeTakenSecs })
+    });
+    return res?.data || null;
+  }
+
+  public async getDailyQuizLeaderboard(quizId: string): Promise<any[]> {
+    const res = await this.apiFetch(`/api/quizzes/daily/${quizId}/leaderboard`);
+    return res?.data || [];
+  }
+
   // Dynamic Current Affairs API calls
   public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
     const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}`);
