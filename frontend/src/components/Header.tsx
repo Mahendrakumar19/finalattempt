@@ -305,7 +305,7 @@ export default function Header() {
         groups: [
           { heading: t('mega.blogs.explore'), items: [
               { label: t('mega.blogs.allArticles'),       href: '/blog',              desc: t('mega.blogs.allArticlesDesc'),    icon: IC.blog },
-              { label: t('mega.blogs.currentAffairs'),    href: '/current-affairs',   desc: t('mega.blogs.currentAffairsDesc'), icon: IC.daily },
+              // { label: t('mega.blogs.currentAffairs'),    href: '/current-affairs',   desc: t('mega.blogs.currentAffairsDesc'), icon: IC.daily },
             ],
           },
           { heading: t('mega.blogs.strategyGuidance'), items: [

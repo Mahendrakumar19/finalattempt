@@ -122,7 +122,12 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
     try {
       const exRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
       const exData = await exRes.json();
-      if (exData.success) setExams(exData.data);
+      if (exData.success) {
+        const sorted = (exData.data || []).sort((a: Exam, b: Exam) =>
+          (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
+        );
+        setExams(sorted);
+      }
 
       const syRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/syllabus`);
       const syData = await syRes.json();

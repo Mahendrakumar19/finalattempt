@@ -8,9 +8,11 @@ const router = Router();
 router.get('/exams', async (req: Request, res: Response) => {
   try {
     const exams = await prisma.exam.findMany({
-      orderBy: { displayOrder: 'asc' },
       include: { logo: true }
     });
+    exams.sort((a, b) =>
+      (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
+    );
     res.json({ success: true, data: exams });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

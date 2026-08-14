@@ -60,7 +60,12 @@ export default function PYQsManagerCMS() {
     try {
       const examsRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
       const examsData = await examsRes.json();
-      if (examsData.success) setExams(examsData.data);
+      if (examsData.success) {
+        const sorted = (examsData.data || []).sort((a: any, b: any) =>
+          (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
+        );
+        setExams(sorted);
+      }
 
       const pyqsRes = await fetch(`${BACKEND_URL}/api/pyqs?limit=100`);
       const pyqsData = await pyqsRes.json();

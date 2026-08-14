@@ -550,7 +550,9 @@ class FinalAttemptDB {
   public async getExamsHierarchy(includeUnpublished: boolean = false): Promise<ExamData[]> {
     const data = await this.apiFetch(`/api/test-series/hierarchy?includeUnpublished=${includeUnpublished}`);
     if (data && data.success && Array.isArray(data.data)) {
-      return data.data;
+      return (data.data as ExamData[]).sort((a, b) =>
+        (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
+      );
     }
     // Fallback seed hierarchy
     return [

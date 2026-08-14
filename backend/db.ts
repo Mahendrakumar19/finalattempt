@@ -1353,6 +1353,7 @@ class BackendDB {
             testSeries: parsedSeries
           });
         }
+        exams.sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' }));
         return exams;
       } catch (err) {
         console.error('[BackendDB] getExamsHierarchy MySQL error:', err);
