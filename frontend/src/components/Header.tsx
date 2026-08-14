@@ -614,12 +614,12 @@ export default function Header() {
                 </div>
                 {/* Bottom quick-link strip */}
                 <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/[0.06] flex items-center gap-6 flex-wrap">
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{t('mega.quickLinks') || 'Quick Links:'}</span>
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{t('nav.quickLinks', 'Quick Links:')}</span>
                   {[
-                    { label: t('nav.enroll') || 'Enroll Now',             href: '/contact?enquiry=enroll' },
-                    { label: t('mega.downloadPyqs') || 'Download PYQs',    href: '/downloads/pyq'          },
-                    { label: t('nav.testSeries') || 'Test Series',        href: '/test-series'             },
-                    { label: t('mega.dailyCa') || 'Daily CA',             href: '/current-affairs/daily'  },
+                    { label: t('nav.enroll', 'Enroll Now'),             href: '/contact?enquiry=enroll' },
+                    { label: t('nav.downloadPYQs', 'Download PYQs'),     href: '/downloads/pyq'          },
+                    { label: t('nav.testSeries', 'Test Series'),        href: '/test-series'             },
+                    { label: t('nav.dailyCA', 'Daily CA'),              href: '/current-affairs/daily'  },
                   ].map((ql) => (
                     <Link
                       key={ql.label}

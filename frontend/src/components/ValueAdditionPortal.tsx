@@ -147,13 +147,13 @@ export default function ValueAdditionPortal() {
               onClick={() => setSelectedLanguage('English')}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${selectedLanguage === 'English' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'}`}
             >
-              🇬🇧 English
+              English
             </button>
             <button
               onClick={() => setSelectedLanguage('Hindi')}
               className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${selectedLanguage === 'Hindi' ? 'bg-cyan-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'}`}
             >
-              🇮🇳 Hindi
+              Hindi
             </button>
           </div>
 

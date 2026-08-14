@@ -6,7 +6,8 @@ import { Calendar, ArrowRight, Clock, BookOpen } from 'lucide-react';
 import { db, fallbackBlogs, BlogItem } from '@/services/db';
 
 export default function Blog() {
-  const [blogsList, setBlogsList] = useState<BlogItem[]>(fallbackBlogs);
+  const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const resolveUrl = (url?: string) => {
     if (!url) return '';
@@ -19,11 +20,11 @@ export default function Blog() {
     const loadBlogs = async () => {
       try {
         const bg = await db.getBlogs();
-        if (bg && bg.length > 0) {
-          setBlogsList(bg);
-        }
+        setBlogsList(bg || []);
       } catch (err) {
         console.error('Failed loading blogs:', err);
+      } finally {
+        setLoading(false);
       }
     };
     loadBlogs();

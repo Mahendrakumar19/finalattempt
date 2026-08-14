@@ -178,20 +178,22 @@ function StudentDashboardContent() {
           </div>
         </header>
 
-        <div className="p-6 max-w-7xl">
+        <div className="p-4 sm:p-6 max-w-7xl">
 
           {/* ── Dashboard Tab ── */}
           {activeTab === 'Dashboard' && (
             <div className="space-y-6">
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {stats.map(s => (
-                  <div key={s.label} className={`p-4 rounded-2xl ${s.bg} border ${s.border} backdrop-blur-sm`}>
-                    <div className={`w-8 h-8 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center mb-3`}>
+                  <div key={s.label} className={`p-3.5 sm:p-4 rounded-2xl ${s.bg} border ${s.border} backdrop-blur-xs flex flex-col justify-between`}>
+                    <div className={`w-8 h-8 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center mb-2 sm:mb-3`}>
                       <s.icon className={`w-4 h-4 ${s.iconColor}`} />
                     </div>
-                    <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-                    <p className="text-slate-600 dark:text-slate-400 text-xs mt-0.5">{s.label}</p>
+                    <div>
+                      <p className={`text-xl sm:text-2xl font-bold ${s.color}`}>{s.value}</p>
+                      <p className="text-slate-600 dark:text-slate-400 text-[11px] sm:text-xs mt-0.5 font-medium leading-snug break-words">{s.label}</p>
+                    </div>
                   </div>
                 ))}
               </div>

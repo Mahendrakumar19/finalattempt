@@ -27,6 +27,7 @@ export default function PublicationsStorefront() {
   // Modals
   const [activeSampleModal, setActiveSampleModal] = useState<{ title: string; samplePdfUrl: string } | null>(null);
   const [activeCheckoutItem, setActiveCheckoutItem] = useState<DownloadItem | null>(null);
+  const [activeDetailModal, setActiveDetailModal] = useState<DownloadItem | null>(null);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -64,8 +65,15 @@ export default function PublicationsStorefront() {
   }, [loadPage, loadExams]);
 
   const getCategoryLogo = (categoryName: string): string | null => {
-    if (!categoryName || examsList.length === 0) return null;
+    if (!categoryName) return null;
     const catLower = categoryName.toLowerCase();
+    
+    // Explicit asset link for APSSB
+    if (catLower.includes('apssb') || catLower.includes('staff selection board')) {
+      return 'https://finalattemptias.com/uploads/images/APSSB.webp';
+    }
+
+    if (examsList.length === 0) return null;
     
     const matchedExam = examsList.find(ex => {
       const name = (ex.name || '').toLowerCase();
@@ -97,14 +105,27 @@ export default function PublicationsStorefront() {
 
   const downloadItems: DownloadItem[] = pageData?.downloadItems || [];
 
-  // Default Folders
-  const defaultFolders = ['BPSC', 'Arunachal PCS (APPSC)', 'Arunachal Pradesh Staff Selection Board (APSSB)'];
+  // Default Folders with Explicit Priority Ranking
+  const FOLDER_RANK: Record<string, number> = {
+    'BPSC': 1,
+    'Arunachal PSC (APPSC)': 2,
+    'APPSC': 2,
+    'Arunachal Staff Selection Board (APSSB)': 3,
+    'APSSB': 3
+  };
 
-  // All Folders derived from Database + Defaults
+  const defaultFolders = ['BPSC', 'Arunachal PSC (APPSC)', 'Arunachal Staff Selection Board (APSSB)'];
+
+  // All Folders derived from Database + Defaults sorted with BPSC first
   const allFolders = Array.from(new Set([
     ...defaultFolders,
     ...downloadItems.map(i => i.examCategory || i.type).filter((c): c is string => Boolean(c && c.trim()))
-  ])).sort();
+  ])).sort((a, b) => {
+    const rankA = FOLDER_RANK[a] || 99;
+    const rankB = FOLDER_RANK[b] || 99;
+    if (rankA !== rankB) return rankA - rankB;
+    return a.localeCompare(b);
+  });
 
   // Group items by Folder
   const folderVaults = allFolders.map(folderName => {
@@ -160,7 +181,7 @@ export default function PublicationsStorefront() {
         </Link>
         <ChevronRight className="w-3.5 h-3.5 text-slate-350" />
         <button onClick={() => setActiveFolder(null)} className="hover:text-purple-500 cursor-pointer">
-          <span>{t('checkout.title', 'Final Attempt Publications')}</span>
+          <span>Final Attempt Publication</span>
         </button>
         {activeFolder && (
           <>
@@ -173,23 +194,20 @@ export default function PublicationsStorefront() {
       {/* Directory Title & Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-200 dark:border-white/10">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-xl inline-block mb-2">
-            {activeFolder ? `Exam Folder: ${activeFolder}` : 'Exam Category Publication Folders'}
-          </span>
           <h1 className="text-3xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white tracking-tight">
-            {activeFolder ? `${activeFolder} Books Vault` : t('checkout.title', 'Final Attempt Publications')}
+            {activeFolder ? `${activeFolder} Books Vault` : 'Final Attempt Publication'}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
+          {/* <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
             {activeFolder
               ? `Browse official ${activeFolder} textbooks, Bihar special handbooks, yearbooks and model answer compilations.`
-              : t('checkout.subtitle', 'Standard BPSC Preparation Books, Practice Workbooks & Material Delivered to Your Doorstep.')}
-          </p>
+              : t('checkout.subtitle')}
+          </p> */}
         </div>
 
         <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 px-4 py-2.5 rounded-2xl shrink-0">
           <BookOpen className="w-5 h-5 text-purple-500" />
           <div>
-            <span className="text-xs font-black text-slate-900 dark:text-white block">{downloadItems.length} Total Publications</span>
+            <span className="text-xs font-black text-slate-900 dark:text-white block">{downloadItems.length} Total Publication</span>
             <span className="text-[10px] text-slate-500 font-bold uppercase">{allFolders.length} Exam Folders</span>
           </div>
         </div>
@@ -228,43 +246,43 @@ export default function PublicationsStorefront() {
                   <div
                     key={folderName}
                     onClick={() => setActiveFolder(folderName)}
-                    className={`group bg-gradient-to-br ${theme.bg} bg-white dark:bg-slate-900 border ${theme.border} p-6 rounded-3xl space-y-5 shadow-xs hover:shadow-2xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group-hover:-translate-y-1`}
+                    className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 hover:border-blue-500/50 dark:hover:border-blue-500/50 p-6 rounded-3xl space-y-5 shadow-sm hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col justify-between relative overflow-hidden group-hover:-translate-y-1"
                   >
                     <div className="space-y-4 relative">
                       
                       {/* Top Bar with Logo & Count */}
                       <div className="flex items-center justify-between">
-                        <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 dark:border-slate-700 flex items-center justify-center font-black text-sm shadow-md p-1.5 shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
+                        <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 dark:border-slate-700 flex items-center justify-center font-black text-sm shadow-sm p-1 shrink-0 group-hover:scale-105 transition-transform overflow-hidden">
                           {examLogo ? (
-                            <img src={examLogo} alt={folderName} className="w-full h-full object-contain" />
+                            <img src={examLogo} alt={folderName} className="w-full h-full object-contain scale-110" />
                           ) : (
-                            <div className={`w-full h-full rounded-xl ${theme.iconBg} flex items-center justify-center`}>
-                              <Folder className="w-6 h-6" />
+                            <div className="w-full h-full rounded-xl bg-blue-600 text-white flex items-center justify-center">
+                              <Folder className="w-7 h-7" />
                             </div>
                           )}
                         </div>
 
-                        <span className={`text-[10px] font-black uppercase tracking-wider ${theme.badge} border px-3 py-1 rounded-xl flex items-center gap-1`}>
-                          <BookOpen className="w-3 h-3" />
+                        <span className="text-[10px] font-black uppercase tracking-wider bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/20 px-3 py-1 rounded-xl flex items-center gap-1.5">
+                          <BookOpen className="w-3 h-3 text-blue-600 dark:text-blue-400" />
                           <span>{items.length} {items.length === 1 ? 'Book' : 'Books'}</span>
                         </span>
                       </div>
 
                       {/* Folder Info */}
                       <div>
-                        <h3 className={`font-heading font-black text-xl text-slate-900 dark:text-white ${theme.text} transition-colors leading-tight`}>
+                        <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight">
                           {folderName}
                         </h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2 font-medium">
+                        {/* <p className="text-xs text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed line-clamp-2 font-medium">
                           Dedicated folder for {folderName} textbooks, handbooks, yearbooks &amp; model answers.
-                        </p>
+                        </p> */}
                       </div>
                     </div>
 
                     <div className="pt-3 border-t border-slate-100 dark:border-white/[0.08] flex items-center justify-between">
-                      <span className={`text-xs font-black ${theme.text} group-hover:translate-x-1 transition-transform inline-flex items-center gap-1.5`}>
-                        <FolderOpen className="w-4 h-4 text-purple-500" />
-                        <span>Open {folderName} Folder  &rarr;</span>
+                      <span className="text-xs font-black text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform inline-flex items-center gap-1.5">
+                        <FolderOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <span>Open &rarr;</span>
                       </span>
                     </div>
                   </div>
@@ -323,13 +341,13 @@ export default function PublicationsStorefront() {
                   onClick={() => setSelectedLanguage('English')}
                   className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${selectedLanguage === 'English' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300'}`}
                 >
-                  🇬🇧 English
+                  English
                 </button>
                 <button
                   onClick={() => setSelectedLanguage('Hindi')}
                   className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${selectedLanguage === 'Hindi' ? 'bg-purple-600 text-white shadow-sm' : 'text-slate-600 dark:text-slate-300'}`}
                 >
-                  🇮🇳 Hindi
+                  Hindi
                 </button>
               </div>
 
@@ -392,7 +410,7 @@ export default function PublicationsStorefront() {
 
                       {/* Language Badge */}
                       <span className="absolute top-3 right-3 bg-slate-950/80 backdrop-blur-md text-white font-bold text-[10px] px-2.5 py-1 rounded-xl border border-white/20">
-                        {item.language === 'Hindi' ? '🇮🇳 Hindi' : item.language === 'Bilingual' ? '🌐 Bilingual' : '🇬🇧 English'}
+                        {item.language === 'Hindi' ? 'Hindi' : item.language === 'Bilingual' ? '🌐 Bilingual' : 'English'}
                       </span>
                     </div>
 
@@ -409,14 +427,27 @@ export default function PublicationsStorefront() {
                         )}
                       </div>
 
-                      <h3 className="font-heading font-black text-base text-slate-900 dark:text-white line-clamp-2 leading-snug">
+                      <h3
+                        onClick={() => setActiveDetailModal(item)}
+                        className="font-heading font-black text-base text-slate-900 dark:text-white leading-snug cursor-pointer hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                      >
                         {item.title}
                       </h3>
 
                       {item.description && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">
-                          {item.description}
-                        </p>
+                        <div className="space-y-1.5">
+                          <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-4 leading-relaxed font-medium whitespace-pre-line">
+                            {item.description}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setActiveDetailModal(item)}
+                            className="text-[11px] font-black text-purple-600 dark:text-purple-400 hover:underline cursor-pointer inline-flex items-center gap-1 mt-1"
+                          >
+                            <span>📖 Read Full Synopsis &amp; Features</span>
+                            <span>→</span>
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -537,6 +568,138 @@ export default function PublicationsStorefront() {
           item={activeCheckoutItem}
           onClose={() => setActiveCheckoutItem(null)}
         />
+      )}
+
+      {/* POPUP MODAL: FULL BOOK DETAILS & OVERVIEW MODAL */}
+      {activeDetailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-5 bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-white/10 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <h3 className="font-heading font-black text-base text-slate-900 dark:text-white">
+                  Publication Overview &amp; Details
+                </h3>
+              </div>
+              <button
+                onClick={() => setActiveDetailModal(null)}
+                className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Content Body */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-1 styled-scrollbar">
+              <div className="flex flex-col sm:flex-row gap-5 items-start">
+                {/* Thumbnail */}
+                <div className="w-36 h-48 sm:w-40 sm:h-56 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shrink-0 shadow-md flex items-center justify-center">
+                  {activeDetailModal.thumbnailUrl ? (
+                    <img src={resolveUrl(activeDetailModal.thumbnailUrl)} alt={activeDetailModal.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <BookOpen className="w-12 h-12 text-purple-500" />
+                  )}
+                </div>
+
+                {/* Info */}
+                <div className="space-y-3 min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-black uppercase text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2.5 py-1 rounded-lg border border-purple-500/20">
+                      {activeDetailModal.examCategory || activeDetailModal.type || 'BPSC'}
+                    </span>
+                    {activeDetailModal.editionYear && (
+                      <span className="text-xs font-bold text-slate-500">
+                        {activeDetailModal.editionYear} Edition
+                      </span>
+                    )}
+                    <span className="text-xs font-bold text-slate-500">
+                      {activeDetailModal.language === 'Hindi' ? 'Hindi' : activeDetailModal.language === 'Bilingual' ? '🌐 Bilingual' : 'English'}
+                    </span>
+                  </div>
+
+                  <h2 className="font-heading font-black text-xl text-slate-900 dark:text-white leading-snug">
+                    {activeDetailModal.title}
+                  </h2>
+
+                  <div className="flex items-baseline gap-2 pt-1">
+                    {!activeDetailModal.price && !activeDetailModal.discountedPrice ? (
+                      <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 uppercase">FREE</span>
+                    ) : (
+                      <>
+                        <span className="text-2xl font-black text-slate-900 dark:text-white">
+                          ₹{activeDetailModal.discountedPrice || activeDetailModal.price}
+                        </span>
+                        {activeDetailModal.price && activeDetailModal.discountedPrice && activeDetailModal.price > activeDetailModal.discountedPrice && (
+                          <span className="text-sm font-bold text-slate-400 line-through">
+                            ₹{activeDetailModal.price}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Full Description & Overview Section */}
+              <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-white/10">
+                <h4 className="font-heading font-black text-xs uppercase tracking-wider text-slate-400">
+                  Full Book Synopsis &amp; Description
+                </h4>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200/80 dark:border-white/5">
+                  <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed whitespace-pre-line font-medium">
+                    {activeDetailModal.description || 'No detailed synopsis provided.'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-white/10 flex items-center justify-end gap-3 shrink-0">
+              {activeDetailModal.samplePdfUrl && (
+                <button
+                  onClick={() => {
+                    const sampleUrl = activeDetailModal.samplePdfUrl!;
+                    const title = activeDetailModal.title;
+                    setActiveDetailModal(null);
+                    setActiveSampleModal({ title, samplePdfUrl: sampleUrl });
+                  }}
+                  className="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white text-xs font-black rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <Eye className="w-4 h-4 text-purple-500" />
+                  <span>Read Sample PDF</span>
+                </button>
+              )}
+
+              {!activeDetailModal.price && !activeDetailModal.discountedPrice ? (
+                activeDetailModal.url && (
+                  <a
+                    href={resolveUrl(activeDetailModal.url)}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-black rounded-xl flex items-center gap-1.5 shadow-md transition-all"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download PDF</span>
+                  </a>
+                )
+              ) : (
+                <button
+                  onClick={() => {
+                    const itemToCheckout = activeDetailModal;
+                    setActiveDetailModal(null);
+                    setActiveCheckoutItem(itemToCheckout);
+                  }}
+                  className="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-black rounded-xl flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>Buy Book Now</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

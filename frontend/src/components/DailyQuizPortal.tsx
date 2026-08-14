@@ -330,10 +330,6 @@ export default function DailyQuizPortal() {
                   {t('dailyQuiz.title', 'Daily Current Affairs & GS Practice Hub')}
                 </h1>
 
-                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                  {t('dailyQuiz.subtitle', 'Sharpen your BPSC preparation with daily 10-question MCQ practice sets & state leaderboard.')}
-                </p>
-
                 {/* Specs Pill Bar */}
                 {loadingMeta ? (
                   <div className="h-10 w-full max-w-md bg-slate-200 dark:bg-slate-800 rounded-2xl animate-pulse" />

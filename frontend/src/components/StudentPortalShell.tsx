@@ -35,11 +35,19 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
 
   return (
     <div className="portal-page min-h-screen bg-slate-50 dark:bg-slate-950 flex font-body transition-colors duration-200">
+      {/* Mobile Backdrop Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-40 transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* ──────────────── Sidebar ──────────────── */}
-      <aside className={`w-64 flex-col bg-white dark:bg-slate-900/80 border-r border-slate-200 dark:border-white/[0.06] h-screen sticky top-0 z-40 transition-all duration-300 ${isSidebarOpen ? 'flex fixed inset-y-0 left-0 shadow-2xl' : 'hidden lg:flex'}`}>
+      <aside className={`w-72 sm:w-64 flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-white/[0.06] h-screen sticky top-0 z-50 transition-all duration-300 ${isSidebarOpen ? 'flex fixed inset-y-0 left-0 shadow-2xl' : 'hidden lg:flex'}`}>
         {/* Logo */}
         <div className="p-5 border-b border-slate-200 dark:border-white/[0.06] flex items-center justify-between">
-          <Link href="/" className="flex flex-col gap-1">
+          <Link href="/" onClick={() => setIsSidebarOpen(false)} className="flex flex-col gap-1">
             <div className="w-40 h-10 relative shrink-0">
               <img
                 src="/darklogofull.png"
@@ -83,9 +91,10 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
               <Link
                 key={key}
                 href={href}
+                onClick={() => setIsSidebarOpen(false)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                   isActive
-                    ? 'bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                    ? 'bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.04]'
                 }`}
               >

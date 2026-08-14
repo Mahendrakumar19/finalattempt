@@ -34,7 +34,7 @@ export default function BlogDetailPage() {
           db.getBlogById(idOrSlug),
           db.getBlogs()
         ]);
-        const list = (allBlogs && allBlogs.length > 0) ? allBlogs : fallbackBlogs;
+        const list = (allBlogs && allBlogs.length > 0) ? allBlogs : [];
         setRecentBlogs(list);
 
         if (singleBlog && (singleBlog.title || singleBlog.content)) {
@@ -103,10 +103,11 @@ export default function BlogDetailPage() {
     );
   }
 
-  const latest10Blogs = (recentBlogs.length > 0 ? recentBlogs : fallbackBlogs).slice(0, 10);
+  const latest10Blogs = recentBlogs.slice(0, 10);
 
-  const otherBlogs = (recentBlogs.filter((b: any) => String(b.id) !== String(blog?.id) && b.slug !== blog?.slug)).slice(0, 3);
-  const displayRelated = (otherBlogs.length > 0 ? otherBlogs : fallbackBlogs.filter((b: any) => String(b.id) !== String(blog?.id) && (b as any).slug !== blog?.slug).slice(0, 3)) as any[];
+  const displayRelated = recentBlogs
+    .filter((b: any) => String(b.id) !== String(blog?.id) && b.slug !== blog?.slug)
+    .slice(0, 3);
 
   return (
     <article className="min-h-screen bg-[var(--bg-color)] py-10 sm:py-14">

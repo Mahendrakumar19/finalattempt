@@ -331,7 +331,7 @@ export default function NcertStyleDownloadPortal({
 
                     {/* Language Badge */}
                     <span className="absolute top-3 right-3 bg-slate-950/80 backdrop-blur-md text-white font-bold text-[10px] px-2.5 py-1 rounded-xl border border-white/20">
-                      {item.language === 'Hindi' ? '🇮🇳 Hindi' : item.language === 'Bilingual' ? '🌐 Bilingual' : '🇬🇧 English'}
+                      {item.language === 'Hindi' ? 'Hindi' : item.language === 'Bilingual' ? '🌐 Bilingual' : 'English'}
                     </span>
                   </div>
 

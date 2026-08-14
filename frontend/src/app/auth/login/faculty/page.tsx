@@ -118,12 +118,19 @@ function LoginFormContent() {
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span className="text-xs text-emerald-250 font-extrabold uppercase tracking-widest">Faculty Console</span>
           </div>
-          <h2 className="text-3xl font-heading font-black text-white leading-tight">
+          {/* <h2 className="text-3xl font-heading font-black text-white leading-tight">
             Mentor Workspace &amp; Course Editor
-          </h2>
+          </h2> */}
           <p className="text-slate-400 text-xs leading-relaxed">
             Instructor portal. Manage lesson lists, review student homework submissions, update quizzes, and configure strategy sessions.
           </p>
+        </div>
+
+        {/* Center Logo in Left Panel */}
+        <div className="my-auto py-6 flex items-center justify-center">
+          <Link href="/" className="inline-block hover:scale-105 transition-transform">
+            <img src="/auth_screen_logo.png" alt="Final Attempt" className="max-w-[320px] sm:max-w-[340px] w-auto h-auto object-contain drop-shadow-2xl" />
+          </Link>
         </div>
 
         <div className="space-y-4">
@@ -140,10 +147,6 @@ function LoginFormContent() {
       {/* ── Right Panel ── */}
       <div className="flex flex-col justify-center p-8 sm:p-10"
         style={{ background: 'rgba(2, 6, 23, 0.88)', backdropFilter: 'blur(32px)' }}>
-
-        <div className="flex lg:hidden items-center gap-2 mb-8">
-          <span className="text-white font-bold tracking-tight">Final Attempt Faculty</span>
-        </div>
 
         <h2 className="text-2xl font-bold text-white mb-1">Faculty Login</h2>
         <p className="text-slate-400 text-xs mb-6">Instructor authentication gateway</p>

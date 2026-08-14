@@ -24,7 +24,7 @@ const SUBJECTS = [
   'Polity',
   'Economics',
   'Science',
-  'Environment',
+  // 'Environment',
   'Sociology'
 ];
 
@@ -145,7 +145,7 @@ export default function NCERTBooksManagerCMS() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
+
         {/* Form panel */}
         <form onSubmit={handleSave} className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-xs">
           <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">
@@ -222,15 +222,14 @@ export default function NCERTBooksManagerCMS() {
                   key={lang}
                   type="button"
                   onClick={() => setForm({ ...form, language: lang })}
-                  className={`flex-1 py-2 text-xs font-extrabold rounded-xl border transition-all cursor-pointer ${
-                    form.language === lang
+                  className={`flex-1 py-2 text-xs font-extrabold rounded-xl border transition-all cursor-pointer ${form.language === lang
                       ? lang === 'Hindi'
                         ? 'bg-orange-500 text-white border-orange-500 shadow-md'
                         : 'bg-blue-500 text-white border-blue-500 shadow-md'
                       : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-slate-400'
-                  }`}
+                    }`}
                 >
-                  {lang === 'Hindi' ? '🇮🇳 हिंदी' : '🇬🇧 English'}
+                  {lang === 'Hindi' ? '🇮🇳 हिंदी' : 'English'}
                 </button>
               ))}
             </div>
@@ -274,7 +273,7 @@ export default function NCERTBooksManagerCMS() {
 
         {/* List & Filter panel */}
         <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 space-y-4 shadow-xs">
-          
+
           {/* Table Filters */}
           <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-white/10">
             <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">
@@ -288,8 +287,8 @@ export default function NCERTBooksManagerCMS() {
                 className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-slate-900 dark:text-white cursor-pointer"
               >
                 <option value="ALL">🌐 All Languages</option>
-                <option value="Hindi">🇮🇳 Hindi</option>
-                <option value="English">🇬🇧 English</option>
+                <option value="Hindi">Hindi</option>
+                <option value="English">English</option>
               </select>
 
               <select
@@ -345,12 +344,11 @@ export default function NCERTBooksManagerCMS() {
                       </td>
                       <td className="p-3 font-bold font-mono text-slate-900 dark:text-white">Class {bk.classLevel}th</td>
                       <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${
-                          bk.language === 'English'
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${bk.language === 'English'
                             ? 'bg-blue-50 text-blue-600 border-blue-200'
                             : 'bg-orange-50 text-orange-600 border-orange-200'
-                        }`}>
-                          {bk.language === 'Hindi' ? '🇮🇳 Hindi' : '🇬🇧 English'}
+                          }`}>
+                          {bk.language === 'Hindi' ? 'Hindi' : 'English'}
                         </span>
                       </td>
                       <td className="p-3 font-bold text-slate-900 dark:text-white">{bk.title || bk.bookName}</td>

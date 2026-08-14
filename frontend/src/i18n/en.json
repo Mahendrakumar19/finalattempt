@@ -194,7 +194,7 @@
   "auth": {
     "studentPortal": "Student Portal",
     "studentLogin": "Student Login",
-    "studentLoginDesc": "Sign in to access your student space",
+    "studentLoginDesc": "Sign in & access your student space",
     "loginWithPassword": "Password Login",
     "loginWithOTP": "OTP Login",
     "emailAddress": "Email Address",
@@ -218,7 +218,7 @@
     "sendingOTP": "Sending...",
     "verifying": "Verifying...",
     "welcomeBack": "Welcome back",
-    "dashboardAccess": "Welcome to the Student learning dashboard. Access courses, assignments, syllabus, test series and more.",
+    "dashboardAccess": "Welcome to the Student dashboard. Access courses, assignments, syllabus, test series and more.",
     "invalidEmail": "Enter a valid email address",
     "passwordRequired": "Password is required",
     "otpDigits": "OTP must be 6 digits",
@@ -569,7 +569,6 @@
   "dailyQuiz": {
     "tagline": "Daily Practice",
     "title": "Daily Practice Quiz",
-    "subtitle": "Sharpen your BPSC preparation with daily 10-question MCQ practice sets & state leaderboard.",
     "todaysQuiz": "Today's Daily Quiz",
     "previousQuizzes": "Previous Daily Practice Sets",
     "leaderboard": "State Leaderboard",
@@ -606,7 +605,7 @@
     "noAttempts": "No attempts submitted yet. Be the first!"
   },
   "checkout": {
-    "title": "Final Attempt Publications Store",
+    "title": "Final Attempt Publication",
     "subtitle": "Standard BPSC Preparation Books, Practice Workbooks & Material Delivered to Your Doorstep.",
     "buyNow": "Buy Now",
     "viewDetails": "View Details",

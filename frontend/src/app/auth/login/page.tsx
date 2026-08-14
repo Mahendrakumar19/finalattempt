@@ -11,17 +11,11 @@ function GatewayContent() {
   const redirectQuery = redirectVal ? `?redirect=${encodeURIComponent(redirectVal)}` : '';
 
   return (
-    <div className="w-full max-w-3xl space-y-8 z-10 text-center">
-      <div className="space-y-3">
-        <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-white/10 flex items-center justify-center mx-auto shadow-xl">
-          <Sparkles className="w-8 h-8 text-amber-400" />
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-heading font-black text-white tracking-tight leading-tight">
-          FINAL ATTEMPT PORTAL
-        </h1>
-        <p className="text-slate-400 text-xs max-w-md mx-auto">
-          Select your dashboard gateway to proceed with your BPSC examination preparation or workspace management.
-        </p>
+    <div className="w-full max-w-3xl space-y-8 z-10 text-center flex flex-col items-center">
+      <div className="space-y-4 flex flex-col items-center">
+        <Link href="/" className="inline-block hover:scale-105 transition-transform">
+          <img src="/auth_screen_logo.png" alt="Final Attempt" className="max-w-[200px] sm:max-w-[220px] w-auto h-auto object-contain drop-shadow-xl" />
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">

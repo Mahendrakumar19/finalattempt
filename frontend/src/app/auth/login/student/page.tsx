@@ -113,19 +113,23 @@ function LoginFormContent() {
             <Sparkles className="w-4 h-4 text-amber-400" />
             <span className="text-xs text-amber-200 font-extrabold uppercase tracking-widest">{t('auth.studentPortal')}</span>
           </div>
-          <h2 className="text-3xl font-heading font-black text-white leading-tight">
-            
-          </h2>
           <p className="text-slate-400 text-xs leading-relaxed">
             {t('auth.dashboardAccess')}
           </p>
+        </div>
+
+        {/* Center Logo in Left Panel */}
+        <div className="my-auto py-6 flex items-center justify-center">
+          <Link href="/" className="inline-block hover:scale-105 transition-transform">
+            <img src="/auth_screen_logo.png" alt="Final Attempt" className="max-w-[320px] sm:max-w-[340px] w-auto h-auto object-contain drop-shadow-2xl" />
+          </Link>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <GraduationCap className="w-10 h-10 text-amber-500 shrink-0" />
             <div>
-              <h4 className="text-xs font-bold text-white uppercase tracking-wider"> {t('student.dashboard')}</h4>
+              <h4 className="text-xs font-bold text-white uppercase tracking-wider">{t('student.dashboard')}</h4>
             </div>
           </div>
         </div>
@@ -134,10 +138,6 @@ function LoginFormContent() {
       {/* ── Right Panel ── */}
       <div className="flex flex-col justify-center p-8 sm:p-10"
         style={{ background: 'rgba(2, 6, 23, 0.88)', backdropFilter: 'blur(32px)' }}>
-
-        <div className="flex lg:hidden items-center gap-2 mb-8">
-          <span className="text-white font-bold tracking-tight">Final Attempt {t('auth.studentPortal')}</span>
-        </div>
 
         <h2 className="text-2xl font-bold text-white mb-1">{t('auth.studentLogin')}</h2>
         <p className="text-slate-400 text-xs mb-6">{t('auth.studentLoginDesc')}</p>

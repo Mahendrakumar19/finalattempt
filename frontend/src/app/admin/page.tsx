@@ -1110,35 +1110,101 @@ export default function AdminPortal() {
 
               {/* ── 2. Live "What's New" Updates Manager ─────────────────────────── */}
               <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-6">
-                <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-white/10 pb-3">
                   <div>
                     <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
                       <span>2. Live &quot;What&apos;s New&quot; Updates Manager</span>
                     </h3>
                     <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                      Create, edit, reorder updates, set target URLs, and toggle the pulsing &quot;NEW&quot; badge ON/OFF for each item.
+                      Manage all live website updates (Current Affairs, Strategy Articles, Batches, PYQs &amp; custom announcements).
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const current = settings.announcements || [];
-                      const today = new Date();
-                      const dateStr = `${today.getDate()} ${today.toLocaleString('en-US', { month: 'short' }).toUpperCase()}`;
-                      setSettings({
-                        ...settings,
-                        announcements: [
-                          { date: dateStr, text: 'New Batch Announcement', link: '/courses', isNew: true, createdAt: new Date().toISOString() },
-                          ...current
-                        ]
-                      });
-                    }}
-                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm transition-all"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>+ Add What&apos;s New Item</span>
-                  </button>
+                  
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* SYNC ALL LIVE SITE UPDATES BUTTON */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const feed: Array<{ date: string; text: string; link?: string; isNew?: boolean; createdAt?: string }> = [];
+
+                        // 1. Existing announcements
+                        if (Array.isArray(settings.announcements) && settings.announcements.length > 0) {
+                          feed.push(...settings.announcements);
+                        }
+
+                        // 2. Latest Daily CA
+                        if (Array.isArray(caList) && caList.length > 0) {
+                          caList.slice(0, 2).forEach((ca: any) => {
+                            const text = `Current Affairs: ${ca.title}`;
+                            if (!feed.some(item => item.text === text)) {
+                              feed.push({ date: 'DAILY CA', text, link: '/current-affairs/daily', isNew: true, createdAt: ca.publishDate || new Date().toISOString() });
+                            }
+                          });
+                        }
+
+                        // 3. Latest Blogs
+                        if (Array.isArray(blogsList) && blogsList.length > 0) {
+                          blogsList.slice(0, 2).forEach((blog: any) => {
+                            const text = `New Strategy Article: ${blog.title}`;
+                            if (!feed.some(item => item.text === text)) {
+                              feed.push({ date: 'ARTICLE', text, link: `/blog/${blog.id}`, isNew: true, createdAt: blog.publishDate || new Date().toISOString() });
+                            }
+                          });
+                        }
+
+                        // 4. Latest Courses
+                        if (Array.isArray(coursesList) && coursesList.length > 0) {
+                          coursesList.slice(0, 2).forEach((course: any) => {
+                            const text = `Batch Announcement: ${course.title}`;
+                            if (!feed.some(item => item.text === text)) {
+                              feed.push({ date: 'ADMISSIONS', text, link: '/courses', isNew: true, createdAt: new Date().toISOString() });
+                            }
+                          });
+                        }
+
+                        // 5. Default platform updates if few items
+                        const defaults = [
+                          { date: 'ADMISSIONS', text: 'Admissions open for 72nd BPSC Prelims & Mains Mentorship Program.', link: '/contact?enquiry=enroll', isNew: true, createdAt: new Date().toISOString() },
+                          { date: 'TEST SERIES', text: '71st BPSC Prelims All India Mock Test Series schedule announced.', link: '/test-series', isNew: true, createdAt: new Date().toISOString() },
+                          { date: 'DOWNLOADS', text: 'Free Mains Value Added Notes & Model Topper Answer Copies available.', link: '/downloads', isNew: false, createdAt: new Date().toISOString() }
+                        ];
+
+                        defaults.forEach(def => {
+                          if (!feed.some(item => item.text === def.text)) {
+                            feed.push(def);
+                          }
+                        });
+
+                        setSettings(prev => ({ ...prev, announcements: feed }));
+                      }}
+                      className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Sync Live Site Feed</span>
+                    </button>
+
+                    {/* ADD NEW ITEM BUTTON */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = settings.announcements || [];
+                        const today = new Date();
+                        const dateStr = `${today.getDate()} ${today.toLocaleString('en-US', { month: 'short' }).toUpperCase()}`;
+                        setSettings({
+                          ...settings,
+                          announcements: [
+                            { date: dateStr, text: 'New Batch Announcement', link: '/courses', isNew: true, createdAt: new Date().toISOString() },
+                            ...current
+                          ]
+                        });
+                      }}
+                      className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm transition-all"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Add What&apos;s New Item</span>
+                    </button>
+                  </div>
                 </div>
 
                 {(settings.announcements || []).length === 0 ? (

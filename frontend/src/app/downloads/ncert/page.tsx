@@ -22,7 +22,7 @@ const SUBJECTS = [
   'Polity',
   'Economics',
   'Science',
-  'Environment',
+  // 'Environment',
   'Sociology'
 ];
 
@@ -93,7 +93,7 @@ export default function NcertPage() {
 
   return (
     <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 min-h-screen font-body">
-      
+
       {/* Breadcrumbs */}
       <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-semibold">
         <Link href="/" className="hover:text-amber-500 flex items-center gap-1">
@@ -148,19 +148,18 @@ export default function NcertPage() {
         <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
           {/* Language Pill Toggle */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
-            {[{ val: 'ALL', label: '🌐 All' }, { val: 'Hindi', label: '🇮🇳 Hindi' }, { val: 'English', label: '🇬🇧 English' }].map(({ val, label }) => (
+            {[{ val: 'ALL', label: '🌐 All' }, { val: 'Hindi', label: 'Hindi' }, { val: 'English', label: 'English' }].map(({ val, label }) => (
               <button
                 key={val}
                 onClick={() => setSelectedLanguage(val)}
-                className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${
-                  selectedLanguage === val
+                className={`px-4 py-2 text-xs font-extrabold rounded-xl transition-all cursor-pointer ${selectedLanguage === val
                     ? val === 'Hindi'
                       ? 'bg-orange-500 text-white shadow-md'
                       : val === 'English'
-                      ? 'bg-blue-500 text-white shadow-md'
-                      : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md'
+                        ? 'bg-blue-500 text-white shadow-md'
+                        : 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-md'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                }`}
+                  }`}
               >
                 {label}
               </button>
@@ -280,7 +279,7 @@ export default function NcertPage() {
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
             <div className="w-full max-w-6xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
-              
+
               {/* Modal Header */}
               <div className="p-4 sm:p-5 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border-b border-slate-100 dark:border-white/[0.08] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
@@ -310,19 +309,18 @@ export default function NcertPage() {
                 <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                   {/* Language Pill Toggle inside modal */}
                   <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-1 rounded-xl">
-                    {[{ val: 'ALL', label: '🌐 All' }, { val: 'Hindi', label: '🇮🇳 Hindi' }, { val: 'English', label: '🇬🇧 English' }].map(({ val, label }) => (
+                    {[{ val: 'ALL', label: '🌐 All' }, { val: 'Hindi', label: 'Hindi' }, { val: 'English', label: 'English' }].map(({ val, label }) => (
                       <button
                         key={val}
                         onClick={() => setModalLanguageFilter(val)}
-                        className={`px-3 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer ${
-                          modalLanguageFilter === val
+                        className={`px-3 py-1 text-[10px] font-extrabold rounded-lg transition-all cursor-pointer ${modalLanguageFilter === val
                             ? val === 'Hindi'
                               ? 'bg-orange-500 text-white shadow'
                               : val === 'English'
-                              ? 'bg-blue-500 text-white shadow'
-                              : 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 shadow'
+                                ? 'bg-blue-500 text-white shadow'
+                                : 'bg-slate-800 dark:bg-white text-white dark:text-slate-900 shadow'
                             : 'text-slate-400 hover:text-slate-700 dark:hover:text-white'
-                        }`}
+                          }`}
                       >
                         {label}
                       </button>
@@ -368,14 +366,13 @@ export default function NcertPage() {
                               Class {item.classLevel}th NCERT
                             </span>
                             <div className="flex items-center gap-1">
-                              <span className={`text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded border ${
-                                item.language === 'English'
+                              <span className={`text-[8px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded border ${item.language === 'English'
                                   ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/40'
                                   : item.language === 'Bilingual'
-                                  ? 'text-purple-600 bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800/40'
-                                  : 'text-orange-600 bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800/40'
-                              }`}>
-                                {item.language === 'Hindi' ? '🇮🇳 Hindi' : item.language === 'English' ? '🇬🇧 English' : '🔄 Bilingual'}
+                                    ? 'text-purple-600 bg-purple-50 dark:bg-purple-950/30 border-purple-200 dark:border-purple-800/40'
+                                    : 'text-orange-600 bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800/40'
+                                }`}>
+                                {item.language === 'Hindi' ? 'Hindi' : item.language === 'English' ? 'English' : '🔄 Bilingual'}
                               </span>
                               <span className="text-[8px] font-extrabold uppercase tracking-wider text-amber-600 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
                                 {item.subject}

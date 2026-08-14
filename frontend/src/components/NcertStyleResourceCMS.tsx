@@ -220,7 +220,7 @@ export default function NcertStyleResourceCMS({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
+
         {/* Form Panel: Add / Edit Document Item */}
         <form onSubmit={handleSaveItem} className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-xs">
           <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">
@@ -273,8 +273,8 @@ export default function NcertStyleResourceCMS({
                 onChange={(e) => setForm({ ...form, language: e.target.value })}
                 className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none font-bold text-slate-900 dark:text-white cursor-pointer"
               >
-                <option value="English">🇬🇧 English</option>
-                <option value="Hindi">🇮🇳 Hindi</option>
+                <option value="English">English</option>
+                <option value="Hindi">Hindi</option>
               </select>
             </div>
 
@@ -441,7 +441,7 @@ export default function NcertStyleResourceCMS({
 
         {/* List & Table Panel */}
         <div className="lg:col-span-8 space-y-6">
-          
+
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 space-y-4 shadow-xs">
             {/* Table Filters */}
             <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-white/10">
