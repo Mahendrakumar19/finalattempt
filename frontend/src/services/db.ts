@@ -45,7 +45,7 @@ export interface SiteSettings {
   aboutVision?: string;
   aboutValues?: string;
   aboutMethodology?: { title: string; desc?: string; description?: string }[];
-  announcements?: { date: string; text: string; link?: string; isNew?: boolean }[];
+  announcements?: { date: string; text: string; link?: string; isNew?: boolean; createdAt?: string }[];
   featureFlags?: Record<string, boolean>;
 }
 
@@ -470,6 +470,11 @@ class FinalAttemptDB {
   public async getBlogs() {
     const data = await this.apiFetch('/api/blogs');
     return data || blogData;
+  }
+
+  public async getBlogById(id: string) {
+    const data = await this.apiFetch(`/api/blogs/${encodeURIComponent(id)}`);
+    return data;
   }
 
   public async getResources() {

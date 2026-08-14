@@ -235,7 +235,7 @@ export default function Header() {
           },
           { heading: t('mega.ca.topics'), items: [
               { label: t('mega.ca.dailyAnalysis'), href: '/current-affairs/daily', desc: t('mega.ca.dailyAnalysisDesc'), icon: IC.sparkle},
-              { label: 'Daily MCQ Practice', href: '/daily-quiz', desc: 'Daily MCQ Practice & State Leaderboard', icon: IC.test, isNew: false },
+              { label: t('mega.ca.dailyMcqPractice') || 'Daily MCQ Practice', href: '/daily-quiz', desc: t('mega.ca.dailyMcqPracticeDesc') || 'Daily MCQ Practice & State Leaderboard', icon: IC.test, isNew: false },
             ],
           },
         ],
@@ -247,15 +247,15 @@ export default function Header() {
       id: 'resources', label: t('nav.resources'), href: '/downloads', icon: IC.download,
       mega: (() => {
         const group1Items = [
-          { label: 'PYQ', href: '/downloads/pyq', desc: 'Previous year question papers', icon: IC.pyq },
-          { label: 'NCERT', href: '/downloads/ncert', desc: 'NCERT Class 6 to 12 Textbooks', icon: IC.ncert },
-          { label: 'Rapid Revision', href: '/downloads/rapid-revision', desc: 'Quick Revision Notes & Tables', icon: IC.rapid },
+          { label: t('mega.resources.pyq') || 'PYQ', href: '/downloads/pyq', desc: t('mega.resources.pyqDesc') || 'Previous year question papers', icon: IC.pyq },
+          { label: t('mega.resources.ncert') || 'NCERT', href: '/downloads/ncert', desc: t('mega.resources.ncertDesc') || 'NCERT Class 6 to 12 Textbooks', icon: IC.ncert },
+          { label: t('mega.resources.rapidRevision') || 'Rapid Revision', href: '/downloads/rapid-revision', desc: t('mega.resources.rapidRevisionDesc') || 'Quick Revision Notes & Tables', icon: IC.rapid },
         ];
 
         const group2BaseItems = [
-          { label: 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: 'Mains Data & SC Judgments', icon: IC.valmains },
-          { label: 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: 'Evaluated Topper Copies', icon: IC.toppers },
-          { label: 'Final Attempt Publication', href: '/downloads/fa-publication', desc: 'Books & Publication Storefront', icon: IC.fa },
+          { label: t('mega.resources.valMains') || 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: t('mega.resources.valMainsDesc') || 'Mains Data & SC Judgments', icon: IC.valmains },
+          { label: t('mega.resources.toppersCopies') || 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: t('mega.resources.toppersCopiesDesc') || 'Evaluated Topper Copies', icon: IC.toppers },
+          { label: t('mega.resources.faPublication') || 'Final Attempt Publication', href: '/downloads/fa-publication', desc: t('mega.resources.faPublicationDesc') || 'Books & Publication Storefront', icon: IC.fa },
         ];
 
         const CORE_SLUGS = new Set([
@@ -295,7 +295,7 @@ export default function Header() {
           tagline: t('mega.resources.tagline'),
           description: t('mega.resources.description'),
           groups: [
-            { heading: 'Downloads', items: group1Items },
+            { heading: t('mega.resources.downloads') || 'Downloads', items: group1Items },
             { heading: '', items: [...group2BaseItems, ...dynamicItems] }
           ],
           cta: { label: t('nav.downloadFreeMaterial'), href: '/downloads' },
@@ -569,10 +569,10 @@ export default function Header() {
                   </div>
 
                   {/* ── Right Groups ─────── */}
-                  <div className="flex-1 grid gap-x-6 gap-y-0 max-w-2xl" style={{ gridTemplateColumns: `repeat(${Math.min(entry.mega.groups.length, 3)}, minmax(0, 220px))` }}>
+                  <div className="flex-1 grid gap-x-6 gap-y-0 max-w-4xl" style={{ gridTemplateColumns: `repeat(${Math.min(entry.mega.groups.length, 3)}, minmax(0, 300px))` }}>
                     {entry.mega.groups.map((grp) => (
                       <div key={grp.heading} className="w-full">
-                        <p className="text-xs font-black font-heading text-slate-900 dark:text-amber-400 uppercase tracking-widest mb-3 border-b-2 border-amber-500/40 pb-2 font-bold">
+                        <p className="text-[13px] font-black font-heading text-slate-900 dark:text-amber-400 uppercase tracking-widest mb-3 border-b-2 border-amber-500/40 pb-2 font-bold">
                           {grp.heading || '\u00A0'}
                         </p>
                         <div className="space-y-1">
@@ -588,7 +588,7 @@ export default function Header() {
                               </span>
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center justify-between gap-1">
-                                  <span className="text-xs font-black text-slate-900 dark:text-slate-100 group-hover/item:text-amber-600 dark:group-hover/item:text-amber-400 transition-colors truncate">
+                                  <span className="text-[13px] font-black text-slate-900 dark:text-slate-100 group-hover/item:text-amber-600 dark:group-hover/item:text-amber-400 transition-colors whitespace-normal leading-snug">
                                     {item.label}
                                   </span>
                                   {item.isNew && (
@@ -614,12 +614,12 @@ export default function Header() {
                 </div>
                 {/* Bottom quick-link strip */}
                 <div className="mt-6 pt-4 border-t border-slate-100 dark:border-white/[0.06] flex items-center gap-6 flex-wrap">
-                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Quick Links:</span>
+                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{t('mega.quickLinks') || 'Quick Links:'}</span>
                   {[
-                    { label: 'Enroll Now',       href: '/contact?enquiry=enroll' },
-                    { label: 'Download PYQs',    href: '/downloads/pyq'          },
-                    { label: 'Test Series',      href: '/test-series'             },
-                    { label: 'Daily CA',         href: '/current-affairs/daily'  },
+                    { label: t('nav.enroll') || 'Enroll Now',             href: '/contact?enquiry=enroll' },
+                    { label: t('mega.downloadPyqs') || 'Download PYQs',    href: '/downloads/pyq'          },
+                    { label: t('nav.testSeries') || 'Test Series',        href: '/test-series'             },
+                    { label: t('mega.dailyCa') || 'Daily CA',             href: '/current-affairs/daily'  },
                   ].map((ql) => (
                     <Link
                       key={ql.label}

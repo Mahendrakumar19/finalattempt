@@ -20,7 +20,7 @@ router.get('/courses', async (req, res) => {
       courses,
       ['title', 'description', 'duration', 'badge'],
       targetLang,
-      ['description']
+      []
     );
     res.json({ success: true, data: localized });
   } catch (err: any) {
@@ -56,7 +56,7 @@ router.get('/courses/:id', async (req, res) => {
       course,
       ['title', 'description', 'duration', 'badge'],
       targetLang,
-      ['description']
+      []
     );
     res.json({ success: true, data: localized });
   } catch (err: any) {

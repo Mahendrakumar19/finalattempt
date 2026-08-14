@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Download, FileText, ArrowRight, Search,
   BookOpen, Eye, Layers, Folder,
-  Zap, Lightbulb, FileCheck
+  Zap, Lightbulb, FileCheck, Flame, Newspaper
 } from 'lucide-react';
 import { db, CustomPage } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
@@ -37,7 +37,7 @@ interface PYQItem {
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 export default function DedicatedDownloadsPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [downloadStates, setDownloadStates] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -349,7 +349,39 @@ export default function DedicatedDownloadsPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {/* Built-in PYQ Vault */}
+              {/* 1. Current Affairs */}
+              <Link
+                href="/current-affairs"
+                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-xl bg-white text-red-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                  <Newspaper className="w-6 h-6 text-red-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-heading font-extrabold text-sm sm:text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                    {t('downloadsHub.currentAffairsTitle', locale === 'hi' ? 'समसामयिकी (CURRENT AFFAIRS)' : 'Current Affairs')}
+                  </h4>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+              </Link>
+
+              {/* 2. Daily Quiz */}
+              <Link
+                href="/daily-quiz"
+                className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
+              >
+                <div className="w-12 h-12 rounded-xl bg-white text-amber-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                  <Flame className="w-6 h-6 text-amber-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-heading font-extrabold text-sm sm:text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                    {t('downloadsHub.dailyQuizTitle', locale === 'hi' ? 'दैनिक क्विज़ (DAILY QUIZ)' : 'Daily Quiz')}
+                  </h4>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
+              </Link>
+
+              {/* 3. PYQ Vault */}
               {(() => {
                 const pyqPage = allPagesList.find(p => p.slug === 'downloads/pyq' || p.slug === 'pyq');
                 const logoUrl = pyqPage?.logoUrl;
@@ -366,8 +398,8 @@ export default function DedicatedDownloadsPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                        PYQs
+                      <h4 className="font-heading font-extrabold text-sm sm:text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        {t('downloadsHub.pyqTitle', locale === 'hi' ? 'पीवाइक्यू (PYQ)' : 'PYQs')}
                       </h4>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
@@ -375,7 +407,7 @@ export default function DedicatedDownloadsPage() {
                 );
               })()}
 
-              {/* Dynamic Hierarchical NCERT Repository */}
+              {/* 4. NCERT Repository */}
               {(() => {
                 const ncertPage = allPagesList.find(p => p.slug === 'downloads/ncert' || p.slug === 'ncert');
                 const logoUrl = ncertPage?.logoUrl;
@@ -392,8 +424,8 @@ export default function DedicatedDownloadsPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                        NCERT
+                      <h4 className="font-heading font-extrabold text-sm sm:text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        {t('downloadsHub.ncertTitle', locale === 'hi' ? 'एनसीईआरटी (NCERT)' : 'NCERT')}
                       </h4>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
@@ -401,7 +433,7 @@ export default function DedicatedDownloadsPage() {
                 );
               })()}
 
-              {/* 2. Rapid Revision Materials */}
+              {/* 5. Rapid Revision Materials */}
               {(() => {
                 const rrPage = allPagesList.find(p => p.slug === 'downloads/rapid-revision' || p.slug === 'rapid-revision');
                 const logoUrl = rrPage?.logoUrl;
@@ -418,8 +450,8 @@ export default function DedicatedDownloadsPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                        Rapid Revision Materials
+                      <h4 className="font-heading font-extrabold text-sm sm:text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        {t('downloadsHub.rapidRevisionTitle', locale === 'hi' ? 'रैपिड रिवीजन (RAPID REVISION)' : 'Rapid Revision Materials')}
                       </h4>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
@@ -427,7 +459,7 @@ export default function DedicatedDownloadsPage() {
                 );
               })()}
 
-              {/* 3. Value Added Materials Mains */}
+              {/* 6. Value Added Materials Mains */}
               {(() => {
                 const vaPage = allPagesList.find(p => p.slug === 'downloads/value-added-mains' || p.slug === 'value-added-mains');
                 const logoUrl = vaPage?.logoUrl;
@@ -444,8 +476,8 @@ export default function DedicatedDownloadsPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                        Value Added Materials — Mains
+                      <h4 className="font-heading font-extrabold text-sm sm:text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
+                        {t('downloadsHub.valMainsTitle', locale === 'hi' ? 'वैल्यू एडेड सामग्री — मुख्य परीक्षा' : 'Value Added Materials — Mains')}
                       </h4>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
@@ -471,7 +503,7 @@ export default function DedicatedDownloadsPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                        Toppers&apos; Copies
+                        {t('mega.resources.toppersCopies') || 'Toppers\' Copies'}
                       </h4>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
@@ -497,7 +529,7 @@ export default function DedicatedDownloadsPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                        Final Attempt Publication
+                        {t('mega.resources.faPublication') || 'Final Attempt Publication'}
                       </h4>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />

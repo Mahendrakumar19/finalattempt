@@ -2,7 +2,7 @@
 'use client';
 
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Sparkles,
@@ -81,6 +81,7 @@ export interface AnnouncementItem {
   text: string;
   isNew?: boolean;
   link?: string;
+  createdAt?: string;
 }
 
 export default function Home() {
@@ -180,12 +181,12 @@ export default function Home() {
     return () => observer.disconnect();
   }, []);
 
-  const [dynamicAnnouncements, setDynamicAnnouncements] = useState<AnnouncementItem[]>([
-    { date: 'NOTICE', text: 'BPSC Prelims & Mains Answer Writing Program Enrolling Now.', isNew: true },
-    { date: 'NOTICES', text: 'Important Update :- Sectional Test Series & Classroom Batch Schedule Announced.', isNew: true },
-    { date: 'NOTICE', text: 'Free Demo Classes for BPSC Foundation Batch starting this week at Boring Road Center.', isNew: false },
-    { date: 'PROGRAM', text: 'Interview Guidance Program by Selected Civil Services Officers.', isNew: false },
-  ]);
+  const [dynamicAnnouncements, setDynamicAnnouncements] = useState<AnnouncementItem[]>([]);
+
+  const [liveCaEditions, setLiveCaEditions] = useState<any[]>([]);
+  const [liveTestSeries, setLiveTestSeries] = useState<any[]>([]);
+  const [liveResources, setLiveResources] = useState<any[]>([]);
+  const [customPages, setCustomPages] = useState<any[]>([]);
 
   useEffect(() => {
     const loadLiveData = async () => {
@@ -217,12 +218,131 @@ export default function Home() {
         if (blogs && blogs.length > 0) {
           setBlogsList(blogs as unknown as BlogItem[]);
         }
+
+        const caEditions = await db.getDynamicCurrentAffairsEditions(false);
+        if (caEditions && caEditions.length > 0) {
+          setLiveCaEditions(caEditions);
+        }
+
+        const ts = await db.getTestSeries();
+        if (ts && ts.length > 0) {
+          setLiveTestSeries(ts);
+        }
+
+        const resData = await db.getResources();
+        if (resData && resData.length > 0) {
+          setLiveResources(resData);
+        }
+
+        const pages = await db.getCustomPages(true);
+        if (pages && pages.length > 0) {
+          setCustomPages(pages);
+        }
       } catch (e) {
         console.error('Failed loading live Home data, using mock fallbacks.', e);
       }
     };
     loadLiveData();
   }, []);
+
+  // Compute unified dynamic WHAT'S NEW feed from all website update sources (Sorted: Latest On Top)
+  const whatsNewFeed = useMemo(() => {
+    const feed: Array<{ date: string; text: string; link: string; isNew: boolean; isExternal: boolean; timestamp: number }> = [];
+
+    const getTS = (obj: any): number => {
+      if (!obj) return 0;
+      const raw = obj.createdAt || obj.publishedAt || obj.updatedAt || obj.date || obj.publishDate;
+      if (!raw) return 0;
+      const parsed = new Date(raw).getTime();
+      return isNaN(parsed) ? 0 : parsed;
+    };
+
+    // 1. New Daily Current Affairs
+    if (Array.isArray(liveCaEditions)) {
+      liveCaEditions.forEach((ed: any) => {
+        const articleTitle = ed.articles && ed.articles.length > 0 ? ed.articles[0]?.title : null;
+        feed.push({
+          date: 'DAILY CA',
+          text: articleTitle ? `Current Affairs Update: ${articleTitle}` : `Current Affairs Edition (${ed.publishDate || 'Latest'})`,
+          link: ed.publishDate ? `/current-affairs/daily?date=${ed.publishDate}` : '/current-affairs/daily',
+          isNew: true,
+          isExternal: false,
+          timestamp: getTS(ed) || (ed.publishDate ? new Date(ed.publishDate).getTime() : 0),
+        });
+      });
+    }
+
+    // 2. Published Blog & Strategy Articles
+    if (Array.isArray(blogsList)) {
+      blogsList.forEach((blog: any) => {
+        feed.push({
+          date: (blog.category || 'ARTICLE').toUpperCase(),
+          text: blog.title,
+          link: `/blog/${blog.slug || blog.id}`,
+          isNew: true,
+          isExternal: false,
+          timestamp: getTS(blog),
+        });
+      });
+    }
+
+    // 3. Courses / New Batches
+    if (Array.isArray(liveCourses)) {
+      liveCourses.forEach((c: any) => {
+        feed.push({
+          date: 'NEW BATCH',
+          text: `${c.title} — Admissions Open`,
+          link: `/courses/${c.id}`,
+          isNew: true,
+          isExternal: false,
+          timestamp: getTS(c),
+        });
+      });
+    }
+
+    // 4. Test Series Releases
+    if (Array.isArray(liveTestSeries)) {
+      liveTestSeries.forEach((ts: any) => {
+        feed.push({
+          date: 'TEST SERIES',
+          text: `${ts.title} Released`,
+          link: `/test-series`,
+          isNew: true,
+          isExternal: false,
+          timestamp: getTS(ts),
+        });
+      });
+    }
+
+    // 5. Downloads / Study Materials (Latest 3)
+    if (Array.isArray(liveResources)) {
+      liveResources.slice(0, 3).forEach((res: any) => {
+        feed.push({
+          date: 'STUDY MATERIAL',
+          text: `${res.title} — Free Material`,
+          link: res.file_url || '/downloads',
+          isNew: true,
+          isExternal: Boolean(res.file_url && res.file_url.startsWith('http')),
+          timestamp: getTS(res),
+        });
+      });
+    }
+
+    // 6. CMS Manual Notice Board Items
+    dynamicAnnouncements.forEach((ann: any, idx: number) => {
+      feed.push({
+        date: ann.date || 'NOTICE',
+        text: ann.text,
+        link: ann.link || '',
+        isNew: ann.isNew ?? false,
+        isExternal: Boolean(ann.link && (ann.link.startsWith('http://') || ann.link.startsWith('https://'))),
+        timestamp: getTS(ann) || (Date.now() - (idx + 1) * 3600000),
+      });
+    });
+
+    // Sort ALL updates descending by timestamp (latest strictly on top)
+    return feed.sort((a, b) => b.timestamp - a.timestamp);
+  }, [liveCaEditions, blogsList, liveCourses, liveTestSeries, liveResources, dynamicAnnouncements]);
 
   const handleSubmitLead = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -402,49 +522,65 @@ export default function Home() {
                 </h3>
               </div>
 
-              {/* CMS Notice Board List */}
-              <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1">
-                {dynamicAnnouncements.map((ann, idx) => {
-                  const content = (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                            {ann.date || 'NOTICE'}
-                          </span>
-                          {ann.isNew && (
-                            <span className="text-[8px] font-extrabold bg-red-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
-                              NEW
+              {/* Unified Live Website Updates Notice Board List */}
+              <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1">
+                {whatsNewFeed.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400 dark:text-slate-500 font-medium text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                    <span>No recent website updates posted yet. Check back soon!</span>
+                  </div>
+                ) : (
+                  whatsNewFeed.map((ann: any, idx: number) => {
+                    const content = (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                              {ann.date}
                             </span>
-                          )}
+                            {ann.isNew && (
+                              <span className="text-[8px] font-extrabold bg-red-600 text-white px-1.5 py-0.5 rounded uppercase tracking-wider animate-pulse">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          {ann.isExternal && <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-500 transition-colors" />}
                         </div>
-                        {ann.link && <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-500 transition-colors" />}
+                        <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 leading-snug group-hover:text-blue-800 dark:group-hover:text-amber-400 transition-colors">
+                          {ann.text}
+                        </p>
                       </div>
-                      <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 leading-snug group-hover:text-blue-800 dark:group-hover:text-amber-400 transition-colors">
-                        {ann.text}
-                      </p>
-                    </div>
-                  );
+                    );
 
-                  return ann.link ? (
-                    <a
-                      key={idx}
-                      href={ann.link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block p-4 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xs transition-all cursor-pointer hover:border-amber-500/50 group"
-                    >
-                      {content}
-                    </a>
-                  ) : (
-                    <div
-                      key={idx}
-                      className="block p-4 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xs transition-all hover:border-amber-500/50 group"
-                    >
-                      {content}
-                    </div>
-                  );
-                })}
+                    return ann.link ? (
+                      ann.isExternal ? (
+                        <a
+                          key={idx}
+                          href={ann.link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block p-4 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xs transition-all cursor-pointer hover:border-amber-500/50 group"
+                        >
+                          {content}
+                        </a>
+                      ) : (
+                        <Link
+                          key={idx}
+                          href={ann.link}
+                          className="block p-4 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xs transition-all cursor-pointer hover:border-amber-500/50 group"
+                        >
+                          {content}
+                        </Link>
+                      )
+                    ) : (
+                      <div
+                        key={idx}
+                        className="block p-4 bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xs transition-all hover:border-amber-500/50 group"
+                      >
+                        {content}
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
 
@@ -888,9 +1024,9 @@ export default function Home() {
           {/* Cards Grid Matching Modern Design */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {blogsList.slice(0, 3).map((blog) => (
-              <div
+              <Link
                 key={blog.id}
-                onClick={() => setExpandedBlog(blog)}
+                href={`/blog/${blog.slug || blog.id}`}
                 className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-amber-500/50 transition-all duration-300 flex flex-col justify-between cursor-pointer"
               >
                 <div className="space-y-4">
@@ -935,7 +1071,7 @@ export default function Home() {
                     <ArrowRight className="w-4 h-4 -rotate-45" />
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

@@ -113,16 +113,17 @@ export class GoogleTranslationProvider implements ITranslationProvider {
         return html;
       }
 
-      // Translate text nodes in chunks or batch
-      for (let i = 0; i < textNodes.length; i++) {
-        const originalText = textNodes[i].data;
+      // Translate text nodes in parallel batch
+      await Promise.all(textNodes.map(async (node) => {
+        const originalText = node.data;
         if (originalText && originalText.trim().length > 0) {
-          const translatedText = await this.translateText(originalText, sourceLang, targetLang);
-          textNodes[i].data = translatedText;
+          node.data = await this.translateText(originalText, sourceLang, targetLang);
         }
-      }
+      }));
 
-      let resultHtml = $.html();
+      let resultHtml = $('body').html() || $.html();
+      // Strip <html><head></head><body> and </body></html> wrapper tags if Cheerio injected them
+      resultHtml = resultHtml.replace(/^<html><head><\/head><body>/i, '').replace(/<\/body><\/html>$/i, '');
 
       // Post-processing fix: Insert spaces where Devanagari character directly touches an HTML tag or English word without space
       // E.g., "हैसांस्कृतिक" or "है<b>"

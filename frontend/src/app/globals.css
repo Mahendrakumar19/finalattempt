@@ -1088,6 +1088,129 @@ html.dark .styled-scrollbar::-webkit-scrollbar-track {
   background: #d97706;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   UNIVERSAL TABLE DESIGN SYSTEM FOR ALL HTML CONTENT & PROSE
+   Ensures tables across all pages, modals, and articles render with
+   borders, header shading, cell padding, hover states, and dark mode
+   ═══════════════════════════════════════════════════════════ */
+.prose table,
+.article-prose-container table,
+main table {
+  width: 100% !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 1.5rem !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border-radius: 1rem !important;
+  overflow: hidden !important;
+  border: 1.5px solid #E2E8F0 !important;
+  box-shadow: 0 4px 10px -2px rgba(15, 23, 42, 0.05) !important;
+  text-align: left !important;
+}
+
+html.dark .prose table,
+html.dark .article-prose-container table,
+html.dark main table,
+.dark .prose table,
+.dark .article-prose-container table,
+.dark main table {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+}
+
+.prose thead,
+.article-prose-container thead,
+main table thead {
+  background-color: #F1F5F9 !important;
+}
+
+html.dark .prose thead,
+html.dark .article-prose-container thead,
+html.dark main table thead,
+.dark .prose thead,
+.dark .article-prose-container thead,
+.dark main table thead {
+  background-color: #1E293B !important;
+}
+
+.prose th,
+.article-prose-container th,
+main table th {
+  padding: 0.875rem 1rem !important;
+  font-weight: 800 !important;
+  font-size: 0.8125rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #0F172A !important;
+  border-right: 1px solid #E2E8F0 !important;
+  border-bottom: 1.5px solid #E2E8F0 !important;
+}
+
+.prose th:last-child,
+.article-prose-container th:last-child,
+main table th:last-child {
+  border-right: none !important;
+}
+
+html.dark .prose th,
+html.dark .article-prose-container th,
+html.dark main table th,
+.dark .prose th,
+.dark .article-prose-container th,
+.dark main table th {
+  color: #FFFFFF !important;
+  border-right-color: rgba(255, 255, 255, 0.1) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.prose td,
+.article-prose-container td,
+main table td {
+  padding: 0.875rem 1rem !important;
+  font-size: 0.875rem !important;
+  color: #334155 !important;
+  border-right: 1px solid #F1F5F9 !important;
+  border-bottom: 1px solid #F1F5F9 !important;
+}
+
+.prose td:last-child,
+.article-prose-container td:last-child,
+main table td:last-child {
+  border-right: none !important;
+}
+
+.prose tr:last-child td,
+.article-prose-container tr:last-child td,
+main table tr:last-child td {
+  border-bottom: none !important;
+}
+
+html.dark .prose td,
+html.dark .article-prose-container td,
+html.dark main table td,
+.dark .prose td,
+.dark .article-prose-container td,
+.dark main table td {
+  color: #CBD5E1 !important;
+  border-right-color: rgba(255, 255, 255, 0.06) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.prose tr:hover,
+.article-prose-container tr:hover,
+main table tr:hover {
+  background-color: rgba(245, 158, 11, 0.05) !important;
+}
+
+html.dark .prose tr:hover,
+html.dark .article-prose-container tr:hover,
+html.dark main table tr:hover,
+.dark .prose tr:hover,
+.dark .article-prose-container tr:hover,
+.dark main table tr:hover {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
 
 
 

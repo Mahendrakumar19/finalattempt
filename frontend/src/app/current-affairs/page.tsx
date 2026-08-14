@@ -277,37 +277,37 @@ export default function CurrentAffairsLanding() {
 
                 {/* DAILY UPDATES */}
                 <div className="space-y-0.5">
-                  <SidebarSection icon={<Flame className="w-3.5 h-3.5" />} title="Daily Updates" />
-                  <SidebarItem label="News Today"          href="/current-affairs/daily" />
+                  <SidebarSection icon={<Flame className="w-3.5 h-3.5" />} title={t('currentAffairs.dailyUpdates') || 'Daily Updates'} />
+                  <SidebarItem label={t('currentAffairs.newsToday') || 'News Today'} href="/current-affairs/daily" />
                 </div>
 
                 <div className="h-px bg-slate-100 dark:bg-white/[0.06]" />
 
                 {/* WEEKLY & MONTHLY */}
                 <div className="space-y-0.5">
-                  <SidebarSection icon={<Layers className="w-3.5 h-3.5" />} title="Weekly & Monthly" />
-                  <SidebarItem label="Weekly"                href="/current-affairs/weekly" />
-                  <SidebarItem label="Monthly Magazine"            href="/current-affairs/monthly" />
+                  <SidebarSection icon={<Layers className="w-3.5 h-3.5" />} title={t('currentAffairs.weeklyMonthly') || 'Weekly & Monthly'} />
+                  <SidebarItem label={t('currentAffairs.weekly') || 'Weekly'} href="/current-affairs/weekly" />
+                  <SidebarItem label={t('currentAffairs.monthlyMagazine') || 'Monthly Magazine'} href="/current-affairs/monthly" />
                 </div>
 
                 <div className="h-px bg-slate-100 dark:bg-white/[0.06]" />
 
                 {/* PERIODIC REVIEWS */}
                 <div className="space-y-0.5">
-                  <SidebarSection icon={<RefreshCw className="w-3.5 h-3.5" />} title="Periodic Reviews" />
-                  <SidebarItem label="Yearly"   href="/current-affairs/yearly" />
-                  <SidebarItem label="Bihar" href="/current-affairs/daily?topic=bihar" />
-                  <SidebarItem label="Arunachal"       href="/current-affairs/daily?topic=arunachal" />
+                  <SidebarSection icon={<RefreshCw className="w-3.5 h-3.5" />} title={t('currentAffairs.periodicReviews') || 'Periodic Reviews'} />
+                  <SidebarItem label={t('currentAffairs.yearly') || 'Yearly'} href="/current-affairs/yearly" />
+                  <SidebarItem label={t('currentAffairs.bihar') || 'Bihar'} href="/current-affairs/daily?topic=bihar" />
+                  <SidebarItem label={t('currentAffairs.arunachal') || 'Arunachal'} href="/current-affairs/daily?topic=arunachal" />
                 </div>
 
                 <div className="h-px bg-slate-100 dark:bg-white/[0.06]" />
 
                 {/* TOPICS */}
                 <div className="space-y-0.5">
-                  <SidebarSection icon={<TrendingUp className="w-3.5 h-3.5" />} title="Topics" />
-                  <SidebarItem label="National Affairs"      href="/current-affairs/daily?topic=national" />
-                  <SidebarItem label="International Affairs" href="/current-affairs/daily?topic=international" />
-                  <SidebarItem label="Bihar & State"         href="/current-affairs/daily?topic=bihar" />
+                  <SidebarSection icon={<TrendingUp className="w-3.5 h-3.5" />} title={t('currentAffairs.topics') || 'Topics'} />
+                  <SidebarItem label={t('currentAffairs.nationalAffairs') || 'National Affairs'} href="/current-affairs/daily?topic=national" />
+                  <SidebarItem label={t('currentAffairs.internationalAffairs') || 'International Affairs'} href="/current-affairs/daily?topic=international" />
+                  <SidebarItem label={t('currentAffairs.biharState') || 'Bihar & State'} href="/current-affairs/daily?topic=bihar" />
                 </div>
               </div>
             </div>
@@ -319,23 +319,25 @@ export default function CurrentAffairsLanding() {
             {/* Topic Filter Chips & Recent Articles */}
             <div className="space-y-4 pt-4 border-t border-[var(--card-border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-base font-heading font-black text-[var(--text-color)]">Articles by Region & Topic</h2>
+                <h2 className="text-base font-heading font-black text-[var(--text-color)]">
+                  {t('currentAffairs.articlesByRegionTopic') || 'Articles by Region & Topic'}
+                </h2>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {([
-                  { key: 'all',           label: 'All Topics',           color: 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10' },
-                  { key: 'national',      label: 'National',             color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
-                  { key: 'international', label: 'International',         color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20' },
-                  { key: 'bihar',         label: 'Bihar Special',         color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-                  { key: 'arunachal',     label: 'Arunachal Special',     color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
-                ] as const).map(t => (
+                {[
+                  { key: 'all',           label: t('currentAffairs.allTopics') || 'All Topics',           color: 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10' },
+                  { key: 'national',      label: t('currentAffairs.national') || 'National',             color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
+                  { key: 'international', label: t('currentAffairs.international') || 'International',         color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20' },
+                  { key: 'bihar',         label: t('currentAffairs.biharSpecial') || 'Bihar Special',         color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
+                  { key: 'arunachal',     label: t('currentAffairs.arunachalSpecial') || 'Arunachal Special',     color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
+                ].map(item => (
                   <button
-                    key={t.key}
-                    onClick={() => setActiveTopic(t.key)}
-                    className={`px-4 py-2 rounded-full border text-xs font-extrabold tracking-wide transition-all duration-150 cursor-pointer ${t.color} ${activeTopic === t.key ? 'ring-2 ring-offset-1 ring-amber-400/50 dark:ring-offset-slate-900' : 'opacity-80 hover:opacity-100'}`}
+                    key={item.key}
+                    onClick={() => setActiveTopic(item.key as any)}
+                    className={`px-4 py-2 rounded-full border text-xs font-extrabold tracking-wide transition-all duration-150 cursor-pointer ${item.color} ${activeTopic === item.key ? 'ring-2 ring-offset-1 ring-amber-400/50 dark:ring-offset-slate-900' : 'opacity-80 hover:opacity-100'}`}
                   >
-                    {t.label}
+                    {item.label}
                   </button>
                 ))}
               </div>

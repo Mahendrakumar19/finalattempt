@@ -472,8 +472,25 @@ app.delete('/api/current-affairs/:id', async (req, res) => {
 // DYNAMIC CURRENT AFFAIRS SYSTEM API ROUTES
 app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
   try {
+    res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
+    res.setHeader('Cache-Control', 'no-cache, private');
+    const targetLang = getTargetLang(req);
     const includeDrafts = req.query.includeDrafts === 'true';
     const list = await db.getDynamicCurrentAffairsEditions(includeDrafts);
+
+    if (targetLang === 'hi' && Array.isArray(list) && list.length > 0) {
+      for (const ed of list) {
+        if (Array.isArray(ed.articles) && ed.articles.length > 0) {
+          ed.articles = await ContentLocalizer.localizeEntityList(
+            'current_affair_article',
+            ed.articles,
+            ['title', 'summary'],
+            targetLang,
+            ['summary']
+          );
+        }
+      }
+    }
     res.json(list);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -482,16 +499,19 @@ app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
 
 app.get('/api/dynamic-current-affairs/daily/:date', async (req, res) => {
   try {
+    res.setHeader('Vary', 'x-locale');
+    res.setHeader('Cache-Control', 'no-cache, private');
     const targetLang = getTargetLang(req);
     const includeDrafts = req.query.includeDrafts === 'true';
     const edition = await db.getDynamicCurrentAffairsEditionByDate(req.params.date, includeDrafts);
     if (edition && Array.isArray(edition.articles)) {
+      // Localize metadata fields for the sidebar article index list (fast load)
       edition.articles = await ContentLocalizer.localizeEntityList(
         'current_affair_article',
         edition.articles,
-        ['title', 'summary', 'content', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways'],
+        ['title', 'summary'],
         targetLang,
-        ['content', 'summary', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways']
+        ['summary']
       );
     }
     res.json(edition);
@@ -502,6 +522,8 @@ app.get('/api/dynamic-current-affairs/daily/:date', async (req, res) => {
 
 app.get('/api/dynamic-current-affairs/article/:slug', async (req, res) => {
   try {
+    res.setHeader('Vary', 'x-locale');
+    res.setHeader('Cache-Control', 'no-cache, private');
     const targetLang = getTargetLang(req);
     const includeDrafts = req.query.includeDrafts === 'true';
     const article = await db.getDynamicCurrentAffairArticle(req.params.slug, includeDrafts);
@@ -676,7 +698,49 @@ app.post('/api/admin/dynamic-current-affairs/combine/yearly', async (req, res) =
 app.get('/api/blogs', async (req, res) => {
   try {
     const list = await db.getBlogs();
+    const targetLang = getTargetLang(req);
+    res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
+    res.setHeader('Cache-Control', 'no-cache, private');
+
+    if (targetLang === 'hi' && Array.isArray(list) && list.length > 0) {
+      const localized = await ContentLocalizer.localizeEntityList(
+        'blog',
+        list,
+        ['title', 'blurb', 'excerpt', 'category', 'content'],
+        targetLang,
+        ['content']
+      );
+      return res.json(localized);
+    }
     res.json(list);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/blogs/:id', async (req, res) => {
+  try {
+    const list = await db.getBlogs();
+    const idOrSlug = req.params.id;
+    const item = list.find((b: any) => String(b.id) === idOrSlug || b.slug === idOrSlug);
+    if (!item) {
+      return res.status(404).json({ error: 'Blog post not found' });
+    }
+    const targetLang = getTargetLang(req);
+    res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
+    res.setHeader('Cache-Control', 'no-cache, private');
+
+    if (targetLang === 'hi') {
+      const localized = await ContentLocalizer.localizeEntity(
+        'blog',
+        item,
+        ['title', 'blurb', 'excerpt', 'category', 'content'],
+        targetLang,
+        ['content']
+      );
+      return res.json(localized);
+    }
+    res.json(item);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -881,7 +945,7 @@ io.on('connection', (socket) => {
   });
 
   // Real-time message edit
-// Server touch: Trigger nodemon reload with DB auto-seeding completely disabled
+// Server touch: Trigger nodemon reload with Vary x-locale and cookie fallback fix
   socket.on('edit_message', async (data: { messageId: string; roomId: string; newMessageText: string; senderId?: string; isAdmin?: boolean }) => {
     const { messageId, roomId, newMessageText, senderId, isAdmin } = data;
     try {

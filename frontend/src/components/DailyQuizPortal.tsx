@@ -321,10 +321,10 @@ export default function DailyQuizPortal() {
               <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-amber-600/5 rounded-full blur-2xl pointer-events-none" />
 
               <div className="relative z-10 space-y-4 max-w-3xl">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider">
+                {/* <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider">
                   <Flame className="w-4 h-4 text-amber-500 animate-pulse" />
                   <span>{t('dailyQuiz.tagline', 'Daily Practice Quiz')} • BPSC & State PCS</span>
-                </div>
+                </div> */}
 
                 <h1 className="text-3xl sm:text-5xl font-heading font-black text-[var(--text-color)] leading-tight tracking-tight">
                   {t('dailyQuiz.title', 'Daily Current Affairs & GS Practice Hub')}
@@ -396,9 +396,9 @@ export default function DailyQuizPortal() {
                   <Sparkles className="w-5 h-5 text-amber-500" />
                   <span>{t('dailyQuiz.todaysQuiz', "Today's Featured Practice Quiz")}</span>
                 </h2>
-                <span className="text-xs font-bold text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
+                {/* <span className="text-xs font-bold text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
                   Updated Daily @ 08:00 AM
-                </span>
+                </span> */}
               </div>
 
               {loadingMeta ? (
@@ -1045,7 +1045,7 @@ export default function DailyQuizPortal() {
               {!currentUser && (
                 <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-amber-700 dark:text-amber-300">
                   <div className="flex items-center gap-2">
-                    <User className="w-5 h-5 text-amber-500 shrink-0" />
+                    <User className="w-5 h-5 text-amber-700 font-semibold shrink-0" />
                     <span>Create a free profile to appear on the leaderboard after taking quizzes.</span>
                   </div>
                   

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useLocale } from '@/context/LocaleContext';
 import {
   Calendar as CalendarIcon, ArrowLeft, Clock,
   ChevronRight, ChevronLeft, FileText,
@@ -33,6 +34,7 @@ export default function NewsTodayLayout({
   categorySlug
 }: NewsTodayLayoutProps) {
   const router = useRouter();
+  const { locale } = useLocale();
 
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
   const [currentEdition, setCurrentEdition] = useState<DynamicCurrentAffairEdition | null>(null);
@@ -55,37 +57,53 @@ export default function NewsTodayLayout({
     return new Date();
   });
 
+  // In-memory article cache to enable instant 0ms topic switching
+  const articleCacheRef = useRef<Map<string, DynamicCurrentAffairArticle>>(new Map());
+
   // Fetch All Editions
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const list = await db.getDynamicCurrentAffairsEditions(false);
+        const initialDate = currentDateStr;
+        // 1. Parallel fetch: Fetch editions list and target date edition concurrently
+        const [list, ed] = await Promise.all([
+          db.getDynamicCurrentAffairsEditions(false),
+          initialDate ? db.getDynamicCurrentAffairsEditionByDate(initialDate, false) : Promise.resolve(null)
+        ]);
+
         setEditions(list || []);
 
-        let targetDate = currentDateStr;
+        let resolvedEdition = ed;
+        let targetDate = initialDate;
+
         if (!targetDate && list && list.length > 0) {
           const sorted = [...list].sort((a, b) => b.publishDate.localeCompare(a.publishDate));
           targetDate = sorted[0].publishDate;
+          resolvedEdition = await db.getDynamicCurrentAffairsEditionByDate(targetDate, false);
         }
 
-        if (targetDate) {
-          const ed = await db.getDynamicCurrentAffairsEditionByDate(targetDate, false);
-          setCurrentEdition(ed);
+        setCurrentEdition(resolvedEdition);
 
-          if (ed && ed.articles && ed.articles.length > 0) {
-            let matched = currentArticleSlug
-              ? ed.articles.find(a => a.slug === currentArticleSlug || a.id === currentArticleSlug)
-              : ed.articles[0];
+        if (resolvedEdition && resolvedEdition.articles && resolvedEdition.articles.length > 0) {
+          let matched = currentArticleSlug
+            ? resolvedEdition.articles.find(a => a.slug === currentArticleSlug || a.id === currentArticleSlug)
+            : resolvedEdition.articles[0];
 
-            if (!matched) matched = ed.articles[0];
+          if (!matched) matched = resolvedEdition.articles[0];
 
-            if (matched && matched.slug) {
-              const fullArt = await db.getDynamicCurrentAffairArticle(matched.slug, false);
-              setActiveArticle(fullArt || matched);
+          if (matched && matched.slug) {
+            const cacheKey = `${matched.slug}_${locale}`;
+            if (articleCacheRef.current.has(cacheKey)) {
+              setActiveArticle(articleCacheRef.current.get(cacheKey)!);
             } else {
-              setActiveArticle(matched);
+              const fullArt = await db.getDynamicCurrentAffairArticle(matched.slug, false);
+              const finalArticle = fullArt || matched;
+              articleCacheRef.current.set(cacheKey, finalArticle);
+              setActiveArticle(finalArticle);
             }
+          } else {
+            setActiveArticle(matched);
           }
         }
       } catch (err) {
@@ -95,7 +113,7 @@ export default function NewsTodayLayout({
       }
     }
     loadData();
-  }, [currentDateStr, currentArticleSlug]);
+  }, [currentDateStr, currentArticleSlug, locale]);
 
   // Set of dates that have published editions (YYYY-MM-DD)
   const publishedDatesSet = useMemo(() => {
@@ -403,8 +421,16 @@ export default function NewsTodayLayout({
                   onClick={async () => {
                     setActiveArticle(art);
                     if (art.slug) {
-                      const fullArt = await db.getDynamicCurrentAffairArticle(art.slug, false);
-                      if (fullArt) setActiveArticle(fullArt);
+                      const cacheKey = `${art.slug}_${locale}`;
+                      if (articleCacheRef.current.has(cacheKey)) {
+                        setActiveArticle(articleCacheRef.current.get(cacheKey)!);
+                      } else {
+                        const fullArt = await db.getDynamicCurrentAffairArticle(art.slug, false);
+                        if (fullArt) {
+                          articleCacheRef.current.set(cacheKey, fullArt);
+                          setActiveArticle(fullArt);
+                        }
+                      }
                     }
                     if (art.slug && currentDateStr) {
                       const cat = art.category ? art.category.toLowerCase().replace(/\s+/g, '-') : 'general';

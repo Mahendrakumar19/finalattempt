@@ -27,26 +27,38 @@ function saveLocalJsonCache(cache: Record<string, any>) {
   }
 }
 
+function saveToLocalJsonCache(entityType: string, entityId: string, fieldName: string, sourceLang: string, targetLang: string, sourceHash: string, translatedText: string) {
+  const localStore = getLocalJsonCache();
+  const jsonKey = `${entityType}_${entityId}_${fieldName}_${sourceLang}_${targetLang}`;
+  localStore[jsonKey] = {
+    sourceHash,
+    translatedText,
+    updatedAt: new Date().toISOString()
+  };
+  saveLocalJsonCache(localStore);
+}
+
 // In-flight concurrency deduplication map to prevent translation stampedes
 const inFlightTranslations = new Map<string, Promise<string>>();
 
 export class ContentLocalizer {
+  private static ramCache = new Map<string, string>();
 
   /**
-   * Auto-detect source language fallback when missing on legacy content.
+   * Fast heuristic to detect language of input string.
    */
-  static detectLanguage(text: string): 'hi' | 'en' {
-    if (!text) return 'en';
-    // Devanagari script range U+0900 to U+097F
-    const devanagariPattern = /[\u0900-\u097F]/;
-    return devanagariPattern.test(text) ? 'hi' : 'en';
+  static detectLanguage(text: string): string {
+    if (!text || !text.trim()) return 'en';
+    // Devanagari Unicode Block: U+0900 to U+097F
+    const devanagariRegex = /[\u0900-\u097F]/;
+    return devanagariRegex.test(text) ? 'hi' : 'en';
   }
 
   /**
-   * Generates a MD5 checksum hash of the source text.
+   * Computes lightweight SHA-256 hash of text to track source content revisions.
    */
   static computeSourceHash(text: string): string {
-    return crypto.createHash('md5').update(text || '').digest('hex');
+    return crypto.createHash('sha256').update(text || '').digest('hex');
   }
 
   /**
@@ -76,7 +88,12 @@ export class ContentLocalizer {
     const currentHash = this.computeSourceHash(sourceText);
     const cacheKey = `${entityType}:${entityId}:${fieldName}:${sourceLang}->${normalizedTarget}:${currentHash}`;
 
-    // 2. Check Cache
+    // 0. Check Fast RAM Memory Cache (0.001ms response)
+    if (this.ramCache.has(cacheKey)) {
+      return this.ramCache.get(cacheKey)!;
+    }
+
+    // 2. Check DB / JSON Cache
     try {
       let cachedEntry: { translatedText: string; sourceHash: string } | null = null;
 
@@ -105,8 +122,9 @@ export class ContentLocalizer {
         }
       }
 
-      // 3. Cache HIT: Return cached translation if source hash matches
+      // 3. Cache HIT: Store in RAM & return cached translation if source hash matches
       if (cachedEntry && cachedEntry.sourceHash === currentHash) {
+        this.ramCache.set(cacheKey, cachedEntry.translatedText);
         return cachedEntry.translatedText;
       }
     } catch (cacheErr) {
@@ -136,6 +154,9 @@ export class ContentLocalizer {
           translated = sourceText;
         }
 
+        // Store in RAM Cache
+        this.ramCache.set(cacheKey, translated);
+
         // Save Translation to Cache
         try {
           await (prisma as any).translation_cache.upsert({
@@ -148,6 +169,11 @@ export class ContentLocalizer {
                 targetLanguage: normalizedTarget
               }
             },
+            update: {
+              translatedText: translated,
+              sourceHash: currentHash,
+              updatedAt: new Date()
+            },
             create: {
               id: crypto.randomUUID(),
               entityType,
@@ -157,27 +183,15 @@ export class ContentLocalizer {
               targetLanguage: normalizedTarget,
               sourceHash: currentHash,
               translatedText: translated
-            },
-            update: {
-              sourceHash: currentHash,
-              translatedText: translated
             }
           });
-        } catch (saveErr) {
-          // JSON store fallback
-          const localStore = getLocalJsonCache();
-          const jsonKey = `${entityType}_${entityId}_${fieldName}_${sourceLang}_${normalizedTarget}`;
-          localStore[jsonKey] = {
-            sourceHash: currentHash,
-            translatedText: translated,
-            updatedAt: new Date().toISOString()
-          };
-          saveLocalJsonCache(localStore);
+        } catch (saveDbErr) {
+          saveToLocalJsonCache(entityType, entityId, fieldName, sourceLang, normalizedTarget, currentHash, translated);
         }
 
         return translated;
       } catch (err: any) {
-        console.error(`[ContentLocalizer] Translation failed for ${entityType}#${entityId}.${fieldName}:`, err.message || err);
+        console.error(`[ContentLocalizer] Error localizing ${entityType}.${fieldName}:`, err.message || err);
         return sourceText; // Fallback to original source text
       } finally {
         inFlightTranslations.delete(cacheKey);
@@ -205,7 +219,8 @@ export class ContentLocalizer {
     
     const localized = { ...entity };
 
-    for (const field of fields) {
+    // Concurrently resolve all fields in parallel
+    await Promise.all(fields.map(async (field) => {
       if (typeof localized[field] === 'string' && localized[field].trim().length > 0) {
         const isHtml = htmlFields.includes(field);
         localized[field as keyof T] = (await this.resolveLocalizedContent(
@@ -218,7 +233,7 @@ export class ContentLocalizer {
           isHtml
         )) as any;
       }
-    }
+    }));
 
     return localized;
   }
@@ -289,6 +304,14 @@ export function getTargetLang(req: any): string {
   if (headerLocale && typeof headerLocale === 'string') return headerLocale.toLowerCase().trim();
   const queryLocale = req?.query?.lang || req?.query?.locale;
   if (queryLocale && typeof queryLocale === 'string') return queryLocale.toLowerCase().trim();
+  
+  // Parse Cookie header fallback (NEXT_LOCALE=hi)
+  const rawCookie = req?.headers?.cookie || '';
+  const match = rawCookie.match(/(?:^|; )NEXT_LOCALE=([^;]*)/);
+  if (match && match[1]) {
+    return decodeURIComponent(match[1]).toLowerCase().trim();
+  }
+
   return 'en';
 }
 

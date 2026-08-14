@@ -71,7 +71,7 @@ interface SiteSettings {
   aboutVision?: string;
   aboutValues?: string;
   aboutMethodology?: { title: string; desc: string }[];
-  announcements?: { date: string; text: string; link?: string; isNew?: boolean }[];
+  announcements?: { date: string; text: string; link?: string; isNew?: boolean; createdAt?: string }[];
   featureFlags?: Record<string, boolean>;
 }
 
@@ -1129,7 +1129,7 @@ export default function AdminPortal() {
                       setSettings({
                         ...settings,
                         announcements: [
-                          { date: dateStr, text: 'New Batch Announcement', link: '/courses', isNew: true },
+                          { date: dateStr, text: 'New Batch Announcement', link: '/courses', isNew: true, createdAt: new Date().toISOString() },
                           ...current
                         ]
                       });

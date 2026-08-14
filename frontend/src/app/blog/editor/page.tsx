@@ -6,10 +6,10 @@ import Link from 'next/link'
 import { 
   ArrowLeft, Save, Upload, 
   Bold, Italic, Underline, Heading1, Heading2, Heading3, 
-  List, ListOrdered, Quote, Link as LinkIcon, Sparkles, Paintbrush 
+  List, ListOrdered, Quote, Link as LinkIcon, Sparkles, Paintbrush, Table 
 } from 'lucide-react'
 
-// ─── Markdown-to-HTML parser solution to initialize existing markdown posts ───
+// ─── Markdown-to-HTML parser solution to initialize existing markdown & table posts ───
 function parseMarkdownToHtml(content: string): string {
   if (!content) return ''
   if (/<[a-z][\s\S]*>/i.test(content)) return content
@@ -25,9 +25,35 @@ function parseMarkdownToHtml(content: string): string {
   const processedLines: string[] = []
   let inList = false
   let inOList = false
+  let inTable = false
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim()
+
+    // Table parsing (Markdown pipes | or Tab-separated columns)
+    if (line.startsWith('|') && line.endsWith('|')) {
+      if (inList) { processedLines.push('</ul>'); inList = false }
+      if (inOList) { processedLines.push('</ol>'); inOList = false }
+      
+      // Skip markdown table delimiter line |---|---|
+      if (/^\|[\s-:]+\|[\s-:]+\|/.test(line)) {
+        continue
+      }
+
+      const cells = line.split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1)
+      if (!inTable) {
+        processedLines.push('<table class="w-full my-6 border-collapse rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm text-left">')
+        processedLines.push('<thead><tr>' + cells.map(c => `<th class="p-3 font-bold border-b border-r border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800">${c}</th>`).join('') + '</tr></thead>')
+        processedLines.push('<tbody>')
+        inTable = true
+      } else {
+        processedLines.push('<tr>' + cells.map(c => `<td class="p-3 border-b border-r border-slate-100 dark:border-white/5">${c}</td>`).join('') + '</tr>')
+      }
+      continue
+    } else if (inTable) {
+      processedLines.push('</tbody></table>')
+      inTable = false
+    }
 
     if (/^---$/.test(line)) {
       if (inList) { processedLines.push('</ul>'); inList = false }
@@ -94,6 +120,7 @@ function parseMarkdownToHtml(content: string): string {
 
   if (inList) processedLines.push('</ul>')
   if (inOList) processedLines.push('</ol>')
+  if (inTable) processedLines.push('</tbody></table>')
 
   return processedLines.join('\n')
 }
@@ -142,8 +169,49 @@ function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     { name: 'Rose Red', value: '#f43f5e' }
   ]
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleInlineImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch(`${BACKEND_URL}/api/upload`, { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.success && data.url) {
+        const imgHtml = `<figure class="my-6 text-center"><img src="${data.url}" alt="Blog Image" class="w-full max-h-[450px] object-contain rounded-2xl shadow-md border border-slate-200/80 dark:border-white/10 mx-auto" /></figure><p><br></p>`
+        execCmd('insertHTML', imgHtml)
+      } else {
+        alert(data.error || 'Failed uploading inline image')
+      }
+    } catch (err) {
+      alert('Failed uploading inline image')
+    }
+  }
+
+  const promptInlineImage = () => {
+    const url = prompt('Enter Image URL or click OK to upload from device:')
+    if (url && url.trim()) {
+      const imgHtml = `<figure class="my-6 text-center"><img src="${url.trim()}" alt="Blog Image" class="w-full max-h-[450px] object-contain rounded-2xl shadow-md border border-slate-200/80 dark:border-white/10 mx-auto" /></figure><p><br></p>`
+      execCmd('insertHTML', imgHtml)
+    } else if (url === '') {
+      fileInputRef.current?.click()
+    }
+  }
+
   return (
     <div className="rounded-xl border border-border/40 bg-card overflow-hidden shadow-lg transition-all focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40">
+      {/* Hidden File Input for Inline Images */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleInlineImageUpload}
+        className="hidden"
+      />
+
       {/* Premium Toolbar */}
       <div className="flex flex-wrap items-center gap-1.5 border-b border-border/40 bg-muted/20 p-3">
         <button
@@ -234,6 +302,27 @@ function RichTextEditor({ value, onChange }: RichTextEditorProps) {
           title="Insert Link"
         >
           <LinkIcon className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const tableHtml = `<table class="w-full my-6 border-collapse rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm text-left"><thead class="bg-slate-100 dark:bg-slate-800"><tr><th class="p-3 font-bold border-b border-r border-slate-200 dark:border-white/10">Feature</th><th class="p-3 font-bold border-b border-slate-200 dark:border-white/10">Details</th></tr></thead><tbody><tr><td class="p-3 border-b border-r border-slate-100 dark:border-white/5">Item 1</td><td class="p-3 border-b border-slate-100 dark:border-white/5">Description 1</td></tr><tr><td class="p-3 border-b border-r border-slate-100 dark:border-white/5">Item 2</td><td class="p-3 border-b border-slate-100 dark:border-white/5">Description 2</td></tr></tbody></table><p><br></p>`
+            execCmd('insertHTML', tableHtml)
+          }}
+          className="rounded p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer flex items-center gap-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold text-xs px-2.5 py-1"
+          title="Insert Structured Table"
+        >
+          <Table className="h-3.5 w-3.5" />
+          <span>Insert Table</span>
+        </button>
+        <button
+          type="button"
+          onClick={promptInlineImage}
+          className="rounded p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer flex items-center gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs px-2.5 py-1"
+          title="Insert Inline Image (Add multiple images anywhere in article)"
+        >
+          <Upload className="h-3.5 w-3.5" />
+          <span>Insert Image</span>
         </button>
         <button
           type="button"

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Award, Users, Sparkles } from 'lucide-react';
 import { db, SiteSettings } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 
 interface FacultyMember {
   id: string;
@@ -26,6 +27,7 @@ interface ResultTopper {
 }
 
 export default function AboutPage() {
+  const { t, locale } = useTranslation();
   const [faculty, setFaculty] = useState<FacultyMember[]>([]);
   const [results, setResults] = useState<ResultTopper[]>([]);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -48,25 +50,45 @@ export default function AboutPage() {
     loadData();
   }, []);
 
+  const displayTitle = locale === 'hi'
+    ? ((settings as any)?.aboutTitle_hi || (settings?.aboutTitle && !settings.aboutTitle.includes('Final Attempt') ? settings.aboutTitle : 'फाइनल एटेम्पट'))
+    : (settings?.aboutTitle || t('aboutPage.mainTitle', 'One Mentor. One Strategy. One Final Attempt.'));
+
+  const displaySubtitle = (settings?.aboutSubtitle && settings.aboutSubtitle.trim() !== '')
+    ? settings.aboutSubtitle
+    : t('aboutPage.mainSubtitle', "Final Attempt is BPSC's premium prep ecosystem designed by civil servants and leading experts to deliver strategic mentorship and personalized micro-scheduling.");
+
+  const displayMission = (settings?.aboutMission && settings.aboutMission.trim() !== '')
+    ? settings.aboutMission
+    : t('aboutPage.ourMissionDesc', 'To democratize civil services coaching in Bihar by providing senior administrative officer mentorship, structured syllabus micro-targets, and local language accessibility.');
+
+  const displayVision = (settings?.aboutVision && settings.aboutVision.trim() !== '')
+    ? settings.aboutVision
+    : t('aboutPage.ourVisionDesc', "To be recognized as Bihar's most trusted and outcome-oriented gateway for administrative leadership, shaping civil servants who drive regional development.");
+
+  const displayValues = (settings?.aboutValues && settings.aboutValues.trim() !== '')
+    ? settings.aboutValues
+    : t('aboutPage.coreValuesDesc', 'Upholding transparency in feedback, data-driven diagnostic dashboards, strict study schedules, and unyielding support for economically backward learners.');
+
+  const defaultMethodology = [
+    { title: t('aboutPage.microScheduling', 'Micro-Scheduling'), desc: t('aboutPage.microSchedulingDesc', 'Dividing massive GS books into weekly targeted syllabus schedules.') },
+    { title: t('aboutPage.dailyEvaluation', 'Daily Evaluation'), desc: t('aboutPage.dailyEvaluationDesc', 'Mandatory daily answer writing checks by experienced evaluators.') },
+    { title: t('aboutPage.biharFocus', 'Bihar Focus'), desc: t('aboutPage.biharFocusDesc', 'Extensive state geography, budget digests, and economic statistics.') },
+    { title: t('aboutPage.officerMentorship', 'Officer Mentorship'), desc: t('aboutPage.officerMentorshipDesc', 'Direct workshops and feedback sessions with selected public administrators.') }
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-20 bg-[var(--bg-color)]">
       {/* 1. Page Header */}
       <div className="text-center max-w-3xl mx-auto space-y-4">
         <span className="text-xs font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest inline-block">
-          Who We Are
+          {t('aboutPage.whoWeAre', 'Who We Are')}
         </span>
         <h1 className="text-4xl sm:text-5xl font-heading font-black text-[var(--text-color)] tracking-tight leading-tight">
-          {settings?.aboutTitle && settings.aboutTitle.trim() !== '' ? (
-            <span>{settings.aboutTitle}</span>
-          ) : (
-            <>
-              One Mentor. One Strategy. <br />
-              <span className="text-amber-500">One Final Attempt.</span>
-            </>
-          )}
+          <span>{displayTitle}</span>
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
-          {settings?.aboutSubtitle || "Final Attempt is BPSC's premium prep ecosystem designed by civil servants and leading experts to deliver strategic mentorship and personalized micro-scheduling."}
+          {displaySubtitle}
         </p>
       </div>
 
@@ -76,9 +98,9 @@ export default function AboutPage() {
           <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 flex items-center justify-center">
             <Sparkles className="w-5 h-5" />
           </div>
-          <h3 className="font-heading font-extrabold text-lg text-[var(--text-color)]">Our Mission</h3>
+          <h3 className="font-heading font-extrabold text-lg text-[var(--text-color)]">{t('aboutPage.ourMission', 'Our Mission')}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            {settings?.aboutMission || "To democratize civil services coaching in Bihar by providing senior administrative officer mentorship, structured syllabus micro-targets, and local language accessibility."}
+            {displayMission}
           </p>
         </div>
 
@@ -86,9 +108,9 @@ export default function AboutPage() {
           <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
             <Award className="w-5 h-5" />
           </div>
-          <h3 className="font-heading font-extrabold text-lg text-[var(--text-color)]">Our Vision</h3>
+          <h3 className="font-heading font-extrabold text-lg text-[var(--text-color)]">{t('aboutPage.ourVision', 'Our Vision')}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            {settings?.aboutVision || "To be recognized as Bihar's most trusted and outcome-oriented gateway for administrative leadership, shaping civil servants who drive regional development."}
+            {displayVision}
           </p>
         </div>
 
@@ -96,9 +118,9 @@ export default function AboutPage() {
           <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
             <Users className="w-5 h-5" />
           </div>
-          <h3 className="font-heading font-extrabold text-lg text-[var(--text-color)]">Core Values</h3>
+          <h3 className="font-heading font-extrabold text-lg text-[var(--text-color)]">{t('aboutPage.coreValues', 'Core Values')}</h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            {settings?.aboutValues || "Upholding transparency in feedback, data-driven diagnostic dashboards, strict study schedules, and unyielding support for economically backward learners."}
+            {displayValues}
           </p>
         </div>
       </div>
@@ -106,18 +128,13 @@ export default function AboutPage() {
       {/* 3. Methodology & Our Approach */}
       <div className="bg-[var(--card-bg)] rounded-3xl p-8 sm:p-12 border border-[var(--card-border)] shadow-3xs space-y-8">
         <div className="text-center max-w-2xl mx-auto space-y-3">
-          <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">Methodology</span>
-          <h3 className="text-2xl sm:text-3xl font-heading font-extrabold text-[var(--text-color)]">Our Core Strategic Approach</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">How we achieve high BPSC success rates year after year.</p>
+          <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">{t('aboutPage.methodology', 'Methodology')}</span>
+          <h3 className="text-2xl sm:text-3xl font-heading font-extrabold text-[var(--text-color)]">{t('aboutPage.strategicApproach', 'Our Core Strategic Approach')}</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t('aboutPage.strategicApproachDesc', 'How we achieve high BPSC success rates year after year.')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
-          {(settings?.aboutMethodology || [
-            { title: 'Micro-Scheduling', desc: 'Dividing massive GS books into weekly targeted syllabus schedules.' },
-            { title: 'Daily Evaluation', desc: 'Mandatory daily answer writing checks by experienced evaluators.' },
-            { title: 'Bihar Focus', desc: 'Extensive state geography, budget digests, and economic statistics.' },
-            { title: 'Officer Mentorship', desc: 'Direct workshops and feedback sessions with selected public administrators.' }
-          ]).map((step: { title: string; desc?: string; description?: string }, idx: number) => (
+          {defaultMethodology.map((step: { title: string; desc?: string; description?: string }, idx: number) => (
             <div key={idx} className="space-y-2">
               <div className="w-10 h-10 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center font-black text-xs mx-auto mb-2">
                 0{idx + 1}
@@ -132,13 +149,13 @@ export default function AboutPage() {
       {/* 4. Results Highlight Grid */}
       <div className="space-y-8">
         <div className="text-center space-y-2">
-          <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Hall of Fame</span>
-          <h3 className="text-3xl font-heading font-black text-[var(--text-color)]">BPSC Officers & Achievers</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">A look at some of our selected toppers who realized their administrative dreams.</p>
+          <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">{t('aboutPage.hallOfFame', 'Hall of Fame')}</span>
+          <h3 className="text-3xl font-heading font-black text-[var(--text-color)]">{t('aboutPage.bpscOfficers', 'BPSC Officers & Achievers')}</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t('aboutPage.bpscOfficersDesc', 'A look at some of our selected toppers who realized their administrative dreams.')}</p>
         </div>
 
         {results.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center">Loading toppers records...</p>
+          <p className="text-xs text-slate-400 text-center">{t('aboutPage.loadingToppers', 'Loading toppers records...')}</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             {results.slice(0, 8).map((topper, idx) => (
@@ -164,13 +181,13 @@ export default function AboutPage() {
       {/* 5. Faculty Profile Cards */}
       <div className="space-y-8">
         <div className="text-center space-y-2">
-          <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Mentorship Board</span>
-          <h3 className="text-3xl font-heading font-black text-[var(--text-color)]">Expert Faculty Panel</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Learn from seasoned educators and former civil service administrators.</p>
+          <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">{t('aboutPage.mentorshipBoard', 'Mentorship Board')}</span>
+          <h3 className="text-3xl font-heading font-black text-[var(--text-color)]">{t('aboutPage.facultyPanel', 'Expert Faculty Panel')}</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t('aboutPage.facultyPanelDesc', 'Learn from seasoned educators and former civil service administrators.')}</p>
         </div>
 
         {faculty.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center">Loading faculty profiles...</p>
+          <p className="text-xs text-slate-400 text-center">{t('aboutPage.loadingFaculty', 'Loading faculty profiles...')}</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {faculty.map((mentor, idx) => (
