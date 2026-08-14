@@ -316,7 +316,7 @@ export default function DailyQuizPortal() {
           <div className="space-y-12">
             
             {/* Daily Quiz Hero Section */}
-            <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-8 sm:p-12 shadow-xl relative overflow-hidden space-y-6">
+            <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-12 shadow-xl relative overflow-hidden space-y-6">
               <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
               <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-amber-600/5 rounded-full blur-2xl pointer-events-none" />
 

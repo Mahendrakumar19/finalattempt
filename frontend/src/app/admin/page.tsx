@@ -1001,7 +1001,7 @@ export default function AdminPortal() {
                 { label: 'Registered Users', value: usersList.length.toString(), desc: 'Active student profiles', icon: Users, color: 'text-blue-500' },
                 { label: 'Published Courses', value: coursesList.length.toString(), desc: 'Published programs & batches', icon: BookOpen, color: 'text-amber-500' },
                 { label: 'Total Enquiries', value: leadsList.length.toString(), desc: 'Direct lead records', icon: MessageSquare, color: 'text-emerald-500' },
-                { label: 'Current Articles', value: caList.length.toString(), desc: 'Published articles & notes', icon: FileText, color: 'text-purple-500' }
+                { label: 'Current Articles', value: (blogsList.length > 0 ? blogsList.length : caList.length).toString(), desc: 'Published articles & notes', icon: FileText, color: 'text-purple-500' }
               ].map((metric, idx) => (
                 <div key={idx} className="p-5 bg-white border border-slate-200 space-y-3 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-center">
