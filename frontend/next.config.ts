@@ -12,7 +12,15 @@ const nextConfig: NextConfig = {
     'localhost:3000'
   ],
   async redirects() {
-    return [];
+    return [
+      // 301 permanent redirect: www → non-www (canonical domain consolidation)
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.finalattemptias.com' }],
+        destination: 'https://finalattemptias.com/:path*',
+        permanent: true,
+      },
+    ];
   },
   async rewrites() {
     return [

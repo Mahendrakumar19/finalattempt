@@ -11,22 +11,30 @@ export const metadata: Metadata = {
 
   title: {
     default:
-      "Final Attempt | Next-Generation Mentorship & Learning Platform for UPSC & State PCS",
-    template: "%s | Final Attempt",
+      "Final Attempt IAS | #1 BPSC & UPSC Coaching in Patna — Mentorship, Current Affairs & Mock Tests",
+    template: "%s | Final Attempt IAS",
   },
 
   description:
-    "Bihar's most trusted premium mentorship platform for BPSC aspirants. Personalized preparation, real results, current affairs, and mock test tracking.",
+    "Final Attempt IAS is Bihar's #1 BPSC & UPSC coaching institute in Patna. Expert mentorship, daily current affairs in Hindi & English, free mock tests, PYQs, study material and proven results.",
 
   applicationName: "Final Attempt",
 
   keywords: [
     "BPSC Preparation",
+    "BPSC Coaching Patna",
     "Bihar PCS",
+    "UPSC Coaching Bihar",
     "APPSC",
     "Patna BPSC Coaching",
     "BPSC Answer Writing",
+    "BPSC Current Affairs",
+    "BPSC Mock Test",
+    "Bihar BPSC Free Material",
+    "Final Attempt IAS",
     "Final Attempt",
+    "BPSC 70th Notification",
+    "BPSC Prelims Test Series",
   ],
 
   authors: [{ name: "Final Attempt" }],
@@ -35,9 +43,9 @@ export const metadata: Metadata = {
     type: "website",
     siteName: "Final Attempt",
     title:
-      "Final Attempt | Next-Generation Mentorship & Learning Platform for UPSC & State PCS",
+      "Final Attempt IAS | #1 BPSC & UPSC Coaching in Patna — Mentorship, Current Affairs & Mock Tests",
     description:
-      "Bihar's most trusted premium mentorship platform for BPSC aspirants. Personalized preparation, real results, current affairs, and mock test tracking.",
+      "Final Attempt IAS is Bihar's #1 BPSC & UPSC coaching institute in Patna. Expert mentorship, daily current affairs in Hindi & English, free mock tests, PYQs, study material and proven results.",
     url: "https://finalattemptias.com",
   },
 
