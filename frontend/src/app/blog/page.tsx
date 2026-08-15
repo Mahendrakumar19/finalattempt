@@ -20,7 +20,12 @@ export default function Blog() {
     const loadBlogs = async () => {
       try {
         const bg = await db.getBlogs();
-        setBlogsList(bg || []);
+        const sorted = [...(bg || [])].sort((a: any, b: any) => {
+          const timeA = new Date(a.publishDate || a.createdAt || 0).getTime() || 0;
+          const timeB = new Date(b.publishDate || b.createdAt || 0).getTime() || 0;
+          return timeB - timeA;
+        });
+        setBlogsList(sorted);
       } catch (err) {
         console.error('Failed loading blogs:', err);
       } finally {

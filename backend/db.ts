@@ -2547,13 +2547,13 @@ class BackendDB {
   public async getBlogs(): Promise<BlogItem[]> {
     if (mysqlPool) {
       try {
-        const [rows] = await mysqlPool.query('SELECT * FROM blogs');
+        const [rows] = await mysqlPool.query('SELECT * FROM blogs ORDER BY id DESC');
         return rows as BlogItem[];
       } catch (err) {
         console.error('MySQL query error:', err);
       }
     }
-    return this.localStore.blogs;
+    return [...this.localStore.blogs].reverse();
   }
 
   public async createBlog(item: BlogItem): Promise<BlogItem> {

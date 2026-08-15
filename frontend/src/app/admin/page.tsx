@@ -726,7 +726,7 @@ export default function AdminPortal() {
     e.preventDefault();
     if (activeModal?.type === 'add') {
       const newItem = { ...blogForm, id: `blog-${Date.now()}`, publishDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) };
-      setBlogsList(prev => [...prev, newItem]);
+      setBlogsList(prev => [newItem, ...prev]);
       await fetch(`${BACKEND_URL}/api/blogs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -469,7 +469,8 @@ class FinalAttemptDB {
 
   public async getBlogs() {
     const data = await this.apiFetch('/api/blogs');
-    return data || blogData;
+    const list = Array.isArray(data) ? data : (data?.data || blogData);
+    return [...list].reverse();
   }
 
   public async getBlogById(id: string) {
