@@ -7,24 +7,37 @@ import { translationProvider } from './translationProvider';
 // Local in-memory / JSON store cache fallback when MySQL is offline
 const JSON_CACHE_PATH = path.join(__dirname, '../translation_cache_store.json');
 
+let localJsonCacheStore: Record<string, any> | null = null;
+let saveTimer: NodeJS.Timeout | null = null;
+
 function getLocalJsonCache(): Record<string, any> {
+  if (localJsonCacheStore !== null) return localJsonCacheStore;
   try {
     if (fs.existsSync(JSON_CACHE_PATH)) {
       const data = fs.readFileSync(JSON_CACHE_PATH, 'utf-8');
-      return JSON.parse(data);
+      localJsonCacheStore = JSON.parse(data);
+      return localJsonCacheStore!;
     }
   } catch (err) {
     console.error('[ContentLocalizer] Failed to read JSON cache:', err);
   }
-  return {};
+  localJsonCacheStore = {};
+  return localJsonCacheStore!;
 }
 
-function saveLocalJsonCache(cache: Record<string, any>) {
-  try {
-    fs.writeFileSync(JSON_CACHE_PATH, JSON.stringify(cache, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('[ContentLocalizer] Failed to write JSON cache:', err);
-  }
+function scheduleSaveLocalJsonCache() {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    try {
+      if (localJsonCacheStore) {
+        fs.writeFileSync(JSON_CACHE_PATH, JSON.stringify(localJsonCacheStore, null, 2), 'utf-8');
+      }
+    } catch (err) {
+      console.error('[ContentLocalizer] Failed to write JSON cache:', err);
+    } finally {
+      saveTimer = null;
+    }
+  }, 2000);
 }
 
 function saveToLocalJsonCache(entityType: string, entityId: string, fieldName: string, sourceLang: string, targetLang: string, sourceHash: string, translatedText: string) {
@@ -35,7 +48,7 @@ function saveToLocalJsonCache(entityType: string, entityId: string, fieldName: s
     translatedText,
     updatedAt: new Date().toISOString()
   };
-  saveLocalJsonCache(localStore);
+  scheduleSaveLocalJsonCache();
 }
 
 // In-flight concurrency deduplication map to prevent translation stampedes
@@ -269,7 +282,7 @@ export class ContentLocalizer {
       const textFields = ['questionText', 'optionA', 'optionB', 'optionC', 'optionD', 'explanation'];
       const htmlFields = ['questionText', 'explanation'];
 
-      for (const field of textFields) {
+      await Promise.all(textFields.map(async (field) => {
         if (typeof localized[field] === 'string' && localized[field].trim().length > 0) {
           const isHtml = htmlFields.includes(field);
           localized[field] = await this.resolveLocalizedContent(
@@ -282,7 +295,7 @@ export class ContentLocalizer {
             isHtml
           );
         }
-      }
+      }));
 
       // CRITICAL: Ensure correctAnswer, id, quizId, marks are completely untouched
       localized.id = q.id;

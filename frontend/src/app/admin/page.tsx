@@ -304,7 +304,11 @@ export default function AdminPortal() {
   const getBackendUrl = () => {
     if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
     if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol;
       const hostname = window.location.hostname;
+      if (protocol === 'https:' || (hostname !== 'localhost' && hostname !== '127.0.0.1')) {
+        return '';
+      }
       return `http://${hostname}:5000`;
     }
     return 'http://localhost:5000';
