@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Download, ChevronDown, Check, Filter, Sparkles, HelpCircle, Shield } from 'lucide-react';
 import { TestSeriesItem } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 
 interface TestSeriesComparisonTableProps {
   programs: TestSeriesItem[];
@@ -11,11 +12,38 @@ interface TestSeriesComparisonTableProps {
   subtitle?: string;
 }
 
+// Helper to consistently format dates as "DD Month YYYY" (e.g. 15 August 2026)
+function formatDateFormatted(rawDate?: string): string {
+  if (!rawDate) return '09 August 2026';
+  
+  // If already formatted like "09 August 2026", return directly
+  if (/^\d{1,2}\s+[A-Za-z]+\s+\d{4}$/.test(rawDate.trim())) {
+    return rawDate.trim();
+  }
+
+  try {
+    const parsed = new Date(rawDate);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+      });
+    }
+  } catch (_) {}
+
+  return rawDate;
+}
+
 export default function TestSeriesComparisonTable({
   programs = [],
-  title = 'Choose the Right Prelims Mock Test Series for You',
-  subtitle = 'Compare the benefits of each series and choose the best fit for your UPSC & State PCS preparation goals. Select a structured program or a personalized approach to enhance your readiness for the Examination.'
+  title,
+  subtitle
 }: TestSeriesComparisonTableProps) {
+  const { t } = useTranslation();
+  const displayTitle = title || t('testSeriesHub.compareTitle');
+  const displaySubtitle = subtitle || t('testSeriesHub.compareSubtitle');
+
   const [selectedExam, setSelectedExam] = useState<string>('ALL');
   const [selectedMedium, setSelectedMedium] = useState<string>('ALL');
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
@@ -96,12 +124,10 @@ export default function TestSeriesComparisonTable({
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-heading font-extrabold text-[var(--text-color)] leading-tight">
-            {title.split('Test Series')[0]}
-            <span className="text-amber-600 dark:text-amber-400 font-extrabold">Test Series</span>
-            {title.split('Test Series')[1] || ''}
+            {displayTitle}
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 max-w-4xl leading-relaxed">
-            {subtitle}
+            {displaySubtitle}
           </p>
         </div>
 
@@ -209,6 +235,7 @@ export default function TestSeriesComparisonTable({
                 ) : (
                   availableDates.map(date => {
                     const isChecked = selectedDates.includes(date);
+                    const formattedDisplay = formatDateFormatted(date);
                     return (
                       <button
                         key={date}
@@ -216,7 +243,7 @@ export default function TestSeriesComparisonTable({
                         onClick={() => toggleDateSelection(date)}
                         className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-[var(--text-color)] hover:bg-amber-500/10 rounded-xl cursor-pointer"
                       >
-                        <span>{date}</span>
+                        <span>{formattedDisplay}</span>
                         <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
                           isChecked ? 'bg-amber-500 border-amber-500 text-slate-950 font-bold' : 'border-[var(--card-border)]'
                         }`}>
@@ -246,9 +273,7 @@ export default function TestSeriesComparisonTable({
                   ? 'Select Medium'
                   : selectedMedium === 'English'
                   ? 'English Medium'
-                  : selectedMedium === 'Hindi'
-                  ? 'Hindi Medium'
-                  : 'Bilingual'}
+                  : 'Hindi Medium'}
               </span>
               <ChevronDown className="w-4 h-4 text-slate-400" />
             </button>
@@ -261,8 +286,7 @@ export default function TestSeriesComparisonTable({
                 {[
                   { id: 'ALL', label: 'All Mediums' },
                   { id: 'English', label: 'English Medium' },
-                  { id: 'Hindi', label: 'Hindi Medium' },
-                  { id: 'Bilingual', label: 'Bilingual (Hindi & English)' }
+                  { id: 'Hindi', label: 'Hindi Medium' }
                 ].map(item => (
                   <button
                     key={item.id}
@@ -370,7 +394,7 @@ export default function TestSeriesComparisonTable({
                       {/* 5. Start Date */}
                       <td className="py-4 px-6 whitespace-nowrap">
                         <span className="text-xs font-semibold text-[var(--text-color)]">
-                          {program.batchStartDate || '09 August 2026'}
+                          {formatDateFormatted(program.batchStartDate)}
                         </span>
                       </td>
 
@@ -381,7 +405,7 @@ export default function TestSeriesComparisonTable({
                             ₹ {displayFee?.toLocaleString()}
                           </div>
 
-                          {program.schedulePdfUrl ? (
+                          {Boolean(program.schedulePdfUrl) && (
                             <a
                               href={program.schedulePdfUrl}
                               target="_blank"
@@ -390,14 +414,6 @@ export default function TestSeriesComparisonTable({
                             >
                               <span>Download Schedule</span>
                             </a>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => alert(`Schedule PDF for ${program.title} will be uploaded shortly.`)}
-                              className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
-                            >
-                              <span>Download Schedule</span>
-                            </button>
                           )}
                         </div>
                       </td>

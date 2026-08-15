@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { db } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
 import { 
-  Sparkles, Calendar, Clock, HelpCircle, Flame, Trophy, Award, ArrowLeft, ArrowRight,
-  CheckCircle2, XCircle, AlertCircle, RefreshCw, Bookmark, ChevronRight, Share2,
-  Lock, UserCheck, Search, Filter, Play, Check, BarChart2, ShieldCheck, User
+  Sparkles, Calendar, Clock, HelpCircle, Trophy, Award, ArrowLeft, ArrowRight,
+  CheckCircle2, XCircle, AlertCircle, RefreshCw, Bookmark, ChevronRight,
+  Search, Play, Check, BarChart2, User
 } from 'lucide-react';
 
 interface Question {
@@ -55,6 +55,17 @@ interface QuizResultData {
   details: QuestionDetail[];
 }
 
+interface LeaderboardEntry {
+  id?: string;
+  rank: number;
+  name: string;
+  userName?: string;
+  userId?: string;
+  score: number;
+  timeTakenSecs: number;
+  attemptDate: string;
+}
+
 export default function DailyQuizPortal() {
   const { t } = useTranslation();
 
@@ -73,7 +84,7 @@ export default function DailyQuizPortal() {
   const [previousQuizzes, setPreviousQuizzes] = useState<QuizMeta[]>([]);
   const [activeQuiz, setActiveQuiz] = useState<QuizMeta | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   // User authentication check (lazy initializer for purity)
   const [currentUser] = useState<{ userId?: string; name?: string; email?: string } | null>(() => {
@@ -145,26 +156,6 @@ export default function DailyQuizPortal() {
     return () => { isMounted = false; };
   }, []);
 
-  // Timer countdown hook for Quiz Player
-  useEffect(() => {
-    let interval: any = null;
-    if (timerActive && timeRemaining > 0) {
-      interval = setInterval(() => {
-        setTimeRemaining(prev => {
-          if (prev <= 1) {
-            setTimerActive(false);
-            handleAutoSubmitOnTimeOut();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [timerActive, timeRemaining]);
-
   // Start a Quiz
   const handleStartQuiz = async (quizMeta: QuizMeta) => {
     setActiveQuiz(quizMeta);
@@ -196,13 +187,13 @@ export default function DailyQuizPortal() {
   };
 
   // Option select handler
-  const handleSelectOption = (questionId: string, optionKey: string) => {
+  const handleSelectOption = useCallback((questionId: string, optionKey: string) => {
     if (viewMode !== 'playing') return;
     setUserAnswers(prev => ({
       ...prev,
       [questionId]: optionKey
     }));
-  };
+  }, [viewMode]);
 
   // Toggle mark for review
   const handleToggleReview = (questionId: string) => {
@@ -212,14 +203,8 @@ export default function DailyQuizPortal() {
     }));
   };
 
-  // Auto submit when time runs out
-  const handleAutoSubmitOnTimeOut = () => {
-    alert('Time has expired! Submitting your answers automatically.');
-    executeSubmitQuiz();
-  };
-
   // Execute quiz submission
-  const executeSubmitQuiz = async () => {
+  const executeSubmitQuiz = useCallback(async () => {
     if (!activeQuiz) return;
     setSubmitting(true);
     setErrorMsg(null);
@@ -242,7 +227,33 @@ export default function DailyQuizPortal() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [activeQuiz, userAnswers, startTime]);
+
+  // Auto submit when time runs out
+  const handleAutoSubmitOnTimeOut = useCallback(() => {
+    alert('Time has expired! Submitting your answers automatically.');
+    executeSubmitQuiz();
+  }, [executeSubmitQuiz]);
+
+  // Timer countdown hook for Quiz Player
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    if (timerActive && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            setTimerActive(false);
+            handleAutoSubmitOnTimeOut();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [timerActive, timeRemaining, handleAutoSubmitOnTimeOut]);
 
   // Load Leaderboard
   const handleLoadLeaderboard = async (quizId?: string) => {
@@ -282,7 +293,7 @@ export default function DailyQuizPortal() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [viewMode, currentQuestionIndex, questions, showSubmitConfirmModal]);
+  }, [viewMode, currentQuestionIndex, questions, showSubmitConfirmModal, handleSelectOption]);
 
   // Format seconds to MM:SS
   const formatTime = (seconds: number) => {

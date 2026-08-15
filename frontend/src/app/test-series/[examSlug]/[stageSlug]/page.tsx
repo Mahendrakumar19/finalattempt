@@ -20,10 +20,15 @@ export default function StageFolderPage() {
     async function loadStageFolder() {
       setLoading(true);
       try {
-        const hierarchy = await db.getExamsHierarchy(false);
+        const [hierarchy, allSeries] = await Promise.all([
+          db.getExamsHierarchy(false),
+          db.getTestSeries(false)
+        ]);
+
         const foundExam = hierarchy.find(
-          (e) => e.slug.toLowerCase() === examSlug.toLowerCase() || e.id === examSlug
+          (e) => e.slug.toLowerCase() === examSlug.toLowerCase() || e.id === examSlug || e.code?.toLowerCase() === examSlug.toLowerCase()
         );
+
         if (foundExam) {
           setExam(foundExam);
           const foundStage = (foundExam.stages || []).find(
@@ -31,13 +36,21 @@ export default function StageFolderPage() {
           );
           setStage(foundStage || null);
 
+          const examKey = (foundExam.code || foundExam.name || foundExam.slug || '').toLowerCase();
+          const stageKey = (foundStage?.name || stageSlug || '').toLowerCase();
+
           // Filter series belonging to this exam and stage
-          const filtered = (foundExam.testSeries || []).filter((s) => {
-            if (foundStage) {
-              return s.stageId === foundStage.id || s.category?.toLowerCase() === foundStage.name.toLowerCase();
-            }
-            return true;
+          const seriesPool = (foundExam.testSeries && foundExam.testSeries.length > 0) ? foundExam.testSeries : allSeries;
+          const filtered = seriesPool.filter((s) => {
+            const sExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
+            const sStage = (s.stageId || s.category || s.title || '').toLowerCase();
+
+            const isExamMatch = s.examId === foundExam.id || sExam.includes(examKey);
+            const isStageMatch = !foundStage || s.stageId === foundStage.id || sStage.includes(stageKey);
+
+            return isExamMatch && isStageMatch;
           });
+
           setSeriesList(filtered);
         }
       } catch (err) {
@@ -226,7 +239,7 @@ export default function StageFolderPage() {
                           )}
                         </div>
 
-                        {series.schedulePdfUrl && (
+                        {Boolean(series.schedulePdfUrl) && (
                           <a
                             href={series.schedulePdfUrl}
                             target="_blank"

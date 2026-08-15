@@ -5235,6 +5235,16 @@ class LmsDB {
     return true;
   }
 
+  public async getCourses(): Promise<Course[]> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM courses');
+        if (Array.isArray(rows) && rows.length > 0) return rows;
+      } catch (_) {}
+    }
+    return (this.localStore.courses || []) as Course[];
+  }
+
   public async exportBackup(): Promise<any> {
     return db.exportBackup();
   }

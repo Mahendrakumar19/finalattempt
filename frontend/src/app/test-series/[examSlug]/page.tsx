@@ -18,13 +18,25 @@ export default function ExamFolderPage() {
     async function loadExam() {
       setLoading(true);
       try {
-        const hierarchy = await db.getExamsHierarchy(false);
+        const [hierarchy, allSeries] = await Promise.all([
+          db.getExamsHierarchy(false),
+          db.getTestSeries(false)
+        ]);
+
         const found = hierarchy.find(
-          (e) => e.slug.toLowerCase() === examSlug.toLowerCase() || e.id === examSlug
+          (e) => e.slug.toLowerCase() === examSlug.toLowerCase() || e.id === examSlug || e.code?.toLowerCase() === examSlug.toLowerCase()
         );
+
         if (found) {
           setExam(found);
-          setSeriesList(found.testSeries || []);
+          const examKey = (found.code || found.name || found.slug || '').toLowerCase();
+          const matched = (found.testSeries && found.testSeries.length > 0)
+            ? found.testSeries
+            : allSeries.filter((s) => {
+                const sExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
+                return s.examId === found.id || sExam.includes(examKey);
+              });
+          setSeriesList(matched);
         }
       } catch (err) {
         console.error('Error loading exam folder:', err);
@@ -255,7 +267,7 @@ export default function ExamFolderPage() {
                             )}
                           </div>
 
-                          {series.schedulePdfUrl && (
+                          {Boolean(series.schedulePdfUrl) && (
                             <a
                               href={series.schedulePdfUrl}
                               target="_blank"

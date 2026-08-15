@@ -1104,13 +1104,39 @@ class FinalAttemptDB {
 
   public async getExamsHierarchy(includeUnpublished: boolean = false): Promise<ExamData[]> {
     const data = await this.apiFetch(`/api/test-series/hierarchy?includeUnpublished=${includeUnpublished}`);
+    let exams: ExamData[] = [];
     if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
       this.setLocalExamsStore(data.data);
-      return (data.data as ExamData[]).sort((a, b) =>
-        (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
-      );
+      exams = data.data as ExamData[];
+    } else {
+      exams = this.getLocalExamsStore();
     }
-    return this.getLocalExamsStore();
+
+    // Load all test series items to ensure every exam folder shows its test series count & items
+    const allSeries = await this.getTestSeries(includeUnpublished);
+
+    return exams.map((ex) => {
+      const examKey = (ex.code || ex.name || ex.id || '').toLowerCase();
+      const matchedSeries = (ex.testSeries && ex.testSeries.length > 0)
+        ? ex.testSeries
+        : allSeries.filter((s) => {
+            const seriesExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
+            return (
+              s.examId === ex.id ||
+              seriesExam.includes(examKey) ||
+              (examKey === 'bpsc' && seriesExam.includes('bpsc')) ||
+              (examKey === 'appsc' && (seriesExam.includes('appsc') || seriesExam.includes('appcs'))) ||
+              (examKey === 'apssb' && seriesExam.includes('apssb'))
+            );
+          });
+
+      return {
+        ...ex,
+        testSeries: matchedSeries
+      };
+    }).sort((a, b) =>
+      (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
+    );
   }
 
   public async getTestSeries(includeUnpublished: boolean = false): Promise<TestSeriesItem[]> {

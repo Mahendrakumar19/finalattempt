@@ -1205,6 +1205,54 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                 </div>
               </div>
 
+              {/* Schedule PDF Document URL / File Upload */}
+              <div>
+                <label className="block text-slate-400 mb-1">
+                  Schedule PDF Document URL (Optional - Leaves Download Schedule hidden if empty)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="url"
+                    placeholder="https://finalattemptias.com/uploads/schedules/bpsc_schedule.pdf"
+                    value={editingSeries.schedulePdfUrl || ''}
+                    onChange={e => setEditingSeries({ ...editingSeries, schedulePdfUrl: e.target.value })}
+                    className="flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs"
+                  />
+                  <label className="px-4 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs cursor-pointer shrink-0">
+                    <span>Upload Schedule PDF</span>
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        try {
+                          const res = await fetch(`${BACKEND_URL}/api/uploads`, {
+                            method: 'POST',
+                            body: formData
+                          });
+                          const data = await res.json();
+                          if (data && data.url) {
+                            setEditingSeries(prev => ({ ...prev, schedulePdfUrl: data.url }));
+                            alert('Schedule PDF uploaded successfully!');
+                          } else {
+                            // Local object URL fallback
+                            const localUrl = URL.createObjectURL(file);
+                            setEditingSeries(prev => ({ ...prev, schedulePdfUrl: localUrl }));
+                          }
+                        } catch (_) {
+                          const localUrl = URL.createObjectURL(file);
+                          setEditingSeries(prev => ({ ...prev, schedulePdfUrl: localUrl }));
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
               {/* Description */}
               <div>
                 <label className="block text-slate-400 mb-1">Program Overview & Description *</label>
