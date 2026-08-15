@@ -1455,10 +1455,13 @@ class BackendDB {
           }));
 
           // Resolve the best logo URL: prefer direct logoUrl, fall back to DAM storagePath
-          const resolvedLogoUrl = ex.logoUrl || 
-            (ex.logoStoragePath 
-              ? (ex.logoStoragePath.startsWith('http') ? ex.logoStoragePath : `uploads/${ex.logoStoragePath}`)
-              : null);
+          let rawLogo = ex.logoUrl || ex.logoStoragePath || null;
+          if (rawLogo && typeof rawLogo === 'string') {
+            rawLogo = rawLogo.trim().replace(/^uploads[\/\\]+/, '');
+          }
+          const resolvedLogoUrl = rawLogo
+            ? (rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('/') ? rawLogo : `/uploads/${rawLogo}`)
+            : null;
 
           exams.push({
             ...ex,
