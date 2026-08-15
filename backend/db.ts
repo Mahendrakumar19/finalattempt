@@ -1830,7 +1830,15 @@ class BackendDB {
   }
 
   // DYNAMIC CURRENT AFFAIRS SYSTEM METHODS
+  private editionsCache: { data: DynamicCurrentAffairEdition[]; timestamp: number; includeDrafts: boolean } | null = null;
+
   public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
+    if (this.editionsCache && this.editionsCache.includeDrafts === includeDrafts && (Date.now() - this.editionsCache.timestamp < 60000)) {
+      return this.editionsCache.data;
+    }
+
+    let resultEditions: DynamicCurrentAffairEdition[] = [];
+
     if (mysqlPool) {
       try {
         const [editionsRows]: any = await mysqlPool.query('SELECT * FROM current_affair_editions ORDER BY publishDate DESC');
@@ -1891,20 +1899,25 @@ class BackendDB {
             articles
           });
         }
-        return editions;
+        resultEditions = editions;
       } catch (err) {
         console.error('[BackendDB] getDynamicCurrentAffairsEditions error:', err);
       }
+    } else {
+      // Local Store Fallback
+      const storeEditions = this.localStore.dynamicCurrentAffairEditions || [];
+      if (includeDrafts) {
+        resultEditions = storeEditions;
+      } else {
+        resultEditions = storeEditions.map(ed => ({
+          ...ed,
+          articles: (ed.articles || []).filter(a => a.publishStatus === 'PUBLISHED')
+        })).filter(ed => (ed.articles || []).length > 0);
+      }
     }
-    
-    // Local Store Fallback
-    const storeEditions = this.localStore.dynamicCurrentAffairEditions || [];
-    if (includeDrafts) return storeEditions;
-    
-    return storeEditions.map(ed => ({
-      ...ed,
-      articles: (ed.articles || []).filter(a => a.publishStatus === 'PUBLISHED')
-    })).filter(ed => (ed.articles || []).length > 0);
+
+    this.editionsCache = { data: resultEditions, timestamp: Date.now(), includeDrafts };
+    return resultEditions;
   }
 
   public async getDynamicCurrentAffairsEditionByDate(date: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition | null> {
@@ -2071,6 +2084,7 @@ class BackendDB {
       editions.unshift(nextEd);
     }
     
+    this.editionsCache = null;
     this.saveLocalData();
     return true;
   }

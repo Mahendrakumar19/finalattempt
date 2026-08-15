@@ -66,24 +66,31 @@ export default function NewsTodayLayout({
       setLoading(true);
       try {
         const initialDate = currentDateStr;
-        // 1. Parallel fetch: Fetch editions list and target date edition concurrently
-        const [list, ed] = await Promise.all([
-          db.getDynamicCurrentAffairsEditions(false),
-          initialDate ? db.getDynamicCurrentAffairsEditionByDate(initialDate, false) : Promise.resolve(null)
-        ]);
+        let resolvedEdition: DynamicCurrentAffairEdition | null = null;
 
-        setEditions(list || []);
-
-        let resolvedEdition = ed;
-        let targetDate = initialDate;
-
-        if (!targetDate && list && list.length > 0) {
-          const sorted = [...list].sort((a, b) => b.publishDate.localeCompare(a.publishDate));
-          targetDate = sorted[0].publishDate;
-          resolvedEdition = await db.getDynamicCurrentAffairsEditionByDate(targetDate, false);
+        if (initialDate) {
+          resolvedEdition = await db.getDynamicCurrentAffairsEditionByDate(initialDate, false);
         }
 
-        setCurrentEdition(resolvedEdition);
+        // Fetch full editions list in background for calendar
+        db.getDynamicCurrentAffairsEditions(false).then(list => {
+          setEditions(list || []);
+          if (!resolvedEdition && list && list.length > 0) {
+            const sorted = [...list].sort((a, b) => b.publishDate.localeCompare(a.publishDate));
+            db.getDynamicCurrentAffairsEditionByDate(sorted[0].publishDate, false).then(topEd => {
+              if (topEd) {
+                setCurrentEdition(topEd);
+                if (topEd.articles && topEd.articles.length > 0) {
+                  setActiveArticle(topEd.articles[0]);
+                }
+              }
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+
+        if (resolvedEdition) {
+          setCurrentEdition(resolvedEdition);
+        }
 
         if (resolvedEdition && resolvedEdition.articles && resolvedEdition.articles.length > 0) {
           let matched = currentArticleSlug
