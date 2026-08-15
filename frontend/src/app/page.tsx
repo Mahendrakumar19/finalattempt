@@ -1,23 +1,18 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {
-  Sparkles,
-  Flame,
   Users,
   BookOpen,
   ChevronRight,
   CheckCircle,
-  Star,
   FileText,
   GraduationCap,
   Video,
   SlidersHorizontal,
-  Bell,
-  ChevronLeft,
   ExternalLink,
   ArrowRight,
   Layers,
@@ -25,30 +20,26 @@ import {
   Compass,
   TrendingUp,
   ShieldCheck,
-  UserCheck,
-  Clock,
-  Award,
-  Download,
   Newspaper,
-  Timer,
   Zap,
   Lightbulb,
-  Radio,
-  Puzzle,
   FileCheck,
-  Search,
   Target,
   Edit3,
   BarChart2,
   Rocket,
-  Library,
-  BookMarked
+  Flame
 } from 'lucide-react';
 
 import { db, Course } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
-import TestimonialCarousel from '@/components/TestimonialCarousel';
 import NextImage from 'next/image';
+
+// Lazy-load below-fold heavy component — deferred until viewport scroll
+const TestimonialCarousel = dynamic(() => import('@/components/TestimonialCarousel'), {
+  ssr: false,
+  loading: () => <div className="h-40 flex items-center justify-center text-slate-400 text-xs">Loading...</div>
+});
 
 
 
@@ -84,7 +75,52 @@ export interface AnnouncementItem {
   createdAt?: string;
 }
 
+// ── YouTube Facade Component ─────────────────────────────────────────────────
+// Shows a static thumbnail with play button. Replaces iframe with real embed
+// only when the user clicks — eliminates YouTube JS SDK (~500KB) from page load.
+function YoutubeFacade({ videoId, title }: { videoId: string; title: string }) {
+  const [active, setActive] = useState(false);
+  if (active) {
+    return (
+      <div className="relative aspect-video w-full bg-slate-950">
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+          title={title}
+          allowFullScreen
+          allow="autoplay; encrypted-media"
+          className="absolute inset-0 w-full h-full border-0"
+        />
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => setActive(true)}
+      aria-label={`Play video: ${title}`}
+      className="relative aspect-video w-full bg-slate-950 overflow-hidden group cursor-pointer block"
+    >
+      <img
+        src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
+        alt={title}
+        loading="lazy"
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+      />
+      {/* Play button overlay */}
+      <span className="absolute inset-0 flex items-center justify-center">
+        <span className="w-14 h-14 rounded-full bg-red-600 group-hover:bg-red-700 flex items-center justify-center shadow-xl transition-all duration-200 group-hover:scale-110">
+          <svg viewBox="0 0 24 24" className="w-7 h-7 text-white fill-current ml-1" aria-hidden="true">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </span>
+      </span>
+    </button>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function Home() {
+
   const { t } = useTranslation();
   // Real-time dynamic states
   const [heroSettings, setHeroSettings] = useState({
@@ -959,15 +995,8 @@ export default function Home() {
                 >
                   <div className="space-y-4">
                     {/* Embedded Player */}
-                    <div className="relative aspect-video w-full bg-slate-950">
-                      <iframe
-                        src={`https://www.youtube.com/embed/${video.youtubeVideoId}?autoplay=0&rel=0`}
-                        title={video.title}
-                        loading="lazy"
-                        allowFullScreen
-                        className="absolute inset-0 w-full h-full border-0"
-                      />
-                    </div>
+                    {/* YouTube Facade: shows thumbnail, loads iframe only on click (saves ~500KB of YouTube JS) */}
+                    <YoutubeFacade videoId={video.youtubeVideoId} title={video.title} />
 
                     <div className="p-6 space-y-3">
                       <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">
