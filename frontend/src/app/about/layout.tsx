@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "About Us | Final Attempt — Coaching Patna",
-  description: "Learn about Final Attempt, our mission, vision, Patna Boring Road crossing center, and contact options for BPSC batches. Led by expert mentors with proven BPSC results.",
+  description: "Learn about Final Attempt, our mission, vision, Patna Boring Road center, and batch details. Guided by expert mentors with proven civil service results.",
   keywords: ["About Final Attempt", "Boring Road Coaching BPSC", "Patna BPSC coaching contact", "Siddharth Kumar Sinha"],
   alternates: { canonical: "https://finalattemptias.com/about" },
   openGraph: {

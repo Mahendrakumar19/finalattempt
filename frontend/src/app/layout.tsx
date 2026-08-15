@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   },
 
   description:
-    "Final Attempt is the best platform for UPSC & State PCS preparation. Get expert mentorship, daily current affairs in Hindi & English, free test series, PYQs, and high-quality study materials.",
+    "Final Attempt is the best platform for UPSC & State PCS prep. Get expert mentorship, daily Hindi/English current affairs, free test series & PYQ study notes.",
 
   applicationName: "Final Attempt",
 
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     title:
       "Final Attempt | Best Platform for UPSC & State PCS",
     description:
-      "Final Attempt is the best platform for UPSC & State PCS preparation. Get expert mentorship, daily current affairs in Hindi & English, free test series, PYQs, and high-quality study materials.",
+      "Final Attempt is the best platform for UPSC & State PCS prep. Get expert mentorship, daily Hindi/English current affairs, free test series & PYQ study notes.",
     url: "https://finalattemptias.com",
     images: [
       {
@@ -65,7 +65,7 @@ export const metadata: Metadata = {
     site: "@FinalAttempt",
     title: "Final Attempt | Best Platform for UPSC & State PCS",
     description:
-      "Final Attempt is the best platform for UPSC & State PCS preparation. Daily current affairs, free test series, mentorship & study materials.",
+      "Final Attempt is the best platform for UPSC & State PCS prep. Get expert mentorship, daily Hindi/English current affairs, free test series & PYQ study notes.",
     images: ["/og-image.jpg"],
   },
 

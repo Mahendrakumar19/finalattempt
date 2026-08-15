@@ -1021,8 +1021,10 @@ httpServer.listen(PORT, () => {
       // 1. Warm up dynamic current affairs editions & articles
       const editions = await db.getDynamicCurrentAffairsEditions(false);
       if (Array.isArray(editions) && editions.length > 0) {
+        let totalArticles = 0;
         await Promise.all(editions.map(async (ed) => {
           if (Array.isArray(ed.articles) && ed.articles.length > 0) {
+            totalArticles += ed.articles.length;
             // Warm article list metadata (title, summary) in parallel
             await ContentLocalizer.localizeEntityList(
               'current_affair_article',
@@ -1031,10 +1033,11 @@ httpServer.listen(PORT, () => {
               'hi',
               ['summary']
             );
-            // Warm full article content in parallel (background — non-blocking)
-            ed.articles.forEach((art) => {
+            // Warm full article content in parallel
+            await Promise.all(ed.articles.map(async (art) => {
               if (art.slug) {
-                db.getDynamicCurrentAffairArticle(art.slug, false).then(async (fullArt) => {
+                try {
+                  const fullArt = await db.getDynamicCurrentAffairArticle(art.slug, false);
                   if (fullArt) {
                     await ContentLocalizer.localizeEntity(
                       'current_affair_article',
@@ -1044,12 +1047,12 @@ httpServer.listen(PORT, () => {
                       ['content', 'summary', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways']
                     );
                   }
-                }).catch(() => {});
+                } catch (_) {}
               }
-            });
+            }));
           }
         }));
-        console.log(`[TranslationWarmUp] Warmed ${editions.length} editions metadata in Hindi.`);
+        console.log(`[TranslationWarmUp] Successfully warmed ${editions.length} editions (${totalArticles} articles) in Hindi.`);
       }
     } catch (err: any) {
       console.error('[TranslationWarmUp] Warm-up error:', err.message || err);
@@ -1066,27 +1069,29 @@ httpServer.listen(PORT, () => {
           'hi',
           []
         );
-        // Warm full blog content in background
-        blogs.forEach((blog) => {
-          ContentLocalizer.localizeEntityList(
-            'blog',
-            [blog],
-            ['content'],
-            'hi',
-            ['content']
-          ).catch(() => {});
-        });
-        console.log(`[TranslationWarmUp] Warmed ${blogs.length} blogs metadata in Hindi.`);
+        // Warm full blog content in parallel
+        await Promise.all(blogs.map(async (blog) => {
+          try {
+            await ContentLocalizer.localizeEntityList(
+              'blog',
+              [blog],
+              ['content'],
+              'hi',
+              ['content']
+            );
+          } catch (_) {}
+        }));
+        console.log(`[TranslationWarmUp] Successfully warmed ${blogs.length} blogs in Hindi.`);
       }
     } catch (err: any) {
       console.error('[TranslationWarmUp] Blog warm-up error:', err.message || err);
     }
   }
 
-  // Start warm-up 30 seconds after server boot (gives DB time to connect)
+  // Start warm-up 3 seconds after server boot (reduced from 30s)
   setTimeout(() => {
-    warmUpHindiTranslations().catch(() => {});
-  }, 30000);
+    warmUpHindiTranslations().catch((e) => console.error('[TranslationWarmUp] Startup error:', e));
+  }, 3000);
 
   // Re-warm every 10 minutes to pick up newly published articles automatically
   setInterval(() => {
