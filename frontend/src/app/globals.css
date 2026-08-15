@@ -33,8 +33,9 @@ html.locale-hi [lang="en"] {
 
 @theme inline {
   --variant-dark: class;
-  --font-heading: var(--font-heading), sans-serif;
-  --font-body: var(--font-body), sans-serif;
+  --font-heading: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-inlander: 'Cinzel', 'Playfair Display', serif;
   
   /* ═══════════════════════════════════════════════════════════
      BRAND PALETTE — Dark Navy + Saffron/Gold (Indian EdTech)
@@ -360,8 +361,16 @@ html.dark .real-glass-card .content-body p {
   box-shadow: 0 0 35px rgba(245, 158, 11, 0.4);
 }
 
+.font-heading {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif !important;
+}
+
+.font-body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
 .font-inlander {
-  font-family: var(--font-inlander);
+  font-family: 'Cinzel', 'Playfair Display', serif !important;
   letter-spacing: 0.08em;
 }
 

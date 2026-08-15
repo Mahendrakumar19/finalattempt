@@ -479,28 +479,33 @@ class FinalAttemptDB {
   }
 
   public async getCurrentAffairs() {
-    const cached = this.getCachedData<any[]>('current_affairs_cache', 60000);
+    const locale = this.getLocale();
+    const cacheKey = `current_affairs_cache_${locale}`;
+    const cached = this.getCachedData<any[]>(cacheKey, 60000);
     if (cached) return cached;
 
     const data = await this.apiFetch('/api/current-affairs');
     const result = data || currentAffairsData;
-    this.setCachedData('current_affairs_cache', result);
+    this.setCachedData(cacheKey, result);
     return result;
   }
 
   public async getBlogs() {
-    const cached = this.getCachedData<any[]>('blogs_cache', 60000);
+    const locale = this.getLocale();
+    const cacheKey = `blogs_cache_${locale}`;
+    const cached = this.getCachedData<any[]>(cacheKey, 60000);
     if (cached) return cached;
 
     const data = await this.apiFetch('/api/blogs');
     const list = Array.isArray(data) ? data : (data?.data || blogData);
     const sorted = [...list].reverse();
-    this.setCachedData('blogs_cache', sorted);
+    this.setCachedData(cacheKey, sorted);
     return sorted;
   }
 
   public async getBlogById(id: string) {
-    const cacheKey = `blog_id_${id}`;
+    const locale = this.getLocale();
+    const cacheKey = `blog_id_${id}_${locale}`;
     const cached = this.getCachedData<any>(cacheKey, 60000);
     if (cached) return cached;
 
@@ -843,7 +848,8 @@ class FinalAttemptDB {
 
   // Dynamic Current Affairs API calls
   public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
-    const cacheKey = `ca_editions_${includeDrafts}`;
+    const locale = this.getLocale();
+    const cacheKey = `ca_editions_${includeDrafts}_${locale}`;
     const cached = this.getCachedData<DynamicCurrentAffairEdition[]>(cacheKey, 60000);
     if (cached) return cached;
 
@@ -854,7 +860,8 @@ class FinalAttemptDB {
   }
 
   public async getDynamicCurrentAffairsEditionByDate(date: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition | null> {
-    const cacheKey = `ca_edition_date_${date}_${includeDrafts}`;
+    const locale = this.getLocale();
+    const cacheKey = `ca_edition_date_${date}_${includeDrafts}_${locale}`;
     const cached = this.getCachedData<DynamicCurrentAffairEdition>(cacheKey, 60000);
     if (cached) return cached;
 
