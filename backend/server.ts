@@ -477,7 +477,7 @@ app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
     const list = await db.getDynamicCurrentAffairsEditions(includeDrafts);
 
     if (targetLang === 'hi' && Array.isArray(list) && list.length > 0) {
-      for (const ed of list) {
+      await Promise.all(list.map(async (ed) => {
         if (Array.isArray(ed.articles) && ed.articles.length > 0) {
           ed.articles = await ContentLocalizer.localizeEntityList(
             'current_affair_article',
@@ -487,7 +487,7 @@ app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
             ['summary']
           );
         }
-      }
+      }));
     }
     res.json(list);
   } catch (err: any) {
@@ -1011,4 +1011,85 @@ httpServer.listen(PORT, () => {
       console.error('[YouTube Scheduler] Initial sync error:', e.message);
     }
   }, 5000);
+
+  // ── Hindi Translation Warm-Up Engine ──────────────────────────────────────
+  // Pre-translates all dynamic current affairs articles and blogs into Hindi
+  // in the background so first-user requests get instant cached responses.
+  async function warmUpHindiTranslations() {
+    console.log('[TranslationWarmUp] Starting Hindi pre-translation warm-up...');
+    try {
+      // 1. Warm up dynamic current affairs editions & articles
+      const editions = await db.getDynamicCurrentAffairsEditions(false);
+      if (Array.isArray(editions) && editions.length > 0) {
+        await Promise.all(editions.map(async (ed) => {
+          if (Array.isArray(ed.articles) && ed.articles.length > 0) {
+            // Warm article list metadata (title, summary) in parallel
+            await ContentLocalizer.localizeEntityList(
+              'current_affair_article',
+              ed.articles,
+              ['title', 'summary'],
+              'hi',
+              ['summary']
+            );
+            // Warm full article content in parallel (background — non-blocking)
+            ed.articles.forEach((art) => {
+              if (art.slug) {
+                db.getDynamicCurrentAffairArticle(art.slug, false).then(async (fullArt) => {
+                  if (fullArt) {
+                    await ContentLocalizer.localizeEntity(
+                      'current_affair_article',
+                      fullArt,
+                      ['title', 'summary', 'content', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways'],
+                      'hi',
+                      ['content', 'summary', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways']
+                    );
+                  }
+                }).catch(() => {});
+              }
+            });
+          }
+        }));
+        console.log(`[TranslationWarmUp] Warmed ${editions.length} editions metadata in Hindi.`);
+      }
+    } catch (err: any) {
+      console.error('[TranslationWarmUp] Warm-up error:', err.message || err);
+    }
+
+    try {
+      // 2. Warm up blogs
+      const blogs = await db.getBlogs();
+      if (Array.isArray(blogs) && blogs.length > 0) {
+        await ContentLocalizer.localizeEntityList(
+          'blog',
+          blogs,
+          ['title', 'blurb', 'excerpt', 'category'],
+          'hi',
+          []
+        );
+        // Warm full blog content in background
+        blogs.forEach((blog) => {
+          ContentLocalizer.localizeEntityList(
+            'blog',
+            [blog],
+            ['content'],
+            'hi',
+            ['content']
+          ).catch(() => {});
+        });
+        console.log(`[TranslationWarmUp] Warmed ${blogs.length} blogs metadata in Hindi.`);
+      }
+    } catch (err: any) {
+      console.error('[TranslationWarmUp] Blog warm-up error:', err.message || err);
+    }
+  }
+
+  // Start warm-up 30 seconds after server boot (gives DB time to connect)
+  setTimeout(() => {
+    warmUpHindiTranslations().catch(() => {});
+  }, 30000);
+
+  // Re-warm every 10 minutes to pick up newly published articles automatically
+  setInterval(() => {
+    warmUpHindiTranslations().catch(() => {});
+  }, 10 * 60 * 1000);
 });

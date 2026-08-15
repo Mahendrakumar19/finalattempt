@@ -1841,65 +1841,95 @@ class BackendDB {
 
     if (mysqlPool) {
       try {
+        // 1. Fetch all editions in one query
         const [editionsRows]: any = await mysqlPool.query('SELECT * FROM current_affair_editions ORDER BY publishDate DESC');
-        const editions: DynamicCurrentAffairEdition[] = [];
-        
-        for (const edRow of editionsRows) {
+        if (!editionsRows || editionsRows.length === 0) {
+          resultEditions = [];
+        } else {
           const statusFilter = includeDrafts ? '' : "AND publishStatus = 'PUBLISHED'";
-          const [articlesRows]: any = await mysqlPool.query(
-            `SELECT * FROM current_affair_articles WHERE editionId = ? ${statusFilter} ORDER BY createdAt DESC`,
-            [edRow.id]
+          const editionIds = editionsRows.map((e: any) => e.id);
+
+          // 2. Bulk-fetch ALL articles for all editions in ONE query
+          const [allArticlesRows]: any = await mysqlPool.query(
+            `SELECT * FROM current_affair_articles WHERE editionId IN (?) ${statusFilter} ORDER BY createdAt DESC`,
+            [editionIds]
           );
-          
-          const articles: DynamicCurrentAffairArticle[] = [];
-          for (const artRow of articlesRows) {
-            // SEO
-            let seo: DynamicCurrentAffairSeo = {};
-            if (artRow.seoId) {
-              const [seoRows]: any = await mysqlPool.query('SELECT * FROM current_affair_seo WHERE id = ?', [artRow.seoId]);
-              if (seoRows.length > 0) seo = seoRows[0];
+
+          if (!allArticlesRows || allArticlesRows.length === 0) {
+            resultEditions = editionsRows.map((edRow: any) => ({ ...edRow, articles: [] }));
+          } else {
+            const articleIds = allArticlesRows.map((a: any) => a.id);
+            const seoIds = allArticlesRows.map((a: any) => a.seoId).filter(Boolean);
+
+            // 3. Bulk-fetch ALL related data in parallel (5 queries total instead of N*5)
+            const [seoRowsAll, subRowsAll, exRowsAll, tagRowsAll, medRowsAll]: any[] = await Promise.all([
+              seoIds.length > 0
+                ? mysqlPool.query('SELECT * FROM current_affair_seo WHERE id IN (?)', [seoIds]).then(([r]: any) => r)
+                : Promise.resolve([]),
+              mysqlPool.query(
+                'SELECT asub.articleId, s.name FROM current_affair_subjects s JOIN current_affair_article_subjects asub ON s.id = asub.subjectId WHERE asub.articleId IN (?)',
+                [articleIds]
+              ).then(([r]: any) => r),
+              mysqlPool.query(
+                'SELECT aex.articleId, e.name FROM current_affair_exams e JOIN current_affair_article_exams aex ON e.id = aex.examId WHERE aex.articleId IN (?)',
+                [articleIds]
+              ).then(([r]: any) => r),
+              mysqlPool.query(
+                'SELECT atg.articleId, t.name FROM current_affair_tags t JOIN current_affair_article_tags atg ON t.id = atg.tagId WHERE atg.articleId IN (?)',
+                [articleIds]
+              ).then(([r]: any) => r),
+              mysqlPool.query(
+                'SELECT articleId, type, url FROM current_affair_media WHERE articleId IN (?)',
+                [articleIds]
+              ).then(([r]: any) => r)
+            ]);
+
+            // 4. Build lookup maps for O(1) access
+            const seoMap = new Map((seoRowsAll as any[]).map((s: any) => [s.id, s]));
+            const subMap = new Map<string, string[]>();
+            const exMap = new Map<string, string[]>();
+            const tagMap = new Map<string, string[]>();
+            const medMap = new Map<string, { type: string; url: string }[]>();
+
+            for (const row of (subRowsAll as any[])) {
+              if (!subMap.has(row.articleId)) subMap.set(row.articleId, []);
+              subMap.get(row.articleId)!.push(row.name);
             }
-            
-            // Subjects
-            const [subRows]: any = await mysqlPool.query(
-              'SELECT name FROM current_affair_subjects s JOIN current_affair_article_subjects asub ON s.id = asub.subjectId WHERE asub.articleId = ?',
-              [artRow.id]
-            );
-            
-            // Exams
-            const [exRows]: any = await mysqlPool.query(
-              'SELECT name FROM current_affair_exams e JOIN current_affair_article_exams aex ON e.id = aex.examId WHERE aex.articleId = ?',
-              [artRow.id]
-            );
-            
-            // Tags
-            const [tagRows]: any = await mysqlPool.query(
-              'SELECT name FROM current_affair_tags t JOIN current_affair_article_tags atg ON t.id = atg.tagId WHERE atg.articleId = ?',
-              [artRow.id]
-            );
-            
-            // Media
-            const [medRows]: any = await mysqlPool.query(
-              'SELECT type, url FROM current_affair_media WHERE articleId = ?',
-              [artRow.id]
-            );
-            
-            articles.push({
-              ...artRow,
-              seo,
-              media: medRows,
-              subjects: subRows.map((s: any) => s.name),
-              exams: exRows.map((e: any) => e.name),
-              tags: tagRows.map((t: any) => t.name)
-            });
+            for (const row of (exRowsAll as any[])) {
+              if (!exMap.has(row.articleId)) exMap.set(row.articleId, []);
+              exMap.get(row.articleId)!.push(row.name);
+            }
+            for (const row of (tagRowsAll as any[])) {
+              if (!tagMap.has(row.articleId)) tagMap.set(row.articleId, []);
+              tagMap.get(row.articleId)!.push(row.name);
+            }
+            for (const row of (medRowsAll as any[])) {
+              if (!medMap.has(row.articleId)) medMap.set(row.articleId, []);
+              medMap.get(row.articleId)!.push({ type: row.type, url: row.url });
+            }
+
+            // 5. Group articles by editionId using lookup maps
+            const articlesByEdition = new Map<string, DynamicCurrentAffairArticle[]>();
+            for (const artRow of (allArticlesRows as any[])) {
+              const articleData: DynamicCurrentAffairArticle = {
+                ...artRow,
+                seo: artRow.seoId ? (seoMap.get(artRow.seoId) || {}) : {},
+                media: medMap.get(artRow.id) || [],
+                subjects: subMap.get(artRow.id) || [],
+                exams: exMap.get(artRow.id) || [],
+                tags: tagMap.get(artRow.id) || []
+              };
+              if (!articlesByEdition.has(artRow.editionId)) articlesByEdition.set(artRow.editionId, []);
+              articlesByEdition.get(artRow.editionId)!.push(articleData);
+            }
+
+            // 6. Assemble final editions
+            resultEditions = editionsRows.map((edRow: any) => ({
+              ...edRow,
+              articles: articlesByEdition.get(edRow.id) || []
+            }));
           }
-          
-          editions.push({
-            ...edRow,
-            articles
-          });
         }
-        resultEditions = editions;
       } catch (err) {
         console.error('[BackendDB] getDynamicCurrentAffairsEditions error:', err);
       }
