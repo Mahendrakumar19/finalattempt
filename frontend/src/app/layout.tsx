@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description:
     "Final Attempt IAS is Bihar's #1 BPSC & UPSC coaching institute in Patna. Expert mentorship, daily current affairs in Hindi & English, free mock tests, PYQs, study material and proven results.",
 
-  applicationName: "Final Attempt",
+  applicationName: "Final Attempt IAS",
 
   keywords: [
     "BPSC Preparation",
@@ -37,16 +37,38 @@ export const metadata: Metadata = {
     "BPSC Prelims Test Series",
   ],
 
-  authors: [{ name: "Final Attempt" }],
+  authors: [{ name: "Final Attempt IAS", url: "https://finalattemptias.com" }],
+
+  alternates: {
+    canonical: "https://finalattemptias.com",
+  },
 
   openGraph: {
     type: "website",
-    siteName: "Final Attempt",
+    siteName: "Final Attempt IAS",
     title:
       "Final Attempt IAS | #1 BPSC & UPSC Coaching in Patna — Mentorship, Current Affairs & Mock Tests",
     description:
       "Final Attempt IAS is Bihar's #1 BPSC & UPSC coaching institute in Patna. Expert mentorship, daily current affairs in Hindi & English, free mock tests, PYQs, study material and proven results.",
     url: "https://finalattemptias.com",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Final Attempt IAS — BPSC & UPSC Coaching in Patna",
+      },
+    ],
+    locale: "en_IN",
+  },
+
+  twitter: {
+    card: "summary_large_image",
+    site: "@FinalAttemptIAS",
+    title: "Final Attempt IAS | #1 BPSC & UPSC Coaching in Patna",
+    description:
+      "Bihar's #1 BPSC & UPSC coaching in Patna. Daily current affairs, free mock tests, mentorship & study material.",
+    images: ["/og-image.jpg"],
   },
 
   icons: {
@@ -56,6 +78,18 @@ export const metadata: Metadata = {
     ],
     shortcut: "/favicon.ico",
     apple: "/favicon.png",
+  },
+
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
