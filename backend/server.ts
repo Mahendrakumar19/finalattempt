@@ -1062,6 +1062,7 @@ httpServer.listen(PORT, () => {
       // 2. Warm up weekly/monthly/yearly compilations
       const compilations = await db.getCompilations();
       if (Array.isArray(compilations) && compilations.length > 0) {
+        let compilationArticlesCount = 0;
         await ContentLocalizer.localizeEntityList(
           'current_affairs_compilation',
           compilations,
@@ -1069,7 +1070,25 @@ httpServer.listen(PORT, () => {
           'hi',
           ['summary']
         );
-        console.log(`[TranslationWarmUp] Successfully warmed ${compilations.length} current affairs compilations in Hindi.`);
+        // Pre-translate compilation articles
+        await Promise.all(compilations.map(async (c: any) => {
+          if (c && c.key) {
+            const compDetail: any = await db.getCompilationByKey(c.key);
+            if (compDetail && Array.isArray(compDetail.articles) && compDetail.articles.length > 0) {
+              compilationArticlesCount += compDetail.articles.length;
+              await ContentLocalizer.localizeEntityList(
+                'current_affair_article',
+                compDetail.articles,
+                ['title', 'summary', 'content', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways'],
+                'hi',
+                ['content', 'summary', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways']
+              );
+            }
+          }
+        }));
+        console.log(`[TranslationWarmUp] Successfully warmed ${compilations.length} compilations (${compilationArticlesCount} compilation articles) in Hindi.`);
+      } else {
+        console.log(`[TranslationWarmUp] 0 compilations found to warm.`);
       }
     } catch (err: any) {
       console.error('[TranslationWarmUp] Compilations warm-up error:', err.message || err);

@@ -106,7 +106,7 @@ export default function NewsTodayLayout({
             const cacheKey = `${matched.slug}_${locale}`;
             if (articleCacheRef.current.has(cacheKey)) {
               setActiveArticle(articleCacheRef.current.get(cacheKey)!);
-            } else if (!matched.content) {
+            } else {
               db.getDynamicCurrentAffairArticle(matched.slug, false).then(fullArt => {
                 if (fullArt) {
                   articleCacheRef.current.set(cacheKey, fullArt);
