@@ -494,63 +494,79 @@ class FinalAttemptDB {
 
   // ── Daily Quiz Service Methods ─────────────────────────────────────────────
   public async getTodayDailyQuiz(): Promise<any> {
-    const res = await this.apiFetch('/api/quizzes/daily/today');
+    const res = (await this.apiFetch('/api/quizzes/daily/today')) || (await this.apiFetch('/api/lms/quizzes/daily/today'));
     return res?.data || null;
   }
 
   public async getPreviousDailyQuizzes(): Promise<any[]> {
-    const res = await this.apiFetch('/api/quizzes/daily/list');
+    const res = (await this.apiFetch('/api/quizzes/daily/list')) || (await this.apiFetch('/api/lms/quizzes/daily/list'));
     return res?.data || [];
   }
 
   public async startDailyQuiz(quizId: string): Promise<any> {
-    const res = await this.apiFetch(`/api/quizzes/daily/${quizId}/start`);
+    const res = (await this.apiFetch(`/api/quizzes/daily/${quizId}/start`)) || (await this.apiFetch(`/api/lms/quizzes/daily/${quizId}/start`));
     return res?.data || null;
   }
 
   public async submitDailyQuiz(quizId: string, answers: Record<string, string>, timeTakenSecs: number): Promise<any> {
-    const res = await this.apiFetch(`/api/quizzes/daily/${quizId}/submit`, {
+    const res = (await this.apiFetch(`/api/quizzes/daily/${quizId}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers, timeTakenSecs })
-    });
+    })) || (await this.apiFetch(`/api/lms/quizzes/daily/${quizId}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers, timeTakenSecs })
+    }));
     return res?.data || null;
   }
 
   public async getDailyQuizLeaderboard(quizId: string): Promise<any[]> {
-    const res = await this.apiFetch(`/api/quizzes/daily/${quizId}/leaderboard`);
+    const res = (await this.apiFetch(`/api/quizzes/daily/${quizId}/leaderboard`)) || (await this.apiFetch(`/api/lms/quizzes/daily/${quizId}/leaderboard`));
     return res?.data || [];
   }
 
   public async saveDailyQuiz(quiz: any): Promise<any> {
-    const res = await this.apiFetch('/api/quizzes/admin/daily', {
+    const res = (await this.apiFetch('/api/quizzes/admin/daily', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(quiz)
-    });
+    })) || (await this.apiFetch('/api/lms/quizzes/admin/daily', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(quiz)
+    }));
     return res?.data || null;
   }
 
   public async deleteDailyQuiz(id: string): Promise<boolean> {
-    const res = await this.apiFetch(`/api/quizzes/admin/daily/${id}`, {
+    const res = (await this.apiFetch(`/api/quizzes/admin/daily/${id}`, {
       method: 'DELETE'
-    });
+    })) || (await this.apiFetch(`/api/lms/quizzes/admin/daily/${id}`, {
+      method: 'DELETE'
+    }));
     return res?.success || false;
   }
 
   public async saveDailyQuizQuestion(quizId: string, question: any): Promise<any> {
-    const res = await this.apiFetch(`/api/quizzes/admin/daily/${quizId}/questions`, {
+    const res = (await this.apiFetch(`/api/quizzes/admin/daily/${quizId}/questions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(question)
-    });
+    })) || (await this.apiFetch(`/api/lms/quizzes/admin/daily/${quizId}/questions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(question)
+    }));
     return res?.data || null;
   }
 
   public async deleteDailyQuizQuestion(quizId: string, qId: string): Promise<boolean> {
-    const res = await this.apiFetch(`/api/quizzes/admin/daily/${quizId}/questions/${qId}`, {
+    const res = (await this.apiFetch(`/api/quizzes/admin/daily/${quizId}/questions/${qId}`, {
       method: 'DELETE'
-    });
+    })) || (await this.apiFetch(`/api/lms/quizzes/admin/daily/${quizId}/questions/${qId}`, {
+      method: 'DELETE'
+    }));
     return res?.success || false;
   }
 

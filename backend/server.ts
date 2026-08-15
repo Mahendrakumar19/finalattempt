@@ -104,6 +104,7 @@ app.use((req, res, next) => {
 
 // ─── Route mounts ──────────────────────────────────────────────────────────
 app.use('/api/auth', authRouter);
+app.use('/api/lms/quizzes', quizzesRouter);
 app.use('/api/lms', lmsRouter);
 app.use('/api/payments', paymentsRouter);
 app.use('/api/quizzes', quizzesRouter);
