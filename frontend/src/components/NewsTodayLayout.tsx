@@ -405,50 +405,7 @@ export default function NewsTodayLayout({
         )}
       </div>
 
-      {/* 2. DYNAMIC INDEX / TABLE OF CONTENTS (PARSED FROM ARTICLE HTML HEADINGS) */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-5 shadow-xs space-y-3">
-        <div
-          onClick={() => setTocExpanded(!tocExpanded)}
-          className="flex items-center justify-between cursor-pointer border-b border-slate-100 dark:border-white/5 pb-2.5 select-none"
-        >
-          <div className="flex items-center gap-2">
-            <ListOrdered className="w-4 h-4 text-amber-500" />
-            <h3 className="font-heading font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
-              Article Headings Index
-            </h3>
-          </div>
-          {tocExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-        </div>
-
-        {tocExpanded && (
-          <div className="space-y-1 pt-1 text-xs">
-            {tocItems.length === 0 ? (
-              <p className="text-[11px] text-slate-400 italic px-2 py-1">
-                Sub-headings will appear automatically as you read.
-              </p>
-            ) : (
-              tocItems.map((item, idx) => (
-                <button
-                  key={item.id}
-                  onClick={() => scrollToHeading(item.id)}
-                  className={`w-full text-left px-3 py-2 rounded-xl font-medium transition-all flex items-start gap-2 leading-snug cursor-pointer ${
-                    item.level === 3
-                      ? 'pl-6 text-[11px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-                      : 'text-slate-800 dark:text-slate-200 hover:bg-amber-500/10 hover:text-amber-700 dark:hover:text-amber-400 font-bold'
-                  }`}
-                >
-                  <span className="text-[10px] font-black text-amber-500 shrink-0 mt-0.5">
-                    {String(idx + 1).padStart(2, '0')}
-                  </span>
-                  <span className="line-clamp-2">{item.text}</span>
-                </button>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* 3. SAME-DAY ARTICLES NAVIGATION (TODAY'S CA TOPICS) */}
+      {/* 2. SAME-DAY ARTICLES NAVIGATION (TODAY'S CA TOPICS) */}
       {currentEdition?.articles && currentEdition.articles.length > 0 && (
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-5 shadow-xs space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2.5">
@@ -514,6 +471,49 @@ export default function NewsTodayLayout({
           </div>
         </div>
       )}
+
+      {/* 3. DYNAMIC INDEX / TABLE OF CONTENTS (PARSED FROM ARTICLE HTML HEADINGS) */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-5 shadow-xs space-y-3">
+        <div
+          onClick={() => setTocExpanded(!tocExpanded)}
+          className="flex items-center justify-between cursor-pointer border-b border-slate-100 dark:border-white/5 pb-2.5 select-none"
+        >
+          <div className="flex items-center gap-2">
+            <ListOrdered className="w-4 h-4 text-amber-500" />
+            <h3 className="font-heading font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
+              Article Headings Index
+            </h3>
+          </div>
+          {tocExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+        </div>
+
+        {tocExpanded && (
+          <div className="space-y-1 pt-1 text-xs">
+            {tocItems.length === 0 ? (
+              <p className="text-[11px] text-slate-400 italic px-2 py-1">
+                Sub-headings will appear automatically as you read.
+              </p>
+            ) : (
+              tocItems.map((item, idx) => (
+                <button
+                  key={item.id}
+                  onClick={() => scrollToHeading(item.id)}
+                  className={`w-full text-left px-3 py-2 rounded-xl font-medium transition-all flex items-start gap-2 leading-snug cursor-pointer ${
+                    item.level === 3
+                      ? 'pl-6 text-[11px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      : 'text-slate-800 dark:text-slate-200 hover:bg-amber-500/10 hover:text-amber-700 dark:hover:text-amber-400 font-bold'
+                  }`}
+                >
+                  <span className="text-[10px] font-black text-amber-500 shrink-0 mt-0.5">
+                    {String(idx + 1).padStart(2, '0')}
+                  </span>
+                  <span className="line-clamp-2">{item.text}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
 
     </div>
   );

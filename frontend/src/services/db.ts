@@ -875,6 +875,7 @@ class FinalAttemptDB {
   }
 
   public async saveDynamicCurrentAffairsEdition(edition: DynamicCurrentAffairEdition): Promise<boolean> {
+    this.memoryCache.clear();
     const data = await this.apiFetch('/api/admin/dynamic-current-affairs/edition', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -884,6 +885,7 @@ class FinalAttemptDB {
   }
 
   public async deleteDynamicCurrentAffairsEdition(id: string): Promise<boolean> {
+    this.memoryCache.clear();
     const data = await this.apiFetch(`/api/admin/dynamic-current-affairs/edition/${id}`, {
       method: 'DELETE'
     });
@@ -891,6 +893,7 @@ class FinalAttemptDB {
   }
 
   public async deleteDynamicCurrentAffairsArticle(id: string): Promise<boolean> {
+    this.memoryCache.clear();
     const data = await this.apiFetch(`/api/admin/dynamic-current-affairs/article/${id}`, {
       method: 'DELETE'
     });

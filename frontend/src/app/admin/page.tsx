@@ -313,56 +313,55 @@ export default function AdminPortal() {
 
   const fetchCMSData = useCallback(async () => {
     try {
-      const setRes = await fetch(`${BACKEND_URL}/api/settings`).catch(() => null);
+      const [
+        setRes, courseRes, blogRes, resRes, caRes, usersRes, leadsRes, facRes, topRes, dynRes, ytStatus
+      ] = await Promise.all([
+        fetch(`${BACKEND_URL}/api/settings`).catch(() => null),
+        fetch(`${BACKEND_URL}/api/lms/courses?includeUnpublished=true`).catch(() => null),
+        fetch(`${BACKEND_URL}/api/blogs`).catch(() => null),
+        fetch(`${BACKEND_URL}/api/resources`).catch(() => null),
+        fetch(`${BACKEND_URL}/api/current-affairs`).catch(() => null),
+        fetch(`${BACKEND_URL}/api/auth/users`).catch(() => null),
+        fetch(`${BACKEND_URL}/api/leads`).catch(() => null),
+        fetch(`${BACKEND_URL}/api/faculty`).catch(() => null),
+        fetch(`${BACKEND_URL}/api/results`).catch(() => null),
+        fetch(`${BACKEND_URL}/api/dynamic-current-affairs/editions?includeDrafts=true`).catch(() => null),
+        db.getYoutubeSyncStatus().catch(() => null)
+      ]);
+
       if (setRes && setRes.ok) {
         const setJson = await setRes.json().catch(() => null);
         if (setJson) setSettings(prev => ({ ...prev, ...setJson }));
       }
-      const courseRes = await fetch(`${BACKEND_URL}/api/lms/courses?includeUnpublished=true`).catch(() => null);
       if (courseRes && courseRes.ok) {
         const cData = await courseRes.json().catch(() => null);
         if (cData && cData.success && Array.isArray(cData.data)) setCoursesList(cData.data);
       }
-      const blogRes = await fetch(`${BACKEND_URL}/api/blogs`).catch(() => null);
       if (blogRes && blogRes.ok) {
         const bData = await blogRes.json().catch(() => null);
-        if (Array.isArray(bData)) {
-          setBlogsList(bData);
-        } else if (bData && bData.success && Array.isArray(bData.data)) {
-          setBlogsList(bData.data);
-        }
+        if (Array.isArray(bData)) setBlogsList(bData);
+        else if (bData && bData.success && Array.isArray(bData.data)) setBlogsList(bData.data);
       }
-      const resRes = await fetch(`${BACKEND_URL}/api/resources`).catch(() => null);
       if (resRes && resRes.ok) {
         const rData = await resRes.json().catch(() => null);
         if (rData && rData.success && Array.isArray(rData.data)) setResourcesList(rData.data);
       }
-      const caRes = await fetch(`${BACKEND_URL}/api/current-affairs`).catch(() => null);
       if (caRes && caRes.ok) {
         const caData = await caRes.json().catch(() => null);
         if (caData && caData.success && Array.isArray(caData.data)) setCaList(caData.data);
       }
-      const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`).catch(() => null);
       if (usersRes && usersRes.ok) {
         const uData = await usersRes.json().catch(() => null);
-        if (uData && Array.isArray(uData)) setUsersList(uData);
+        if (Array.isArray(uData)) setUsersList(uData);
         else if (uData && uData.success && Array.isArray(uData.data)) setUsersList(uData.data);
       }
-      const leadsRes = await fetch(`${BACKEND_URL}/api/leads`).catch(() => null);
       if (leadsRes && leadsRes.ok) {
         const lData = await leadsRes.json().catch(() => null);
         if (lData && lData.success && Array.isArray(lData.data)) setLeadsList(lData.data);
       }
-
-      const facRes = await fetch(`${BACKEND_URL}/api/faculty`);
-      if (facRes.ok) setFacultyList(await facRes.json());
-      const topRes = await fetch(`${BACKEND_URL}/api/results`);
-      if (topRes.ok) setToppersList(await topRes.json());
-
-      const dynRes = await fetch(`${BACKEND_URL}/api/dynamic-current-affairs/editions?includeDrafts=true`);
-      if (dynRes.ok) setDynamicEditionsList(await dynRes.json());
-
-      const ytStatus = await db.getYoutubeSyncStatus();
+      if (facRes && facRes.ok) setFacultyList(await facRes.json().catch(() => []));
+      if (topRes && topRes.ok) setToppersList(await topRes.json().catch(() => []));
+      if (dynRes && dynRes.ok) setDynamicEditionsList(await dynRes.json().catch(() => []));
       if (ytStatus) setYoutubeStatus(ytStatus);
 
       setBackendOffline(false);
