@@ -6,358 +6,7 @@ import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 
 const router = Router();
 
-// Get Student's All Quiz Attempts
-router.get('/attempts/me', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
-  try {
-    const attempts = await lmsDB.getAllStudentQuizAttempts(req.user!.userId);
-    res.json({ success: true, data: attempts });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Get Quiz Info (Metadata only)
-router.get('/:quizId', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
-  try {
-    const quizId = req.params.quizId as string;
-    const quiz = await lmsDB.getQuizById(quizId);
-    if (!quiz) {
-      res.status(404).json({ success: false, error: 'Quiz not found.' });
-      return;
-    }
-    res.json({ success: true, data: quiz });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Start Quiz (Fetch questions without answer keys for security)
-router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
-  try {
-    const quizId = req.params.quizId as string;
-    const quiz = await lmsDB.getQuizById(quizId);
-    if (!quiz) {
-      res.status(404).json({ success: false, error: 'Quiz not found.' });
-      return;
-    }
-
-    // Entitlement Check: If test is linked to a course/test series, verify enrollment unless admin/faculty
-    if (quiz.courseId && req.user!.role === 'student') {
-      const isEnrolled = await lmsDB.isEnrolled(req.user!.userId, quiz.courseId);
-      if (!isEnrolled) {
-        // Allow access if passing score / demo check or check if any active enrollment exists
-        const userEnrollments = await lmsDB.getUserEnrollments(req.user!.userId);
-        const enrolledInSeries = userEnrollments.some((e: any) => e.courseId === quiz.courseId);
-        if (!enrolledInSeries && !quiz.isFree) {
-          // Check fallback: return 403 if not enrolled
-          res.status(403).json({ success: false, error: 'Please enroll in this test series program to attempt this CBT test.', code: 'QUIZ_003' });
-          return;
-        }
-      }
-    }
-
-    const targetLang = getTargetLang(req);
-    const questions = await lmsDB.getQuestionsByQuizId(quizId);
-    
-    // Clean correct answers to prevent source code checking cheating
-    const cleanQuestions = questions.map((q: any) => {
-      const { correctAnswer, explanation, ...publicFields } = q;
-      return publicFields;
-    });
-
-    const localizedQuestions = await ContentLocalizer.localizeQuizQuestions(cleanQuestions, targetLang);
-
-    res.json({
-      success: true,
-      data: {
-        quiz,
-        questions: localizedQuestions
-      }
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Submit Quiz Answers & Calculate Marks
-router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
-  const { answers, timeTakenSecs } = req.body; // Map: { [questionId]: 'A' | 'B' | 'C' | 'D' }
-  const quizId = Array.isArray(req.params.quizId) ? req.params.quizId[0] : req.params.quizId;
-  if (!quizId || typeof quizId !== 'string') {
-    res.status(400).json({ success: false, error: 'Invalid Quiz ID parameter.' });
-    return;
-  }
-
-  if (!answers) {
-    res.status(400).json({ success: false, error: 'Answers payload is required.' });
-    return;
-  }
-
-  try {
-    const quiz = await lmsDB.getQuizById(quizId);
-    if (!quiz) {
-      res.status(404).json({ success: false, error: 'Quiz not found.' });
-      return;
-    }
-
-    const questions = await lmsDB.getQuestionsByQuizId(quizId);
-    let score = 0;
-    let maxScore = 0;
-    const details = [];
-
-    for (const q of questions) {
-      const studentAnswer = answers[q.id];
-      const correct = studentAnswer === q.correctAnswer;
-      const questionMarks = q.marks || 1.0;
-      const negativeVal = q.negativeMarks || 0.33;
-
-      maxScore += questionMarks;
-
-      if (studentAnswer) {
-        if (correct) {
-          score += questionMarks;
-        } else {
-          score -= negativeVal;
-        }
-      }
-
-      details.push({
-        questionId: q.id,
-        questionText: q.questionText,
-        options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
-        studentAnswer,
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation,
-        isCorrect: correct
-      });
-    }
-
-    // Bound final score to 0
-    if (score < 0) score = 0;
-
-    const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
-    const passed = percentage >= (quiz.passingScore || 40);
-
-    const attempt = await lmsDB.submitQuizAttempt(
-      req.user!.userId,
-      quizId,
-      answers,
-      score,
-      maxScore,
-      passed,
-      timeTakenSecs || 0
-    );
-
-    res.json({
-      success: true,
-      data: {
-        attemptId: attempt.id,
-        score,
-        maxScore,
-        percentage,
-        passed,
-        details
-      }
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Get Quiz Leaderboard
-router.get('/:quizId/leaderboard', optionalAuth, async (req: AuthRequest, res: Response) => {
-  try {
-    const quizId = Array.isArray(req.params.quizId) ? req.params.quizId[0] : req.params.quizId;
-    if (!quizId || typeof quizId !== 'string') {
-      res.status(400).json({ success: false, error: 'Invalid Quiz ID parameter.' });
-      return;
-    }
-    const leaderboard = await lmsDB.getLeaderboard(quizId);
-    res.json({ success: true, data: leaderboard || [] });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ─── DAILY QUIZ PUBLIC & PRACTICE ENDPOINTS ───────────────────────────────────
-
-const FALLBACK_DAILY_QUESTIONS = [
-  {
-    id: 'dq-1',
-    questionText: 'With reference to the Bihar Economic Survey 2024-25, which sector recorded the highest growth rate in the state economy?',
-    optionA: 'Primary Sector (Agriculture & Allied)',
-    optionB: 'Secondary Sector (Manufacturing & Industry)',
-    optionC: 'Tertiary Sector (Services & Financial Services)',
-    optionD: 'Quaternary Knowledge Sector',
-    correctAnswer: 'C',
-    explanation: 'The Tertiary (Services) sector in Bihar continues to drive state GDP growth at over 10.3%, supported by trade, repair services, transport, and banking.',
-    marks: 1,
-    negativeMarks: 0.33
-  },
-  {
-    id: 'dq-2',
-    questionText: 'Under Article 213 of the Indian Constitution, the Governor of a State can promulgate Ordinances when:',
-    optionA: 'The State Legislative Assembly is dissolved only',
-    optionB: 'Both Houses of the State Legislature (or Assembly) are not in session',
-    optionC: 'The High Court approves the emergency situation',
-    optionD: 'The Chief Minister submits a written emergency decree',
-    correctAnswer: 'B',
-    explanation: 'The Governor can promulgate an ordinance under Article 213 only when the Legislative Assembly (or both Houses in a bicameral legislature) is not in session.',
-    marks: 1,
-    negativeMarks: 0.33
-  },
-  {
-    id: 'dq-3',
-    questionText: 'The Kunming-Montreal Global Biodiversity Framework (GBF) targets reducing global extinction risks of species by what percentage by 2030?',
-    optionA: '20%',
-    optionB: '30%',
-    optionC: '50%',
-    optionD: '75%',
-    correctAnswer: 'B',
-    explanation: 'Target 3 of the Kunming-Montreal GBF aims to effectively conserve and manage at least 30% of global land, coastal, and inland waters by 2030 (30x30 target).',
-    marks: 1,
-    negativeMarks: 0.33
-  },
-  {
-    id: 'dq-4',
-    questionText: 'Which historical leader established the Bihar Provincial Kisan Sabha (BPKS) in 1929 to spearhead agrarian rights?',
-    optionA: 'Dr. Rajendra Prasad',
-    optionB: 'Swami Sahajanand Saraswati',
-    optionC: 'Jayaprakash Narayan',
-    optionD: 'Sri Krishna Sinha',
-    correctAnswer: 'B',
-    explanation: 'Swami Sahajanand Saraswati founded the Bihar Provincial Kisan Sabha in 1929 at Sonepur to mobilize peasant grievances against zamindari oppression.',
-    marks: 1,
-    negativeMarks: 0.33
-  },
-  {
-    id: 'dq-5',
-    questionText: 'What is the maximum limit of Member of Legislative Council (MLC) strength in a State relative to its Legislative Assembly strength?',
-    optionA: 'One-half (1/2)',
-    optionB: 'One-third (1/3)',
-    optionC: 'One-fourth (1/4)',
-    optionD: 'Fixed at 75 members irrespective of assembly size',
-    correctAnswer: 'B',
-    explanation: 'Under Article 171, the total number of members in the Legislative Council of a State shall not exceed one-third of the total number of members in the Legislative Assembly of that State, provided it is not less than 40.',
-    marks: 1,
-    negativeMarks: 0.33
-  },
-  {
-    id: 'dq-6',
-    questionText: 'The PM-DevINE scheme recently highlighted in Union budget allocations is targeted specifically at the development of:',
-    optionA: 'Island Territories (Andaman & Lakshadweep)',
-    optionB: 'North-Eastern Region of India',
-    optionC: 'Border Villages under Vibrant Villages Programme',
-    optionD: 'Coastal Fishing Communities',
-    correctAnswer: 'B',
-    explanation: 'PM-DevINE (Prime Minister’s Development Initiative for North Eastern Region) is a 100% Central scheme for funding infrastructure and social development projects in the North East.',
-    marks: 1,
-    negativeMarks: 0.33
-  },
-  {
-    id: 'dq-7',
-    questionText: 'Which district in Bihar has the highest forest cover percentage according to the India State of Forest Report (ISFR)?',
-    optionA: 'West Champaran',
-    optionB: 'Kaimur',
-    optionC: 'Jamui',
-    optionD: 'Rohtas',
-    correctAnswer: 'B',
-    explanation: 'Kaimur district has the largest area of forest cover as well as highest forest cover percentage (over 31.5%) in the state of Bihar.',
-    marks: 1,
-    negativeMarks: 0.33
-  },
-  {
-    id: 'dq-8',
-    questionText: 'The phrase "Procedure Established by Law" in Article 21 of the Indian Constitution was originally borrowed from which legal system?',
-    optionA: 'US Constitution',
-    optionB: 'Japanese Constitution',
-    optionC: 'British Common Law',
-    optionD: 'Weimar Constitution of Germany',
-    correctAnswer: 'B',
-    explanation: 'The doctrine of "Procedure Established by Law" was inspired by the Japanese Constitution (Article 31), whereas "Due Process of Law" is derived from the US Constitution.',
-    marks: 1,
-    negativeMarks: 0.33
-  },
-  {
-    id: 'dq-9',
-    questionText: 'Which planet in our solar system exhibits retro-grade rotation (rotates from East to West on its axis)?',
-    optionA: 'Mars & Jupiter',
-    optionB: 'Venus & Uranus',
-    optionC: 'Mercury & Neptune',
-    optionD: 'Saturn & Uranus',
-    correctAnswer: 'B',
-    explanation: 'Venus and Uranus rotate clockwise (from East to West) on their axes, unlike most other planets which rotate counter-clockwise (West to East).',
-    marks: 1,
-    negativeMarks: 0.33
-  },
-  {
-    id: 'dq-10',
-    questionText: 'The Chaur Rebellion (1798–99) against British East India Company land tax policies took place primarily in which region?',
-    optionA: 'Santhal Pargana & Chota Nagpur',
-    optionB: 'Jungle Mahal region of Midnapore & Bankura',
-    optionC: 'Munger & Bhagalpur belt',
-    optionD: 'Purnea & Saharsa plains',
-    correctAnswer: 'B',
-    explanation: 'The Chaur (Bhumij) Uprising erupted in the Jungle Mahal region (Midnapore, Bankura, Manbhum) against high land revenue demands and forfeiture of ancestral lands.',
-    marks: 1,
-    negativeMarks: 0.33
-  }
-];
-
-const FALLBACK_DAILY_QUIZZES = [
-  {
-    id: 'daily-quiz-today',
-    title: 'Daily Current Affairs & Bihar GS Practice (Set 14)',
-    description: '10 high-yield practice questions covering National & International Current Affairs, Bihar Budget & Economic Survey, and Indian Polity.',
-    publishDate: new Date().toISOString().split('T')[0],
-    timeLimitMins: 10,
-    totalQuestions: 10,
-    difficulty: 'MEDIUM',
-    category: 'Daily Practice',
-    attemptsCount: 142,
-    passingScore: 40,
-    isFree: true
-  },
-  {
-    id: 'daily-quiz-prev-1',
-    title: 'Daily Practice: Polity & Constitutional Landmarks (Set 13)',
-    description: '10 Questions on Fundamental Rights, DPSP, Executive Powers, and Supreme Court Landmark Rulings.',
-    publishDate: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-    timeLimitMins: 10,
-    totalQuestions: 10,
-    difficulty: 'HIGH',
-    category: 'Polity Special',
-    attemptsCount: 230,
-    passingScore: 40,
-    isFree: true
-  },
-  {
-    id: 'daily-quiz-prev-2',
-    title: 'Daily Practice: Bihar History & Freedom Struggle (Set 12)',
-    description: '10 Questions on Champaran Satyagraha, 1857 Revolt in Bihar, and Quit India Movement leadership.',
-    publishDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
-    timeLimitMins: 10,
-    totalQuestions: 10,
-    difficulty: 'MEDIUM',
-    category: 'Bihar Special',
-    attemptsCount: 310,
-    passingScore: 40,
-    isFree: true
-  },
-  {
-    id: 'daily-quiz-prev-3',
-    title: 'Daily Practice: Environment & Geography Mapping (Set 11)',
-    description: '10 High-yield questions on Wetlands, Tiger Reserves, River Basins, and Physical Geography.',
-    publishDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
-    timeLimitMins: 10,
-    totalQuestions: 10,
-    difficulty: 'EASY',
-    category: 'Geography & Environment',
-    attemptsCount: 185,
-    passingScore: 40,
-    isFree: true
-  }
-];
+// ─── DAILY QUIZ PUBLIC & ADMIN ENDPOINTS (MUST BE BEFORE Wildcard /:quizId) ──
 
 // Get Today's Daily Quiz Metadata
 router.get('/daily/today', optionalAuth, async (req: AuthRequest, res: Response) => {
@@ -540,6 +189,181 @@ router.delete('/admin/daily/:quizId/questions/:qId', async (req: AuthRequest, re
     const qId = req.params.qId as string;
     const ok = await lmsDB.deleteDailyQuizQuestion(quizId, qId);
     res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── COURSE / LMS QUIZZES ENDPOINTS ──────────────────────────────────────────
+
+// Get Student's All Quiz Attempts
+router.get('/attempts/me', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  try {
+    const attempts = await lmsDB.getAllStudentQuizAttempts(req.user!.userId);
+    res.json({ success: true, data: attempts });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get Quiz Info (Metadata only)
+router.get('/:quizId', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  try {
+    const quizId = req.params.quizId as string;
+    const quiz = await lmsDB.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, error: 'Quiz not found.' });
+      return;
+    }
+    res.json({ success: true, data: quiz });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Start Quiz (Fetch questions without answer keys for security)
+router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  try {
+    const quizId = req.params.quizId as string;
+    const quiz = await lmsDB.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, error: 'Quiz not found.' });
+      return;
+    }
+
+    // Entitlement Check: If test is linked to a course/test series, verify enrollment unless admin/faculty
+    if (quiz.courseId && req.user!.role === 'student') {
+      const isEnrolled = await lmsDB.isEnrolled(req.user!.userId, quiz.courseId);
+      if (!isEnrolled) {
+        // Allow access if passing score / demo check or check if any active enrollment exists
+        const userEnrollments = await lmsDB.getUserEnrollments(req.user!.userId);
+        const enrolledInSeries = userEnrollments.some((e: any) => e.courseId === quiz.courseId);
+        if (!enrolledInSeries && !quiz.isFree) {
+          // Check fallback: return 403 if not enrolled
+          res.status(403).json({ success: false, error: 'Please enroll in this test series program to attempt this CBT test.', code: 'QUIZ_003' });
+          return;
+        }
+      }
+    }
+
+    const targetLang = getTargetLang(req);
+    const questions = await lmsDB.getQuestionsByQuizId(quizId);
+    
+    // Clean correct answers to prevent source code checking cheating
+    const cleanQuestions = questions.map((q: any) => {
+      const { correctAnswer, explanation, ...publicFields } = q;
+      return publicFields;
+    });
+
+    const localizedQuestions = await ContentLocalizer.localizeQuizQuestions(cleanQuestions, targetLang);
+
+    res.json({
+      success: true,
+      data: {
+        quiz,
+        questions: localizedQuestions
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Submit Quiz Answers & Calculate Marks
+router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  const { answers, timeTakenSecs } = req.body; // Map: { [questionId]: 'A' | 'B' | 'C' | 'D' }
+  const quizId = Array.isArray(req.params.quizId) ? req.params.quizId[0] : req.params.quizId;
+  if (!quizId || typeof quizId !== 'string') {
+    res.status(400).json({ success: false, error: 'Invalid Quiz ID parameter.' });
+    return;
+  }
+
+  if (!answers) {
+    res.status(400).json({ success: false, error: 'Answers payload is required.' });
+    return;
+  }
+
+  try {
+    const quiz = await lmsDB.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, error: 'Quiz not found.' });
+      return;
+    }
+
+    const questions = await lmsDB.getQuestionsByQuizId(quizId);
+    let score = 0;
+    let maxScore = 0;
+    const details = [];
+
+    for (const q of questions) {
+      const studentAnswer = answers[q.id];
+      const correct = studentAnswer === q.correctAnswer;
+      const questionMarks = q.marks || 1.0;
+      const negativeVal = q.negativeMarks || 0.33;
+
+      maxScore += questionMarks;
+
+      if (studentAnswer) {
+        if (correct) {
+          score += questionMarks;
+        } else {
+          score -= negativeVal;
+        }
+      }
+
+      details.push({
+        questionId: q.id,
+        questionText: q.questionText,
+        options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
+        studentAnswer,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+        isCorrect: correct
+      });
+    }
+
+    // Bound final score to 0
+    if (score < 0) score = 0;
+
+    const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+    const passed = percentage >= (quiz.passingScore || 40);
+
+    const attempt = await lmsDB.submitQuizAttempt(
+      req.user!.userId,
+      quizId,
+      answers,
+      score,
+      maxScore,
+      passed,
+      timeTakenSecs || 0
+    );
+
+    res.json({
+      success: true,
+      data: {
+        attemptId: attempt.id,
+        score,
+        maxScore,
+        percentage,
+        passed,
+        details
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get Quiz Leaderboard
+router.get('/:quizId/leaderboard', optionalAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const quizId = Array.isArray(req.params.quizId) ? req.params.quizId[0] : req.params.quizId;
+    if (!quizId || typeof quizId !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid Quiz ID parameter.' });
+      return;
+    }
+    const leaderboard = await lmsDB.getLeaderboard(quizId);
+    res.json({ success: true, data: leaderboard || [] });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
