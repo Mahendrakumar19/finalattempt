@@ -433,10 +433,10 @@ export default function Home() {
       <section className="max-w-8xl mx-auto w-full px-1 sm:px-6 lg:px-8 mt-6 mb-12 relative z-0">
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-white/10 p-6 sm:p-10 shadow-md text-center hover-lift relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-amber-500/5 pointer-events-none" />
-          <h1 className="font-inlander text-xl sm:text-3.5xl lg:text-5xl font-black uppercase tracking-normal sm:tracking-widest leading-snug overflow-hidden">
+          <h1 className="font-inlander text-2xl sm:text-4xl lg:text-6xl font-black uppercase tracking-normal sm:tracking-widest leading-snug overflow-hidden">
             <span className="typewriter-text text-wave-gradient font-black">{t('home.welcome')}</span>
           </h1>
-          <p className="font-bold text-sm sm:text-2xl text-wave-gradient font-black mt-2">
+          <p className="font-bold text-base sm:text-3xl text-wave-gradient font-black mt-3">
             {t('home.welcomeDesc')}
           </p>
         </div>
