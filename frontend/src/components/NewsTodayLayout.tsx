@@ -395,74 +395,7 @@ export default function NewsTodayLayout({
         )}
       </div>
 
-      {/* 2. SAME-DAY ARTICLES NAVIGATION (TODAY'S CA TOPICS) */}
-      {currentEdition?.articles && currentEdition.articles.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-5 shadow-xs space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2.5">
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-amber-500" />
-              <h3 className="font-heading font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
-                Today&apos;s Topics ({currentEdition.articles.length})
-              </h3>
-            </div>
-            {activeDateFormatted && (
-              <span className="text-[9px] font-extrabold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                {activeDateFormatted}
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-1.5 pt-1 text-xs">
-            {currentEdition.articles.map((art, idx) => {
-              const isSelected = activeArticle?.id === art.id || (activeArticle?.slug && activeArticle.slug === art.slug);
-              return (
-                <button
-                  key={art.id || idx}
-                  onClick={async () => {
-                    setActiveArticle(art);
-                    if (art.slug) {
-                      const cacheKey = `${art.slug}_${locale}`;
-                      if (articleCacheRef.current.has(cacheKey)) {
-                        setActiveArticle(articleCacheRef.current.get(cacheKey)!);
-                      } else {
-                        const fullArt = await db.getDynamicCurrentAffairArticle(art.slug, false);
-                        if (fullArt) {
-                          articleCacheRef.current.set(cacheKey, fullArt);
-                          setActiveArticle(fullArt);
-                        }
-                      }
-                    }
-                    if (art.slug && currentDateStr) {
-                      const cat = art.category ? art.category.toLowerCase().replace(/\s+/g, '-') : 'general';
-                      router.push(`/current-affairs/daily/${currentDateStr}/${cat}/${art.slug}`);
-                    }
-                    if (mobileDrawerOpen) setMobileDrawerOpen(false);
-                  }}
-                  className={`w-full text-left p-2.5 rounded-2xl font-bold transition-all flex items-start gap-2.5 leading-snug cursor-pointer ${
-                    isSelected
-                      ? 'bg-amber-500 text-slate-950 shadow-md scale-[1.01]'
-                      : 'text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/60 hover:bg-amber-500/10 hover:text-amber-600 border border-slate-200/60 dark:border-white/5'
-                  }`}
-                >
-                  <span className={`text-[10px] font-black shrink-0 px-2 py-0.5 rounded-lg ${isSelected ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}`}>
-                    {String(idx + 1).padStart(2, '0')}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <span className="line-clamp-2">{art.title}</span>
-                    {art.category && (
-                      <span className={`text-[9px] font-extrabold block mt-0.5 uppercase tracking-wider ${isSelected ? 'text-slate-900/80' : 'text-slate-400 dark:text-slate-500'}`}>
-                        {art.category}
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* 3. DYNAMIC INDEX / TABLE OF CONTENTS (PARSED FROM ARTICLE HTML HEADINGS) */}
+      {/* 2. DYNAMIC INDEX / TABLE OF CONTENTS (PARSED FROM ARTICLE HTML HEADINGS) */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-5 shadow-xs space-y-3">
         <div
           onClick={() => setTocExpanded(!tocExpanded)}
@@ -505,6 +438,73 @@ export default function NewsTodayLayout({
         )}
       </div>
 
+      {/* 3. SAME-DAY ARTICLES NAVIGATION (TODAY'S CA TOPICS) */}
+      {currentEdition?.articles && currentEdition.articles.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2.5">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-amber-500" />
+              <h3 className="font-heading font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
+                Today&apos;s Topics ({currentEdition.articles.length})
+              </h3>
+            </div>
+            {activeDateFormatted && (
+              <span className="text-[9px] font-extrabold text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                {activeDateFormatted}
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-1.5 pt-1 text-xs">
+            {currentEdition.articles.map((art, idx) => {
+              const isSelected = activeArticle?.id === art.id || (activeArticle?.slug && activeArticle.slug === art.slug);
+              return (
+                <button
+                  key={art.id || idx}
+                  onClick={async () => {
+                    setActiveArticle(art);
+                    if (art.slug) {
+                      const cacheKey = `${art.slug}_${locale}`;
+                      if (articleCacheRef.current.has(cacheKey)) {
+                        setActiveArticle(articleCacheRef.current.get(cacheKey)!);
+                      } else {
+                        const fullArt = await db.getDynamicCurrentAffairArticle(art.slug, false);
+                        if (fullArt) {
+                          articleCacheRef.current.set(cacheKey, fullArt);
+                          setActiveArticle(fullArt);
+                        }
+                      }
+                    }
+                    if (art.slug && currentDateStr) {
+                      const cat = art.category ? art.category.toLowerCase().replace(/\s+/g, '-') : 'general';
+                      router.push(`/current-affairs/daily/${currentDateStr}/${cat}/${art.slug}`);
+                    }
+                    if (mobileDrawerOpen) setMobileDrawerOpen(false);
+                  }}
+                  className={`w-full text-left p-3 rounded-2xl font-bold transition-all flex items-start gap-2.5 leading-snug cursor-pointer ${
+                    isSelected
+                      ? 'bg-amber-500 text-slate-950 shadow-md scale-[1.01]'
+                      : 'text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/60 hover:bg-amber-500/10 hover:text-amber-600 border border-slate-200/60 dark:border-white/5'
+                  }`}
+                >
+                  <span className={`text-[10px] font-black shrink-0 px-2 py-0.5 rounded-lg ${isSelected ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'}`}>
+                    {String(idx + 1).padStart(2, '0')}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className="line-clamp-2">{art.title}</span>
+                    {art.category && (
+                      <span className={`text-[9px] font-extrabold block mt-0.5 uppercase tracking-wider ${isSelected ? 'text-slate-900/80' : 'text-slate-400 dark:text-slate-500'}`}>
+                        {art.category}
+                      </span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 
@@ -541,12 +541,12 @@ export default function NewsTodayLayout({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* ════ LEFT SIDEBAR (DESKTOP) ════ */}
-          <aside className="hidden lg:block lg:col-span-4 xl:col-span-3 lg:sticky lg:top-24 space-y-6">
+          <aside className="hidden lg:block lg:col-span-4 xl:col-span-4 lg:sticky lg:top-24 space-y-6">
             <SidebarContent />
           </aside>
 
           {/* ════ MAIN ARTICLE CONTENT ════ */}
-          <main className="lg:col-span-8 xl:col-span-9 space-y-6 max-w-4xl">
+          <main className="lg:col-span-8 xl:col-span-8 space-y-6 max-w-4xl">
 
             {/* 1. ARTICLE HEADER BANNER */}
             <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 sm:p-8 space-y-4 shadow-xs">
