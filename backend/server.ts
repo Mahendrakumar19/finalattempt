@@ -1059,7 +1059,24 @@ httpServer.listen(PORT, () => {
     }
 
     try {
-      // 2. Warm up blogs
+      // 2. Warm up weekly/monthly/yearly compilations
+      const compilations = await db.getCompilations();
+      if (Array.isArray(compilations) && compilations.length > 0) {
+        await ContentLocalizer.localizeEntityList(
+          'current_affairs_compilation',
+          compilations,
+          ['title', 'summary'],
+          'hi',
+          ['summary']
+        );
+        console.log(`[TranslationWarmUp] Successfully warmed ${compilations.length} current affairs compilations in Hindi.`);
+      }
+    } catch (err: any) {
+      console.error('[TranslationWarmUp] Compilations warm-up error:', err.message || err);
+    }
+
+    try {
+      // 3. Warm up blogs
       const blogs = await db.getBlogs();
       if (Array.isArray(blogs) && blogs.length > 0) {
         await ContentLocalizer.localizeEntityList(
