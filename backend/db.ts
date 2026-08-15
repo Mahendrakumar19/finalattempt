@@ -1473,14 +1473,47 @@ class BackendDB {
         }
         exams.sort((a, b) => (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' }));
         return exams;
-      } catch (err) {
-        console.error('[BackendDB] getExamsHierarchy MySQL error:', err);
+      } catch (err: any) {
+        console.error('[BackendDB] getExamsHierarchy MySQL error:', err.message || err);
+        // Retry query once on ECONNRESET / pool glitch before returning empty or fallback
+        try {
+          const [retryRows]: any = await mysqlPool.query(
+            `SELECT e.id, e.name, e.code, e.slug, e.logoUrl, e.logoMediaId, e.description, e.hasStages, e.displayOrder, e.isActive,
+                    m.storagePath AS logoStoragePath
+             FROM Exam e
+             LEFT JOIN Media m ON m.id = e.logoMediaId
+             WHERE e.isActive = 1 ORDER BY e.displayOrder ASC`
+          );
+          const retryExams: any[] = [];
+          for (const ex of retryRows) {
+            const [stg]: any = await mysqlPool.query(`SELECT * FROM ExamStageModel WHERE examId = ? AND isActive = 1 ORDER BY sortOrder ASC`, [ex.id]);
+            let sQuery = `SELECT * FROM TestSeries WHERE examId = ?`;
+            if (!includeUnpublished) sQuery += ` AND isPublished = 1`;
+            sQuery += ` ORDER BY displayOrder ASC`;
+            const [sRows]: any = await mysqlPool.query(sQuery, [ex.id]);
+            const parsed = sRows.map((s: any) => ({
+              ...s,
+              highlights: typeof s.highlights === 'string' ? JSON.parse(s.highlights) : s.highlights || [],
+              syllabus: typeof s.syllabus === 'string' ? JSON.parse(s.syllabus) : s.syllabus || [],
+              faq: typeof s.faq === 'string' ? JSON.parse(s.faq) : s.faq || []
+            }));
+            let rLogo = ex.logoUrl || ex.logoStoragePath || null;
+            if (rLogo && typeof rLogo === 'string') rLogo = rLogo.trim().replace(/^uploads[\/\\]+/, '');
+            retryExams.push({
+              ...ex,
+              logoUrl: rLogo ? (rLogo.startsWith('http') || rLogo.startsWith('/') ? rLogo : `/uploads/${rLogo}`) : null,
+              hasStages: !!ex.hasStages,
+              stages: stg,
+              testSeries: parsed
+            });
+          }
+          return retryExams;
+        } catch (_) {}
       }
     }
     
-    // Fallback store
-    if (!this.localStore.exams) this.seedInitialExamsStore();
-    return this.localStore.exams || [];
+    // Return empty array instead of dummy data when database is active
+    return [];
   }
 
   public async getExamBySlug(slug: string): Promise<any | null> {

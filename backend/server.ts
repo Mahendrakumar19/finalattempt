@@ -46,7 +46,10 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://127.0.0.1:3000',
+  'http://38.242.244.225',
+  'https://38.242.244.225',
   'http://38.242.244.225:3000',
+  'https://38.242.244.225:3000',
   'https://finalattemptias.com',
   'https://www.finalattemptias.com',
   'http://finalattemptias.com',
@@ -65,7 +68,7 @@ app.use(cors({
                       cleanOrigin.includes('onrender.com') ||
                       cleanOrigin.startsWith('http://localhost:') ||
                       cleanOrigin.startsWith('http://127.0.0.1:') ||
-                      cleanOrigin.startsWith('http://38.242.244.225:');
+                      cleanOrigin.includes('38.242.244.225');
     if (isAllowed) {
       callback(null, true);
     } else {
