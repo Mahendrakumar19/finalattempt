@@ -75,8 +75,16 @@ export default function DailyQuizPortal() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
-  // User authentication check
-  const [currentUser, setCurrentUser] = useState<{ userId?: string; name?: string; email?: string } | null>(null);
+  // User authentication check (lazy initializer for purity)
+  const [currentUser] = useState<{ userId?: string; name?: string; email?: string } | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedUser = localStorage.getItem('finalattempt_user');
+        return storedUser ? JSON.parse(storedUser) : null;
+      } catch (_) {}
+    }
+    return null;
+  });
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -114,17 +122,25 @@ export default function DailyQuizPortal() {
     }
   }, []);
 
-  // Fetch lightweight landing page metadata & auth user on mount
+  // Mount effect
   useEffect(() => {
     let isMounted = true;
-    try {
-      const storedUser = typeof window !== 'undefined' ? localStorage.getItem('finalattempt_user') : null;
-      if (storedUser && isMounted) {
-        setCurrentUser(JSON.parse(storedUser));
+    Promise.all([
+      db.getTodayDailyQuiz(),
+      db.getPreviousDailyQuizzes()
+    ]).then(([today, prev]) => {
+      if (isMounted) {
+        setTodayQuiz(today);
+        setPreviousQuizzes(prev || []);
       }
-    } catch (_) {}
-
-    loadLandingData();
+    }).catch((err) => {
+      if (isMounted) {
+        console.error('Failed loading daily quiz metadata:', err);
+        setErrorMsg('Unable to load today\'s daily quiz. Please check your network connection.');
+      }
+    }).finally(() => {
+      if (isMounted) setLoadingMeta(false);
+    });
 
     return () => { isMounted = false; };
   }, []);

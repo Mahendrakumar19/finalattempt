@@ -303,7 +303,7 @@
     "filterByExam": "Filter by Exam",
     "filterByCategory": "Filter by Category"
   },
-  "home": {
+  "homeLegacy": {
     "welcome": "WELCOME TO FINAL ATTEMPT",
     "welcomeDesc": "We are Next-Generation Mentorship & Learning Platform for Civil Services Examination.",
     "popularCourses": "Our Popular Courses",
@@ -685,5 +685,19 @@
     "targetExam": "Target Exam",
     "bookSessionBtn": "Book My Session",
     "whatsappChat": "WhatsApp Chat"
+  },
+  "testSeriesHub": {
+    "tagline": "State Civil Services & Officer Test Series",
+    "title": "Select Your Target Examination",
+    "subtitle": "Structured Computer-Based Test (CBT) series engineered for State PSC & Staff Selection Board Examinations.",
+    "stageWise": "STAGE WISE",
+    "directSeries": "DIRECT SERIES",
+    "openPortal": "Open Portal",
+    "programsCount": "Test Series",
+    "prelimsAndMains": "Prelims & Mains",
+    "compareTitle": "Choose the Right Prelims Mock Test Series for You",
+    "compareSubtitle": "Compare the benefits of each series and choose the best fit for your preparation goals. Select a structured program or a personalized approach to enhance your readiness for the Preliminary Examination.",
+    "loading": "Loading examination portals...",
+    "officialCBT": "Official CBT Practice Test Series Programs."
   }
 }

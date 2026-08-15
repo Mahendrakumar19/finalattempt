@@ -1,10 +1,35 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans, Inter, Cinzel, Noto_Sans_Devanagari } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { LocaleProvider } from "@/context/LocaleContext";
 import LanguageSelectionModal from "@/components/LanguageSelectionModal";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const cinzel = Cinzel({
+  subsets: ["latin"],
+  variable: "--font-inlander",
+  display: "swap",
+});
+
+const notoDevanagari = Noto_Sans_Devanagari({
+  subsets: ["devanagari"],
+  variable: "--font-devanagari",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://finalattemptias.com"),
@@ -99,7 +124,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className="h-full antialiased"
+      className={`h-full antialiased ${plusJakartaSans.variable} ${inter.variable} ${cinzel.variable} ${notoDevanagari.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-body bg-brand-neutral text-brand-primary">

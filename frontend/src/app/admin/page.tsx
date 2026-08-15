@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -44,11 +45,7 @@ import AdminChatPanel from '@/components/admin/AdminChatPanel';
 
 type AdminTab = 'Dashboard' | 'Student Chats' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Daily Quiz' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
-interface FeaturePageConnection {
-  featureId: string;
-  featureName: string;
-  connectedPages: { name: string; tab: AdminTab }[];
-}
+
 
 interface SiteSettings {
   heroTitle: string;
@@ -209,7 +206,24 @@ export default function AdminPortal() {
   const [yearlyYear, setYearlyYear] = useState<string>(() => String(new Date().getFullYear()));
   const [yearlyCombineAvailableOnly, setYearlyCombineAvailableOnly] = useState<boolean>(false);
 
-  const [aggregationPreview, setAggregationPreview] = useState<any | null>(null);
+  const [aggregationPreview, setAggregationPreview] = useState<{
+    type?: string;
+    fromDate?: string;
+    toDate?: string;
+    monthName?: string;
+    year?: string;
+    isUpdate?: boolean;
+    totalArticles?: number;
+    articleCount?: number;
+    availableCount?: number;
+    missingCount?: number;
+    missingMonths?: string[];
+    dailyEditionsCount?: number;
+    compilationsCount?: number;
+    categoriesCount?: number;
+    categoryStats?: Record<string, number>;
+    [key: string]: unknown;
+  } | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState<boolean>(false);
   const [aggregationExecuting, setAggregationExecuting] = useState<boolean>(false);
   const [aggregationMsg, setAggregationMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -264,7 +278,7 @@ export default function AdminPortal() {
           url.searchParams.set('tab', activeTab);
           window.history.replaceState(null, '', url.pathname + url.search);
         }
-      } catch (_) {}
+      } catch {}
     }
   }, [activeTab, isMounted]);
 
@@ -395,8 +409,8 @@ export default function AdminPortal() {
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-    } catch (err: any) {
-      alert(`Export error: ${err.message}`);
+    } catch (err: unknown) {
+      alert(`Export error: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -418,8 +432,8 @@ export default function AdminPortal() {
         } else {
           alert('Failed to restore backup file.');
         }
-      } catch (err: any) {
-        alert(`Failed to parse backup JSON file: ${err.message}`);
+      } catch (err: unknown) {
+        alert(`Failed to parse backup JSON file: ${err instanceof Error ? err.message : String(err)}`);
       }
     };
     reader.readAsText(file);
@@ -636,8 +650,8 @@ export default function AdminPortal() {
       } else {
         setAggregationMsg({ type: 'error', text: res?.error || 'Failed generating weekly preview.' });
       }
-    } catch (err: any) {
-      setAggregationMsg({ type: 'error', text: err.message || 'Preview failed.' });
+    } catch (err: unknown) {
+      setAggregationMsg({ type: 'error', text: err instanceof Error ? err.message : 'Preview failed.' });
     }
   };
 
@@ -652,8 +666,8 @@ export default function AdminPortal() {
       } else {
         setAggregationMsg({ type: 'error', text: res?.error || 'Failed combining weekly current affairs.' });
       }
-    } catch (err: any) {
-      setAggregationMsg({ type: 'error', text: err.message || 'Weekly aggregation failed.' });
+    } catch (err: unknown) {
+      setAggregationMsg({ type: 'error', text: err instanceof Error ? err.message : 'Weekly aggregation failed.' });
     } finally {
       setAggregationExecuting(false);
     }
@@ -669,8 +683,8 @@ export default function AdminPortal() {
       } else {
         setAggregationMsg({ type: 'error', text: res?.error || 'Failed generating monthly preview.' });
       }
-    } catch (err: any) {
-      setAggregationMsg({ type: 'error', text: err.message || 'Preview failed.' });
+    } catch (err: unknown) {
+      setAggregationMsg({ type: 'error', text: err instanceof Error ? err.message : 'Preview failed.' });
     }
   };
 
@@ -685,8 +699,8 @@ export default function AdminPortal() {
       } else {
         setAggregationMsg({ type: 'error', text: res?.error || 'Failed combining monthly current affairs.' });
       }
-    } catch (err: any) {
-      setAggregationMsg({ type: 'error', text: err.message || 'Monthly aggregation failed.' });
+    } catch (err: unknown) {
+      setAggregationMsg({ type: 'error', text: err instanceof Error ? err.message : 'Monthly aggregation failed.' });
     } finally {
       setAggregationExecuting(false);
     }
@@ -702,8 +716,8 @@ export default function AdminPortal() {
       } else {
         setAggregationMsg({ type: 'error', text: res?.error || 'Failed generating yearly preview.' });
       }
-    } catch (err: any) {
-      setAggregationMsg({ type: 'error', text: err.message || 'Preview failed.' });
+    } catch (err: unknown) {
+      setAggregationMsg({ type: 'error', text: err instanceof Error ? err.message : 'Preview failed.' });
     }
   };
 
@@ -718,8 +732,8 @@ export default function AdminPortal() {
       } else {
         setAggregationMsg({ type: 'error', text: res?.error || 'Failed combining yearly current affairs.' });
       }
-    } catch (err: any) {
-      setAggregationMsg({ type: 'error', text: err.message || 'Yearly aggregation failed.' });
+    } catch (err: unknown) {
+      setAggregationMsg({ type: 'error', text: err instanceof Error ? err.message : 'Yearly aggregation failed.' });
     } finally {
       setAggregationExecuting(false);
     }
@@ -941,7 +955,7 @@ export default function AdminPortal() {
               <select
                 onChange={(e) => {
                   const targetTab = e.target.value as AdminTab;
-                  if (targetTab && targetTab !== ('NONE' as any)) {
+                  if (targetTab && (targetTab as string) !== 'NONE') {
                     setActiveTab(targetTab);
                   }
                 }}
@@ -1107,7 +1121,7 @@ export default function AdminPortal() {
         )}
 
         {/* TAB 2: HOME CMS (SIMPLIFIED & CLEAN) */}
-        {(activeTab === 'Home' || (activeTab as any) === 'Settings') && (
+        {(activeTab === 'Home' || (activeTab as string) === 'Settings') && (
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
               <div>
@@ -1218,7 +1232,7 @@ export default function AdminPortal() {
 
                         // 2. Latest Daily CA
                         if (Array.isArray(caList) && caList.length > 0) {
-                          caList.slice(0, 2).forEach((ca: any) => {
+                          caList.slice(0, 2).forEach((ca: CurrentAffairArticle) => {
                             const text = `Current Affairs: ${ca.title}`;
                             if (!feed.some(item => item.text === text)) {
                               feed.push({ date: 'DAILY CA', text, link: '/current-affairs/daily', isNew: true, createdAt: ca.publishDate || new Date().toISOString() });
@@ -1228,7 +1242,7 @@ export default function AdminPortal() {
 
                         // 3. Latest Blogs
                         if (Array.isArray(blogsList) && blogsList.length > 0) {
-                          blogsList.slice(0, 2).forEach((blog: any) => {
+                          blogsList.slice(0, 2).forEach((blog: BlogItem) => {
                             const text = `New Strategy Article: ${blog.title}`;
                             if (!feed.some(item => item.text === text)) {
                               feed.push({ date: 'ARTICLE', text, link: `/blog/${blog.id}`, isNew: true, createdAt: blog.publishDate || new Date().toISOString() });
@@ -1238,7 +1252,7 @@ export default function AdminPortal() {
 
                         // 4. Latest Courses
                         if (Array.isArray(coursesList) && coursesList.length > 0) {
-                          coursesList.slice(0, 2).forEach((course: any) => {
+                          coursesList.slice(0, 2).forEach((course: Course) => {
                             const text = `Batch Announcement: ${course.title}`;
                             if (!feed.some(item => item.text === text)) {
                               feed.push({ date: 'ADMISSIONS', text, link: '/courses', isNew: true, createdAt: new Date().toISOString() });
@@ -1541,7 +1555,7 @@ export default function AdminPortal() {
         )}
 
         {/* TAB: ABOUT PAGE CMS */}
-        {(activeTab === ('About' as any) || activeTab === ('About Page' as any) || activeTab === ('About Page CMS' as any)) && (
+        {(activeTab === 'About' || (activeTab as string) === 'About Page' || (activeTab as string) === 'About Page CMS') && (
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
               <div>
@@ -1963,7 +1977,7 @@ export default function AdminPortal() {
         )}
 
         {/* TAB: CONTACT */}
-        {(activeTab as any) === 'Contact' && (
+        {(activeTab as string) === 'Contact' && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
               <div>
@@ -2046,7 +2060,7 @@ export default function AdminPortal() {
 
 
         {/* TAB: PYQ */}
-        {(activeTab === 'PYQ' || (activeTab as any) === 'PYQs Manager') && (
+        {(activeTab === 'PYQ' || (activeTab as string) === 'PYQs Manager') && (
           <div className="space-y-6">
             <PYQsManagerCMS />
           </div>
@@ -2109,7 +2123,7 @@ export default function AdminPortal() {
 
 
         {/* TAB: CUSTOM PAGES (FALLBACK) */}
-        {(activeTab as any) === 'Custom Pages' && (
+        {(activeTab as string) === 'Custom Pages' && (
           <div className="space-y-6">
             <CustomPagesCMS />
           </div>
@@ -2130,7 +2144,7 @@ export default function AdminPortal() {
         )}
 
         {/* TAB: STRATEGY CMS */}
-        {((activeTab as any) === 'Strategy & Values' || (activeTab as any) === 'Strategy CMS') && (
+        {((activeTab as string) === 'Strategy & Values' || (activeTab as string) === 'Strategy CMS') && (
           <div className="space-y-6">
             <SyllabusStrategyCMS defaultTab="strategy" />
           </div>
@@ -2292,7 +2306,7 @@ export default function AdminPortal() {
             </div>
           </div>
         )}
-        {(activeTab === 'Users' || (activeTab as any) === 'Students') && (
+        {(activeTab === 'Users' || (activeTab as string) === 'Students') && (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white/70 backdrop-blur-md p-5 rounded-3xl border border-slate-200 shadow-xs">
               <div>
@@ -3072,7 +3086,7 @@ export default function AdminPortal() {
             )}
 
             {/* Modal add/edit Blog Post */}
-            {activeModal && (activeTab as any) === 'Blogs' && (
+            {activeModal && (activeTab as string) === 'Blogs' && (
               <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <form onSubmit={handleSaveBlog} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-6 sm:p-8 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col space-y-4 shadow-2xl">
                   <div className="flex justify-between items-center border-b border-slate-100 dark:border-white/10 pb-3 shrink-0">
@@ -3336,7 +3350,7 @@ export default function AdminPortal() {
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Category</label>
                         <select
                           value={editingArticle.category || 'NATIONAL'}
-                          onChange={(e) => setEditingArticle({ ...editingArticle, category: e.target.value as any })}
+                          onChange={(e) => setEditingArticle({ ...editingArticle, category: e.target.value as 'NATIONAL' | 'INTERNATIONAL' | 'BIHAR' | 'ARUNACHAL' })}
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                         >
                           <option value="NATIONAL">NATIONAL</option>
@@ -3563,10 +3577,10 @@ export default function AdminPortal() {
                           <span className="text-amber-500 font-extrabold">{aggregationPreview.availableCount} / 12 Months Available</span>
                         </div>
 
-                        {aggregationPreview.missingCount > 0 && (
+                        {Boolean(aggregationPreview.missingCount && aggregationPreview.missingCount > 0) && (
                           <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-600 dark:text-red-400 text-xs font-semibold space-y-1">
                             <span className="font-extrabold block">⚠️ Missing Months ({aggregationPreview.missingCount}):</span>
-                            <span>{aggregationPreview.missingMonths.join(', ')}</span>
+                            <span>{aggregationPreview.missingMonths?.join(', ')}</span>
                           </div>
                         )}
                       </div>
@@ -3781,7 +3795,7 @@ export default function AdminPortal() {
         )}
 
         {/* TAB 8: RESOURCES */}
-        {(activeTab as any) === 'Resources' && (
+        {(activeTab as string) === 'Resources' && (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="font-extrabold text-sm text-slate-900">Free Resources Downloads</h3>
@@ -3826,7 +3840,7 @@ export default function AdminPortal() {
               ))}
             </div>
             {/* Modal add/edit Resource */}
-            {activeModal && (activeTab as any) === 'Resources' && (
+            {activeModal && (activeTab as string) === 'Resources' && (
               <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <form onSubmit={handleSaveResource} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-lg w-full space-y-4 shadow-2xl">
                   <h3 className="font-extrabold text-sm text-slate-900">
@@ -4533,7 +4547,7 @@ export default function AdminPortal() {
                             const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`);
                             const usersData = await usersRes.json();
                             setUsersList(usersData);
-                            const updatedUser = usersData.find((u: any) => u.id === selectedUserModal.id);
+                            const updatedUser = usersData.find((u: UserProfile) => u.id === selectedUserModal.id);
                             if (updatedUser) setSelectedUserModal(updatedUser);
                           } else {
                             alert(`Failed to assign program: ${data.error || 'Already assigned'}`);
@@ -4583,7 +4597,7 @@ export default function AdminPortal() {
                                   const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`);
                                   const usersData = await usersRes.json();
                                   setUsersList(usersData);
-                                  const updatedUser = usersData.find((u: any) => u.id === selectedUserModal.id);
+                                  const updatedUser = usersData.find((u: UserProfile) => u.id === selectedUserModal.id);
                                   if (updatedUser) setSelectedUserModal(updatedUser);
                                 }
                               } catch (err) {

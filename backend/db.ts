@@ -5102,6 +5102,139 @@ class LmsDB {
     return true;
   }
 
+  // ── TEST SERIES & EXAM RECORD PERSISTENCE METHODS ────────────────────────
+  public async getExamsHierarchy(includeUnpublished: boolean = false): Promise<any[]> {
+    if (mysqlPool) {
+      try {
+        const [exams]: any = await mysqlPool.query('SELECT * FROM exams ORDER BY displayOrder ASC');
+        if (Array.isArray(exams) && exams.length > 0) {
+          const [stages]: any = await mysqlPool.query('SELECT * FROM exam_stages ORDER BY sortOrder ASC');
+          const [series]: any = await mysqlPool.query('SELECT * FROM test_series ORDER BY displayOrder ASC');
+
+          return exams.map((ex: any) => ({
+            ...ex,
+            hasStages: Boolean(ex.hasStages),
+            stages: (stages || []).filter((s: any) => s.examId === ex.id),
+            testSeries: (series || []).filter((ts: any) => ts.examId === ex.id)
+          }));
+        }
+      } catch (err) {
+        console.error('[DB] getExamsHierarchy MySQL error:', err);
+      }
+    }
+
+    if (!(this.localStore as any).exams) {
+      (this.localStore as any).exams = [
+        {
+          id: 'exam-bpsc', name: 'BPSC', code: 'BPSC', slug: 'bpsc', hasStages: true, displayOrder: 1, isActive: true,
+          stages: [
+            { id: 'stage-bpsc-prelims', examId: 'exam-bpsc', name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
+            { id: 'stage-bpsc-mains', examId: 'exam-bpsc', name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
+          ]
+        },
+        {
+          id: 'exam-appsc', name: 'APPSC', code: 'APPSC', slug: 'appsc', hasStages: true, displayOrder: 2, isActive: true,
+          stages: [
+            { id: 'stage-appsc-prelims', examId: 'exam-appsc', name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
+            { id: 'stage-appsc-mains', examId: 'exam-appsc', name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
+          ]
+        },
+        { id: 'exam-apssb', name: 'APSSB', code: 'APSSB', slug: 'apssb', hasStages: false, displayOrder: 3, isActive: true, stages: [] }
+      ];
+      this.saveLocalData();
+    }
+
+    const exams = (this.localStore as any).exams || [];
+    const testSeriesList = (this.localStore as any).testSeries || [];
+    return exams.map((ex: any) => {
+      const seriesForExam = testSeriesList.filter((ts: any) => ts.examId === ex.id || ts.exam === ex.code || ts.exam === ex.name);
+      return {
+        ...ex,
+        testSeries: seriesForExam
+      };
+    });
+  }
+
+  public async saveExamRecord(exam: any): Promise<any> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO exams (id, name, code, slug, logoUrl, description, hasStages, displayOrder, isActive)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             name = VALUES(name), code = VALUES(code), slug = VALUES(slug), logoUrl = VALUES(logoUrl),
+             description = VALUES(description), hasStages = VALUES(hasStages), displayOrder = VALUES(displayOrder), isActive = VALUES(isActive)`,
+          [exam.id, exam.name, exam.code, exam.slug, exam.logoUrl || '', exam.description || '', exam.hasStages ? 1 : 0, exam.displayOrder || 1, exam.isActive !== false ? 1 : 0]
+        );
+      } catch (err) {
+        console.error('[DB] saveExamRecord MySQL error:', err);
+      }
+    }
+
+    if (!(this.localStore as any).exams) (this.localStore as any).exams = [];
+    const store = (this.localStore as any).exams;
+    const idx = store.findIndex((e: any) => e.id === exam.id);
+    if (idx >= 0) {
+      store[idx] = { ...store[idx], ...exam };
+    } else {
+      store.push(exam);
+    }
+    this.saveLocalData();
+    return exam;
+  }
+
+  public async saveTestSeriesRecord(series: any): Promise<any> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO test_series (id, title, slug, examId, stageId, category, exam, language, status, price, discountedPrice, totalTests, totalQuestions, duration, description, highlights, isPublished, displayOrder)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             title = VALUES(title), slug = VALUES(slug), examId = VALUES(examId), stageId = VALUES(stageId),
+             category = VALUES(category), exam = VALUES(exam), language = VALUES(language), status = VALUES(status),
+             price = VALUES(price), discountedPrice = VALUES(discountedPrice), totalTests = VALUES(totalTests),
+             totalQuestions = VALUES(totalQuestions), duration = VALUES(duration), description = VALUES(description),
+             highlights = VALUES(highlights), isPublished = VALUES(isPublished), displayOrder = VALUES(displayOrder)`,
+          [
+            series.id, series.title, series.slug, series.examId, series.stageId || null, series.category || '', series.exam || '',
+            series.language || 'English', series.status || 'active', Number(series.price || 0), Number(series.discountedPrice || 0),
+            Number(series.totalTests || 0), Number(series.totalQuestions || 0), series.duration || '', series.description || '',
+            JSON.stringify(series.highlights || []), series.isPublished !== false ? 1 : 0, Number(series.displayOrder || 1)
+          ]
+        );
+      } catch (err) {
+        console.error('[DB] saveTestSeriesRecord MySQL error:', err);
+      }
+    }
+
+    if (!(this.localStore as any).testSeries) (this.localStore as any).testSeries = [];
+    const store = (this.localStore as any).testSeries;
+    const idx = store.findIndex((s: any) => s.id === series.id);
+    if (idx >= 0) {
+      store[idx] = { ...store[idx], ...series };
+    } else {
+      store.unshift(series);
+    }
+    this.saveLocalData();
+    return series;
+  }
+
+  public async deleteTestSeriesRecord(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM test_series WHERE id = ?', [id]);
+      } catch (err) {
+        console.error('[DB] deleteTestSeriesRecord MySQL error:', err);
+      }
+    }
+
+    if ((this.localStore as any).testSeries) {
+      (this.localStore as any).testSeries = (this.localStore as any).testSeries.filter((s: any) => s.id !== id);
+      this.saveLocalData();
+    }
+    return true;
+  }
+
   public async exportBackup(): Promise<any> {
     return db.exportBackup();
   }

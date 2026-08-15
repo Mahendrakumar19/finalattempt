@@ -134,10 +134,15 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   const handleOpenAddSeries = () => {
     setSeriesModalType('add');
     const newId = `ts-${Date.now()}`;
+    const defaultEx = examsList[0] || { id: 'exam-bpsc', name: 'BPSC', code: 'BPSC', hasStages: true, stages: [{ id: 'stage-bpsc-prelims', name: 'Prelims' }] };
     const initial = {
       ...BLANK_SERIES,
       id: newId,
-      slug: `bpsc-test-series-${Date.now()}`
+      slug: `bpsc-test-series-${Date.now()}`,
+      examId: defaultEx.id,
+      exam: defaultEx.code || defaultEx.name || 'BPSC',
+      stageId: defaultEx.hasStages && defaultEx.stages?.[0] ? defaultEx.stages[0].id : null,
+      category: defaultEx.hasStages && defaultEx.stages?.[0] ? defaultEx.stages[0].name : 'Prelims'
     };
     setEditingSeries(initial);
     setHighlightsInput((initial.highlights || []).join('\n'));
@@ -569,10 +574,32 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
             <div>
               <h3 className="font-heading font-black text-base text-[var(--text-color)] uppercase tracking-wider flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-amber-500" />
-                <span>State Exam Categories & Custom Logos</span>
+                <span>Isolated State Exam Categories & Custom Logos</span>
               </h3>
-              <p className="text-xs text-slate-500 mt-0.5">Upload custom image logos for BPSC, APPSC, APSSB and other state exam categories.</p>
+              <p className="text-xs text-slate-500 mt-0.5">Create exam categories, add custom logos, and define exam stage structure independently for the Test Series System.</p>
             </div>
+            <button
+              type="button"
+              onClick={() => setEditingExam({
+                id: `exam-${Date.now()}`,
+                name: '',
+                code: '',
+                slug: '',
+                logoUrl: '',
+                description: '',
+                hasStages: true,
+                displayOrder: (examsList.length || 0) + 1,
+                isActive: true,
+                stages: [
+                  { id: `stage-${Date.now()}-1`, examId: `exam-${Date.now()}`, name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
+                  { id: `stage-${Date.now()}-2`, examId: `exam-${Date.now()}`, name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
+                ]
+              })}
+              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs flex items-center gap-1.5 transition-all shadow-md cursor-pointer shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Exam Category</span>
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1052,10 +1079,14 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                 <div>
                   <label className="block text-slate-400 mb-1">Target Exam *</label>
                   <select
-                    value={editingSeries.examId || (examsList[0]?.id || '')}
+                    value={editingSeries.examId || (examsList[0]?.id || 'exam-bpsc')}
                     onChange={e => {
                       const selectedExId = e.target.value;
-                      const selectedExObj = examsList.find(ex => ex.id === selectedExId);
+                      const selectedExObj = (examsList.length > 0 ? examsList : [
+                        { id: 'exam-bpsc', name: 'BPSC', code: 'BPSC', hasStages: true, stages: [{ id: 'stage-bpsc-prelims', name: 'Prelims' }, { id: 'stage-bpsc-mains', name: 'Mains' }] },
+                        { id: 'exam-appsc', name: 'APPSC', code: 'APPSC', hasStages: true, stages: [{ id: 'stage-appsc-prelims', name: 'Prelims' }, { id: 'stage-appsc-mains', name: 'Mains' }] },
+                        { id: 'exam-apssb', name: 'APSSB', code: 'APSSB', hasStages: false, stages: [] }
+                      ]).find(ex => ex.id === selectedExId);
                       const defaultStageId = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].id : null;
                       const defaultCategory = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].name : null;
                       setEditingSeries({
@@ -1068,7 +1099,11 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                     }}
                     className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
                   >
-                    {examsList.map((ex: any) => (
+                    {(examsList.length > 0 ? examsList : [
+                      { id: 'exam-bpsc', name: 'BPSC', code: 'BPSC', hasStages: true },
+                      { id: 'exam-appsc', name: 'APPSC', code: 'APPSC', hasStages: true },
+                      { id: 'exam-apssb', name: 'APSSB', code: 'APSSB', hasStages: false }
+                    ]).map((ex: any) => (
                       <option key={ex.id} value={ex.id}>{ex.name} ({ex.hasStages ? 'Has Stages' : 'Direct Series'})</option>
                     ))}
                   </select>
@@ -1715,21 +1750,40 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
         </div>
       )}
 
-      {/* ── EDIT EXAM LOGO MODAL ────────────────────────────────────────────── */}
+      {/* ── MANAGE / CREATE EXAM CATEGORY MODAL ──────────────────────────── */}
       {editingExam && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <form
             onSubmit={async (e) => {
               e.preventDefault();
+              if (!editingExam.name) {
+                alert('Exam Name is required.');
+                return;
+              }
               setSavingExam(true);
               try {
-                await db.saveExam(editingExam);
-                setExamsList(prev => prev.map(ex => ex.id === editingExam.id ? { ...ex, ...editingExam } : ex));
-                alert(`Exam ${editingExam.name} logo saved successfully!`);
+                const code = editingExam.code || editingExam.name.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                const slug = editingExam.slug || editingExam.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                const payload = {
+                  ...editingExam,
+                  code,
+                  slug
+                };
+                await db.saveExam(payload);
+                setExamsList(prev => {
+                  const idx = prev.findIndex(ex => ex.id === payload.id);
+                  if (idx >= 0) {
+                    const copy = [...prev];
+                    copy[idx] = payload;
+                    return copy;
+                  }
+                  return [...prev, payload];
+                });
                 setEditingExam(null);
+                alert('Exam category & logo saved successfully!');
               } catch (err) {
                 console.error(err);
-                alert('Failed saving logo.');
+                alert('Failed to save exam category.');
               } finally {
                 setSavingExam(false);
               }
@@ -1738,9 +1792,9 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
           >
             <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Exam Category Logo</span>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Isolated Test Series Exam System</span>
                 <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-0.5">
-                  {editingExam.name} ({editingExam.code})
+                  {editingExam.name ? `${editingExam.name} (${editingExam.code || 'Custom'})` : 'New Exam Category'}
                 </h3>
               </div>
               <button
@@ -1757,12 +1811,48 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
               <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-[var(--card-border)] space-y-3">
                 <div className="w-20 h-16 rounded-2xl bg-white text-amber-600 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-heading font-black text-xl tracking-tight shadow-sm overflow-hidden p-1.5 shrink-0">
                   {editingExam.logoUrl ? (
-                    <img src={editingExam.logoUrl} alt={editingExam.name} className="w-full h-full object-contain drop-shadow-xs" />
+                    <img src={editingExam.logoUrl} alt={editingExam.name || 'Exam'} className="w-full h-full object-contain drop-shadow-xs" />
                   ) : (
-                    <span className="text-amber-600 font-extrabold">{editingExam.code || editingExam.name}</span>
+                    <span className="text-amber-600 font-extrabold">{editingExam.code || editingExam.name || 'EXAM'}</span>
                   )}
                 </div>
                 <span className="text-[10px] text-slate-400 font-medium">Exam Box Live Preview</span>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Exam Category Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. UPSC Civil Services, BPSC CCE, APPSC"
+                  value={editingExam.name || ''}
+                  onChange={e => setEditingExam({ ...editingExam, name: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1">Short Code / Badge</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. UPSC, BPSC"
+                    value={editingExam.code || ''}
+                    onChange={e => setEditingExam({ ...editingExam, code: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Exam Structure Type</label>
+                  <select
+                    value={editingExam.hasStages ? 'stages' : 'direct'}
+                    onChange={e => setEditingExam({ ...editingExam, hasStages: e.target.value === 'stages' })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none cursor-pointer"
+                  >
+                    <option value="stages">Stage-Wise (Prelims / Mains)</option>
+                    <option value="direct">Direct Series (Single Vault)</option>
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -1777,7 +1867,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Or Upload Local Image File</label>
+                <label className="block text-slate-400 mb-1">Or Upload Custom Logo Image</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -1793,16 +1883,17 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                       reader.readAsDataURL(file);
                     }
                   }}
-                  className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600"
+                  className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Exam Category Display Name</label>
-                <input
-                  type="text"
-                  value={editingExam.name || ''}
-                  onChange={e => setEditingExam({ ...editingExam, name: e.target.value })}
+                <label className="block text-slate-400 mb-1">Exam Description / Tagline</label>
+                <textarea
+                  rows={2}
+                  placeholder="State public service commission exam description..."
+                  value={editingExam.description || ''}
+                  onChange={e => setEditingExam({ ...editingExam, description: e.target.value })}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
                 />
               </div>

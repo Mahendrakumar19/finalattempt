@@ -186,8 +186,9 @@ export default function Home() {
         // Fallback gracefully if vanilla-tilt is not installed on the production server
       });
 
+    const currentRefs = tiltRefs.current;
     return () => {
-      tiltRefs.current.forEach((el) => {
+      currentRefs.forEach((el) => {
         if (el && (el as any).vanillaTilt) {
           (el as any).vanillaTilt.destroy();
         }
@@ -219,10 +220,9 @@ export default function Home() {
 
   const [dynamicAnnouncements, setDynamicAnnouncements] = useState<AnnouncementItem[]>([]);
 
-  const [liveCaEditions, setLiveCaEditions] = useState<any[]>([]);
-  const [liveTestSeries, setLiveTestSeries] = useState<any[]>([]);
-  const [liveResources, setLiveResources] = useState<any[]>([]);
-  const [customPages, setCustomPages] = useState<any[]>([]);
+  const [liveCaEditions, setLiveCaEditions] = useState<Record<string, unknown>[]>([]);
+  const [liveTestSeries, setLiveTestSeries] = useState<Record<string, unknown>[]>([]);
+  const [liveResources, setLiveResources] = useState<Record<string, unknown>[]>([]);
 
   useEffect(() => {
     const loadLiveData = async () => {
@@ -236,7 +236,7 @@ export default function Home() {
             heroImageUrl: s.heroImageUrl || ''
           }));
           if (s.announcements && Array.isArray(s.announcements) && s.announcements.length > 0) {
-            setDynamicAnnouncements(s.announcements.map((a: any) => typeof a === 'string' ? { date: 'NOTICE', text: a, isNew: true } : a));
+            setDynamicAnnouncements(s.announcements.map((a: unknown) => typeof a === 'string' ? { date: 'NOTICE', text: a, isNew: true } : (a as AnnouncementItem)));
           }
         }
 
@@ -257,22 +257,17 @@ export default function Home() {
 
         const caEditions = await db.getDynamicCurrentAffairsEditions(false);
         if (caEditions && caEditions.length > 0) {
-          setLiveCaEditions(caEditions);
+          setLiveCaEditions(caEditions as unknown as Record<string, unknown>[]);
         }
 
         const ts = await db.getTestSeries();
         if (ts && ts.length > 0) {
-          setLiveTestSeries(ts);
+          setLiveTestSeries(ts as unknown as Record<string, unknown>[]);
         }
 
         const resData = await db.getResources();
         if (resData && resData.length > 0) {
-          setLiveResources(resData);
-        }
-
-        const pages = await db.getCustomPages(true);
-        if (pages && pages.length > 0) {
-          setCustomPages(pages);
+          setLiveResources(resData as unknown as Record<string, unknown>[]);
         }
       } catch (err) {
         console.error('Failed loading homepage live data:', err);
@@ -282,12 +277,13 @@ export default function Home() {
   }, [locale]);
 
   // Compute unified dynamic WHAT'S NEW feed from all website update sources (Sorted: Latest On Top)
+  // Compute unified dynamic WHAT'S NEW feed from all website update sources (Sorted: Latest On Top)
   const whatsNewFeed = useMemo(() => {
     const feed: Array<{ date: string; text: string; link: string; isNew: boolean; isExternal: boolean; timestamp: number }> = [];
 
-    const getTS = (obj: any): number => {
+    const getTS = (obj: Record<string, unknown> | null | undefined): number => {
       if (!obj) return 0;
-      const raw = obj.createdAt || obj.publishedAt || obj.updatedAt || obj.date || obj.publishDate;
+      const raw = (obj.createdAt || obj.publishedAt || obj.updatedAt || obj.date || obj.publishDate) as string | undefined;
       if (!raw) return 0;
       const parsed = new Date(raw).getTime();
       return isNaN(parsed) ? 0 : parsed;
@@ -295,50 +291,52 @@ export default function Home() {
 
     // 1. New Daily Current Affairs
     if (Array.isArray(liveCaEditions)) {
-      liveCaEditions.forEach((ed: any) => {
-        const articleTitle = ed.articles && ed.articles.length > 0 ? ed.articles[0]?.title : null;
+      liveCaEditions.forEach((ed: Record<string, unknown>) => {
+        const articles = ed.articles as Array<{ title?: string }> | undefined;
+        const articleTitle = articles && articles.length > 0 ? articles[0]?.title : null;
+        const pubDate = ed.publishDate as string | undefined;
         feed.push({
           date: 'DAILY CA',
-          text: articleTitle ? `Current Affairs Update: ${articleTitle}` : `Current Affairs Edition (${ed.publishDate || 'Latest'})`,
-          link: ed.publishDate ? `/current-affairs/daily?date=${ed.publishDate}` : '/current-affairs/daily',
+          text: articleTitle ? `Current Affairs Update: ${articleTitle}` : `Current Affairs Edition (${pubDate || 'Latest'})`,
+          link: pubDate ? `/current-affairs/daily?date=${pubDate}` : '/current-affairs/daily',
           isNew: true,
           isExternal: false,
-          timestamp: getTS(ed) || (ed.publishDate ? new Date(ed.publishDate).getTime() : 0),
+          timestamp: getTS(ed) || (pubDate ? new Date(pubDate).getTime() : 0),
         });
       });
     }
 
     // 2. Published Blog & Strategy Articles
     if (Array.isArray(blogsList)) {
-      blogsList.forEach((blog: any) => {
+      blogsList.forEach((blog: BlogItem) => {
         feed.push({
           date: (blog.category || 'ARTICLE').toUpperCase(),
           text: blog.title,
           link: `/blog/${blog.slug || blog.id}`,
           isNew: true,
           isExternal: false,
-          timestamp: getTS(blog),
+          timestamp: getTS(blog as unknown as Record<string, unknown>),
         });
       });
     }
 
     // 3. Courses / New Batches
     if (Array.isArray(liveCourses)) {
-      liveCourses.forEach((c: any) => {
+      liveCourses.forEach((c: Course) => {
         feed.push({
           date: 'NEW BATCH',
           text: `${c.title} — Admissions Open`,
           link: `/courses/${c.id}`,
           isNew: true,
           isExternal: false,
-          timestamp: getTS(c),
+          timestamp: getTS(c as unknown as Record<string, unknown>),
         });
       });
     }
 
     // 4. Test Series Releases
     if (Array.isArray(liveTestSeries)) {
-      liveTestSeries.forEach((ts: any) => {
+      liveTestSeries.forEach((ts: Record<string, unknown>) => {
         feed.push({
           date: 'TEST SERIES',
           text: `${ts.title} Released`,
@@ -352,26 +350,27 @@ export default function Home() {
 
     // 5. Downloads / Study Materials (Latest 3)
     if (Array.isArray(liveResources)) {
-      liveResources.slice(0, 3).forEach((res: any) => {
+      liveResources.slice(0, 3).forEach((res: Record<string, unknown>) => {
+        const fileUrl = res.file_url as string | undefined;
         feed.push({
           date: 'STUDY MATERIAL',
           text: `${res.title} — Free Material`,
-          link: res.file_url || '/downloads',
+          link: fileUrl || '/downloads',
           isNew: true,
-          isExternal: Boolean(res.file_url && res.file_url.startsWith('http')),
+          isExternal: Boolean(fileUrl && fileUrl.startsWith('http')),
           timestamp: getTS(res),
         });
       });
     }
 
-    dynamicAnnouncements.forEach((ann: any, idx: number) => {
+    dynamicAnnouncements.forEach((ann: AnnouncementItem, idx: number) => {
       feed.push({
         date: ann.date || 'NOTICE',
         text: ann.text,
         link: ann.link || '',
         isNew: ann.isNew ?? false,
         isExternal: Boolean(ann.link && (ann.link.startsWith('http://') || ann.link.startsWith('https://'))),
-        timestamp: getTS(ann) || (1786800000000 - (idx + 1) * 3600000),
+        timestamp: getTS(ann as unknown as Record<string, unknown>) || (1786800000000 - (idx + 1) * 3600000),
       });
     });
 
@@ -564,7 +563,7 @@ export default function Home() {
                     <span>No recent website updates posted yet. Check back soon!</span>
                   </div>
                 ) : (
-                  whatsNewFeed.map((ann: any, idx: number) => {
+                  whatsNewFeed.map((ann, idx: number) => {
                     const content = (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">

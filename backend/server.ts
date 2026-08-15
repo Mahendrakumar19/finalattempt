@@ -1125,6 +1125,106 @@ httpServer.listen(PORT, () => {
     } catch (err: any) {
       console.error('[TranslationWarmUp] Blog warm-up error:', err.message || err);
     }
+
+    try {
+      // 4. Warm up courses
+      const courses = await db.getCourses();
+      if (Array.isArray(courses) && courses.length > 0) {
+        await ContentLocalizer.localizeEntityList(
+          'course',
+          courses,
+          ['title', 'description', 'duration', 'fee'],
+          'hi',
+          ['description']
+        );
+        console.log(`[TranslationWarmUp] Successfully warmed ${courses.length} courses in Hindi.`);
+      }
+    } catch (err: any) {
+      console.error('[TranslationWarmUp] Courses warm-up error:', err.message || err);
+    }
+
+    try {
+      // 5. Warm up test series and exam hierarchy
+      const exams = await db.getExamsHierarchy(true);
+      if (Array.isArray(exams) && exams.length > 0) {
+        await ContentLocalizer.localizeEntityList(
+          'exam',
+          exams,
+          ['name', 'description'],
+          'hi',
+          ['description']
+        );
+        const allSeries: any[] = [];
+        exams.forEach((ex: any) => {
+          if (Array.isArray(ex.testSeries)) {
+            allSeries.push(...ex.testSeries);
+          }
+        });
+        if (allSeries.length > 0) {
+          await ContentLocalizer.localizeEntityList(
+            'test_series',
+            allSeries,
+            ['title', 'description', 'category', 'duration'],
+            'hi',
+            ['description']
+          );
+        }
+        console.log(`[TranslationWarmUp] Successfully warmed ${exams.length} exams & ${allSeries.length} test series in Hindi.`);
+      }
+    } catch (err: any) {
+      console.error('[TranslationWarmUp] Test Series warm-up error:', err.message || err);
+    }
+
+    try {
+      // 6. Warm up resources & downloads
+      const resources = await db.getResources();
+      if (Array.isArray(resources) && resources.length > 0) {
+        await ContentLocalizer.localizeEntityList(
+          'resource',
+          resources,
+          ['title', 'category', 'subcategory'],
+          'hi',
+          []
+        );
+        console.log(`[TranslationWarmUp] Successfully warmed ${resources.length} resources in Hindi.`);
+      }
+    } catch (err: any) {
+      console.error('[TranslationWarmUp] Resource warm-up error:', err.message || err);
+    }
+
+    try {
+      // 7. Warm up faculty & mentors
+      const faculty = await db.getFaculty();
+      if (Array.isArray(faculty) && faculty.length > 0) {
+        await ContentLocalizer.localizeEntityList(
+          'faculty',
+          faculty,
+          ['name', 'role', 'bio', 'experience'],
+          'hi',
+          ['bio']
+        );
+        console.log(`[TranslationWarmUp] Successfully warmed ${faculty.length} faculty profiles in Hindi.`);
+      }
+    } catch (err: any) {
+      console.error('[TranslationWarmUp] Faculty warm-up error:', err.message || err);
+    }
+
+    try {
+      // 8. Warm up custom landing pages
+      const customPages = await db.getCustomPages();
+      if (Array.isArray(customPages) && customPages.length > 0) {
+        await ContentLocalizer.localizeEntityList(
+          'custom_page',
+          customPages,
+          ['title', 'content', 'metaTitle', 'metaDescription'],
+          'hi',
+          ['content']
+        );
+        console.log(`[TranslationWarmUp] Successfully warmed ${customPages.length} custom pages in Hindi.`);
+      }
+    } catch (err: any) {
+      console.error('[TranslationWarmUp] Custom Pages warm-up error:', err.message || err);
+    }
   }
 
   // Start warm-up 3 seconds after server boot (reduced from 30s)

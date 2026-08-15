@@ -1039,15 +1039,8 @@ class FinalAttemptDB {
     }
   }
 
-  public async getExamsHierarchy(includeUnpublished: boolean = false): Promise<ExamData[]> {
-    const data = await this.apiFetch(`/api/test-series/hierarchy?includeUnpublished=${includeUnpublished}`);
-    if (data && data.success && Array.isArray(data.data)) {
-      return (data.data as ExamData[]).sort((a, b) =>
-        (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
-      );
-    }
-    // Fallback seed hierarchy
-    return [
+  private getLocalExamsStore(): ExamData[] {
+    const DEFAULT_HIERARCHY: ExamData[] = [
       {
         id: 'exam-bpsc',
         name: 'BPSC',
@@ -1059,56 +1052,6 @@ class FinalAttemptDB {
         stages: [
           { id: 'stage-bpsc-prelims', examId: 'exam-bpsc', name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
           { id: 'stage-bpsc-mains', examId: 'exam-bpsc', name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
-        ],
-        testSeries: [
-          {
-            id: 'bpsc-71st-prelims-mock-vault',
-            examId: 'exam-bpsc',
-            stageId: 'stage-bpsc-prelims',
-            exam: 'BPSC',
-            title: '71st All India Standard Test Series 2025-26',
-            slug: 'bpsc-71st-prelims-mock-vault',
-            category: 'Prelims',
-            language: 'English',
-            status: 'active',
-            price: 4999,
-            discountedPrice: 2499,
-            totalTests: 45,
-            totalQuestions: 6750,
-            duration: '6 Months Validity',
-            description: 'Comprehensive 45-Test Series engineered strictly according to the latest BPSC micro-pattern.',
-            highlights: ['20 Micro Sectional Tests', '10 Bihar Special Exclusive Mock Tests', '15 Full Length Grand Mock Papers'],
-            syllabus: [{ subject: 'General Studies & Bihar Special', topics: ['History of Bihar', 'Geography & Polity'] }],
-            faq: [{ q: 'Can I attempt tests anytime?', a: 'Yes, tests are accessible 24/7 once unlocked.' }],
-            enrolledCount: 1420,
-            validityDays: 180,
-            isPublished: true,
-            displayOrder: 1
-          },
-          {
-            id: 'bpsc-70th-mains-evaluator-workbench',
-            examId: 'exam-bpsc',
-            stageId: 'stage-bpsc-mains',
-            exam: 'BPSC',
-            title: '70th Daily Answer Evaluation & Grand Mock Series',
-            slug: 'bpsc-70th-mains-evaluator-workbench',
-            category: 'Mains',
-            language: 'English',
-            status: 'active',
-            price: 8999,
-            discountedPrice: 4499,
-            totalTests: 24,
-            totalQuestions: 192,
-            duration: 'Until Mains Exam',
-            description: 'Expert evaluation by selected BPSC officers within 48 hours for GS Paper I, GS Paper II, Essay paper.',
-            highlights: ['8 Full Length GS Paper I Mocks', '8 Full Length GS Paper II Mocks', '4 Dedicated Essay Paper Mocks'],
-            syllabus: [{ subject: 'GS Paper I & II', topics: ['Modern History & Culture', 'Polity & Economy'] }],
-            faq: [{ q: 'How do I submit answers?', a: 'Upload photos/scans of handwritten answer sheets.' }],
-            enrolledCount: 840,
-            validityDays: 180,
-            isPublished: true,
-            displayOrder: 2
-          }
         ]
       },
       {
@@ -1122,32 +1065,6 @@ class FinalAttemptDB {
         stages: [
           { id: 'stage-appsc-prelims', examId: 'exam-appsc', name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
           { id: 'stage-appsc-mains', examId: 'exam-appsc', name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
-        ],
-        testSeries: [
-          {
-            id: 'appsc-cee-prelims-standard',
-            examId: 'exam-appsc',
-            stageId: 'stage-appsc-prelims',
-            exam: 'APPSC',
-            title: 'CEE Prelims GS & CSAT Standard Mock Series',
-            slug: 'appsc-cee-prelims-standard',
-            category: 'Prelims',
-            language: 'English',
-            status: 'active',
-            price: 3999,
-            discountedPrice: 1999,
-            totalTests: 25,
-            totalQuestions: 3750,
-            duration: '6 Months Validity',
-            description: 'Targeted test series for APPSC CEE General Studies Paper I and CSAT Paper II.',
-            highlights: ['15 Sectional Tests', '10 Full Length Mock Papers', 'State Specific GS Special Modules'],
-            syllabus: [{ subject: 'General Studies Paper I', topics: ['History & Geography of Arunachal Pradesh', 'Indian Polity'] }],
-            faq: [{ q: 'Are video solutions provided?', a: 'Yes, detailed solution booklets are provided.' }],
-            enrolledCount: 620,
-            validityDays: 180,
-            isPublished: true,
-            displayOrder: 1
-          }
         ]
       },
       {
@@ -1158,46 +1075,63 @@ class FinalAttemptDB {
         hasStages: false,
         displayOrder: 3,
         isActive: true,
-        stages: [],
-        testSeries: [
-          {
-            id: 'apssb-combined-mock-vault',
-            examId: 'exam-apssb',
-            stageId: null,
-            exam: 'APSSB',
-            title: 'General Combined Recruitment Practice Series 2025',
-            slug: 'apssb-combined-mock-vault',
-            category: null,
-            language: 'English',
-            status: 'active',
-            price: 1999,
-            discountedPrice: 999,
-            totalTests: 30,
-            totalQuestions: 4500,
-            duration: '1 Year Validity',
-            description: 'Comprehensive practice tests for APSSB CGL, CHSL, and General Officers competitive exams.',
-            highlights: ['Full Mock Tests', 'General Knowledge & English Language Practice', 'Instant Automated CBT Scorecard'],
-            syllabus: [{ subject: 'General Knowledge & English', topics: ['General Awareness', 'Basic Mathematics & Reasoning'] }],
-            faq: [{ q: 'Is this test series bilingual?', a: 'Tests are in English medium.' }],
-            enrolledCount: 950,
-            validityDays: 365,
-            isPublished: true,
-            displayOrder: 1
-          }
-        ]
+        stages: []
       }
     ];
+
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('finalattempt_exams_store');
+        if (stored !== null) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } else {
+          localStorage.setItem('finalattempt_exams_store', JSON.stringify(DEFAULT_HIERARCHY));
+          return DEFAULT_HIERARCHY;
+        }
+      } catch (_) {}
+    }
+    return DEFAULT_HIERARCHY;
+  }
+
+  private setLocalExamsStore(list: ExamData[]) {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('finalattempt_exams_store', JSON.stringify(list));
+      } catch (_) {}
+    }
+  }
+
+  public async getExamsHierarchy(includeUnpublished: boolean = false): Promise<ExamData[]> {
+    const data = await this.apiFetch(`/api/test-series/hierarchy?includeUnpublished=${includeUnpublished}`);
+    if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
+      this.setLocalExamsStore(data.data);
+      return (data.data as ExamData[]).sort((a, b) =>
+        (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
+      );
+    }
+    return this.getLocalExamsStore();
   }
 
   public async getTestSeries(includeUnpublished: boolean = false): Promise<TestSeriesItem[]> {
     const data = await this.apiFetch(`/api/test-series?includeUnpublished=${includeUnpublished}`);
-    let list: TestSeriesItem[] = [];
-    if (data && data.success && Array.isArray(data.data)) {
-      list = data.data;
+    const localStore = this.getLocalTestSeriesStore();
+    let combined: TestSeriesItem[] = [];
+
+    if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
+      const serverMap = new Map<string, TestSeriesItem>(data.data.map((item: TestSeriesItem) => [item.id, item]));
+      localStore.forEach(item => {
+        if (!serverMap.has(item.id)) {
+          serverMap.set(item.id, item);
+        }
+      });
+      combined = Array.from(serverMap.values());
+      this.setLocalTestSeriesStore(combined);
     } else {
-      list = this.getLocalTestSeriesStore();
+      combined = localStore;
     }
-    return includeUnpublished ? list : list.filter(s => s.isPublished !== false);
+
+    return includeUnpublished ? combined : combined.filter(s => s.isPublished !== false);
   }
 
   public async getTestSeriesBySlug(slug: string): Promise<TestSeriesItem | null> {
@@ -1252,6 +1186,17 @@ class FinalAttemptDB {
   }
 
   public async saveExam(exam: Partial<ExamData>): Promise<boolean> {
+    const currentList = this.getLocalExamsStore();
+    const existingIdx = currentList.findIndex(e => e.id === exam.id);
+    let nextList: ExamData[] = [];
+    if (existingIdx >= 0) {
+      nextList = [...currentList];
+      nextList[existingIdx] = { ...nextList[existingIdx], ...exam } as ExamData;
+    } else {
+      nextList = [...currentList, exam as ExamData];
+    }
+    this.setLocalExamsStore(nextList);
+
     const res = await this.apiFetch('/api/admin/exams', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

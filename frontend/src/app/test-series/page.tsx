@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { Award, ArrowRight, Layers, ShieldCheck, ChevronRight } from 'lucide-react';
 import { db, ExamData, TestSeriesItem } from '@/services/db';
 import TestSeriesComparisonTable from '@/components/TestSeriesComparisonTable';
+import { useTranslation } from '@/context/LocaleContext';
 
 export default function TestSeriesRootPage() {
+  const { t } = useTranslation();
   const [exams, setExams] = useState<ExamData[]>([]);
   const [allSeries, setAllSeries] = useState<TestSeriesItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,13 +34,13 @@ export default function TestSeriesRootPage() {
       {/* Header Banner */}
       <div className="max-w-5xl mx-auto text-center space-y-4">
         <span className="px-3.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full text-xs font-black uppercase tracking-widest inline-block">
-          State Civil Services & Officer Test Series
+          {t('testSeriesHub.tagline')}
         </span>
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black text-[var(--text-color)] tracking-tight">
-          Select Your Target Examination
+          {t('testSeriesHub.title')}
         </h1>
         <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          Structured Computer-Based Test (CBT) series engineered for State PSC & Staff Selection Board Examinations.
+          {t('testSeriesHub.subtitle')}
         </p>
       </div>
 
@@ -70,7 +72,7 @@ export default function TestSeriesRootPage() {
                         )}
                       </div>
                       <span className="text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 bg-amber-50/80 dark:bg-amber-950/40 text-slate-700 dark:text-slate-200 rounded-full border border-amber-200/50 dark:border-amber-500/20">
-                        {ex.hasStages ? 'STAGE WISE' : 'DIRECT SERIES'}
+                        {ex.hasStages ? t('testSeriesHub.stageWise') : t('testSeriesHub.directSeries')}
                       </span>
                     </div>
 
@@ -79,26 +81,26 @@ export default function TestSeriesRootPage() {
                         {ex.name}
                       </h2>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2">
-                        {ex.description || `Official ${ex.name} CBT Practice Test Series Programs.`}
+                        {ex.description || `${t('testSeriesHub.officialCBT')}`}
                       </p>
                     </div>
 
                     <div className="pt-2 flex items-center gap-4 text-xs font-bold text-slate-500 border-t border-[var(--card-border)]">
                       <span className="flex items-center gap-1.5">
                         <Layers className="w-4 h-4 text-amber-500" />
-                        <span>{seriesCount} Test Series</span>
+                        <span>{seriesCount} {t('testSeriesHub.programsCount')}</span>
                       </span>
                       {ex.hasStages && (
                         <span className="flex items-center gap-1.5">
                           <ShieldCheck className="w-4 h-4 text-indigo-500" />
-                          <span>Prelims & Mains</span>
+                          <span>{t('testSeriesHub.prelimsAndMains')}</span>
                         </span>
                       )}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-4 text-xs font-extrabold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform">
-                    <span>Open {ex.name} Portal</span>
+                    <span>{t('testSeriesHub.openPortal')} ({ex.name})</span>
                     <ArrowRight className="w-4 h-4" />
                   </div>
                 </Link>
@@ -112,8 +114,8 @@ export default function TestSeriesRootPage() {
       <div className="max-w-7xl mx-auto pt-8 border-t border-[var(--card-border)]">
         <TestSeriesComparisonTable
           programs={allSeries}
-          title="Choose the Right Prelims Mock Test Series for You"
-          subtitle="Compare the benefits of each series and choose the best fit for your preparation goals. Select a structured program or a personalized approach to enhance your readiness for the Preliminary Examination."
+          title={t('testSeriesHub.compareTitle')}
+          subtitle={t('testSeriesHub.compareSubtitle')}
         />
       </div>
 

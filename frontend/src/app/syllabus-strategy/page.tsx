@@ -1,11 +1,12 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  FileText, Download, ChevronRight, Home, ExternalLink,
-  BookOpen, Target, Sparkles, Layers, CheckCircle2,
-  Share2, ArrowLeft, ArrowUpRight, Search, ListFilter
+  Download, ChevronRight, Home,
+  BookOpen, Target, Layers, CheckCircle2,
+  ArrowUpRight, Search, ListFilter
 } from 'lucide-react';
 
 interface Exam {
@@ -14,6 +15,7 @@ interface Exam {
   code: string;
   slug: string;
   description?: string;
+  isActive?: boolean;
   logo?: { storagePath: string } | null;
 }
 
@@ -34,6 +36,7 @@ interface StrategyBlock {
   slug: string;
   content: string;
   category: string;
+  examId?: string;
   videoUrl?: string | null;
   ctaText?: string | null;
   ctaUrl?: string | null;
@@ -69,7 +72,7 @@ export default function SyllabusStrategyPage() {
         const examsRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
         const examsData = await examsRes.json();
         if (!ignore && examsData.success && Array.isArray(examsData.data)) {
-          const activeExams = examsData.data.filter((e: any) => e.isActive);
+          const activeExams = examsData.data.filter((e: Exam) => e.isActive);
           setExams(activeExams);
           if (activeExams.length > 0) {
             setSelectedExamId(activeExams[0].id);
@@ -125,7 +128,7 @@ export default function SyllabusStrategyPage() {
   const selectedExam = exams.find(e => e.id === selectedExamId);
 
   // Filtered strategy items
-  const filteredStrategy = strategyBlocks.filter((st: any) => {
+  const filteredStrategy = strategyBlocks.filter((st: StrategyBlock) => {
     if (selectedExamId !== 'ALL') {
       if (st.examId) {
         if (st.examId !== selectedExamId) return false;
