@@ -173,6 +173,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
       id: editingSeries.id,
       title: editingSeries.title,
       slug: finalSlug,
+      examId: editingSeries.examId || (examsList.find(e => e.name === editingSeries.exam || e.code === editingSeries.exam)?.id || examsList[0]?.id || 'exam-bpsc'),
       category: editingSeries.category || 'Prelims',
       exam: editingSeries.exam || 'BPSC',
       language: (editingSeries.language && editingSeries.language.toLowerCase().includes('hindi')) ? 'Hindi' : 'English',
