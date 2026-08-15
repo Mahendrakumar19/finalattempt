@@ -11,33 +11,31 @@ export const metadata: Metadata = {
 
   title: {
     default:
-      "Final Attempt IAS | #1 BPSC & UPSC Coaching in Patna — Mentorship, Current Affairs & Mock Tests",
-    template: "%s | Final Attempt IAS",
+      "Final Attempt | Best Platform for UPSC & State PCS",
+    template: "%s | Final Attempt",
   },
 
   description:
-    "Final Attempt IAS is Bihar's #1 BPSC & UPSC coaching institute in Patna. Expert mentorship, daily current affairs in Hindi & English, free mock tests, PYQs, study material and proven results.",
+    "Final Attempt is the best platform for UPSC & State PCS preparation. Get expert mentorship, daily current affairs in Hindi & English, free test series, PYQs, and high-quality study materials.",
 
-  applicationName: "Final Attempt IAS",
+  applicationName: "Final Attempt",
 
   keywords: [
+    "UPSC Preparation",
+    "State PCS Preparation",
     "BPSC Preparation",
+    "Best Platform for UPSC",
+    "Best Platform for State PCS",
+    "UPSC Mentorship",
+    "State PCS Mentorship",
     "BPSC Coaching Patna",
-    "Bihar PCS",
-    "UPSC Coaching Bihar",
-    "APPSC",
-    "Patna BPSC Coaching",
-    "BPSC Answer Writing",
-    "BPSC Current Affairs",
-    "BPSC Mock Test",
-    "Bihar BPSC Free Material",
-    "Final Attempt IAS",
+    "Daily Current Affairs Hindi English",
+    "UPSC State PCS Test Series",
+    "Free PYQs Study Material",
     "Final Attempt",
-    "BPSC 70th Notification",
-    "BPSC Prelims Test Series",
   ],
 
-  authors: [{ name: "Final Attempt IAS", url: "https://finalattemptias.com" }],
+  authors: [{ name: "Final Attempt", url: "https://finalattemptias.com" }],
 
   alternates: {
     canonical: "https://finalattemptias.com",
@@ -45,18 +43,18 @@ export const metadata: Metadata = {
 
   openGraph: {
     type: "website",
-    siteName: "Final Attempt IAS",
+    siteName: "Final Attempt",
     title:
-      "Final Attempt IAS | #1 BPSC & UPSC Coaching in Patna — Mentorship, Current Affairs & Mock Tests",
+      "Final Attempt | Best Platform for UPSC & State PCS",
     description:
-      "Final Attempt IAS is Bihar's #1 BPSC & UPSC coaching institute in Patna. Expert mentorship, daily current affairs in Hindi & English, free mock tests, PYQs, study material and proven results.",
+      "Final Attempt is the best platform for UPSC & State PCS preparation. Get expert mentorship, daily current affairs in Hindi & English, free test series, PYQs, and high-quality study materials.",
     url: "https://finalattemptias.com",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Final Attempt IAS — BPSC & UPSC Coaching in Patna",
+        alt: "Final Attempt — Best Platform for UPSC & State PCS",
       },
     ],
     locale: "en_IN",
@@ -64,10 +62,10 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    site: "@FinalAttemptIAS",
-    title: "Final Attempt IAS | #1 BPSC & UPSC Coaching in Patna",
+    site: "@FinalAttempt",
+    title: "Final Attempt | Best Platform for UPSC & State PCS",
     description:
-      "Bihar's #1 BPSC & UPSC coaching in Patna. Daily current affairs, free mock tests, mentorship & study material.",
+      "Final Attempt is the best platform for UPSC & State PCS preparation. Daily current affairs, free test series, mentorship & study materials.",
     images: ["/og-image.jpg"],
   },
 

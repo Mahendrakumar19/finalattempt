@@ -789,7 +789,7 @@ export default function AdminPortal() {
       <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'linear-gradient(135deg, #020617 0%, #0F172A 100%)' }}>
         <form onSubmit={handleAdminLogin} className="w-full max-w-sm bg-slate-900/80 backdrop-blur-md border border-white/10 p-8 space-y-6 shadow-2xl rounded-3xl">
           <div className="space-y-1">
-            <h1 className="text-xl font-heading font-extrabold tracking-tight text-white">Final Attempt <span className="text-amber-400">IAS</span></h1>
+            <h1 className="text-xl font-heading font-extrabold tracking-tight text-white">Final Attempt </h1>
             <p className="text-xs text-slate-400">Administration Console Sign-In</p>
           </div>
 
