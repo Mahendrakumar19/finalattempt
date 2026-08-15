@@ -92,18 +92,21 @@ export default function NewsTodayLayout({
 
           if (!matched) matched = resolvedEdition.articles[0];
 
+          // Set active article immediately for 0ms initial render
+          setActiveArticle(matched);
+
           if (matched && matched.slug) {
             const cacheKey = `${matched.slug}_${locale}`;
             if (articleCacheRef.current.has(cacheKey)) {
               setActiveArticle(articleCacheRef.current.get(cacheKey)!);
-            } else {
-              const fullArt = await db.getDynamicCurrentAffairArticle(matched.slug, false);
-              const finalArticle = fullArt || matched;
-              articleCacheRef.current.set(cacheKey, finalArticle);
-              setActiveArticle(finalArticle);
+            } else if (!matched.content) {
+              db.getDynamicCurrentAffairArticle(matched.slug, false).then(fullArt => {
+                if (fullArt) {
+                  articleCacheRef.current.set(cacheKey, fullArt);
+                  setActiveArticle(fullArt);
+                }
+              }).catch(() => {});
             }
-          } else {
-            setActiveArticle(matched);
           }
         }
       } catch (err) {
