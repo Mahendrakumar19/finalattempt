@@ -66,8 +66,12 @@ export default function TestSeriesComparisonTable({
       // Medium Filter
       if (selectedMedium !== 'ALL') {
         const progMedium = (p.medium || p.language || '').toLowerCase();
-        if (selectedMedium.toLowerCase() === 'english' && !progMedium.includes('english')) return false;
-        if (selectedMedium.toLowerCase() === 'hindi' && !progMedium.includes('hindi')) return false;
+        const searchKey = selectedMedium.toLowerCase();
+        if (searchKey === 'bilingual') {
+          if (!progMedium.includes('bilingual') && (!progMedium.includes('hindi') || !progMedium.includes('english'))) return false;
+        } else if (!progMedium.includes(searchKey)) {
+          return false;
+        }
       }
 
       // Date Filter
@@ -242,7 +246,9 @@ export default function TestSeriesComparisonTable({
                   ? 'Select Medium'
                   : selectedMedium === 'English'
                   ? 'English Medium'
-                  : 'Hindi Medium'}
+                  : selectedMedium === 'Hindi'
+                  ? 'Hindi Medium'
+                  : 'Bilingual'}
               </span>
               <ChevronDown className="w-4 h-4 text-slate-400" />
             </button>
@@ -255,7 +261,8 @@ export default function TestSeriesComparisonTable({
                 {[
                   { id: 'ALL', label: 'All Mediums' },
                   { id: 'English', label: 'English Medium' },
-                  { id: 'Hindi', label: 'Hindi Medium' }
+                  { id: 'Hindi', label: 'Hindi Medium' },
+                  { id: 'Bilingual', label: 'Bilingual (Hindi & English)' }
                 ].map(item => (
                   <button
                     key={item.id}
