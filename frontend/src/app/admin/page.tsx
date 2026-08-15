@@ -378,6 +378,50 @@ export default function AdminPortal() {
     });
   }, [fetchCMSData]);
 
+  const handleExportBackup = async () => {
+    try {
+      const data = await db.exportDatabaseBackup();
+      if (!data) {
+        alert('Failed to export database backup.');
+        return;
+      }
+      const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`;
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', jsonString);
+      downloadAnchor.setAttribute('download', `finalattempt_db_backup_${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } catch (err: any) {
+      alert(`Export error: ${err.message}`);
+    }
+  };
+
+  const handleImportBackup = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!window.confirm(`Are you sure you want to restore database from backup file "${file.name}"? This will restore all CMS records.`)) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const text = e.target?.result as string;
+        const parsed = JSON.parse(text);
+        const ok = await db.importDatabaseBackup(parsed);
+        if (ok) {
+          alert('Database backup restored successfully! Reloading CMS data...');
+          fetchCMSData();
+        } else {
+          alert('Failed to restore backup file.');
+        }
+      } catch (err: any) {
+        alert(`Failed to parse backup JSON file: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -996,6 +1040,42 @@ export default function AdminPortal() {
         {/* TAB 1: DASHBOARD */}
         {activeTab === 'Dashboard' && (
           <div className="space-y-8">
+            {/* Master Persistence & Backup Action Card */}
+            <div className="p-6 bg-gradient-to-r from-slate-900 via-slate-950 to-amber-950 border border-amber-500/30 text-white rounded-3xl shadow-xl space-y-4">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-400 shrink-0" />
+                    <h3 className="font-extrabold text-base text-white">Master Database & Data Backup Manager</h3>
+                  </div>
+                  <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+                    All additions, edits, and deletions persist automatically on system storage across builds. You can also download a 1-click snapshot backup of your entire site data anytime, or restore from a previous JSON backup file.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                  <button
+                    onClick={handleExportBackup}
+                    className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-2xl shadow-lg transition-all"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Export Database Backup (.json)</span>
+                  </button>
+
+                  <label className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 text-white font-bold text-xs rounded-2xl cursor-pointer transition-all">
+                    <FolderOpen className="w-4 h-4 text-amber-400" />
+                    <span>Restore Backup (.json)</span>
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      onChange={handleImportBackup}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 { label: 'Registered Users', value: usersList.length.toString(), desc: 'Active student profiles', icon: Users, color: 'text-blue-500' },

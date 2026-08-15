@@ -789,6 +789,21 @@ class FinalAttemptDB {
     return res?.success !== false;
   }
 
+  // ── Database Backup & Restore Methods ──────────────────────────────────────
+  public async exportDatabaseBackup(): Promise<any> {
+    const res = await this.apiFetch('/api/lms/admin/database/export');
+    return res || null;
+  }
+
+  public async importDatabaseBackup(backupData: any): Promise<boolean> {
+    const res = await this.apiFetch('/api/lms/admin/database/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(backupData)
+    });
+    return res?.success || false;
+  }
+
   // Dynamic Current Affairs API calls
   public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
     const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}`);

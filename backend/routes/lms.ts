@@ -654,4 +654,35 @@ router.put('/admin/mains-submissions/:submissionId/evaluate', authenticate, requ
   }
 });
 
+// ─────────────────────────── ADMIN DATABASE BACKUP & RESTORE ────────────────────
+
+// GET /api/lms/admin/database/export - Download full JSON database backup
+router.get('/admin/database/export', async (req: Request, res: Response) => {
+  try {
+    const data = await lmsDB.exportBackup();
+    const fileName = `finalattempt_db_backup_${new Date().toISOString().split('T')[0]}.json`;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.send(JSON.stringify(data, null, 2));
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/lms/admin/database/import - Restore full JSON database backup
+router.post('/admin/database/import', async (req: Request, res: Response) => {
+  try {
+    const payload = req.body;
+    if (!payload || typeof payload !== 'object') {
+      res.status(400).json({ success: false, error: 'Invalid backup JSON payload.' });
+      return;
+    }
+    const ok = await lmsDB.importBackup(payload);
+    res.json({ success: ok, message: 'Database backup imported successfully and saved to persistent disk storage.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;

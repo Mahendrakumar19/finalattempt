@@ -28,12 +28,28 @@ const getPersistentDataDir = (): string => {
     }
     return process.env.PERSISTENT_DATA_DIR;
   }
-  // Store persistent data outside transient git workspace so git pull / rebuilds never touch it
-  const baseDir = path.resolve(__dirname, '..', '..', 'finalattempt_persistent_storage');
-  if (!fs.existsSync(baseDir)) {
-    try { fs.mkdirSync(baseDir, { recursive: true }); } catch (_) {}
+
+  // System-level persistent candidates outside git root:
+  const candidates = [
+    process.platform === 'win32' ? 'C:\\finalattempt_production_data' : '/var/lib/finalattempt_data',
+    path.join(process.env.APPDATA || process.env.HOME || process.cwd(), '.finalattempt_production_data'),
+    path.resolve(__dirname, '..', '..', 'finalattempt_persistent_storage')
+  ];
+
+  for (const dir of candidates) {
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      // Verify directory is writable
+      const testFile = path.join(dir, '.write_test');
+      fs.writeFileSync(testFile, 'ok', 'utf-8');
+      fs.unlinkSync(testFile);
+      return dir;
+    } catch (_) {}
   }
-  return fs.existsSync(baseDir) ? baseDir : __dirname;
+
+  return __dirname;
 };
 
 export const PERSISTENT_DIR = getPersistentDataDir();
@@ -979,6 +995,20 @@ class BackendDB {
     } catch (err) {
       console.error('[DB Persistence] Error saving persistent database_store.json:', err);
     }
+  }
+
+  public exportBackup(): any {
+    return this.localStore;
+  }
+
+  public importBackup(data: any): boolean {
+    if (!data || typeof data !== 'object') return false;
+    this.localStore = {
+      ...this.localStore,
+      ...data
+    };
+    this.saveLocalData();
+    return true;
   }
 
   // SETTINGS
@@ -4990,6 +5020,14 @@ class LmsDB {
       db.saveLocalData();
     }
     return true;
+  }
+
+  public async exportBackup(): Promise<any> {
+    return db.exportBackup();
+  }
+
+  public async importBackup(data: any): Promise<boolean> {
+    return db.importBackup(data);
   }
 }
 
