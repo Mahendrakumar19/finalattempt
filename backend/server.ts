@@ -698,7 +698,7 @@ app.get('/api/blogs', async (req, res) => {
     const list = await db.getBlogs();
     const targetLang = getTargetLang(req);
     res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
-    res.setHeader('Cache-Control', 'no-cache, private');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
 
     if (targetLang === 'hi' && Array.isArray(list) && list.length > 0) {
       const localized = await ContentLocalizer.localizeEntityList(
@@ -726,7 +726,7 @@ app.get('/api/blogs/:id', async (req, res) => {
     }
     const targetLang = getTargetLang(req);
     res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
-    res.setHeader('Cache-Control', 'no-cache, private');
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
 
     if (targetLang === 'hi') {
       const localized = await ContentLocalizer.localizeEntity(

@@ -462,25 +462,61 @@ class FinalAttemptDB {
     return ok?.success || false;
   }
 
+  private memoryCache: Map<string, { data: any; timestamp: number }> = new Map();
+
+  private getCachedData<T>(key: string, ttlMs: number = 60000): T | null {
+    const item = this.memoryCache.get(key);
+    if (!item) return null;
+    if (Date.now() - item.timestamp > ttlMs) {
+      this.memoryCache.delete(key);
+      return null;
+    }
+    return item.data as T;
+  }
+
+  private setCachedData(key: string, data: any): void {
+    this.memoryCache.set(key, { data, timestamp: Date.now() });
+  }
+
   public async getCurrentAffairs() {
+    const cached = this.getCachedData<any[]>('current_affairs_cache', 60000);
+    if (cached) return cached;
+
     const data = await this.apiFetch('/api/current-affairs');
-    return data || currentAffairsData;
+    const result = data || currentAffairsData;
+    this.setCachedData('current_affairs_cache', result);
+    return result;
   }
 
   public async getBlogs() {
+    const cached = this.getCachedData<any[]>('blogs_cache', 60000);
+    if (cached) return cached;
+
     const data = await this.apiFetch('/api/blogs');
     const list = Array.isArray(data) ? data : (data?.data || blogData);
-    return [...list].reverse();
+    const sorted = [...list].reverse();
+    this.setCachedData('blogs_cache', sorted);
+    return sorted;
   }
 
   public async getBlogById(id: string) {
+    const cacheKey = `blog_id_${id}`;
+    const cached = this.getCachedData<any>(cacheKey, 60000);
+    if (cached) return cached;
+
     const data = await this.apiFetch(`/api/blogs/${encodeURIComponent(id)}`);
+    if (data) this.setCachedData(cacheKey, data);
     return data;
   }
 
   public async getResources() {
+    const cached = this.getCachedData<any[]>('resources_cache', 60000);
+    if (cached) return cached;
+
     const data = await this.apiFetch('/api/resources');
-    return data || resourceData;
+    const result = data || resourceData;
+    this.setCachedData('resources_cache', result);
+    return result;
   }
 
   public async syncMoodleData() {
@@ -807,12 +843,23 @@ class FinalAttemptDB {
 
   // Dynamic Current Affairs API calls
   public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
+    const cacheKey = `ca_editions_${includeDrafts}`;
+    const cached = this.getCachedData<DynamicCurrentAffairEdition[]>(cacheKey, 60000);
+    if (cached) return cached;
+
     const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}`);
-    return data || [];
+    const result = data || [];
+    this.setCachedData(cacheKey, result);
+    return result;
   }
 
   public async getDynamicCurrentAffairsEditionByDate(date: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition | null> {
+    const cacheKey = `ca_edition_date_${date}_${includeDrafts}`;
+    const cached = this.getCachedData<DynamicCurrentAffairEdition>(cacheKey, 60000);
+    if (cached) return cached;
+
     const data = await this.apiFetch(`/api/dynamic-current-affairs/daily/${date}?includeDrafts=${includeDrafts}`);
+    if (data) this.setCachedData(cacheKey, data);
     return data || null;
   }
 
