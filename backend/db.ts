@@ -19,7 +19,27 @@ const dbConfig = {
 };
 
 const useRealDB = process.env.USE_LOCAL_DB !== 'true' && !!(dbConfig.host && dbConfig.user && dbConfig.database);
-const JSON_DB_PATH = path.join(__dirname, 'database_store.json');
+
+// ── Persistent Storage Location ────────────────────────────────────────────────
+const getPersistentDataDir = (): string => {
+  if (process.env.PERSISTENT_DATA_DIR) {
+    if (!fs.existsSync(process.env.PERSISTENT_DATA_DIR)) {
+      try { fs.mkdirSync(process.env.PERSISTENT_DATA_DIR, { recursive: true }); } catch (_) {}
+    }
+    return process.env.PERSISTENT_DATA_DIR;
+  }
+  // Store persistent data outside transient git workspace so git pull / rebuilds never touch it
+  const baseDir = path.resolve(__dirname, '..', '..', 'finalattempt_persistent_storage');
+  if (!fs.existsSync(baseDir)) {
+    try { fs.mkdirSync(baseDir, { recursive: true }); } catch (_) {}
+  }
+  return fs.existsSync(baseDir) ? baseDir : __dirname;
+};
+
+export const PERSISTENT_DIR = getPersistentDataDir();
+const JSON_DB_PATH = path.join(PERSISTENT_DIR, 'database_store.json');
+const JSON_DB_BACKUP_PATH = path.join(PERSISTENT_DIR, 'database_store_backup.json');
+const LOCAL_REPO_JSON_PATH = path.join(__dirname, 'database_store.json');
 
 export interface Lead {
   id: string;
@@ -896,39 +916,69 @@ class BackendDB {
   }
 
   private loadLocalData() {
+    let loadedData: any = null;
+
+    // 1. Try reading from persistent store
     if (fs.existsSync(JSON_DB_PATH)) {
       try {
         const raw = fs.readFileSync(JSON_DB_PATH, 'utf-8');
-        const parsed = JSON.parse(raw);
-        this.localStore = {
-          ...this.localStore,
-          ...parsed
-        };
-        // Seed default users if empty
-        if (!this.localStore.users || this.localStore.users.length === 0) {
-          this.localStore.users = [...authLocalUsers];
-        }
-        if (!this.localStore.sessions) this.localStore.sessions = [];
-        if (!this.localStore.otps) this.localStore.otps = [];
-        // Save back
-        this.saveLocalData();
+        loadedData = JSON.parse(raw);
+        console.log('[DB Persistence] Successfully loaded database_store.json from persistent directory:', JSON_DB_PATH);
       } catch (e) {
-        console.error('Failed reading database_store.json, creating new file.');
-        this.localStore.users = [...authLocalUsers];
-        this.localStore.sessions = [];
-        this.localStore.otps = [];
-        this.saveLocalData();
+        console.error('[DB Persistence] Failed reading persistent database_store.json:', e);
       }
-    } else {
-      this.localStore.users = [...authLocalUsers];
-      this.localStore.sessions = [];
-      this.localStore.otps = [];
-      this.saveLocalData();
     }
+
+    // 2. Try reading from persistent backup store if primary failed
+    if (!loadedData && fs.existsSync(JSON_DB_BACKUP_PATH)) {
+      try {
+        const raw = fs.readFileSync(JSON_DB_BACKUP_PATH, 'utf-8');
+        loadedData = JSON.parse(raw);
+        console.log('[DB Persistence] Restored database_store.json from persistent BACKUP:', JSON_DB_BACKUP_PATH);
+      } catch (e) {
+        console.error('[DB Persistence] Failed reading persistent backup database_store.json:', e);
+      }
+    }
+
+    // 3. Fallback to local repository seed database_store.json if persistent file does not exist yet
+    if (!loadedData && fs.existsSync(LOCAL_REPO_JSON_PATH)) {
+      try {
+        const raw = fs.readFileSync(LOCAL_REPO_JSON_PATH, 'utf-8');
+        loadedData = JSON.parse(raw);
+        console.log('[DB Persistence] Initialized persistent database_store.json from repository template.');
+      } catch (e) {
+        console.error('[DB Persistence] Failed reading local repo template database_store.json:', e);
+      }
+    }
+
+    if (loadedData) {
+      this.localStore = {
+        ...this.localStore,
+        ...loadedData
+      };
+    }
+
+    if (!this.localStore.users || this.localStore.users.length === 0) {
+      this.localStore.users = [...authLocalUsers];
+    }
+    if (!this.localStore.sessions) this.localStore.sessions = [];
+    if (!this.localStore.otps) this.localStore.otps = [];
+
+    // Save back to persistent storage immediately
+    this.saveLocalData();
   }
 
   public saveLocalData() {
-    fs.writeFileSync(JSON_DB_PATH, JSON.stringify(this.localStore, null, 2), 'utf-8');
+    try {
+      const dataStr = JSON.stringify(this.localStore, null, 2);
+      fs.writeFileSync(JSON_DB_PATH, dataStr, 'utf-8');
+      fs.writeFileSync(JSON_DB_BACKUP_PATH, dataStr, 'utf-8');
+      if (fs.existsSync(LOCAL_REPO_JSON_PATH)) {
+        try { fs.writeFileSync(LOCAL_REPO_JSON_PATH, dataStr, 'utf-8'); } catch (_) {}
+      }
+    } catch (err) {
+      console.error('[DB Persistence] Error saving persistent database_store.json:', err);
+    }
   }
 
   // SETTINGS

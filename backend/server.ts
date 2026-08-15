@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import path from 'path';
-import { db } from './db';
+import { db, PERSISTENT_DIR } from './db';
 
 import { createServer } from 'http';
 import { Server } from 'socket.io';
@@ -118,13 +118,8 @@ app.use('/api/pyqs', pyqsRouter);
 app.use('/api/bpsc', bpscScraperRouter);
 app.use('/api/ncert', ncertRouter);
 app.use('/api/ncert-books', ncertBooksRouter);
-app.use('/uploads', (req, res, next) => {
-  // Allow cross-origin file serving for the frontend domain
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  next();
-}, express.static(path.join(process.cwd(), 'uploads'), {
-  // Force correct MIME type for PDFs and documents
-  setHeaders: (res, filePath) => {
+const staticUploadOptions = {
+  setHeaders: (res: any, filePath: string) => {
     const ext = path.extname(filePath).toLowerCase();
     const mimeMap: Record<string, string> = {
       '.pdf':  'application/pdf',
@@ -139,15 +134,17 @@ app.use('/uploads', (req, res, next) => {
     if (mimeMap[ext]) {
       res.setHeader('Content-Type', mimeMap[ext]);
     }
-    // Serve PDFs inline (viewable in browser), force attachment for Office files
     const inlineExts = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.mp4', '.webm', '.txt', '.svg']);
-    // Cleanly strip leading timestamp (e.g., 1784719739539_ or 1784719739539-)
     const cleanFileName = path.basename(filePath).replace(/^\d+[_-]/, '');
     const disposition = inlineExts.has(ext) ? 'inline' : 'attachment';
     res.setHeader('Content-Disposition', `${disposition}; filename="${encodeURIComponent(cleanFileName)}"; filename*=UTF-8''${encodeURIComponent(cleanFileName)}`);
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
   }
-}));
+};
+
+app.use('/uploads', express.static(path.join(PERSISTENT_DIR, 'uploads'), staticUploadOptions));
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads'), staticUploadOptions));
 
 // Swagger UI 
 import swaggerUi from "swagger-ui-express";

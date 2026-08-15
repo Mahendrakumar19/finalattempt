@@ -2,25 +2,30 @@ import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { authenticate } from '../middleware/auth';
+import { PERSISTENT_DIR } from '../db';
 
 const router = Router();
 
-// ── Upload directory setup ─────────────────────────────────────────────────
-const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+// ── Persistent Upload directory setup ─────────────────────────────────────────
+const LOCAL_UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+const PERSISTENT_UPLOADS_DIR = path.join(PERSISTENT_DIR, 'uploads');
+
+if (!fs.existsSync(PERSISTENT_UPLOADS_DIR)) {
+  fs.mkdirSync(PERSISTENT_UPLOADS_DIR, { recursive: true });
+}
+if (!fs.existsSync(LOCAL_UPLOADS_DIR)) {
+  try { fs.mkdirSync(LOCAL_UPLOADS_DIR, { recursive: true }); } catch (_) {}
 }
 
 // ── Multer storage config ──────────────────────────────────────────────────
 const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+  destination: (_req, _file, cb) => cb(null, PERSISTENT_UPLOADS_DIR),
   filename: (_req, file, cb) => {
-    // Preserve clean original filename with spaces converted to underscores without timestamp prefix
+    // Preserve clean original filename with spaces converted to underscores
     const ext = path.extname(file.originalname);
     const baseName = path.basename(file.originalname, ext).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9._-]/g, '_');
     let targetName = `${baseName}${ext}`;
-    if (fs.existsSync(path.join(UPLOADS_DIR, targetName))) {
+    if (fs.existsSync(path.join(PERSISTENT_UPLOADS_DIR, targetName)) || fs.existsSync(path.join(LOCAL_UPLOADS_DIR, targetName))) {
       targetName = `${baseName}_${Date.now()}${ext}`;
     }
     cb(null, targetName);
@@ -122,16 +127,16 @@ router.get('/files/:filename', (req: Request, res: Response) => {
     return;
   }
   const filename = path.basename(rawFilename); // prevent path traversal
-  const filePath = path.join(UPLOADS_DIR, filename);
+  const persistentPath = path.join(PERSISTENT_UPLOADS_DIR, filename);
+  const localPath = path.join(LOCAL_UPLOADS_DIR, filename);
+  const filePath = fs.existsSync(persistentPath) ? persistentPath : (fs.existsSync(localPath) ? localPath : null);
 
-  if (!fs.existsSync(filePath)) {
+  if (!filePath) {
     res.status(404).json({ success: false, error: 'File not found.' });
     return;
   }
 
-  // Strip leading timestamp prefix (e.g. "1784719739539_Paper.pdf" or "1784719739539-Paper.pdf")
   const cleanDisplayName = filename.replace(/^\d+[_-]/, '');
-
   const ext = path.extname(filename).toLowerCase();
   const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
   const disposition = INLINE_EXTS.has(ext) ? 'inline' : 'attachment';
