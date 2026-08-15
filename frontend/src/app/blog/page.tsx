@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { Calendar, ArrowRight, Clock, BookOpen } from 'lucide-react';
 import { db, fallbackBlogs, BlogItem } from '@/services/db';
 
+import { useTranslation } from '@/context/LocaleContext';
+
 export default function Blog() {
+  const { locale } = useTranslation();
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +36,7 @@ export default function Blog() {
       }
     };
     loadBlogs();
-  }, []);
+  }, [locale]);
 
   const stripHtml = (html: string) => {
     if (!html) return '';

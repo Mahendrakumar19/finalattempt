@@ -121,7 +121,7 @@ function YoutubeFacade({ videoId, title }: { videoId: string; title: string }) {
 
 export default function Home() {
 
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   // Real-time dynamic states
   const [heroSettings, setHeroSettings] = useState({
     heroTitle: 'The Next Generation Mentorship & Learning Platform',
@@ -274,12 +274,12 @@ export default function Home() {
         if (pages && pages.length > 0) {
           setCustomPages(pages);
         }
-      } catch (e) {
-        console.error('Failed loading live Home data, using mock fallbacks.', e);
+      } catch (err) {
+        console.error('Failed loading homepage live data:', err);
       }
     };
     loadLiveData();
-  }, []);
+  }, [locale]);
 
   // Compute unified dynamic WHAT'S NEW feed from all website update sources (Sorted: Latest On Top)
   const whatsNewFeed = useMemo(() => {

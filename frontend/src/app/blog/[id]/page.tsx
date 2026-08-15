@@ -9,7 +9,10 @@ import {
 } from 'lucide-react';
 import { db, BlogItem, fallbackBlogs } from '@/services/db';
 
+import { useTranslation } from '@/context/LocaleContext';
+
 export default function BlogDetailPage() {
+  const { locale } = useTranslation();
   const params = useParams();
   const rawId = params?.id as string;
   const idOrSlug = decodeURIComponent(rawId || '');
@@ -53,7 +56,7 @@ export default function BlogDetailPage() {
     if (idOrSlug) {
       loadPost();
     }
-  }, [idOrSlug]);
+  }, [idOrSlug, locale]);
 
   const handleShare = async () => {
     if (typeof window !== 'undefined') {
