@@ -1,32 +1,10 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Inter, Cinzel } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { LocaleProvider } from "@/context/LocaleContext";
 import LanguageSelectionModal from "@/components/LanguageSelectionModal";
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-heading",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
-});
-
-const inter = Inter({
-  variable: "--font-body",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
-  display: "swap",
-});
-
-const cinzel = Cinzel({
-  variable: "--font-inlander",
-  subsets: ["latin"],
-  weight: ["600", "700", "800", "900"],
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://finalattemptias.com"),
@@ -81,7 +59,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} ${inter.variable} ${cinzel.variable} h-full antialiased`}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-body bg-brand-neutral text-brand-primary">
