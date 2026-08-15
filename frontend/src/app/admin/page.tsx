@@ -202,11 +202,11 @@ export default function AdminPortal() {
   const [caSubTab, setCaSubTab] = useState<'daily' | 'mains' | 'aggregation'>('daily');
 
   // Aggregation controls & preview states
-  const [weeklyFromDate, setWeeklyFromDate] = useState<string>(new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]);
-  const [weeklyToDate, setWeeklyToDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [monthlyYear, setMonthlyYear] = useState<string>(String(new Date().getFullYear()));
-  const [monthlyMonth, setMonthlyMonth] = useState<string>(String(new Date().getMonth() + 1).padStart(2, '0'));
-  const [yearlyYear, setYearlyYear] = useState<string>(String(new Date().getFullYear()));
+  const [weeklyFromDate, setWeeklyFromDate] = useState<string>(() => new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]);
+  const [weeklyToDate, setWeeklyToDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [monthlyYear, setMonthlyYear] = useState<string>(() => String(new Date().getFullYear()));
+  const [monthlyMonth, setMonthlyMonth] = useState<string>(() => String(new Date().getMonth() + 1).padStart(2, '0'));
+  const [yearlyYear, setYearlyYear] = useState<string>(() => String(new Date().getFullYear()));
   const [yearlyCombineAvailableOnly, setYearlyCombineAvailableOnly] = useState<boolean>(false);
 
   const [aggregationPreview, setAggregationPreview] = useState<any | null>(null);

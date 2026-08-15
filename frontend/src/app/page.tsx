@@ -364,7 +364,6 @@ export default function Home() {
       });
     }
 
-    // 6. CMS Manual Notice Board Items
     dynamicAnnouncements.forEach((ann: any, idx: number) => {
       feed.push({
         date: ann.date || 'NOTICE',
@@ -372,7 +371,7 @@ export default function Home() {
         link: ann.link || '',
         isNew: ann.isNew ?? false,
         isExternal: Boolean(ann.link && (ann.link.startsWith('http://') || ann.link.startsWith('https://'))),
-        timestamp: getTS(ann) || (Date.now() - (idx + 1) * 3600000),
+        timestamp: getTS(ann) || (1786800000000 - (idx + 1) * 3600000),
       });
     });
 

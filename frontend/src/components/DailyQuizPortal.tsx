@@ -95,18 +95,6 @@ export default function DailyQuizPortal() {
   const [showReviewMode, setShowReviewMode] = useState(false);
   const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(false);
 
-  // Check auth user on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const storedUser = localStorage.getItem('finalattempt_user');
-        if (storedUser) {
-          setCurrentUser(JSON.parse(storedUser));
-        }
-      } catch (_) {}
-    }
-  }, []);
-
   // Fetch lightweight landing page metadata
   const loadLandingData = useCallback(async () => {
     setLoadingMeta(true);
@@ -126,9 +114,20 @@ export default function DailyQuizPortal() {
     }
   }, []);
 
+  // Fetch lightweight landing page metadata & auth user on mount
   useEffect(() => {
+    let isMounted = true;
+    try {
+      const storedUser = typeof window !== 'undefined' ? localStorage.getItem('finalattempt_user') : null;
+      if (storedUser && isMounted) {
+        setCurrentUser(JSON.parse(storedUser));
+      }
+    } catch (_) {}
+
     loadLandingData();
-  }, [loadLandingData]);
+
+    return () => { isMounted = false; };
+  }, []);
 
   // Timer countdown hook for Quiz Player
   useEffect(() => {
