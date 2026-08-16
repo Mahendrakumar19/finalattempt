@@ -1157,9 +1157,12 @@ class FinalAttemptDB {
         stages: resolvedStages,
         testSeries: matchedSeries
       };
-    }).sort((a, b) =>
-      (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
-    );
+    }).sort((a, b) => {
+      const orderA = Number(a.displayOrder ?? 999);
+      const orderB = Number(b.displayOrder ?? 999);
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
 
     this.setCachedData(cacheKey, result);
     return result;

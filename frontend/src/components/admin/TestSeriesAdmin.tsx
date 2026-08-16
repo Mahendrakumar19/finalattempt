@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Trash2, Edit3, ChevronDown, ChevronRight, FileText, X, Check, 
-  Layers, Sparkles, Eye
+  Layers, Sparkles, Eye, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { db, TestSeriesItem, ExamData } from '@/services/db';
 
@@ -663,7 +663,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {examsList.map((ex: any) => (
+            {examsList.map((ex: any, idx: number) => (
               <div
                 key={ex.id}
                 className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 space-y-4 shadow-xs"
@@ -687,15 +687,72 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                 </div>
 
                 <div className="pt-2 border-t border-[var(--card-border)] flex items-center justify-between gap-2">
-                  <span className="text-xs text-slate-400 font-bold">{ex.testSeries?.length || 0} Programs</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-black px-2 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg border border-amber-500/20">
+                      #{ex.displayOrder || idx + 1}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={idx === 0}
+                      onClick={async () => {
+                        if (idx === 0) return;
+                        const prevEx = examsList[idx - 1];
+                        const currEx = ex;
+                        const orderA = currEx.displayOrder || idx + 1;
+                        const orderB = prevEx.displayOrder || idx;
+                        const newOrderCurr = Math.min(orderA, orderB) > 1 ? Math.min(orderA, orderB) - 1 : 1;
+                        const newOrderPrev = newOrderCurr + 1;
+
+                        const updatedList = [...examsList];
+                        updatedList[idx] = { ...currEx, displayOrder: newOrderCurr };
+                        updatedList[idx - 1] = { ...prevEx, displayOrder: newOrderPrev };
+                        updatedList.sort((a, b) => (Number(a.displayOrder || 1) - Number(b.displayOrder || 1)));
+
+                        setExamsList(updatedList);
+                        await db.saveExam({ ...currEx, displayOrder: newOrderCurr });
+                        await db.saveExam({ ...prevEx, displayOrder: newOrderPrev });
+                      }}
+                      className={`p-1.5 rounded-lg border transition-colors ${idx === 0 ? 'text-slate-300 border-slate-200 dark:border-slate-800 cursor-not-allowed' : 'text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'}`}
+                      title="Move Left / Up"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={idx === examsList.length - 1}
+                      onClick={async () => {
+                        if (idx === examsList.length - 1) return;
+                        const nextEx = examsList[idx + 1];
+                        const currEx = ex;
+                        const orderA = currEx.displayOrder || idx + 1;
+                        const orderB = nextEx.displayOrder || idx + 2;
+                        const newOrderCurr = Math.max(orderA, orderB);
+                        const newOrderNext = Math.min(orderA, orderB);
+
+                        const updatedList = [...examsList];
+                        updatedList[idx] = { ...currEx, displayOrder: newOrderCurr };
+                        updatedList[idx + 1] = { ...nextEx, displayOrder: newOrderNext };
+                        updatedList.sort((a, b) => (Number(a.displayOrder || 1) - Number(b.displayOrder || 1)));
+
+                        setExamsList(updatedList);
+                        await db.saveExam({ ...currEx, displayOrder: newOrderCurr });
+                        await db.saveExam({ ...nextEx, displayOrder: newOrderNext });
+                      }}
+                      className={`p-1.5 rounded-lg border transition-colors ${idx === examsList.length - 1 ? 'text-slate-300 border-slate-200 dark:border-slate-800 cursor-not-allowed' : 'text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer'}`}
+                      title="Move Right / Down"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
                       onClick={() => setEditingExam({ ...ex })}
-                      className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
-                      <span>Edit / Logo</span>
+                      <span>Edit</span>
                     </button>
                     <button
                       type="button"
@@ -1912,7 +1969,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
 
       {/* ── MANAGE / CREATE EXAM CATEGORY MODAL ──────────────────────────── */}
       {editingExam && (
-        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -1935,20 +1992,23 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                   ...editingExam,
                   code,
                   slug,
-                  stages
+                  stages,
+                  displayOrder: Number(editingExam.displayOrder || 1)
                 };
                 await db.saveExam(payload);
                 setExamsList(prev => {
                   const idx = prev.findIndex(ex => ex.id === payload.id);
+                  let updated = [];
                   if (idx >= 0) {
-                    const copy = [...prev];
-                    copy[idx] = payload;
-                    return copy;
+                    updated = [...prev];
+                    updated[idx] = payload;
+                  } else {
+                    updated = [...prev, payload];
                   }
-                  return [...prev, payload];
+                  return updated.sort((a, b) => (Number(a.displayOrder || 1) - Number(b.displayOrder || 1)));
                 });
                 setEditingExam(null);
-                alert('Exam category, structure & logo saved successfully!');
+                alert('Exam category, order & logo saved successfully!');
               } catch (err) {
                 console.error(err);
                 alert('Failed to save exam category.');
@@ -1956,19 +2016,19 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                 setSavingExam(false);
               }
             }}
-            className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl"
+            className="bg-slate-900 text-white border border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl my-auto"
           >
-            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Isolated Test Series Exam System</span>
-                <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-0.5">
-                  {editingExam.name ? `${editingExam.name} (${editingExam.code || 'Custom'})` : 'New Exam Category'}
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Test Series Exam Manager</span>
+                <h3 className="font-heading font-black text-xl text-white mt-0.5">
+                  {editingExam.name ? `Edit ${editingExam.name}` : 'New Exam Category'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingExam(null)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-[var(--text-color)]"
+                className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1976,66 +2036,79 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
 
             <div className="space-y-4 text-xs font-bold">
               {/* Logo Preview */}
-              <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-[var(--card-border)] space-y-3">
-                <div className="w-20 h-16 rounded-2xl bg-white text-amber-600 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-heading font-black text-xl tracking-tight shadow-sm overflow-hidden p-1.5 shrink-0">
+              <div className="flex flex-col items-center justify-center p-6 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-3">
+                <div className="w-20 h-16 rounded-2xl bg-white text-amber-600 border border-slate-700 flex items-center justify-center font-heading font-black text-xl tracking-tight shadow-sm overflow-hidden p-1.5 shrink-0">
                   {editingExam.logoUrl ? (
                     <img src={editingExam.logoUrl} alt={editingExam.name || 'Exam'} className="w-full h-full object-contain drop-shadow-xs" />
                   ) : (
                     <span className="text-amber-600 font-extrabold">{editingExam.code || editingExam.name || 'EXAM'}</span>
                   )}
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium">Exam Box Live Preview</span>
+                <span className="text-[10px] text-slate-400 font-medium">Exam Card Live Badge Preview</span>
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Exam Category Full Name *</label>
+                <label className="block text-slate-300 mb-1">Exam Category Full Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. UPSC Civil Services, BPSC CCE, APPSC"
                   value={editingExam.name || ''}
                   onChange={e => setEditingExam({ ...editingExam, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 text-white rounded-xl outline-none focus:border-amber-500"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1">Short Code / Badge</label>
+                  <label className="block text-slate-300 mb-1">Short Code / Badge</label>
                   <input
                     type="text"
-                    placeholder="e.g. UPSC, BPSC"
+                    placeholder="e.g. BPSC"
                     value={editingExam.code || ''}
                     onChange={e => setEditingExam({ ...editingExam, code: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                    className="w-full px-3 py-3 bg-slate-950 border border-slate-800 text-white rounded-xl outline-none focus:border-amber-500 font-mono"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-slate-400 mb-1">Exam Structure Type</label>
+                  <label className="block text-slate-300 mb-1">Display Order (Sort) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={editingExam.displayOrder || 1}
+                    onChange={e => setEditingExam({ ...editingExam, displayOrder: Number(e.target.value) })}
+                    className="w-full px-3 py-3 bg-slate-950 border border-slate-800 text-amber-400 rounded-xl outline-none focus:border-amber-500 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 mb-1">Structure Type</label>
                   <select
                     value={editingExam.hasStages ? 'stages' : 'direct'}
                     onChange={e => setEditingExam({ ...editingExam, hasStages: e.target.value === 'stages' })}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none cursor-pointer"
+                    className="w-full px-3 py-3 bg-slate-950 border border-slate-800 text-white rounded-xl outline-none cursor-pointer focus:border-amber-500"
                   >
-                    <option value="stages">Stage-Wise (Prelims / Mains)</option>
-                    <option value="direct">Direct Series (Single Vault)</option>
+                    <option value="stages">Stage-Wise</option>
+                    <option value="direct">Direct Series</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Logo Image URL</label>
+                <label className="block text-slate-300 mb-1">Logo Image URL</label>
                 <input
                   type="text"
-                  placeholder="https://example.com/logo.png or upload image below"
+                  placeholder="https://example.com/logo.png or upload below"
                   value={editingExam.logoUrl || ''}
                   onChange={e => setEditingExam({ ...editingExam, logoUrl: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 text-white rounded-xl outline-none focus:border-amber-500 text-xs font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Or Upload Custom Logo Image</label>
+                <label className="block text-slate-300 mb-1">Or Upload Custom Logo Image File</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -2051,27 +2124,27 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                       reader.readAsDataURL(file);
                     }
                   }}
-                  className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
+                  className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Exam Description / Tagline</label>
+                <label className="block text-slate-300 mb-1">Exam Description / Subtitle</label>
                 <textarea
                   rows={2}
                   placeholder="State public service commission exam description..."
                   value={editingExam.description || ''}
                   onChange={e => setEditingExam({ ...editingExam, description: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 text-white rounded-xl outline-none focus:border-amber-500"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--card-border)]">
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setEditingExam(null)}
-                className="px-5 py-2.5 border border-[var(--card-border)] text-slate-400 text-xs font-bold rounded-2xl"
+                className="px-5 py-2.5 border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-bold rounded-2xl cursor-pointer"
               >
                 Cancel
               </button>
@@ -2080,7 +2153,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                 disabled={savingExam}
                 className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl shadow-md cursor-pointer"
               >
-                {savingExam ? 'Saving…' : 'Save Exam Logo'}
+                {savingExam ? 'Saving…' : 'Save Exam Changes'}
               </button>
             </div>
           </form>
