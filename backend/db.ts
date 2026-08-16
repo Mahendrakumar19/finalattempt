@@ -5166,6 +5166,18 @@ class LmsDB {
              description = VALUES(description), hasStages = VALUES(hasStages), displayOrder = VALUES(displayOrder), isActive = VALUES(isActive)`,
           [exam.id, exam.name, exam.code, exam.slug, exam.logoUrl || '', exam.description || '', exam.hasStages ? 1 : 0, exam.displayOrder || 1, exam.isActive !== false ? 1 : 0]
         );
+
+        if (Array.isArray(exam.stages)) {
+          for (const stg of exam.stages) {
+            await mysqlPool.query(
+              `INSERT INTO exam_stages (id, examId, name, slug, sortOrder, isActive)
+               VALUES (?, ?, ?, ?, ?, ?)
+               ON DUPLICATE KEY UPDATE
+                 name = VALUES(name), slug = VALUES(slug), sortOrder = VALUES(sortOrder), isActive = VALUES(isActive)`,
+              [stg.id, exam.id, stg.name, stg.slug || stg.name.toLowerCase(), stg.sortOrder || 1, stg.isActive !== false ? 1 : 0]
+            );
+          }
+        }
       } catch (err) {
         console.error('[DB] saveExamRecord MySQL error:', err);
       }

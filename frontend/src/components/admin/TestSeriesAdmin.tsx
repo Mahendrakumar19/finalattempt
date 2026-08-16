@@ -1847,10 +1847,18 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
               try {
                 const code = editingExam.code || editingExam.name.toUpperCase().replace(/[^A-Z0-9]/g, '');
                 const slug = editingExam.slug || editingExam.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+                let stages = editingExam.stages || [];
+                if (editingExam.hasStages && (!stages || stages.length === 0)) {
+                  stages = [
+                    { id: `stage-${editingExam.id}-prelims`, examId: editingExam.id, name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
+                    { id: `stage-${editingExam.id}-mains`, examId: editingExam.id, name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
+                  ];
+                }
                 const payload = {
                   ...editingExam,
                   code,
-                  slug
+                  slug,
+                  stages
                 };
                 await db.saveExam(payload);
                 setExamsList(prev => {
@@ -1863,7 +1871,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                   return [...prev, payload];
                 });
                 setEditingExam(null);
-                alert('Exam category & logo saved successfully!');
+                alert('Exam category, structure & logo saved successfully!');
               } catch (err) {
                 console.error(err);
                 alert('Failed to save exam category.');
