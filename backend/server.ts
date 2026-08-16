@@ -1139,7 +1139,7 @@ httpServer.listen(PORT, () => {
 
     try {
       // 4. Warm up courses
-      const courses = await db.getCourses();
+      const courses = await lmsDB.getCourses();
       if (Array.isArray(courses) && courses.length > 0) {
         await ContentLocalizer.localizeEntityList(
           'course',

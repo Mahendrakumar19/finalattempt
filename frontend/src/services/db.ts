@@ -1115,16 +1115,30 @@ class FinalAttemptDB {
     let exams: ExamData[] = [];
 
     if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
-      const serverMap = new Map<string, ExamData>(data.data.map((e: ExamData) => [e.id, e]));
+      const serverMap = new Map<string, ExamData>();
+      data.data.forEach((e: ExamData) => {
+        const key = (e.code || e.slug || e.name || e.id).toLowerCase().trim();
+        if (!serverMap.has(key)) {
+          serverMap.set(key, e);
+        }
+      });
       localExams.forEach(e => {
-        if (!serverMap.has(e.id)) {
-          serverMap.set(e.id, e);
+        const key = (e.code || e.slug || e.name || e.id).toLowerCase().trim();
+        if (!serverMap.has(key)) {
+          serverMap.set(key, e);
         }
       });
       exams = Array.from(serverMap.values());
       this.setLocalExamsStore(exams);
     } else {
-      exams = localExams;
+      const uniqueMap = new Map<string, ExamData>();
+      localExams.forEach(e => {
+        const key = (e.code || e.slug || e.name || e.id).toLowerCase().trim();
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, e);
+        }
+      });
+      exams = Array.from(uniqueMap.values());
     }
 
     // Load all test series items to ensure every exam folder shows its test series count & items
