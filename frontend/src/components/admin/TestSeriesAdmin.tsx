@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Plus, Trash2, Edit3, ChevronDown, ChevronRight, FileText, X, Check, 
-  Layers, Sparkles, Eye, ArrowUp, ArrowDown
+  Layers, Sparkles, Eye, ArrowUp, ArrowDown, Folder
 } from 'lucide-react';
 import { db, TestSeriesItem, ExamData } from '@/services/db';
+import MediaPicker from '@/components/MediaPicker';
 
 const BLANK_SERIES: Partial<TestSeriesItem> = {
   title: '',
@@ -88,6 +89,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   // Exam Logo Management State
   const [editingExam, setEditingExam] = useState<ExamData | null>(null);
   const [savingExam, setSavingExam] = useState(false);
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
 
   // Series Add/Edit Modal
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
@@ -1969,7 +1971,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
 
       {/* ── MANAGE / CREATE EXAM CATEGORY MODAL ──────────────────────────── */}
       {editingExam && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -2016,79 +2018,79 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                 setSavingExam(false);
               }
             }}
-            className="bg-slate-900 text-white border border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl my-auto"
+            className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl my-auto"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Test Series Exam Manager</span>
-                <h3 className="font-heading font-black text-xl text-white mt-0.5">
+                <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white mt-0.5">
                   {editingExam.name ? `Edit ${editingExam.name}` : 'New Exam Category'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingExam(null)}
-                className="p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4 text-xs font-bold">
-              {/* Logo Preview */}
-              <div className="flex flex-col items-center justify-center p-6 bg-slate-950/80 rounded-2xl border border-slate-800 space-y-3">
-                <div className="w-20 h-16 rounded-2xl bg-white text-amber-600 border border-slate-700 flex items-center justify-center font-heading font-black text-xl tracking-tight shadow-sm overflow-hidden p-1.5 shrink-0">
+              {/* Logo Preview with Pure White Background */}
+              <div className="flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="w-20 h-16 rounded-2xl bg-white text-amber-600 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-heading font-black text-xl tracking-tight shadow-sm overflow-hidden p-1.5 shrink-0">
                   {editingExam.logoUrl ? (
                     <img src={editingExam.logoUrl} alt={editingExam.name || 'Exam'} className="w-full h-full object-contain drop-shadow-xs" />
                   ) : (
                     <span className="text-amber-600 font-extrabold">{editingExam.code || editingExam.name || 'EXAM'}</span>
                   )}
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium">Exam Card Live Badge Preview</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Exam Card Live Badge Preview</span>
               </div>
 
               <div>
-                <label className="block text-slate-300 mb-1">Exam Category Full Name *</label>
+                <label className="block text-slate-500 dark:text-slate-400 mb-1">Exam Category Full Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. UPSC Civil Services, BPSC CCE, APPSC"
                   value={editingExam.name || ''}
                   onChange={e => setEditingExam({ ...editingExam, name: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 text-white rounded-xl outline-none focus:border-amber-500"
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl outline-none focus:border-amber-500"
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-slate-300 mb-1">Short Code / Badge</label>
+                  <label className="block text-slate-500 dark:text-slate-400 mb-1">Short Code / Badge</label>
                   <input
                     type="text"
                     placeholder="e.g. BPSC"
                     value={editingExam.code || ''}
                     onChange={e => setEditingExam({ ...editingExam, code: e.target.value })}
-                    className="w-full px-3 py-3 bg-slate-950 border border-slate-800 text-white rounded-xl outline-none focus:border-amber-500 font-mono"
+                    className="w-full px-3 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl outline-none focus:border-amber-500 font-mono"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 mb-1">Display Order (Sort) *</label>
+                  <label className="block text-slate-500 dark:text-slate-400 mb-1">Display Order (Sort) *</label>
                   <input
                     type="number"
                     min="1"
                     required
                     value={editingExam.displayOrder || 1}
                     onChange={e => setEditingExam({ ...editingExam, displayOrder: Number(e.target.value) })}
-                    className="w-full px-3 py-3 bg-slate-950 border border-slate-800 text-amber-400 rounded-xl outline-none focus:border-amber-500 font-bold"
+                    className="w-full px-3 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-amber-600 dark:text-amber-400 rounded-xl outline-none focus:border-amber-500 font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 mb-1">Structure Type</label>
+                  <label className="block text-slate-500 dark:text-slate-400 mb-1">Structure Type</label>
                   <select
                     value={editingExam.hasStages ? 'stages' : 'direct'}
                     onChange={e => setEditingExam({ ...editingExam, hasStages: e.target.value === 'stages' })}
-                    className="w-full px-3 py-3 bg-slate-950 border border-slate-800 text-white rounded-xl outline-none cursor-pointer focus:border-amber-500"
+                    className="w-full px-3 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl outline-none cursor-pointer focus:border-amber-500"
                   >
                     <option value="stages">Stage-Wise</option>
                     <option value="direct">Direct Series</option>
@@ -2096,55 +2098,66 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                 </div>
               </div>
 
+              {/* Logo Selection: URL, File Upload or Select from Site DAM */}
               <div>
-                <label className="block text-slate-300 mb-1">Logo Image URL</label>
-                <input
-                  type="text"
-                  placeholder="https://example.com/logo.png or upload below"
-                  value={editingExam.logoUrl || ''}
-                  onChange={e => setEditingExam({ ...editingExam, logoUrl: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 text-white rounded-xl outline-none focus:border-amber-500 text-xs font-mono"
-                />
+                <label className="block text-slate-500 dark:text-slate-400 mb-1">Exam Logo Image</label>
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="https://example.com/logo.png or select from DAM below"
+                    value={editingExam.logoUrl || ''}
+                    onChange={e => setEditingExam({ ...editingExam, logoUrl: e.target.value })}
+                    className="flex-1 px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl outline-none focus:border-amber-500 text-xs font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowMediaPicker(true)}
+                    className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors shadow-sm"
+                  >
+                    <Folder className="w-4 h-4 text-white" />
+                    <span>Select from DAM</span>
+                  </button>
+                </div>
+
+                <div className="pt-1">
+                  <label className="block text-[11px] text-slate-400 mb-1">Or Upload Custom Logo File</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          if (ev.target?.result) {
+                            setEditingExam({ ...editingExam, logoUrl: ev.target.result as string });
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 mb-1">Or Upload Custom Logo Image File</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (ev) => {
-                        if (ev.target?.result) {
-                          setEditingExam({ ...editingExam, logoUrl: ev.target.result as string });
-                        }
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-300 mb-1">Exam Description / Subtitle</label>
+                <label className="block text-slate-500 dark:text-slate-400 mb-1">Exam Description / Subtitle</label>
                 <textarea
                   rows={2}
                   placeholder="State public service commission exam description..."
                   value={editingExam.description || ''}
                   onChange={e => setEditingExam({ ...editingExam, description: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 text-white rounded-xl outline-none focus:border-amber-500"
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-xl outline-none focus:border-amber-500"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setEditingExam(null)}
-                className="px-5 py-2.5 border border-slate-700 text-slate-300 hover:bg-slate-800 text-xs font-bold rounded-2xl cursor-pointer"
+                className="px-5 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-bold rounded-2xl cursor-pointer"
               >
                 Cancel
               </button>
@@ -2158,6 +2171,20 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
             </div>
           </form>
         </div>
+      )}
+
+      {/* Site DAM Media Picker Modal */}
+      {showMediaPicker && (
+        <MediaPicker
+          allowedTypes={['IMAGE']}
+          onSelect={(url) => {
+            if (editingExam) {
+              setEditingExam({ ...editingExam, logoUrl: url });
+            }
+            setShowMediaPicker(false);
+          }}
+          onClose={() => setShowMediaPicker(false)}
+        />
       )}
     </div>
   );
