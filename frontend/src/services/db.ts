@@ -1128,8 +1128,18 @@ class FinalAttemptDB {
         );
       });
 
+      // Ensure stage-wise exams have default Prelims and Mains stages if empty
+      let resolvedStages = ex.stages || [];
+      if (ex.hasStages && resolvedStages.length === 0) {
+        resolvedStages = [
+          { id: `stage-${ex.id}-prelims`, examId: ex.id, name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
+          { id: `stage-${ex.id}-mains`, examId: ex.id, name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
+        ];
+      }
+
       return {
         ...ex,
+        stages: resolvedStages,
         testSeries: matchedSeries
       };
     }).sort((a, b) =>

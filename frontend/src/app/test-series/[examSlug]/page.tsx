@@ -28,7 +28,18 @@ export default function ExamFolderPage() {
         );
 
         if (found) {
-          setExam(found);
+          const resolvedStages = (found.hasStages && (!found.stages || found.stages.length === 0))
+            ? [
+                { id: `stage-${found.id}-prelims`, examId: found.id, name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
+                { id: `stage-${found.id}-mains`, examId: found.id, name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
+              ]
+            : (found.stages || []);
+
+          setExam({
+            ...found,
+            stages: resolvedStages
+          });
+
           const examKey = (found.code || found.name || found.slug || found.id || '').toLowerCase();
           const matched = allSeries.filter((s) => {
             const sExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
