@@ -119,6 +119,20 @@ export default function TestSeriesDetailPage() {
                 {series.description}
               </p>
             )}
+
+            {Boolean(series.schedulePdfUrl) && (
+              <div className="pt-2">
+                <a
+                  href={series.schedulePdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs shadow-xs transition-all"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>Download Schedule PDF</span>
+                </a>
+              </div>
+            )}
           </div>
 
           {/* Compact Metrics Row */}
@@ -387,6 +401,18 @@ export default function TestSeriesDetailPage() {
                 <Sparkles className="w-4 h-4" />
                 <span>Enroll in Test Series</span>
               </button>
+
+              {Boolean(series.schedulePdfUrl) && (
+                <a
+                  href={series.schedulePdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>Download Schedule PDF</span>
+                </a>
+              )}
 
               <Link
                 href={`/test-series/program/${slug}/attempt`}
