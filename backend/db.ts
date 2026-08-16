@@ -5111,29 +5111,7 @@ class LmsDB {
           const [stages]: any = await mysqlPool.query('SELECT * FROM exam_stages ORDER BY sortOrder ASC');
           const [series]: any = await mysqlPool.query('SELECT * FROM test_series ORDER BY displayOrder ASC');
 
-          // Ensure default 3 exams (BPSC, APPSC, APSSB) exist if database only has 2
-          const examMap = new Map<string, any>(exams.map((ex: any) => [ex.id, ex]));
-          const defaults = [
-            { id: 'exam-bpsc', name: 'BPSC', code: 'BPSC', slug: 'bpsc', hasStages: 1, displayOrder: 1, isActive: 1 },
-            { id: 'exam-appsc', name: 'APPSC', code: 'APPSC', slug: 'appsc', hasStages: 1, displayOrder: 2, isActive: 1 },
-            { id: 'exam-apssb', name: 'APSSB', code: 'APSSB', slug: 'apssb', hasStages: 0, displayOrder: 3, isActive: 1 }
-          ];
-
-          for (const d of defaults) {
-            if (!examMap.has(d.id) && !Array.from(examMap.values()).some((e: any) => e.code === d.code || e.name === d.name)) {
-              examMap.set(d.id, d);
-              try {
-                await mysqlPool.query(
-                  `INSERT IGNORE INTO exams (id, name, code, slug, hasStages, displayOrder, isActive) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                  [d.id, d.name, d.code, d.slug, d.hasStages, d.displayOrder, d.isActive]
-                );
-              } catch (_) {}
-            }
-          }
-
-          const combinedExams = Array.from(examMap.values());
-
-          return combinedExams.map((ex: any) => ({
+          return exams.map((ex: any) => ({
             ...ex,
             hasStages: Boolean(ex.hasStages),
             stages: (stages || []).filter((s: any) => s.examId === ex.id),
