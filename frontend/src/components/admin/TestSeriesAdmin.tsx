@@ -153,7 +153,27 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   const handleOpenEditSeries = (item: TestSeriesItem) => {
     setSeriesModalType('edit');
     const cleanLang = (item.language && item.language.toLowerCase().includes('hindi')) ? 'Hindi' : 'English';
-    setEditingSeries({ ...item, language: cleanLang, medium: cleanLang });
+    
+    // Resolve matching examId from examsList by examId, code, or name
+    const foundEx = (examsList.length > 0 ? examsList : [
+      { id: 'exam-bpsc', name: 'BPSC', code: 'BPSC' },
+      { id: 'exam-appsc', name: 'APPSC', code: 'APPSC' },
+      { id: 'exam-apssb', name: 'APSSB', code: 'APSSB' }
+    ]).find((ex: any) =>
+      ex.id === item.examId ||
+      ex.code?.toLowerCase() === (item.exam || '').toLowerCase() ||
+      ex.name?.toLowerCase() === (item.exam || '').toLowerCase() ||
+      (item.exam || '').toLowerCase().includes(ex.slug || '')
+    );
+
+    const resolvedExamId = foundEx ? foundEx.id : (item.examId || 'exam-bpsc');
+
+    setEditingSeries({
+      ...item,
+      examId: resolvedExamId,
+      language: cleanLang,
+      medium: cleanLang
+    });
     setHighlightsInput((item.highlights || []).join('\n'));
     setIsSeriesModalOpen(true);
   };
@@ -1112,7 +1132,12 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                 <div>
                   <label className="block text-slate-400 mb-1">Exam Stage</label>
                   {(() => {
-                    const currentEx = examsList.find((ex: any) => ex.id === editingSeries.examId) || examsList[0];
+                    const effectiveList = examsList.length > 0 ? examsList : [
+                      { id: 'exam-bpsc', name: 'BPSC', code: 'BPSC', hasStages: true, stages: [{ id: 'stage-bpsc-prelims', name: 'Prelims' }, { id: 'stage-bpsc-mains', name: 'Mains' }] },
+                      { id: 'exam-appsc', name: 'APPSC', code: 'APPSC', hasStages: true, stages: [{ id: 'stage-appsc-prelims', name: 'Prelims' }, { id: 'stage-appsc-mains', name: 'Mains' }] },
+                      { id: 'exam-apssb', name: 'APSSB', code: 'APSSB', hasStages: false, stages: [] }
+                    ];
+                    const currentEx = effectiveList.find((ex: any) => ex.id === editingSeries.examId) || effectiveList[0];
                     if (!currentEx || !currentEx.hasStages || !currentEx.stages || currentEx.stages.length === 0) {
                       return (
                         <div className="px-3 py-3 bg-slate-100 dark:bg-slate-800 border border-[var(--card-border)] text-slate-400 rounded-xl font-bold">
