@@ -467,7 +467,7 @@ class FinalAttemptDB {
     return ok?.success || false;
   }
 
-  private memoryCache: Map<string, { data: any; timestamp: number }> = new Map();
+  private memoryCache: Map<string, { data: unknown; timestamp: number }> = new Map();
 
   private getCachedData<T>(key: string, ttlMs: number = 60000): T | null {
     const item = this.memoryCache.get(key);
@@ -479,14 +479,14 @@ class FinalAttemptDB {
     return item.data as T;
   }
 
-  private setCachedData(key: string, data: any): void {
+  private setCachedData(key: string, data: unknown): void {
     this.memoryCache.set(key, { data, timestamp: Date.now() });
   }
 
   public async getCurrentAffairs() {
     const locale = this.getLocale();
     const cacheKey = `current_affairs_cache_${locale}`;
-    const cached = this.getCachedData<any[]>(cacheKey, 60000);
+    const cached = this.getCachedData<unknown[]>(cacheKey, 60000);
     if (cached) return cached;
 
     const data = await this.apiFetch('/api/current-affairs');
@@ -498,7 +498,7 @@ class FinalAttemptDB {
   public async getBlogs() {
     const locale = this.getLocale();
     const cacheKey = `blogs_cache_${locale}`;
-    const cached = this.getCachedData<any[]>(cacheKey, 60000);
+    const cached = this.getCachedData<unknown[]>(cacheKey, 60000);
     if (cached) return cached;
 
     const data = await this.apiFetch('/api/blogs');
@@ -511,7 +511,7 @@ class FinalAttemptDB {
   public async getBlogById(id: string) {
     const locale = this.getLocale();
     const cacheKey = `blog_id_${id}_${locale}`;
-    const cached = this.getCachedData<any>(cacheKey, 60000);
+    const cached = this.getCachedData<unknown>(cacheKey, 60000);
     if (cached) return cached;
 
     const data = await this.apiFetch(`/api/blogs/${encodeURIComponent(id)}`);
@@ -520,7 +520,7 @@ class FinalAttemptDB {
   }
 
   public async getResources() {
-    const cached = this.getCachedData<any[]>('resources_cache', 60000);
+    const cached = this.getCachedData<unknown[]>('resources_cache', 60000);
     if (cached) return cached;
 
     const data = await this.apiFetch('/api/resources');
@@ -1084,7 +1084,12 @@ class FinalAttemptDB {
         const stored = localStorage.getItem('finalattempt_exams_store');
         if (stored !== null) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const map = new Map<string, ExamData>();
+            DEFAULT_HIERARCHY.forEach(e => map.set(e.id, e));
+            parsed.forEach((e: ExamData) => map.set(e.id, e));
+            return Array.from(map.values());
+          }
         } else {
           localStorage.setItem('finalattempt_exams_store', JSON.stringify(DEFAULT_HIERARCHY));
           return DEFAULT_HIERARCHY;
@@ -1103,19 +1108,32 @@ class FinalAttemptDB {
   }
 
   public async getExamsHierarchy(includeUnpublished: boolean = false): Promise<ExamData[]> {
+    const locale = this.getLocale();
+    const cacheKey = `exams_hierarchy_${includeUnpublished}_${locale}`;
+    const cached = this.getCachedData<ExamData[]>(cacheKey, 30000);
+    if (cached) return cached;
+
     const data = await this.apiFetch(`/api/test-series/hierarchy?includeUnpublished=${includeUnpublished}`);
+    const localExams = this.getLocalExamsStore();
     let exams: ExamData[] = [];
+
     if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
-      this.setLocalExamsStore(data.data);
-      exams = data.data as ExamData[];
+      const serverMap = new Map<string, ExamData>(data.data.map((e: ExamData) => [e.id, e]));
+      localExams.forEach(e => {
+        if (!serverMap.has(e.id)) {
+          serverMap.set(e.id, e);
+        }
+      });
+      exams = Array.from(serverMap.values());
+      this.setLocalExamsStore(exams);
     } else {
-      exams = this.getLocalExamsStore();
+      exams = localExams;
     }
 
     // Load all test series items to ensure every exam folder shows its test series count & items
     const allSeries = await this.getTestSeries(includeUnpublished);
 
-    return exams.map((ex) => {
+    const result = exams.map((ex) => {
       const examKey = (ex.code || ex.name || ex.id || '').toLowerCase();
       const matchedSeries = allSeries.filter((s) => {
         const seriesExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
@@ -1145,9 +1163,17 @@ class FinalAttemptDB {
     }).sort((a, b) =>
       (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
     );
+
+    this.setCachedData(cacheKey, result);
+    return result;
   }
 
   public async getTestSeries(includeUnpublished: boolean = false): Promise<TestSeriesItem[]> {
+    const locale = this.getLocale();
+    const cacheKey = `test_series_all_${includeUnpublished}_${locale}`;
+    const cached = this.getCachedData<TestSeriesItem[]>(cacheKey, 30000);
+    if (cached) return cached;
+
     const data = await this.apiFetch(`/api/test-series?includeUnpublished=${includeUnpublished}`);
     const localStore = this.getLocalTestSeriesStore();
     let combined: TestSeriesItem[] = [];
@@ -1165,7 +1191,9 @@ class FinalAttemptDB {
       combined = localStore;
     }
 
-    return includeUnpublished ? combined : combined.filter(s => s.isPublished !== false);
+    const finalResult = includeUnpublished ? combined : combined.filter(s => s.isPublished !== false);
+    this.setCachedData(cacheKey, finalResult);
+    return finalResult;
   }
 
   public async getTestSeriesBySlug(slug: string): Promise<TestSeriesItem | null> {

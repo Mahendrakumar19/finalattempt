@@ -1192,8 +1192,8 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
               </div>
               </div>
 
-              {/* Price, Discounted Price, Total Tests, Questions */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {/* Price, Discounted Price, Total Tests, Questions & Validity */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <div>
                   <label className="block text-slate-400 mb-1">Regular Fee (₹)</label>
                   <input
@@ -1202,7 +1202,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                     min="0"
                     value={editingSeries.price || 0}
                     onChange={e => setEditingSeries({ ...editingSeries, price: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
                   />
                 </div>
 
@@ -1213,7 +1213,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                     min="0"
                     value={editingSeries.discountedPrice || 0}
                     onChange={e => setEditingSeries({ ...editingSeries, discountedPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
                   />
                 </div>
 
@@ -1224,7 +1224,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                     min="1"
                     value={editingSeries.totalTests || 10}
                     onChange={e => setEditingSeries({ ...editingSeries, totalTests: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
                   />
                 </div>
 
@@ -1235,8 +1235,41 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                     min="10"
                     value={editingSeries.totalQuestions || 1500}
                     onChange={e => setEditingSeries({ ...editingSeries, totalQuestions: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1">Validity Period *</label>
+                  <select
+                    value={editingSeries.duration || '6 Months Validity'}
+                    onChange={e => {
+                      const val = e.target.value;
+                      let days = 180;
+                      if (val.includes('1 Month')) days = 30;
+                      else if (val.includes('3 Months')) days = 90;
+                      else if (val.includes('6 Months')) days = 180;
+                      else if (val.includes('1 Year') || val.includes('12 Months')) days = 365;
+                      else if (val.includes('2 Years')) days = 730;
+                      else if (val.includes('Till Exam')) days = 365;
+
+                      setEditingSeries({
+                        ...editingSeries,
+                        duration: val,
+                        validityDays: days
+                      });
+                    }}
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
+                  >
+                    <option value="1 Month Validity">1 Month</option>
+                    <option value="3 Months Validity">3 Months</option>
+                    <option value="6 Months Validity">6 Months</option>
+                    <option value="1 Year Validity">1 Year (12 Months)</option>
+                    <option value="2 Years Validity">2 Years</option>
+                    <option value="Till Prelims Exam">Till Prelims Exam</option>
+                    <option value="Till Mains Exam">Till Mains Exam</option>
+                    <option value="Lifetime Access">Lifetime Access</option>
+                  </select>
                 </div>
               </div>
 

@@ -229,6 +229,7 @@ app.get('/api/test-series/hierarchy', async (req, res) => {
   try {
     const includeUnpublished = req.query.includeUnpublished === 'true';
     const list = await db.getExamsHierarchy(includeUnpublished);
+    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
     res.json({ success: true, data: list });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -245,6 +246,7 @@ app.get('/api/test-series', async (req, res) => {
         allSeries.push(...ex.testSeries);
       }
     });
+    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
     res.json({ success: true, data: allSeries });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
