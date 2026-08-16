@@ -251,10 +251,20 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   const handleTogglePublishSeries = async (seriesItem: TestSeriesItem) => {
     const currentLive = seriesItem.isPublished !== false;
     const nextState = !currentLive;
-    const updated = { ...seriesItem, isPublished: nextState };
+    
+    // Ensure mandatory backend fields (examId, title) exist
+    const updated: TestSeriesItem = {
+      ...seriesItem,
+      examId: seriesItem.examId || (examsList.find(e => e.name === seriesItem.exam || e.code === seriesItem.exam)?.id || examsList[0]?.id || 'exam-bpsc'),
+      isPublished: nextState
+    };
 
     setSeriesList(prev => prev.map(s => s.id === seriesItem.id ? updated : s));
-    await db.saveTestSeries(updated);
+    try {
+      await db.saveTestSeries(updated);
+    } catch (err) {
+      console.error('Failed toggling published state:', err);
+    }
   };
 
   // Delete Test Series Program

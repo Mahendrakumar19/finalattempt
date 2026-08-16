@@ -29,13 +29,17 @@ export default function ExamFolderPage() {
 
         if (found) {
           setExam(found);
-          const examKey = (found.code || found.name || found.slug || '').toLowerCase();
-          const matched = (found.testSeries && found.testSeries.length > 0)
-            ? found.testSeries
-            : allSeries.filter((s) => {
-                const sExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
-                return s.examId === found.id || sExam.includes(examKey);
-              });
+          const examKey = (found.code || found.name || found.slug || found.id || '').toLowerCase();
+          const matched = allSeries.filter((s) => {
+            const sExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
+            return (
+              s.examId === found.id ||
+              sExam.includes(examKey) ||
+              (examKey.includes('bpsc') && sExam.includes('bpsc')) ||
+              ((examKey.includes('appsc') || examKey.includes('appcs')) && (sExam.includes('appsc') || sExam.includes('appcs'))) ||
+              (examKey.includes('apssb') && sExam.includes('apssb'))
+            );
+          });
           setSeriesList(matched);
         }
       } catch (err) {

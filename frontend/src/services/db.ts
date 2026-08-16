@@ -1117,18 +1117,16 @@ class FinalAttemptDB {
 
     return exams.map((ex) => {
       const examKey = (ex.code || ex.name || ex.id || '').toLowerCase();
-      const matchedSeries = (ex.testSeries && ex.testSeries.length > 0)
-        ? ex.testSeries
-        : allSeries.filter((s) => {
-            const seriesExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
-            return (
-              s.examId === ex.id ||
-              seriesExam.includes(examKey) ||
-              (examKey === 'bpsc' && seriesExam.includes('bpsc')) ||
-              (examKey === 'appsc' && (seriesExam.includes('appsc') || seriesExam.includes('appcs'))) ||
-              (examKey === 'apssb' && seriesExam.includes('apssb'))
-            );
-          });
+      const matchedSeries = allSeries.filter((s) => {
+        const seriesExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
+        return (
+          s.examId === ex.id ||
+          seriesExam.includes(examKey) ||
+          (examKey.includes('bpsc') && seriesExam.includes('bpsc')) ||
+          ((examKey.includes('appsc') || examKey.includes('appcs')) && (seriesExam.includes('appsc') || seriesExam.includes('appcs'))) ||
+          (examKey.includes('apssb') && seriesExam.includes('apssb'))
+        );
+      });
 
       return {
         ...ex,
