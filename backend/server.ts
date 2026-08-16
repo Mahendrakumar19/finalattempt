@@ -227,10 +227,20 @@ app.delete('/api/custom-pages/:id', async (req, res) => {
 // TEST SERIES & EXAM HIERARCHY API ROUTES
 app.get('/api/test-series/hierarchy', async (req, res) => {
   try {
+    const targetLang = getTargetLang(req);
     const includeUnpublished = req.query.includeUnpublished === 'true';
     const list = await db.getExamsHierarchy(includeUnpublished);
+
+    // Dynamically localize exam names and descriptions if targetLang === 'hi'
+    const localized = await ContentLocalizer.localizeEntityList(
+      'exam_category',
+      list,
+      ['name', 'description'],
+      targetLang
+    );
+
     res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
-    res.json({ success: true, data: list });
+    res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -238,6 +248,7 @@ app.get('/api/test-series/hierarchy', async (req, res) => {
 
 app.get('/api/test-series', async (req, res) => {
   try {
+    const targetLang = getTargetLang(req);
     const includeUnpublished = req.query.includeUnpublished === 'true';
     const exams = await db.getExamsHierarchy(includeUnpublished);
     const allSeries: any[] = [];
@@ -246,8 +257,17 @@ app.get('/api/test-series', async (req, res) => {
         allSeries.push(...ex.testSeries);
       }
     });
+
+    // Dynamically localize test series titles, descriptions, and program details if targetLang === 'hi'
+    const localized = await ContentLocalizer.localizeEntityList(
+      'test_series',
+      allSeries,
+      ['title', 'description', 'programDetails', 'category', 'exam', 'medium'],
+      targetLang
+    );
+
     res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
-    res.json({ success: true, data: allSeries });
+    res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -255,12 +275,21 @@ app.get('/api/test-series', async (req, res) => {
 
 app.get('/api/test-series/:slug', async (req, res) => {
   try {
+    const targetLang = getTargetLang(req);
     const slug = req.params.slug;
     const item = await db.getTestSeriesBySlugOrId(slug);
     if (!item) {
       return res.status(404).json({ success: false, error: 'Test Series not found' });
     }
-    res.json({ success: true, data: item });
+
+    const localized = await ContentLocalizer.localizeEntity(
+      'test_series',
+      item,
+      ['title', 'description', 'programDetails', 'category', 'exam', 'medium'],
+      targetLang
+    );
+
+    res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

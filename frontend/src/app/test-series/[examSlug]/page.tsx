@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Layers, ArrowRight, ArrowLeft, BookOpen, CheckCircle, FileText } from 'lucide-react';
 import { db, ExamData, TestSeriesItem } from '@/services/db';
+import { useTranslation } from '@/context/LocaleContext';
 
 export default function ExamFolderPage() {
+  const { t } = useTranslation();
   const params = useParams();
   const examSlug = params.examSlug as string;
 
@@ -75,16 +77,16 @@ export default function ExamFolderPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4 font-body">
         <BookOpen className="w-16 h-16 text-slate-400 mx-auto" />
-        <h2 className="text-2xl font-heading font-black text-[var(--text-color)]">Exam Folder Not Found</h2>
+        <h2 className="text-2xl font-heading font-black text-[var(--text-color)]">{t('testSeriesHub.folderNotFound')}</h2>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-          The exam category you requested does not exist or has been removed.
+          {t('testSeriesHub.folderNotFoundDesc')}
         </p>
         <Link
           href="/test-series"
           className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 text-slate-950 font-bold rounded-2xl text-xs"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to All Exams</span>
+          <span>{t('testSeriesHub.backToAllExams')}</span>
         </Link>
       </div>
     );
@@ -100,7 +102,7 @@ export default function ExamFolderPage() {
           className="text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors inline-flex items-center gap-1.5"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Exam Selection</span>
+          <span>{t('testSeriesHub.backToExamSelection')}</span>
         </Link>
 
         {/* Header Title Banner */}
@@ -115,14 +117,14 @@ export default function ExamFolderPage() {
                 )}
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 block">Exam Folder</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 block">{t('testSeriesHub.examFolder')}</span>
                 <h1 className="text-2xl sm:text-3xl font-heading font-black text-[var(--text-color)]">
                   {exam.name}
                 </h1>
               </div>
             </div>
             <span className="text-[10px] font-bold uppercase tracking-wider px-3.5 py-1.5 bg-amber-50/80 dark:bg-amber-950/40 text-slate-700 dark:text-slate-200 rounded-full border border-amber-200/50 dark:border-amber-500/20">
-              {exam.hasStages ? 'STAGE WISE' : 'DIRECT SERIES'}
+              {exam.hasStages ? t('testSeriesHub.stageWise') : t('testSeriesHub.directSeries')}
             </span>
           </div>
           {exam.description && (
@@ -136,7 +138,7 @@ export default function ExamFolderPage() {
         {exam.hasStages && (
           <div className="space-y-6">
             <h2 className="font-heading font-black text-lg text-[var(--text-color)] uppercase tracking-wider">
-              Select Examination Stage
+              {t('testSeriesHub.selectExamStage')}
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -233,16 +235,16 @@ export default function ExamFolderPage() {
                         {/* Additional Key Attributes: Medium, Start Date, Program Details */}
                         <div className="space-y-1.5 pt-2 border-t border-[var(--card-border)] text-xs font-semibold text-[var(--text-color)]">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold uppercase text-slate-400">Medium</span>
+                            <span className="text-[10px] font-bold uppercase text-slate-400">{t('testSeriesHub.medium')}</span>
                             <span className="text-amber-600 dark:text-amber-400 font-extrabold">{series.medium || series.language || 'English'}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold uppercase text-slate-400">Start Date</span>
+                            <span className="text-[10px] font-bold uppercase text-slate-400">{t('testSeriesHub.startDate')}</span>
                             <span className="font-bold">{series.batchStartDate || '09 August 2026'}</span>
                           </div>
                           {series.programDetails && (
                             <div className="flex items-start justify-between gap-2 pt-0.5">
-                              <span className="text-[10px] font-bold uppercase text-slate-400 shrink-0">Details</span>
+                              <span className="text-[10px] font-bold uppercase text-slate-400 shrink-0">{t('testSeriesHub.details')}</span>
                               <span className="text-[11px] text-right font-medium text-slate-600 dark:text-slate-300">{series.programDetails}</span>
                             </div>
                           )}
@@ -254,8 +256,8 @@ export default function ExamFolderPage() {
                               <Layers className="w-4 h-4" />
                             </div>
                             <div>
-                              <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Total Mocks</span>
-                              <span className="text-xs font-black text-slate-900 dark:text-white">{series.totalTests} Tests</span>
+                              <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">{t('testSeriesHub.totalMocks')}</span>
+                              <span className="text-xs font-black text-slate-900 dark:text-white">{series.totalTests} {t('testSeriesHub.tests')}</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2.5 p-2.5 bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-xs">
@@ -263,8 +265,8 @@ export default function ExamFolderPage() {
                               <BookOpen className="w-4 h-4" />
                             </div>
                             <div>
-                              <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">Questions</span>
-                              <span className="text-xs font-black text-slate-900 dark:text-white">{series.totalQuestions} Qs</span>
+                              <span className="text-[9px] font-bold text-slate-400 block uppercase tracking-wider">{t('testSeriesHub.questions')}</span>
+                              <span className="text-xs font-black text-slate-900 dark:text-white">{series.totalQuestions} {t('testSeriesHub.qs')}</span>
                             </div>
                           </div>
                         </div>
@@ -283,7 +285,7 @@ export default function ExamFolderPage() {
 
                       <div className="p-5 bg-white dark:bg-slate-900/60 border-t border-slate-200/80 dark:border-white/10 flex items-center justify-between">
                         <div>
-                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">Fee</span>
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">{t('testSeriesHub.fee')}</span>
                           <div className="flex items-baseline gap-2">
                             <span className="text-xl font-heading font-black text-slate-900 dark:text-white">
                               ₹{displayPrice?.toLocaleString()}
@@ -302,7 +304,7 @@ export default function ExamFolderPage() {
                               rel="noreferrer"
                               className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline block mt-0.5"
                             >
-                              Download Schedule
+                              {t('testSeriesHub.downloadSchedule')}
                             </a>
                           )}
                         </div>
@@ -311,7 +313,7 @@ export default function ExamFolderPage() {
                           href={`/test-series/program/${series.slug}`}
                           className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs flex items-center gap-1.5 transition-all shadow-md group-hover:scale-[1.03]"
                         >
-                          <span>Explore Program</span>
+                          <span>{t('testSeriesHub.exploreProgram')}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </div>
