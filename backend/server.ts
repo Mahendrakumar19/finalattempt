@@ -301,6 +301,15 @@ app.post('/api/admin/exams', async (req, res) => {
   }
 });
 
+app.delete('/api/admin/exams/:id', async (req, res) => {
+  try {
+    const ok = await db.deleteExamRecord(req.params.id);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 app.post('/api/visitors/increment', async (req, res) => {
   try {

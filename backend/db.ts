@@ -5217,6 +5217,23 @@ class LmsDB {
     return exam;
   }
 
+  public async deleteExamRecord(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM exams WHERE id = ?', [id]);
+        await mysqlPool.query('DELETE FROM exam_stages WHERE examId = ?', [id]);
+      } catch (err) {
+        console.error('[DB] deleteExamRecord MySQL error:', err);
+      }
+    }
+
+    if ((this.localStore as any).exams) {
+      (this.localStore as any).exams = (this.localStore as any).exams.filter((e: any) => e.id !== id);
+      this.saveLocalData();
+    }
+    return true;
+  }
+
   public async saveTestSeriesRecord(series: any): Promise<any> {
     if (mysqlPool) {
       try {

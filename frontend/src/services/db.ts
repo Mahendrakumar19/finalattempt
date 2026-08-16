@@ -1085,10 +1085,7 @@ class FinalAttemptDB {
         if (stored !== null) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const map = new Map<string, ExamData>();
-            DEFAULT_HIERARCHY.forEach(e => map.set(e.id, e));
-            parsed.forEach((e: ExamData) => map.set(e.id, e));
-            return Array.from(map.values());
+            return parsed;
           }
         } else {
           localStorage.setItem('finalattempt_exams_store', JSON.stringify(DEFAULT_HIERARCHY));
@@ -1263,6 +1260,17 @@ class FinalAttemptDB {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(exam)
+    });
+    return res?.success || true;
+  }
+
+  public async deleteExam(id: string): Promise<boolean> {
+    const currentList = this.getLocalExamsStore();
+    const nextList = currentList.filter(e => e.id !== id);
+    this.setLocalExamsStore(nextList);
+
+    const res = await this.apiFetch(`/api/admin/exams/${id}`, {
+      method: 'DELETE'
     });
     return res?.success || true;
   }

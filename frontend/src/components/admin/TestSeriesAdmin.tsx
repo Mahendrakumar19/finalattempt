@@ -1,11 +1,9 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
-  Plus, Trash2, Edit3, ChevronDown, ChevronRight, FileText, BookOpen, X, Check, 
-  Layers, Sparkles, HelpCircle, Eye, ShieldCheck, Clock, Layers3, Filter
+  Plus, Trash2, Edit3, ChevronDown, ChevronRight, FileText, X, Check, 
+  Layers, Sparkles, Eye
 } from 'lucide-react';
-import { db, TestSeriesItem } from '@/services/db';
+import { db, TestSeriesItem, ExamData } from '@/services/db';
 
 const BLANK_SERIES: Partial<TestSeriesItem> = {
   title: '',
@@ -57,6 +55,29 @@ const BLANK_QUESTION = {
   negativeMarks: 0.33,
 };
 
+interface QuizItem {
+  id: string;
+  title: string;
+  description?: string;
+  timeLimitMins?: number;
+  passingScore?: number;
+  courseId?: string;
+}
+
+interface QuestionItem {
+  id: string;
+  questionText: string;
+  optionA: string;
+  optionB: string;
+  optionC?: string;
+  optionD?: string;
+  correctAnswer?: string;
+  explanation?: string;
+  marks?: number;
+  negativeMarks?: number;
+  quizId?: string;
+}
+
 export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }) {
   const [subTab, setSubTab] = useState<'series' | 'quizzes' | 'exams'>('series');
 
@@ -65,7 +86,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   const [loadingSeries, setLoadingSeries] = useState(true);
 
   // Exam Logo Management State
-  const [editingExam, setEditingExam] = useState<any | null>(null);
+  const [editingExam, setEditingExam] = useState<ExamData | null>(null);
   const [savingExam, setSavingExam] = useState(false);
 
   // Series Add/Edit Modal
@@ -79,7 +100,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
 
   // Quiz & Questions manager states
   const [selectedSeriesId, setSelectedSeriesId] = useState<string>('');
-  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
 
   const [showQuizForm, setShowQuizForm] = useState(false);
@@ -87,7 +108,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   const [savingQuiz, setSavingQuiz] = useState(false);
 
   const [expandedQuiz, setExpandedQuiz] = useState<string | null>(null);
-  const [quizQuestions, setQuizQuestions] = useState<Record<string, any[]>>({});
+  const [quizQuestions, setQuizQuestions] = useState<Record<string, QuestionItem[]>>({});
   const [loadingQuestions, setLoadingQuestions] = useState<string | null>(null);
 
   const [showQForm, setShowQForm] = useState<string | null>(null);
@@ -95,10 +116,10 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   const [savingQ, setSavingQ] = useState(false);
 
   // Exams hierarchy state
-  const [examsList, setExamsList] = useState<any[]>([]);
+  const [examsList, setExamsList] = useState<ExamData[]>([]);
 
   // Load Test Series list from DB
-  const loadSeries = async () => {
+  const loadSeries = useCallback(async () => {
     setLoadingSeries(true);
     try {
       const examsHierarchy = await db.getExamsHierarchy(true);
@@ -114,20 +135,29 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
     } finally {
       setLoadingSeries(false);
     }
-  };
+  }, [selectedSeriesId]);
 
   useEffect(() => {
     loadSeries();
-  }, []);
+  }, [loadSeries]);
 
   // Sync quizzes when selected test series changes
   useEffect(() => {
-    if (!selectedSeriesId) { setQuizzes([]); return; }
+    if (!selectedSeriesId) {
+      return;
+    }
+    let isSubscribed = true;
     setLoadingQuizzes(true);
     db.getTestSeriesQuizzes(selectedSeriesId)
-      .then(list => setQuizzes(list || []))
+      .then(list => {
+        if (isSubscribed) setQuizzes(list || []);
+      })
       .catch(() => {})
-      .finally(() => setLoadingQuizzes(false));
+      .finally(() => {
+        if (isSubscribed) setLoadingQuizzes(false);
+      });
+
+    return () => { isSubscribed = false; };
   }, [selectedSeriesId]);
 
   // Open modal to Add
@@ -418,7 +448,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
       const optCMatch = block.match(/[\(\[]?(?:C|3)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:D|4)[\)\.\:\s]|$)/i);
       const optDMatch = block.match(/[\(\[]?(?:D|4)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:Ans|Answer|Correct|Explanation|Sol|Solution)[\:\s]|$)/i);
 
-      let ansMatch = block.match(/(?:Ans|Answer|Correct|Option)[\:\s\-]*[\(\[]?([A-D1-4])[\)\]]?/i);
+      const ansMatch = block.match(/(?:Ans|Answer|Correct|Option)[\:\s\-]*[\(\[]?([A-D1-4])[\)\]]?/i);
       const expMatch = block.match(/(?:Explanation|Sol|Solution)[\:\s]+([\s\S]+)$/i);
 
       if (qMatch && optAMatch && optBMatch) {
@@ -656,16 +686,30 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                   <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{ex.description || 'State Civil Services Exam'}</p>
                 </div>
 
-                <div className="pt-2 border-t border-[var(--card-border)] flex items-center justify-between">
+                <div className="pt-2 border-t border-[var(--card-border)] flex items-center justify-between gap-2">
                   <span className="text-xs text-slate-400 font-bold">{ex.testSeries?.length || 0} Programs</span>
-                  <button
-                    type="button"
-                    onClick={() => setEditingExam({ ...ex })}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>Manage Logo</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditingExam({ ...ex })}
+                      className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit / Logo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!confirm(`Are you sure you want to delete the exam folder "${ex.name}"?`)) return;
+                        setExamsList(prev => prev.filter(item => item.id !== ex.id));
+                        await db.deleteExam(ex.id);
+                      }}
+                      className="p-1.5 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                      title="Delete Exam Folder"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
