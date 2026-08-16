@@ -140,28 +140,41 @@ export default function ExamFolderPage() {
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {(exam.stages || []).map((stg) => (
-                <Link
-                  key={stg.id}
-                  href={`/test-series/${exam.slug}/${stg.slug}`}
-                  className="group p-8 rounded-3xl bg-[var(--card-bg)] border-2 border-[var(--card-border)] hover:border-amber-500/50 shadow-xs hover:shadow-2xl transition-all space-y-4 relative overflow-hidden flex justify-between items-center"
-                >
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20 inline-block">
-                      STAGE FOLDER
-                    </span>
-                    <h3 className="text-2xl font-heading font-black text-[var(--text-color)] group-hover:text-amber-500 transition-colors">
-                      {stg.name}
-                    </h3>
-                    <p className="text-xs text-slate-500">
-                      Explore {exam.name} {stg.name} Test Series Programs
-                    </p>
-                  </div>
-                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                    <ArrowRight className="w-5 h-5" />
-                  </div>
-                </Link>
-              ))}
+              {(exam.stages || []).map((stg) => {
+                const stageKey = stg.name.toLowerCase();
+                const count = seriesList.filter((s) => {
+                  const sStage = (s.stageId || s.category || s.title || '').toLowerCase();
+                  return sStage.includes(stageKey) || (stageKey === 'prelims' && (sStage.includes('pre') || sStage.includes('prelims')));
+                }).length;
+
+                return (
+                  <Link
+                    key={stg.id}
+                    href={`/test-series/${exam.slug}/${stg.slug}`}
+                    className="group p-8 rounded-3xl bg-[var(--card-bg)] border-2 border-[var(--card-border)] hover:border-amber-500/50 shadow-xs hover:shadow-2xl transition-all space-y-4 relative overflow-hidden flex justify-between items-center"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20 inline-block">
+                          STAGE FOLDER
+                        </span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20 inline-block">
+                          {count} {count === 1 ? 'Program' : 'Programs'}
+                        </span>
+                      </div>
+                      <h3 className="text-2xl font-heading font-black text-[var(--text-color)] group-hover:text-amber-500 transition-colors">
+                        {stg.name}
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        {count > 0 ? `${count} Test Series available in ${stg.name}` : `No programs uploaded yet for ${stg.name}`}
+                      </p>
+                    </div>
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                      <ArrowRight className="w-5 h-5" />
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}
