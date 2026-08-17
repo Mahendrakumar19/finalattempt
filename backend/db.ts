@@ -688,12 +688,23 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         optionD TEXT NOT NULL,
         correctAnswer CHAR(1) NOT NULL,
         explanation TEXT,
+        questionTextHi TEXT,
+        optionAHi TEXT,
+        optionBHi TEXT,
+        optionCHi TEXT,
+        optionDHi TEXT,
+        explanationHi TEXT,
         marks DECIMAL(5,2) DEFAULT 1.00,
         negativeMarks DECIMAL(5,2) DEFAULT 0.33,
         orderIndex INT DEFAULT 1,
         INDEX idx_question_quiz (quizId)
       )
     `);
+
+    // Auto-migrate optional Hindi columns on existing lms_questions table
+    try {
+      await pool.query('ALTER TABLE lms_questions ADD COLUMN questionTextHi TEXT, ADD COLUMN optionAHi TEXT, ADD COLUMN optionBHi TEXT, ADD COLUMN optionCHi TEXT, ADD COLUMN optionDHi TEXT, ADD COLUMN explanationHi TEXT');
+    } catch (_) {}
 
     // 12. LMS Quiz Attempts
     await pool.query(`
@@ -4438,7 +4449,7 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_quizzes (id, courseId, lessonId, title, description, timeLimitMins, passingScore, isPublished) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO lms_quizzes (id, courseId, lessonId, title, description, timeLimitMins, passingScore, isPublished) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE courseId = VALUES(courseId), title = VALUES(title), description = VALUES(description), timeLimitMins = VALUES(timeLimitMins), passingScore = VALUES(passingScore), isPublished = VALUES(isPublished)',
           [quiz.id, quiz.courseId, quiz.lessonId, quiz.title, quiz.description, quiz.timeLimitMins, quiz.passingScore, quiz.isPublished]
         );
         return quiz;
@@ -4507,6 +4518,12 @@ class LmsDB {
       optionD: data.optionD,
       correctAnswer: data.correctAnswer,
       explanation: data.explanation || '',
+      questionTextHi: data.questionTextHi || null,
+      optionAHi: data.optionAHi || null,
+      optionBHi: data.optionBHi || null,
+      optionCHi: data.optionCHi || null,
+      optionDHi: data.optionDHi || null,
+      explanationHi: data.explanationHi || null,
       marks: Number(data.marks || 1.00),
       negativeMarks: Number(data.negativeMarks || 0.33),
       orderIndex: Number(data.orderIndex || 1)
@@ -4515,8 +4532,8 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation, marks, negativeMarks, orderIndex) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [question.id, question.quizId, question.questionText, question.optionA, question.optionB, question.optionC, question.optionD, question.correctAnswer, question.explanation, question.marks, question.negativeMarks, question.orderIndex]
+          'INSERT INTO lms_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation, questionTextHi, optionAHi, optionBHi, optionCHi, optionDHi, explanationHi, marks, negativeMarks, orderIndex) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [question.id, question.quizId, question.questionText, question.optionA, question.optionB, question.optionC, question.optionD, question.correctAnswer, question.explanation, question.questionTextHi, question.optionAHi, question.optionBHi, question.optionCHi, question.optionDHi, question.explanationHi, question.marks, question.negativeMarks, question.orderIndex]
         );
         return question;
       } catch (err) { console.error('[LmsDB] createQuestion MySQL error:', err); }
@@ -4528,8 +4545,8 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'UPDATE lms_questions SET questionText = ?, optionA = ?, optionB = ?, optionC = ?, optionD = ?, correctAnswer = ?, explanation = ?, marks = ?, negativeMarks = ? WHERE id = ?',
-          [data.questionText, data.optionA, data.optionB, data.optionC, data.optionD, data.correctAnswer, data.explanation, Number(data.marks || 1.00), Number(data.negativeMarks || 0.33), id]
+          'UPDATE lms_questions SET questionText = ?, optionA = ?, optionB = ?, optionC = ?, optionD = ?, correctAnswer = ?, explanation = ?, questionTextHi = ?, optionAHi = ?, optionBHi = ?, optionCHi = ?, optionDHi = ?, explanationHi = ?, marks = ?, negativeMarks = ? WHERE id = ?',
+          [data.questionText, data.optionA, data.optionB, data.optionC, data.optionD, data.correctAnswer, data.explanation, data.questionTextHi || null, data.optionAHi || null, data.optionBHi || null, data.optionCHi || null, data.optionDHi || null, data.explanationHi || null, Number(data.marks || 1.00), Number(data.negativeMarks || 0.33), id]
         );
         return true;
       } catch (err) { console.error('[LmsDB] updateQuestion MySQL error:', err); }
@@ -4923,12 +4940,22 @@ class LmsDB {
             optionD TEXT NOT NULL,
             correctAnswer ENUM('A','B','C','D') NOT NULL,
             explanation TEXT,
+            questionTextHi TEXT,
+            optionAHi TEXT,
+            optionBHi TEXT,
+            optionCHi TEXT,
+            optionDHi TEXT,
+            explanationHi TEXT,
             marks FLOAT DEFAULT 1.0,
             negativeMarks FLOAT DEFAULT 0.33,
             createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (quizId) REFERENCES daily_quizzes(id) ON DELETE CASCADE
           )
         `);
+
+        try {
+          await mysqlPool.query('ALTER TABLE daily_quiz_questions ADD COLUMN questionTextHi TEXT, ADD COLUMN optionAHi TEXT, ADD COLUMN optionBHi TEXT, ADD COLUMN optionCHi TEXT, ADD COLUMN optionDHi TEXT, ADD COLUMN explanationHi TEXT');
+        } catch (_) {}
       } catch (err) {
         console.error('[LmsDB] initDailyQuizTables MySQL error:', err);
       }

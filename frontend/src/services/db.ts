@@ -1292,12 +1292,22 @@ class FinalAttemptDB {
     return res?.success || true;
   }
 
-  // ── Quiz & Question Bank Methods ──────────────────────────────────────────
   public async getTestSeriesQuizzes(seriesId: string): Promise<any[]> {
     const data = await this.apiFetch(`/api/lms/courses/${seriesId}/quizzes`);
-    if (data && data.success && Array.isArray(data.data)) {
+    if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
       // Filter out any stale synthetic IDs if present
       return data.data.filter((q: any) => !q.id?.includes('-default'));
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`finalattempt_quizzes_${seriesId}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            return parsed.filter((q: any) => !q.id?.includes('-default'));
+          }
+        }
+      } catch (_) {}
     }
     return [];
   }
@@ -1424,7 +1434,37 @@ class FinalAttemptDB {
     return res?.success || true;
   }
 
+  async parseBilingualPdf(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.apiFetch('/api/quizzes/admin/parse-bilingual-pdf', {
+      method: 'POST',
+      body: formData
+    });
+  }
 
+  async parseBilingualText(text: string): Promise<any> {
+    return this.apiFetch('/api/quizzes/admin/parse-bilingual-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+  }
+
+  async importBilingualQuiz(payload: {
+    quizId?: string;
+    title: string;
+    courseId?: string;
+    description?: string;
+    questions: any[];
+    replaceExisting?: boolean;
+  }): Promise<any> {
+    return this.apiFetch('/api/quizzes/admin/import-bilingual-quiz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  }
 
 }
 

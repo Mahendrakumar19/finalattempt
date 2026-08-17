@@ -6,6 +6,12 @@ import {
 import { db, TestSeriesItem, ExamData } from '@/services/db';
 import MediaPicker from '@/components/MediaPicker';
 
+/** Strips any leading "(a) " / "(A) " / "(क) " option prefix from stored option text */
+function stripOptionPrefix(text: string): string {
+  if (!text) return '';
+  return text.replace(/^\s*\([a-dA-D\u0915-\u0918]\)\s+/, '').trim();
+}
+
 const BLANK_SERIES: Partial<TestSeriesItem> = {
   title: '',
   slug: '',
@@ -74,6 +80,12 @@ interface QuestionItem {
   optionD?: string;
   correctAnswer?: string;
   explanation?: string;
+  questionTextHi?: string;
+  optionAHi?: string;
+  optionBHi?: string;
+  optionCHi?: string;
+  optionDHi?: string;
+  explanationHi?: string;
   marks?: number;
   negativeMarks?: number;
   quizId?: string;
@@ -86,10 +98,11 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   const [seriesList, setSeriesList] = useState<TestSeriesItem[]>([]);
   const [loadingSeries, setLoadingSeries] = useState(true);
 
-  // Exam Logo Management State
+  // Exam Logo & Schedule PDF Media Management State
   const [editingExam, setEditingExam] = useState<ExamData | null>(null);
   const [savingExam, setSavingExam] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
+  const [mediaPickerTarget, setMediaPickerTarget] = useState<'exam_logo' | 'series_pdf'>('exam_logo');
 
   // Series Add/Edit Modal
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
@@ -116,6 +129,20 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   const [showQForm, setShowQForm] = useState<string | null>(null);
   const [qForm, setQForm] = useState({ ...BLANK_QUESTION });
   const [savingQ, setSavingQ] = useState(false);
+
+  // Strict Bilingual Mock Test Importer Wizard State
+  const [showBilingualPdfModal, setShowBilingualPdfModal] = useState(false);
+  const [parsingBilingualPdf, setParsingBilingualPdf] = useState(false);
+  const [bilingualReport, setBilingualReport] = useState<any | null>(null);
+  const [previewQuestionIndex, setPreviewQuestionIndex] = useState(0);
+  const [importingBilingualQuiz, setImportingBilingualQuiz] = useState(false);
+  const [bilingualQuizTitle, setBilingualQuizTitle] = useState('');
+  const [bilingualQuizDescription, setBilingualQuizDescription] = useState('');
+  const [replaceExistingQuizConfirm, setReplaceExistingQuizConfirm] = useState(false);
+  const [bilingualPastedText, setBilingualPastedText] = useState('');
+  const [bilingualParseMode, setBilingualParseMode] = useState<'text' | 'pdf'>('text');
+  const [bilingualParseErrors, setBilingualParseErrors] = useState<string[]>([]);
+  const [quizLangMode, setQuizLangMode] = useState<Record<string, 'EN' | 'HI'>>({});
 
   // Exams hierarchy state
   const [examsList, setExamsList] = useState<ExamData[]>([]);
@@ -438,19 +465,19 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
     }
 
     // 3. Fallback: Intelligent Regex Parser for PDF / DOC / TXT Text Feeds
-    const blocks = raw.split(/(?=\b(?:Q\.?\s*\d+|\d+[\.\)])\b)/i).filter((b: string) => b.trim().length > 10);
+    const blocks = raw.split(/(?=\n\s*(?:Q\.?\s*\d+|\d+[\.\)])\s+)/i).filter((b: string) => b.trim().length > 10);
 
     for (const block of blocks) {
-      // Extract Question Text
-      const qMatch = block.match(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])?\s*([\s\S]+?)(?=\s*(?:[\(\[]?[A-D1-4][\)\.\:\s]))/i);
+      // Extract Question Text before options (a)/(b)/(c)/(d) or (A)/(B)/(C)/(D)
+      const qMatch = block.match(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])?\s*([\s\S]+?)(?=\s*(?:[\(\[]?[A-Da-d1-4][\)\.\:\s]))/i);
 
-      // Extract Options A, B, C, D (or 1, 2, 3, 4)
-      const optAMatch = block.match(/[\(\[]?(?:A|1)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:B|2)[\)\.\:\s]|$)/i);
-      const optBMatch = block.match(/[\(\[]?(?:B|2)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:C|3)[\)\.\:\s]|$)/i);
-      const optCMatch = block.match(/[\(\[]?(?:C|3)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:D|4)[\)\.\:\s]|$)/i);
-      const optDMatch = block.match(/[\(\[]?(?:D|4)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:Ans|Answer|Correct|Explanation|Sol|Solution)[\:\s]|$)/i);
+      // Extract Options (a)/(b)/(c)/(d) or (A)/(B)/(C)/(D)
+      const optAMatch = block.match(/[\(\[]?(?:A|a|1)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:B|b|2)[\)\.\:\s]|$)/i);
+      const optBMatch = block.match(/[\(\[]?(?:B|b|2)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:C|c|3)[\)\.\:\s]|$)/i);
+      const optCMatch = block.match(/[\(\[]?(?:C|c|3)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:D|d|4)[\)\.\:\s]|$)/i);
+      const optDMatch = block.match(/[\(\[]?(?:D|d|4)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:Ans|Answer|Correct|Explanation|Sol|Solution|----------|\n\s*\d+\.)[\:\s]|$)/i);
 
-      const ansMatch = block.match(/(?:Ans|Answer|Correct|Option)[\:\s\-]*[\(\[]?([A-D1-4])[\)\]]?/i);
+      const ansMatch = block.match(/(?:Ans|Answer|Correct|Option)[\:\s\-]*[\(\[]?([A-Da-d1-4])[\)\]]?/i);
       const expMatch = block.match(/(?:Explanation|Sol|Solution)[\:\s]+([\s\S]+)$/i);
 
       if (qMatch && optAMatch && optBMatch) {
@@ -471,7 +498,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
           optionC: optCMatch ? optCMatch[1].trim() : '',
           optionD: optDMatch ? optDMatch[1].trim() : '',
           correctAnswer: ansLetter,
-          explanation: expMatch ? expMatch[1].trim() : 'Refer to BPSC official syllabus notes.',
+          explanation: expMatch ? expMatch[1].trim() : 'Refer to official syllabus notes.',
           marks: 1,
           negativeMarks: 0.33
         });
@@ -486,9 +513,39 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   };
 
   // Handle File Upload Read (JSON, CSV, TXT, PDF, DOC)
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.name.toLowerCase().endsWith('.pdf')) {
+      try {
+        const res = await db.parseBilingualPdf(file);
+        if (res && res.success && res.report && res.report.questionsPreview && res.report.questionsPreview.length > 0) {
+          const formatted = res.report.questionsPreview.map((q: any) => ({
+            questionText: q.questionText,
+            optionA: q.optionA,
+            optionB: q.optionB,
+            optionC: q.optionC,
+            optionD: q.optionD,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation || 'Refer to syllabus notes.',
+            questionTextHi: q.questionTextHi,
+            optionAHi: q.optionAHi,
+            optionBHi: q.optionBHi,
+            optionCHi: q.optionCHi,
+            optionDHi: q.optionDHi,
+            explanationHi: q.explanationHi,
+            marks: 1,
+            negativeMarks: 0.33
+          }));
+          setParsedBulkQuestions(formatted);
+          alert(`Successfully extracted ${formatted.length} questions from PDF via server parser!`);
+          return;
+        }
+      } catch (pdfErr) {
+        console.warn('Backend PDF parse fallback to text reader:', pdfErr);
+      }
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -940,13 +997,30 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                     {quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''} configured for this test series program.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => { setShowQuizForm(true); setQuizForm({ ...BLANK_QUIZ }); }}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-2xl transition-all shadow-sm cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" /> Add Mock Quiz
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowBilingualPdfModal(true);
+                      setBilingualReport(null);
+                      setPreviewQuestionIndex(0);
+                      setBilingualQuizTitle('');
+                      setBilingualQuizDescription('');
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-2xl transition-all shadow-sm cursor-pointer"
+                  >
+                    <FileText className="w-4 h-4 text-amber-300" />
+                    <span>Import Strict Bilingual PDF</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => { setShowQuizForm(true); setQuizForm({ ...BLANK_QUIZ }); }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-2xl transition-all shadow-sm cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Add Mock Quiz
+                  </button>
+                </div>
               </div>
 
               {loadingQuizzes ? (
@@ -996,9 +1070,36 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                       {expandedQuiz === quiz.id && (
                         <div className="border-t border-[var(--card-border)] p-5 space-y-4 bg-slate-50/50 dark:bg-slate-900/30">
                           <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                              Questions Bank ({(quizQuestions[quiz.id] || []).length})
-                            </p>
+                            <div className="flex items-center gap-3">
+                              <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                                Questions Bank ({(quizQuestions[quiz.id] || []).length})
+                              </p>
+                              {/* Language View Toggle */}
+                              <div className="flex items-center p-0.5 bg-slate-200 dark:bg-slate-800 rounded-lg text-[10px] font-bold">
+                                <button
+                                  type="button"
+                                  onClick={() => setQuizLangMode(prev => ({ ...prev, [quiz.id]: 'EN' }))}
+                                  className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${
+                                    (quizLangMode[quiz.id] || 'EN') === 'EN'
+                                      ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                                      : 'text-slate-400 hover:text-[var(--text-color)]'
+                                  }`}
+                                >
+                                  EN
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setQuizLangMode(prev => ({ ...prev, [quiz.id]: 'HI' }))}
+                                  className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${
+                                    quizLangMode[quiz.id] === 'HI'
+                                      ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                                      : 'text-slate-400 hover:text-[var(--text-color)]'
+                                  }`}
+                                >
+                                  हिन्दी (HI)
+                                </button>
+                              </div>
+                            </div>
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
@@ -1033,44 +1134,60 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                             <p className="text-xs text-slate-400 font-semibold text-center py-4">No questions added to this quiz yet.</p>
                           ) : (
                             <div className="space-y-3">
-                              {(quizQuestions[quiz.id] || []).map((q, idx) => (
-                                <div key={q.id} className="flex items-start gap-3 p-4 bg-[var(--card-bg)] rounded-2xl border border-[var(--card-border)]">
-                                  <span className="w-6 h-6 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
-                                    {idx + 1}
-                                  </span>
-                                  <div className="flex-1 min-w-0 space-y-2">
-                                    <p className="text-xs text-[var(--text-color)] font-bold">{q.questionText}</p>
-                                    <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-medium">
-                                      {(['A', 'B', 'C', 'D'] as const).map(opt => (
-                                        <span key={opt} className={`flex items-center gap-1 p-1.5 rounded-lg border ${
-                                          q.correctAnswer === opt ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-bold' : 'border-transparent'
-                                        }`}>
-                                          {q.correctAnswer === opt && <Check className="w-3 h-3 text-emerald-500 shrink-0" />}
-                                          <span className="font-bold">{opt}.</span> {q[`option${opt}` as keyof typeof q] as string}
-                                        </span>
-                                      ))}
+                              {(quizQuestions[quiz.id] || []).map((q, idx) => {
+                                const isHi = quizLangMode[quiz.id] === 'HI';
+                                const prompt = isHi && q.questionTextHi ? q.questionTextHi : q.questionText;
+                                const optA = isHi && q.optionAHi ? q.optionAHi : q.optionA;
+                                const optB = isHi && q.optionBHi ? q.optionBHi : q.optionB;
+                                const optC = isHi && q.optionCHi ? q.optionCHi : q.optionC;
+                                const optD = isHi && q.optionDHi ? q.optionDHi : q.optionD;
+                                const exp = isHi && q.explanationHi ? q.explanationHi : q.explanation;
+                                const optsMap = { A: optA, B: optB, C: optC, D: optD };
+
+                                return (
+                                  <div key={q.id} className="flex items-start gap-3 p-4 bg-[var(--card-bg)] rounded-2xl border border-[var(--card-border)]">
+                                    <span className="w-6 h-6 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                                      {idx + 1}
+                                    </span>
+                                    <div className="flex-1 min-w-0 space-y-2">
+                                      <p className="text-xs text-[var(--text-color)] font-bold">{prompt}</p>
+                                      <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-medium">
+                                        {(['A', 'B', 'C', 'D'] as const).map(opt => (
+                                          <span key={opt} className={`flex items-center gap-1 p-1.5 rounded-lg border ${
+                                            q.correctAnswer === opt ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-bold' : 'border-transparent'
+                                          }`}>
+                                            {q.correctAnswer === opt && <Check className="w-3 h-3 text-emerald-500 shrink-0" />}
+                                            <span className="font-bold">{opt}.</span> {stripOptionPrefix(optsMap[opt] || '')}
+                                          </span>
+                                        ))}
+                                      </div>
+                                      {exp && (
+                                        <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium bg-amber-500/5 p-2 rounded-xl border border-amber-500/10">
+                                          <strong>{isHi ? 'व्याख्या:' : 'Explanation:'}</strong> {exp}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingQuestion({ ...q })}
+                                        className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors shrink-0 cursor-pointer"
+                                        title="Edit question"
+                                      >
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteQuestion(quiz.id, q.id)}
+                                        className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
+                                        title="Delete question"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
                                     </div>
                                   </div>
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditingQuestion({ ...q })}
-                                      className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors shrink-0 cursor-pointer"
-                                      title="Edit question"
-                                    >
-                                      <Edit3 className="w-3.5 h-3.5" />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteQuestion(quiz.id, q.id)}
-                                      className="p-1.5 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
-                                      title="Delete question"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
 
@@ -1376,19 +1493,30 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                 </div>
               </div>
 
-              {/* Schedule PDF Document URL / File Upload */}
+              {/* Schedule PDF Document URL / File Upload / Select from DAM */}
               <div>
                 <label className="block text-slate-400 mb-1">
                   Schedule PDF Document URL (Optional - Leaves Download Schedule hidden if empty)
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <input
                     type="url"
                     placeholder="https://finalattemptias.com/uploads/schedules/bpsc_schedule.pdf"
                     value={editingSeries.schedulePdfUrl || ''}
                     onChange={e => setEditingSeries({ ...editingSeries, schedulePdfUrl: e.target.value })}
-                    className="flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs"
+                    className="flex-1 min-w-[200px] px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs"
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMediaPickerTarget('series_pdf');
+                      setShowMediaPicker(true);
+                    }}
+                    className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors shadow-sm"
+                  >
+                    <Folder className="w-4 h-4 text-white" />
+                    <span>Select from DAM</span>
+                  </button>
                   <label className="px-4 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs cursor-pointer shrink-0">
                     <span>Upload Schedule PDF</span>
                     <input
@@ -1930,10 +2058,10 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                         </div>
                         <p className="text-xs font-bold text-[var(--text-color)]">{pq.questionText}</p>
                         <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-500">
-                          <span>A. {pq.optionA}</span>
-                          <span>B. {pq.optionB}</span>
-                          <span>C. {pq.optionC}</span>
-                          <span>D. {pq.optionD}</span>
+                          <span>A. {stripOptionPrefix(pq.optionA)}</span>
+                          <span>B. {stripOptionPrefix(pq.optionB)}</span>
+                          <span>C. {stripOptionPrefix(pq.optionC)}</span>
+                          <span>D. {stripOptionPrefix(pq.optionD)}</span>
                         </div>
                       </div>
                     ))}
@@ -2111,7 +2239,10 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                   />
                   <button
                     type="button"
-                    onClick={() => setShowMediaPicker(true)}
+                    onClick={() => {
+                      setMediaPickerTarget('exam_logo');
+                      setShowMediaPicker(true);
+                    }}
                     className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors shadow-sm"
                   >
                     <Folder className="w-4 h-4 text-white" />
@@ -2176,9 +2307,11 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
       {/* Site DAM Media Picker Modal */}
       {showMediaPicker && (
         <MediaPicker
-          allowedTypes={['IMAGE']}
+          allowedTypes={mediaPickerTarget === 'series_pdf' ? ['DOCUMENT'] : ['IMAGE']}
           onSelect={(url) => {
-            if (editingExam) {
+            if (mediaPickerTarget === 'series_pdf') {
+              setEditingSeries(prev => ({ ...prev, schedulePdfUrl: url }));
+            } else if (editingExam) {
               setEditingExam({ ...editingExam, logoUrl: url });
             }
             setShowMediaPicker(false);
@@ -2186,7 +2319,434 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
           onClose={() => setShowMediaPicker(false)}
         />
       )}
+
+      {/* ── STRICT BILINGUAL MOCK TEST IMPORTER WIZARD MODAL ───────────── */}
+      {showBilingualPdfModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8">
+            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Strict Bilingual Engine</span>
+                <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-0.5">
+                  Bilingual Mock Test Importer
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowBilingualPdfModal(false);
+                  setBilingualPastedText('');
+                  setBilingualParseErrors([]);
+                  setBilingualParseMode('text');
+                }}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-[var(--text-color)] cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* STEP 1: Input — Paste Text (primary) or Upload PDF (fallback) */}
+            {!bilingualReport && (
+              <div className="space-y-5">
+
+                {/* Mode Toggle Tabs */}
+                <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl text-xs font-bold w-fit">
+                  <button
+                    type="button"
+                    onClick={() => { setBilingualParseMode('text'); setBilingualParseErrors([]); }}
+                    className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${
+                      bilingualParseMode === 'text'
+                        ? 'bg-amber-500 text-slate-950 shadow-sm'
+                        : 'text-slate-500 hover:text-[var(--text-color)]'
+                    }`}
+                  >
+                    📋 Paste Text
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setBilingualParseMode('pdf'); setBilingualParseErrors([]); }}
+                    className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${
+                      bilingualParseMode === 'pdf'
+                        ? 'bg-amber-500 text-slate-950 shadow-sm'
+                        : 'text-slate-500 hover:text-[var(--text-color)]'
+                    }`}
+                  >
+                    📄 Upload PDF
+                  </button>
+                </div>
+
+                {/* Format guide */}
+                <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+                  <strong className="block mb-1 uppercase tracking-wide text-[10px]">Required Format</strong>
+                  <code className="block whitespace-pre-wrap font-mono text-[10px] opacity-80">{`SECTION 1: ENGLISH QUESTIONS\nQ1. <question>\n(a) option A  (b) option B  (c) option C  (d) option D\n\nSECTION 2: HINDI QUESTIONS\nQ1. <hindi question>\n(a) विकल्प A ...\n\nSECTION 3: ENGLISH ANSWERS & EXPLANATIONS\nQ1. B\n<explanation>\n\nSECTION 4: HINDI ANSWERS & EXPLANATIONS\nQ1. B\n<hindi explanation>`}</code>
+                </div>
+
+                {/* Parse Errors */}
+                {bilingualParseErrors.length > 0 && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-1">
+                    {bilingualParseErrors.map((e, i) => (
+                      <p key={i} className="text-xs font-medium text-red-600 dark:text-red-400">⚠ {e}</p>
+                    ))}
+                  </div>
+                )}
+
+                {/* TEXT MODE */}
+                {bilingualParseMode === 'text' && (
+                  <div className="space-y-4">
+                    <textarea
+                      rows={14}
+                      value={bilingualPastedText}
+                      onChange={e => { setBilingualPastedText(e.target.value); setBilingualParseErrors([]); }}
+                      placeholder={`Paste your bilingual mock test here...\n\nSECTION 1: ENGLISH QUESTIONS\nQ1. With reference to Article 1...\n(a) 1 and 2 only\n(b) 2 only\n...`}
+                      className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl outline-none focus:border-amber-500 font-mono text-[11px] resize-y"
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        disabled={parsingBilingualPdf || !bilingualPastedText.trim()}
+                        onClick={async () => {
+                          if (!bilingualPastedText.trim()) return;
+                          setParsingBilingualPdf(true);
+                          setBilingualParseErrors([]);
+                          try {
+                            const res = await db.parseBilingualText(bilingualPastedText);
+                            if (res && res.success && res.report) {
+                              if (res.report.errors && res.report.errors.length > 0) {
+                                setBilingualParseErrors(res.report.errors);
+                              }
+                              setBilingualReport(res.report);
+                            } else {
+                              setBilingualParseErrors([res?.error || 'Failed to parse text.']);
+                            }
+                          } catch (err: any) {
+                            setBilingualParseErrors([err.message || 'Network error.']);
+                          } finally {
+                            setParsingBilingualPdf(false);
+                          }
+                        }}
+                        className="px-8 py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl cursor-pointer shadow-md transition-all"
+                      >
+                        {parsingBilingualPdf ? 'Parsing...' : 'Parse & Validate →'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* PDF MODE */}
+                {bilingualParseMode === 'pdf' && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs text-red-700 dark:text-red-400">
+                      ⚠ <strong>Warning:</strong> PDF font encoding may corrupt Hindi/Devanagari text during extraction.
+                      Use <strong>Paste Text</strong> mode for reliable bilingual imports.
+                    </div>
+                    <div className="p-8 border-2 border-dashed border-[var(--card-border)] rounded-3xl hover:border-amber-500/50 transition-colors space-y-4 text-center bg-slate-50/50 dark:bg-slate-900/50">
+                      <FileText className="w-12 h-12 text-amber-500 mx-auto" />
+                      <div className="space-y-1">
+                        <h4 className="font-heading font-bold text-base text-[var(--text-color)]">Upload Bilingual PDF Test Paper</h4>
+                        <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                          Only use if your PDF has clean embedded Unicode text.
+                        </p>
+                      </div>
+                      <label className="inline-block px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl cursor-pointer shadow-md transition-all">
+                        <span>{parsingBilingualPdf ? 'Extracting & Validating PDF...' : 'Select PDF File'}</span>
+                        <input
+                          type="file"
+                          accept=".pdf"
+                          disabled={parsingBilingualPdf}
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setParsingBilingualPdf(true);
+                            setBilingualParseErrors([]);
+                            try {
+                              const res = await db.parseBilingualPdf(file);
+                              if (res && res.success && res.report) {
+                                if (res.report.errors && res.report.errors.length > 0) {
+                                  setBilingualParseErrors(res.report.errors);
+                                }
+                                setBilingualReport(res.report);
+                                if (!bilingualQuizTitle) {
+                                  setBilingualQuizTitle(file.name.replace(/\.pdf$/i, '').replace(/_/g, ' '));
+                                }
+                              } else {
+                                setBilingualParseErrors([res?.error || 'Failed parsing PDF document.']);
+                              }
+                            } catch (err: any) {
+                              setBilingualParseErrors([err.message || 'Error extracting PDF file.']);
+                            } finally {
+                              setParsingBilingualPdf(false);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* STEP 2: Validation Metrics & Preview Screen */}
+            {bilingualReport && (
+              <div className="space-y-6">
+                
+                {/* Validation Summary Pill */}
+                <div className={`p-4 rounded-2xl border flex items-center justify-between gap-4 text-xs font-bold ${
+                  bilingualReport.isValid ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{bilingualReport.isValid ? '✓' : '⚠️'}</span>
+                    <div>
+                      <span className="font-extrabold uppercase tracking-wider block">
+                        Bilingual Validation Status: {bilingualReport.isValid ? 'VALID' : 'INVALID'}
+                      </span>
+                      <span className="text-[10px] font-medium opacity-90">
+                        {bilingualReport.isValid
+                          ? '1:1 Question mapping & answer key agreement verified across all 4 logical sections.'
+                          : `${bilingualReport.errors.length} validation errors detected. Import blocked.`}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => { setBilingualReport(null); setBilingualParseErrors([]); }}
+                    className="px-3 py-1.5 bg-slate-800 text-white rounded-xl text-[10px] font-bold hover:bg-slate-700 cursor-pointer shrink-0"
+                  >
+                    ← Try Again
+                  </button>
+                </div>
+
+                {/* Validation Metrics Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs font-bold">
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                    <span className="text-amber-500 text-lg font-black block">{bilingualReport.mappedQuestionsCount}</span>
+                    <span className="text-[10px] text-slate-400 uppercase">Mapped Questions</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                    <span className="text-slate-400 text-lg font-black block">{bilingualReport.totalQuestionsEn} / {bilingualReport.totalQuestionsHi}</span>
+                    <span className="text-[10px] text-slate-400 uppercase">En Qs / Hi Qs</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                    <span className="text-slate-400 text-lg font-black block">{bilingualReport.totalAnswersEn} / {bilingualReport.totalAnswersHi}</span>
+                    <span className="text-[10px] text-slate-400 uppercase">En Ans / Hi Ans</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                    <span className="text-slate-400 text-lg font-black block">{bilingualReport.totalExplanationsEn} / {bilingualReport.totalExplanationsHi}</span>
+                    <span className="text-[10px] text-slate-400 uppercase">Explanations</span>
+                  </div>
+                </div>
+
+                {/* Validation Errors Breakdown */}
+                {bilingualReport.errors.length > 0 && (
+                  <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-2 text-xs text-red-500 font-medium">
+                    <span className="font-extrabold uppercase tracking-wider block text-red-600 dark:text-red-400">
+                      Validation Errors ({bilingualReport.errors.length}):
+                    </span>
+                    <ul className="list-disc pl-5 space-y-1 text-[11px] max-h-36 overflow-y-auto">
+                      {bilingualReport.errors.map((err: string, i: number) => (
+                        <li key={i}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Question Preview Side-by-Side Inspector */}
+                {bilingualReport.questionsPreview && bilingualReport.questionsPreview.length > 0 && (
+                  <div className="space-y-4 border-t border-[var(--card-border)] pt-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase text-amber-500 tracking-wider">
+                        Question Preview ({previewQuestionIndex + 1} of {bilingualReport.questionsPreview.length})
+                      </span>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={previewQuestionIndex === 0}
+                          onClick={() => setPreviewQuestionIndex(prev => Math.max(0, prev - 1))}
+                          className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-bold disabled:opacity-30 cursor-pointer"
+                        >
+                          Prev Q
+                        </button>
+                        <button
+                          type="button"
+                          disabled={previewQuestionIndex >= bilingualReport.questionsPreview.length - 1}
+                          onClick={() => setPreviewQuestionIndex(prev => Math.min(bilingualReport.questionsPreview.length - 1, prev + 1))}
+                          className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-bold disabled:opacity-30 cursor-pointer"
+                        >
+                          Next Q
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Side by Side Preview Card */}
+                    {(() => {
+                      const curQ = bilingualReport.questionsPreview[previewQuestionIndex];
+                      if (!curQ) return null;
+
+                      return (
+                        <div className="bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl p-4 sm:p-6 space-y-4 text-xs">
+                          <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-2 font-bold">
+                            <span className="text-amber-500 font-extrabold text-sm">
+                              Q{curQ.questionNumber}
+                            </span>
+                            <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-500 rounded-md font-mono font-black">
+                              Correct Answer: ({curQ.correctAnswer})
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* English Column */}
+                            <div className="space-y-3 border-r border-[var(--card-border)] pr-4">
+                              <span className="text-[10px] font-black uppercase text-slate-400 block">ENGLISH</span>
+                              <p className="font-bold text-[var(--text-color)]">{curQ.questionText}</p>
+                              <div className="space-y-1 text-slate-500 font-medium">
+                                <p><strong className="text-slate-400">A.</strong> {stripOptionPrefix(curQ.optionA)}</p>
+                                <p><strong className="text-slate-400">B.</strong> {stripOptionPrefix(curQ.optionB)}</p>
+                                <p><strong className="text-slate-400">C.</strong> {stripOptionPrefix(curQ.optionC)}</p>
+                                <p><strong className="text-slate-400">D.</strong> {stripOptionPrefix(curQ.optionD)}</p>
+                              </div>
+                              <div className="p-2.5 bg-amber-500/10 rounded-xl text-[11px] text-amber-700 dark:text-amber-300">
+                                <strong>Explanation:</strong> {curQ.explanation}
+                              </div>
+                            </div>
+
+                            {/* Hindi Column */}
+                            <div className="space-y-3">
+                              <span className="text-[10px] font-black uppercase text-amber-500 block">HINDI (हिन्दी)</span>
+                              <p className="font-bold text-[var(--text-color)]">{curQ.questionTextHi}</p>
+                              <div className="space-y-1 text-slate-500 font-medium">
+                                <p><strong className="text-amber-500">A.</strong> {stripOptionPrefix(curQ.optionAHi)}</p>
+                                <p><strong className="text-amber-500">B.</strong> {stripOptionPrefix(curQ.optionBHi)}</p>
+                                <p><strong className="text-amber-500">C.</strong> {stripOptionPrefix(curQ.optionCHi)}</p>
+                                <p><strong className="text-amber-500">D.</strong> {stripOptionPrefix(curQ.optionDHi)}</p>
+                              </div>
+                              <div className="p-2.5 bg-amber-500/10 rounded-xl text-[11px] text-amber-700 dark:text-amber-300">
+                                <strong>व्याख्या:</strong> {curQ.explanationHi}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Import Configuration Form */}
+                {bilingualReport.isValid && (
+                  <div className="space-y-4 border-t border-[var(--card-border)] pt-4 text-xs font-bold">
+                    <div>
+                      <label className="block text-slate-400 mb-1">Quiz Paper Title *</label>
+                      <input
+                        type="text"
+                        required
+                        value={bilingualQuizTitle}
+                        onChange={e => setBilingualQuizTitle(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-400 mb-1">Quiz Paper Instructions / Description</label>
+                      <textarea
+                        rows={2}
+                        value={bilingualQuizDescription}
+                        onChange={e => setBilingualQuizDescription(e.target.value)}
+                        placeholder="Official bilingual mock test paper instructions..."
+                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="replaceQuizCheck"
+                        checked={replaceExistingQuizConfirm}
+                        onChange={e => setReplaceExistingQuizConfirm(e.target.checked)}
+                        className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                      />
+                      <label htmlFor="replaceQuizCheck" className="text-slate-400 cursor-pointer">
+                        If a quiz paper with the same ID exists, overwrite and replace it.
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {/* Final Wizard Actions */}
+                <div className="flex justify-end gap-3 pt-4 border-t border-[var(--card-border)]">
+                  <button
+                    type="button"
+                    onClick={() => setShowBilingualPdfModal(false)}
+                    className="px-5 py-2.5 border border-[var(--card-border)] text-slate-400 text-xs font-bold rounded-2xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!bilingualReport.isValid || importingBilingualQuiz}
+                    onClick={async () => {
+                      if (!bilingualQuizTitle.trim()) {
+                        alert('Please enter a Quiz Paper Title.');
+                        return;
+                      }
+                      setImportingBilingualQuiz(true);
+                      try {
+                        const res = await db.importBilingualQuiz({
+                          title: bilingualQuizTitle,
+                          courseId: selectedSeriesId || 'bpsc-foundation',
+                          description: bilingualQuizDescription,
+                          questions: bilingualReport.questionsPreview,
+                          replaceExisting: replaceExistingQuizConfirm
+                        });
+
+                        if (res && res.success) {
+                          const createdQuiz = res.data.quiz;
+                          const createdQs = res.data.questions || [];
+
+                          // Save to local storage cache so UI reflects immediately
+                          if (typeof window !== 'undefined' && selectedSeriesId) {
+                            try {
+                              const storedQuizzes = localStorage.getItem(`finalattempt_quizzes_${selectedSeriesId}`);
+                              const currentQuizzes: any[] = storedQuizzes ? JSON.parse(storedQuizzes) : [];
+                              const nextQuizzes = [...currentQuizzes.filter(q => q.id !== createdQuiz.id), createdQuiz];
+                              localStorage.setItem(`finalattempt_quizzes_${selectedSeriesId}`, JSON.stringify(nextQuizzes));
+
+                              if (createdQs.length > 0) {
+                                localStorage.setItem(`finalattempt_questions_${createdQuiz.id}`, JSON.stringify(createdQs));
+                              }
+                            } catch (_) {}
+                          }
+
+                          alert(`✓ Successfully imported ${res.data.importedQuestionsCount} 1:1 bilingual questions with authored English & Hindi content!`);
+                          setShowBilingualPdfModal(false);
+                          if (selectedSeriesId) {
+                            const updatedQuizzes = await db.getTestSeriesQuizzes(selectedSeriesId);
+                            setQuizzes(updatedQuizzes || []);
+                          }
+                        } else {
+                          alert(res?.error || 'Failed executing atomic quiz import.');
+                        }
+                      } catch (err: any) {
+                        alert(err.message || 'Error executing quiz import transaction.');
+                      } finally {
+                        setImportingBilingualQuiz(false);
+                      }
+                    }}
+                    className="px-8 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs rounded-2xl shadow-md cursor-pointer disabled:opacity-30 uppercase tracking-wider"
+                  >
+                    {importingBilingualQuiz ? 'Executing Atomic Import...' : 'Confirm & Execute Import'}
+                  </button>
+                </div>
+
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
+
 

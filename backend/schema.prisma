@@ -308,18 +308,24 @@ model lms_progress {
 }
 
 model lms_questions {
-  id            String   @id @db.VarChar(255)
-  quizId        String   @db.VarChar(255)
-  questionText  String   @db.Text
-  optionA       String   @db.Text
-  optionB       String   @db.Text
-  optionC       String   @db.Text
-  optionD       String   @db.Text
-  correctAnswer String   @db.Char(1)
-  explanation   String?  @db.Text
-  marks         Decimal? @default(1.00) @db.Decimal(5, 2)
-  negativeMarks Decimal? @default(0.33) @db.Decimal(5, 2)
-  orderIndex    Int?     @default(1)
+  id             String   @id @db.VarChar(255)
+  quizId         String   @db.VarChar(255)
+  questionText   String   @db.Text
+  optionA        String   @db.Text
+  optionB        String   @db.Text
+  optionC        String   @db.Text
+  optionD        String   @db.Text
+  correctAnswer  String   @db.Char(1)
+  explanation    String?  @db.Text
+  questionTextHi String?  @db.Text
+  optionAHi      String?  @db.Text
+  optionBHi      String?  @db.Text
+  optionCHi      String?  @db.Text
+  optionDHi      String?  @db.Text
+  explanationHi  String?  @db.Text
+  marks          Decimal? @default(1.00) @db.Decimal(5, 2)
+  negativeMarks  Decimal? @default(0.33) @db.Decimal(5, 2)
+  orderIndex     Int?     @default(1)
 
   @@index([quizId], map: "idx_question_quiz")
 }
@@ -351,6 +357,12 @@ model lms_quiz_questions {
   optionD       String?                          @db.Text
   correctAnswer lms_quiz_questions_correctAnswer
   explanation   String?                          @db.Text
+  questionTextHi String?                         @db.Text
+  optionAHi      String?                         @db.Text
+  optionBHi      String?                         @db.Text
+  optionCHi      String?                         @db.Text
+  optionDHi      String?                         @db.Text
+  explanationHi  String?                         @db.Text
   marks         Float?                           @default(1) @db.Float
   negativeMarks Float?                           @default(0.33) @db.Float
   lms_quizzes   lms_quizzes                      @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quiz_questions_ibfk_1")

@@ -274,28 +274,40 @@ export class ContentLocalizer {
     targetLang: string
   ): Promise<T[]> {
     if (!Array.isArray(questions) || questions.length === 0) return questions || [];
-    
+    const normalizedTarget = (targetLang || 'en').toLowerCase().trim();
+
     return Promise.all(questions.map(async (q) => {
-      const explicitLang = q.language || q.sourceLanguage;
       const localized: Record<string, any> = { ...q };
 
-      const textFields = ['questionText', 'optionA', 'optionB', 'optionC', 'optionD', 'explanation'];
-      const htmlFields = ['questionText', 'explanation'];
+      // Requirement 13: When locale = Hindi AND authored Hindi fields exist: use them directly with ZERO translation call
+      if (normalizedTarget === 'hi' && q.questionTextHi && q.optionAHi && q.optionBHi && q.optionCHi && q.optionDHi) {
+        localized.questionText = q.questionTextHi;
+        localized.optionA = q.optionAHi;
+        localized.optionB = q.optionBHi;
+        localized.optionC = q.optionCHi;
+        localized.optionD = q.optionDHi;
+        if (q.explanationHi) localized.explanation = q.explanationHi;
+      } else if (normalizedTarget !== 'en') {
+        // Fallback machine translation for legacy non-bilingual single-language questions
+        const explicitLang = q.language || q.sourceLanguage;
+        const textFields = ['questionText', 'optionA', 'optionB', 'optionC', 'optionD', 'explanation'];
+        const htmlFields = ['questionText', 'explanation'];
 
-      await Promise.all(textFields.map(async (field) => {
-        if (typeof localized[field] === 'string' && localized[field].trim().length > 0) {
-          const isHtml = htmlFields.includes(field);
-          localized[field] = await this.resolveLocalizedContent(
-            'lms_question',
-            String(q.id || 'question'),
-            field,
-            localized[field],
-            explicitLang,
-            targetLang,
-            isHtml
-          );
-        }
-      }));
+        await Promise.all(textFields.map(async (field) => {
+          if (typeof localized[field] === 'string' && localized[field].trim().length > 0) {
+            const isHtml = htmlFields.includes(field);
+            localized[field] = await this.resolveLocalizedContent(
+              'lms_question',
+              String(q.id || 'question'),
+              field,
+              localized[field],
+              explicitLang,
+              normalizedTarget,
+              isHtml
+            );
+          }
+        }));
+      }
 
       // CRITICAL: Ensure correctAnswer, id, quizId, marks are completely untouched
       localized.id = q.id;

@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { authenticate, optionalAuth, AuthRequest } from '../middleware/auth';
 import { requireStudent } from '../middleware/role';
 import { lmsDB } from '../db';
@@ -369,6 +369,124 @@ router.delete('/admin/daily/:quizId/questions/:qId', async (req: AuthRequest, re
     const qId = req.params.qId as string;
     const ok = await lmsDB.deleteDailyQuizQuestion(quizId, qId);
     res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── BILINGUAL MOCK TEST PDF IMPORT ENDPOINTS ──────────────────────────────────
+import multer from 'multer';
+import { BilingualPdfParser } from '../services/bilingualPdfParser';
+
+const pdfMemoryStorage = multer.memoryStorage();
+const pdfUpload = multer({ storage: pdfMemoryStorage, limits: { fileSize: 50 * 1024 * 1024 } });
+
+// Step 1a: Parse PDF Buffer & Run Validation Pass (NO DB WRITE)
+router.post('/admin/parse-bilingual-pdf', pdfUpload.single('file'), async (req: Request & { file?: any }, res: Response) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      res.status(400).json({ success: false, error: 'PDF file is required in request payload.' });
+      return;
+    }
+
+    const report = await BilingualPdfParser.parseBuffer(req.file.buffer);
+    res.json({ success: true, report });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Step 1b: Parse plain text (pasted text) & Run Validation Pass (NO DB WRITE)
+router.post('/admin/parse-bilingual-text', async (req: Request, res: Response) => {
+  try {
+    const { text } = req.body;
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      res.status(400).json({ success: false, error: 'Text body is required.' });
+      return;
+    }
+
+    const report = BilingualPdfParser.parseText(text);
+    res.json({ success: true, report });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Step 2: Atomic Import Execution (Creates Quiz + Questions transactional write)
+router.post('/admin/import-bilingual-quiz', async (req: Request, res: Response) => {
+  try {
+    const { quizId, title, courseId, description, questions, replaceExisting } = req.body;
+
+    if (!title || !Array.isArray(questions) || questions.length === 0) {
+      res.status(400).json({ success: false, error: 'Quiz title and valid questions array are required.' });
+      return;
+    }
+
+    const targetQuizId = quizId || `quiz-${Date.now()}`;
+
+    // Duplicate Check & Protection
+    const existingQuiz = await lmsDB.getQuizById(targetQuizId);
+    if (existingQuiz && !replaceExisting) {
+      res.status(409).json({
+        success: false,
+        code: 'ERR_QUIZ_EXISTS',
+        error: 'A quiz paper with this ID already exists. Please confirm replacement before overwriting.'
+      });
+      return;
+    }
+
+    // Atomic DB write
+    if (existingQuiz && replaceExisting) {
+      await lmsDB.deleteQuiz(targetQuizId);
+    }
+
+    // Save Quiz Metadata
+    const createdQuiz = await lmsDB.createQuiz({
+      id: targetQuizId,
+      courseId: courseId || 'bpsc-foundation',
+      title,
+      description: description || 'Strict Bilingual PDF Import Paper',
+      timeLimitMins: Math.ceil(questions.length * 1.2),
+      passingScore: 40,
+      isPublished: true
+    });
+
+    // Save all 1:1 Bilingual Questions Transactionally
+    const savedQuestions = [];
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      const createdQ = await lmsDB.createQuestion({
+        id: `q-${targetQuizId}-${i + 1}`,
+        quizId: targetQuizId,
+        questionText: q.questionText,
+        optionA: q.optionA,
+        optionB: q.optionB,
+        optionC: q.optionC,
+        optionD: q.optionD,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+        questionTextHi: q.questionTextHi,
+        optionAHi: q.optionAHi,
+        optionBHi: q.optionBHi,
+        optionCHi: q.optionCHi,
+        optionDHi: q.optionDHi,
+        explanationHi: q.explanationHi,
+        marks: q.marks || 1.00,
+        negativeMarks: q.negativeMarks || 0.33,
+        orderIndex: i + 1
+      });
+      savedQuestions.push(createdQ);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        quiz: createdQuiz,
+        importedQuestionsCount: savedQuestions.length,
+        questions: savedQuestions,
+        hasHindiAuthoredContent: true
+      }
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
