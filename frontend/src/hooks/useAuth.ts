@@ -8,6 +8,22 @@ import { refreshAccessToken, logoutUser } from '@/services/auth';
 // Interval for refreshing access token (14 min — just before 15 min expiry)
 const REFRESH_INTERVAL_MS = 14 * 60 * 1000;
 
+/**
+ * Decode the JWT `exp` claim locally (no HTTP) and return true if the token
+ * is missing, malformed, or within 60 seconds of expiry.
+ */
+function isTokenExpired(token: string | null): boolean {
+  if (!token || token === 'guest-token' || token === 'null' || token === 'undefined') return true;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const exp: number | undefined = payload.exp;
+    if (!exp) return false; // no expiry claim — treat as valid
+    return Date.now() / 1000 > exp - 60; // 60-second buffer
+  } catch {
+    return true; // malformed token — treat as expired
+  }
+}
+
 export function useAuth() {
   const { user, accessToken, isLoading, isAuthenticated, setAuth, clearAuth, setLoading } = useAuthStore();
   const router = useRouter();
@@ -24,33 +40,40 @@ export function useAuth() {
     }
   }, [setAuth, clearAuth]);
 
-  // On mount: attempt silent token refresh via HttpOnly cookie if not authenticated.
-  // This ensures we never use an expired access token stored in localStorage.
+  // On mount: use a LOCAL JWT expiry check first so we don't hit the network
+  // unnecessarily.  Only call the refresh endpoint when the access token is
+  // missing or within 60 seconds of expiry.
   useEffect(() => {
-    // Prevent infinite loop: if already authenticated, do not set loading or refresh again
-    if (useAuthStore.getState().isAuthenticated) {
+    const storedState = useAuthStore.getState();
+
+    // ── Fast path: token is still valid ──────────────────────────────────────
+    if (storedState.isAuthenticated && !isTokenExpired(storedState.accessToken)) {
       setLoading(false);
       return;
     }
 
+    // ── Slow path: token expired or missing — attempt silent server refresh ──
     let mounted = true;
     setLoading(true);
 
     const init = async () => {
       const res = await refreshAccessToken();
-      if (mounted) {
-        if (res.success && res.data) {
-          setAuth(res.data.user, res.data.accessToken);
+      if (!mounted) return;
+
+      if (res.success && res.data) {
+        setAuth(res.data.user, res.data.accessToken);
+      } else if (res.error === 'Network error. Please check your connection.') {
+        // Backend is temporarily unreachable — preserve the existing session.
+        // The apiFetch auto-retry will handle individual call failures.
+        const storedToken = useAuthStore.getState().accessToken;
+        if (storedToken) {
+          setLoading(false);
         } else {
-          // If we already have a valid local token, do NOT log the user out on startup refresh failure
-          // because it might be a transient connection issue or cookie restriction on localhost.
-          const storedToken = useAuthStore.getState().accessToken;
-          if (!storedToken) {
-            clearAuth();
-          } else {
-            setLoading(false);
-          }
+          clearAuth();
         }
+      } else {
+        // Auth error (e.g. refresh token expired/revoked) — user must log in.
+        clearAuth();
       }
     };
 

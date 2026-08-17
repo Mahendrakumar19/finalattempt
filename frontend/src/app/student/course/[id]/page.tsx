@@ -76,6 +76,22 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
     // Wait for auth to finish loading
     if (authLoading) return;
 
+    // Auto-redirect if accessed with a Test Series ID or slug
+    if (courseId && (courseId.startsWith('ts-') || courseId.includes('test-series'))) {
+      async function redirectTestSeries() {
+        try {
+          const { db } = await import('@/services/db');
+          const ts = await db.getTestSeriesById(courseId);
+          const slug = ts?.slug || courseId;
+          window.location.replace(`/test-series/program/${slug}`);
+        } catch (_) {
+          window.location.replace(`/test-series/program/${courseId}`);
+        }
+      }
+      redirectTestSeries();
+      return;
+    }
+
     const load = async () => {
       setLoading(true);
       setError(null);

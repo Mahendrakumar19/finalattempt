@@ -2549,16 +2549,43 @@ export default function AdminPortal() {
 
                             {/* Actions Button */}
                             <td className="p-4" onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => {
-                                  setSelectedUserModal(user);
-                                  setEditUserForm({ ...user });
-                                }}
-                                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
-                              >
-                                <Edit3 className="w-3 h-3" />
-                                <span>Inspect & Edit</span>
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                {isStudent && (
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        const res = await fetch(`${BACKEND_URL}/api/lms/admin/students/${user.id}/attempts`, {
+                                          headers: { 'Authorization': `Bearer ${adminToken || ''}` }
+                                        });
+                                        const data = await res.json();
+                                        if (data.success) {
+                                          alert(`📊 Performance Breakdown for ${user.fullName}:\n\nTotal Quiz Attempts: ${data.data.length}\nPassed: ${data.data.filter((a: any) => a.passed).length}\n\nRecent Tests:\n` + 
+                                            data.data.slice(0, 5).map((a: any, i: number) => 
+                                              `${i + 1}. ${a.quizTitle || 'Mock Test'} [${a.setCode || 'SET-A'}]: Score ${a.score}/${a.maxScore} (${a.passed ? 'PASSED' : 'FAILED'}) on ${new Date(a.submittedAt).toLocaleDateString('en-IN')}`
+                                            ).join('\n'));
+                                        }
+                                      } catch (err) {
+                                        alert('Failed to load performance metrics for this student.');
+                                      }
+                                    }}
+                                    className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                                    title="View Student Test Performance"
+                                  >
+                                    <Award className="w-3 h-3" />
+                                    <span>Perf</span>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => {
+                                    setSelectedUserModal(user);
+                                    setEditUserForm({ ...user });
+                                  }}
+                                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] font-extrabold rounded-xl transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+                                >
+                                  <Edit3 className="w-3 h-3" />
+                                  <span>Edit</span>
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         );

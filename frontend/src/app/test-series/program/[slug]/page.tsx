@@ -10,6 +10,8 @@ import {
 
 import { db, TestSeriesItem } from '@/services/db';
 
+import { useAuth } from '@/hooks/useAuth';
+
 interface QuizItem {
   id: string;
   title: string;
@@ -19,12 +21,14 @@ interface QuizItem {
 }
 
 export default function TestSeriesDetailPage() {
+  const { user, accessToken } = useAuth();
   const params = useParams();
   const rawSlug = params.slug || params.seriesSlug || params.stageSlug || params.examSlug;
   const slug = Array.isArray(rawSlug) ? rawSlug[rawSlug.length - 1] : (rawSlug as string);
 
   const [series, setSeries] = useState<TestSeriesItem | null>(null);
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
+  const [isEnrolled, setIsEnrolled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [openSubject, setOpenSubject] = useState<number | null>(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -39,6 +43,19 @@ export default function TestSeriesDetailPage() {
         if (item && item.id) {
           const quizList = await db.getTestSeriesQuizzes(item.id);
           setQuizzes(quizList || []);
+
+          if (accessToken) {
+            const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+            const checkRes = await fetch(`${BACKEND_URL}/api/lms/enrollments/check/${item.id}`, {
+              headers: { 'Authorization': `Bearer ${accessToken}` }
+            }).catch(() => null);
+            if (checkRes && checkRes.ok) {
+              const checkData = await checkRes.json();
+              if (checkData.success && checkData.data?.enrolled) {
+                setIsEnrolled(true);
+              }
+            }
+          }
         }
       } catch (err) {
         console.error('Error loading test series detail:', err);
@@ -47,7 +64,7 @@ export default function TestSeriesDetailPage() {
       }
     }
     loadDetail();
-  }, [slug]);
+  }, [slug, accessToken]);
 
   if (loading) {
     return (
@@ -163,13 +180,13 @@ export default function TestSeriesDetailPage() {
           {/* Left Column: Test Series Schedule Workbench, Syllabus, Sample Teaser, FAQs */}
           <div className="lg:col-span-8 space-y-10">
             
-            {/* ── Testbook / PW Style Active Mock Tests List ── */}
+            {/* ── Active Mock Tests List (Shown ONLY after enrollment; masked for public users) ── */}
             <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--card-border)] pb-4">
                 <div>
                   <h3 className="font-heading font-black text-lg text-[var(--text-color)] flex items-center gap-2">
                     <Award className="w-5 h-5 text-amber-500" />
-                    <span>Mock Tests & Exam Schedule ({quizzes.length || series.totalTests})</span>
+                    <span>Mock Tests & Exam Schedule {isEnrolled ? `(${quizzes.length})` : ''}</span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">Official CBT Exam Pattern · Immediate Automated Scorecard & Analysis</p>
                 </div>
@@ -179,18 +196,26 @@ export default function TestSeriesDetailPage() {
                 </span>
               </div>
 
-              {quizzes.length === 0 ? (
+              {!isEnrolled ? (
                 <div className="p-8 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-[var(--card-border)] space-y-3">
                   <BookOpen className="w-10 h-10 text-amber-500 mx-auto" />
-                  <h4 className="font-bold text-sm text-[var(--text-color)]">Primary Grand Mock Test Available</h4>
-                  <p className="text-xs text-slate-500">Attempt our standard official BPSC Prelims CBT Exam Mock Paper.</p>
-                  <Link
-                    href={`/test-series/program/${slug}/attempt`}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-slate-950 font-bold rounded-xl text-xs hover:bg-amber-600 transition-colors"
+                  <h4 className="font-bold text-sm text-[var(--text-color)]">Enrollment Required to Access CBT Mock Papers</h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto">
+                    Enroll in this Test Series program to unlock all full-length mock papers, detailed solution keys, and analytics.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(true)}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-slate-950 font-black rounded-xl text-xs hover:bg-amber-600 transition-colors uppercase cursor-pointer"
                   >
-                    <span>Start Mock Exam Now</span>
-                    <ArrowLeft className="w-4 h-4 rotate-180" />
-                  </Link>
+                    <span>Enroll Now to Unlock Tests</span>
+                  </button>
+                </div>
+              ) : quizzes.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-[var(--card-border)] space-y-2">
+                  <BookOpen className="w-10 h-10 text-slate-400 mx-auto" />
+                  <h4 className="font-bold text-sm text-[var(--text-color)]">Quizzes Being Prepared</h4>
+                  <p className="text-xs text-slate-500">New published test papers will appear here as scheduled.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -203,7 +228,7 @@ export default function TestSeriesDetailPage() {
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                              {idx === 0 ? 'FREE DEMO TEST' : `MOCK TEST #${idx + 1}`}
+                              MOCK TEST #{idx + 1}
                             </span>
                             <span className="text-[10px] font-bold text-slate-400">
                               {quiz.passingScore ? `Pass: ${quiz.passingScore}%` : 'BPSC Cutoff Rules'}
@@ -232,7 +257,7 @@ export default function TestSeriesDetailPage() {
 
                       <div className="flex flex-wrap items-center gap-4 text-[11px] font-bold text-slate-500 pt-2 border-t border-[var(--card-border)]">
                         <span>⏱ {quiz.timeLimitMins || 120} Mins</span>
-                        <span>🎯 150 Marks</span>
+                        <span>🎯 Official Scoring</span>
                         <span>🌐 {series.language}</span>
                         <span>⚡ Instant Detailed Solutions</span>
                       </div>
@@ -355,19 +380,21 @@ export default function TestSeriesDetailPage() {
             <div className="bg-[var(--card-bg)] border-2 border-amber-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden">
               <div className="space-y-2 text-center border-b border-[var(--card-border)] pb-6">
                 <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 inline-block">
-                  ENROLLMENT OPEN
+                  {isEnrolled ? 'ACCESS ACTIVE' : 'ENROLLMENT OPEN'}
                 </span>
-                <div className="flex justify-center items-baseline gap-2 pt-2">
-                  <span className="text-3xl sm:text-4xl font-heading font-black text-[var(--text-color)]">
-                    ₹{displayPrice?.toLocaleString()}
-                  </span>
-                  {hasDiscount && (
-                    <span className="text-sm font-bold text-slate-400 line-through">
-                      ₹{series.price.toLocaleString()}
+                {!isEnrolled && (
+                  <div className="flex justify-center items-baseline gap-2 pt-2">
+                    <span className="text-3xl sm:text-4xl font-heading font-black text-[var(--text-color)]">
+                      ₹{displayPrice?.toLocaleString()}
                     </span>
-                  )}
-                </div>
-                {hasDiscount && (
+                    {hasDiscount && (
+                      <span className="text-sm font-bold text-slate-400 line-through">
+                        ₹{series.price.toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {hasDiscount && !isEnrolled && (
                   <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
                     Save ₹{(series.price - (series.discountedPrice || 0)).toLocaleString()} Limited Offer
                   </span>
@@ -380,8 +407,8 @@ export default function TestSeriesDetailPage() {
                   <span className="font-bold">{series.exam}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-[var(--card-border)]">
-                  <span className="text-slate-400">Total Mocks:</span>
-                  <span className="font-bold">{series.totalTests} Tests</span>
+                  <span className="text-slate-400">Mock Series:</span>
+                  <span className="font-bold">{isEnrolled ? `${series.totalTests} Mocks` : 'Full Length Series'}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-[var(--card-border)]">
                   <span className="text-slate-400">Language:</span>
@@ -393,14 +420,16 @@ export default function TestSeriesDetailPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowModal(true)}
-                className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs sm:text-sm uppercase tracking-wider shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center justify-center gap-2"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>Enroll in Test Series</span>
-              </button>
+              {!isEnrolled && (
+                <button
+                  type="button"
+                  onClick={() => setShowModal(true)}
+                  className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs sm:text-sm uppercase tracking-wider shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{isEnrolled ? 'Enrolled (Access Unlocked)' : 'Enroll in Test Series'}</span>
+                </button>
+              )}
 
               {Boolean(series.schedulePdfUrl) && (
                 <a
@@ -413,15 +442,6 @@ export default function TestSeriesDetailPage() {
                   <span>Download Schedule PDF</span>
                 </a>
               )}
-
-              <Link
-                href={`/test-series/program/${slug}/attempt`}
-                className="w-full py-3.5 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-extrabold rounded-2xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer border border-amber-500/30"
-              >
-                <Award className="w-4 h-4 text-amber-400" />
-                <span>Attempt Free CBT Mock Test</span>
-              </Link>
-
 
               <div className="text-center space-y-2 pt-2">
                 <span className="text-[10px] text-slate-400 block font-medium">Have questions before enrolling?</span>
@@ -446,23 +466,91 @@ export default function TestSeriesDetailPage() {
             <div className="space-y-2">
               <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Fast Enrollment</span>
               <h3 className="font-heading font-black text-xl text-[var(--text-color)]">Enroll in {series.title}</h3>
-              <p className="text-xs text-slate-500">Enter your mobile number to get instant student portal access.</p>
+              <p className="text-xs text-slate-500">Enter your details to complete enrollment and unlock test series access.</p>
             </div>
 
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                alert(`Thank you! Our admission team is processing your request for "${series.title}". Our team will call you shortly.`);
-                setShowModal(false);
+                const form = e.currentTarget;
+                const fullName = (form.elements.namedItem('fullName') as HTMLInputElement).value;
+                const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+                const mobile = (form.elements.namedItem('mobile') as HTMLInputElement).value;
+                const state = (form.elements.namedItem('state') as HTMLInputElement).value;
+                const district = (form.elements.namedItem('district') as HTMLInputElement).value;
+
+                try {
+                  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+                  // Update user profile info (state, district, mobile, email) if user is logged in
+                  if (accessToken) {
+                    await fetch(`${BACKEND_URL}/api/auth/profile`, {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                      },
+                      body: JSON.stringify({ fullName, email, mobile, state, district })
+                    }).catch(() => null);
+
+                    // Create real enrollment
+                    const enrollRes = await fetch(`${BACKEND_URL}/api/lms/enrollments`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                      },
+                      body: JSON.stringify({
+                        courseId: series.id,
+                        paymentOrderId: 'DIRECT_PAYMENT',
+                        amountPaid: displayPrice
+                      })
+                    });
+
+                    const enrollData = await enrollRes.json();
+                    if (enrollRes.ok || enrollData.success) {
+                      setIsEnrolled(true);
+                      setShowModal(false);
+                      alert(`Enrollment successful! Full access unlocked for ${series.title}.`);
+                      window.location.reload();
+                      return;
+                    } else if (enrollData.code === 'PAY_002') {
+                      setIsEnrolled(true);
+                      setShowModal(false);
+                      alert('You are already enrolled! Access is unlocked.');
+                      return;
+                    }
+                  } else {
+                    alert(`Thank you ${fullName}! Please log in or register to complete your instant access for ${series.title}.`);
+                    window.location.href = `/auth/login?redirect=/test-series/program/${series.slug}`;
+                    return;
+                  }
+                } catch (err: any) {
+                  console.error('Enrollment error:', err);
+                  alert('Network error while processing enrollment. Please try again.');
+                }
               }}
               className="space-y-4 text-xs font-bold"
             >
               <div>
                 <label className="block text-slate-400 mb-1">Full Name</label>
                 <input
+                  name="fullName"
                   type="text"
                   required
-                  placeholder="Enter your name"
+                  defaultValue={user?.fullName || ''}
+                  placeholder="Enter your full name"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Email Address</label>
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  defaultValue={user?.email || ''}
+                  placeholder="name@example.com"
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
                 />
               </div>
@@ -470,16 +558,43 @@ export default function TestSeriesDetailPage() {
               <div>
                 <label className="block text-slate-400 mb-1">Mobile Number</label>
                 <input
+                  name="mobile"
                   type="tel"
                   required
+                  defaultValue={user?.mobile || ''}
                   placeholder="+91 10-digit mobile"
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1">State</label>
+                  <input
+                    name="state"
+                    type="text"
+                    required
+                    defaultValue={(user as any)?.state || ''}
+                    placeholder="e.g. Bihar"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">District</label>
+                  <input
+                    name="district"
+                    type="text"
+                    required
+                    defaultValue={(user as any)?.district || ''}
+                    placeholder="e.g. Patna"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
+                  />
+                </div>
+              </div>
+
               <button
                 type="submit"
-                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider cursor-pointer"
+                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-md mt-2"
               >
                 Proceed to Payment & Access (₹{displayPrice?.toLocaleString()})
               </button>

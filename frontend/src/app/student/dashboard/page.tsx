@@ -29,6 +29,7 @@ interface Enrollment {
   thumbnailUrl?: string;
   duration?: string;
   enrolledAt: string;
+  testSeriesSlug?: string;
   completedLessons?: number;
   totalLessons?: number;
   completionPercentage?: number;
@@ -223,37 +224,42 @@ function StudentDashboardContent() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {enrollments.map(e => (
-                      <Link
-                        key={e.courseId}
-                        href={`/student/course/${e.courseId}`}
-                        className="course-card-premium group p-4 rounded-3xl"
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0">
-                            <BookOpen className="w-5 h-5 text-white" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="text-slate-900 dark:text-white text-sm font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">{e.title}</h3>
-                            <p className="text-slate-500 text-xs mt-0.5">{e.category} · {e.duration || 'Ongoing'}</p>
-                            {/* Progress bar (Real DB metrics) */}
-                            <div className="mt-2.5">
-                              <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                                <span>Progress</span>
-                                <span>{e.completionPercentage || 0}%</span>
-                              </div>
-                              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                <div
-                                  className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
-                                  style={{ width: `${e.completionPercentage || 0}%` }}
-                                />
+                    {enrollments.map(e => {
+                      const targetHref = e.testSeriesSlug || e.courseId?.startsWith('ts-')
+                        ? `/test-series/program/${e.testSeriesSlug || e.courseId}`
+                        : `/student/course/${e.courseId}`;
+                      return (
+                        <Link
+                          key={e.courseId}
+                          href={targetHref}
+                          className="course-card-premium group p-4 rounded-3xl"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0">
+                              <BookOpen className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="text-slate-900 dark:text-white text-sm font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">{e.title}</h3>
+                              <p className="text-slate-500 text-xs mt-0.5">{e.category} · {e.duration || 'Ongoing'}</p>
+                              {/* Progress bar (Real DB metrics) */}
+                              <div className="mt-2.5">
+                                <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                  <span>Progress</span>
+                                  <span>{e.completionPercentage || 0}%</span>
+                                </div>
+                                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
+                                    style={{ width: `${e.completionPercentage || 0}%` }}
+                                  />
+                                </div>
                               </div>
                             </div>
+                            <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
                           </div>
-                          <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
-                        </div>
-                      </Link>
-                    ))}
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -305,36 +311,41 @@ function StudentDashboardContent() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {enrollments.map(e => (
-                    <Link key={e.courseId} href={`/student/course/${e.courseId}`} className="course-card-premium group p-5 rounded-3xl">
-                      <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg">
-                          <BookOpen className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-slate-900 dark:text-white font-semibold text-sm mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">{e.title}</h3>
-                          <p className="text-slate-500 text-xs mb-3">{e.category} · Enrolled {new Date(e.enrolledAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
-                          <div>
-                            <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                              <span>Progress</span>
-                              <span>{e.completionPercentage || 0}%</span>
-                            </div>
-                            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
-                                style={{ width: `${e.completionPercentage || 0}%` }}
-                              />
+                  {enrollments.map(e => {
+                    const targetHref = e.testSeriesSlug || e.courseId?.startsWith('ts-')
+                      ? `/test-series/program/${e.testSeriesSlug || e.courseId}`
+                      : `/student/course/${e.courseId}`;
+                    return (
+                      <Link key={e.courseId} href={targetHref} className="course-card-premium group p-5 rounded-3xl">
+                        <div className="flex items-start gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg">
+                            <BookOpen className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-slate-900 dark:text-white font-semibold text-sm mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">{e.title}</h3>
+                            <p className="text-slate-500 text-xs mb-3">{e.category} · Enrolled {new Date(e.enrolledAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
+                            <div>
+                              <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                <span>Progress</span>
+                                <span>{e.completionPercentage || 0}%</span>
+                              </div>
+                              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                  className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
+                                  style={{ width: `${e.completionPercentage || 0}%` }}
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="mt-4 flex items-center gap-2">
-                        <div className="flex-1 px-3 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-center">
-                          <p className="text-blue-400 text-[11px] font-bold">Continue →</p>
+                        <div className="mt-4 flex items-center gap-2">
+                          <div className="flex-1 px-3 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-center">
+                            <p className="text-blue-400 text-[11px] font-bold">Continue →</p>
+                          </div>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </div>

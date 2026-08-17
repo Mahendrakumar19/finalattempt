@@ -44,6 +44,7 @@ const BLANK_SERIES: Partial<TestSeriesItem> = {
 };
 
 const BLANK_QUIZ = {
+  id: '',
   title: '',
   description: '',
   timeLimitMins: 30,
@@ -91,8 +92,18 @@ interface QuestionItem {
   quizId?: string;
 }
 
-export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }) {
-  const [subTab, setSubTab] = useState<'series' | 'quizzes' | 'exams'>('series');
+interface TestSeriesAdminProps {
+  BACKEND_URL?: string;
+  initialSeriesId?: string;
+  initialSubTab?: 'series' | 'quizzes' | 'exams';
+}
+
+export default function TestSeriesAdmin({
+  BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000',
+  initialSeriesId,
+  initialSubTab = 'series'
+}: TestSeriesAdminProps) {
+  const [subTab, setSubTab] = useState<'series' | 'quizzes' | 'exams'>(initialSubTab);
 
   // Test Series programs list state
   const [seriesList, setSeriesList] = useState<TestSeriesItem[]>([]);
@@ -156,7 +167,10 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
 
       const list = await db.getTestSeries(true);
       setSeriesList(list || []);
-      if (list && list.length > 0 && !selectedSeriesId) {
+      if (initialSeriesId) {
+        const found = (list || []).find(s => s.id === initialSeriesId || s.slug === initialSeriesId);
+        setSelectedSeriesId(found ? found.id : initialSeriesId);
+      } else if (list && list.length > 0 && !selectedSeriesId) {
         setSelectedSeriesId(list[0].id);
       }
     } catch (err) {
@@ -164,7 +178,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
     } finally {
       setLoadingSeries(false);
     }
-  }, [selectedSeriesId]);
+  }, [initialSeriesId, selectedSeriesId]);
 
   useEffect(() => {
     loadSeries();
@@ -194,10 +208,11 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
     setSeriesModalType('add');
     const newId = `ts-${Date.now()}`;
     const defaultEx = examsList[0] || { id: 'exam-bpsc', name: 'BPSC', code: 'BPSC', hasStages: true, stages: [{ id: 'stage-bpsc-prelims', name: 'Prelims' }] };
+    const examName = defaultEx.code || defaultEx.name || 'bpsc';
     const initial = {
       ...BLANK_SERIES,
       id: newId,
-      slug: `bpsc-test-series-${Date.now()}`,
+      slug: `${examName.toLowerCase()}-test-series`,
       examId: defaultEx.id,
       exam: defaultEx.code || defaultEx.name || 'BPSC',
       stageId: defaultEx.hasStages && defaultEx.stages?.[0] ? defaultEx.stages[0].id : null,
@@ -251,7 +266,11 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
       .map(s => s.trim())
       .filter(Boolean);
 
-    const finalSlug = editingSeries.slug || editingSeries.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+    const examCode = (editingSeries.exam || 'bpsc').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const categoryPart = (editingSeries.category || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const titlePart = editingSeries.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const generatedSlug = [examCode, categoryPart, titlePart].filter(Boolean).join('-');
+    const finalSlug = (editingSeries.slug && editingSeries.slug.trim()) ? editingSeries.slug.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : generatedSlug;
 
     const payload: TestSeriesItem = {
       id: editingSeries.id,
@@ -353,12 +372,28 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
     if (!selectedSeriesId) return;
     setSavingQuiz(true);
     try {
-      const id = `quiz-${selectedSeriesId}-${Date.now()}`;
-      const payload = { id, ...quizForm, courseId: selectedSeriesId };
-      await db.saveQuiz(payload);
-      setQuizzes(prev => [...prev, payload]);
-      setShowQuizForm(false);
-      setQuizForm({ ...BLANK_QUIZ });
+      const isEdit = !!(quizForm as any).id;
+      const id = (quizForm as any).id || `quiz-${selectedSeriesId}-${Date.now()}`;
+      const payload = { ...quizForm, id, courseId: selectedSeriesId };
+      const success = await db.saveQuiz(payload);
+      if (success) {
+        setQuizzes(prev => {
+          const idx = prev.findIndex(q => q.id === id);
+          if (idx >= 0) {
+            const next = [...prev];
+            next[idx] = { ...next[idx], ...payload };
+            return next;
+          }
+          return [...prev, payload];
+        });
+        setShowQuizForm(false);
+        setQuizForm({ ...BLANK_QUIZ });
+      } else {
+        alert('Failed to save quiz to database. Please check backend connection.');
+      }
+    } catch (err) {
+      console.error('Error creating/updating quiz:', err);
+      alert('Database error saving quiz.');
     } finally {
       setSavingQuiz(false);
     }
@@ -377,13 +412,20 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
     try {
       const id = `q-${quizId}-${Date.now()}`;
       const payload = { id, ...qForm, quizId };
-      await db.saveQuestion(payload);
-      setQuizQuestions(prev => ({
-        ...prev,
-        [quizId]: [...(prev[quizId] || []), payload],
-      }));
-      setShowQForm(null);
-      setQForm({ ...BLANK_QUESTION });
+      const success = await db.saveQuestion(payload);
+      if (success) {
+        setQuizQuestions(prev => ({
+          ...prev,
+          [quizId]: [...(prev[quizId] || []), payload],
+        }));
+        setShowQForm(null);
+        setQForm({ ...BLANK_QUESTION });
+      } else {
+        alert('Failed saving question to database. Please check database connection.');
+      }
+    } catch (err) {
+      console.error('Error creating question:', err);
+      alert('Database error saving question.');
     } finally {
       setSavingQ(false);
     }
@@ -571,20 +613,24 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
       }));
 
 
-      await db.saveBulkQuestions(quizId, createdItems);
+      const success = await db.saveBulkQuestions(quizId, createdItems);
 
-      setQuizQuestions(prev => ({
-        ...prev,
-        [quizId]: [...(prev[quizId] || []), ...createdItems],
-      }));
+      if (success) {
+        setQuizQuestions(prev => ({
+          ...prev,
+          [quizId]: [...(prev[quizId] || []), ...createdItems],
+        }));
 
-      alert(`Successfully imported ${createdItems.length} questions into the Quiz Question Bank!`);
-      setShowBulkImportModal(null);
-      setBulkRawText('');
-      setParsedBulkQuestions([]);
+        alert(`Successfully imported ${createdItems.length} questions into the Quiz Question Bank!`);
+        setShowBulkImportModal(null);
+        setBulkRawText('');
+        setParsedBulkQuestions([]);
+      } else {
+        alert('Database error: Questions could not be persisted to server MySQL database.');
+      }
     } catch (err) {
       console.error('Error importing bulk questions:', err);
-      alert('Failed importing questions. Please try again.');
+      alert('Failed importing questions to database. Please check connection.');
     } finally {
       setImportingBulk(false);
     }
@@ -635,56 +681,47 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
   return (
     <div className="space-y-8 font-body">
       {/* ── Sub Navigation Bar ────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-xs">
-        <div>
-          <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
-            TEST SERIES CMS WORKBENCH
-          </span>
-          <h2 className="text-xl font-heading font-black text-[var(--text-color)] mt-1">
-            Test Series & Mock Exam Manager
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Manage Test Series programs, syllabus structures, pricing, published status, quizzes, and question banks.
-          </p>
-        </div>
+      {!initialSeriesId && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-xs">
+          <div>
+            <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+              TEST SERIES CMS WORKBENCH
+            </span>
+            <h2 className="text-xl font-heading font-black text-[var(--text-color)] mt-1">
+              Test Series & Mock Exam Manager
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Manage Test Series programs, syllabus structures, pricing, published status, quizzes, and question banks.
+            </p>
+          </div>
 
-        {/* Sub-tab Switcher */}
-        <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-[var(--card-border)] shrink-0">
-          <button
-            type="button"
-            onClick={() => setSubTab('series')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-              subTab === 'series'
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-500 hover:text-[var(--text-color)]'
-            }`}
-          >
-            Programs ({seriesList.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setSubTab('exams')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-              subTab === 'exams'
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-500 hover:text-[var(--text-color)]'
-            }`}
-          >
-            Exams & Logos ({examsList.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setSubTab('quizzes')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-              subTab === 'quizzes'
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-500 hover:text-[var(--text-color)]'
-            }`}
-          >
-            Quizzes & Question Bank
-          </button>
+          {/* Sub-tab Switcher */}
+          <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-[var(--card-border)] shrink-0">
+            <button
+              type="button"
+              onClick={() => setSubTab('series')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                subTab === 'series'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-500 hover:text-[var(--text-color)]'
+              }`}
+            >
+              Programs ({seriesList.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubTab('exams')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                subTab === 'exams'
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-500 hover:text-[var(--text-color)]'
+              }`}
+            >
+              Exams & Logos ({examsList.length})
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── SUB-TAB 0: EXAMS & LOGOS MANAGEMENT ───────────────────────────── */}
       {subTab === 'exams' && (
@@ -928,17 +965,23 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
 
                   {/* Actions Footer */}
                   <div className="pt-4 border-t border-[var(--card-border)] flex items-center justify-between gap-2">
-                    <a
+                    {/* <a
                       href={`/test-series/${series.slug}`}
                       target="_blank"
                       rel="noreferrer"
                       className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 text-[var(--text-color)] font-bold rounded-xl text-[10px] flex items-center gap-1 hover:bg-slate-200 transition-colors"
                     >
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Preview Page</span>
-                    </a>
+                    </a> */}
 
                     <div className="flex items-center gap-2">
+                      <a
+                        href={`/admin/test-series/${series.id}`}
+                        className="px-3 py-1.5 bg-amber-500 text-slate-950 hover:bg-amber-600 font-bold rounded-xl text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Layers className="w-3.5 h-3.5" />
+                        <span>Manage Program</span>
+                      </a>
+
                       <button
                         type="button"
                         onClick={() => handleOpenEditSeries(series)}
@@ -968,23 +1011,25 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
       {/* ── SUB-TAB 2: QUIZZES & QUESTION BANK MANAGER ─────────────────────── */}
       {subTab === 'quizzes' && (
         <div className="space-y-6">
-          {/* Select Target Test Series Program */}
-          <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-xs space-y-3">
-            <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-              Select Test Series Program to Manage Quizzes
-            </label>
-            <select
-              value={selectedSeriesId}
-              onChange={e => setSelectedSeriesId(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] text-xs font-bold rounded-2xl outline-none cursor-pointer"
-            >
-              {seriesList.map(s => (
-                <option key={s.id} value={s.id}>
-                  {s.title} ({s.category} • {s.exam})
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Select Target Test Series Program (Shown only on global tab) */}
+          {!initialSeriesId && (
+            <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-xs space-y-3">
+              <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                Select Test Series Program to Manage Quizzes
+              </label>
+              <select
+                value={selectedSeriesId}
+                onChange={e => setSelectedSeriesId(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] text-xs font-bold rounded-2xl outline-none cursor-pointer"
+              >
+                {seriesList.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.title} ({s.category} • {s.exam})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {selectedSeriesId && (
             <div className="space-y-4">
@@ -1056,14 +1101,33 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                             {expandedQuiz === quiz.id ? <ChevronDown className="w-4 h-4 text-amber-500" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
                           </div>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteQuiz(quiz.id)}
-                          className="ml-3 p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors shrink-0 cursor-pointer"
-                          title="Delete quiz"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1.5 ml-3 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuizForm({
+                                id: quiz.id,
+                                title: quiz.title,
+                                timeLimitMins: quiz.timeLimitMins || 60,
+                                passingScore: quiz.passingScore || 40,
+                                description: quiz.description || ''
+                              });
+                              setShowQuizForm(true);
+                            }}
+                            className="p-2 rounded-xl text-amber-500 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                            title="Edit quiz duration & passing score"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteQuiz(quiz.id)}
+                            className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                            title="Delete quiz"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Question List Expandable Drawer */}
@@ -1313,14 +1377,38 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
             <div className="space-y-4 text-xs font-bold">
               {/* Program Title */}
               <div>
-                <label className="block text-slate-400 mb-1">Test Series Title * (Do NOT repeat exam name)</label>
+                <label className="block text-slate-400 mb-1">Test Series Title *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Foundation Test Series"
+                  placeholder="e.g. Pre Full Length Series 2026"
                   value={editingSeries.title || ''}
-                  onChange={e => setEditingSeries({ ...editingSeries, title: e.target.value })}
+                  onChange={e => {
+                    const newTitle = e.target.value;
+                    const examCode = (editingSeries.exam || 'bpsc').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const categoryPart = (editingSeries.category || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                    const titlePart = newTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                    const autoSlug = [examCode, categoryPart, titlePart].filter(Boolean).join('-');
+                    setEditingSeries({
+                      ...editingSeries,
+                      title: newTitle,
+                      slug: autoSlug
+                    });
+                  }}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
+                />
+              </div>
+
+              {/* Editable URL Slug */}
+              <div>
+                <label className="block text-slate-400 mb-1">Canonical URL Slug (/test-series/program/slug)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. appsc-prelims-full-length"
+                  value={editingSeries.slug || ''}
+                  onChange={e => setEditingSeries({ ...editingSeries, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs font-bold"
                 />
               </div>
 
@@ -1339,12 +1427,17 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
                       ]).find(ex => ex.id === selectedExId);
                       const defaultStageId = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].id : null;
                       const defaultCategory = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].name : null;
+                      const newExamCode = selectedExObj?.code || selectedExObj?.name || 'bpsc';
+                      const categoryPart = (defaultCategory || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                      const titlePart = (editingSeries.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                      const autoSlug = [newExamCode.toLowerCase().replace(/[^a-z0-9]/g, ''), categoryPart, titlePart].filter(Boolean).join('-');
                       setEditingSeries({
                         ...editingSeries,
                         examId: selectedExId,
                         exam: selectedExObj?.code || selectedExObj?.name || 'BPSC',
                         stageId: defaultStageId,
-                        category: defaultCategory
+                        category: defaultCategory,
+                        slug: autoSlug
                       });
                     }}
                     className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
@@ -1764,7 +1857,7 @@ export default function TestSeriesAdmin({ BACKEND_URL }: { BACKEND_URL: string }
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Test Series CMS</span>
                 <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-0.5">
-                  Add New Mock Quiz / Paper
+                  {(quizForm as any).id ? 'Edit Mock Quiz / Paper' : 'Add New Mock Quiz / Paper'}
                 </h3>
               </div>
               <button

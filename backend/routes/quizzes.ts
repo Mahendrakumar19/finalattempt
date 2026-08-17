@@ -6,6 +6,37 @@ import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 
 const router = Router();
 
+// ─── DETERMINISTIC RANDOMIZATION HELPERS (MULBERRY32 PRNG) ────────────────────
+
+function stringToSeed(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return hash >>> 0;
+}
+
+function mulberry32(a: number) {
+  return function () {
+    let t = (a += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleArraySeeded<T>(array: T[], seedStr: string): T[] {
+  const arr = [...array];
+  const random = mulberry32(stringToSeed(seedStr));
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 // ─── FALLBACK DATA FOR DAILY QUIZZES ──────────────────────────────────────────
 
 const FALLBACK_DAILY_QUESTIONS = [
@@ -411,6 +442,15 @@ router.post('/admin/parse-bilingual-text', async (req: Request, res: Response) =
     res.status(500).json({ success: false, error: err.message });
   }
 });
+// Get My Quiz Attempts History
+router.get('/attempts/me', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  try {
+    const list = await lmsDB.getAllStudentQuizAttempts(req.user!.userId);
+    res.json({ success: true, data: list });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // Step 2: Atomic Import Execution (Creates Quiz + Questions transactional write)
 router.post('/admin/import-bilingual-quiz', async (req: Request, res: Response) => {
@@ -519,7 +559,7 @@ router.get('/:quizId', authenticate, requireStudent, async (req: AuthRequest, re
   }
 });
 
-// Start Quiz (Fetch questions without answer keys for security)
+// Start Quiz Session (Establishes/restores attempt, setCode, PRNG seed, and returns randomized questions)
 router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
@@ -529,28 +569,64 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
       return;
     }
 
-    // Entitlement Check: If test is linked to a course/test series, verify enrollment unless admin/faculty
-    if (quiz.courseId && req.user!.role === 'student') {
-      const isEnrolled = await lmsDB.isEnrolled(req.user!.userId, quiz.courseId);
+    // Strict Paywall Entitlement Check for TestSeries & Courses
+    if (req.user!.role === 'student' && !quiz.isFree) {
+      const targetCourseId = quiz.courseId;
+      let isEnrolled = false;
+      if (targetCourseId) {
+        isEnrolled = await lmsDB.isEnrolled(req.user!.userId, targetCourseId);
+      }
       if (!isEnrolled) {
-        // Allow access if passing score / demo check or check if any active enrollment exists
-        const userEnrollments = await lmsDB.getUserEnrollments(req.user!.userId);
-        const enrolledInSeries = userEnrollments.some((e: any) => e.courseId === quiz.courseId);
-        if (!enrolledInSeries && !quiz.isFree) {
-          // Check fallback: return 403 if not enrolled
-          res.status(403).json({ success: false, error: 'Please enroll in this test series program to attempt this CBT test.', code: 'QUIZ_003' });
-          return;
-        }
+        res.status(403).json({
+          success: false,
+          code: 'QUIZ_003',
+          error: 'Access Denied: Please enroll in this test series program to attempt this CBT test paper.'
+        });
+        return;
       }
     }
 
+    // Create or retrieve persistent session (Set Code & Seed)
+    const session = await lmsDB.createOrGetQuizSession(req.user!.userId, quizId, quiz.timeLimitMins || 60);
+
     const targetLang = getTargetLang(req);
     const questions = await lmsDB.getQuestionsByQuizId(quizId);
-    
-    // Clean correct answers to prevent source code checking cheating
-    const cleanQuestions = questions.map((q: any) => {
+
+    // Deterministic Question Order Shuffling per Attempt Seed
+    const orderedQuestions = shuffleArraySeeded(questions, `${session.seed}-q`);
+
+    // Clean correct answers & randomize options
+    const cleanQuestions = orderedQuestions.map((q: any) => {
       const { correctAnswer, explanation, ...publicFields } = q;
-      return publicFields;
+      
+      // Shuffle options deterministically per question seed
+      const optionPairs = [
+        { orig: 'A', text: publicFields.optionA, textHi: publicFields.optionAHi },
+        { orig: 'B', text: publicFields.optionB, textHi: publicFields.optionBHi },
+        { orig: 'C', text: publicFields.optionC, textHi: publicFields.optionCHi },
+        { orig: 'D', text: publicFields.optionD, textHi: publicFields.optionDHi },
+      ];
+
+      const shuffledOptions = shuffleArraySeeded(optionPairs, `${session.seed}-opt-${q.id}`);
+      
+      return {
+        ...publicFields,
+        optionA: shuffledOptions[0]?.text || '',
+        optionB: shuffledOptions[1]?.text || '',
+        optionC: shuffledOptions[2]?.text || '',
+        optionD: shuffledOptions[3]?.text || '',
+        optionAHi: shuffledOptions[0]?.textHi || null,
+        optionBHi: shuffledOptions[1]?.textHi || null,
+        optionCHi: shuffledOptions[2]?.textHi || null,
+        optionDHi: shuffledOptions[3]?.textHi || null,
+        // Map displayed letter to canonical original option letter
+        optionMap: {
+          A: shuffledOptions[0]?.orig,
+          B: shuffledOptions[1]?.orig,
+          C: shuffledOptions[2]?.orig,
+          D: shuffledOptions[3]?.orig,
+        }
+      };
     });
 
     const localizedQuestions = await ContentLocalizer.localizeQuizQuestions(cleanQuestions, targetLang);
@@ -559,6 +635,13 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
       success: true,
       data: {
         quiz,
+        session: {
+          id: session.id,
+          setCode: session.setCode,
+          startedAt: session.startedAt,
+          expiresAt: session.expiresAt,
+          savedAnswers: session.answers || {}
+        },
         questions: localizedQuestions
       }
     });
@@ -567,9 +650,25 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
   }
 });
 
-// Submit Quiz Answers & Calculate Marks
+// Auto-Save Answer Mid-Test
+router.post('/:quizId/save-answer', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  try {
+    const { attemptId, questionId, answer } = req.body;
+    if (!attemptId || !questionId || !answer) {
+      res.status(400).json({ success: false, error: 'attemptId, questionId, and answer are required.' });
+      return;
+    }
+
+    const ok = await lmsDB.saveQuizAnswer(req.user!.userId, attemptId, questionId, answer);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Submit Quiz Answers & Calculate Marks Server-Side
 router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
-  const { answers, timeTakenSecs } = req.body; // Map: { [questionId]: 'A' | 'B' | 'C' | 'D' }
+  const { answers, timeTakenSecs, attemptId } = req.body; // Map: { [questionId]: 'A' | 'B' | 'C' | 'D' }
   const quizId = Array.isArray(req.params.quizId) ? req.params.quizId[0] : req.params.quizId;
   if (!quizId || typeof quizId !== 'string') {
     res.status(400).json({ success: false, error: 'Invalid Quiz ID parameter.' });
@@ -586,6 +685,15 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
     if (!quiz) {
       res.status(404).json({ success: false, error: 'Quiz not found.' });
       return;
+    }
+
+    // Entitlement verification on submit
+    if (req.user!.role === 'student' && !quiz.isFree) {
+      const isEnrolled = await lmsDB.isEnrolled(req.user!.userId, quiz.courseId);
+      if (!isEnrolled) {
+        res.status(403).json({ success: false, error: 'Access Denied: Unenrolled attempt submission rejected.' });
+        return;
+      }
     }
 
     const questions = await lmsDB.getQuestionsByQuizId(quizId);
@@ -612,10 +720,13 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
       details.push({
         questionId: q.id,
         questionText: q.questionText,
+        questionTextHi: q.questionTextHi,
         options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
+        optionsHi: { A: q.optionAHi, B: q.optionBHi, C: q.optionCHi, D: q.optionDHi },
         studentAnswer,
         correctAnswer: q.correctAnswer,
         explanation: q.explanation,
+        explanationHi: q.explanationHi,
         isCorrect: correct
       });
     }
@@ -633,7 +744,8 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
       score,
       maxScore,
       passed,
-      timeTakenSecs || 0
+      timeTakenSecs || 0,
+      attemptId
     );
 
     res.json({

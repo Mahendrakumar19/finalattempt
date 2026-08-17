@@ -45,7 +45,8 @@ export default function Footer() {
     pathname.startsWith('/student') ||
     pathname.startsWith('/faculty') ||
     pathname.startsWith('/admin') ||
-    pathname.startsWith('/lms');
+    pathname.startsWith('/lms') ||
+    pathname.includes('/attempt');
 
   useEffect(() => {
     if (isPortal) return;

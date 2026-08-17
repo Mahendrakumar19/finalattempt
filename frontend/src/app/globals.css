@@ -108,6 +108,39 @@ html.dark {
   --header-bg: #000000;
 }
 
+/* ═══════════════════════════════════════════════════════════
+   CBT EXAMINATION SYSTEM DEDICATED THEME & LAYOUT ENGINE
+   ═══════════════════════════════════════════════════════════ */
+.cbt-exam-wrapper {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  font-family: var(--font-body), 'Inter', system-ui, -apple-system, sans-serif !important;
+  width: 100vw !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+html.dark .cbt-exam-wrapper {
+  background-color: #0B0B0B !important;
+  color: #FFFFFF !important;
+}
+
+/* Guarantee no monospaced inheritance across CBT elements except explicitly marked .font-mono */
+.cbt-exam-wrapper *:not(.font-mono) {
+  font-family: var(--font-body), 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.cbt-devanagari-text {
+  font-family: 'Noto Sans Devanagari', 'Nirmala UI', 'Mangal', var(--font-body), system-ui, sans-serif !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+  line-height: 1.65 !important;
+}
+
+
 .logo-light {
   display: block !important;
 }
@@ -1234,6 +1267,42 @@ html.dark main table tr:hover,
 .dark main table tr:hover {
   background-color: rgba(245, 158, 11, 0.1) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   STRICT MONOCHROME CBT EXAM MODE VISUAL SYSTEM
+   Light: White (#FFFFFF) bg, Black (#000000) text & borders
+   Dark:  Black (#000000) bg, White (#FFFFFF) text & borders
+   ═══════════════════════════════════════════════════════════ */
+:root {
+  --exam-bg: #FFFFFF;
+  --exam-text: #000000;
+  --exam-border: #000000;
+  --exam-card-bg: #FFFFFF;
+  --exam-button-bg: #000000;
+  --exam-button-text: #FFFFFF;
+  --exam-subtext: #333333;
+}
+
+html.dark {
+  --exam-bg: #000000;
+  --exam-text: #FFFFFF;
+  --exam-border: #FFFFFF;
+  --exam-card-bg: #000000;
+  --exam-button-bg: #FFFFFF;
+  --exam-button-text: #000000;
+  --exam-subtext: #CCCCCC;
+}
+
+.cbt-exam-wrapper {
+  background-color: var(--exam-bg) !important;
+  color: var(--exam-text) !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
+
+.cbt-exam-wrapper * {
+  border-color: var(--exam-border);
+}
+
 
 
 

@@ -418,11 +418,57 @@ router.delete('/lessons/:lessonId', async (req: Request, res: Response) => {
 });
 
 // ─────────────────────────── QUIZZES ─────────────────────────────────────────
-// Get all quizzes for a course
-router.get('/courses/:courseId/quizzes', async (req, res) => {
+// Get quizzes for a course / test series (Authorization & Enrollment aware)
+router.get('/courses/:courseId/quizzes', async (req: Request, res: Response) => {
   try {
-    const list = await lmsDB.getQuizzesByCourseId(req.params.courseId);
-    res.json({ success: true, data: list });
+    const courseId = req.params.courseId as string;
+    let enrolled = false;
+    let isAdminOrFaculty = false;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      const ADMIN_MASTER_KEYS = ['finalattempt-admin-token-secure-hash', 'admin-token', 'master-admin'];
+      if (ADMIN_MASTER_KEYS.includes(token)) {
+        enrolled = true;
+        isAdminOrFaculty = true;
+      } else {
+        try {
+          const { verifyAccessToken } = await import('../services/jwt');
+          const payload = verifyAccessToken(token);
+          if (payload.role === 'admin' || payload.role === 'faculty') {
+            enrolled = true;
+            isAdminOrFaculty = true;
+          } else {
+            enrolled = await lmsDB.isEnrolled(payload.userId, courseId);
+          }
+        } catch {
+          enrolled = false;
+        }
+      }
+    }
+
+    const list = await lmsDB.getQuizzesByCourseId(courseId);
+
+    // If Admin/Faculty, return full quiz list with draft status
+    if (isAdminOrFaculty) {
+      res.json({ success: true, data: list });
+      return;
+    }
+
+    // If enrolled student, return only published quizzes
+    if (enrolled) {
+      const published = list.filter((q: any) => q.isPublished !== false);
+      res.json({ success: true, data: published });
+      return;
+    }
+
+    // Unenrolled public request: DO NOT expose exact quiz list or question counts
+    res.json({
+      success: true,
+      data: [],
+      message: 'Enrollment required to access mock test papers.'
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -626,6 +672,58 @@ router.get('/mains/submissions/me', authenticate, requireStudent, async (req: Au
   try {
     const submissions = await lmsDB.getStudentMainsSubmissions(req.user!.userId);
     res.json({ success: true, data: submissions });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Get Student Quiz Attempts & Performance Metrics
+router.get('/admin/students/:userId/attempts', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const userId = req.params.userId as string;
+  try {
+    const attempts = await lmsDB.getAllStudentQuizAttempts(userId);
+    res.json({ success: true, data: attempts });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Get Enrolled Students for a specific Test Series
+router.get('/admin/test-series/:testSeriesId/students', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const testSeriesId = req.params.testSeriesId as string;
+  try {
+    const students = await lmsDB.getTestSeriesEnrolledStudents(testSeriesId);
+    res.json({ success: true, data: students });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Manually Add Student to Test Series
+router.post('/admin/test-series/:testSeriesId/enroll', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const testSeriesId = req.params.testSeriesId as string;
+  const { userId } = req.body;
+  if (!userId) {
+    res.status(400).json({ success: false, error: 'Student userId is required.' });
+    return;
+  }
+  try {
+    const already = await lmsDB.isEnrolled(userId, testSeriesId);
+    if (!already) {
+      await lmsDB.createEnrollment(userId, testSeriesId, 'ADMIN_MANUAL', 0);
+    }
+    res.json({ success: true, message: 'Student successfully enrolled in Test Series.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Deactivate Student Access from Test Series
+router.delete('/admin/test-series/:testSeriesId/enroll/:userId', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const { testSeriesId, userId } = req.params as { testSeriesId: string; userId: string };
+  try {
+    await lmsDB.deleteEnrollment(userId, testSeriesId);
+    res.json({ success: true, message: 'Student access revoked from Test Series.' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

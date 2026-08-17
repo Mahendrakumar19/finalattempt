@@ -125,7 +125,8 @@ export default function Header() {
 
   /* ── portal guard (computed but NOT used as early return — hooks must all run first) ── */
   const isPortal = pathname.startsWith('/student') || pathname.startsWith('/faculty') ||
-                   pathname.startsWith('/admin')   || pathname.startsWith('/lms')    || pathname.startsWith('/auth');
+                   pathname.startsWith('/admin')   || pathname.startsWith('/lms')    || pathname.startsWith('/auth') ||
+                   pathname.includes('/attempt');
 
   /* ── mega hover handlers — must come BEFORE any conditional return ── */
   const openMega = useCallback((id: string) => {

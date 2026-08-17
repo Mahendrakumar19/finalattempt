@@ -1,3 +1,5 @@
+import { useAuthStore } from '@/stores/authStore';
+
 const getBackendUrl = () => {
   if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
   if (typeof window !== 'undefined') {
@@ -19,7 +21,8 @@ interface ApiResponse<T = any> {
 async function apiFetch<T>(
   endpoint: string,
   options?: RequestInit,
-  accessToken?: string
+  accessToken?: string,
+  _isRetry = false   // internal flag — prevents infinite refresh loop
 ): Promise<ApiResponse<T>> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -37,7 +40,36 @@ async function apiFetch<T>(
       credentials: 'include' // Send cookies (refresh token)
     });
 
-    const data = await res.json();
+    const data: ApiResponse<T> = await res.json();
+
+    // ── Auto token-refresh retry ─────────────────────────────────────────────
+    // Only retry on an explicit AUTH_TOKEN_EXPIRED response code.
+    // Generic 401s (e.g. "not enrolled", "insufficient permissions") are NOT
+    // retried — they are legitimate authorization failures.
+    // A second 401 on the retry propagates normally (no infinite loop).
+    if (
+      !_isRetry &&
+      !data.success &&
+      data.code === 'AUTH_TOKEN_EXPIRED' &&
+      accessToken // only attempt when the original call carried a bearer token
+    ) {
+      const refreshResult = await singletonRefresh();
+      if (refreshResult.success && refreshResult.data) {
+        const newToken = refreshResult.data.accessToken;
+        // Persist the fresh credentials so every subsequent call uses the new token
+        useAuthStore.getState().setAuth(refreshResult.data.user, newToken);
+        // Replay the original request with the new token (retry flag = true)
+        return apiFetch<T>(endpoint, options, newToken, true);
+      }
+      // If refresh failed due to a NETWORK ERROR, do not wipe the session —
+      // the backend may be temporarily unavailable.  Return the original error.
+      if (refreshResult.error === 'Network error. Please check your connection.') {
+        return data;
+      }
+      // Auth error (refresh token expired/revoked) — session is dead.
+      useAuthStore.getState().clearAuth();
+    }
+
     return data;
   } catch (err) {
     return { success: false, error: 'Network error. Please check your connection.' };
@@ -189,13 +221,27 @@ export async function getQuizDetails(quizId: string, accessToken: string) {
 
 // ─── Quizzes: Start Quiz ─────────────────────────────────────────────────────
 export async function startQuiz(quizId: string, accessToken: string) {
-  return apiFetch<{ quiz: any; questions: any[] }>(`/api/quizzes/${quizId}/start`, {}, accessToken);
+  return apiFetch<{ quiz: any; session?: any; questions: any[] }>(`/api/quizzes/${quizId}/start`, {}, accessToken);
+}
+
+// ─── Quizzes: Auto-Save Answer ───────────────────────────────────────────────
+export async function saveQuizProgress(
+  quizId: string,
+  attemptId: string,
+  questionId: string,
+  answer: string,
+  accessToken: string
+) {
+  return apiFetch('/api/quizzes/' + quizId + '/save-answer', {
+    method: 'POST',
+    body: JSON.stringify({ attemptId, questionId, answer })
+  }, accessToken);
 }
 
 // ─── Quizzes: Submit Answers ──────────────────────────────────────────────────
 export async function submitQuizAnswers(
   quizId: string,
-  payload: { answers: Record<string, string>; timeTakenSecs: number },
+  payload: { answers: Record<string, string>; timeTakenSecs: number; attemptId?: string },
   accessToken: string
 ) {
   return apiFetch<any>(`/api/quizzes/${quizId}/submit`, {
