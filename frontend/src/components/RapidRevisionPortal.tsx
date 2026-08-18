@@ -97,9 +97,6 @@ export default function RapidRevisionPortal() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-200 dark:border-white/10">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-3 py-1 rounded-xl inline-block mb-2">
-            BPSC Prelims Fast-Track Revision Vault
-          </span>
           <h1 className="text-3xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white tracking-tight">
             {t('downloads.rapidRevisionTitle', 'Rapid Revision Materials')}
           </h1>
@@ -173,7 +170,7 @@ export default function RapidRevisionPortal() {
       </div>
 
       {/* Content Overview Notes (from CMS) */}
-      {pageData?.content && pageData.content.trim() !== '' && (
+      {/* {pageData?.content && pageData.content.trim() !== '' && (
         <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.08] rounded-3xl p-8 sm:p-10 shadow-xs space-y-4">
           <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-200 dark:border-white/10 pb-3 flex items-center gap-2">
             <Flame className="w-5 h-5 text-rose-500" />
@@ -184,7 +181,7 @@ export default function RapidRevisionPortal() {
             dangerouslySetInnerHTML={{ __html: pageData.content }}
           />
         </div>
-      )}
+      )} */}
 
       {/* Rapid Revision Cards Grid */}
       {loading ? (
@@ -209,12 +206,12 @@ export default function RapidRevisionPortal() {
               <div className="space-y-3">
                 
                 {/* Header Tags */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[9px] font-black uppercase text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                    <Zap className="w-3 h-3" />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[9px] font-black uppercase text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded-lg flex items-center gap-1 shrink-0">
+                    <Zap className="w-3 h-3 shrink-0" />
                     <span>{item.type || item.examCategory || 'Revision'}</span>
                   </span>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                     {item.size && (
                       <span className="text-[10px] font-mono font-bold text-slate-400">
                         {item.size}
@@ -226,12 +223,12 @@ export default function RapidRevisionPortal() {
                   </div>
                 </div>
 
-                <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white leading-snug line-clamp-2">
+                <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white leading-snug">
                   {item.title}
                 </h3>
 
                 {item.description && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
                     {item.description}
                   </p>
                 )}

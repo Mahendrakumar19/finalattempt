@@ -97,9 +97,6 @@ export default function ToppersCopiesPortal() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-200 dark:border-white/10">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl inline-block mb-2">
-            BPSC Rankers Evaluated Answer Copies
-          </span>
           <h1 className="text-3xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white tracking-tight">
             {t('downloads.toppersCopiesTitle', "Toppers' Copies & Model Answers")}
           </h1>
@@ -173,7 +170,7 @@ export default function ToppersCopiesPortal() {
       </div>
 
       {/* Content Overview Notes (from CMS) */}
-      {pageData?.content && pageData.content.trim() !== '' && (
+      {/* {pageData?.content && pageData.content.trim() !== '' && (
         <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.08] rounded-3xl p-8 sm:p-10 shadow-xs space-y-4">
           <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-200 dark:border-white/10 pb-3 flex items-center gap-2">
             <Award className="w-5 h-5 text-amber-500" />
@@ -184,7 +181,7 @@ export default function ToppersCopiesPortal() {
             dangerouslySetInnerHTML={{ __html: pageData.content }}
           />
         </div>
-      )}
+      )} */}
 
       {/* Toppers Copies Cards Grid */}
       {loading ? (

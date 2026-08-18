@@ -147,8 +147,21 @@ export default function Home() {
   const resolveUrl = (url?: string) => {
     if (!url) return '';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-    return `${backendBase}/${url.replace(/^\//, '')}`;
+    if (url.startsWith('data:')) return url;
+
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      return `${process.env.NEXT_PUBLIC_BACKEND_URL}/${url.replace(/^\//, '')}`;
+    }
+
+    if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      if (protocol === 'https:' || (hostname !== 'localhost' && hostname !== '127.0.0.1')) {
+        return `/${url.replace(/^\//, '')}`;
+      }
+      return `http://${hostname}:5000/${url.replace(/^\//, '')}`;
+    }
+    return `http://127.0.0.1:5000/${url.replace(/^\//, '')}`;
   };
 
   const heroImages = heroSettings.heroImageUrl
@@ -162,6 +175,17 @@ export default function Home() {
     }, 5000);
     return () => clearInterval(interval);
   }, [heroImages.length]);
+
+  // Instant background preloader for hero carousel images
+  useEffect(() => {
+    if (heroImages.length === 0) return;
+    heroImages.forEach((src) => {
+      if (typeof window !== 'undefined') {
+        const img = new window.Image();
+        img.src = src;
+      }
+    });
+  }, [heroImages]);
 
   const tiltRefs = useRef<(HTMLDivElement | null)[]>([]);
   const pillarsGridRef = useRef<HTMLDivElement | null>(null);
@@ -396,29 +420,50 @@ export default function Home() {
   return (
     <div className="w-full flex flex-col min-h-screen bg-[var(--bg-color)]">
 
-      {/* 1. HERO BANNER SLIDER (FIXED ASPECT RATIO 3840x1326) */}
+      {/* 1. HERO BANNER SLIDER (FULL BLEED EDGE-TO-EDGE NO MARGINS) */}
       <section className="relative w-full overflow-hidden bg-[var(--bg-color)]">
+        {heroImages[0] && (
+          <link rel="preload" as="image" href={heroImages[0]} fetchPriority="high" />
+        )}
         {heroImages.length > 0 && (
-          <div className="relative w-full aspect-[3840/1326] overflow-hidden bg-slate-900 shadow-md">
+          <div className="relative w-full aspect-[3840/1326] overflow-hidden bg-slate-950 shadow-md">
+            {/* Shimmer Placeholder Skeleton */}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 animate-pulse pointer-events-none" />
+
             {heroImages.map((url, idx) => (
               <img
                 key={idx}
                 src={url}
                 alt={`Hero Banner Slide ${idx + 1}`}
+                fetchPriority={idx === 0 ? "high" : "low"}
+                loading={idx === 0 ? "eager" : "lazy"}
+                decoding={idx === 0 ? "sync" : "async"}
                 referrerPolicy="no-referrer"
-                className={`absolute inset-0 w-full h-full object-cover sm:object-contain mx-auto transition-opacity duration-1000 ease-in-out ${idx === activeImageIndex ? 'opacity-100' : 'opacity-0'}`}
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  if (!target.dataset.retried) {
+                    target.dataset.retried = "true";
+                    target.src = url.startsWith('/') ? url : `/${url}`;
+                  }
+                }}
+                className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out ${
+                  idx === activeImageIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                }`}
               />
             ))}
 
             {/* Slider Indicator Dots */}
             {heroImages.length > 1 && (
-              <div className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2">
+              <div className="absolute inset-x-0 bottom-3 sm:bottom-4 z-20 flex items-center justify-center gap-2">
                 {heroImages.map((_, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`h-2 rounded-full transition-all cursor-pointer ${idx === activeImageIndex ? 'w-8 bg-amber-500 shadow-md' : 'w-2 bg-white/70 hover:bg-white'}`}
+                    aria-label={`Go to hero slide ${idx + 1}`}
+                    className={`h-2 rounded-full transition-all cursor-pointer ${
+                      idx === activeImageIndex ? 'w-6 sm:w-8 bg-amber-500 shadow-md' : 'w-2 bg-white/70 hover:bg-white'
+                    }`}
                   />
                 ))}
               </div>
@@ -432,9 +477,11 @@ export default function Home() {
         <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-white/10 p-6 sm:p-10 shadow-md text-center hover-lift relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 via-transparent to-amber-500/5 pointer-events-none" />
           <h1 className="font-inlander text-2xl sm:text-4xl lg:text-6xl font-black uppercase tracking-normal sm:tracking-widest leading-snug overflow-hidden">
-            <span className="typewriter-text text-wave-gradient font-black">{t('home.welcome')}</span>
+            <span className="typewriter-text inline-block">
+              <span className="text-wave-gradient font-black block">{t('home.welcome')}</span>
+            </span>
           </h1>
-          <p className="font-bold text-base sm:text-3xl text-wave-gradient font-black mt-3">
+          <p className="font-bold text-base sm:text-3xl text-wave-gradient font-black mt-3 animate-text-blink">
             {t('home.welcomeDesc')}
           </p>
         </div>
@@ -1279,7 +1326,7 @@ export default function Home() {
                   <input
                     type="text"
                     required
-                    placeholder="Enter your name"
+                    placeholder={t('home.enterName', 'Enter your name')}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -1291,7 +1338,7 @@ export default function Home() {
                     type="tel"
                     required
                     pattern="[0-9]{10}"
-                    placeholder="Enter mobile number"
+                    placeholder={t('home.enterMobile', 'Enter mobile number')}
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
                     className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -1304,15 +1351,15 @@ export default function Home() {
                     onChange={(e) => setTargetExam(e.target.value)}
                     className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   >
-                    <option>BPSC Foundation Batch</option>
-                    <option>BPSC Target Batch</option>
-                    <option>Prelims Test Series</option>
-                    <option>Mains Answer Writing</option>
+                    <option value="BPSC Foundation Batch">{t('home.optFoundation', 'BPSC Foundation Batch')}</option>
+                    <option value="BPSC Target Batch">{t('home.optTarget', 'BPSC Target Batch')}</option>
+                    <option value="Prelims Test Series">{t('home.optPrelimsTS', 'Prelims Test Series')}</option>
+                    <option value="Mains Answer Writing">{t('home.optMainsAW', 'Mains Answer Writing')}</option>
                   </select>
                 </div>
                 <div className="sm:col-span-3 pt-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-slate-100 mt-4">
                   <p className="text-[10px] text-slate-400 font-medium">
-                    By submitting, you agree to receive exam updates and counsel calls.
+                    {t('home.leadConsentDesc', 'By submitting, you agree to receive exam updates and counsel calls.')}
                   </p>
                   <div className="flex gap-4 w-full sm:w-auto">
                     <button
@@ -1353,10 +1400,10 @@ export default function Home() {
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { text: 'Daily Current Affairs', sub: 'Stay updated every day', icon: Calendar, delay: '0s' },
-              { text: 'Expert Strategy', sub: 'Smart approach to BPSC', icon: Compass, delay: '0.4s' },
-              { text: 'Performance Tracking', sub: 'Monitor your prep progress', icon: TrendingUp, delay: '0.8s' },
-              { text: 'Accessible Anytime', sub: 'Learn anytime, anywhere', icon: ShieldCheck, delay: '1.2s' }
+              { titleKey: 'home.hlDailyCA', fallbackTitle: 'Daily Current Affairs', subKey: 'home.hlDailyCASub', fallbackSub: 'Stay updated every day', icon: Calendar, delay: '0s' },
+              { titleKey: 'home.hlExpertStrategy', fallbackTitle: 'Expert Strategy', subKey: 'home.hlExpertStrategySub', fallbackSub: 'Smart approach for every exam', icon: Compass, delay: '0.4s' },
+              { titleKey: 'home.hlPerfTracking', fallbackTitle: 'Performance Tracking', subKey: 'home.hlPerfTrackingSub', fallbackSub: 'Monitor your prep progress', icon: TrendingUp, delay: '0.8s' },
+              { titleKey: 'home.hlAccessibleAnytime', fallbackTitle: 'Accessible Anytime', subKey: 'home.hlAccessibleAnytimeSub', fallbackSub: 'Learn anytime, anywhere', icon: ShieldCheck, delay: '1.2s' }
             ].map((hl, idx) => (
               <div key={idx} className="flex items-center gap-4 border-r border-slate-800 last:border-none px-4">
                 <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-amber-400 shrink-0">
@@ -1367,9 +1414,11 @@ export default function Home() {
                     className="text-xs font-bold text-amber-400 tracking-wide animate-text-blink"
                     style={{ animationDelay: hl.delay }}
                   >
-                    {hl.text}
+                    {t(hl.titleKey, hl.fallbackTitle)}
                   </h4>
-                  <p className="text-[10px] text-slate-400 font-semibold mt-0.5">{hl.sub}</p>
+                  <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                    {t(hl.subKey, hl.fallbackSub)}
+                  </p>
                 </div>
               </div>
             ))}

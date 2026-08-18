@@ -127,6 +127,34 @@ export default function RootLayout({
       className={`h-full antialiased ${plusJakartaSans.variable} ${inter.variable} ${cinzel.variable} ${notoDevanagari.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        {/* Google Site Name Structured Data (WebSite Schema) */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Final Attempt",
+              "alternateName": ["Final Attempt IAS", "FinalAttempt", "Final Attempt Learning"],
+              "url": "https://finalattemptias.com"
+            }),
+          }}
+        />
+        {/* Organization Schema */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "Final Attempt",
+              "url": "https://finalattemptias.com",
+              "logo": "https://finalattemptias.com/darklogofull.png"
+            }),
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-body bg-brand-neutral text-brand-primary">
         <LocaleProvider>
           <ThemeProvider>

@@ -439,42 +439,46 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(
     270deg,
     #F59E0B 0%,
-    #D97706 20%,
-    #1E3A8A 40%,
-    #0F172A 60%,
-    #F59E0B 80%,
+    #D97706 25%,
+    #1E3A8A 50%,
+    #F59E0B 75%,
     #D97706 100%
-  );
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: waveGradient 6s ease infinite;
-  filter: drop-shadow(0 4px 12px rgba(245, 158, 11, 0.2));
+  ) !important;
+  background-size: 300% 300% !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  animation: waveGradient 5s ease infinite !important;
+  animation-play-state: running !important;
+  filter: drop-shadow(0 2px 12px rgba(245, 158, 11, 0.25));
 }
 
 html.dark .text-wave-gradient {
   background: linear-gradient(
     270deg,
     #F59E0B 0%,
-    #FBBF24 20%,
-    #60A5FA 40%,
-    #FFFFFF 60%,
-    #F59E0B 80%,
+    #FBBF24 25%,
+    #60A5FA 50%,
+    #F59E0B 75%,
     #FBBF24 100%
-  );
-  background-size: 300% 300%;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: waveGradient 6s ease infinite;
-  filter: drop-shadow(0 4px 16px rgba(245, 158, 11, 0.35));
+  ) !important;
+  background-size: 300% 300% !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  animation: waveGradient 5s ease infinite !important;
+  animation-play-state: running !important;
+  filter: drop-shadow(0 2px 16px rgba(245, 158, 11, 0.45));
 }
 
 /* ── Center Expand Reveal Animation (Reveals outward left & right from center) ── */
 @keyframes typeInCenter {
   0% {
     clip-path: inset(0 50% 0 50%);
-    transform: scale(0.92);
-    opacity: 0.2;
+    transform: scale(0.94);
+    opacity: 0.25;
   }
   50% {
     clip-path: inset(0 0% 0 0%);
@@ -483,37 +487,37 @@ html.dark .text-wave-gradient {
   }
   100% {
     clip-path: inset(0 50% 0 50%);
-    transform: scale(0.92);
-    opacity: 0.2;
+    transform: scale(0.94);
+    opacity: 0.25;
   }
 }
 
 @keyframes pulseCenterCursor {
   0%, 100% { filter: drop-shadow(0 0 0px transparent); }
-  50% { filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.8)); }
+  50% { filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.9)); }
 }
 
 @keyframes textBlinkSmooth {
   0%, 100% {
     opacity: 1;
-    text-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+    text-shadow: 0 0 14px rgba(245, 158, 11, 0.7);
   }
   50% {
-    opacity: 0.3;
+    opacity: 0.35;
     text-shadow: 0 0 0px transparent;
   }
 }
 
 .animate-text-blink {
-  animation: textBlinkSmooth 2.5s ease-in-out infinite;
+  animation: textBlinkSmooth 2.5s ease-in-out infinite !important;
+  animation-play-state: running !important;
 }
 
 .typewriter-text {
   display: inline-block;
   white-space: nowrap;
-  animation: 
-    typeInCenter 3.5s cubic-bezier(0.16, 1, 0.3, 1) infinite,
-    pulseCenterCursor 2s ease-in-out infinite;
+  animation: typeInCenter 4s cubic-bezier(0.16, 1, 0.3, 1) infinite !important;
+  animation-play-state: running !important;
   margin: 0 auto;
   will-change: clip-path, transform;
   max-width: 100%;

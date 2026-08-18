@@ -53,7 +53,21 @@ export default function TestSeriesDetailPage() {
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
-  const [quizForm, setQuizForm] = useState({ title: '', description: '', timeLimitMins: 60, passingScore: 40, isPublished: true });
+  const [quizForm, setQuizForm] = useState({
+    title: '',
+    description: '',
+    timeLimitMins: 60,
+    passingScore: 40,
+    isPublished: true,
+    setMode: 'single' as 'single' | 'multi',
+    defaultSet: 'SET-A',
+    availableSets: ['SET-A', 'SET-B', 'SET-C', 'SET-D']
+  });
+
+  // Students tab performance inspector states
+  const [selectedStudentStats, setSelectedStudentStats] = useState<{ student: StudentItem; attempts: any[] } | null>(null);
+  const [loadingStudentAttempts, setLoadingStudentAttempts] = useState(false);
+  const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
 
   // Students tab states & filter states
   const [students, setStudents] = useState<StudentItem[]>([]);
@@ -66,6 +80,59 @@ export default function TestSeriesDetailPage() {
   const [filterEmail, setFilterEmail] = useState('');
   const [filterState, setFilterState] = useState('');
   const [filterDistrict, setFilterDistrict] = useState('');
+
+  // Edit student profile modal states
+  const [editingStudentInfo, setEditingStudentInfo] = useState<StudentItem | null>(null);
+  const [studentEditForm, setStudentEditForm] = useState({
+    fullName: '',
+    email: '',
+    mobile: '',
+    state: '',
+    district: ''
+  });
+  const [savingStudentInfo, setSavingStudentInfo] = useState(false);
+
+  const handleOpenEditStudentModal = (st: StudentItem) => {
+    setEditingStudentInfo(st);
+    setStudentEditForm({
+      fullName: st.fullName || '',
+      email: st.email || '',
+      mobile: st.mobile || '',
+      state: st.state || '',
+      district: st.district || ''
+    });
+  };
+
+  const handleSaveStudentInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingStudentInfo) return;
+    try {
+      setSavingStudentInfo(true);
+      await db.updateStudentProfile(editingStudentInfo.userId, studentEditForm);
+
+      // Update student table state immediately
+      setStudents(prev => prev.map(s => {
+        if (s.userId === editingStudentInfo.userId) {
+          return {
+            ...s,
+            fullName: studentEditForm.fullName,
+            email: studentEditForm.email,
+            mobile: studentEditForm.mobile,
+            state: studentEditForm.state,
+            district: studentEditForm.district
+          };
+        }
+        return s;
+      }));
+
+      alert('✓ Student information updated successfully!');
+      setEditingStudentInfo(null);
+    } catch (err: any) {
+      alert('Error updating student information: ' + (err.message || err));
+    } finally {
+      setSavingStudentInfo(false);
+    }
+  };
 
   // Load Test Series details
   const loadData = useCallback(async () => {
@@ -114,6 +181,20 @@ export default function TestSeriesDetailPage() {
     }
   }, [testSeriesId]);
 
+  // View detailed student performance & stats
+  const handleViewStudentPerformance = async (student: StudentItem) => {
+    setLoadingStudentAttempts(true);
+    setSelectedStudentStats({ student, attempts: [] });
+    try {
+      const attempts = await db.getStudentQuizAttempts(student.userId);
+      setSelectedStudentStats({ student, attempts: attempts || [] });
+    } catch (e) {
+      console.error('Error loading student attempts:', e);
+    } finally {
+      setLoadingStudentAttempts(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
     loadQuizzes();
@@ -147,12 +228,24 @@ export default function TestSeriesDetailPage() {
         description: quizForm.description,
         timeLimitMins: Number(quizForm.timeLimitMins) || 60,
         passingScore: Number(quizForm.passingScore) || 40,
-        isPublished: quizForm.isPublished !== false
+        isPublished: quizForm.isPublished !== false,
+        setMode: quizForm.setMode || 'single',
+        defaultSet: quizForm.defaultSet || 'SET-A',
+        availableSets: quizForm.availableSets || ['SET-A', 'SET-B', 'SET-C', 'SET-D']
       };
       await db.saveQuiz(quizPayload);
       setIsQuizModalOpen(false);
       setEditingQuizId(null);
-      setQuizForm({ title: '', description: '', timeLimitMins: 60, passingScore: 40, isPublished: true });
+      setQuizForm({
+        title: '',
+        description: '',
+        timeLimitMins: 60,
+        passingScore: 40,
+        isPublished: true,
+        setMode: 'single',
+        defaultSet: 'SET-A',
+        availableSets: ['SET-A', 'SET-B', 'SET-C', 'SET-D']
+      });
       loadQuizzes();
       alert(editingQuizId ? 'Quiz updated successfully!' : 'Quiz created and linked to this Test Series!');
     } catch (e) {
@@ -515,12 +608,32 @@ export default function TestSeriesDetailPage() {
                           </span>
                         </td>
                         <td className="p-4 text-right">
-                          <button
-                            onClick={() => handleRemoveStudent(st.userId, st.fullName)}
-                            className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 font-bold rounded-lg text-[10px] cursor-pointer"
-                          >
-                            Revoke Access
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => handleViewStudentPerformance(st)}
+                              className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold rounded-lg text-[10px] cursor-pointer flex items-center gap-1"
+                              title="View performance stats & test attempts"
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>View Stats & Attempts</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleOpenEditStudentModal(st)}
+                              className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-bold rounded-lg text-[10px] cursor-pointer flex items-center gap-1 transition-colors"
+                              title="Edit Student Information"
+                            >
+                              <Edit3 className="w-3.5 h-3.5 text-amber-500" />
+                              <span className="hidden sm:inline">Edit Info</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleRemoveStudent(st.userId, st.fullName)}
+                              className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 font-bold rounded-lg text-[10px] cursor-pointer"
+                            >
+                              Revoke Access
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -531,6 +644,157 @@ export default function TestSeriesDetailPage() {
           </div>
         );
       })()}
+
+      {/* ── STUDENT PERFORMANCE & STATS INSPECTOR MODAL ── */}
+      {selectedStudentStats && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Student Performance Inspector</span>
+                <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-0.5">
+                  {selectedStudentStats.student.fullName}
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {selectedStudentStats.student.email} • {selectedStudentStats.student.mobile || 'No Mobile'}
+                  {selectedStudentStats.student.state ? ` • ${selectedStudentStats.student.state}` : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedStudentStats(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-[var(--text-color)] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {loadingStudentAttempts ? (
+              <div className="p-12 text-center space-y-3">
+                <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                <p className="text-xs text-slate-400 font-bold">Fetching student performance analytics & test logs...</p>
+              </div>
+            ) : (() => {
+              const attempts = selectedStudentStats.attempts || [];
+              const totalAttempts = attempts.length;
+              const passedAttempts = attempts.filter((a: any) => a.passed || (a.scorePercentage >= 40)).length;
+              const avgScore = totalAttempts > 0 ? (attempts.reduce((acc: number, a: any) => acc + (a.score || 0), 0) / totalAttempts).toFixed(1) : '0';
+              const avgAccuracy = totalAttempts > 0 ? (attempts.reduce((acc: number, a: any) => acc + (a.scorePercentage || a.percentage || 0), 0) / totalAttempts).toFixed(1) : '0';
+              const maxScore = totalAttempts > 0 ? Math.max(...attempts.map((a: any) => a.score || 0)).toFixed(1) : '0';
+
+              return (
+                <div className="space-y-6">
+                  {/* Aggregated Performance Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs font-bold">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                      <span className="text-amber-500 text-xl font-black block">{totalAttempts}</span>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider">Tests Attempted</span>
+                    </div>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                      <span className="text-emerald-500 text-xl font-black block">{passedAttempts} / {totalAttempts}</span>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider">Passed Cut-off</span>
+                    </div>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                      <span className="text-sky-500 text-xl font-black block">{avgAccuracy}%</span>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider">Avg Accuracy</span>
+                    </div>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                      <span className="text-purple-500 text-xl font-black block">{maxScore} Marks</span>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider">Highest Marks</span>
+                    </div>
+                  </div>
+
+                  {/* Detailed Attempt History List */}
+                  <div className="space-y-3 border-t border-[var(--card-border)] pt-4">
+                    <h4 className="font-heading font-black text-xs uppercase text-[var(--text-color)] tracking-wider">
+                      Attempted Quiz Papers & Detailed Scorecards ({totalAttempts})
+                    </h4>
+
+                    {totalAttempts === 0 ? (
+                      <div className="p-8 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl text-center space-y-1">
+                        <p className="text-xs text-slate-400 font-semibold">Student has not attempted any mock quizzes yet.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                        {attempts.map((att: any, idx: number) => {
+                          const isPassed = att.passed || (att.scorePercentage >= 40) || (att.percentage >= 40);
+                          const isExpanded = expandedAttemptId === att.id;
+                          const setCode = att.setCode || att.set || 'SET-A';
+
+                          return (
+                            <div key={att.id || idx} className="bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl p-4 space-y-3">
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-extrabold text-[var(--text-color)]">{att.quizTitle || `Mock Test #${idx + 1}`}</span>
+                                    <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-mono text-[9px] font-black rounded uppercase">
+                                      {setCode}
+                                    </span>
+                                    <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded ${
+                                      isPassed ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' : 'bg-red-500/10 text-red-600 border border-red-500/20'
+                                    }`}>
+                                      {isPassed ? 'PASSED' : 'FAILED'}
+                                    </span>
+                                  </div>
+                                  <p className="text-[10px] text-slate-400 mt-0.5">
+                                    Attempted on: {new Date(att.attemptedAt || att.createdAt || Date.now()).toLocaleString('en-IN')}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-4">
+                                  <div className="text-right">
+                                    <p className="font-mono text-sm font-black text-amber-500">{att.score !== undefined ? Number(att.score).toFixed(1) : 0} Marks</p>
+                                    <p className="text-[10px] text-slate-400">{att.scorePercentage || att.percentage || 0}% Accuracy</p>
+                                  </div>
+                                  {att.details && att.details.length > 0 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setExpandedAttemptId(isExpanded ? null : att.id)}
+                                      className="px-2.5 py-1.5 bg-slate-200 dark:bg-slate-800 text-[var(--text-color)] text-[10px] font-bold rounded-lg hover:bg-amber-500 hover:text-slate-950 transition-colors cursor-pointer"
+                                    >
+                                      {isExpanded ? 'Hide Q&A' : 'View Q&A Breakdown'}
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Detailed Question Answers breakdown drawer */}
+                              {isExpanded && att.details && (
+                                <div className="border-t border-[var(--card-border)] pt-3 space-y-2 text-xs">
+                                  <span className="text-[10px] font-black uppercase text-slate-400 block">Question Breakdown Log ({att.details.length} Qs):</span>
+                                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                    {att.details.map((qDet: any, qIdx: number) => (
+                                      <div key={qIdx} className="p-2.5 bg-white dark:bg-slate-950 rounded-xl border border-[var(--card-border)] space-y-1">
+                                        <div className="flex justify-between items-start text-[11px]">
+                                          <p className="font-bold text-[var(--text-color)] flex-1">{qIdx + 1}. {qDet.questionText}</p>
+                                          <span className={`px-2 py-0.5 text-[9px] font-black rounded uppercase shrink-0 ml-2 ${
+                                            qDet.isCorrect ? 'bg-emerald-500/10 text-emerald-500' : qDet.studentAnswer ? 'bg-red-500/10 text-red-500' : 'bg-slate-500/10 text-slate-400'
+                                          }`}>
+                                            {qDet.isCorrect ? 'Correct' : qDet.studentAnswer ? 'Incorrect' : 'Skipped'}
+                                          </span>
+                                        </div>
+                                        <div className="flex gap-4 text-[10px] text-slate-500">
+                                          <span>Student Selected: <strong className={qDet.isCorrect ? 'text-emerald-500' : 'text-red-500'}>{qDet.studentAnswer || 'None'}</strong></span>
+                                          <span>Correct Key: <strong className="text-emerald-500">{qDet.correctAnswer}</strong></span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* ── TAB 5: SETTINGS ── */}
       {activeTab === 'settings' && (
@@ -564,59 +828,122 @@ export default function TestSeriesDetailPage() {
 
       {/* ── ADD / EDIT QUIZ MODAL ── */}
       {isQuizModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-6">
-          <form onSubmit={handleSaveQuiz} className="max-w-md w-full p-8 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-4 text-xs font-bold shadow-2xl">
-            <div className="flex justify-between items-center border-b border-[var(--card-border)] pb-3">
-              <h3 className="text-sm text-[var(--text-color)] uppercase">{editingQuizId ? 'Edit Quiz Paper' : 'Add Quiz Paper to this Test Series'}</h3>
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white">{editingQuizId ? 'Edit Quiz Paper' : 'Add Quiz Paper to this Test Series'}</h3>
               <button
                 type="button"
                 onClick={() => {
                   setIsQuizModalOpen(false);
                   setEditingQuizId(null);
-                  setQuizForm({ title: '', description: '', timeLimitMins: 60, passingScore: 40, isPublished: true });
+                  setQuizForm({
+                    title: '',
+                    description: '',
+                    timeLimitMins: 60,
+                    passingScore: 40,
+                    isPublished: true,
+                    setMode: 'single',
+                    defaultSet: 'SET-A',
+                    availableSets: ['SET-A', 'SET-B', 'SET-C', 'SET-D']
+                  });
                 }}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4 text-slate-400" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div>
-              <label className="text-[10px] text-slate-400">Quiz Title</label>
-              <input
-                type="text"
-                placeholder="Mock Test 01 - General Studies"
-                required
-                value={quizForm.title}
-                onChange={e => setQuizForm({ ...quizForm, title: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-[var(--text-color)] outline-none mt-1"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSaveQuiz} className="space-y-5 text-xs font-bold">
               <div>
-                <label className="text-[10px] text-slate-400">Duration (Mins)</label>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1.5 text-xs">Quiz Title *</label>
                 <input
-                  type="number"
-                  value={quizForm.timeLimitMins}
-                  onChange={e => setQuizForm({ ...quizForm, timeLimitMins: Number(e.target.value) })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-[var(--text-color)] outline-none mt-1"
+                  type="text"
+                  placeholder="Mock Test 01 - General Studies"
+                  required
+                  value={quizForm.title}
+                  onChange={e => setQuizForm({ ...quizForm, title: e.target.value })}
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
                 />
               </div>
-              <div>
-                <label className="text-[10px] text-slate-400">Passing Cut-off (%)</label>
-                <input
-                  type="number"
-                  value={quizForm.passingScore}
-                  onChange={e => setQuizForm({ ...quizForm, passingScore: Number(e.target.value) })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-[var(--text-color)] outline-none mt-1"
-                />
-              </div>
-            </div>
 
-            <button type="submit" className="w-full py-3 bg-amber-500 text-slate-950 font-black rounded-2xl uppercase mt-2 cursor-pointer shadow-md">
-              Create & Bind Quiz
-            </button>
-          </form>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1.5 text-xs">Duration (Mins)</label>
+                  <input
+                    type="number"
+                    value={quizForm.timeLimitMins}
+                    onChange={e => setQuizForm({ ...quizForm, timeLimitMins: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1.5 text-xs">Passing Cut-off (%)</label>
+                  <input
+                    type="number"
+                    value={quizForm.passingScore}
+                    onChange={e => setQuizForm({ ...quizForm, passingScore: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              {/* SET-Wise Exam Paper Access Controls */}
+              <div className="p-5 bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                  <label className="text-amber-500 font-extrabold uppercase text-[10px] tracking-wider block">
+                    SET-Wise Exam Paper Access
+                  </label>
+                  <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-lg text-[9px] font-black uppercase shrink-0">
+                    {quizForm.setMode === 'multi' ? 'Multi-SET Mode' : 'Single Paper Mode'}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-[10px] text-slate-700 dark:text-slate-300 block mb-1 uppercase">SET Access Mode</label>
+                    <select
+                      value={quizForm.setMode || 'single'}
+                      onChange={e => setQuizForm({ ...quizForm, setMode: e.target.value as any })}
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold text-xs focus:border-amber-500 transition-colors cursor-pointer"
+                    >
+                      <option value="single" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Single Paper (Standard)</option>
+                      <option value="multi" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Multi-SET Paper (Sets A, B, C, D)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-700 dark:text-slate-300 block mb-1 uppercase">Assigned SET Code</label>
+                    <select
+                      value={quizForm.defaultSet || 'SET-A'}
+                      onChange={e => setQuizForm({ ...quizForm, defaultSet: e.target.value })}
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold text-xs focus:border-amber-500 transition-colors cursor-pointer"
+                    >
+                      <option value="SET-A" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">SET-A</option>
+                      <option value="SET-B" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">SET-B</option>
+                      <option value="SET-C" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">SET-C</option>
+                      <option value="SET-D" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">SET-D</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsQuizModalOpen(false)}
+                  className="px-5 py-2.5 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-bold rounded-2xl cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl shadow-md cursor-pointer uppercase tracking-wider transition-colors"
+                >
+                  {editingQuizId ? 'Save Quiz / Paper' : 'Create & Bind Quiz'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -666,6 +993,104 @@ export default function TestSeriesDetailPage() {
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── EDIT STUDENT PROFILE MODAL ── */}
+      {editingStudentInfo && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Student Account Management</span>
+                <h3 className="font-heading font-black text-lg text-slate-900 dark:text-white mt-0.5">
+                  Edit Student Information
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingStudentInfo(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStudentInfo} className="space-y-4 text-xs font-bold">
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">Student Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={studentEditForm.fullName}
+                  onChange={e => setStudentEditForm({ ...studentEditForm, fullName: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  value={studentEditForm.email}
+                  onChange={e => setStudentEditForm({ ...studentEditForm, email: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">Mobile Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 9876543210"
+                  value={studentEditForm.mobile}
+                  onChange={e => setStudentEditForm({ ...studentEditForm, mobile: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">State</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Bihar"
+                    value={studentEditForm.state}
+                    onChange={e => setStudentEditForm({ ...studentEditForm, state: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">District</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Patna"
+                    value={studentEditForm.district}
+                    onChange={e => setStudentEditForm({ ...studentEditForm, district: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingStudentInfo(null)}
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-bold rounded-xl cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStudentInfo}
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md cursor-pointer uppercase tracking-wider transition-colors"
+                >
+                  {savingStudentInfo ? 'Saving...' : 'Save Profile Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -5009,7 +5009,7 @@ class LmsDB {
     const id = `att-${uuid()}`;
     const setCodes = ['SET-A', 'SET-B', 'SET-C', 'SET-D'];
     const setCode = setCodes[Math.floor(Math.random() * setCodes.length)];
-    const seed = `seed-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const seed = `seed-${quizId}-${setCode}`;
     const now = new Date();
     const expiresAt = new Date(now.getTime() + (durationMins || 60) * 60 * 1000);
 
@@ -5067,25 +5067,30 @@ class LmsDB {
     return true;
   }
 
-  async submitQuizAttempt(userId: string, quizId: string, answers: any, score: number, maxScore: number, passed: boolean, timeTakenSecs: number, attemptId?: string): Promise<any> {
+  async submitQuizAttempt(userId: string, quizId: string, answers: any, score: number, maxScore: number, passed: boolean, timeTakenSecs: number, attemptId?: string, setCode?: string): Promise<any> {
     const { v4: uuid } = await import('uuid');
     const id = attemptId || uuid();
     const answersJson = JSON.stringify(answers);
     const passedVal = passed ? 1 : 0;
     const now = new Date();
+    const finalSetCode = setCode || 'SET-A';
 
-    const attemptObj = { id, userId, quizId, answers, score, maxScore, passed, timeTakenSecs, status: 'SUBMITTED', submittedAt: now.toISOString() };
+    const attemptObj = { id, userId, quizId, setCode: finalSetCode, answers, score, maxScore, passed, timeTakenSecs, status: 'SUBMITTED', submittedAt: now.toISOString() };
     const existingIdx = lmsLocalAttempts.findIndex(a => a.id === id || (a.userId === userId && a.quizId === quizId));
-    if (existingIdx >= 0) lmsLocalAttempts[existingIdx] = attemptObj;
-    else lmsLocalAttempts.push(attemptObj);
+    if (existingIdx >= 0) {
+      lmsLocalAttempts[existingIdx] = { ...lmsLocalAttempts[existingIdx], ...attemptObj };
+    } else {
+      lmsLocalAttempts.push(attemptObj);
+    }
 
     if (mysqlPool) {
       try {
         // Upsert if session was created earlier
         await mysqlPool.query(
-          `INSERT INTO lms_quiz_attempts (id, userId, quizId, answers, score, maxScore, passed, timeTakenSecs, status, submittedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'SUBMITTED', NOW())
+          `INSERT INTO lms_quiz_attempts (id, userId, quizId, setCode, answers, score, maxScore, passed, timeTakenSecs, status, submittedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'SUBMITTED', NOW())
            ON DUPLICATE KEY UPDATE
+             setCode = COALESCE(VALUES(setCode), setCode),
              answers = VALUES(answers),
              score = VALUES(score),
              maxScore = VALUES(maxScore),
@@ -5093,13 +5098,13 @@ class LmsDB {
              timeTakenSecs = VALUES(timeTakenSecs),
              status = 'SUBMITTED',
              submittedAt = NOW()`,
-          [id, userId, quizId, answersJson, score, maxScore, passedVal, timeTakenSecs]
+          [id, userId, quizId, finalSetCode, answersJson, score, maxScore, passedVal, timeTakenSecs]
         );
-        return { id, userId, quizId, score, maxScore, passed, timeTakenSecs, submittedAt: now };
+        return { id, userId, quizId, setCode: finalSetCode, score, maxScore, passed, timeTakenSecs, submittedAt: now };
       } catch (err) { console.error('[LmsDB] submitQuizAttempt MySQL error:', err); }
     }
 
-    return { id, userId, quizId, score, maxScore, passed, timeTakenSecs, submittedAt: now };
+    return { id, userId, quizId, setCode: finalSetCode, score, maxScore, passed, timeTakenSecs, submittedAt: now };
   }
 
   async getQuizAttempts(userId: string, quizId: string): Promise<any[]> {

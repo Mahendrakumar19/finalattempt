@@ -860,6 +860,15 @@ class FinalAttemptDB {
     return res?.success || false;
   }
 
+  public async updateStudentProfile(userId: string, profileData: { fullName?: string; email?: string; mobile?: string; state?: string; district?: string; targetExam?: string }): Promise<boolean> {
+    const res = await this.apiFetch(`/api/lms/admin/students/${userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(profileData)
+    });
+    return res?.success !== false;
+  }
+
   // Dynamic Current Affairs API calls
   public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
     const locale = this.getLocale();
@@ -1498,6 +1507,14 @@ class FinalAttemptDB {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
     });
     return res?.success || false;
+  }
+
+  async getStudentQuizAttempts(userId: string): Promise<any[]> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    const res = await this.apiFetch(`/api/lms/admin/students/${userId}/attempts`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    return res?.data || [];
   }
 
 }

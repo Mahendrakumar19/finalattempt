@@ -97,15 +97,9 @@ export default function ValueAdditionPortal() {
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-slate-200 dark:border-white/10">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-xl inline-block mb-2">
-            Mains Answer Enrichment Vault
-          </span>
           <h1 className="text-3xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white tracking-tight">
             {t('downloads.valueAddedTitle', 'Value Added Materials — Mains')}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
-            {pageData?.metaDescription || t('downloads.valueAddedDesc', 'High-yield data points, Supreme Court judgments, diagrams, and quote banks for BPSC Mains.')}
-          </p>
         </div>
 
         <div className="flex items-center gap-3 bg-cyan-500/10 border border-cyan-500/20 px-4 py-2.5 rounded-2xl shrink-0">
@@ -173,18 +167,15 @@ export default function ValueAdditionPortal() {
       </div>
 
       {/* Content Overview Notes (from CMS) */}
-      {pageData?.content && pageData.content.trim() !== '' && (
+      {/* {pageData?.content && pageData.content.trim() !== '' && (
         <div className="bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/[0.08] rounded-3xl p-8 sm:p-10 shadow-xs space-y-4">
-          <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white uppercase tracking-wider border-b border-slate-200 dark:border-white/10 pb-3 flex items-center gap-2">
-            <Bookmark className="w-5 h-5 text-cyan-500" />
-            <span>Mains Value Addition Guidelines</span>
-          </h3>
+          
           <div
             className="prose dark:prose-invert max-w-none text-slate-800 dark:text-slate-200 text-sm leading-relaxed"
             dangerouslySetInnerHTML={{ __html: pageData.content }}
           />
         </div>
-      )}
+      )} */}
 
       {/* Value Addition Cards Grid */}
       {loading ? (
@@ -197,7 +188,6 @@ export default function ValueAdditionPortal() {
         <div className="text-center py-20 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-white/10 rounded-3xl max-w-md mx-auto space-y-4 shadow-sm">
           <Scale className="w-12 h-12 text-slate-400 mx-auto" />
           <h3 className="font-heading font-black text-base text-slate-950 dark:text-white">No Value Addition Materials Uploaded Yet</h3>
-          <p className="text-xs text-slate-500">Upload Mains booklets directly from Admin Console.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

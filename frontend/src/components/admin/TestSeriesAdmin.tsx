@@ -12,6 +12,35 @@ function stripOptionPrefix(text: string): string {
   return text.replace(/^\s*\([a-dA-D\u0915-\u0918]\)\s+/, '').trim();
 }
 
+function stringToSeed(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return hash >>> 0;
+}
+
+function mulberry32(a: number) {
+  return function () {
+    let t = (a += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleArraySeeded<T>(array: T[], seedStr: string): T[] {
+  const arr = [...array];
+  const random = mulberry32(stringToSeed(seedStr));
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 const BLANK_SERIES: Partial<TestSeriesItem> = {
   title: '',
   slug: '',
@@ -49,6 +78,9 @@ const BLANK_QUIZ = {
   description: '',
   timeLimitMins: 30,
   passingScore: 40,
+  setMode: 'single' as 'single' | 'multi',
+  defaultSet: 'SET-A',
+  availableSets: ['SET-A', 'SET-B', 'SET-C', 'SET-D']
 };
 
 const BLANK_QUESTION = {
@@ -154,6 +186,26 @@ export default function TestSeriesAdmin({
   const [bilingualParseMode, setBilingualParseMode] = useState<'text' | 'pdf'>('text');
   const [bilingualParseErrors, setBilingualParseErrors] = useState<string[]>([]);
   const [quizLangMode, setQuizLangMode] = useState<Record<string, 'EN' | 'HI'>>({});
+
+  // Admin SET Paper & Explanation Key Inspector State
+  const [inspectingSetQuiz, setInspectingSetQuiz] = useState<QuizItem | null>(null);
+  const [inspectingSetCode, setInspectingSetCode] = useState<'SET-A' | 'SET-B' | 'SET-C' | 'SET-D'>('SET-A');
+
+  const handleInspectSetKey = async (quiz: QuizItem) => {
+    setInspectingSetQuiz(quiz);
+    setInspectingSetCode('SET-A');
+    if (!quizQuestions[quiz.id]) {
+      setLoadingQuestions(quiz.id);
+      try {
+        const qList = await db.getQuizQuestions(quiz.id);
+        setQuizQuestions(prev => ({ ...prev, [quiz.id]: qList || [] }));
+      } catch (e) {
+        console.error('Error loading questions for SET inspection:', e);
+      } finally {
+        setLoadingQuestions(null);
+      }
+    }
+  };
 
   // Exams hierarchy state
   const [examsList, setExamsList] = useState<ExamData[]>([]);
@@ -1104,13 +1156,25 @@ export default function TestSeriesAdmin({
                         <div className="flex items-center gap-1.5 ml-3 shrink-0">
                           <button
                             type="button"
+                            onClick={() => handleInspectSetKey(quiz)}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold rounded-xl text-[10px] cursor-pointer"
+                            title="Inspect SET Papers (SET A, B, C, D) & Solution Explanations Key"
+                          >
+                            <Layers className="w-3.5 h-3.5" />
+                            <span>SET Papers & Explanations</span>
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => {
                               setQuizForm({
                                 id: quiz.id,
                                 title: quiz.title,
                                 timeLimitMins: quiz.timeLimitMins || 60,
                                 passingScore: quiz.passingScore || 40,
-                                description: quiz.description || ''
+                                description: quiz.description || '',
+                                setMode: (quiz as any).setMode || 'single',
+                                defaultSet: (quiz as any).defaultSet || 'SET-A',
+                                availableSets: (quiz as any).availableSets || ['SET-A', 'SET-B', 'SET-C', 'SET-D']
                               });
                               setShowQuizForm(true);
                             }}
@@ -1848,86 +1912,158 @@ export default function TestSeriesAdmin({
       )}
 
 
-      {/* ── CREATE NEW MOCK QUIZ MODAL ────────────────────────────────────── */}
+      {/* ── CREATE / EDIT MOCK QUIZ MODAL ────────────────────────────────────── */}
       {showQuizForm && (
-
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Test Series CMS</span>
-                <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-0.5">
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Test Series Management</span>
+                <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white mt-0.5">
                   {(quizForm as any).id ? 'Edit Mock Quiz / Paper' : 'Add New Mock Quiz / Paper'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowQuizForm(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-[var(--text-color)]"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateQuiz} className="space-y-4 text-xs font-bold">
+            <form onSubmit={handleCreateQuiz} className="space-y-5 text-xs font-bold">
+              {/* Quiz Title */}
               <div>
-                <label className="block text-slate-400 mb-1">Quiz Title *</label>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1.5 text-xs">Quiz Title *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Full Length Grand Mock Paper 2"
                   value={quizForm.title}
                   onChange={e => setQuizForm({ ...quizForm, title: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs shadow-xs focus:border-amber-500 transition-colors"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Time Limit & Passing Cut-off */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-slate-400 mb-1">Time Limit (Minutes)</label>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1.5 text-xs">Time Limit (Minutes)</label>
                   <input
                     type="number"
                     value={quizForm.timeLimitMins}
                     onChange={e => setQuizForm({ ...quizForm, timeLimitMins: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs shadow-xs focus:border-amber-500 transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1">Passing Score (%)</label>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1.5 text-xs">Passing Cut-off Score (%)</label>
                   <input
                     type="number"
                     value={quizForm.passingScore}
                     onChange={e => setQuizForm({ ...quizForm, passingScore: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs shadow-xs focus:border-amber-500 transition-colors"
                   />
                 </div>
               </div>
 
+              {/* SET-Wise Exam Paper Access Configuration Card */}
+              <div className="p-5 bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                  <div>
+                    <label className="block text-amber-500 font-extrabold uppercase text-[10px] tracking-wider">
+                      SET-Wise Exam Paper Access System
+                    </label>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">Configure paper variants and default assigned SET code</span>
+                  </div>
+                  <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-lg text-[9px] font-black uppercase shrink-0">
+                    {(quizForm as any).setMode === 'multi' ? 'Multi-SET Mode' : 'Single Paper Mode'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 mb-1 text-[10px] uppercase">SET Access Mode</label>
+                    <select
+                      value={(quizForm as any).setMode || 'single'}
+                      onChange={e => setQuizForm({ ...quizForm, setMode: e.target.value as any })}
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold cursor-pointer text-xs focus:border-amber-500 transition-colors"
+                    >
+                      <option value="single" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Single Paper (Standard)</option>
+                      <option value="multi" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Multi-SET Paper (Sets A, B, C, D)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 mb-1 text-[10px] uppercase">Assigned SET Code</label>
+                    <select
+                      value={(quizForm as any).defaultSet || 'SET-A'}
+                      onChange={e => setQuizForm({ ...quizForm, defaultSet: e.target.value })}
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold cursor-pointer text-xs focus:border-amber-500 transition-colors"
+                    >
+                      <option value="SET-A" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">SET-A</option>
+                      <option value="SET-B" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">SET-B</option>
+                      <option value="SET-C" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">SET-C</option>
+                      <option value="SET-D" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">SET-D</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-2 text-[10px] uppercase">Available SET Variants For Students</label>
+                  <div className="flex flex-wrap items-center gap-4">
+                    {['SET-A', 'SET-B', 'SET-C', 'SET-D'].map((setCode) => {
+                      const currentSets: string[] = (quizForm as any).availableSets || ['SET-A', 'SET-B', 'SET-C', 'SET-D'];
+                      const isChecked = currentSets.includes(setCode);
+                      return (
+                        <label key={setCode} className="flex items-center gap-2 cursor-pointer text-xs font-bold select-none bg-slate-50 dark:bg-slate-950 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 transition-colors shadow-xs">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const nextSets = e.target.checked
+                                ? [...currentSets, setCode]
+                                : currentSets.filter(s => s !== setCode);
+                              setQuizForm({ ...quizForm, availableSets: nextSets } as any);
+                            }}
+                            className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                          />
+                          <span className={isChecked ? 'text-amber-500 font-black' : 'text-slate-600 dark:text-slate-400'}>{setCode}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quiz Description / Instructions */}
               <div>
-                <label className="block text-slate-400 mb-1">Quiz Description / Instructions</label>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1.5 text-xs">Quiz Description / Instructions</label>
                 <textarea
                   rows={3}
                   placeholder="Official 150-question mock test pattern..."
                   value={quizForm.description}
                   onChange={e => setQuizForm({ ...quizForm, description: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                  className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-[var(--card-border)]">
+              {/* Modal Actions Footer */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowQuizForm(false)}
-                  className="px-5 py-2.5 border border-[var(--card-border)] text-slate-400 text-xs font-bold rounded-2xl cursor-pointer"
+                  className="px-5 py-2.5 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-bold rounded-2xl cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingQuiz}
-                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl shadow-md cursor-pointer"
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl shadow-md cursor-pointer transition-colors uppercase tracking-wider"
                 >
-                  {savingQuiz ? 'Creating...' : 'Create Mock Quiz'}
+                  {savingQuiz ? 'Saving...' : (quizForm as any).id ? 'Save Quiz / Paper' : 'Create Mock Quiz'}
                 </button>
               </div>
             </form>
@@ -2834,6 +2970,357 @@ export default function TestSeriesAdmin({
 
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── ADMIN SET PAPER & SOLUTION EXPLANATION KEY INSPECTOR MODAL ── */}
+      {inspectingSetQuiz && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div id="set-key-print-container" className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto text-slate-900 dark:text-white">
+            {(() => {
+              const rawQuestions = quizQuestions[inspectingSetQuiz.id] || [];
+              const setQuestions = (() => {
+                if (rawQuestions.length === 0) return [];
+                if (inspectingSetCode === 'SET-A') {
+                  return rawQuestions.map((q: any) => ({ ...q, mappedCorrectKey: q.correctAnswer }));
+                }
+                const seed = `seed-${inspectingSetQuiz.id}-${inspectingSetCode}`;
+                const shuffledQs = shuffleArraySeeded(rawQuestions, `${seed}-q`);
+                return shuffledQs.map((q: any) => {
+                  const optionPairs = [
+                    { origKey: 'A', text: q.optionA, textHi: q.optionAHi },
+                    { origKey: 'B', text: q.optionB, textHi: q.optionBHi },
+                    { origKey: 'C', text: q.optionC, textHi: q.optionCHi },
+                    { origKey: 'D', text: q.optionD, textHi: q.optionDHi },
+                  ];
+                  const shuffledOpts = shuffleArraySeeded(optionPairs, `${seed}-opt-${q.id}`);
+                  let mappedCorrectKey = q.correctAnswer;
+                  const newLetters = ['A', 'B', 'C', 'D'];
+                  shuffledOpts.forEach((opt: any, idx: number) => {
+                    if (opt.origKey === q.correctAnswer) mappedCorrectKey = newLetters[idx];
+                  });
+
+                  return {
+                    ...q,
+                    optionA: shuffledOpts[0]?.text || '',
+                    optionB: shuffledOpts[1]?.text || '',
+                    optionC: shuffledOpts[2]?.text || '',
+                    optionD: shuffledOpts[3]?.text || '',
+                    optionAHi: shuffledOpts[0]?.textHi || null,
+                    optionBHi: shuffledOpts[1]?.textHi || null,
+                    optionCHi: shuffledOpts[2]?.textHi || null,
+                    optionDHi: shuffledOpts[3]?.textHi || null,
+                    mappedCorrectKey
+                  };
+                });
+              })();
+
+              const handleDownloadCleanSetPdf = () => {
+                if (!setQuestions || setQuestions.length === 0) {
+                  alert('No questions available in this SET paper.');
+                  return;
+                }
+
+                const printWin = window.open('', '_blank');
+                if (!printWin) {
+                  alert('Pop-up blocked. Please allow pop-ups to generate PDF.');
+                  return;
+                }
+
+                const htmlContent = `
+                  <!DOCTYPE html>
+                  <html>
+                    <head>
+                      <title>${inspectingSetQuiz.title} - ${inspectingSetCode} Key Sheet</title>
+                      <style>
+                        @page {
+                          size: A4;
+                          margin: 15mm;
+                        }
+                        body {
+                          font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+                          color: #0f172a;
+                          background: #ffffff;
+                          line-height: 1.5;
+                          font-size: 13px;
+                          margin: 0;
+                          padding: 0;
+                        }
+                        .header-banner {
+                          border-bottom: 2px solid #0f172a;
+                          padding-bottom: 10px;
+                          margin-bottom: 20px;
+                        }
+                        .header-banner h1 {
+                          font-size: 18px;
+                          font-weight: 800;
+                          margin: 0 0 6px 0;
+                          color: #0f172a;
+                          text-transform: uppercase;
+                          letter-spacing: 0.5px;
+                        }
+                        .header-banner .meta {
+                          font-size: 12px;
+                          font-weight: 700;
+                          color: #d97706;
+                          display: flex;
+                          justify-content: space-between;
+                        }
+                        .q-card {
+                          border: 1px solid #cbd5e1;
+                          border-radius: 8px;
+                          padding: 12px 14px;
+                          margin-bottom: 14px;
+                          page-break-inside: avoid;
+                          break-inside: avoid;
+                          background: #ffffff;
+                        }
+                        .q-title {
+                          font-size: 13px;
+                          font-weight: 700;
+                          color: #0f172a;
+                          margin: 0 0 3px 0;
+                        }
+                        .q-title-hi {
+                          font-size: 12px;
+                          font-weight: 500;
+                          color: #475569;
+                          margin: 0 0 8px 0;
+                        }
+                        .key-badge {
+                          display: inline-block;
+                          background: #dcfce7;
+                          border: 1px solid #86efac;
+                          color: #15803d;
+                          font-weight: 800;
+                          font-size: 11px;
+                          padding: 2px 8px;
+                          border-radius: 6px;
+                          margin-bottom: 8px;
+                          text-transform: uppercase;
+                        }
+                        .options-grid {
+                          display: grid;
+                          grid-template-columns: 1fr 1fr;
+                          gap: 6px;
+                          margin-bottom: 8px;
+                        }
+                        .opt-item {
+                          padding: 6px 10px;
+                          border: 1px solid #e2e8f0;
+                          border-radius: 6px;
+                          font-size: 12px;
+                          color: #334155;
+                        }
+                        .opt-item.correct {
+                          background: #f0fdf4;
+                          border-color: #86efac;
+                          color: #166534;
+                          font-weight: 700;
+                        }
+                        .explanation-box {
+                          background: #fffbeb;
+                          border: 1px solid #fde68a;
+                          border-radius: 6px;
+                          padding: 8px 10px;
+                          font-size: 11.5px;
+                          color: #92400e;
+                          margin-top: 6px;
+                        }
+                        .explanation-box strong {
+                          color: #b45309;
+                          display: block;
+                          margin-bottom: 2px;
+                          font-size: 10.5px;
+                          text-transform: uppercase;
+                          letter-spacing: 0.5px;
+                        }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="header-banner">
+                        <h1>${inspectingSetQuiz.title}</h1>
+                        <div class="meta">
+                          <span>PAPER SET VARIANT: <strong>${inspectingSetCode}</strong></span>
+                          <span>TOTAL QUESTIONS: <strong>${setQuestions.length} Qs</strong></span>
+                        </div>
+                      </div>
+
+                      <div class="questions-list">
+                        ${setQuestions.map((q, idx) => {
+                          const correctKey = q.mappedCorrectKey || q.correctAnswer;
+                          const options = [
+                            { key: 'A', text: q.optionA, textHi: q.optionAHi },
+                            { key: 'B', text: q.optionB, textHi: q.optionBHi },
+                            { key: 'C', text: q.optionC, textHi: q.optionCHi },
+                            { key: 'D', text: q.optionD, textHi: q.optionDHi },
+                          ];
+
+                          return `
+                            <div class="q-card">
+                              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+                                <div style="flex: 1;">
+                                  <div class="q-title">${idx + 1}. ${q.questionText || ''}</div>
+                                  ${q.questionTextHi ? `<div class="q-title-hi">${q.questionTextHi}</div>` : ''}
+                                </div>
+                                <div class="key-badge">Key: Option ${correctKey}</div>
+                              </div>
+
+                              <div class="options-grid">
+                                ${options.map(opt => {
+                                  const isCorrect = opt.key === correctKey;
+                                  return `
+                                    <div class="opt-item ${isCorrect ? 'correct' : ''}">
+                                      (${opt.key}) ${opt.text || ''} ${opt.textHi ? `/ ${opt.textHi}` : ''} ${isCorrect ? '✓' : ''}
+                                    </div>
+                                  `;
+                                }).join('')}
+                              </div>
+
+                              ${(q.explanation || q.explanationHi) ? `
+                                <div class="explanation-box">
+                                  <strong>Official Explanation / Solution:</strong>
+                                  ${q.explanation ? `<div>${q.explanation}</div>` : ''}
+                                  ${q.explanationHi ? `<div style="color: #a16207; margin-top: 4px;">${q.explanationHi}</div>` : ''}
+                                </div>
+                              ` : ''}
+                            </div>
+                          `;
+                        }).join('')}
+                      </div>
+
+                      <script>
+                        window.onload = function() {
+                          setTimeout(function() {
+                            window.print();
+                          }, 300);
+                        };
+                      </script>
+                    </body>
+                  </html>
+                `;
+
+                printWin.document.open();
+                printWin.document.write(htmlContent);
+                printWin.document.close();
+              };
+
+              return (
+                <>
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Official Admin SET Paper Inspector & Key Sheet</span>
+                      <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white mt-0.5">
+                        {inspectingSetQuiz.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Inspect randomized SET paper layouts (SET-A, SET-B, SET-C, SET-D), question order, option keys, & solutions.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setInspectingSetQuiz(null)}
+                      className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* SET Code Navigation Tabs & PDF Export Button */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mr-2 uppercase">Select SET Paper:</span>
+                      {(['SET-A', 'SET-B', 'SET-C', 'SET-D'] as const).map((setCode) => (
+                        <button
+                          key={setCode}
+                          type="button"
+                          onClick={() => setInspectingSetCode(setCode)}
+                          className={`px-4 py-2 text-xs font-black rounded-xl transition-all cursor-pointer ${
+                            inspectingSetCode === setCode
+                              ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
+                              : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-500'
+                          }`}
+                        >
+                          {setCode}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={handleDownloadCleanSetPdf}
+                      className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md cursor-pointer flex items-center gap-2 uppercase tracking-wider"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Print / Download SET PDF Key</span>
+                    </button>
+                  </div>
+
+                  {/* SET Paper & Question Explanations List */}
+                  {setQuestions.length === 0 ? (
+                    <div className="p-12 text-center text-slate-400 text-xs font-bold space-y-2">
+                      <p>No questions found in this quiz bank.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+                        <span>Paper SET Variant: <strong className="text-amber-500 font-mono text-sm">{inspectingSetCode}</strong></span>
+                        <span>Total Paper Questions: <strong className="text-slate-900 dark:text-white font-black">{setQuestions.length} Qs</strong></span>
+                      </div>
+
+                      {setQuestions.map((q: any, idx: number) => (
+                        <div key={q.id || idx} className="p-4 bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 text-xs shadow-xs">
+                          <div className="flex justify-between items-start gap-4">
+                            <div className="space-y-1 flex-1">
+                              <p className="font-bold text-slate-900 dark:text-white text-sm">{idx + 1}. {q.questionText}</p>
+                              {q.questionTextHi && (
+                                <p className="font-medium text-slate-600 dark:text-slate-400 text-xs">{q.questionTextHi}</p>
+                              )}
+                            </div>
+                            <span className="px-2.5 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono font-black text-xs rounded-lg uppercase shrink-0">
+                              KEY: OPTION {q.mappedCorrectKey || q.correctAnswer}
+                            </span>
+                          </div>
+
+                          {/* Options Grid */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium pt-1">
+                            {['A', 'B', 'C', 'D'].map((optKey) => {
+                              const isCorrect = (q.mappedCorrectKey || q.correctAnswer) === optKey;
+                              const optText = q[`option${optKey}`];
+                              const optTextHi = q[`option${optKey}Hi`];
+                              return (
+                                <div
+                                  key={optKey}
+                                  className={`p-2.5 rounded-xl border flex items-center justify-between ${
+                                    isCorrect
+                                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold'
+                                      : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                                  }`}
+                                >
+                                  <span>({optKey}) {optText} {optTextHi ? ` / ${optTextHi}` : ''}</span>
+                                  {isCorrect && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 ml-1" />}
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Explanation Section */}
+                          {(q.explanation || q.explanationHi) && (
+                            <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl text-xs space-y-1 text-slate-800 dark:text-slate-200">
+                              <span className="font-black text-amber-600 dark:text-amber-400 uppercase text-[10px] block tracking-wider">Official Explanation Solution:</span>
+                              <p className="leading-relaxed">{q.explanation}</p>
+                              {q.explanationHi && <p className="leading-relaxed text-slate-600 dark:text-slate-400">{q.explanationHi}</p>}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

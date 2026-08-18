@@ -241,7 +241,7 @@ export async function saveQuizProgress(
 // ─── Quizzes: Submit Answers ──────────────────────────────────────────────────
 export async function submitQuizAnswers(
   quizId: string,
-  payload: { answers: Record<string, string>; timeTakenSecs: number; attemptId?: string },
+  payload: { answers: Record<string, string>; timeTakenSecs: number; attemptId?: string; setCode?: string },
   accessToken: string
 ) {
   return apiFetch<any>(`/api/quizzes/${quizId}/submit`, {

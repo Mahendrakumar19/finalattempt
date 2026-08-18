@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Award, FileText, Timer, Users, Maximize2, AlertOctagon, CheckSquare, Square, Bookmark, Sun, Moon } from 'lucide-react';
+import { ShieldAlert, Award, FileText, Timer, Users, Maximize2, AlertOctagon, CheckSquare, Square, Bookmark, Sun, Moon, Grid, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard } from '@/services/auth';
@@ -27,6 +27,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({});
   const [visitedQuestions, setVisitedQuestions] = useState<Record<string, boolean>>({});
   const [activeLang, setActiveLang] = useState<'en' | 'hi'>('en');
+  const [showMobilePalette, setShowMobilePalette] = useState(false);
   
   // Fullscreen exam flow states
   const [instructionsRead, setInstructionsRead] = useState(false);
@@ -222,7 +223,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     try {
       const res = await submitQuizAnswers(
         quizId,
-        { answers: selectedAnswers, timeTakenSecs: timeTaken, attemptId: session?.id },
+        { answers: selectedAnswers, timeTakenSecs: timeTaken, attemptId: session?.id, setCode: session?.setCode },
         accessToken
       );
       if (res.success && res.data) {
@@ -499,64 +500,67 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
           
           {/* ── Top Bar: Logo, Title, Section Timer & Utility Buttons ── */}
           <div
-            className="px-6 py-2.5 border-b flex items-center justify-between shrink-0 shadow-sm"
+            className="px-3 sm:px-6 py-2 sm:py-2.5 border-b flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 shadow-xs"
             style={{
               backgroundColor: cbtDark ? '#141414' : '#FFFFFF',
               borderColor: cbtDark ? '#262626' : '#E2E8F0',
             }}
           >
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <img
-                  src={cbtDark ? "/lightlogofull.png" : "/darklogofull.png"}
-                  alt="Final Attempt"
-                  className="h-8 object-contain"
-                />
-                <span className="bg-sky-600 text-white font-black text-[10px] uppercase px-2 py-0.5 rounded tracking-wider">
-                  TestSeries
-                </span>
-              </div>
-              <div className="h-4 w-px" style={{ backgroundColor: cbtDark ? '#404040' : '#CBD5E1' }} />
-              <h2 className="font-bold text-xs sm:text-sm" style={{ color: cbtDark ? '#E5E5E5' : '#1E293B' }}>
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <img
+                src={cbtDark ? "/lightlogofull.png" : "/darklogofull.png"}
+                alt="Final Attempt"
+                className="h-6 sm:h-8 object-contain shrink-0"
+              />
+              <span className="hidden sm:inline-block bg-sky-600 text-white font-black text-[9px] uppercase px-1.5 py-0.5 rounded tracking-wider shrink-0">
+                TestSeries
+              </span>
+              <div className="h-4 w-px hidden sm:block shrink-0" style={{ backgroundColor: cbtDark ? '#404040' : '#CBD5E1' }} />
+              <h2 className="font-bold text-xs sm:text-sm truncate max-w-[130px] xs:max-w-[200px] sm:max-w-none" style={{ color: cbtDark ? '#E5E5E5' : '#1E293B' }}>
                 {quizInfo?.title} {session?.setCode ? `(${session.setCode})` : ''}
               </h2>
             </div>
 
             {/* Timer & Controls */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <div
-                className="flex items-center gap-2 border px-3.5 py-1 rounded"
+                className="flex items-center gap-1.5 sm:gap-2 border px-2.5 py-1 rounded"
                 style={{
                   backgroundColor: cbtDark ? '#1C1C1C' : '#F8FAFC',
                   borderColor: cbtDark ? '#404040' : '#CBD5E1',
                 }}
               >
-                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>Time Left:</span>
-                <span className="font-mono text-base font-black text-sky-600">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Time Left:</span>
+                <span className="font-mono text-sm sm:text-base font-black text-sky-600">
                   {formatTime(timeLeft)}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setCbtDark((d) => !d)}
                   title={cbtDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                  className="px-3 py-1 border font-bold text-xs rounded transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-2.5 py-1 border font-bold text-xs rounded transition-all cursor-pointer flex items-center gap-1"
                   style={{
                     backgroundColor: cbtDark ? '#1F1F1F' : '#F1F5F9',
                     borderColor: cbtDark ? '#404040' : '#CBD5E1',
                     color: cbtDark ? '#FACC15' : '#0F172A',
                   }}
                 >
-                  {cbtDark ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-slate-700" />}
-                  <span>{cbtDark ? 'Light' : 'Dark'}</span>
+                  {cbtDark ? <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" /> : <Moon className="w-3.5 h-3.5 text-slate-700 shrink-0" />}
+                  <span className="hidden sm:inline">{cbtDark ? 'Light' : 'Dark'}</span>
                 </button>
+
+                {/* Mobile Question Palette Drawer Trigger */}
                 <button
-                  onClick={reEnterFullscreen}
-                  className="px-3 py-1 border border-sky-500 text-sky-600 font-bold text-xs rounded hover:bg-sky-50 dark:hover:bg-sky-950/40"
+                  type="button"
+                  onClick={() => setShowMobilePalette((p) => !p)}
+                  className="md:hidden px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded transition-all cursor-pointer flex items-center gap-1 shadow-xs"
+                  title="Toggle Question Palette"
                 >
-                  Fullscreen
+                  <Grid className="w-3.5 h-3.5" />
+                  <span>{showMobilePalette ? 'Hide Qs' : 'Palette'}</span>
                 </button>
               </div>
             </div>
@@ -564,26 +568,26 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
           {/* ── Secondary Bar: Sections Bar & Language Switcher ── */}
           <div
-            className="px-6 py-2 border-b flex items-center justify-between text-xs font-bold shrink-0"
+            className="px-3 sm:px-6 py-2 border-b flex flex-wrap items-center justify-between gap-2 text-xs font-bold shrink-0"
             style={{
               backgroundColor: cbtDark ? '#161616' : '#F8FAFC',
               borderColor: cbtDark ? '#262626' : '#E2E8F0',
             }}
           >
-            <div className="flex items-center gap-2">
-              <span className="uppercase text-[11px] font-black mr-1" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>SECTIONS:</span>
-              <button className="px-3 py-1 bg-sky-600 text-white rounded font-bold shadow-sm">
+            <div className="flex items-center gap-2 overflow-x-auto min-w-0">
+              <span className="uppercase text-[10px] sm:text-[11px] font-black shrink-0" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>SECTIONS:</span>
+              <button className="px-2.5 py-1 bg-sky-600 text-white rounded font-bold text-[11px] sm:text-xs shrink-0 shadow-xs truncate">
                 General Studies / Main Section
               </button>
             </div>
 
             {/* View Language Switcher */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>View in:</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>View in:</span>
               <select
                 value={activeLang}
                 onChange={(e) => setActiveLang(e.target.value as 'en' | 'hi')}
-                className="text-xs font-bold px-2.5 py-1 rounded cursor-pointer border"
+                className="text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded cursor-pointer border outline-none"
                 style={{
                   backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF',
                   borderColor: cbtDark ? '#404040' : '#CBD5E1',
@@ -597,21 +601,21 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
           </div>
 
           {/* ── Main Viewport Split (Question & Options vs Testbook Sidebar Palette) ── */}
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
             
             {/* Left Main Question Box */}
             <div
-              className="flex-1 p-6 sm:p-8 space-y-6 overflow-y-auto"
+              className="flex-1 p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 overflow-y-auto"
               style={{ backgroundColor: cbtDark ? '#0B0B0B' : '#FFFFFF' }}
             >
               <div
-                className="flex items-center justify-between border-b pb-2"
+                className="flex items-center justify-between border-b pb-2 gap-2"
                 style={{ borderColor: cbtDark ? '#262626' : '#E2E8F0' }}
               >
-                <span className="font-black text-sm" style={{ color: cbtDark ? '#E2E8F0' : '#1E293B' }}>
+                <span className="font-black text-xs sm:text-sm" style={{ color: cbtDark ? '#E2E8F0' : '#1E293B' }}>
                   Question No. {currentIndex + 1}
                 </span>
-                <div className="flex items-center gap-3 text-xs font-bold">
+                <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold">
                   <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded">
                     Marks: +1.0
                   </span>
@@ -623,14 +627,14 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
               {/* Question Text */}
               <div
-                className={`font-semibold text-base sm:text-lg leading-relaxed whitespace-normal break-words ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}
+                className={`font-semibold text-sm sm:text-base md:text-lg leading-relaxed whitespace-normal break-words ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}
                 style={{ color: cbtDark ? '#FFFFFF' : '#000000' }}
               >
                 {getDisplayQuestionText(currentQ)}
               </div>
 
               {/* Options */}
-              <div className="space-y-3 pt-4 max-w-3xl">
+              <div className="space-y-2.5 sm:space-y-3 pt-2 max-w-3xl">
                 {['A', 'B', 'C', 'D'].map((opt) => {
                   const optKey = `option${opt}`;
                   const optionText = getDisplayOptionText(currentQ, optKey);
@@ -641,7 +645,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                     <label
                       key={opt}
                       onClick={() => handleSelectOption(opt)}
-                      className={`flex items-start gap-3 p-3.5 border rounded-lg text-sm font-semibold transition-all cursor-pointer select-none`}
+                      className="flex items-start gap-3 p-3 sm:p-3.5 border rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer select-none"
                       style={{
                         backgroundColor: isSelected
                           ? (cbtDark ? 'rgba(14, 165, 233, 0.2)' : '#F0F9FF')
@@ -657,7 +661,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                         name={`question-${currentQ?.id}`}
                         checked={isSelected}
                         onChange={() => {}}
-                        className="mt-1 accent-sky-600 w-4 h-4"
+                        className="mt-0.5 accent-sky-600 w-4 h-4 shrink-0"
                       />
                       <span className={`flex-1 ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}>{optionText}</span>
                     </label>
@@ -666,9 +670,9 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               </div>
             </div>
 
-            {/* Right Testbook Light-Cyan Sidebar Palette */}
+            {/* Desktop Question Palette Sidebar (Hidden on Mobile) */}
             <div
-              className="w-full md:w-80 p-5 border-t md:border-t-0 md:border-l flex flex-col justify-between space-y-4 shrink-0"
+              className="hidden md:flex w-80 p-5 border-l flex-col justify-between space-y-4 shrink-0 overflow-y-auto"
               style={{
                 backgroundColor: cbtDark ? '#121824' : '#F0F9FF',
                 borderColor: cbtDark ? '#262626' : '#E2E8F0',
@@ -721,7 +725,6 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                       const isVst = !!visitedQuestions[q.id];
                       const isCur = idx === currentIndex;
 
-                      // Authentic Testbook palette button styling shapes
                       let style = "border rounded font-black";
                       let inlineStyle: React.CSSProperties = {
                         backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF',
@@ -760,7 +763,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 </div>
               </div>
 
-              {/* Testbook Action Sidebar Buttons */}
+              {/* Submit Test Button */}
               <div className="space-y-2 border-t border-neutral-200 dark:border-neutral-800 pt-3">
                 <button
                   onClick={() => setIsConfirmSubmitOpen(true)}
@@ -770,20 +773,131 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 </button>
               </div>
             </div>
+
+            {/* Mobile Question Palette Slide-up Drawer Modal */}
+            {showMobilePalette && (
+              <div className="md:hidden absolute inset-0 z-40 bg-slate-950/80 backdrop-blur-xs flex flex-col justify-end p-3 animate-in fade-in slide-in-from-bottom-5 duration-200">
+                <div
+                  className="rounded-3xl p-5 border space-y-4 max-h-[85vh] overflow-y-auto shadow-2xl"
+                  style={{
+                    backgroundColor: cbtDark ? '#141E2E' : '#F0F9FF',
+                    borderColor: cbtDark ? '#334155' : '#BAE6FD',
+                    color: cbtDark ? '#FFFFFF' : '#0F172A'
+                  }}
+                >
+                  <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: cbtDark ? '#334155' : '#CBD5E1' }}>
+                    <div>
+                      <h3 className="font-black text-sm uppercase">Question Palette</h3>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Select any question number to jump</p>
+                    </div>
+                    <button
+                      onClick={() => setShowMobilePalette(false)}
+                      className="p-1.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Legend Grid */}
+                  <div className="grid grid-cols-2 gap-2 text-[11px] font-bold">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-tl-lg rounded-tr-lg bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black">{attemptedCount}</span>
+                      <span>Answered</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-bl-lg rounded-br-lg bg-red-500 text-white flex items-center justify-center text-[10px] font-black">
+                        {questions.filter(q => visitedQuestions[q.id] && !selectedAnswers[q.id]).length}
+                      </span>
+                      <span>Not Answered</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-black">{markedCount}</span>
+                      <span>Marked</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-5 h-5 border flex items-center justify-center text-[10px]" style={{ backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF', borderColor: cbtDark ? '#404040' : '#CBD5E1' }}>
+                        {questions.filter(q => !visitedQuestions[q.id]).length}
+                      </span>
+                      <span>Not Visited</span>
+                    </div>
+                  </div>
+
+                  {/* Question Grid */}
+                  <div className="grid grid-cols-5 gap-2.5 max-h-60 overflow-y-auto pt-2">
+                    {questions.map((q, idx) => {
+                      const isAns = !!selectedAnswers[q.id];
+                      const isMkd = !!markedForReview[q.id];
+                      const isVst = !!visitedQuestions[q.id];
+                      const isCur = idx === currentIndex;
+
+                      let style = "border rounded font-black";
+                      let inlineStyle: React.CSSProperties = {
+                        backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF',
+                        borderColor: cbtDark ? '#404040' : '#CBD5E1',
+                        color: cbtDark ? '#FFFFFF' : '#0F172A',
+                      };
+
+                      if (isAns && isMkd) {
+                        style = "bg-purple-600 text-white font-black rounded-full border-2 border-emerald-400";
+                        inlineStyle = {};
+                      } else if (isAns) {
+                        style = "bg-emerald-500 text-white font-black rounded-tl-xl rounded-tr-xl border-emerald-600";
+                        inlineStyle = {};
+                      } else if (isMkd) {
+                        style = "bg-purple-600 text-white font-black rounded-full border-purple-700";
+                        inlineStyle = {};
+                      } else if (isVst && !isAns) {
+                        style = "bg-red-500 text-white font-black rounded-bl-xl rounded-br-xl border-red-600";
+                        inlineStyle = {};
+                      }
+
+                      if (isCur) style += " ring-2 ring-sky-500 ring-offset-1 scale-105";
+
+                      return (
+                        <button
+                          key={q.id}
+                          onClick={() => {
+                            setCurrentIndex(idx);
+                            setShowMobilePalette(false);
+                          }}
+                          className={`h-9 w-full text-xs flex items-center justify-center transition-all cursor-pointer ${style}`}
+                          style={inlineStyle}
+                        >
+                          {idx + 1}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="pt-2">
+                    <button
+                      onClick={() => {
+                        setShowMobilePalette(false);
+                        setIsConfirmSubmitOpen(true);
+                      }}
+                      className="w-full py-3 bg-sky-500 hover:bg-sky-600 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow cursor-pointer"
+                    >
+                      Submit Test Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* ── Testbook Bottom Action Bar ── */}
+          {/* ── Testbook Responsive Bottom Action Bar ── */}
           <div
-            className="px-6 py-3 border-t flex items-center justify-between shrink-0"
+            className="px-3 sm:px-6 py-2.5 sm:py-3 border-t flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0"
             style={{
               backgroundColor: cbtDark ? '#141414' : '#F8FAFC',
               borderColor: cbtDark ? '#262626' : '#E2E8F0',
             }}
           >
-            <div className="flex items-center gap-2">
+            {/* Action Row 1 / Left Controls */}
+            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
               <button
                 onClick={toggleMarkForReview}
-                className="px-4 py-2 font-bold text-xs rounded border transition-all cursor-pointer"
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 font-bold text-xs rounded-lg border transition-all cursor-pointer text-center"
                 style={{
                   backgroundColor: cbtDark ? '#1E293B' : '#E2E8F0',
                   borderColor: cbtDark ? '#334155' : '#CBD5E1',
@@ -794,7 +908,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               </button>
               <button
                 onClick={clearResponse}
-                className="px-4 py-2 font-bold text-xs rounded border transition-all cursor-pointer"
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 font-bold text-xs rounded-lg border transition-all cursor-pointer text-center"
                 style={{
                   backgroundColor: cbtDark ? '#1E293B' : '#E2E8F0',
                   borderColor: cbtDark ? '#334155' : '#CBD5E1',
@@ -805,11 +919,12 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Action Row 2 / Right Controls */}
+            <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
               <button
                 onClick={handlePrev}
                 disabled={currentIndex === 0}
-                className="px-4 py-2 font-bold text-xs rounded border transition-all disabled:opacity-40 cursor-pointer"
+                className="flex-1 sm:flex-none px-4 py-2 font-bold text-xs rounded-lg border transition-all disabled:opacity-40 cursor-pointer text-center"
                 style={{
                   backgroundColor: cbtDark ? '#1E293B' : '#E2E8F0',
                   borderColor: cbtDark ? '#334155' : '#CBD5E1',
@@ -820,7 +935,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               </button>
               <button
                 onClick={handleNext}
-                className="px-6 py-2 bg-sky-600 hover:bg-sky-700 text-white font-black text-xs rounded shadow cursor-pointer uppercase"
+                className="flex-1 sm:flex-none px-5 sm:px-6 py-2 bg-sky-600 hover:bg-sky-700 text-white font-black text-xs rounded-lg shadow cursor-pointer uppercase text-center"
               >
                 Save & Next
               </button>

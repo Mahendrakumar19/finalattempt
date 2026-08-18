@@ -33,7 +33,7 @@ import {
   TFunction,
 } from '@/i18n/index';
 
-// Static dictionary imports — bundled with client JS, loaded once.
+// Static dictionary imports — bundled with client JS, loaded once per build.
 import enDict from '@/i18n/en.json';
 import hiDict from '@/i18n/hi.json';
 

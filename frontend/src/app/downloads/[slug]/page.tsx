@@ -243,7 +243,7 @@ export default function DynamicDownloadPage() {
                         {item.title}
                       </h4>
                       {item.description && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2">
+                        <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed font-normal">
                           {item.description}
                         </p>
                       )}

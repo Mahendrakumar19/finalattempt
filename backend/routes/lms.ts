@@ -729,6 +729,20 @@ router.delete('/admin/test-series/:testSeriesId/enroll/:userId', authenticate, r
   }
 });
 
+// Admin Update Student Info Profile
+router.put('/admin/students/:userId', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const userId = req.params.userId as string;
+  const { fullName, email, mobile, state, district, targetExam } = req.body;
+  try {
+    const { authDB } = await import('../db');
+    await authDB.updateProfile(userId, { fullName, email, mobile, state, district, targetExam });
+    res.json({ success: true, message: 'Student profile updated successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
 // Admin Get All Mains Submissions for Evaluation
 router.get('/admin/mains-submissions', authenticate, requireAdmin, async (req: Request, res: Response) => {
   try {

@@ -668,7 +668,7 @@ router.post('/:quizId/save-answer', authenticate, requireStudent, async (req: Au
 
 // Submit Quiz Answers & Calculate Marks Server-Side
 router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
-  const { answers, timeTakenSecs, attemptId } = req.body; // Map: { [questionId]: 'A' | 'B' | 'C' | 'D' }
+  const { answers, timeTakenSecs, attemptId, setCode } = req.body; // Map: { [questionId]: 'A' | 'B' | 'C' | 'D' }
   const quizId = Array.isArray(req.params.quizId) ? req.params.quizId[0] : req.params.quizId;
   if (!quizId || typeof quizId !== 'string') {
     res.status(400).json({ success: false, error: 'Invalid Quiz ID parameter.' });
@@ -745,7 +745,8 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
       maxScore,
       passed,
       timeTakenSecs || 0,
-      attemptId
+      attemptId,
+      setCode
     );
 
     res.json({

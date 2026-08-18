@@ -111,15 +111,9 @@ export default function NcertPage() {
       {/* Page Header (PYQ Style) */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200 dark:border-white/10">
         <div className="space-y-3 max-w-3xl">
-          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest block w-fit">
-            Class 6 to 12 Textbooks
-          </span>
           <h1 className="text-4xl sm:text-5xl font-heading font-black text-slate-900 dark:text-white tracking-tight leading-none">
-            NCERT Books Repository
+            NCERT Textbooks
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">
-            Subject-wise NCERT Textbooks for Civil Services preparation (Class 6th to 12th).
-          </p>
         </div>
 
         {/* Quick Stats Banner */}
@@ -246,17 +240,13 @@ export default function NcertPage() {
                     <h3 className={`font-heading font-black text-xl text-slate-900 dark:text-white ${theme.text} transition-colors`}>
                       {subject}
                     </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2">
-                      Class 6th to 12th {subject} NCERT Textbooks &amp; PDF Booklets.
-                    </p>
+
                   </div>
                 </div>
 
                 <div className="pt-3 border-t border-slate-100 dark:border-white/[0.08] flex items-center justify-between">
-                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                    Class 6th - 12th
-                  </span>
-                  <span className={`text-xs font-black ${theme.text} group-hover:translate-x-1 transition-transform inline-flex items-center gap-1`}>
+
+                  <span className={`text-xs font-black ${theme.text} group-hover:translate-x-1 transition-transform inline-flex items-center`}>
                     View Books &rarr;
                   </span>
                 </div>
