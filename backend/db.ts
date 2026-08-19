@@ -5233,13 +5233,14 @@ class LmsDB {
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query(
-          `SELECT a.score, a.timeTakenSecs, a.submittedAt, u.fullName
+          `SELECT a.userId, a.score, a.maxScore, a.timeTakenSecs, a.setCode, a.submittedAt, u.fullName,
+                  (SELECT COUNT(*) FROM lms_quiz_attempts WHERE quizId = ?) AS totalParticipants
            FROM lms_quiz_attempts a
            JOIN users u ON u.id = a.userId
            WHERE a.quizId = ?
            ORDER BY a.score DESC, a.timeTakenSecs ASC
-           LIMIT 10`,
-          [quizId]
+           LIMIT 100`,
+          [quizId, quizId]
         );
         return rows;
       } catch (err) { console.error('[LmsDB] getLeaderboard MySQL error:', err); }

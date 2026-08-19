@@ -12,7 +12,7 @@ interface QuizEngineProps {
 }
 
 export default function QuizEngine({ quizId }: QuizEngineProps) {
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const { t, locale } = useTranslation();
   const router = useRouter();
 
@@ -1265,43 +1265,264 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
       })()}
 
       {/* ── 6. LEADERBOARD SCREEN ── */}
-      {quizState === 'leaderboard' && (
-        <div className="p-8 sm:p-10 space-y-6 max-w-3xl mx-auto my-auto">
-          <div className="text-center space-y-2">
-            <Award className="w-10 h-10 mx-auto" />
-            <h2 className="text-xl font-black uppercase tracking-wider">OFFICIAL QUIZ LEADERBOARD</h2>
-          </div>
+      {quizState === 'leaderboard' && (() => {
+        const bg      = cbtDark ? '#0B0B0B' : '#FFFFFF';
+        const surface = cbtDark ? '#111111' : '#F8F8F8';
+        const surface2= cbtDark ? '#181818' : '#F0F0F0';
+        const text    = cbtDark ? '#FFFFFF'  : '#000000';
+        const textSec = cbtDark ? '#D4D4D4'  : '#444444';
+        const border  = cbtDark ? '#2A2A2A'  : '#E5E5E5';
+        const accent  = '#F59E0B';
+        const successText = cbtDark ? '#4ADE80' : '#15803D';
+        const errorText   = cbtDark ? '#F87171' : '#B91C1C';
 
-          <div className="border-2 border-current rounded-2xl overflow-hidden text-xs">
-            {leaderboard.map((item, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border-b border-current last:border-0 font-bold">
-                <div className="flex items-center gap-3">
-                  <span className="w-5 h-5 border border-current rounded-full flex items-center justify-center text-[10px]">
-                    {index + 1}
-                  </span>
-                  <span>{item.fullName}</span>
-                </div>
-                <div>{item.score.toFixed(1)} Marks</div>
+        // Identify current user
+        const currentUserId = user?.id || '';
+        const myEntry = leaderboard.find((item: any) => item.userId === currentUserId);
+        const myRank  = myEntry ? leaderboard.findIndex((item: any) => item.userId === currentUserId) + 1 : null;
+        const totalParticipants = leaderboard[0]?.totalParticipants ? Number(leaderboard[0].totalParticipants) : leaderboard.length;
+
+        const medalColors: Record<number, { bg: string; text: string; label: string }> = {
+          1: { bg: '#F59E0B', text: '#000', label: '🥇' },
+          2: { bg: '#9CA3AF', text: '#000', label: '🥈' },
+          3: { bg: '#CD7C2F', text: '#fff', label: '🥉' },
+        };
+
+        const getInitials = (name: string) =>
+          name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+
+        const fmtTime = (secs: number) => {
+          const m = Math.floor(secs / 60);
+          const s = secs % 60;
+          return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+        };
+
+        // Build display rows: top 3 + current user (if not in top 3)
+        const top3 = leaderboard.slice(0, 3);
+        const showMyRow = myRank !== null && myRank > 3;
+        const displayRows = top3;
+
+        return (
+          <div className="min-h-dvh w-full flex flex-col" style={{ backgroundColor: bg, color: text }}>
+
+            {/* Header bar */}
+            <div
+              className="w-full px-5 py-3 flex items-center justify-between shrink-0"
+              style={{ borderBottom: `1px solid ${border}`, backgroundColor: surface }}
+            >
+              <div className="flex items-center gap-2">
+                <Award className="w-4 h-4" style={{ color: accent }} />
+                <span className="text-xs font-black uppercase tracking-widest" style={{ color: textSec }}>Official Quiz Leaderboard</span>
               </div>
-            ))}
-          </div>
+              <button
+                onClick={() => setQuizState('result')}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-black uppercase cursor-pointer"
+                style={{ backgroundColor: text, color: bg }}
+              >
+                ← Back to Review
+              </button>
+            </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={() => setQuizState('result')}
-              className="flex-1 py-3 border border-current font-bold text-xs rounded-xl text-center cursor-pointer"
-            >
-              ← BACK TO REVIEW
-            </button>
-            <button
-              onClick={() => router.push('/student/dashboard')}
-              className="flex-1 py-3 bg-current text-reverse font-black text-xs rounded-xl text-center uppercase tracking-wider cursor-pointer"
-            >
-              BACK TO PORTAL
-            </button>
+            {/* Scrollable body */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-[1150px] mx-auto px-4 sm:px-8 py-8 space-y-6">
+
+                {/* Hero */}
+                <div className="text-center space-y-2 py-4">
+                  <div className="text-4xl">🏆</div>
+                  <h1 className="text-xl font-black uppercase tracking-wider" style={{ color: text }}>Official Quiz Leaderboard</h1>
+                  <p className="text-sm" style={{ color: textSec }}>See how you performed among all test takers.</p>
+                </div>
+
+                {/* Stats cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    {
+                      icon: '👥', label: 'Total Participants',
+                      value: totalParticipants.toLocaleString('en-IN'),
+                      sub: 'Students'
+                    },
+                    {
+                      icon: '📊', label: 'Your Rank',
+                      value: myRank ? myRank.toLocaleString('en-IN') : '—',
+                      sub: myRank ? `Out of ${totalParticipants.toLocaleString('en-IN')}` : 'Not ranked'
+                    },
+                    {
+                      icon: '🎯', label: 'Your Score',
+                      value: myEntry ? `${(Number(myEntry.score) || 0).toFixed(2)} / ${myEntry.maxScore || results?.maxScore || '—'}` : (results ? `${(Number(results.score) || 0).toFixed(2)} / ${results.maxScore}` : '—'),
+                      sub: myEntry ? `${myEntry.maxScore ? ((Number(myEntry.score) / Number(myEntry.maxScore)) * 100).toFixed(1) : (Number(results?.percentage) || 0).toFixed(1)}%` : `${(Number(results?.percentage) || 0).toFixed(1)}%`
+                    },
+                    {
+                      icon: '⏱', label: 'Time Taken',
+                      value: fmtTime(timeTaken),
+                      sub: 'HH:MM'
+                    },
+                  ].map(card => (
+                    <div key={card.label} className="flex items-start gap-3 p-4 rounded-xl" style={{ backgroundColor: surface, border: `1px solid ${border}` }}>
+                      <span className="text-2xl mt-0.5">{card.icon}</span>
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: textSec }}>{card.label}</p>
+                        <p className="text-lg font-black mt-0.5" style={{ color: text }}>{card.value}</p>
+                        <p className="text-[10px] font-semibold" style={{ color: textSec }}>{card.sub}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Leaderboard table */}
+                <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${border}` }}>
+                  {/* Table header */}
+                  <div
+                    className="grid text-[10px] font-black uppercase tracking-widest px-4 py-3"
+                    style={{ backgroundColor: surface2, borderBottom: `1px solid ${border}`, color: textSec, gridTemplateColumns: '80px 1fr 140px 110px 110px' }}
+                  >
+                    <span>Rank</span>
+                    <span>Student</span>
+                    <span className="text-center">Score</span>
+                    <span className="text-center">Accuracy</span>
+                    <span className="text-right">Time Taken</span>
+                  </div>
+
+                  {/* Top 3 rows */}
+                  {displayRows.map((item: any, index: number) => {
+                    const rank = index + 1;
+                    const medal = medalColors[rank];
+                    const maxSc = Number(item.maxScore) || Number(results?.maxScore) || 1;
+                    const sc    = Number(item.score) || 0;
+                    const acc   = maxSc > 0 ? (sc / maxSc) * 100 : 0;
+                    const isMe  = item.userId === currentUserId;
+                    return (
+                      <div
+                        key={index}
+                        className="grid items-center px-4 py-3.5"
+                        style={{
+                          gridTemplateColumns: '80px 1fr 140px 110px 110px',
+                          borderBottom: `1px solid ${border}`,
+                          backgroundColor: isMe ? (cbtDark ? 'rgba(245,158,11,0.08)' : '#FFFBEB') : bg,
+                        }}
+                      >
+                        {/* Rank + medal */}
+                        <div className="flex items-center gap-2">
+                          {medal ? (
+                            <span
+                              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-black"
+                              style={{ backgroundColor: medal.bg, color: medal.text }}
+                            >{rank}</span>
+                          ) : (
+                            <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black" style={{ backgroundColor: surface2, color: textSec }}>{rank}</span>
+                          )}
+                        </div>
+                        {/* Avatar + Name */}
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0"
+                            style={{ backgroundColor: isMe ? accent : surface2, color: isMe ? '#000' : textSec }}
+                          >
+                            {getInitials(item.fullName)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold" style={{ color: isMe ? accent : text }}>
+                              {isMe ? 'You' : item.fullName}
+                            </p>
+                            {item.setCode && <p className="text-[10px]" style={{ color: textSec }}>SET-{item.setCode}</p>}
+                          </div>
+                        </div>
+                        {/* Score */}
+                        <div className="text-center">
+                          <p className="text-sm font-black" style={{ color: rank === 1 ? successText : text }}>{sc.toFixed(2)} / {maxSc}</p>
+                          <p className="text-[10px]" style={{ color: textSec }}>{acc.toFixed(1)}%</p>
+                        </div>
+                        {/* Accuracy */}
+                        <div className="text-center">
+                          <p className="text-sm font-semibold" style={{ color: textSec }}>{acc.toFixed(1)}%</p>
+                        </div>
+                        {/* Time */}
+                        <div className="text-right">
+                          <p className="text-sm font-mono font-semibold" style={{ color: textSec }}>{fmtTime(Number(item.timeTakenSecs) || 0)}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Separator + current user row if not in top 3 */}
+                  {showMyRow && myEntry && (() => {
+                    const maxSc = Number(myEntry.maxScore) || Number(results?.maxScore) || 1;
+                    const sc    = Number(myEntry.score) || 0;
+                    const acc   = maxSc > 0 ? (sc / maxSc) * 100 : 0;
+                    return (
+                      <>
+                        <div className="flex items-center gap-2 px-4 py-2" style={{ borderTop: `1px dashed ${border}`, backgroundColor: surface2 }}>
+                          <span className="text-[10px]" style={{ color: textSec }}>· · ·</span>
+                        </div>
+                        <div
+                          className="grid items-center px-4 py-3.5"
+                          style={{
+                            gridTemplateColumns: '80px 1fr 140px 110px 110px',
+                            backgroundColor: cbtDark ? 'rgba(245,158,11,0.08)' : '#FFFBEB',
+                          }}
+                        >
+                          <div>
+                            <span className="text-sm font-black" style={{ color: accent }}>{myRank}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0" style={{ backgroundColor: accent, color: '#000' }}>
+                              {getInitials(myEntry.fullName)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold" style={{ color: accent }}>You</p>
+                              {myEntry.setCode && <p className="text-[10px]" style={{ color: textSec }}>SET-{myEntry.setCode}</p>}
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-black" style={{ color: errorText }}>{sc.toFixed(2)} / {maxSc}</p>
+                            <p className="text-[10px]" style={{ color: textSec }}>{acc.toFixed(1)}%</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-sm font-semibold" style={{ color: textSec }}>{acc.toFixed(1)}%</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-mono font-semibold" style={{ color: textSec }}>{fmtTime(timeTaken)}</p>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+
+                  {/* Footer note */}
+                  <div
+                    className="flex items-center gap-2 px-4 py-3 text-[10px] font-semibold"
+                    style={{ borderTop: `1px solid ${border}`, color: textSec, backgroundColor: surface }}
+                  >
+                    <Users className="w-3.5 h-3.5 shrink-0" />
+                    Showing your position. Top 3 ranks and your rank are displayed.
+                  </div>
+                </div>
+
+                {/* Info banner */}
+                <div
+                  className="flex items-start gap-2 px-4 py-3 rounded-xl text-xs font-medium"
+                  style={{ backgroundColor: cbtDark ? 'rgba(245,158,11,0.06)' : '#FFFBEB', border: `1px solid ${cbtDark ? 'rgba(245,158,11,0.2)' : '#FDE68A'}`, color: textSec }}
+                >
+                  <span className="text-amber-500 shrink-0 mt-0.5">ℹ</span>
+                  Leaderboard updates may take a few minutes. Scores are calculated as per the official marking scheme.
+                </div>
+
+                {/* Action button */}
+                <div className="pb-8">
+                  <button
+                    onClick={() => router.push('/student/dashboard')}
+                    className="w-full sm:w-auto px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest cursor-pointer"
+                    style={{ backgroundColor: text, color: bg }}
+                  >
+                    Exit to Dashboard
+                  </button>
+                </div>
+
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
