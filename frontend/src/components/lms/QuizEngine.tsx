@@ -988,76 +988,281 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
       )}
 
       {/* ── 5. RESULTS SUMMARY SCREEN ── */}
-      {quizState === 'result' && (
-        <div className="p-8 sm:p-10 space-y-6 max-w-4xl mx-auto my-auto">
-          <div className="text-center space-y-4">
-            <Award className="w-12 h-12 mx-auto" />
-            <div>
-              <h2 className="text-xl font-black uppercase tracking-wider">EXAMINATION ATTEMPT SCORECARD</h2>
-              <p className="text-xs opacity-80 mt-1">
-                {results?.passed ? 'Congratulations! You cleared the passing cut-off.' : 'Cut-off not cleared on this attempt.'}
-              </p>
-            </div>
-          </div>
+      {quizState === 'result' && (() => {
+        const correctCount  = results?.details?.filter((d: any) => d.isCorrect).length ?? 0;
+        const incorrectCount = results?.details?.filter((d: any) => !d.isCorrect && d.studentAnswer).length ?? 0;
+        const unattemptedCount = results?.details?.filter((d: any) => !d.studentAnswer).length ?? 0;
+        const scorePercent = (Number(results?.percentage) || 0);
+        const passed = !!results?.passed;
 
-          <div className="grid grid-cols-3 gap-4 py-4 border-y-2 border-current text-center text-xs font-bold">
-            <div>
-              <p className="text-[10px] uppercase opacity-70">Your Score</p>
-              <p className="text-lg font-black">{results?.score.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase opacity-70">Max Marks</p>
-              <p className="text-lg font-black">{results?.maxScore}</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase opacity-70">Accuracy</p>
-              <p className="text-lg font-black">{results?.percentage.toFixed(1)}%</p>
-            </div>
-          </div>
+        const bg       = cbtDark ? '#0B0B0B' : '#FFFFFF';
+        const surface  = cbtDark ? '#111111' : '#F8F8F8';
+        const surface2 = cbtDark ? '#181818' : '#F0F0F0';
+        const text     = cbtDark ? '#FFFFFF'  : '#000000';
+        const textSec  = cbtDark ? '#D4D4D4'  : '#333333';
+        const border   = cbtDark ? '#2A2A2A'  : '#D9D9D9';
+        const accent   = '#F59E0B';
+        const successBg = cbtDark ? 'rgba(21,128,61,0.15)'  : '#F0FDF4';
+        const successBorder = cbtDark ? '#15803D' : '#86EFAC';
+        const successText   = cbtDark ? '#4ADE80'  : '#15803D';
+        const errorBg  = cbtDark ? 'rgba(185,28,28,0.15)' : '#FEF2F2';
+        const errorBorder = cbtDark ? '#B91C1C' : '#FECACA';
+        const errorText   = cbtDark ? '#F87171' : '#B91C1C';
 
-          {/* Details Q&A Review */}
-          <div className="space-y-4 pt-2">
-            <h3 className="font-black text-sm uppercase">Detailed Solutions Key:</h3>
-            <div className="space-y-4 max-h-72 overflow-y-auto pr-2">
-              {results?.details.map((det: any, i: number) => (
-                <div key={det.questionId} className="p-4 border border-current rounded-2xl space-y-2 text-xs">
-                  <div className="flex justify-between items-start gap-3">
-                    <p className="font-bold leading-relaxed">{i + 1}. {activeLang === 'hi' && det.questionTextHi ? det.questionTextHi : det.questionText}</p>
-                    <span className="px-2 py-0.5 border border-current text-[9px] font-black uppercase shrink-0">
-                      {det.isCorrect ? 'Correct' : 'Incorrect'}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-bold pt-1">
-                    <p><span>Your Answer: </span> <span>{det.studentAnswer || 'Skipped'}</span></p>
-                    <p><span>Correct Key: </span> <span>{det.correctAnswer}</span></p>
-                  </div>
-                  {(det.explanation || det.explanationHi) && (
-                    <div className="p-3 border border-current/30 rounded-xl text-[10px] opacity-90 leading-relaxed mt-2">
-                      <span className="font-black">Explanation: </span>
-                      {activeLang === 'hi' && det.explanationHi ? det.explanationHi : det.explanation}
+        return (
+          <div
+            className="min-h-dvh w-full flex flex-col"
+            style={{ backgroundColor: bg, color: text }}
+          >
+            {/* ── RESULT HEADER BAR ── */}
+            <div
+              className="w-full px-5 py-3 flex items-center justify-between shrink-0"
+              style={{ borderBottom: `1px solid ${border}`, backgroundColor: surface }}
+            >
+              <div className="flex items-center gap-3">
+                <FileText className="w-4 h-4 shrink-0" style={{ color: accent }} />
+                <span className="text-xs font-black uppercase tracking-widest" style={{ color: textSec }}>
+                  Examination Result
+                </span>
+              </div>
+              {/* Language switcher */}
+              <div
+                className="flex items-center text-[11px] font-bold rounded-lg overflow-hidden"
+                style={{ border: `1px solid ${border}` }}
+              >
+                <button
+                  onClick={() => setActiveLang('en')}
+                  className="px-3 py-1.5 cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: activeLang === 'en' ? accent : 'transparent',
+                    color: activeLang === 'en' ? '#000' : textSec,
+                  }}
+                >EN</button>
+                <button
+                  onClick={() => setActiveLang('hi')}
+                  className="px-3 py-1.5 cursor-pointer transition-colors"
+                  style={{
+                    backgroundColor: activeLang === 'hi' ? accent : 'transparent',
+                    color: activeLang === 'hi' ? '#000' : textSec,
+                  }}
+                >हिन्दी</button>
+              </div>
+            </div>
+
+            {/* ── SCROLLABLE BODY ── */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="max-w-[1150px] mx-auto px-4 sm:px-8 py-8 space-y-8">
+
+                {/* ── SCORECARD HERO ── */}
+                <div
+                  className="rounded-2xl p-6 sm:p-8 space-y-5"
+                  style={{ backgroundColor: surface, border: `1px solid ${border}` }}
+                >
+                  {/* Exam meta */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: textSec }}>
+                      Examination Result
+                    </p>
+                    <h1 className="text-lg sm:text-xl font-black" style={{ color: text }}>
+                      {quizInfo?.title || 'CBT Mock Examination'}
+                    </h1>
+                    <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold" style={{ color: textSec }}>
+                      {session?.setCode && <span>Set: <strong style={{ color: text }}>{session.setCode}</strong></span>}
+                      <span>Time Taken: <strong style={{ color: text }} className="font-mono">{formatTime(timeTaken)}</strong></span>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Pass / Fail status badge */}
+                  <div
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider"
+                    style={{
+                      backgroundColor: passed ? successBg : errorBg,
+                      border: `1.5px solid ${passed ? successBorder : errorBorder}`,
+                      color: passed ? successText : errorText,
+                    }}
+                  >
+                    {passed ? '✓ QUALIFIED' : '✕ NOT CLEARED'}
+                  </div>
+
+                  {/* Score progress bar */}
+                  <div className="space-y-2">
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: textSec }}>YOUR SCORE</p>
+                        <p className="text-3xl sm:text-4xl font-black mt-0.5" style={{ color: text }}>
+                          {(Number(results?.score) || 0).toFixed(2)}
+                          <span className="text-base font-bold ml-1" style={{ color: textSec }}>/ {results?.maxScore}</span>
+                        </p>
+                      </div>
+                      <p className="text-2xl font-black font-mono" style={{ color: scorePercent >= 50 ? successText : errorText }}>
+                        {scorePercent.toFixed(1)}%
+                      </p>
+                    </div>
+                    <div className="h-2 w-full rounded-full overflow-hidden" style={{ backgroundColor: surface2 }}>
+                      <div
+                        className="h-2 rounded-full transition-all"
+                        style={{
+                          width: `${Math.min(scorePercent, 100)}%`,
+                          backgroundColor: scorePercent >= 60 ? '#15803D' : scorePercent >= 40 ? accent : '#B91C1C',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
+                    {[
+                      { label: 'Correct',      value: correctCount,      color: successText },
+                      { label: 'Incorrect',    value: incorrectCount,    color: errorText },
+                      { label: 'Unattempted',  value: unattemptedCount,  color: textSec },
+                      { label: 'Accuracy',     value: `${scorePercent.toFixed(1)}%`, color: text },
+                      { label: 'Time Taken',   value: formatTime(timeTaken), color: text, mono: true },
+                    ].map(s => (
+                      <div
+                        key={s.label}
+                        className="text-center py-3 px-2 rounded-xl"
+                        style={{ backgroundColor: surface2, border: `1px solid ${border}` }}
+                      >
+                        <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: textSec }}>{s.label}</p>
+                        <p className={`text-lg font-black ${s.mono ? 'font-mono' : ''}`} style={{ color: s.color }}>
+                          {s.value}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
+
+                {/* ── DETAILED SOLUTIONS ── */}
+                <div className="space-y-3">
+                  <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: textSec }}>
+                    Detailed Solutions
+                  </h2>
+
+                  {results?.details?.map((det: any, i: number) => {
+                    const isCorrect    = det.isCorrect;
+                    const isSkipped    = !det.studentAnswer;
+                    const statusColor  = isCorrect ? successText : isSkipped ? textSec : errorText;
+                    const statusBg     = isCorrect ? successBg   : isSkipped ? surface2 : errorBg;
+                    const statusBorder = isCorrect ? successBorder : isSkipped ? border : errorBorder;
+                    const statusLabel  = isCorrect ? 'CORRECT' : isSkipped ? 'UNATTEMPTED' : 'INCORRECT';
+                    const qText = activeLang === 'hi' && det.questionTextHi ? det.questionTextHi : det.questionText;
+                    const explanation = activeLang === 'hi' && det.explanationHi ? det.explanationHi : det.explanation;
+
+                    return (
+                      <div
+                        key={det.questionId}
+                        className="rounded-xl overflow-hidden"
+                        style={{ border: `1px solid ${border}` }}
+                      >
+                        {/* Question header row */}
+                        <div
+                          className="flex items-center justify-between px-5 py-3"
+                          style={{ backgroundColor: surface2, borderBottom: `1px solid ${border}` }}
+                        >
+                          <span className="text-xs font-black uppercase" style={{ color: textSec }}>
+                            Q{i + 1}
+                          </span>
+                          <span
+                            className="text-[10px] font-black uppercase px-3 py-1 rounded-full"
+                            style={{ backgroundColor: statusBg, border: `1px solid ${statusBorder}`, color: statusColor }}
+                          >
+                            {statusLabel}
+                          </span>
+                        </div>
+
+                        {/* Question body */}
+                        <div className="px-5 py-4 space-y-5" style={{ backgroundColor: bg }}>
+                          {/* Question text — never clipped */}
+                          <p
+                            className="leading-relaxed"
+                            style={{ fontSize: '15px', color: text, lineHeight: '1.7', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                          >
+                            {qText}
+                          </p>
+
+                          {/* Answer comparison */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* Your answer */}
+                            <div
+                              className="px-4 py-3 rounded-xl space-y-1"
+                              style={{
+                                backgroundColor: isSkipped ? surface2 : isCorrect ? successBg : errorBg,
+                                border: `1.5px solid ${isSkipped ? border : isCorrect ? successBorder : errorBorder}`,
+                              }}
+                            >
+                              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: textSec }}>Your Answer</p>
+                              <p className="text-lg font-black" style={{ color: isSkipped ? textSec : isCorrect ? successText : errorText }}>
+                                {det.studentAnswer
+                                  ? `${det.studentAnswer} ${isCorrect ? '✓' : '✕'}`
+                                  : 'Not Attempted'}
+                              </p>
+                            </div>
+
+                            {/* Correct answer */}
+                            <div
+                              className="px-4 py-3 rounded-xl space-y-1"
+                              style={{ backgroundColor: successBg, border: `1.5px solid ${successBorder}` }}
+                            >
+                              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: textSec }}>Correct Answer</p>
+                              <p className="text-lg font-black" style={{ color: successText }}>
+                                {det.correctAnswer} ✓
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Explanation */}
+                          {explanation && (
+                            <div
+                              className="rounded-xl px-4 py-4 space-y-2"
+                              style={{ backgroundColor: surface, border: `1px solid ${border}` }}
+                            >
+                              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: textSec }}>Explanation</p>
+                              <p
+                                className="leading-relaxed"
+                                style={{ fontSize: '14px', color: textSec, lineHeight: '1.75', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                              >
+                                {explanation}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ── BOTTOM ACTIONS ── */}
+                <div
+                  className="flex flex-col sm:flex-row gap-3 pt-4 pb-8"
+                >
+                  <button
+                    onClick={loadLeaderboard}
+                    className="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest cursor-pointer transition-colors"
+                    style={{ border: `2px solid ${accent}`, color: accent, backgroundColor: 'transparent' }}
+                  >
+                    View Leaderboard
+                  </button>
+                  <button
+                    onClick={() => router.push('/student/prelims')}
+                    className="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest cursor-pointer transition-colors"
+                    style={{ border: `2px solid ${border}`, color: textSec, backgroundColor: 'transparent' }}
+                  >
+                    Back to Tests
+                  </button>
+                  <button
+                    onClick={() => router.push('/student/dashboard')}
+                    className="flex-1 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest cursor-pointer"
+                    style={{ backgroundColor: text, color: bg }}
+                  >
+                    Exit to Dashboard
+                  </button>
+                </div>
+
+              </div>
             </div>
           </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={() => router.push('/student/dashboard')}
-              className="flex-1 py-3 border-2 border-current font-bold text-xs rounded-xl text-center cursor-pointer"
-            >
-              EXIT TO DASHBOARD
-            </button>
-            <button
-              onClick={loadLeaderboard}
-              className="flex-1 py-3 bg-current text-reverse font-black text-xs rounded-xl text-center uppercase tracking-wider cursor-pointer"
-            >
-              VIEW LEADERBOARD
-            </button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── 6. LEADERBOARD SCREEN ── */}
       {quizState === 'leaderboard' && (
