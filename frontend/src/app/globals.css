@@ -266,23 +266,29 @@ html.dark .portal-page > .bg-slate-950 {
   background-color: #020617 !important;
 }
 
-/* ── Custom Scrollbar ── */
+/* ── Custom Scrollbar (Sleek Dark / Black) ── */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #FEF3C7;
+  background: #F1F5F9;
 }
 html.dark ::-webkit-scrollbar-track {
-  background: #000000;
+  background: #090D16;
 }
 ::-webkit-scrollbar-thumb {
-  background: #D97706;
+  background: #1E293B;
   border-radius: 9999px;
 }
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
 ::-webkit-scrollbar-thumb:hover {
-  background: #B45309;
+  background: #0F172A;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* ── Real Glassmorphism System ── */
@@ -1135,18 +1141,21 @@ html.dark .article-prose-container a,
   height: 6px;
 }
 .styled-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.04);
   border-radius: 8px;
 }
 html.dark .styled-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
 }
 .styled-scrollbar::-webkit-scrollbar-thumb {
-  background: #f59e0b;
+  background: #1E293B;
   border-radius: 8px;
 }
+html.dark .styled-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+}
 .styled-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #d97706;
+  background: #0F172A;
 }
 
 /* ═══════════════════════════════════════════════════════════

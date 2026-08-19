@@ -491,7 +491,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
       {/* ── 3. ACTUAL CBT SCREEN (FULL VIEWPORT - TESTBOOK STANDARD STYLE) ── */}
       {quizState === 'active' && (
         <div
-          className="flex-1 flex flex-col h-screen w-screen overflow-hidden select-none font-sans transition-colors duration-200"
+          className="flex-1 flex flex-col h-dvh max-h-dvh w-screen overflow-hidden select-none font-sans transition-colors duration-200"
           style={{
             backgroundColor: cbtDark ? '#0B0B0B' : '#FFFFFF',
             color: cbtDark ? '#FFFFFF' : '#000000',
@@ -503,7 +503,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             className="px-3 sm:px-6 py-2 sm:py-2.5 border-b flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 shrink-0 shadow-xs"
             style={{
               backgroundColor: cbtDark ? '#141414' : '#FFFFFF',
-              borderColor: cbtDark ? '#262626' : '#E2E8F0',
+              borderColor: cbtDark ? '#262626' : '#E5E7EB',
             }}
           >
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -515,8 +515,8 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               <span className="hidden sm:inline-block bg-sky-600 text-white font-black text-[9px] uppercase px-1.5 py-0.5 rounded tracking-wider shrink-0">
                 TestSeries
               </span>
-              <div className="h-4 w-px hidden sm:block shrink-0" style={{ backgroundColor: cbtDark ? '#404040' : '#CBD5E1' }} />
-              <h2 className="font-bold text-xs sm:text-sm truncate max-w-[130px] xs:max-w-[200px] sm:max-w-none" style={{ color: cbtDark ? '#E5E5E5' : '#1E293B' }}>
+              <div className="h-4 w-px hidden sm:block shrink-0" style={{ backgroundColor: cbtDark ? '#404040' : '#E5E7EB' }} />
+              <h2 className="font-bold text-xs sm:text-sm truncate max-w-[130px] xs:max-w-[200px] sm:max-w-none" style={{ color: cbtDark ? '#E5E5E5' : '#111827' }}>
                 {quizInfo?.title} {session?.setCode ? `(${session.setCode})` : ''}
               </h2>
             </div>
@@ -526,8 +526,8 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               <div
                 className="flex items-center gap-1.5 sm:gap-2 border px-2.5 py-1 rounded"
                 style={{
-                  backgroundColor: cbtDark ? '#1C1C1C' : '#F8FAFC',
-                  borderColor: cbtDark ? '#404040' : '#CBD5E1',
+                  backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF',
+                  borderColor: cbtDark ? '#404040' : '#E5E7EB',
                 }}
               >
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Time Left:</span>
@@ -543,9 +543,9 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                   title={cbtDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                   className="px-2.5 py-1 border font-bold text-xs rounded transition-all cursor-pointer flex items-center gap-1"
                   style={{
-                    backgroundColor: cbtDark ? '#1F1F1F' : '#F1F5F9',
-                    borderColor: cbtDark ? '#404040' : '#CBD5E1',
-                    color: cbtDark ? '#FACC15' : '#0F172A',
+                    backgroundColor: cbtDark ? '#1F1F1F' : '#FFFFFF',
+                    borderColor: cbtDark ? '#404040' : '#E5E7EB',
+                    color: cbtDark ? '#FACC15' : '#111827',
                   }}
                 >
                   {cbtDark ? <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" /> : <Moon className="w-3.5 h-3.5 text-slate-700 shrink-0" />}
@@ -570,12 +570,12 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
           <div
             className="px-3 sm:px-6 py-2 border-b flex flex-wrap items-center justify-between gap-2 text-xs font-bold shrink-0"
             style={{
-              backgroundColor: cbtDark ? '#161616' : '#F8FAFC',
-              borderColor: cbtDark ? '#262626' : '#E2E8F0',
+              backgroundColor: cbtDark ? '#161616' : '#FFFFFF',
+              borderColor: cbtDark ? '#262626' : '#E5E7EB',
             }}
           >
             <div className="flex items-center gap-2 overflow-x-auto min-w-0">
-              <span className="uppercase text-[10px] sm:text-[11px] font-black shrink-0" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>SECTIONS:</span>
+              <span className="uppercase text-[10px] sm:text-[11px] font-black shrink-0" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>SECTIONS:</span>
               <button className="px-2.5 py-1 bg-sky-600 text-white rounded font-bold text-[11px] sm:text-xs shrink-0 shadow-xs truncate">
                 General Studies / Main Section
               </button>
@@ -583,15 +583,15 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
             {/* View Language Switcher */}
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>View in:</span>
+              <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>View in:</span>
               <select
                 value={activeLang}
                 onChange={(e) => setActiveLang(e.target.value as 'en' | 'hi')}
                 className="text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded cursor-pointer border outline-none"
                 style={{
                   backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF',
-                  borderColor: cbtDark ? '#404040' : '#CBD5E1',
-                  color: cbtDark ? '#FFFFFF' : '#0F172A',
+                  borderColor: cbtDark ? '#404040' : '#E5E7EB',
+                  color: cbtDark ? '#FFFFFF' : '#111827',
                 }}
               >
                 <option value="en">English</option>
@@ -605,36 +605,36 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             
             {/* Left Main Question Box */}
             <div
-              className="flex-1 p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 overflow-y-auto"
+              className="flex-1 p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6 overflow-y-auto"
               style={{ backgroundColor: cbtDark ? '#0B0B0B' : '#FFFFFF' }}
             >
               <div
-                className="flex items-center justify-between border-b pb-2 gap-2"
-                style={{ borderColor: cbtDark ? '#262626' : '#E2E8F0' }}
+                className="flex items-center justify-between border-b pb-3 gap-2"
+                style={{ borderColor: cbtDark ? '#262626' : '#E5E7EB' }}
               >
-                <span className="font-black text-xs sm:text-sm" style={{ color: cbtDark ? '#E2E8F0' : '#1E293B' }}>
+                <span className="font-black text-xs sm:text-sm tracking-wide" style={{ color: cbtDark ? '#E2E8F0' : '#111827' }}>
                   Question No. {currentIndex + 1}
                 </span>
-                <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold">
-                  <span className="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded">
+                <div className="flex items-center gap-2 text-[11px] sm:text-xs font-bold">
+                  <span className={`bg-white dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-400 px-2.5 py-1 rounded-md font-bold shadow-2xs ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}>
                     Marks: +1.0
                   </span>
-                  <span className="bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 px-2 py-0.5 rounded">
+                  <span className={`bg-white dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-400 px-2.5 py-1 rounded-md font-bold shadow-2xs ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}>
                     Negative: -0.33
                   </span>
                 </div>
               </div>
 
-              {/* Question Text */}
+              {/* Question Text - 18px Desktop / 16px Mobile, font-semibold (600), line-height ~1.6, max readable width */}
               <div
-                className={`font-semibold text-sm sm:text-base md:text-lg leading-relaxed whitespace-normal break-words ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}
-                style={{ color: cbtDark ? '#FFFFFF' : '#000000' }}
+                className={`text-base md:text-[18px] font-semibold leading-[1.6] max-w-4xl whitespace-pre-wrap break-words ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}
+                style={{ color: cbtDark ? '#FFFFFF' : '#111827' }}
               >
                 {getDisplayQuestionText(currentQ)}
               </div>
 
-              {/* Options */}
-              <div className="space-y-2.5 sm:space-y-3 pt-2 max-w-3xl">
+              {/* Options - ~64-72px high desktop cards, high readability & click targets */}
+              <div className="space-y-3.5 pt-2 max-w-4xl">
                 {['A', 'B', 'C', 'D'].map((opt) => {
                   const optKey = `option${opt}`;
                   const optionText = getDisplayOptionText(currentQ, optKey);
@@ -645,15 +645,15 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                     <label
                       key={opt}
                       onClick={() => handleSelectOption(opt)}
-                      className="flex items-start gap-3 p-3 sm:p-3.5 border rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer select-none"
+                      className="flex items-center gap-4 p-4 sm:p-5 min-h-[64px] sm:min-h-[72px] border-2 rounded-2xl text-sm sm:text-base font-medium transition-all cursor-pointer select-none shadow-xs"
                       style={{
                         backgroundColor: isSelected
-                          ? (cbtDark ? 'rgba(14, 165, 233, 0.2)' : '#F0F9FF')
+                          ? (cbtDark ? 'rgba(14, 165, 233, 0.18)' : '#F0F9FF')
                           : (cbtDark ? '#141414' : '#FFFFFF'),
                         borderColor: isSelected
                           ? '#0EA5E9'
-                          : (cbtDark ? '#262626' : '#E2E8F0'),
-                        color: cbtDark ? '#FFFFFF' : '#0F172A',
+                          : (cbtDark ? '#262626' : '#E5E7EB'),
+                        color: cbtDark ? '#FFFFFF' : '#111827',
                       }}
                     >
                       <input
@@ -661,9 +661,9 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                         name={`question-${currentQ?.id}`}
                         checked={isSelected}
                         onChange={() => {}}
-                        className="mt-0.5 accent-sky-600 w-4 h-4 shrink-0"
+                        className="mt-0.5 accent-sky-600 w-5 h-5 shrink-0 cursor-pointer"
                       />
-                      <span className={`flex-1 ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}>{optionText}</span>
+                      <span className={`flex-1 leading-relaxed ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}>{optionText}</span>
                     </label>
                   );
                 })}
@@ -674,49 +674,84 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             <div
               className="hidden md:flex w-80 p-5 border-l flex-col justify-between space-y-4 shrink-0 overflow-y-auto"
               style={{
-                backgroundColor: cbtDark ? '#121824' : '#F0F9FF',
-                borderColor: cbtDark ? '#262626' : '#E2E8F0',
+                backgroundColor: cbtDark ? '#121824' : '#FFFFFF',
+                borderColor: cbtDark ? '#262626' : '#E5E7EB',
               }}
             >
-              <div className="space-y-4">
+              <div className="space-y-5">
                 
-                {/* User Status / Section Title */}
+                {/* SECTION */}
                 <div
-                  className="flex items-center justify-between border-b pb-2 text-xs font-bold"
-                  style={{ borderColor: cbtDark ? '#262626' : '#CBD5E1' }}
+                  className="space-y-1 border-b pb-3"
+                  style={{ borderColor: cbtDark ? '#262626' : '#E5E7EB' }}
                 >
-                  <span className="uppercase" style={{ color: cbtDark ? '#E2E8F0' : '#334155' }}>SECTION: General Studies</span>
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: cbtDark ? '#94A3B8' : '#6B7280' }}>
+                    SECTION
+                  </p>
+                  <p className="text-xs font-black truncate" style={{ color: cbtDark ? '#FFFFFF' : '#111827' }}>
+                    General Studies
+                  </p>
                 </div>
 
-                {/* Legend Grid Icons */}
-                <div className="grid grid-cols-2 gap-2 text-[11px] font-bold" style={{ color: cbtDark ? '#E2E8F0' : '#334155' }}>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-tl-lg rounded-tr-lg bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black">{attemptedCount}</span>
-                    <span>Answered</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-bl-lg rounded-br-lg bg-red-500 text-white flex items-center justify-center text-[10px] font-black">
-                      {questions.filter(q => visitedQuestions[q.id] && !selectedAnswers[q.id]).length}
-                    </span>
-                    <span>Not Answered</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-black">{markedCount}</span>
-                    <span>Marked</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-5 h-5 border flex items-center justify-center text-[10px]" style={{ backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF', borderColor: cbtDark ? '#404040' : '#CBD5E1' }}>
-                      {questions.filter(q => !visitedQuestions[q.id]).length}
-                    </span>
-                    <span>Not Visited</span>
+                {/* QUESTION STATUS */}
+                <div
+                  className="space-y-2 border-b pb-3"
+                  style={{ borderColor: cbtDark ? '#262626' : '#E5E7EB' }}
+                >
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: cbtDark ? '#94A3B8' : '#6B7280' }}>
+                    QUESTION STATUS
+                  </p>
+                  
+                  <div className="space-y-2 text-xs font-bold" style={{ color: cbtDark ? '#F1F5F9' : '#111827' }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-emerald-500 shrink-0" />
+                        <span>Answered</span>
+                      </div>
+                      <span className="font-black px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300">
+                        {attemptedCount}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-red-500 shrink-0" />
+                        <span>Not Answered</span>
+                      </div>
+                      <span className="font-black px-2 py-0.5 rounded bg-red-100 dark:bg-red-950/80 text-red-700 dark:text-red-300">
+                        {questions.filter(q => visitedQuestions[q.id] && !selectedAnswers[q.id]).length}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full bg-purple-600 shrink-0" />
+                        <span>Marked</span>
+                      </div>
+                      <span className="font-black px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-950/80 text-purple-700 dark:text-purple-300">
+                        {markedCount}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-3 h-3 rounded-full border-2 border-slate-400 shrink-0" />
+                        <span>Not Visited</span>
+                      </div>
+                      <span className="font-black px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700">
+                        {questions.filter(q => !visitedQuestions[q.id]).length}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Question Palette Number Grid */}
-                <div className="border-t pt-3" style={{ borderColor: cbtDark ? '#262626' : '#CBD5E1' }}>
-                  <h3 className="text-xs font-black mb-2" style={{ color: cbtDark ? '#E2E8F0' : '#334155' }}>QUESTION PALETTE:</h3>
+                {/* QUESTION PALETTE */}
+                <div className="space-y-2">
+                  <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: cbtDark ? '#94A3B8' : '#6B7280' }}>
+                    QUESTION PALETTE
+                  </p>
                   <div
-                    className="grid grid-cols-5 gap-2 max-h-72 overflow-y-auto pr-1"
+                    className="grid grid-cols-5 gap-2 max-h-72 overflow-y-auto pr-1 pt-1"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                   >
                     {questions.map((q, idx) => {
@@ -725,28 +760,28 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                       const isVst = !!visitedQuestions[q.id];
                       const isCur = idx === currentIndex;
 
-                      let style = "border rounded font-black";
+                      let style = "border-2 rounded-lg font-black";
                       let inlineStyle: React.CSSProperties = {
                         backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF',
-                        borderColor: cbtDark ? '#404040' : '#CBD5E1',
-                        color: cbtDark ? '#FFFFFF' : '#0F172A',
+                        borderColor: cbtDark ? '#404040' : '#E5E7EB',
+                        color: cbtDark ? '#FFFFFF' : '#111827',
                       };
 
                       if (isAns && isMkd) {
-                        style = "bg-purple-600 text-white font-black rounded-full border-2 border-emerald-400";
+                        style = "bg-purple-600 text-white font-black rounded-full border-2 border-emerald-400 shadow-xs";
                         inlineStyle = {};
                       } else if (isAns) {
-                        style = "bg-emerald-500 text-white font-black rounded-tl-xl rounded-tr-xl border-emerald-600";
+                        style = "bg-emerald-500 text-white font-black rounded-lg border-2 border-emerald-600 shadow-xs";
                         inlineStyle = {};
                       } else if (isMkd) {
-                        style = "bg-purple-600 text-white font-black rounded-full border-purple-700";
+                        style = "bg-purple-600 text-white font-black rounded-full border-2 border-purple-700 shadow-xs";
                         inlineStyle = {};
                       } else if (isVst && !isAns) {
-                        style = "bg-red-500 text-white font-black rounded-bl-xl rounded-br-xl border-red-600";
+                        style = "bg-red-500 text-white font-black rounded-lg border-2 border-red-600 shadow-xs";
                         inlineStyle = {};
                       }
 
-                      if (isCur) style += " ring-2 ring-sky-500 ring-offset-1 scale-105";
+                      if (isCur) style += " ring-2 ring-sky-500 ring-offset-2 scale-105";
 
                       return (
                         <button
@@ -755,7 +790,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                           className={`h-9 w-full text-xs flex items-center justify-center transition-all cursor-pointer ${style}`}
                           style={inlineStyle}
                         >
-                          {idx + 1}
+                          {String(idx + 1).padStart(2, '0')}
                         </button>
                       );
                     })}
@@ -764,10 +799,10 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               </div>
 
               {/* Submit Test Button */}
-              <div className="space-y-2 border-t border-neutral-200 dark:border-neutral-800 pt-3">
+              <div className="pt-3 border-t" style={{ borderColor: cbtDark ? '#262626' : '#E5E7EB' }}>
                 <button
                   onClick={() => setIsConfirmSubmitOpen(true)}
-                  className="w-full py-2.5 bg-sky-500 hover:bg-sky-600 text-white font-black text-xs uppercase tracking-wider rounded shadow cursor-pointer transition-all"
+                  className="w-full py-3 bg-sky-600 hover:bg-sky-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow cursor-pointer transition-all"
                 >
                   Submit Test
                 </button>
@@ -780,12 +815,12 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 <div
                   className="rounded-3xl p-5 border space-y-4 max-h-[85vh] overflow-y-auto shadow-2xl"
                   style={{
-                    backgroundColor: cbtDark ? '#141E2E' : '#F0F9FF',
-                    borderColor: cbtDark ? '#334155' : '#BAE6FD',
-                    color: cbtDark ? '#FFFFFF' : '#0F172A'
+                    backgroundColor: cbtDark ? '#141E2E' : '#FFFFFF',
+                    borderColor: cbtDark ? '#334155' : '#E5E7EB',
+                    color: cbtDark ? '#FFFFFF' : '#111827'
                   }}
                 >
-                  <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: cbtDark ? '#334155' : '#CBD5E1' }}>
+                  <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: cbtDark ? '#334155' : '#E5E7EB' }}>
                     <div>
                       <h3 className="font-black text-sm uppercase">Question Palette</h3>
                       <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Select any question number to jump</p>
@@ -815,7 +850,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                       <span>Marked</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="w-5 h-5 border flex items-center justify-center text-[10px]" style={{ backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF', borderColor: cbtDark ? '#404040' : '#CBD5E1' }}>
+                      <span className="w-5 h-5 border flex items-center justify-center text-[10px]" style={{ backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF', borderColor: cbtDark ? '#404040' : '#E5E7EB' }}>
                         {questions.filter(q => !visitedQuestions[q.id]).length}
                       </span>
                       <span>Not Visited</span>
@@ -833,8 +868,8 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                       let style = "border rounded font-black";
                       let inlineStyle: React.CSSProperties = {
                         backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF',
-                        borderColor: cbtDark ? '#404040' : '#CBD5E1',
-                        color: cbtDark ? '#FFFFFF' : '#0F172A',
+                        borderColor: cbtDark ? '#404040' : '#E5E7EB',
+                        color: cbtDark ? '#FFFFFF' : '#111827',
                       };
 
                       if (isAns && isMkd) {
@@ -885,34 +920,34 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             )}
           </div>
 
-          {/* ── Testbook Responsive Bottom Action Bar ── */}
+          {/* ── Testbook Responsive Bottom Action Bar (Elevated z-30 to prevent overlap) ── */}
           <div
-            className="px-3 sm:px-6 py-2.5 sm:py-3 border-t flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0"
+            className="px-3 sm:px-6 py-2.5 sm:py-3 border-t flex flex-col sm:flex-row items-center justify-between gap-2 shrink-0 z-30 relative shadow-xs"
             style={{
-              backgroundColor: cbtDark ? '#141414' : '#F8FAFC',
-              borderColor: cbtDark ? '#262626' : '#E2E8F0',
+              backgroundColor: cbtDark ? '#141414' : '#FFFFFF',
+              borderColor: cbtDark ? '#262626' : '#E5E7EB',
             }}
           >
-            {/* Action Row 1 / Left Controls */}
-            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+            {/* Action Row 1 / Left Controls (pl-14 on mobile to stay clear of floating badges) */}
+            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto pl-12 sm:pl-0">
               <button
                 onClick={toggleMarkForReview}
-                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 font-bold text-xs rounded-lg border transition-all cursor-pointer text-center"
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 font-bold text-xs rounded-xl border-2 transition-all cursor-pointer text-center hover:bg-slate-50 dark:hover:bg-slate-800"
                 style={{
-                  backgroundColor: cbtDark ? '#1E293B' : '#E2E8F0',
-                  borderColor: cbtDark ? '#334155' : '#CBD5E1',
-                  color: cbtDark ? '#F1F5F9' : '#0F172A',
+                  backgroundColor: cbtDark ? '#1E293B' : '#FFFFFF',
+                  borderColor: cbtDark ? '#334155' : '#D1D5DB',
+                  color: cbtDark ? '#F1F5F9' : '#111827',
                 }}
               >
                 {markedForReview[currentQ?.id] ? 'Unmark Review' : 'Mark for Review & Next'}
               </button>
               <button
                 onClick={clearResponse}
-                className="flex-1 sm:flex-none px-3 sm:px-4 py-2 font-bold text-xs rounded-lg border transition-all cursor-pointer text-center"
+                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 font-bold text-xs rounded-xl border-2 transition-all cursor-pointer text-center hover:bg-slate-50 dark:hover:bg-slate-800"
                 style={{
-                  backgroundColor: cbtDark ? '#1E293B' : '#E2E8F0',
-                  borderColor: cbtDark ? '#334155' : '#CBD5E1',
-                  color: cbtDark ? '#F1F5F9' : '#0F172A',
+                  backgroundColor: cbtDark ? '#1E293B' : '#FFFFFF',
+                  borderColor: cbtDark ? '#334155' : '#D1D5DB',
+                  color: cbtDark ? '#F1F5F9' : '#111827',
                 }}
               >
                 Clear Response
@@ -924,18 +959,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               <button
                 onClick={handlePrev}
                 disabled={currentIndex === 0}
-                className="flex-1 sm:flex-none px-4 py-2 font-bold text-xs rounded-lg border transition-all disabled:opacity-40 cursor-pointer text-center"
+                className="flex-1 sm:flex-none px-4 py-2.5 font-bold text-xs rounded-xl border-2 transition-all disabled:opacity-40 cursor-pointer text-center hover:bg-slate-50 dark:hover:bg-slate-800"
                 style={{
-                  backgroundColor: cbtDark ? '#1E293B' : '#E2E8F0',
-                  borderColor: cbtDark ? '#334155' : '#CBD5E1',
-                  color: cbtDark ? '#F1F5F9' : '#0F172A',
+                  backgroundColor: cbtDark ? '#1E293B' : '#FFFFFF',
+                  borderColor: cbtDark ? '#334155' : '#D1D5DB',
+                  color: cbtDark ? '#F1F5F9' : '#111827',
                 }}
               >
                 Previous
               </button>
               <button
                 onClick={handleNext}
-                className="flex-1 sm:flex-none px-5 sm:px-6 py-2 bg-sky-600 hover:bg-sky-700 text-white font-black text-xs rounded-lg shadow cursor-pointer uppercase text-center"
+                className="flex-1 sm:flex-none px-5 sm:px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-black text-xs rounded-xl shadow cursor-pointer uppercase text-center"
               >
                 Save & Next
               </button>
