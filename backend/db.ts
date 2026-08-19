@@ -843,9 +843,11 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query('ALTER TABLE TestSeries ADD COLUMN medium VARCHAR(100)'); } catch (_) {}
     try { await pool.query('ALTER TABLE TestSeries ADD COLUMN programDetails TEXT'); } catch (_) {}
 
-    // Drop restrictive Foreign Key on lms_enrollments.courseId so TestSeries enrollments succeed on MySQL
+    // Drop restrictive Foreign Key on lms_enrollments.courseId & lms_quizzes.courseId so TestSeries enrollments & quizzes succeed on MySQL
     try { await pool.query('ALTER TABLE lms_enrollments DROP FOREIGN KEY lms_enrollments_ibfk_2'); } catch (_) {}
     try { await pool.query('ALTER TABLE lms_enrollments DROP FOREIGN KEY lms_enrollments_courseId_fkey'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_quizzes DROP FOREIGN KEY lms_quizzes_ibfk_1'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_quizzes DROP FOREIGN KEY lms_quizzes_courseId_fkey'); } catch (_) {}
 
     console.log('MySQL Database tables initialized successfully.');
 
@@ -4630,8 +4632,24 @@ class LmsDB {
         else lmsLocalQuizzes.push(quiz);
         db.saveLocalData();
         return quiz;
-      } catch (err) {
+      } catch (err: any) {
         console.error('[LmsDB] createQuiz MySQL error:', err);
+        if (err && (err.code === 'ER_NO_REFERENCED_ROW_2' || err.errno === 1452 || String(err.message).includes('foreign key constraint'))) {
+          try {
+            await mysqlPool.query('ALTER TABLE lms_quizzes DROP FOREIGN KEY lms_quizzes_ibfk_1');
+            await mysqlPool.query(
+              'INSERT INTO lms_quizzes (id, courseId, lessonId, title, description, timeLimitMins, passingScore, isPublished) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE courseId = VALUES(courseId), title = VALUES(title), description = VALUES(description), timeLimitMins = VALUES(timeLimitMins), passingScore = VALUES(passingScore), isPublished = VALUES(isPublished)',
+              [quiz.id, quiz.courseId, quiz.lessonId, quiz.title, quiz.description, quiz.timeLimitMins, quiz.passingScore, quiz.isPublished]
+            );
+            const idx = lmsLocalQuizzes.findIndex(q => q.id === id);
+            if (idx >= 0) lmsLocalQuizzes[idx] = { ...lmsLocalQuizzes[idx], ...quiz };
+            else lmsLocalQuizzes.push(quiz);
+            db.saveLocalData();
+            return quiz;
+          } catch (retryErr) {
+            console.error('[LmsDB] createQuiz retry after FK drop error:', retryErr);
+          }
+        }
         throw err;
       }
     }
