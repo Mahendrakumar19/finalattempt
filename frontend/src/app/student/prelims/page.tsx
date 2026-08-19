@@ -234,18 +234,18 @@ export default function StudentPrelimsPage() {
 
               <div className="p-5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('prelims.averageScore')}</span>
-                <p className="text-2xl font-black text-amber-500">{analytics.avgScore.toFixed(1)} <span className="text-xs text-slate-400 font-normal">{t('prelims.marks')}</span></p>
+                <p className="text-2xl font-black text-amber-500">{(Number(analytics.avgScore) || 0).toFixed(1)} <span className="text-xs text-slate-400 font-normal">{t('prelims.marks')}</span></p>
               </div>
 
               <div className="p-5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('prelims.accuracy')}</span>
-                <p className="text-2xl font-black text-indigo-500">{analytics.accuracy.toFixed(1)}%</p>
+                <p className="text-2xl font-black text-indigo-500">{(Number(analytics.accuracy) || 0).toFixed(1)}%</p>
               </div>
 
               <div className="p-5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">{t('prelims.bestScore')}</span>
-                <p className={`text-2xl font-black ${analytics.passRate >= 50 ? 'text-emerald-500' : 'text-amber-500'}`}>
-                  {analytics.passRate.toFixed(1)}%
+                <p className={`text-2xl font-black ${(Number(analytics.passRate) || 0) >= 50 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                  {(Number(analytics.passRate) || 0).toFixed(1)}%
                 </p>
               </div>
             </div>
@@ -393,7 +393,7 @@ export default function StudentPrelimsPage() {
                         {userAttempt && (
                           <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-1 text-xs">
                             <div className="flex items-center justify-between font-black text-amber-600 dark:text-amber-400">
-                              <span>Your Last Score: {userAttempt.score.toFixed(2)} / {userAttempt.maxScore} Marks</span>
+                              <span>Your Last Score: {(Number(userAttempt.score) || 0).toFixed(2)} / {userAttempt.maxScore || 150} Marks</span>
                               <span>Time: {formatTime(userAttempt.timeTakenSecs)}</span>
                             </div>
                           </div>
@@ -474,7 +474,7 @@ export default function StudentPrelimsPage() {
                     <div className="flex items-center gap-6">
                       <div>
                         <span className="text-[9px] font-bold text-slate-400 uppercase block">Score</span>
-                        <span className="font-black text-amber-500 text-sm">{att.score.toFixed(2)} / {att.maxScore}</span>
+                        <span className="font-black text-amber-500 text-sm">{(Number(att.score) || 0).toFixed(2)} / {att.maxScore || 150}</span>
                       </div>
 
                       <div>
