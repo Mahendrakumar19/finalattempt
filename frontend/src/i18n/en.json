@@ -41,7 +41,8 @@
     "exploreAllExams": "Explore All Exams",
     "downloadFreeMaterial": "Download Free Material",
     "readLatestBlogs": "Read Latest Blogs",
-    "contactAdmissions": "Contact Admissions"
+    "contactAdmissions": "Contact Admissions",
+    "downloads": "Downloads"
   },
   "aboutPage": {
     "whoWeAre": "Who We Are",
@@ -149,7 +150,8 @@
     "failedOTP": "Failed to send OTP.",
     "invalidOTP": "Invalid or expired OTP.",
     "enterIdentifier": "Enter your email or mobile number.",
-    "loadingStudentConsole": "Loading student console..."
+    "loadingStudentConsole": "Loading student console...",
+    "email": "Email Address"
   },
   "student": {
     "portal": "Student Portal",
@@ -317,7 +319,12 @@
     "downloadCount": "Downloads",
     "language": "Language",
     "free": "Free",
-    "premium": "Premium"
+    "premium": "Premium",
+    "viewPDF": "View PDF",
+    "downloadPDF": "Download PDF",
+    "rapidRevisionTitle": "Rapid Revision",
+    "toppersCopiesTitle": "Toppers' Copies",
+    "valueAddedTitle": "Value Added Materials — Mains"
   },
   "prelims": {
     "title": "Prelims Test Series",
@@ -627,5 +634,129 @@
     "qs": "Qs",
     "folderNotFound": "Exam Folder Not Found",
     "folderNotFoundDesc": "The exam category you requested does not exist or has been removed."
+  },
+  "mega": {
+    "courses": {
+      "tagline": "Learning Programs",
+      "description": "Structured courses designed by experts and civil servants."
+    },
+    "test": {
+      "tagline": "Practice & Evaluation",
+      "description": "Simulate exam conditions with timed mocks and detailed solution keys."
+    },
+    "ca": {
+      "tagline": "Stay Updated Daily",
+      "description": "Curated, exam-relevant current affairs for BPSC & Civil Services.",
+      "byFrequency": "BY FREQUENCY",
+      "topics": "TOPICS",
+      "daily": "Daily",
+      "dailyDesc": "Read daily updated news analysis",
+      "weekly": "Weekly",
+      "weeklyDesc": "Weekly news highlights",
+      "monthly": "Monthly",
+      "monthlyDesc": "Monthly PDF notes & magazines",
+      "yearly": "Yearly",
+      "yearlyDesc": "Year-round news notes",
+      "dailyAnalysis": "Daily Analysis",
+      "dailyAnalysisDesc": "Daily news & editorial analysis",
+      "dailyMcqPractice": "Daily MCQ Practice",
+      "dailyMcqPracticeDesc": "Daily MCQ practice & state leaderboard"
+    },
+    "resources": {
+      "tagline": "Study Resources Hub",
+      "description": "Free books, PYQs, notes, and NCERT materials for exam preparation.",
+      "downloads": "Downloads",
+      "currentAffairsTitle": "CURRENT AFFAIRS",
+      "dailyQuizTitle": "DAILY QUIZ",
+      "pyqTitle": "PYQ",
+      "pyq": "PYQ",
+      "pyqDesc": "Previous years question papers & solutions",
+      "ncertTitle": "NCERT",
+      "ncert": "NCERT",
+      "ncertDesc": "NCERT Class 6 to 12 Textbooks",
+      "rapidRevisionTitle": "RAPID REVISION",
+      "rapidRevision": "Rapid Revision",
+      "rapidRevisionDesc": "Quick revision notes and tables",
+      "valMainsTitle": "Value Added Materials — Mains",
+      "valMains": "Value Added Materials — Mains",
+      "valMainsDesc": "Mains Data & Supreme Court Judgments",
+      "toppersCopies": "Toppers' Copies",
+      "toppersCopiesDesc": "Evaluated Toppers' Answer Copies",
+      "faPublication": "Final Attempt Publication",
+      "faPublicationDesc": "Books & Publication Storefront"
+    },
+    "blogs": {
+      "tagline": "Insights & Articles",
+      "description": "Expert blogs on exam strategy, analysis, and news updates.",
+      "explore": "EXPLORE",
+      "allArticles": "All Articles",
+      "allArticlesDesc": "Strategy & analysis posts",
+      "currentAffairs": "Current Affairs",
+      "currentAffairsDesc": "Exam-relevant news analysis",
+      "strategyGuidance": "STRATEGY & GUIDANCE",
+      "syllabusStrategy": "Syllabus & Strategy",
+      "syllabusStrategyDesc": "Exam-wise subject plans & schedules"
+    },
+    "about": {
+      "tagline": "Who We Are",
+      "description": "Learn about our mission, faculty, and selected toppers.",
+      "organisation": "ORGANISATION",
+      "aboutFA": "About Final Attempt",
+      "aboutFADesc": "Our story, mission, and vision",
+      "connect": "CONNECT WITH US",
+      "contactUs": "Contact Us",
+      "contactUsDesc": "Get in touch or visit our center",
+      "enrollNow": "Enroll Now",
+      "enrollNowDesc": "Start your preparation today",
+      "quickLinks": "Quick Links:",
+      "downloadPyqs": "Download PYQs",
+      "dailyCa": "Daily Current Affairs"
+    }
+  },
+  "currentAffairs": {
+    "title": "Current Affairs",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "videos": "Videos",
+    "readMore": "Read More",
+    "publishedOn": "Published",
+    "readingTime": "min read",
+    "category": "Category",
+    "tags": "Tags",
+    "relatedArticles": "Related Articles",
+    "tableOfContents": "Table of Contents",
+    "loading": "Loading current affairs...",
+    "noArticles": "No articles available",
+    "selectDate": "Select Date",
+    "searchArticles": "Search articles...",
+    "filterByCategory": "Filter by category",
+    "hindi": "Hindi",
+    "english": "English",
+    "notAvailableHindi": "Hindi content for this article is not available yet.",
+    "showingEnglish": "Showing English version.",
+    "dailyUpdates": "Daily Updates",
+    "newsToday": "News Today",
+    "weeklyMonthly": "Weekly & Monthly",
+    "monthlyMagazine": "Monthly Magazine",
+    "periodicReviews": "Periodic Reviews",
+    "bihar": "Bihar",
+    "arunachal": "Arunachal",
+    "topics": "Topics",
+    "nationalAffairs": "National Affairs",
+    "internationalAffairs": "International Affairs",
+    "biharState": "Bihar & State",
+    "articlesByRegionTopic": "Articles by Region & Topic",
+    "allTopics": "All Topics",
+    "national": "National",
+    "international": "International",
+    "biharSpecial": "Bihar Special",
+    "arunachalSpecial": "Arunachal Special",
+    "importance": {
+      "HIGH": "High Importance",
+      "MEDIUM": "Medium Importance",
+      "LOW": "Low Importance"
+    }
   }
 }

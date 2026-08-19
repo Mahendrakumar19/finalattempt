@@ -41,7 +41,8 @@
     "exploreAllExams": "सभी परीक्षाएं देखें",
     "downloadFreeMaterial": "निःशुल्क सामग्री डाउनलोड करें",
     "readLatestBlogs": "नवीनतम ब्लॉग पढ़ें",
-    "contactAdmissions": "प्रवेश हेतु संपर्क करें"
+    "contactAdmissions": "प्रवेश हेतु संपर्क करें",
+    "downloads": "डाउनलोड"
   },
   "mega": {
     "courses": {
@@ -227,7 +228,8 @@
     "failedOTP": "OTP भेजने में विफल।",
     "invalidOTP": "अमान्य या समय-सीमा समाप्त OTP।",
     "enterIdentifier": "अपना ईमेल या मोबाइल नंबर दर्ज करें।",
-    "loadingStudentConsole": "छात्र कंसोल लोड हो रहा है..."
+    "loadingStudentConsole": "छात्र कंसोल लोड हो रहा है...",
+    "email": "ईमेल पता"
   },
   "student": {
     "portal": "छात्र पोर्टल",
@@ -441,7 +443,12 @@
     "downloadCount": "डाउनलोड",
     "language": "भाषा",
     "free": "निःशुल्क",
-    "premium": "प्रीमियम"
+    "premium": "प्रीमियम",
+    "viewPDF": "PDF देखें",
+    "downloadPDF": "PDF डाउनलोड करें",
+    "rapidRevisionTitle": "रैपिड रिवीजन",
+    "toppersCopiesTitle": "टॉपर्स की प्रतियां",
+    "valueAddedTitle": "वैल्यू एडेड सामग्री — मुख्य परीक्षा"
   },
   "currentAffairs": {
     "title": "समसामयिकी",
