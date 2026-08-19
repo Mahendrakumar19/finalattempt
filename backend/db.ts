@@ -5142,7 +5142,11 @@ class LmsDB {
     const now = new Date();
     const finalSetCode = setCode || 'SET-A';
 
-    const attemptObj = { id, userId, quizId, setCode: finalSetCode, answers, score, maxScore, passed, timeTakenSecs, status: 'SUBMITTED', submittedAt: now.toISOString() };
+    const safeScore = isNaN(Number(score)) ? 0 : Number(score);
+    const safeMaxScore = isNaN(Number(maxScore)) ? 0 : Number(maxScore);
+    const safeTimeTaken = isNaN(Number(timeTakenSecs)) ? 0 : Number(timeTakenSecs);
+
+    const attemptObj = { id, userId, quizId, setCode: finalSetCode, answers, score: safeScore, maxScore: safeMaxScore, passed, timeTakenSecs: safeTimeTaken, status: 'SUBMITTED', submittedAt: now.toISOString() };
     const existingIdx = lmsLocalAttempts.findIndex(a => a.id === id || (a.userId === userId && a.quizId === quizId));
     if (existingIdx >= 0) {
       lmsLocalAttempts[existingIdx] = { ...lmsLocalAttempts[existingIdx], ...attemptObj };
@@ -5165,13 +5169,13 @@ class LmsDB {
              timeTakenSecs = VALUES(timeTakenSecs),
              status = 'SUBMITTED',
              submittedAt = NOW()`,
-          [id, userId, quizId, finalSetCode, answersJson, score, maxScore, passedVal, timeTakenSecs]
+          [id, userId, quizId, finalSetCode, answersJson, safeScore, safeMaxScore, passedVal, safeTimeTaken]
         );
-        return { id, userId, quizId, setCode: finalSetCode, score, maxScore, passed, timeTakenSecs, submittedAt: now };
+        return { id, userId, quizId, setCode: finalSetCode, score: safeScore, maxScore: safeMaxScore, passed, timeTakenSecs: safeTimeTaken, submittedAt: now };
       } catch (err) { console.error('[LmsDB] submitQuizAttempt MySQL error:', err); }
     }
 
-    return { id, userId, quizId, setCode: finalSetCode, score, maxScore, passed, timeTakenSecs, submittedAt: now };
+    return { id, userId, quizId, setCode: finalSetCode, score: safeScore, maxScore: safeMaxScore, passed, timeTakenSecs: safeTimeTaken, submittedAt: now };
   }
 
   async getQuizAttempts(userId: string, quizId: string): Promise<any[]> {

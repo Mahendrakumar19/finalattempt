@@ -294,17 +294,17 @@ router.post('/daily/:quizId/submit', optionalAuth, async (req: AuthRequest, res:
     for (const q of questions) {
       const studentAnswer = answers[q.id];
       const correct = studentAnswer === q.correctAnswer;
-      const questionMarks = q.marks || 1.0;
-      const negativeVal = q.negativeMarks || 0.33;
+      const questionMarks = Number(q.marks) || 1.0;
+      const negativeVal = Number(q.negativeMarks) || 0.33;
 
-      maxScore += questionMarks;
+      maxScore = Number(maxScore) + questionMarks;
 
       if (studentAnswer) {
         if (correct) {
-          score += questionMarks;
+          score = Number(score) + questionMarks;
           correctCount++;
         } else {
-          score -= negativeVal;
+          score = Number(score) - negativeVal;
           incorrectCount++;
         }
       } else {
@@ -704,16 +704,16 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
     for (const q of questions) {
       const studentAnswer = answers[q.id];
       const correct = studentAnswer === q.correctAnswer;
-      const questionMarks = q.marks || 1.0;
-      const negativeVal = q.negativeMarks || 0.33;
+      const questionMarks = Number(q.marks) || 1.0;
+      const negativeVal = Number(q.negativeMarks) || 0.33;
 
-      maxScore += questionMarks;
+      maxScore = Number(maxScore) + questionMarks;
 
       if (studentAnswer) {
         if (correct) {
-          score += questionMarks;
+          score = Number(score) + questionMarks;
         } else {
-          score -= negativeVal;
+          score = Number(score) - negativeVal;
         }
       }
 
