@@ -680,6 +680,9 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       )
     `);
 
+    // Auto-migrate lessonId column on existing lms_quizzes table
+    try { await pool.query('ALTER TABLE lms_quizzes ADD COLUMN lessonId VARCHAR(255)'); } catch (_) {}
+
     // 11. LMS Questions
     await pool.query(`
       CREATE TABLE IF NOT EXISTS lms_questions (
@@ -705,10 +708,16 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       )
     `);
 
-    // Auto-migrate optional Hindi columns on existing lms_questions table
-    try {
-      await pool.query('ALTER TABLE lms_questions ADD COLUMN questionTextHi TEXT, ADD COLUMN optionAHi TEXT, ADD COLUMN optionBHi TEXT, ADD COLUMN optionCHi TEXT, ADD COLUMN optionDHi TEXT, ADD COLUMN explanationHi TEXT');
-    } catch (_) {}
+    // Auto-migrate optional Hindi and score columns on existing lms_questions table
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN questionTextHi TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN optionAHi TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN optionBHi TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN optionCHi TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN optionDHi TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN explanationHi TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN marks DECIMAL(5,2) DEFAULT 1.00'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN negativeMarks DECIMAL(5,2) DEFAULT 0.33'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN orderIndex INT DEFAULT 1'); } catch (_) {}
 
     // 12. LMS Quiz Attempts
     await pool.query(`
@@ -833,6 +842,10 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query('ALTER TABLE TestSeries ADD COLUMN moduleCode VARCHAR(100)'); } catch (_) {}
     try { await pool.query('ALTER TABLE TestSeries ADD COLUMN medium VARCHAR(100)'); } catch (_) {}
     try { await pool.query('ALTER TABLE TestSeries ADD COLUMN programDetails TEXT'); } catch (_) {}
+
+    // Drop restrictive Foreign Key on lms_enrollments.courseId so TestSeries enrollments succeed on MySQL
+    try { await pool.query('ALTER TABLE lms_enrollments DROP FOREIGN KEY lms_enrollments_ibfk_2'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_enrollments DROP FOREIGN KEY lms_enrollments_courseId_fkey'); } catch (_) {}
 
     console.log('MySQL Database tables initialized successfully.');
 
@@ -4103,10 +4116,27 @@ class LmsDB {
           'INSERT INTO lms_enrollments (id, userId, courseId, paymentOrderId, paymentStatus, amountPaid) VALUES (?, ?, ?, ?, ?, ?)',
           [enrollment.id, userId, courseId, enrollment.paymentOrderId, enrollment.paymentStatus, enrollment.amountPaid]
         );
-        // Update enrolled count
+        // Update enrolled count on both Courses and Test Series
         await mysqlPool.query('UPDATE lms_courses SET enrolledCount = enrolledCount + 1 WHERE id = ?', [courseId]);
+        await mysqlPool.query('UPDATE TestSeries SET enrolledCount = enrolledCount + 1 WHERE id = ? OR slug = ?', [courseId, courseId]);
         return enrollment;
-      } catch (err) { console.error('[LmsDB] createEnrollment MySQL error:', err); }
+      } catch (err: any) {
+        console.error('[LmsDB] createEnrollment MySQL error:', err);
+        // If Foreign Key constraint error occurs, drop FK lms_enrollments_ibfk_2 dynamically and retry insert
+        if (err && (err.code === 'ER_NO_REFERENCED_ROW_2' || err.errno === 1452 || String(err.message).includes('foreign key constraint'))) {
+          try {
+            await mysqlPool.query('ALTER TABLE lms_enrollments DROP FOREIGN KEY lms_enrollments_ibfk_2');
+            await mysqlPool.query(
+              'INSERT INTO lms_enrollments (id, userId, courseId, paymentOrderId, paymentStatus, amountPaid) VALUES (?, ?, ?, ?, ?, ?)',
+              [enrollment.id, userId, courseId, enrollment.paymentOrderId, enrollment.paymentStatus, enrollment.amountPaid]
+            );
+            await mysqlPool.query('UPDATE TestSeries SET enrolledCount = enrolledCount + 1 WHERE id = ? OR slug = ?', [courseId, courseId]);
+            return enrollment;
+          } catch (retryErr) {
+            console.error('[LmsDB] createEnrollment retry error:', retryErr);
+          }
+        }
+      }
     }
     lmsLocalEnrollments.push({ id: enrollment.id, userId, courseId, enrolledAt: enrollment.enrolledAt });
     return enrollment;
