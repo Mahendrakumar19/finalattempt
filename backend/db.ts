@@ -827,6 +827,13 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS exam VARCHAR(100) DEFAULT 'BPSC'"); } catch (_) {}
     try { await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS schedule VARCHAR(255)"); } catch (_) {}
 
+    // TestSeries table column auto-migrations
+    try { await pool.query('ALTER TABLE TestSeries ADD COLUMN exam VARCHAR(100)'); } catch (_) {}
+    try { await pool.query('ALTER TABLE TestSeries ADD COLUMN schedulePdfUrl TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE TestSeries ADD COLUMN moduleCode VARCHAR(100)'); } catch (_) {}
+    try { await pool.query('ALTER TABLE TestSeries ADD COLUMN medium VARCHAR(100)'); } catch (_) {}
+    try { await pool.query('ALTER TABLE TestSeries ADD COLUMN programDetails TEXT'); } catch (_) {}
+
     console.log('MySQL Database tables initialized successfully.');
 
     
@@ -1611,12 +1618,13 @@ class BackendDB {
       try {
         await mysqlPool.query(
           `INSERT INTO TestSeries (
-            id, examId, stageId, title, slug, category, language, status, thumbnailUrl, bannerUrl,
+            id, examId, exam, stageId, title, slug, category, language, status, thumbnailUrl, bannerUrl,
             price, discountedPrice, totalTests, totalQuestions, duration, description, highlights, syllabus, faq,
-            batchStartDate, enrolledCount, validityDays, isPublished, displayOrder, createdAt, updatedAt
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            batchStartDate, enrolledCount, validityDays, isPublished, displayOrder, schedulePdfUrl, moduleCode, medium, programDetails, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
           ON DUPLICATE KEY UPDATE
             examId = VALUES(examId),
+            exam = VALUES(exam),
             stageId = VALUES(stageId),
             title = VALUES(title),
             slug = VALUES(slug),
@@ -1639,14 +1647,19 @@ class BackendDB {
             validityDays = VALUES(validityDays),
             isPublished = VALUES(isPublished),
             displayOrder = VALUES(displayOrder),
+            schedulePdfUrl = VALUES(schedulePdfUrl),
+            moduleCode = VALUES(moduleCode),
+            medium = VALUES(medium),
+            programDetails = VALUES(programDetails),
             updatedAt = NOW()`,
           [
-            id, item.examId, item.stageId || null, item.title, slug, item.category || null, item.language || 'Bilingual (Hindi & English)',
+            id, item.examId, item.exam || 'BPSC', item.stageId || null, item.title, slug, item.category || null, item.language || 'Bilingual (Hindi & English)',
             item.status || 'active', item.thumbnailUrl || null, item.bannerUrl || null, Number(item.price) || 0,
             item.discountedPrice ? Number(item.discountedPrice) : null, Number(item.totalTests) || 0, Number(item.totalQuestions) || 0,
             item.duration || '6 Months Validity', item.description || null, JSON.stringify(item.highlights || []),
             JSON.stringify(item.syllabus || []), JSON.stringify(item.faq || []), item.batchStartDate || null,
-            Number(item.enrolledCount) || 0, Number(item.validityDays) || 180, item.isPublished !== false ? 1 : 0, Number(item.displayOrder) || 1
+            Number(item.enrolledCount) || 0, Number(item.validityDays) || 180, item.isPublished !== false ? 1 : 0, Number(item.displayOrder) || 1,
+            item.schedulePdfUrl || null, item.moduleCode || null, item.medium || null, item.programDetails || null
           ]
         );
         return { ...item, id, slug };
@@ -4170,7 +4183,7 @@ class LmsDB {
         const [rows]: any = await mysqlPool.query(
           `SELECT e.*, 
                   COALESCE(c.title, ts.title) as title, 
-                  COALESCE(c.category, CONCAT(ts.category, ' • ', ts.exam)) as category, 
+                  COALESCE(c.category, ts.category, 'Test Series') as category, 
                   COALESCE(c.thumbnailUrl, ts.thumbnailUrl) as thumbnailUrl, 
                   COALESCE(c.duration, ts.duration) as duration,
                   ts.slug as testSeriesSlug,
