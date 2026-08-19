@@ -3158,11 +3158,17 @@ async function initializeAuthTables(pool: mysql.Pool) {
         isEmailVerified  TINYINT(1)   DEFAULT 0,
         isMobileVerified TINYINT(1)   DEFAULT 0,
         targetExam       VARCHAR(100),
+        state            VARCHAR(100),
+        district         VARCHAR(100),
         isActive         TINYINT(1)   DEFAULT 1,
         createdAt        DATETIME DEFAULT CURRENT_TIMESTAMP,
         lastLoginAt      DATETIME
       )
     `);
+
+    // Auto-migrate state & district columns if upgrading existing DB
+    try { await pool.query('ALTER TABLE users ADD COLUMN state VARCHAR(100)'); } catch (_) {}
+    try { await pool.query('ALTER TABLE users ADD COLUMN district VARCHAR(100)'); } catch (_) {}
 
     // Seed default users if table is empty
     const [userCount]: any = await pool.query('SELECT COUNT(*) as count FROM users');
