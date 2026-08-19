@@ -465,12 +465,7 @@ function StudentDashboardContent() {
                             {quiz.timeLimitMins} mins
                           </span>
                         )}
-                        {quiz.passingScore && (
-                          <span className="flex items-center gap-1">
-                            <span className="w-3.5 h-3.5 inline-block">🎯</span>
-                            Pass: {quiz.passingScore}%
-                          </span>
-                        )}
+
                       </div>
 
                       {/* CTA */}

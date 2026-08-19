@@ -231,7 +231,7 @@ export default function TestSeriesDetailPage() {
                               MOCK TEST #{idx + 1}
                             </span>
                             <span className="text-[10px] font-bold text-slate-400">
-                              {quiz.passingScore ? `Pass: ${quiz.passingScore}%` : 'BPSC Cutoff Rules'}
+                              {quiz.timeLimitMins ? `${quiz.timeLimitMins} Mins` : 'Standard Duration'}
                             </span>
                           </div>
 

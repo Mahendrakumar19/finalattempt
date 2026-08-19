@@ -386,7 +386,6 @@ export default function StudentPrelimsPage() {
 
                         <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-slate-400 pt-1">
                           <span className="flex items-center gap-1"><Timer className="w-3.5 h-3.5 text-amber-500" /> {quiz.timeLimitMins || 60} Mins</span>
-                          <span>Cutoff: {quiz.passingScore || 40}%</span>
                           <span>Pattern: CBT MCQ</span>
                         </div>
 

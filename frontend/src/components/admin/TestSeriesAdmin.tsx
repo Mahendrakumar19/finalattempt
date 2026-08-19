@@ -1146,7 +1146,7 @@ export default function TestSeriesAdmin({
                           <div className="min-w-0">
                             <p className="text-xs font-black text-[var(--text-color)] truncate">{quiz.title}</p>
                             <p className="text-[10px] text-slate-400 font-bold">
-                              {quiz.timeLimitMins ? `${quiz.timeLimitMins} mins` : 'No time limit'} • Passing Score: {quiz.passingScore || 40}%
+                              {quiz.timeLimitMins ? `${quiz.timeLimitMins} mins` : 'No time limit'}
                             </p>
                           </div>
                           <div className="ml-2 shrink-0">
@@ -1957,15 +1957,7 @@ export default function TestSeriesAdmin({
                     className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs shadow-xs focus:border-amber-500 transition-colors"
                   />
                 </div>
-                <div>
-                  <label className="block text-slate-700 dark:text-slate-300 mb-1.5 text-xs">Passing Cut-off Score (%)</label>
-                  <input
-                    type="number"
-                    value={quizForm.passingScore}
-                    onChange={e => setQuizForm({ ...quizForm, passingScore: Number(e.target.value) })}
-                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs shadow-xs focus:border-amber-500 transition-colors"
-                  />
-                </div>
+
               </div>
 
               {/* SET-Wise Exam Paper Access Configuration Card */}

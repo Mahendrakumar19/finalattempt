@@ -374,8 +374,8 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 <p className="text-lg font-black mt-0.5" style={{ color: cbtDark ? '#FFFFFF' : '#0F172A' }}>{quizInfo?.timeLimitMins || 60} Mins</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>Passing Cut-off</p>
-                <p className="text-lg font-black mt-0.5" style={{ color: cbtDark ? '#FFFFFF' : '#0F172A' }}>{quizInfo?.passingScore || 40}%</p>
+                <p className="text-[10px] uppercase font-bold" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>Exam Mode</p>
+                <p className="text-lg font-black mt-0.5" style={{ color: cbtDark ? '#FFFFFF' : '#0F172A' }}>Bilingual</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase font-bold" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>Marking Scheme</p>
@@ -1000,7 +1000,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4 py-4 border-y-2 border-current text-center text-xs font-bold">
+          <div className="grid grid-cols-3 gap-4 py-4 border-y-2 border-current text-center text-xs font-bold">
             <div>
               <p className="text-[10px] uppercase opacity-70">Your Score</p>
               <p className="text-lg font-black">{results?.score.toFixed(2)}</p>
@@ -1012,10 +1012,6 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             <div>
               <p className="text-[10px] uppercase opacity-70">Accuracy</p>
               <p className="text-lg font-black">{results?.percentage.toFixed(1)}%</p>
-            </div>
-            <div>
-              <p className="text-[10px] uppercase opacity-70">Cut-off</p>
-              <p className="text-lg font-black">{quizInfo?.passingScore || 40}%</p>
             </div>
           </div>
 
