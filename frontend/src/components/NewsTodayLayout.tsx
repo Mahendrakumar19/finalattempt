@@ -125,22 +125,34 @@ export default function NewsTodayLayout({
     loadData();
   }, [currentDateStr, currentArticleSlug, locale]);
 
+  // Keep calendarDate in sync with currentDateStr URL changes
+  useEffect(() => {
+    if (currentDateStr) {
+      const parts = currentDateStr.split('-');
+      if (parts.length === 3) {
+        setCalendarDate(new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
+      }
+    }
+  }, [currentDateStr]);
+
   // Set of dates that have published editions (YYYY-MM-DD)
   const publishedDatesSet = useMemo(() => {
     return new Set(editions.map(e => e.publishDate));
   }, [editions]);
 
-  // Unique Years available in DB
+  // Unique Years available in DB + Current & Recent Years
   const availableYears = useMemo(() => {
     const yearsSet = new Set<string>();
+    const nowYr = new Date().getFullYear();
+    for (let y = nowYr - 3; y <= nowYr + 1; y++) {
+      yearsSet.add(String(y));
+    }
     editions.forEach(ed => {
       const yr = ed.publishDate.split('-')[0];
       if (yr) yearsSet.add(yr);
     });
-    const currYr = String(calendarDate.getFullYear());
-    yearsSet.add(currYr);
     return Array.from(yearsSet).sort((a, b) => Number(b) - Number(a));
-  }, [editions, calendarDate]);
+  }, [editions]);
 
   // Calendar Day Generation Helper
   const calendarDays = useMemo(() => {
@@ -174,21 +186,17 @@ export default function NewsTodayLayout({
     return days;
   }, [calendarDate, publishedDatesSet, currentDateStr, currentEdition]);
 
-  // Dropdown Change Handlers
+  // Dropdown Change Handlers — Update calendar grid view without forcing invalid redirects
   const handleYearChange = (newYearStr: string) => {
     const yr = parseInt(newYearStr, 10);
     const mo = calendarDate.getMonth();
     setCalendarDate(new Date(yr, mo, 1));
-    const mStr = String(mo + 1).padStart(2, '0');
-    router.push(`/current-affairs/daily/${yr}-${mStr}-01`);
   };
 
   const handleMonthChange = (newMonthIdxStr: string) => {
     const yr = calendarDate.getFullYear();
     const mo = parseInt(newMonthIdxStr, 10);
     setCalendarDate(new Date(yr, mo, 1));
-    const mStr = String(mo + 1).padStart(2, '0');
-    router.push(`/current-affairs/daily/${yr}-${mStr}-01`);
   };
 
   const handleDayChange = (newDayStr: string) => {

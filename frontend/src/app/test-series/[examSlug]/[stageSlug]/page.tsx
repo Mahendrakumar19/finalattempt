@@ -22,10 +22,8 @@ export default function StageFolderPage() {
     async function loadStageFolder() {
       setLoading(true);
       try {
-        const [hierarchy, allSeries] = await Promise.all([
-          db.getExamsHierarchy(false),
-          db.getTestSeries(false)
-        ]);
+        const hierarchy = await db.getExamsHierarchy(false);
+        const allSeries = hierarchy.flatMap((ex) => ex.testSeries || []);
 
         const foundExam = hierarchy.find(
           (e) => e.slug.toLowerCase() === examSlug.toLowerCase() || e.id === examSlug || e.code?.toLowerCase() === examSlug.toLowerCase()
@@ -176,11 +174,15 @@ export default function StageFolderPage() {
                         </p>
                       </div>
 
-                      {/* Additional Key Attributes: Medium, Start Date, Program Details */}
+                      {/* Additional Key Attributes: Medium, Enrolled Aspirants, Start Date, Program Details */}
                       <div className="space-y-1.5 pt-2 border-t border-[var(--card-border)] text-xs font-semibold text-[var(--text-color)]">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase text-slate-400">{t('testSeriesHub.medium')}</span>
                           <span className="text-amber-600 dark:text-amber-400 font-extrabold">{series.medium || series.language || 'English'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase text-slate-400">Enrolled Aspirants</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">{Math.max(600, Number(series.enrolledCount) || 600)}+ Aspirants</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase text-slate-400">{t('testSeriesHub.startDate')}</span>

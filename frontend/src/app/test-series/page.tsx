@@ -18,8 +18,8 @@ export default function TestSeriesRootPage() {
       try {
         const list = await db.getExamsHierarchy(false);
         setExams(list || []);
-        const seriesList = await db.getTestSeries(false);
-        setAllSeries(seriesList || []);
+        const flattenedSeries = (list || []).flatMap((ex) => ex.testSeries || []);
+        setAllSeries(flattenedSeries);
       } catch (err) {
         console.error('Error loading exams hierarchy:', err);
       } finally {

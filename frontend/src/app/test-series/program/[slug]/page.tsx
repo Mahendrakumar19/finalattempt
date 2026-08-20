@@ -168,7 +168,7 @@ export default function TestSeriesDetailPage() {
             </div>
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Enrolled</span>
-              <span className="font-bold text-[var(--text-color)]">{series.enrolledCount}+ Aspirants</span>
+              <span className="font-bold text-[var(--text-color)]">{Math.max(600, Number(series.enrolledCount) || 600)}+ Aspirants</span>
             </div>
           </div>
         </div>

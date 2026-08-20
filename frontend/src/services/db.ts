@@ -1132,6 +1132,7 @@ class FinalAttemptDB {
     const localExams = this.getLocalExamsStore();
     let exams: ExamData[] = [];
 
+    let allSeries: TestSeriesItem[] = [];
     if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
       const serverMap = new Map<string, ExamData>();
       data.data.forEach((e: ExamData) => {
@@ -1148,6 +1149,7 @@ class FinalAttemptDB {
       });
       exams = Array.from(serverMap.values());
       this.setLocalExamsStore(exams);
+      allSeries = exams.flatMap(e => e.testSeries || []);
     } else {
       const uniqueMap = new Map<string, ExamData>();
       localExams.forEach(e => {
@@ -1157,14 +1159,12 @@ class FinalAttemptDB {
         }
       });
       exams = Array.from(uniqueMap.values());
+      allSeries = await this.getTestSeries(includeUnpublished);
     }
-
-    // Load all test series items to ensure every exam folder shows its test series count & items
-    const allSeries = await this.getTestSeries(includeUnpublished);
 
     const result = exams.map((ex) => {
       const examKey = (ex.code || ex.name || ex.id || '').toLowerCase();
-      const matchedSeries = allSeries.filter((s) => {
+      const matchedSeries = (ex.testSeries && ex.testSeries.length > 0) ? ex.testSeries : allSeries.filter((s) => {
         const seriesExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
         return (
           s.examId === ex.id ||
