@@ -220,11 +220,6 @@ export default function ExamFolderPage() {
                               {series.title}
                             </h3>
                           </div>
-                          {series.moduleCode && (
-                            <span className="inline-block px-2.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono text-[10px] font-bold rounded-md border border-[var(--card-border)]">
-                              Module Code - {series.moduleCode.replace(/^Module Code\s*-\s*/i, '')}
-                            </span>
-                          )}
                           <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                             {series.description}
                           </p>

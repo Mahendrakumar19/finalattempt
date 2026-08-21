@@ -369,11 +369,6 @@ export default function TestSeriesComparisonTable({
                           >
                             {program.title}
                           </Link>
-                          {program.moduleCode && (
-                            <span className="text-[10px] font-mono font-bold text-slate-400 block">
-                              Module Code - {program.moduleCode.replace(/^Module Code\s*-\s*/i, '')}
-                            </span>
-                          )}
                         </div>
                       </td>
 
