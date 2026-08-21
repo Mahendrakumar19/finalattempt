@@ -5,7 +5,7 @@ import {
   Bold, Italic, Underline, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Link as LinkIcon, Sparkles, Paintbrush,
   Table, Image as ImageIcon, Box, CheckCircle, Maximize2, Minimize2, X, Scaling,
-  FileText, Paperclip, FolderOpen, AlignLeft, AlignCenter, AlignRight
+  FileText, Paperclip, FolderOpen, AlignLeft, AlignCenter, AlignRight, Layout, Move, Eye, ChevronDown
 } from 'lucide-react';
 import MediaPicker from '@/components/MediaPicker';
 
@@ -21,6 +21,13 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
   const isFirstLoad = useRef(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [selectedTableWidth, setSelectedTableWidth] = useState('100%');
+
+  // Selected element for text-wrapping operations
+  const [selectedImageNode, setSelectedImageNode] = useState<HTMLElement | null>(null);
+  const [showWrapTextMenu, setShowWrapTextMenu] = useState(false);
+
+  // Pending image placement modal state
+  const [pendingImage, setPendingImage] = useState<{ url: string; title: string } | null>(null);
 
   // Media Asset Picker Modal state
   const [showMediaPicker, setShowMediaPicker] = useState(false);
@@ -49,7 +56,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
     }
   }, [value]);
 
-  const handleInput = (e?: any) => {
+  const handleInput = () => {
     const targetRef = isFullscreen ? modalEditorRef : editorRef;
     if (targetRef.current) {
       const html = targetRef.current.innerHTML;
@@ -58,6 +65,19 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       if (isFullscreen && editorRef.current) {
         editorRef.current.innerHTML = html;
       }
+    }
+  };
+
+  const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (target.nodeName === 'IMG') {
+      setSelectedImageNode(target);
+    } else if (target.closest('.image-wrap-container')) {
+      setSelectedImageNode(target.closest('.image-wrap-container') as HTMLElement);
+    } else if (target.closest('img')) {
+      setSelectedImageNode(target.closest('img') as HTMLElement);
+    } else {
+      setSelectedImageNode(null);
     }
   };
 
@@ -105,33 +125,15 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
   const handleMediaSelect = (fileUrl: string, item: any) => {
     setShowMediaPicker(false);
     if (mediaPickerMode === 'IMAGE') {
-      const alignChoice = prompt('Image Alignment & Placement:\nEnter "center" (default), "left", "right", or "full":', 'center') || 'center';
-      const align = alignChoice.toLowerCase().trim();
-
-      let styleStr = 'max-width:100%; height:auto; border-radius:12px; border:1px solid #cbd5e1; box-shadow:0 4px 12px rgba(0,0,0,0.06);';
-      let wrapperStyle = 'margin:1.5rem 0; text-align:center;';
-
-      if (align === 'left') {
-        wrapperStyle = 'margin:1rem 1.5rem 1rem 0; float:left; max-width:45%;';
-      } else if (align === 'right') {
-        wrapperStyle = 'margin:1rem 0 1rem 1.5rem; float:right; max-width:45%;';
-      } else if (align === 'full') {
-        wrapperStyle = 'margin:1.5rem 0; text-align:center; width:100%;';
-        styleStr += ' width:100%; object-fit:cover;';
-      } else {
-        // Center top / default
-        wrapperStyle = 'margin:1.5rem auto; text-align:center; display:block; max-width:85%;';
-      }
-
-      const imgHtml = `<div style="${wrapperStyle}"><img src="${fileUrl}" alt="${item.title || 'Image'}" style="${styleStr}" /><p style="font-size:11px; color:#64748b; margin-top:6px; font-weight:600;">${item.title || ''}</p></div><p style="clear:both;"></p>`;
-      execCmd('insertHTML', imgHtml);
+      // Open visual text wrap placement modal
+      setPendingImage({ url: fileUrl, title: item.title || item.originalName || 'Image' });
     } else {
       // Document / PDF / Attachment card
       const docName = item.originalName || item.title || 'Download Document';
       const fileSize = (item.size / 1024).toFixed(1);
       const ext = (item.extension || 'FILE').toUpperCase();
       const docHtml = `
-        <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:14px; padding:12px 16px; margin:1rem 0; display:flex; align-items:center; justify-between; gap:12px;">
+        <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:14px; padding:12px 16px; margin:1rem 0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
           <div style="display:flex; align-items:center; gap:10px;">
             <div style="background:#0f172a; color:#f59e0b; padding:8px; border-radius:10px; font-weight:900; font-size:11px;">📄 ${ext}</div>
             <div>
@@ -144,6 +146,138 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       `;
       execCmd('insertHTML', docHtml);
     }
+  };
+
+  const insertImageWithWrap = (wrapMode: string) => {
+    if (!pendingImage) return;
+    const { url, title } = pendingImage;
+    setPendingImage(null);
+
+    let wrapperStyle = 'margin:1.5rem auto; text-align:center; display:block; max-width:85%; clear:both;';
+    let imgStyle = 'max-width:100%; height:auto; border-radius:12px; border:1px solid #cbd5e1; box-shadow:0 4px 12px rgba(0,0,0,0.06);';
+
+    switch (wrapMode) {
+      case 'SQUARE_RIGHT':
+        wrapperStyle = 'margin:0.5rem 0 1rem 1.5rem; float:right; max-width:48%; display:inline-block; clear:none;';
+        break;
+      case 'SQUARE_LEFT':
+        wrapperStyle = 'margin:0.5rem 1.5rem 1rem 0; float:left; max-width:48%; display:inline-block; clear:none;';
+        break;
+      case 'INLINE':
+        wrapperStyle = 'margin:0.5rem; float:none; display:inline-block; vertical-align:middle; max-width:100%; clear:none;';
+        break;
+      case 'TOP_BOTTOM':
+        wrapperStyle = 'margin:1.5rem auto; float:none; clear:both; display:block; text-align:center; max-width:85%;';
+        break;
+      case 'FULL_WIDTH':
+        wrapperStyle = 'margin:1.5rem 0; float:none; clear:both; width:100%; display:block; text-align:center;';
+        imgStyle += ' width:100%; object-fit:cover;';
+        break;
+      case 'BEHIND_TEXT':
+        wrapperStyle = 'margin:0.5rem 0 1rem 1.5rem; float:right; max-width:48%; position:relative; z-index:0; opacity:0.55;';
+        break;
+      case 'IN_FRONT':
+        wrapperStyle = 'margin:0.5rem 0 1rem 1.5rem; float:right; max-width:48%; position:relative; z-index:10;';
+        break;
+      default:
+        wrapperStyle = 'margin:0.5rem 0 1rem 1.5rem; float:right; max-width:48%; display:inline-block;';
+    }
+
+    const captionHtml = title ? `<p style="font-size:11px; color:#64748b; margin-top:6px; font-weight:600; text-align:center;">${title}</p>` : '';
+    const imgHtml = `<div class="image-wrap-container" style="${wrapperStyle}"><img src="${url}" alt="${title}" style="${imgStyle}" />${captionHtml}</div><p style="clear:none;"></p>`;
+    execCmd('insertHTML', imgHtml);
+  };
+
+  const applyWrapStyle = (wrapMode: string) => {
+    setShowWrapTextMenu(false);
+    const targetRef = isFullscreen ? modalEditorRef : editorRef;
+    if (!targetRef.current) return;
+
+    let targetNode: HTMLElement | null = selectedImageNode;
+
+    if (!targetNode) {
+      const sel = window.getSelection();
+      if (sel && sel.anchorNode) {
+        let node: Node | null = sel.anchorNode;
+        while (node && node !== targetRef.current) {
+          if (node.nodeName === 'IMG') {
+            targetNode = node as HTMLElement;
+            break;
+          }
+          if (node.nodeType === 1 && (node as HTMLElement).classList?.contains('image-wrap-container')) {
+            targetNode = node as HTMLElement;
+            break;
+          }
+          node = node.parentNode;
+        }
+      }
+    }
+
+    if (!targetNode) {
+      const imgs = targetRef.current.querySelectorAll('img');
+      if (imgs.length === 1) {
+        targetNode = imgs[0];
+      }
+    }
+
+    if (!targetNode) {
+      alert('Please click on an image inside the editor first to apply text wrapping options.');
+      return;
+    }
+
+    let wrapper: HTMLElement;
+    if (targetNode.classList.contains('image-wrap-container')) {
+      wrapper = targetNode;
+    } else if (targetNode.parentNode && (targetNode.parentNode as HTMLElement).classList?.contains('image-wrap-container')) {
+      wrapper = targetNode.parentNode as HTMLElement;
+    } else {
+      const parent = targetNode.parentNode;
+      wrapper = document.createElement('div');
+      wrapper.className = 'image-wrap-container';
+      if (parent) {
+        parent.insertBefore(wrapper, targetNode);
+        wrapper.appendChild(targetNode);
+      }
+    }
+
+    const imgEl = wrapper.querySelector('img') || (targetNode.nodeName === 'IMG' ? targetNode : null);
+
+    if (imgEl) {
+      (imgEl as HTMLElement).style.maxWidth = '100%';
+      (imgEl as HTMLElement).style.height = 'auto';
+      (imgEl as HTMLElement).style.borderRadius = '12px';
+      (imgEl as HTMLElement).style.border = '1px solid #cbd5e1';
+      (imgEl as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.06)';
+    }
+
+    switch (wrapMode) {
+      case 'SQUARE_RIGHT':
+        wrapper.style.cssText = 'margin: 0.5rem 0 1rem 1.5rem; float: right; max-width: 48%; display: inline-block; clear: none;';
+        break;
+      case 'SQUARE_LEFT':
+        wrapper.style.cssText = 'margin: 0.5rem 1.5rem 1rem 0; float: left; max-width: 48%; display: inline-block; clear: none;';
+        break;
+      case 'INLINE':
+        wrapper.style.cssText = 'margin: 0.5rem; float: none; display: inline-block; vertical-align: middle; max-width: 100%; clear: none;';
+        break;
+      case 'TOP_BOTTOM':
+        wrapper.style.cssText = 'margin: 1.5rem auto; float: none; clear: both; display: block; text-align: center; max-width: 85%;';
+        break;
+      case 'FULL_WIDTH':
+        wrapper.style.cssText = 'margin: 1.5rem 0; float: none; clear: both; width: 100%; display: block; text-align: center;';
+        if (imgEl) (imgEl as HTMLElement).style.width = '100%';
+        break;
+      case 'BEHIND_TEXT':
+        wrapper.style.cssText = 'margin: 0.5rem 0 1rem 1.5rem; float: right; max-width: 48%; position: relative; z-index: 0; opacity: 0.55;';
+        break;
+      case 'IN_FRONT':
+        wrapper.style.cssText = 'margin: 0.5rem 0 1rem 1.5rem; float: right; max-width: 48%; position: relative; z-index: 10;';
+        break;
+      default:
+        wrapper.style.cssText = 'margin: 0.5rem 0 1rem 1.5rem; float: right; max-width: 48%; display: inline-block;';
+    }
+
+    handleInput();
   };
 
   const insertTable = () => {
@@ -173,7 +307,6 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
     execCmd('insertHTML', tableHtml);
   };
 
-  // Adjust width of table under selection
   const setTableWidth = (width: string) => {
     setSelectedTableWidth(width);
     const targetRef = isFullscreen ? modalEditorRef : editorRef;
@@ -248,7 +381,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
   ];
 
   const ToolbarControls = () => (
-    <div className="flex flex-wrap items-center gap-1 border-b border-slate-100 bg-slate-50/80 p-2 text-slate-800">
+    <div className="flex flex-wrap items-center gap-1 border-b border-slate-100 bg-slate-50/80 p-2 text-slate-800 relative select-none">
       <button
         type="button"
         onClick={() => execCmd('bold')}
@@ -347,6 +480,85 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
         <ImageIcon className="h-3.5 w-3.5 text-blue-600" />
         <span>+ Image</span>
       </button>
+
+      {/* ── DYNAMIC WRAP TEXT DROPDOWN MENU ─────────────────────────────────── */}
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setShowWrapTextMenu(!showWrapTextMenu)}
+          className="rounded p-1.5 text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-colors cursor-pointer flex items-center gap-1 font-extrabold text-[10px]"
+          title="Wrap text around image (Square, In Line, Top/Bottom, Behind, In Front)"
+        >
+          <Layout className="h-3.5 w-3.5 text-indigo-600" />
+          <span>Wrap Text</span>
+          <ChevronDown className="h-3 w-3 text-indigo-500" />
+        </button>
+
+        {showWrapTextMenu && (
+          <div className="absolute left-0 mt-1.5 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-50 p-2 space-y-1 animate-in fade-in duration-150">
+            <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-white/10">
+              Wrap Text & Layout Options
+            </div>
+
+            <button
+              type="button"
+              onClick={() => applyWrapStyle('SQUARE_RIGHT')}
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <span>🔲 Square / Wrap Right (Float Right)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyWrapStyle('SQUARE_LEFT')}
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <span>🔳 Square / Wrap Left (Float Left)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyWrapStyle('INLINE')}
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <span>📄 In Line with Text</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyWrapStyle('TOP_BOTTOM')}
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <span>⬆️⬇️ Top and Bottom (Center)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyWrapStyle('FULL_WIDTH')}
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <span>↔️ Full Width (100%)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyWrapStyle('BEHIND_TEXT')}
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <span>👻 Behind Text</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => applyWrapStyle('IN_FRONT')}
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <span>🔝 In Front of Text</span>
+            </button>
+          </div>
+        )}
+      </div>
+
       <button
         type="button"
         onClick={openDocumentPicker}
@@ -505,6 +717,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
           ref={editorRef}
           contentEditable
           onInput={handleInput}
+          onClick={handleEditorClick}
           className="min-h-[220px] max-h-[350px] overflow-y-auto bg-white p-4 outline-none text-slate-800 text-xs leading-relaxed prose max-w-none focus:outline-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 [&_th]:p-2.5 [&_th]:text-left [&_th]:font-bold [&_td]:p-2.5 [&_td]:border [&_td]:border-slate-200 [&_tr:nth-child(even)]:bg-slate-50/50"
         />
       </div>
@@ -548,6 +761,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
                   ref={modalEditorRef}
                   contentEditable
                   onInput={handleInput}
+                  onClick={handleEditorClick}
                   className="min-h-[550px] outline-none text-slate-900 dark:text-white text-sm sm:text-base leading-relaxed prose dark:prose-invert max-w-none focus:outline-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 [&_th]:dark:bg-slate-800 [&_th]:p-3 [&_th]:text-left [&_th]:font-bold [&_td]:p-3 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-white/10 [&_tr:nth-child(even)]:bg-slate-50/50 [&_tr:nth-child(even)]:dark:bg-slate-800/30"
                 />
               </div>
@@ -555,6 +769,88 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
           </div>
         </div>
       )}
+
+      {/* ── IMAGE WRAP TEXT PLACEMENT SELECTION MODAL ─────────────────────── */}
+      {pendingImage && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 max-w-lg w-full space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-amber-500 font-extrabold text-sm">🖼️ Image Text Wrap & Placement</span>
+              </div>
+              <button onClick={() => setPendingImage(null)} className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200 dark:border-white/5">
+              <img src={pendingImage.url} alt="Preview" className="w-20 h-20 object-cover rounded-xl border border-slate-300 dark:border-white/10 shrink-0" />
+              <div className="text-xs">
+                <p className="font-bold text-slate-900 dark:text-white line-clamp-1">{pendingImage.title || 'Selected Image'}</p>
+                <p className="text-slate-500 dark:text-slate-400 mt-0.5">Select how text should flow around this image:</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <button
+                type="button"
+                onClick={() => insertImageWithWrap('SQUARE_RIGHT')}
+                className="p-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl text-left font-bold text-amber-700 dark:text-amber-400 space-y-1 transition-all cursor-pointer shadow-2xs"
+              >
+                <div className="flex items-center gap-2 text-sm">
+                  <span>🔲 Square (Wrap Right)</span>
+                </div>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Image floats right. Text flows around image on the left (recommended!).</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => insertImageWithWrap('SQUARE_LEFT')}
+                className="p-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl text-left font-bold text-amber-700 dark:text-amber-400 space-y-1 transition-all cursor-pointer shadow-2xs"
+              >
+                <div className="flex items-center gap-2 text-sm">
+                  <span>🔳 Square (Wrap Left)</span>
+                </div>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Image floats left. Text flows around image on the right.</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => insertImageWithWrap('TOP_BOTTOM')}
+                className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-white/10 rounded-2xl text-left font-bold text-slate-900 dark:text-white space-y-1 transition-all cursor-pointer shadow-2xs"
+              >
+                <div className="flex items-center gap-2 text-sm">
+                  <span>⬆️⬇️ Top and Bottom</span>
+                </div>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Centered image. Breaks text into top and bottom blocks.</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => insertImageWithWrap('FULL_WIDTH')}
+                className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-white/10 rounded-2xl text-left font-bold text-slate-900 dark:text-white space-y-1 transition-all cursor-pointer shadow-2xs"
+              >
+                <div className="flex items-center gap-2 text-sm">
+                  <span>↔️ Full Width (100%)</span>
+                </div>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Spans full 100% container width.</p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => insertImageWithWrap('INLINE')}
+                className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 border border-slate-200 dark:border-white/10 rounded-2xl text-left font-bold text-slate-900 dark:text-white space-y-1 transition-all cursor-pointer sm:col-span-2 shadow-2xs"
+              >
+                <div className="flex items-center gap-2 text-sm">
+                  <span>📄 In Line with Text</span>
+                </div>
+                <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400">Treat image as an inline text element.</p>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Media Asset Picker Modal */}
       {showMediaPicker && (
         <MediaPicker
@@ -566,3 +862,4 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
     </>
   );
 }
+

@@ -514,7 +514,7 @@ app.delete('/api/current-affairs/:id', async (req, res) => {
 app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
   try {
     res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     const targetLang = getTargetLang(req);
     const includeDrafts = req.query.includeDrafts === 'true';
     const list = await db.getDynamicCurrentAffairsEditions(includeDrafts);
@@ -541,7 +541,7 @@ app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
 app.get('/api/dynamic-current-affairs/daily/:date', async (req, res) => {
   try {
     res.setHeader('Vary', 'x-locale');
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     const targetLang = getTargetLang(req);
     const includeDrafts = req.query.includeDrafts === 'true';
     const edition = await db.getDynamicCurrentAffairsEditionByDate(req.params.date, includeDrafts);
@@ -564,7 +564,7 @@ app.get('/api/dynamic-current-affairs/daily/:date', async (req, res) => {
 app.get('/api/dynamic-current-affairs/article/:slug', async (req, res) => {
   try {
     res.setHeader('Vary', 'x-locale');
-    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     const targetLang = getTargetLang(req);
     const includeDrafts = req.query.includeDrafts === 'true';
     const article = await db.getDynamicCurrentAffairArticle(req.params.slug, includeDrafts);

@@ -73,13 +73,54 @@ export class GoogleTranslationProvider implements ITranslationProvider {
   }
 
   /**
-   * Translates HTML rich text safely by extracting and translating only text nodes,
-   * leaving HTML tags, element attributes, links (href), and media intact.
+   * Translates HTML rich text safely.
+   * Attempts native Google HTML translation (translate-pa / Cloud v2) in a single request,
+   * falling back to Cheerio text node translation if needed.
    */
   async translateHtml(html: string, sourceLang: string, targetLang: string): Promise<string> {
     if (!html || !html.trim()) return html;
     if (sourceLang === targetLang) return html;
 
+    // 1. Primary Attempt: Native Google HTML Translation Endpoint (Single POST Request)
+    try {
+      if (this.apiKey) {
+        // Official Google Cloud Translate API v2 with format: 'html'
+        const res = await axios.post(`https://translation.googleapis.com/language/translate/v2`, null, {
+          params: {
+            q: html,
+            source: sourceLang,
+            target: targetLang,
+            format: 'html',
+            key: this.apiKey
+          },
+          timeout: 8000
+        });
+        if (res.data?.data?.translations?.[0]?.translatedText) {
+          return res.data.data.translations[0].translatedText;
+        }
+      } else {
+        // Google translate-pa HTML Endpoint
+        const res = await axios.post(
+          `https://translate-pa.googleapis.com/v1/translateHtml`,
+          {
+            html: [html],
+            sourceLanguage: sourceLang,
+            targetLanguage: targetLang
+          },
+          {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 8000
+          }
+        );
+        if (res.data?.responses?.[0]?.translatedHtml) {
+          return res.data.responses[0].translatedHtml;
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[TranslationProvider] Native HTML endpoint notice (${err.message || err}). Switching to Cheerio fallback...`);
+    }
+
+    // 2. Fallback Engine: Cheerio DOM text node extraction and parallel translation
     try {
       const $ = cheerio.load(html, { xmlMode: false });
 
@@ -126,7 +167,6 @@ export class GoogleTranslationProvider implements ITranslationProvider {
       resultHtml = resultHtml.replace(/^<html><head><\/head><body>/i, '').replace(/<\/body><\/html>$/i, '');
 
       // Post-processing fix: Insert spaces where Devanagari character directly touches an HTML tag or English word without space
-      // E.g., "हैसांस्कृतिक" or "है<b>"
       resultHtml = resultHtml.replace(/([\u0900-\u097F])([a-zA-Z])/g, '$1 $2');
       resultHtml = resultHtml.replace(/([a-zA-Z])([\u0900-\u097F])/g, '$1 $2');
 

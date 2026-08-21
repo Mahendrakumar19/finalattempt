@@ -871,50 +871,24 @@ class FinalAttemptDB {
 
   // Dynamic Current Affairs API calls
   public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
-    const locale = this.getLocale();
-    const cacheKey = `ca_editions_${includeDrafts}_${locale}`;
-    const cached = this.getCachedData<DynamicCurrentAffairEdition[]>(cacheKey, 60000);
-    if (cached) return cached;
-
-    const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}`);
-    const result = data || [];
-    this.setCachedData(cacheKey, result);
-    return result;
+    const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}&_t=${Date.now()}`);
+    return data || [];
   }
 
   public async getDynamicCurrentAffairsEditionByDate(date: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition | null> {
-    const locale = this.getLocale();
-    const cacheKey = `ca_edition_date_${date}_${includeDrafts}_${locale}`;
-    const cached = this.getCachedData<DynamicCurrentAffairEdition>(cacheKey, 60000);
-    if (cached) return cached;
-
-    const data = await this.apiFetch(`/api/dynamic-current-affairs/daily/${date}?includeDrafts=${includeDrafts}`);
-    if (data) this.setCachedData(cacheKey, data);
+    const data = await this.apiFetch(`/api/dynamic-current-affairs/daily/${date}?includeDrafts=${includeDrafts}&_t=${Date.now()}`);
     return data || null;
   }
 
   public async getDynamicCurrentAffairArticle(slug: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairArticle | null> {
-    const locale = this.getLocale();
-    const cacheKey = `ca_article_slug_${slug}_${includeDrafts}_${locale}`;
-    const cached = this.getCachedData<DynamicCurrentAffairArticle>(cacheKey, 60000);
-    if (cached) return cached;
-
-    const data = await this.apiFetch(`/api/dynamic-current-affairs/article/${slug}?includeDrafts=${includeDrafts}`);
-    if (data) this.setCachedData(cacheKey, data);
+    const data = await this.apiFetch(`/api/dynamic-current-affairs/article/${slug}?includeDrafts=${includeDrafts}&_t=${Date.now()}`);
     return data || null;
   }
 
   public async getDynamicCurrentAffairsSearch(params: Record<string, string>): Promise<DynamicCurrentAffairArticle[]> {
-    const locale = this.getLocale();
     const qs = new URLSearchParams(params).toString();
-    const cacheKey = `ca_search_${qs}_${locale}`;
-    const cached = this.getCachedData<DynamicCurrentAffairArticle[]>(cacheKey, 60000);
-    if (cached) return cached;
-
     const data = await this.apiFetch(`/api/dynamic-current-affairs/search?${qs}`);
-    const result = data || [];
-    this.setCachedData(cacheKey, result);
-    return result;
+    return data || [];
   }
 
   public async saveDynamicCurrentAffairsEdition(edition: DynamicCurrentAffairEdition): Promise<boolean> {
