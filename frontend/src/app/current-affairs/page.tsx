@@ -97,58 +97,77 @@ export default function CurrentAffairsLanding() {
 
   // ── Derived hrefs ──────────────────────────────────────────
   const latestDailyHref = useMemo(() => {
-    const latest = editions.sort((a, b) => b.publishDate.localeCompare(a.publishDate))[0];
-    if (!latest) return '/current-affairs/daily';
+    if (!Array.isArray(editions) || editions.length === 0) return '/current-affairs/daily';
+    const latest = [...editions].sort((a, b) => (b.publishDate || '').localeCompare(a.publishDate || ''))[0];
+    if (!latest || !latest.publishDate) return '/current-affairs/daily';
     return `/current-affairs/daily?date=${latest.publishDate}`;
   }, [editions]);
 
   const latestWeekHref = useMemo(() => {
     let bestWeek = 0, bestYear = 0;
-    editions.forEach(ed => {
-      const { week, year } = getISOWeek(ed.publishDate);
-      if (year > bestYear || (year === bestYear && week > bestWeek)) { bestWeek = week; bestYear = year; }
-    });
+    if (Array.isArray(editions)) {
+      editions.forEach(ed => {
+        if (!ed.publishDate) return;
+        const { week, year } = getISOWeek(ed.publishDate);
+        if (year > bestYear || (year === bestYear && week > bestWeek)) { bestWeek = week; bestYear = year; }
+      });
+    }
     if (bestWeek === 0) return '/current-affairs/weekly/week-1-2026';
     return `/current-affairs/weekly/week-${bestWeek}-${bestYear}`;
   }, [editions]);
 
   const latestMonthHref = useMemo(() => {
     let bestDate = '';
-    editions.forEach(ed => { if (!bestDate || ed.publishDate > bestDate) bestDate = ed.publishDate; });
-    if (!bestDate) return `/current-affairs/monthly/january-${new Date().getFullYear()}`;
-    const [yr, mo] = bestDate.split('-');
-    return `/current-affairs/monthly/${MONTH_NAMES[parseInt(mo, 10) - 1]}-${yr}`;
+    if (Array.isArray(editions)) {
+      editions.forEach(ed => { if (ed.publishDate && (!bestDate || ed.publishDate > bestDate)) bestDate = ed.publishDate; });
+    }
+    if (!bestDate || !bestDate.includes('-')) return `/current-affairs/monthly/january-${new Date().getFullYear()}`;
+    const parts = bestDate.split('-');
+    const moIdx = parseInt(parts[1] || '1', 10) - 1;
+    return `/current-affairs/monthly/${MONTH_NAMES[moIdx] || 'january'}-${parts[0]}`;
   }, [editions]);
 
   const latestYearHref = useMemo(() => {
     let bestYear = new Date().getFullYear();
-    editions.forEach(ed => { const yr = parseInt(ed.publishDate.split('-')[0], 10); if (yr > bestYear) bestYear = yr; });
+    if (Array.isArray(editions)) {
+      editions.forEach(ed => {
+        if (!ed.publishDate) return;
+        const yr = parseInt(ed.publishDate.split('-')[0], 10);
+        if (yr > bestYear) bestYear = yr;
+      });
+    }
     return `/current-affairs/yearly/${bestYear}`;
   }, [editions]);
 
   // ── Date Navigator computed options ──────────────────────────
-  // All unique years that have editions
   const availableYears = useMemo(() => {
     const yrs = new Set<string>();
-    editions.forEach(ed => yrs.add(ed.publishDate.split('-')[0]));
+    if (Array.isArray(editions)) {
+      editions.forEach(ed => {
+        if (ed.publishDate && ed.publishDate.includes('-')) {
+          yrs.add(ed.publishDate.split('-')[0]);
+        }
+      });
+    }
     return Array.from(yrs).sort((a, b) => b.localeCompare(a));
   }, [editions]);
 
-  // All months in the selected year
   const availableMonths = useMemo(() => {
-    if (!navYear) return [];
+    if (!navYear || !Array.isArray(editions)) return [];
     const months = new Set<string>();
-    editions.filter(ed => ed.publishDate.startsWith(navYear))
-      .forEach(ed => months.add(ed.publishDate.split('-')[1]));
+    editions.filter(ed => ed.publishDate && ed.publishDate.startsWith(navYear))
+      .forEach(ed => {
+        const parts = ed.publishDate.split('-');
+        if (parts[1]) months.add(parts[1]);
+      });
     return Array.from(months).sort();
   }, [editions, navYear]);
 
-  // All ISO weeks in the selected year (+ optional month filter)
   const availableWeeks = useMemo(() => {
-    if (!navYear) return [];
+    if (!navYear || !Array.isArray(editions)) return [];
     const weeks = new Set<string>();
     editions
-      .filter(ed => ed.publishDate.startsWith(navYear) && (!navMonth || ed.publishDate.split('-')[1] === navMonth))
+      .filter(ed => ed.publishDate && ed.publishDate.startsWith(navYear) && (!navMonth || ed.publishDate.split('-')[1] === navMonth))
       .forEach(ed => {
         const { week } = getISOWeek(ed.publishDate);
         if (week > 0) weeks.add(String(week).padStart(2, '0'));
@@ -156,12 +175,11 @@ export default function CurrentAffairsLanding() {
     return Array.from(weeks).sort();
   }, [editions, navYear, navMonth]);
 
-  // All days (editions) for selected year+month+week
   const availableDays = useMemo(() => {
-    if (!navYear) return [];
+    if (!navYear || !Array.isArray(editions)) return [];
     return [...editions]
       .filter(ed => {
-        if (!ed.publishDate.startsWith(navYear)) return false;
+        if (!ed.publishDate || !ed.publishDate.startsWith(navYear)) return false;
         if (navMonth && ed.publishDate.split('-')[1] !== navMonth) return false;
         if (navWeek) {
           const { week } = getISOWeek(ed.publishDate);
@@ -185,23 +203,25 @@ export default function CurrentAffairsLanding() {
   // ── Recent articles from editions ─────────────────────────
   const recentArticles = useMemo(() => {
     const all: Array<{ title: string; date: string; category: string; slug: string; editionId: string }> = [];
-    [...editions]
-      .sort((a, b) => b.publishDate.localeCompare(a.publishDate))
-      .slice(0, 5)
-      .forEach(ed => {
-        (ed.articles || []).forEach(art => {
-          const cat = art.category?.toLowerCase() || '';
-          if (activeTopic === 'all' || cat === activeTopic || (activeTopic === 'arunachal' && cat === 'arunachal')) {
-            all.push({
-              title: art.title,
-              date: ed.publishDate,
-              category: art.category || 'NATIONAL',
-              slug: art.slug,
-              editionId: ed.id,
-            });
-          }
+    if (Array.isArray(editions)) {
+      [...editions]
+        .sort((a, b) => (b.publishDate || '').localeCompare(a.publishDate || ''))
+        .slice(0, 5)
+        .forEach(ed => {
+          (ed.articles || []).forEach(art => {
+            const cat = art.category?.toLowerCase() || '';
+            if (activeTopic === 'all' || cat === activeTopic || (activeTopic === 'arunachal' && cat === 'arunachal')) {
+              all.push({
+                title: art.title || 'Current Affairs Article',
+                date: ed.publishDate || '',
+                category: art.category || 'NATIONAL',
+                slug: art.slug || '',
+                editionId: ed.id || '',
+              });
+            }
+          });
         });
-      });
+    }
     return all.slice(0, 6);
   }, [editions, activeTopic]);
 

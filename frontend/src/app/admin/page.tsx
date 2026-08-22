@@ -381,7 +381,16 @@ export default function AdminPortal() {
       }
       if (facRes && facRes.ok) setFacultyList(await facRes.json().catch(() => []));
       if (topRes && topRes.ok) setToppersList(await topRes.json().catch(() => []));
-      if (dynRes && dynRes.ok) setDynamicEditionsList(await dynRes.json().catch(() => []));
+      if (dynRes && dynRes.ok) {
+        const dynData = await dynRes.json().catch(() => null);
+        if (Array.isArray(dynData)) {
+          setDynamicEditionsList(dynData);
+        } else if (dynData && dynData.success && Array.isArray(dynData.data)) {
+          setDynamicEditionsList(dynData.data);
+        } else {
+          setDynamicEditionsList([]);
+        }
+      }
       if (ytStatus) setYoutubeStatus(ytStatus);
 
       setBackendOffline(false);
