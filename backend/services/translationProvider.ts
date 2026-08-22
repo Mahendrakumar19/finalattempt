@@ -53,13 +53,26 @@ export class GoogleTranslationProvider implements ITranslationProvider {
           translated = res.data.data.translations[0].translatedText;
         }
       } else {
-        // Free fallback endpoint (gtx)
+        // Free fallback endpoint (gtx) with 429 rate limit retry
         const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(trimmed)}`;
-        const res = await axios.get(url, { timeout: 10000 });
-        if (Array.isArray(res.data) && Array.isArray(res.data[0])) {
-          const translatedChunks = res.data[0].map((chunk: any) => chunk[0]).filter(Boolean);
-          if (translatedChunks.length > 0) {
-            translated = translatedChunks.join('');
+        try {
+          const res = await axios.get(url, { timeout: 10000 });
+          if (Array.isArray(res.data) && Array.isArray(res.data[0])) {
+            const translatedChunks = res.data[0].map((chunk: any) => chunk[0]).filter(Boolean);
+            if (translatedChunks.length > 0) {
+              translated = translatedChunks.join('');
+            }
+          }
+        } catch (err: any) {
+          if (err.response?.status === 429) {
+            await new Promise((r) => setTimeout(r, 600));
+            const retryRes = await axios.get(url, { timeout: 10000 }).catch(() => null);
+            if (retryRes && Array.isArray(retryRes.data) && Array.isArray(retryRes.data[0])) {
+              const translatedChunks = retryRes.data[0].map((chunk: any) => chunk[0]).filter(Boolean);
+              if (translatedChunks.length > 0) {
+                translated = translatedChunks.join('');
+              }
+            }
           }
         }
       }
@@ -67,7 +80,9 @@ export class GoogleTranslationProvider implements ITranslationProvider {
       // Re-attach original leading & trailing whitespace
       return `${leadingSpace}${translated}${trailingSpace}`;
     } catch (err: any) {
-      console.error(`[TranslationProvider] Error translating text (${sourceLang} -> ${targetLang}):`, err.message || err);
+      if (err.response?.status !== 429) {
+        console.warn(`[TranslationProvider] Notice translating text (${sourceLang} -> ${targetLang}):`, err.message || err);
+      }
       return text; // Fallback to original text on failure
     }
   }
