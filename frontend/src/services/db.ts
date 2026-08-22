@@ -969,11 +969,14 @@ class FinalAttemptDB {
     const cacheKey = `ca_editions_${includeDrafts}_${locale}`;
     if (!includeDrafts) {
       const cached = this.getCachedData<DynamicCurrentAffairEdition[]>(cacheKey, 30000);
-      if (cached) return cached;
+      if (cached && Array.isArray(cached)) return cached;
     }
 
     const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}${includeDrafts ? `&_t=${Date.now()}` : ''}`);
-    const result = data || [];
+    const result: DynamicCurrentAffairEdition[] = Array.isArray(data)
+      ? data
+      : (data && data.success && Array.isArray(data.data) ? data.data : []);
+
     if (!includeDrafts && result.length > 0) {
       this.setCachedData(cacheKey, result);
     }
@@ -989,10 +992,12 @@ class FinalAttemptDB {
     }
 
     const data = await this.apiFetch(`/api/dynamic-current-affairs/daily/${date}?includeDrafts=${includeDrafts}${includeDrafts ? `&_t=${Date.now()}` : ''}`);
-    if (!includeDrafts && data) {
-      this.setCachedData(cacheKey, data);
+    const result: DynamicCurrentAffairEdition | null = (data && data.success && data.data) ? data.data : (data || null);
+
+    if (!includeDrafts && result) {
+      this.setCachedData(cacheKey, result);
     }
-    return data || null;
+    return result;
   }
 
   public async getDynamicCurrentAffairArticle(slug: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairArticle | null> {
@@ -1004,16 +1009,21 @@ class FinalAttemptDB {
     }
 
     const data = await this.apiFetch(`/api/dynamic-current-affairs/article/${slug}?includeDrafts=${includeDrafts}${includeDrafts ? `&_t=${Date.now()}` : ''}`);
-    if (!includeDrafts && data) {
-      this.setCachedData(cacheKey, data);
+    const result: DynamicCurrentAffairArticle | null = (data && data.success && data.data) ? data.data : (data || null);
+
+    if (!includeDrafts && result) {
+      this.setCachedData(cacheKey, result);
     }
-    return data || null;
+    return result;
   }
 
   public async getDynamicCurrentAffairsSearch(params: Record<string, string>): Promise<DynamicCurrentAffairArticle[]> {
     const qs = new URLSearchParams(params).toString();
     const data = await this.apiFetch(`/api/dynamic-current-affairs/search?${qs}`);
-    return data || [];
+    const result: DynamicCurrentAffairArticle[] = Array.isArray(data)
+      ? data
+      : (data && data.success && Array.isArray(data.data) ? data.data : []);
+    return result;
   }
 
   public async saveDynamicCurrentAffairsEdition(edition: DynamicCurrentAffairEdition): Promise<boolean> {

@@ -77,10 +77,12 @@ export default function NewsTodayLayout({
         setEditions(list || []);
 
         if (!resolvedEdition && list && list.length > 0) {
-          const sorted = [...list].sort((a, b) => b.publishDate.localeCompare(a.publishDate));
-          resolvedEdition = await db.getDynamicCurrentAffairsEditionByDate(sorted[0].publishDate, false).catch(() => null);
-          if (!resolvedEdition) {
-            resolvedEdition = sorted[0];
+          const sorted = [...list].filter(e => e && e.publishDate).sort((a, b) => b.publishDate.localeCompare(a.publishDate));
+          if (sorted.length > 0) {
+            resolvedEdition = await db.getDynamicCurrentAffairsEditionByDate(sorted[0].publishDate, false).catch(() => null);
+            if (!resolvedEdition) {
+              resolvedEdition = sorted[0];
+            }
           }
         }
 
