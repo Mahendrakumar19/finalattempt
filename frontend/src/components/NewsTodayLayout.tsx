@@ -72,42 +72,35 @@ export default function NewsTodayLayout({
           resolvedEdition = await db.getDynamicCurrentAffairsEditionByDate(initialDate, false);
         }
 
-        // Fetch full editions list in background for calendar
-        db.getDynamicCurrentAffairsEditions(false).then(list => {
-          setEditions(list || []);
-          if (!resolvedEdition && list && list.length > 0) {
-            const sorted = [...list].sort((a, b) => b.publishDate.localeCompare(a.publishDate));
-            db.getDynamicCurrentAffairsEditionByDate(sorted[0].publishDate, false).then(topEd => {
-              if (topEd) {
-                setCurrentEdition(topEd);
-                if (topEd.articles && topEd.articles.length > 0) {
-                  setActiveArticle(topEd.articles[0]);
-                }
-              }
-            }).catch(() => {});
+        // Fetch full editions list for calendar & active edition fallback
+        const list = await db.getDynamicCurrentAffairsEditions(false).catch(() => []);
+        setEditions(list || []);
+
+        if (!resolvedEdition && list && list.length > 0) {
+          const sorted = [...list].sort((a, b) => b.publishDate.localeCompare(a.publishDate));
+          resolvedEdition = await db.getDynamicCurrentAffairsEditionByDate(sorted[0].publishDate, false).catch(() => null);
+          if (!resolvedEdition) {
+            resolvedEdition = sorted[0];
           }
-        }).catch(() => {});
+        }
 
         if (resolvedEdition) {
           setCurrentEdition(resolvedEdition);
-        }
+          if (resolvedEdition.articles && resolvedEdition.articles.length > 0) {
+            let matched = currentArticleSlug
+              ? resolvedEdition.articles.find(a => a.slug === currentArticleSlug || a.id === currentArticleSlug)
+              : resolvedEdition.articles[0];
 
-        if (resolvedEdition && resolvedEdition.articles && resolvedEdition.articles.length > 0) {
-          let matched = currentArticleSlug
-            ? resolvedEdition.articles.find(a => a.slug === currentArticleSlug || a.id === currentArticleSlug)
-            : resolvedEdition.articles[0];
+            if (!matched) matched = resolvedEdition.articles[0];
 
-          if (!matched) matched = resolvedEdition.articles[0];
+            setActiveArticle(matched);
 
-          // Set active article immediately for 0ms initial render
-          setActiveArticle(matched);
-
-          if (matched && matched.slug) {
-            db.getDynamicCurrentAffairArticle(matched.slug, false).then(fullArt => {
+            if (matched && matched.slug) {
+              const fullArt = await db.getDynamicCurrentAffairArticle(matched.slug, false).catch(() => null);
               if (fullArt) {
                 setActiveArticle(fullArt);
               }
-            }).catch(() => {});
+            }
           }
         }
       } catch (err) {
