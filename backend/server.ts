@@ -468,6 +468,131 @@ app.delete('/api/results/:id', async (req, res) => {
   }
 });
 
+// DYNAMIC CURRENT AFFAIRS PUBLIC READ ENDPOINTS
+app.get('/api/current-affairs', async (req, res) => {
+  try {
+    const targetLang = getTargetLang(req);
+    const includeDrafts = req.query.includeDrafts === 'true';
+    const editions = await db.getDynamicCurrentAffairsEditions(includeDrafts);
+
+    const localized = await Promise.all(editions.map(async (ed) => {
+      if (Array.isArray(ed.articles) && ed.articles.length > 0) {
+        const locArticles = await ContentLocalizer.localizeEntityList(
+          'current_affair_article',
+          ed.articles,
+          ['title', 'summary'],
+          targetLang,
+          ['summary']
+        );
+        return { ...ed, articles: locArticles };
+      }
+      return ed;
+    }));
+
+    res.json({ success: true, data: localized });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
+  try {
+    const targetLang = getTargetLang(req);
+    const includeDrafts = req.query.includeDrafts === 'true';
+    const editions = await db.getDynamicCurrentAffairsEditions(includeDrafts);
+
+    const localized = await Promise.all(editions.map(async (ed) => {
+      if (Array.isArray(ed.articles) && ed.articles.length > 0) {
+        const locArticles = await ContentLocalizer.localizeEntityList(
+          'current_affair_article',
+          ed.articles,
+          ['title', 'summary'],
+          targetLang,
+          ['summary']
+        );
+        return { ...ed, articles: locArticles };
+      }
+      return ed;
+    }));
+
+    res.json({ success: true, data: localized });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/dynamic-current-affairs/daily/:date', async (req, res) => {
+  try {
+    const targetLang = getTargetLang(req);
+    const date = req.params.date;
+    const includeDrafts = req.query.includeDrafts === 'true';
+    const edition = await db.getDynamicCurrentAffairsEditionByDate(date, includeDrafts);
+
+    if (!edition) {
+      return res.status(404).json({ success: false, error: 'Edition not found for date' });
+    }
+
+    if (Array.isArray(edition.articles) && edition.articles.length > 0) {
+      const locArticles = await ContentLocalizer.localizeEntityList(
+        'current_affair_article',
+        edition.articles,
+        ['title', 'summary'],
+        targetLang,
+        ['summary']
+      );
+      return res.json({ success: true, data: { ...edition, articles: locArticles } });
+    }
+
+    res.json({ success: true, data: edition });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/dynamic-current-affairs/article/:slug', async (req, res) => {
+  try {
+    const targetLang = getTargetLang(req);
+    const slug = req.params.slug;
+    const includeDrafts = req.query.includeDrafts === 'true';
+    const article = await db.getDynamicCurrentAffairArticle(slug, includeDrafts);
+
+    if (!article) {
+      return res.status(404).json({ success: false, error: 'Article not found' });
+    }
+
+    const localized = await ContentLocalizer.localizeEntity(
+      'current_affair_article',
+      article,
+      ['title', 'summary', 'content', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways'],
+      targetLang,
+      ['content', 'summary', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways']
+    );
+
+    res.json({ success: true, data: localized });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/dynamic-current-affairs/search', async (req, res) => {
+  try {
+    const targetLang = getTargetLang(req);
+    const articles = await db.getDynamicCurrentAffairsSearch(req.query as Record<string, string>);
+
+    const localized = await ContentLocalizer.localizeEntityList(
+      'current_affair_article',
+      articles,
+      ['title', 'summary'],
+      targetLang,
+      ['summary']
+    );
+
+    res.json({ success: true, data: localized });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.post('/api/admin/dynamic-current-affairs/edition', async (req, res) => {
   try {
     const ok = await db.createOrUpdateDynamicCurrentAffairEdition(req.body);
