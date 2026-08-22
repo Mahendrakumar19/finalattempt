@@ -33,15 +33,14 @@ export default function PublicationsStorefront() {
 
   const loadExams = useCallback(async () => {
     try {
-      const res = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data)) {
-        setExamsList(data.data.filter((e: any) => e.isActive !== false));
+      const data = await db.getExamsHierarchy();
+      if (Array.isArray(data)) {
+        setExamsList(data.filter((e: any) => e.isActive !== false));
       }
     } catch (err) {
       console.error('Error loading exams list:', err);
     }
-  }, [BACKEND_URL]);
+  }, []);
 
   const loadPage = useCallback(async () => {
     setLoading(true);
@@ -204,11 +203,20 @@ export default function PublicationsStorefront() {
           </p> */}
         </div>
 
-        <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 px-4 py-2.5 rounded-2xl shrink-0">
-          <BookOpen className="w-5 h-5 text-purple-500" />
-          <div>
-            <span className="text-xs font-black text-slate-900 dark:text-white block">{downloadItems.length} Total Publication</span>
-            <span className="text-[10px] text-slate-500 font-bold uppercase">{allFolders.length} Exam Folders</span>
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <Link
+            href="/track-order"
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2.5 rounded-2xl text-xs font-black transition-all shadow-md"
+          >
+            <span>Track My Order</span>
+          </Link>
+
+          <div className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 px-4 py-2.5 rounded-2xl">
+            <BookOpen className="w-5 h-5 text-purple-500" />
+            <div>
+              <span className="text-xs font-black text-slate-900 dark:text-white block">{downloadItems.length} Total Publication</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase">{allFolders.length} Exam Folders</span>
+            </div>
           </div>
         </div>
       </div>
@@ -372,7 +380,7 @@ export default function PublicationsStorefront() {
             <div className="text-center py-20 bg-white dark:bg-slate-900/20 border border-slate-200 dark:border-white/10 rounded-3xl max-w-md mx-auto space-y-4 shadow-sm">
               <FolderOpen className="w-12 h-12 text-slate-400 mx-auto" />
               <h3 className="font-heading font-black text-base text-slate-950 dark:text-white">No Books in {activeFolder} Folder</h3>
-              <p className="text-xs text-slate-500">Upload books for {activeFolder} directly from Admin Console.</p>
+              <p className="text-xs text-slate-500">New books and publication materials for {activeFolder} will be added here shortly.</p>
               <button
                 onClick={() => setActiveFolder(null)}
                 className="px-4 py-2 bg-purple-600 text-white text-xs font-bold rounded-xl"

@@ -296,6 +296,33 @@ export interface CustomPage {
   updatedAt?: string;
 }
 
+export interface BookOrder {
+  id: string;
+  orderId: string;
+  paymentId?: string;
+  bookId?: string;
+  bookTitle: string;
+  editionYear?: string;
+  language?: string;
+  price: number;
+  deliveryFee: number;
+  totalAmount: number;
+  customerName: string;
+  customerMobile: string;
+  customerEmail?: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  paymentStatus: 'PAID' | 'FAILED' | 'PENDING';
+  deliveryStatus: 'PROCESSING' | 'SHIPPED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  courierName?: string;
+  trackingNumber?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface LocalDBStore {
   leads: Lead[];
   progress: { studentId: string; courseId: string; lessonId: string; completed: boolean; updatedAt: string }[];
@@ -323,6 +350,7 @@ interface LocalDBStore {
   lmsQuestions?: any[];
   lmsAttempts?: any[];
   lmsEnrollments?: any[];
+  bookOrders?: BookOrder[];
 }
 
 export let mysqlPool: mysql.Pool | null = null;
@@ -414,6 +442,36 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         photo TEXT,
         year INT NOT NULL,
         story TEXT
+      )
+    `);
+
+    // 4b. Book Orders (FA Publications Sales)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS book_orders (
+        id VARCHAR(255) PRIMARY KEY,
+        orderId VARCHAR(255) UNIQUE NOT NULL,
+        paymentId VARCHAR(255),
+        bookId VARCHAR(255),
+        bookTitle VARCHAR(255) NOT NULL,
+        editionYear VARCHAR(100),
+        language VARCHAR(50),
+        price DOUBLE DEFAULT 0,
+        deliveryFee DOUBLE DEFAULT 0,
+        totalAmount DOUBLE DEFAULT 0,
+        customerName VARCHAR(255) NOT NULL,
+        customerMobile VARCHAR(50) NOT NULL,
+        customerEmail VARCHAR(255),
+        address TEXT NOT NULL,
+        city VARCHAR(100) NOT NULL,
+        state VARCHAR(100) NOT NULL,
+        pincode VARCHAR(20) NOT NULL,
+        paymentStatus VARCHAR(50) DEFAULT 'PAID',
+        deliveryStatus VARCHAR(50) DEFAULT 'PROCESSING',
+        courierName VARCHAR(255),
+        trackingNumber VARCHAR(255),
+        notes TEXT,
+        createdAt VARCHAR(255) NOT NULL,
+        updatedAt VARCHAR(255) NOT NULL
       )
     `);
     
@@ -1095,6 +1153,7 @@ class BackendDB {
           const row = rows[0];
           return {
             ...row,
+            visitorsCount: Math.max(2000, Number(row.visitorsCount || 0)),
             aboutMethodology: typeof row.aboutMethodology === 'string' ? JSON.parse(row.aboutMethodology) : (row.aboutMethodology || null),
             announcements: typeof row.announcements === 'string' ? JSON.parse(row.announcements) : (row.announcements || null),
             featureFlags: typeof row.featureFlags === 'string' ? JSON.parse(row.featureFlags) : (row.featureFlags || {})
@@ -1104,7 +1163,15 @@ class BackendDB {
         console.error('MySQL query error, using local fallback:', err);
       }
     }
-    return this.localStore.settings;
+    const settings = this.localStore.settings || {
+      heroTitle: '72nd BPSC Preparation Starts Here',
+      heroSubtitle: 'Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.',
+      tagline: 'One Mentor. One Strategy. One Final Attempt.'
+    };
+    return {
+      ...settings,
+      visitorsCount: Math.max(2000, Number(settings.visitorsCount || 0))
+    };
   }
 
   public async updateSettings(settings: SiteSettings): Promise<boolean> {
@@ -1164,15 +1231,15 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, visitorsCount) VALUES (1, "", "", "", 1) ON DUPLICATE KEY UPDATE visitorsCount = visitorsCount + 1'
+          'INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, visitorsCount) VALUES (1, "", "", "", 2001) ON DUPLICATE KEY UPDATE visitorsCount = IF(visitorsCount < 2000, 2001, visitorsCount + 1)'
         );
         const [rows]: any = await mysqlPool.query('SELECT visitorsCount FROM settings WHERE id = 1');
-        if (rows && rows.length > 0) return Number(rows[0].visitorsCount || 0);
+        if (rows && rows.length > 0) return Math.max(2000, Number(rows[0].visitorsCount || 2000));
       } catch (err) {
         console.error('[BackendDB] MySQL visitor count error, using local fallback:', err);
       }
     }
-    const current = this.localStore.settings.visitorsCount || 0;
+    const current = Math.max(2000, Number(this.localStore.settings.visitorsCount || 0));
     const nextVal = current + 1;
     this.localStore.settings.visitorsCount = nextVal;
     this.saveLocalData();
@@ -1658,6 +1725,7 @@ class BackendDB {
         return { ...item, id, slug };
       } catch (err) {
         console.error('[BackendDB] saveTestSeriesRecord MySQL error:', err);
+        handlePoolDegrade(err);
       }
     }
 
@@ -1676,6 +1744,181 @@ class BackendDB {
       }
     }
     return true;
+  }
+
+  // BOOK ORDERS (FA PUBLICATIONS SALES & SHIPPING)
+  public async saveBookOrder(data: any): Promise<BookOrder> {
+    const id = data.id || `book-ord-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const now = new Date().toISOString();
+    const shipping = data.shippingAddress || data.shipping || {};
+    
+    const record: BookOrder = {
+      id,
+      orderId: data.orderId || data.razorpayOrderId || `ORD-PUB-${Date.now()}`,
+      paymentId: data.paymentId || data.razorpayPaymentId || `PAY-${Date.now()}`,
+      bookId: data.bookId || null,
+      bookTitle: data.bookTitle || 'FA Publication Book',
+      editionYear: data.editionYear || '2025-26 Edition',
+      language: data.language || 'Bilingual',
+      price: Number(data.price || data.amount || 0),
+      deliveryFee: Number(data.deliveryFee || 0),
+      totalAmount: Number(data.amount || data.totalAmount || 0),
+      customerName: shipping.fullName || data.customerName || 'Aspirant',
+      customerMobile: shipping.mobile || data.customerMobile || '',
+      customerEmail: shipping.email || data.customerEmail || '',
+      address: shipping.address || data.address || '',
+      city: shipping.city || data.city || '',
+      state: shipping.state || data.state || '',
+      pincode: shipping.pincode || data.pincode || '',
+      paymentStatus: data.paymentStatus || 'PAID',
+      deliveryStatus: data.deliveryStatus || 'PROCESSING',
+      courierName: data.courierName || '',
+      trackingNumber: data.trackingNumber || '',
+      notes: data.notes || '',
+      createdAt: data.createdAt || now,
+      updatedAt: now
+    };
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO book_orders (
+            id, orderId, paymentId, bookId, bookTitle, editionYear, language, price, deliveryFee, totalAmount,
+            customerName, customerMobile, customerEmail, address, city, state, pincode, paymentStatus, deliveryStatus, courierName, trackingNumber, notes, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            paymentId = VALUES(paymentId),
+            paymentStatus = VALUES(paymentStatus),
+            deliveryStatus = VALUES(deliveryStatus),
+            courierName = VALUES(courierName),
+            trackingNumber = VALUES(trackingNumber),
+            notes = VALUES(notes),
+            updatedAt = VALUES(updatedAt)`,
+          [
+            record.id, record.orderId, record.paymentId, record.bookId, record.bookTitle, record.editionYear, record.language,
+            record.price, record.deliveryFee, record.totalAmount, record.customerName, record.customerMobile, record.customerEmail,
+            record.address, record.city, record.state, record.pincode, record.paymentStatus, record.deliveryStatus,
+            record.courierName, record.trackingNumber, record.notes, record.createdAt, record.updatedAt
+          ]
+        );
+      } catch (err) {
+        console.error('[BackendDB] saveBookOrder MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+
+    if (!this.localStore.bookOrders) this.localStore.bookOrders = [];
+    const idx = this.localStore.bookOrders.findIndex((o: any) => o.id === id || o.orderId === record.orderId);
+    if (idx >= 0) {
+      this.localStore.bookOrders[idx] = record;
+    } else {
+      this.localStore.bookOrders.unshift(record);
+    }
+    this.saveLocalData();
+
+    return record;
+  }
+
+  public async getBookOrders(statusFilter?: string): Promise<BookOrder[]> {
+    if (mysqlPool) {
+      try {
+        let sql = 'SELECT * FROM book_orders';
+        const params: any[] = [];
+        if (statusFilter && statusFilter !== 'ALL') {
+          sql += ' WHERE deliveryStatus = ? OR paymentStatus = ?';
+          params.push(statusFilter, statusFilter);
+        }
+        sql += ' ORDER BY createdAt DESC';
+        const [rows]: any = await mysqlPool.query(sql, params);
+        if (Array.isArray(rows)) return rows as BookOrder[];
+      } catch (err) {
+        console.error('[BackendDB] getBookOrders MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+
+    let list = this.localStore.bookOrders || [];
+    if (statusFilter && statusFilter !== 'ALL') {
+      list = list.filter((o: any) => o.deliveryStatus === statusFilter || o.paymentStatus === statusFilter);
+    }
+    return list;
+  }
+
+  public async updateBookOrder(id: string, updates: Record<string, any>): Promise<boolean> {
+    const now = new Date().toISOString();
+    if (mysqlPool) {
+      try {
+        const fields: string[] = [];
+        const params: any[] = [];
+
+        const allowedKeys = [
+          'customerName', 'customerMobile', 'customerEmail', 'address', 'city', 'state', 'pincode',
+          'bookTitle', 'language', 'price', 'deliveryFee', 'totalAmount',
+          'paymentStatus', 'deliveryStatus', 'courierName', 'trackingNumber', 'notes'
+        ];
+
+        for (const key of allowedKeys) {
+          if (updates[key] !== undefined) {
+            fields.push(`${key} = ?`);
+            params.push(updates[key]);
+          }
+        }
+
+        if (fields.length > 0) {
+          fields.push('updatedAt = ?');
+          params.push(now);
+          params.push(id, id);
+
+          await mysqlPool.query(
+            `UPDATE book_orders SET ${fields.join(', ')} WHERE id = ? OR orderId = ?`,
+            params
+          );
+        }
+      } catch (err) {
+        console.error('[BackendDB] updateBookOrder MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+
+    if (this.localStore.bookOrders) {
+      const idx = this.localStore.bookOrders.findIndex((o: any) => o.id === id || o.orderId === id);
+      if (idx >= 0) {
+        this.localStore.bookOrders[idx] = {
+          ...this.localStore.bookOrders[idx],
+          ...updates,
+          updatedAt: now
+        };
+        this.saveLocalData();
+      }
+    }
+    return true;
+  }
+
+  public async updateBookOrderShipping(id: string, updates: { deliveryStatus?: string; courierName?: string; trackingNumber?: string; notes?: string }): Promise<boolean> {
+    return this.updateBookOrder(id, updates);
+  }
+
+  public async deleteBookOrder(id: string): Promise<boolean> {
+    let deletedInMySQL = false;
+    if (mysqlPool) {
+      try {
+        const [res]: any = await mysqlPool.query('DELETE FROM book_orders WHERE id = ? OR orderId = ?', [id, id]);
+        deletedInMySQL = res.affectedRows > 0;
+      } catch (err) {
+        console.error('[BackendDB] deleteBookOrder MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+
+    if (this.localStore.bookOrders) {
+      const idx = this.localStore.bookOrders.findIndex((o: any) => o.id === id || o.orderId === id);
+      if (idx >= 0) {
+        this.localStore.bookOrders.splice(idx, 1);
+        this.saveLocalData();
+        return true;
+      }
+    }
+    return deletedInMySQL;
   }
 
   public async saveExamRecord(item: any): Promise<any> {

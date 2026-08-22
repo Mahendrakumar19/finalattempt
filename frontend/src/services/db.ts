@@ -226,6 +226,33 @@ const getBackendUrl = () => {
 const BACKEND_URL = getBackendUrl();
 
 
+export interface BookOrder {
+  id: string;
+  orderId: string;
+  paymentId?: string;
+  bookId?: string;
+  bookTitle: string;
+  editionYear?: string;
+  language?: string;
+  price: number;
+  deliveryFee: number;
+  totalAmount: number;
+  customerName: string;
+  customerMobile: string;
+  customerEmail?: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  paymentStatus: 'PAID' | 'FAILED' | 'PENDING';
+  deliveryStatus: 'PROCESSING' | 'SHIPPED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  courierName?: string;
+  trackingNumber?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DownloadItem {
   id: string;
   title: string;
@@ -319,6 +346,61 @@ class FinalAttemptDB {
       body: JSON.stringify(settings)
     });
     return res?.success !== false;
+  }
+
+  public async incrementVisitorCount(): Promise<number | null> {
+    const res = await this.apiFetch('/api/visitors/increment', { method: 'POST' });
+    if (res && res.success && typeof res.visitorsCount === 'number') {
+      return Math.max(2000, res.visitorsCount);
+    }
+    return null;
+  }
+
+  // FA PUBLICATIONS BOOK ORDERING & PAYMENT METHODS
+  public async createPublicationOrder(bookTitle: string, price: number, deliveryFee: number = 0) {
+    return this.apiFetch('/api/payments/create-publication-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bookTitle, price, deliveryFee })
+    });
+  }
+
+  public async verifyPublicationOrder(payload: any) {
+    return this.apiFetch('/api/payments/verify-publication-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  }
+
+  public async getBookOrders(statusFilter?: string): Promise<BookOrder[]> {
+    const res = await this.apiFetch(`/api/payments/admin/book-orders${statusFilter ? `?status=${statusFilter}` : ''}`);
+    return res?.data || [];
+  }
+
+  public async updateBookOrder(id: string, updates: Partial<BookOrder>): Promise<boolean> {
+    const res = await this.apiFetch(`/api/payments/admin/book-orders/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    return res?.success !== false;
+  }
+
+  public async updateBookOrderShipping(id: string, updates: { deliveryStatus?: string; courierName?: string; trackingNumber?: string; notes?: string }): Promise<boolean> {
+    return this.updateBookOrder(id, updates as any);
+  }
+
+  public async deleteBookOrder(id: string): Promise<boolean> {
+    const res = await this.apiFetch(`/api/payments/admin/book-orders/${id}`, {
+      method: 'DELETE'
+    });
+    return res?.success !== false;
+  }
+
+  public async trackBookOrder(orderIdOrMobile: string): Promise<BookOrder[]> {
+    const res = await this.apiFetch(`/api/payments/track-order/${encodeURIComponent(orderIdOrMobile)}`);
+    return res?.data || [];
   }
 
   public async getCustomPages(publishedOnly: boolean = false): Promise<CustomPage[]> {
@@ -454,7 +536,7 @@ class FinalAttemptDB {
 
   public async getFaculty() {
     const data = await this.apiFetch('/api/faculty');
-    return Array.isArray(data) ? data : facultyData;
+    return Array.isArray(data) ? data : [];
   }
 
   public async deleteFaculty(id: string): Promise<boolean> {
@@ -466,7 +548,7 @@ class FinalAttemptDB {
 
   public async getResults(): Promise<ResultTopper[]> {
     const data = await this.apiFetch('/api/results');
-    return Array.isArray(data) ? data : resultData;
+    return Array.isArray(data) ? data : [];
   }
 
   public async deleteResult(id: string): Promise<boolean> {
@@ -490,6 +572,18 @@ class FinalAttemptDB {
 
   private setCachedData(key: string, data: unknown): void {
     this.memoryCache.set(key, { data, timestamp: Date.now() });
+  }
+
+  public clearCache(prefix?: string): void {
+    if (prefix) {
+      for (const key of this.memoryCache.keys()) {
+        if (key.startsWith(prefix)) {
+          this.memoryCache.delete(key);
+        }
+      }
+    } else {
+      this.memoryCache.clear();
+    }
   }
 
   public async getCurrentAffairs() {
@@ -871,17 +965,48 @@ class FinalAttemptDB {
 
   // Dynamic Current Affairs API calls
   public async getDynamicCurrentAffairsEditions(includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition[]> {
-    const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}&_t=${Date.now()}`);
-    return data || [];
+    const locale = this.getLocale();
+    const cacheKey = `ca_editions_${includeDrafts}_${locale}`;
+    if (!includeDrafts) {
+      const cached = this.getCachedData<DynamicCurrentAffairEdition[]>(cacheKey, 30000);
+      if (cached) return cached;
+    }
+
+    const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}${includeDrafts ? `&_t=${Date.now()}` : ''}`);
+    const result = data || [];
+    if (!includeDrafts && result.length > 0) {
+      this.setCachedData(cacheKey, result);
+    }
+    return result;
   }
 
   public async getDynamicCurrentAffairsEditionByDate(date: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairEdition | null> {
-    const data = await this.apiFetch(`/api/dynamic-current-affairs/daily/${date}?includeDrafts=${includeDrafts}&_t=${Date.now()}`);
+    const locale = this.getLocale();
+    const cacheKey = `ca_daily_${date}_${includeDrafts}_${locale}`;
+    if (!includeDrafts) {
+      const cached = this.getCachedData<DynamicCurrentAffairEdition>(cacheKey, 60000);
+      if (cached) return cached;
+    }
+
+    const data = await this.apiFetch(`/api/dynamic-current-affairs/daily/${date}?includeDrafts=${includeDrafts}${includeDrafts ? `&_t=${Date.now()}` : ''}`);
+    if (!includeDrafts && data) {
+      this.setCachedData(cacheKey, data);
+    }
     return data || null;
   }
 
   public async getDynamicCurrentAffairArticle(slug: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairArticle | null> {
-    const data = await this.apiFetch(`/api/dynamic-current-affairs/article/${slug}?includeDrafts=${includeDrafts}&_t=${Date.now()}`);
+    const locale = this.getLocale();
+    const cacheKey = `ca_article_${slug}_${includeDrafts}_${locale}`;
+    if (!includeDrafts) {
+      const cached = this.getCachedData<DynamicCurrentAffairArticle>(cacheKey, 60000);
+      if (cached) return cached;
+    }
+
+    const data = await this.apiFetch(`/api/dynamic-current-affairs/article/${slug}?includeDrafts=${includeDrafts}${includeDrafts ? `&_t=${Date.now()}` : ''}`);
+    if (!includeDrafts && data) {
+      this.setCachedData(cacheKey, data);
+    }
     return data || null;
   }
 
@@ -1177,8 +1302,10 @@ class FinalAttemptDB {
   public async getTestSeries(includeUnpublished: boolean = false): Promise<TestSeriesItem[]> {
     const locale = this.getLocale();
     const cacheKey = `test_series_all_${includeUnpublished}_${locale}`;
-    const cached = this.getCachedData<TestSeriesItem[]>(cacheKey, 30000);
-    if (cached) return cached;
+    if (!includeUnpublished) {
+      const cached = this.getCachedData<TestSeriesItem[]>(cacheKey, 3000);
+      if (cached) return cached;
+    }
 
     const data = await this.apiFetch(`/api/test-series?includeUnpublished=${includeUnpublished}`);
     const localStore = this.getLocalTestSeriesStore();
@@ -1225,6 +1352,8 @@ class FinalAttemptDB {
   }
 
   public async saveTestSeries(series: Partial<TestSeriesItem>): Promise<boolean> {
+    this.clearCache('test_series');
+    this.clearCache('exams');
     const currentList = this.getLocalTestSeriesStore();
     const existingIdx = currentList.findIndex(s => s.id === series.id);
     let nextList: TestSeriesItem[] = [];
@@ -1243,10 +1372,13 @@ class FinalAttemptDB {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(series)
     });
+    this.clearCache();
     return res?.success || true;
   }
 
   public async deleteTestSeries(id: string): Promise<boolean> {
+    this.clearCache('test_series');
+    this.clearCache('exams');
     const currentList = this.getLocalTestSeriesStore();
     const nextList = currentList.filter(s => s.id !== id);
     this.setLocalTestSeriesStore(nextList);
@@ -1254,10 +1386,12 @@ class FinalAttemptDB {
     const res = await this.apiFetch(`/api/admin/test-series/${id}`, {
       method: 'DELETE'
     });
+    this.clearCache();
     return res?.success || true;
   }
 
   public async saveExam(exam: Partial<ExamData>): Promise<boolean> {
+    this.clearCache();
     const currentList = this.getLocalExamsStore();
     const existingIdx = currentList.findIndex(e => e.id === exam.id);
     let nextList: ExamData[] = [];
@@ -1274,10 +1408,12 @@ class FinalAttemptDB {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(exam)
     });
+    this.clearCache();
     return res?.success || true;
   }
 
   public async deleteExam(id: string): Promise<boolean> {
+    this.clearCache();
     const currentList = this.getLocalExamsStore();
     const nextList = currentList.filter(e => e.id !== id);
     this.setLocalExamsStore(nextList);
@@ -1285,6 +1421,7 @@ class FinalAttemptDB {
     const res = await this.apiFetch(`/api/admin/exams/${id}`, {
       method: 'DELETE'
     });
+    this.clearCache();
     return res?.success || true;
   }
 

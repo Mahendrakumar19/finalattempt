@@ -73,6 +73,13 @@ export default function SyllabusStrategyPage() {
         const examsData = await examsRes.json();
         if (!ignore && examsData.success && Array.isArray(examsData.data)) {
           const activeExams = examsData.data.filter((e: Exam) => e.isActive);
+          activeExams.sort((a: Exam, b: Exam) => {
+            const isABpsc = a.name.toUpperCase().includes('BPSC') || (a.code || '').toUpperCase().includes('BPSC');
+            const isBBpsc = b.name.toUpperCase().includes('BPSC') || (b.code || '').toUpperCase().includes('BPSC');
+            if (isABpsc) return -1;
+            if (isBBpsc) return 1;
+            return a.name.localeCompare(b.name);
+          });
           setExams(activeExams);
           if (activeExams.length > 0) {
             setSelectedExamId(activeExams[0].id);

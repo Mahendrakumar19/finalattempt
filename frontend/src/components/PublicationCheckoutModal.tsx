@@ -114,8 +114,21 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
             razorpayOrderId: orderId,
             razorpaySignature: sig,
             bookTitle: item.title,
+            bookId: item.id,
+            editionYear: item.editionYear || '2025-26 Edition',
+            language: item.language || 'Bilingual',
+            price: sellingPrice,
+            deliveryFee,
             amount: sellingPrice,
-            shippingAddress: address
+            shippingAddress: {
+              fullName: address.fullName,
+              mobile: address.mobile,
+              email: address.email,
+              address: address.fullAddress,
+              city: address.city || 'Patna',
+              state: address.state || 'Bihar',
+              pincode: address.pincode
+            }
           })
         });
         const verifyData = await verifyRes.json();

@@ -136,7 +136,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebSite",
               "name": "Final Attempt",
-              "alternateName": ["Final Attempt IAS", "FinalAttempt", "Final Attempt Learning"],
+              "alternateName": ["Final Attempt", "FinalAttempt", "Final Attempt Learning"],
               "url": "https://finalattemptias.com"
             }),
           }}
@@ -149,6 +149,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "Organization",
               "name": "Final Attempt",
+              "legalName": "Final Attempt",
               "url": "https://finalattemptias.com",
               "logo": "https://finalattemptias.com/darklogofull.png"
             }),

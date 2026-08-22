@@ -12,9 +12,13 @@ router.get('/exams', async (req: Request, res: Response) => {
     const exams = await prisma.exam.findMany({
       include: { logo: true }
     });
-    exams.sort((a, b) =>
-      (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
-    );
+    exams.sort((a, b) => {
+      const isABpsc = (a.code || '').toUpperCase().includes('BPSC') || (a.name || '').toUpperCase().includes('BPSC');
+      const isBBpsc = (b.code || '').toUpperCase().includes('BPSC') || (b.name || '').toUpperCase().includes('BPSC');
+      if (isABpsc) return -1;
+      if (isBBpsc) return 1;
+      return (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' });
+    });
     const localized = await ContentLocalizer.localizeEntityList(
       'exam',
       exams,

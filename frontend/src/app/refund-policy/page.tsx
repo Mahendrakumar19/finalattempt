@@ -57,7 +57,7 @@ export default function RefundPolicyPage() {
       <ul>
         <li>Change of mind, personal schedule conflicts, or decision to discontinue preparation after obtaining access to course materials.</li>
         <li>Test Series packages (Prelims or Mains) once test links or PDF question booklets have been accessed or downloaded.</li>
-        <li>Single-item purchases of PDF Notes, Rapid Revision Materials, or Bihar Special Compendiums.</li>
+        <li>Single-item purchases of PDF Notes, Useful Documents, or Bihar Special Compendiums.</li>
         <li>Accounts terminated or suspended due to copyright infringement, abusive behavior, or unauthorized login sharing.</li>
         <li>Failure to clear an examination or dissatisfaction with personal exam results.</li>
       </ul>

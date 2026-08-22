@@ -61,6 +61,7 @@ export default function DedicatedDownloadsPage() {
             'downloads/fa-publication', 'fa-publication',
             'downloads/fa-publications', 'fa-publications',
             'downloads/fa_publications', 'fa_publications',
+            'downloads/useful-documents', 'useful-documents',
             'downloads/rapid-revision', 'rapid-revision',
             'downloads/value-added-mains', 'value-added-mains',
             'downloads/toppers-copies', 'toppers-copies',
@@ -433,25 +434,25 @@ export default function DedicatedDownloadsPage() {
                 );
               })()}
 
-              {/* 5. Rapid Revision Materials */}
+              {/* 5. Useful Documents */}
               {(() => {
-                const rrPage = allPagesList.find(p => p.slug === 'downloads/rapid-revision' || p.slug === 'rapid-revision');
-                const logoUrl = rrPage?.logoUrl;
+                const udPage = allPagesList.find(p => p.slug === 'downloads/useful-documents' || p.slug === 'useful-documents' || p.slug === 'downloads/rapid-revision' || p.slug === 'rapid-revision');
+                const logoUrl = udPage?.logoUrl;
                 return (
                   <Link
-                    href="/downloads/rapid-revision"
+                    href="/downloads/useful-documents"
                     className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
                   >
                     <div className="w-12 h-12 rounded-xl bg-white text-amber-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
                       {logoUrl ? (
-                        <img src={logoUrl} alt="Rapid Revision" className="w-full h-full object-contain" />
+                        <img src={logoUrl} alt="Useful Documents" className="w-full h-full object-contain" />
                       ) : (
                         <Zap className="w-6 h-6 text-amber-500" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-heading font-extrabold text-sm sm:text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                        {t('downloadsHub.rapidRevisionTitle', locale === 'hi' ? 'रैपिड रिवीजन (RAPID REVISION)' : 'Rapid Revision Materials')}
+                        {t('downloadsHub.usefulDocumentsTitle', locale === 'hi' ? 'उपयोगी दस्तावेज (USEFUL DOCUMENTS)' : 'Useful Documents')}
                       </h4>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />

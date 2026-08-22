@@ -250,7 +250,7 @@ export default function Header() {
         const group1Items = [
           { label: t('mega.resources.pyq') || 'PYQ', href: '/downloads/pyq', desc: t('mega.resources.pyqDesc') || 'Previous year question papers', icon: IC.pyq },
           { label: t('mega.resources.ncert') || 'NCERT', href: '/downloads/ncert', desc: t('mega.resources.ncertDesc') || 'NCERT Class 6 to 12 Textbooks', icon: IC.ncert },
-          { label: t('mega.resources.rapidRevision') || 'Rapid Revision', href: '/downloads/rapid-revision', desc: t('mega.resources.rapidRevisionDesc') || 'Quick Revision Notes & Tables', icon: IC.rapid },
+          { label: t('mega.resources.usefulDocuments') || 'Useful Documents', href: '/downloads/useful-documents', desc: t('mega.resources.usefulDocumentsDesc') || 'Important Notes, Guides & Reference Materials', icon: IC.rapid },
         ];
 
         const group2BaseItems = [
@@ -263,6 +263,7 @@ export default function Header() {
           'downloads/fa-publication', 'fa-publication',
           'downloads/fa-publications', 'fa-publications',
           'downloads/fa_publications', 'fa_publications',
+          'downloads/useful-documents', 'useful-documents',
           'downloads/rapid-revision', 'rapid-revision',
           'downloads/value-added-mains', 'value-added-mains',
           'downloads/toppers-copies', 'toppers-copies',

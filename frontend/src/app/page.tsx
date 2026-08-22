@@ -959,10 +959,10 @@ export default function Home() {
                 link: '/downloads/ncert'
               },
               {
-                title: t('home.quickRapid'),
+                title: t('home.quickUseful', 'USEFUL DOCUMENTS'),
                 icon: Zap,
                 iconColor: 'text-amber-500',
-                link: '/downloads/rapid-revision'
+                link: '/downloads/useful-documents'
               },
               {
                 title: t('home.quickValue'),

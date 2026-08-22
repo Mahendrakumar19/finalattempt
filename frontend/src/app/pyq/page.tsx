@@ -58,7 +58,15 @@ export default function PyqPage() {
       const res = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        setExams(data.data.filter((e: Exam) => e.isActive));
+        const activeExams = data.data.filter((e: Exam) => e.isActive);
+        activeExams.sort((a: Exam, b: Exam) => {
+          const isABpsc = a.name.toUpperCase().includes('BPSC') || (a.code || '').toUpperCase().includes('BPSC');
+          const isBBpsc = b.name.toUpperCase().includes('BPSC') || (b.code || '').toUpperCase().includes('BPSC');
+          if (isABpsc) return -1;
+          if (isBBpsc) return 1;
+          return a.name.localeCompare(b.name);
+        });
+        setExams(activeExams);
       }
     } catch (err) {
       console.error(err);
@@ -103,17 +111,27 @@ export default function PyqPage() {
     return `${BACKEND_URL}/${pathStr.replace(/^\//, '')}`;
   };
 
-  // Group papers by Exam Category
+  // Group papers by Exam Category (BPSC ALWAYS AT TOP / FIRST)
   const examGroups = exams.map((ex) => {
     const papers = pyqList.filter((p) => p.examId === ex.id || p.exam?.id === ex.id);
     return {
       exam: ex,
       papers: papers.sort((a, b) => (b.year - a.year) || (a.sortOrder - b.sortOrder))
     };
-  }).filter((group) => group.papers.length > 0 || selectedExamId === 'ALL');
+  }).filter((group) => group.papers.length > 0 || selectedExamId === 'ALL')
+    .sort((a, b) => {
+      const isABpsc = a.exam.name.toUpperCase().includes('BPSC') || (a.exam.code || '').toUpperCase().includes('BPSC');
+      const isBBpsc = b.exam.name.toUpperCase().includes('BPSC') || (b.exam.code || '').toUpperCase().includes('BPSC');
+      if (isABpsc) return -1;
+      if (isBBpsc) return 1;
+      return b.papers.length - a.papers.length;
+    });
 
-  // Active edition/session filter inside modal popup (e.g. 'ALL', '71st', '70th', '69th')
+  // Active modal filters
+  const [modalStageFilter, setModalStageFilter] = useState<string>('ALL');
+  const [modalYearFilter, setModalYearFilter] = useState<string>('ALL');
   const [modalEditionFilter, setModalEditionFilter] = useState<string>('ALL');
+  const [modalSearchQuery, setModalSearchQuery] = useState<string>('');
 
   return (
     <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 min-h-screen">
@@ -210,7 +228,10 @@ export default function PyqPage() {
               key={exam.id}
               onClick={() => {
                 setActiveExamModal({ id: exam.id, name: exam.name });
+                setModalStageFilter('ALL');
+                setModalYearFilter('ALL');
                 setModalEditionFilter('ALL');
+                setModalSearchQuery('');
               }}
               className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] p-7 rounded-3xl space-y-6 shadow-sm hover:shadow-xl hover:border-amber-500/60 transition-all cursor-pointer flex flex-col justify-between relative overflow-hidden"
             >
@@ -251,11 +272,17 @@ export default function PyqPage() {
         </div>
       )}
 
-      {/* POPUP MODAL: ALL PAPERS LIST FOR SELECTED EXAM WITH DYNAMIC EDITION FILTERS */}
+      {/* POPUP MODAL: ALL PAPERS LIST FOR SELECTED EXAM WITH COMPREHENSIVE FILTERS */}
       {activeExamModal && (() => {
         const modalPapers = pyqList.filter(p => p.examId === activeExamModal.id || p.exam?.id === activeExamModal.id);
 
-        // Dynamically extract exam edition tokens (e.g. "71st", "70th", "69th", "68th", "67th") ONLY if papers contain ordinal edition matches
+        // Stages available in modal papers (e.g. PRELIMS, MAINS, INTERVIEW)
+        const modalStages = Array.from(new Set(modalPapers.map(p => p.stage).filter(Boolean)));
+
+        // Distinct years available in modal papers (e.g. 2024, 2020)
+        const modalYears = Array.from(new Set(modalPapers.map(p => p.year))).sort((a, b) => b - a);
+
+        // Dynamically extract exam edition tokens (e.g. "71st", "70th", "69th", "68th", "67th")
         const editionSet = new Set<string>();
         modalPapers.forEach(p => {
           const match = p.paperName.match(/\b(\d{2,3}(?:st|nd|rd|th))\b/i);
@@ -265,10 +292,23 @@ export default function PyqPage() {
         });
         const detectedEditions = Array.from(editionSet).sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
 
+        // Apply all filters: Stage, Year, Edition, Search
         const filteredModalPapers = modalPapers.filter(p => {
-          if (modalEditionFilter === 'ALL') return true;
-          return p.paperName.toUpperCase().includes(modalEditionFilter);
+          if (modalStageFilter !== 'ALL' && p.stage !== modalStageFilter) return false;
+          if (modalYearFilter !== 'ALL' && String(p.year) !== modalYearFilter) return false;
+          if (modalEditionFilter !== 'ALL' && !p.paperName.toUpperCase().includes(modalEditionFilter)) return false;
+          if (modalSearchQuery.trim()) {
+            const q = modalSearchQuery.toLowerCase();
+            const matchesName = p.paperName.toLowerCase().includes(q);
+            const matchesDesc = (p.description || '').toLowerCase().includes(q);
+            const matchesStage = p.stage.toLowerCase().includes(q);
+            const matchesYear = String(p.year).includes(q);
+            if (!matchesName && !matchesDesc && !matchesStage && !matchesYear) return false;
+          }
+          return true;
         });
+
+        const isAnyFilterActive = modalStageFilter !== 'ALL' || modalYearFilter !== 'ALL' || modalEditionFilter !== 'ALL' || modalSearchQuery.trim() !== '';
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
@@ -291,10 +331,10 @@ export default function PyqPage() {
                   })()}
                   <div>
                     <h2 className="font-heading font-black text-lg sm:text-xl text-slate-900 dark:text-white leading-tight">
-                      {activeExamModal.name} Papers Collection
+                      {activeExamModal.name} Question Papers Vault
                     </h2>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                      Select exam edition or year to download question booklets & answer keys.
+                      Filter by Stage (Prelims/Mains), Academic Year, Edition Session or paper name.
                     </p>
                   </div>
                 </div>
@@ -307,45 +347,134 @@ export default function PyqPage() {
                 </button>
               </div>
 
-              {/* Exam Edition Filter Dropdown & Quick Filter Bar */}
-              <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-white/[0.06] flex flex-wrap items-center justify-between gap-3 shrink-0">
-                <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
-                    Edition Filter:
-                  </span>
-                  {detectedEditions.length > 0 ? (
-                    <select
-                      value={modalEditionFilter}
-                      onChange={(e) => setModalEditionFilter(e.target.value)}
-                      className="px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-250 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-extrabold cursor-pointer shadow-xs"
+              {/* Comprehensive Filter Controls Bar */}
+              <div className="px-5 py-3 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-white/[0.06] space-y-3 shrink-0">
+                
+                {/* Row 1: Stage Pills, Year Dropdown, Edition Dropdown */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  
+                  {/* Stage Filter Pills */}
+                  <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-2xl border border-slate-200 dark:border-white/10 shadow-2xs">
+                    <button
+                      onClick={() => setModalStageFilter('ALL')}
+                      className={`px-3 py-1 text-xs font-black rounded-xl transition-all ${modalStageFilter === 'ALL' ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'}`}
                     >
-                      <option value="ALL">All Editions ({modalPapers.length} Papers)</option>
-                      {detectedEditions.map((ed) => {
-                        const count = modalPapers.filter(p => p.paperName.toLowerCase().includes(ed.toLowerCase()) || String(p.year) === ed).length;
-                        return (
-                          <option key={ed} value={ed}>
-                            {ed.toUpperCase()} Exam Session ({count} Papers)
-                          </option>
-                        );
-                      })}
-                    </select>
-                  ) : (
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 px-3 py-1 rounded-xl border border-slate-200 dark:border-white/10">
-                      {modalPapers.length} Papers Available
-                    </span>
-                  )}
+                      All Stages ({modalPapers.length})
+                    </button>
+                    {modalStages.map((stg) => {
+                      const count = modalPapers.filter(p => p.stage === stg).length;
+                      return (
+                        <button
+                          key={stg}
+                          onClick={() => setModalStageFilter(stg)}
+                          className={`px-3 py-1 text-xs font-black rounded-xl transition-all ${modalStageFilter === stg ? 'bg-amber-500 text-slate-950 shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'}`}
+                        >
+                          {stg} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Dropdowns & Reset */}
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    
+                    {/* Year Filter Dropdown */}
+                    {modalYears.length > 0 && (
+                      <select
+                        value={modalYearFilter}
+                        onChange={(e) => setModalYearFilter(e.target.value)}
+                        className="px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-250 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-extrabold cursor-pointer shadow-xs"
+                      >
+                        <option value="ALL">All Years ({modalYears.length})</option>
+                        {modalYears.map((yr) => {
+                          const count = modalPapers.filter(p => p.year === yr).length;
+                          return (
+                            <option key={yr} value={String(yr)}>
+                              {yr} Academic Year ({count})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    )}
+
+                    {/* Ordinal Edition Filter Dropdown (if present) */}
+                    {detectedEditions.length > 0 && (
+                      <select
+                        value={modalEditionFilter}
+                        onChange={(e) => setModalEditionFilter(e.target.value)}
+                        className="px-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-250 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-extrabold cursor-pointer shadow-xs"
+                      >
+                        <option value="ALL">All Sessions ({modalPapers.length})</option>
+                        {detectedEditions.map((ed) => {
+                          const count = modalPapers.filter(p => p.paperName.toUpperCase().includes(ed)).length;
+                          return (
+                            <option key={ed} value={ed}>
+                              {ed} Session ({count})
+                            </option>
+                          );
+                        })}
+                      </select>
+                    )}
+
+                    {/* Reset Filters Button */}
+                    {isAnyFilterActive && (
+                      <button
+                        onClick={() => {
+                          setModalStageFilter('ALL');
+                          setModalYearFilter('ALL');
+                          setModalEditionFilter('ALL');
+                          setModalSearchQuery('');
+                        }}
+                        className="px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-all cursor-pointer flex items-center gap-1"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>Clear Filters</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <span className="text-[10px] font-extrabold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
-                  Showing {filteredModalPapers.length} of {modalPapers.length} Papers
-                </span>
+                {/* Row 2: In-Modal Search Input & Result Counter */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+                  <div className="relative w-full sm:w-80">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Filter papers (e.g. CSAT, GS1, GS2, Essay)..."
+                      value={modalSearchQuery}
+                      onChange={(e) => setModalSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-medium shadow-xs"
+                    />
+                  </div>
+
+                  <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl shrink-0">
+                    Showing {filteredModalPapers.length} of {modalPapers.length} Papers
+                  </span>
+                </div>
+
               </div>
 
               {/* Modal Papers Grid Scrollable Content - 3 AT ONCE (COMPACT & RESPONSIVE) */}
               <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
                 {filteredModalPapers.length === 0 ? (
-                  <div className="text-center py-12 text-slate-400 text-xs font-semibold">
-                    No question papers found for edition filter &ldquo;{modalEditionFilter}&rdquo;.
+                  <div className="text-center py-12 space-y-3">
+                    <FileText className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto" />
+                    <p className="text-slate-400 text-xs font-semibold">
+                      No question papers found matching your current filter selections.
+                    </p>
+                    {isAnyFilterActive && (
+                      <button
+                        onClick={() => {
+                          setModalStageFilter('ALL');
+                          setModalYearFilter('ALL');
+                          setModalEditionFilter('ALL');
+                          setModalSearchQuery('');
+                        }}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+                      >
+                        <span>Reset All Filters</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">

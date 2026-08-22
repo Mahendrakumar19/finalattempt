@@ -239,7 +239,7 @@ app.get('/api/test-series/hierarchy', async (req, res) => {
       targetLang
     );
 
-    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -266,7 +266,7 @@ app.get('/api/test-series', async (req, res) => {
       targetLang
     );
 
-    res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=120, stale-while-revalidate=300');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -289,6 +289,7 @@ app.get('/api/test-series/:slug', async (req, res) => {
       targetLang
     );
 
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.json({ success: true, data: localized });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -302,6 +303,7 @@ app.post('/api/admin/test-series', async (req, res) => {
       return res.status(400).json({ success: false, error: 'title and examId are required' });
     }
     const saved = await db.saveTestSeriesRecord(body);
+    ContentLocalizer.clearCache('test_series');
     res.json({ success: true, data: saved });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -311,6 +313,7 @@ app.post('/api/admin/test-series', async (req, res) => {
 app.delete('/api/admin/test-series/:id', async (req, res) => {
   try {
     const ok = await db.deleteTestSeriesRecord(req.params.id);
+    ContentLocalizer.clearCache('test_series');
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -460,147 +463,6 @@ app.delete('/api/results/:id', async (req, res) => {
   try {
     const ok = await db.deleteResult(req.params.id);
     res.json({ success: ok });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// CURRENT AFFAIRS
-app.get('/api/current-affairs', async (req, res) => {
-  try {
-    const targetLang = getTargetLang(req);
-    const list = await db.getCurrentAffairs();
-    const localized = await ContentLocalizer.localizeEntityList(
-      'current_affair',
-      list,
-      ['title', 'summary', 'relevance', 'context', 'analysis', 'wayForward', 'practiceQuestion'],
-      targetLang,
-      ['content', 'summary', 'relevance', 'context', 'analysis', 'wayForward', 'practiceQuestion']
-    );
-    res.json(localized);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/current-affairs', async (req, res) => {
-  try {
-    const item = await db.createCurrentAffair(req.body);
-    res.json(item);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.put('/api/current-affairs/:id', async (req, res) => {
-  try {
-    const ok = await db.updateCurrentAffair(req.params.id, req.body);
-    res.json({ success: ok });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.delete('/api/current-affairs/:id', async (req, res) => {
-  try {
-    const ok = await db.deleteCurrentAffair(req.params.id);
-    res.json({ success: ok });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// DYNAMIC CURRENT AFFAIRS SYSTEM API ROUTES
-app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
-  try {
-    res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    const targetLang = getTargetLang(req);
-    const includeDrafts = req.query.includeDrafts === 'true';
-    const list = await db.getDynamicCurrentAffairsEditions(includeDrafts);
-
-    if (targetLang === 'hi' && Array.isArray(list) && list.length > 0) {
-      await Promise.all(list.map(async (ed) => {
-        if (Array.isArray(ed.articles) && ed.articles.length > 0) {
-          ed.articles = await ContentLocalizer.localizeEntityList(
-            'current_affair_article',
-            ed.articles,
-            ['title', 'summary'],
-            targetLang,
-            ['summary']
-          );
-        }
-      }));
-    }
-    res.json(list);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/dynamic-current-affairs/daily/:date', async (req, res) => {
-  try {
-    res.setHeader('Vary', 'x-locale');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    const targetLang = getTargetLang(req);
-    const includeDrafts = req.query.includeDrafts === 'true';
-    const edition = await db.getDynamicCurrentAffairsEditionByDate(req.params.date, includeDrafts);
-    if (edition && Array.isArray(edition.articles)) {
-      // Localize metadata fields for the sidebar article index list (fast load)
-      edition.articles = await ContentLocalizer.localizeEntityList(
-        'current_affair_article',
-        edition.articles,
-        ['title', 'summary'],
-        targetLang,
-        ['summary']
-      );
-    }
-    res.json(edition);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/dynamic-current-affairs/article/:slug', async (req, res) => {
-  try {
-    res.setHeader('Vary', 'x-locale');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    const targetLang = getTargetLang(req);
-    const includeDrafts = req.query.includeDrafts === 'true';
-    const article = await db.getDynamicCurrentAffairArticle(req.params.slug, includeDrafts);
-    if (article) {
-      const localized = await ContentLocalizer.localizeEntity(
-        'current_affair_article',
-        article,
-        ['title', 'summary', 'content', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways'],
-        targetLang,
-        ['content', 'summary', 'whyInNews', 'context', 'background', 'keyHighlights', 'importantFacts', 'examRelevance', 'previousContext', 'wayForward', 'keyTakeaways']
-      );
-      res.json(localized);
-    } else {
-      res.json(null);
-    }
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/dynamic-current-affairs/search', async (req, res) => {
-  try {
-    const targetLang = getTargetLang(req);
-    const results = await db.getDynamicCurrentAffairsSearch(req.query);
-    if (Array.isArray(results)) {
-      const localized = await ContentLocalizer.localizeEntityList(
-        'current_affair_article',
-        results,
-        ['title', 'summary'],
-        targetLang,
-        ['summary']
-      );
-      res.json(localized);
-      return;
-    }
-    res.json(results);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

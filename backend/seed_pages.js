@@ -66,9 +66,9 @@ async function main() {
       ]
     },
     {
-      title: 'Rapid Revision Materials',
-      slug: 'downloads/rapid-revision',
-      content: '<h3>BPSC Rapid Revision & Quick Tables</h3><p>Fast-track revision materials for BPSC Prelims including Bihar Budget summary & key formulas.</p>',
+      title: 'Useful Documents',
+      slug: 'downloads/useful-documents',
+      content: '<h3>Useful Documents & Reference Material</h3><p>Essential reference documents, notes, timelines, and fast-track revision materials.</p>',
       showLocation: 'DOWNLOADS_HUB',
       downloadItems: [
         { id: 'rr-1', title: 'BPSC Prelims 100 Quick Revision Formula & Tables', type: 'PDF', size: '4.8 MB', url: '/uploads/documents/rapid_revision_tables.pdf' },

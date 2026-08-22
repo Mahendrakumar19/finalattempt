@@ -19,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/downloads`,                    lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${baseUrl}/downloads/pyq`,                lastModified: now, changeFrequency: 'weekly',  priority: 0.85 },
     { url: `${baseUrl}/downloads/ncert`,              lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
-    { url: `${baseUrl}/downloads/rapid-revision`,     lastModified: now, changeFrequency: 'weekly',  priority: 0.75 },
+    { url: `${baseUrl}/downloads/useful-documents`,    lastModified: now, changeFrequency: 'weekly',  priority: 0.75 },
     { url: `${baseUrl}/downloads/value-added-mains`,  lastModified: now, changeFrequency: 'weekly',  priority: 0.75 },
     { url: `${baseUrl}/downloads/toppers-copies`,     lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/downloads/fa-publication`,     lastModified: now, changeFrequency: 'monthly', priority: 0.7 },

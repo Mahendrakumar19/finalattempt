@@ -2,7 +2,8 @@ import { Router, Response } from 'express';
 import crypto from 'crypto';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { razorpay } from '../services/razorpay';
-import { lmsDB } from '../db';
+import { lmsDB, db } from '../db';
+import { sendBookOrderShippingEmail } from '../services/email';
 
 const router = Router();
 
@@ -185,6 +186,11 @@ router.post('/verify-publication-order', async (req, res) => {
     razorpayOrderId,
     razorpaySignature,
     bookTitle,
+    bookId,
+    editionYear,
+    language,
+    price,
+    deliveryFee,
     amount,
     shippingAddress
   } = req.body;
@@ -209,15 +215,23 @@ router.post('/verify-publication-order', async (req, res) => {
       }
     }
 
-    const orderRecord = {
-      orderId: razorpayOrderId || `ORD-${Date.now()}`,
+    const orderRecord = await db.saveBookOrder({
+      orderId: razorpayOrderId || `ORD-PUB-${Date.now()}`,
       paymentId: razorpayPaymentId || `PAY-${Date.now()}`,
+      bookId,
       bookTitle,
-      amount: Number(amount) || 0,
+      editionYear,
+      language,
+      price: Number(price) || Number(amount) || 0,
+      deliveryFee: Number(deliveryFee) || 0,
+      totalAmount: Number(amount) || 0,
       shippingAddress,
-      status: 'PAID',
-      paidAt: new Date().toISOString()
-    };
+      paymentStatus: 'PAID',
+      deliveryStatus: 'PROCESSING'
+    });
+
+    // Send confirmation email asynchronously
+    sendBookOrderShippingEmail(orderRecord).catch(err => console.error('Order creation email notification error:', err));
 
     res.json({
       success: true,
@@ -227,6 +241,77 @@ router.post('/verify-publication-order', async (req, res) => {
   } catch (err: any) {
     console.error('Publication Signature Verification Error:', err);
     res.status(500).json({ success: false, error: 'Payment verification failed.' });
+  }
+});
+
+// PUBLIC: Track Book Order by Order ID or Mobile Number
+router.get('/track-order/:query', async (req, res) => {
+  try {
+    const query = req.params.query?.trim();
+    if (!query) {
+      return res.status(400).json({ success: false, error: 'Order ID or Mobile Number is required.' });
+    }
+
+    const allOrders = await db.getBookOrders();
+    const cleanQ = query.toLowerCase();
+
+    const matched = allOrders.filter((o: any) =>
+      o.orderId?.toLowerCase() === cleanQ ||
+      o.paymentId?.toLowerCase() === cleanQ ||
+      o.customerMobile?.replace(/\D/g, '') === cleanQ.replace(/\D/g, '') ||
+      o.id?.toLowerCase() === cleanQ
+    );
+
+    if (matched.length === 0) {
+      return res.status(404).json({ success: false, error: 'No book orders found matching this Order ID or Mobile Number.' });
+    }
+
+    res.json({ success: true, data: matched });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ADMIN: Get All Book Orders
+router.get('/admin/book-orders', async (req, res) => {
+  try {
+    const statusFilter = req.query.status as string | undefined;
+    const orders = await db.getBookOrders(statusFilter);
+    res.json({ success: true, data: orders });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ADMIN: Update Book Order Details & Shipping
+router.put('/admin/book-orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ok = await db.updateBookOrder(id, req.body);
+
+    // Send updated status email notification to customer if status/shipping changed
+    if (ok) {
+      const orders = await db.getBookOrders();
+      const updatedOrder = orders.find((o: any) => o.id === id || o.orderId === id);
+      if (updatedOrder) {
+        sendBookOrderShippingEmail(updatedOrder).catch(err => console.error('Shipping update email error:', err));
+      }
+    }
+
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ADMIN: Delete Book Order
+router.delete('/admin/book-orders/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const ok = await db.deleteBookOrder(id);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

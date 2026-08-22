@@ -57,6 +57,18 @@ const inFlightTranslations = new Map<string, Promise<string>>();
 export class ContentLocalizer {
   private static ramCache = new Map<string, string>();
 
+  public static clearCache(entityType?: string) {
+    if (entityType) {
+      for (const key of this.ramCache.keys()) {
+        if (key.startsWith(entityType)) {
+          this.ramCache.delete(key);
+        }
+      }
+    } else {
+      this.ramCache.clear();
+    }
+  }
+
   /**
    * Fast heuristic to detect language of input string.
    */

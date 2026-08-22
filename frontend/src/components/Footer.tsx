@@ -56,21 +56,19 @@ export default function Footer() {
     });
 
     db.getSettings().then(s => {
-      if (s) setSiteSettings(s);
+      if (s) {
+        setSiteSettings(s);
+        if (typeof s.visitorsCount === 'number') {
+          setVisitorsCount(Math.max(2000, s.visitorsCount));
+        }
+      }
     });
 
     const incrementVisitors = async () => {
       try {
-        const BACKEND_URL = getBackendUrl();
-        const res = await fetch(`${BACKEND_URL}/api/visitors/increment`, {
-          method: 'POST',
-        });
-
-        if (!res.ok) return;
-
-        const data = await res.json();
-        if (data.success) {
-          setVisitorsCount(data.visitorsCount);
+        const count = await db.incrementVisitorCount();
+        if (count !== null) {
+          setVisitorsCount(Math.max(1000, count));
         }
       } catch (_) {}
     };
@@ -207,6 +205,7 @@ export default function Footer() {
                 { labelKey: 'footer.coursesLink',    href: '/courses' },
                 { labelKey: 'footer.currentAffairs', href: '/current-affairs' },
                 { labelKey: 'footer.resources',      href: '/downloads' },
+                { labelKey: 'footer.trackOrder', href: '/track-order' },
                 { labelKey: 'footer.syllabusStrategy', href: '/syllabus-strategy' },
                 { labelKey: 'footer.blogsNews',      href: '/blog' },
               ].map((item) => (

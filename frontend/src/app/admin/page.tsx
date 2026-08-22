@@ -26,6 +26,7 @@ import {
   Download,
   Sparkles,
   Flame,
+  Truck,
   X
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
@@ -42,8 +43,9 @@ import DailyQuizCMS from '@/components/DailyQuizCMS';
 import CustomPagesCMS from '@/components/CustomPagesCMS';
 import MainsEvaluationCMS from '@/components/MainsEvaluationCMS';
 import AdminChatPanel from '@/components/admin/AdminChatPanel';
+import BookOrdersCMS from '@/components/admin/BookOrdersCMS';
 
-type AdminTab = 'Dashboard' | 'Student Chats' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Daily Quiz' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Student Chats' | 'Book Orders' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Useful Documents' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Daily Quiz' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
 
 
@@ -880,6 +882,7 @@ export default function AdminPortal() {
           <nav className="flex flex-col gap-1.5">
             {[
               { id: 'Dashboard', icon: LayoutDashboard },
+              { id: 'Book Orders', icon: Truck },
               { id: 'Student Chats', icon: MessageSquare },
               { id: 'Home', icon: Sun },
               { id: 'About', icon: FileText },
@@ -887,7 +890,7 @@ export default function AdminPortal() {
               { id: 'PYQ', icon: Layers },
               { id: 'NCERT', icon: BookOpen },
               { id: 'Publications', icon: Award },
-              { id: 'Rapid Revision', icon: Sparkles },
+              { id: 'Useful Documents', icon: Sparkles },
               { id: 'Value Addition', icon: FileText },
               { id: 'Toppers Copies', icon: FolderOpen },
               { id: 'Blogs', icon: Bookmark },
@@ -1048,6 +1051,11 @@ export default function AdminPortal() {
             )}
           </div>
         </div>
+
+        {/* TAB: BOOK ORDERS */}
+        {activeTab === 'Book Orders' && (
+          <BookOrdersCMS />
+        )}
 
         {/* TAB: STUDENT CHATS */}
         {activeTab === 'Student Chats' && (
@@ -2085,15 +2093,15 @@ export default function AdminPortal() {
           />
         )}
 
-        {/* TAB: RAPID REVISION */}
-        {activeTab === 'Rapid Revision' && (
+        {/* TAB: USEFUL DOCUMENTS */}
+        {(activeTab === 'Useful Documents' || (activeTab as string) === 'Rapid Revision') && (
           <NcertStyleResourceCMS
-            pageSlug="rapid-revision"
-            pageTitle="Rapid Revision Materials"
-            portalCategoryLabel="Rapid Revision Console"
-            portalDescription="Upload BPSC prelims 100 quick revision formulas, economic survey tables & notes."
+            pageSlug="useful-documents"
+            pageTitle="Useful Documents"
+            portalCategoryLabel="Useful Documents Console"
+            portalDescription="Upload & manage consolidated reference documents, quick tables, notes, and study material."
             themeColor="rose"
-            typeOptions={['Quick Tables', 'Formula Sheets', 'Economic Survey', 'Budget Summary', 'General']}
+            typeOptions={['Quick Tables', 'Formula Sheets', 'Economic Survey', 'Budget Summary', 'General', 'Guides & Notes']}
           />
         )}
 
@@ -3991,7 +3999,7 @@ export default function AdminPortal() {
                           <option value="Prelims">Prelims</option>
                           <option value="Mains">Mains</option>
                           <option value="Infographics">Infographics</option>
-                          <option value="Rapid Revision Material">Rapid Revision Material</option>
+                          <option value="Useful Documents">Useful Documents</option>
                           <option value="PYQ Solutions">PYQ Solutions</option>
                           <option value="Value Added Materials">Value Added Materials</option>
                           <option value="FA Publications">Final Attempt Publication</option>
