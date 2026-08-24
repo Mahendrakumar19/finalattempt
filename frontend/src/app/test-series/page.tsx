@@ -30,7 +30,7 @@ export default function TestSeriesRootPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[var(--bg-color)] py-12 px-4 sm:px-6 lg:px-8 font-body space-y-16">
+    <div className="min-h-screen bg-[var(--bg-color)] pt-6 sm:pt-8 pb-16 px-4 sm:px-6 lg:px-8 font-body space-y-12">
       {/* Header Banner */}
       <div className="max-w-5xl mx-auto text-center space-y-4">
         <span className="px-3.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full text-xs font-black uppercase tracking-widest inline-block">

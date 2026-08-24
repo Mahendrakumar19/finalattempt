@@ -96,6 +96,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     category: 'Prelims',
     description: '',
     overview: '',
+    thumbnailUrl: '',
     fee: '0',
     originalPrice: '',
     discount: '',
@@ -177,7 +178,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   const [newFeatureText, setNewFeatureText] = useState('');
 
   // Media picker target helper
-  const [mediaPickerConfig, setMediaPickerConfig] = useState<{ isOpen: boolean; target: 'lesson' | 'faculty' | 'demo' }>({ isOpen: false, target: 'lesson' });
+  const [mediaPickerConfig, setMediaPickerConfig] = useState<{ isOpen: boolean; target: 'lesson' | 'faculty' | 'demo' | 'course_thumbnail' }>({ isOpen: false, target: 'lesson' });
 
   const fetchCourseDetails = useCallback(async () => {
     setLoading(true);
@@ -193,6 +194,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
           category: c.category || 'Prelims',
           description: c.description || '',
           overview: c.overview || '',
+          thumbnailUrl: c.thumbnailUrl || '',
           fee: c.fee !== undefined ? c.fee : '0',
           originalPrice: c.originalPrice || '',
           discount: c.discount || '',
@@ -741,6 +743,111 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                     onChange={(e) => setCourseData({ ...courseData, schedule: e.target.value })}
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none text-slate-900"
                   />
+                </div>
+              </div>
+
+              {/* Course Thumbnail Cover Image */}
+              <div className="space-y-3 pt-4 border-t border-slate-100">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <label className="text-[10px] font-extrabold text-slate-400 uppercase block">Course Cover / Thumbnail Image</label>
+                    <span className="text-[10px] text-slate-400">Main header image displayed on courses page & course cards.</span>
+                  </div>
+                  {courseData.thumbnailUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setCourseData({ ...courseData, thumbnailUrl: '' })}
+                      className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
+                    >
+                      Remove Image
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                  <div className="sm:col-span-8 space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={courseData.thumbnailUrl || ''}
+                        placeholder="https://example.com/course-banner.jpg or select from DAM below"
+                        onChange={(e) => setCourseData({ ...courseData, thumbnailUrl: e.target.value })}
+                        className="flex-1 px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 outline-none focus:border-amber-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMediaPickerConfig({ isOpen: true, target: 'course_thumbnail' })}
+                        className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 shrink-0 transition-colors shadow-xs"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5" />
+                        <span>Select from DAM</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Or Upload File:</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          try {
+                            const res = await fetch(`${BACKEND_URL}/api/uploads`, {
+                              method: 'POST',
+                              body: formData
+                            });
+                            const data = await res.json();
+                            if (data && data.url) {
+                              setCourseData((prev: any) => ({ ...prev, thumbnailUrl: data.url }));
+                              alert('Course image uploaded successfully!');
+                            } else {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                if (ev.target?.result) {
+                                  setCourseData((prev: any) => ({ ...prev, thumbnailUrl: ev.target?.result as string }));
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          } catch (_) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              if (ev.target?.result) {
+                                setCourseData((prev: any) => ({ ...prev, thumbnailUrl: ev.target?.result as string }));
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-extrabold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Thumbnail Card Live Preview */}
+                  <div className="sm:col-span-4 flex flex-col items-center">
+                    <div className="w-full h-28 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden relative flex items-center justify-center shadow-xs">
+                      {courseData.thumbnailUrl ? (
+                        <img
+                          src={courseData.thumbnailUrl}
+                          alt="Course Banner Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="text-center p-3">
+                          <BookOpen className="w-8 h-8 text-slate-300 mx-auto mb-1" />
+                          <span className="text-[10px] text-slate-400 font-bold block">No Cover Image</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[9px] text-slate-400 font-bold mt-1">Live Card Banner Preview</span>
+                  </div>
                 </div>
               </div>
 
@@ -1886,6 +1993,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
               setFacultyForm(prev => ({ ...prev, avatar: url }));
             } else if (mediaPickerConfig.target === 'demo') {
               setDemoForm(prev => ({ ...prev, url: url }));
+            } else if (mediaPickerConfig.target === 'course_thumbnail') {
+              setCourseData((prev: any) => ({ ...prev, thumbnailUrl: url }));
             }
             setMediaPickerConfig({ isOpen: false, target: 'lesson' });
           }}

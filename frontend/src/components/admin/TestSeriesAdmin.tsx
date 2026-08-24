@@ -958,9 +958,24 @@ export default function TestSeriesAdmin({
               {seriesList.map((series) => (
                 <div
                   key={series.id}
-                  className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xs hover:shadow-md transition-all relative"
+                  className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden flex flex-col justify-between space-y-6 shadow-xs hover:shadow-md transition-all relative"
                 >
-                  <div className="space-y-4">
+                  {/* Thumbnail Cover Image Header */}
+                  {series.thumbnailUrl && (
+                    <div className="w-full h-36 relative bg-slate-900 overflow-hidden">
+                      <img
+                        src={series.thumbnailUrl}
+                        alt={series.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+                    </div>
+                  )}
+
+                  <div className="p-6 space-y-4">
                     {/* Top Badges */}
                     <div className="flex justify-between items-start gap-2">
                       <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase rounded-lg">
@@ -1706,6 +1721,116 @@ export default function TestSeriesAdmin({
                       }}
                     />
                   </label>
+                </div>
+              </div>
+
+              {/* Test Series Cover / Thumbnail Image & Banner Image */}
+              <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-[var(--card-border)]">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <label className="block text-xs font-bold text-[var(--text-color)] uppercase tracking-wider">
+                      Test Series Cover / Thumbnail Image
+                    </label>
+                    <span className="text-[10px] text-slate-400">Card header image rendered on test series listings & program pages</span>
+                  </div>
+                  {editingSeries.thumbnailUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingSeries({ ...editingSeries, thumbnailUrl: '' })}
+                      className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                  <div className="sm:col-span-8 space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="https://example.com/cover.jpg or select from DAM"
+                        value={editingSeries.thumbnailUrl || ''}
+                        onChange={e => setEditingSeries({ ...editingSeries, thumbnailUrl: e.target.value })}
+                        className="flex-1 px-4 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMediaPickerTarget('series_pdf');
+                          setShowMediaPicker(true);
+                        }}
+                        className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors shadow-xs"
+                      >
+                        <Folder className="w-4 h-4 text-white" />
+                        <span>DAM</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase">Upload Cover:</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          try {
+                            const res = await fetch(`${BACKEND_URL}/api/uploads`, {
+                              method: 'POST',
+                              body: formData
+                            });
+                            const data = await res.json();
+                            if (data && data.url) {
+                              setEditingSeries(prev => ({ ...prev, thumbnailUrl: data.url }));
+                              alert('Cover image uploaded successfully!');
+                            } else {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                if (ev.target?.result) {
+                                  setEditingSeries(prev => ({ ...prev, thumbnailUrl: ev.target?.result as string }));
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          } catch (_) {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              if (ev.target?.result) {
+                                setEditingSeries(prev => ({ ...prev, thumbnailUrl: ev.target?.result as string }));
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                        className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Thumbnail Card Live Preview */}
+                  <div className="sm:col-span-4 flex flex-col items-center">
+                    <div className="w-full h-24 rounded-2xl bg-slate-900 border border-[var(--card-border)] overflow-hidden relative flex items-center justify-center shadow-xs">
+                      {editingSeries.thumbnailUrl ? (
+                        <img
+                          src={editingSeries.thumbnailUrl}
+                          alt="Test Series Cover Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="text-center p-2">
+                          <Layers className="w-6 h-6 text-slate-500 mx-auto mb-1" />
+                          <span className="text-[9px] text-slate-400 font-bold block">No Cover Image</span>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[9px] text-slate-400 font-bold mt-1">Cover Preview</span>
+                  </div>
                 </div>
               </div>
 

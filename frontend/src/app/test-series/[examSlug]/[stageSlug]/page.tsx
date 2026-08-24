@@ -91,7 +91,7 @@ export default function StageFolderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-color)] py-10 px-4 sm:px-6 lg:px-8 font-body space-y-10">
+    <div className="min-h-screen bg-[var(--bg-color)] pt-6 sm:pt-8 pb-16 px-4 sm:px-6 lg:px-8 font-body space-y-8">
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Breadcrumb Links */}
@@ -149,6 +149,19 @@ export default function StageFolderPage() {
                     key={series.id}
                     className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden hover:border-amber-500/40 shadow-xs hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group relative"
                   >
+                    {series.thumbnailUrl && (
+                      <div className="w-full h-36 bg-slate-900 relative overflow-hidden shrink-0 flex items-center justify-center">
+                        <img
+                          src={series.thumbnailUrl}
+                          alt={series.title}
+                          className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    )}
+
                     <div className="p-6 space-y-4">
                       <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-white/5 pb-3">
                         <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">

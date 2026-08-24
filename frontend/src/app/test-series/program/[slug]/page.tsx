@@ -98,8 +98,8 @@ export default function TestSeriesDetailPage() {
   const displayPrice = hasDiscount ? series.discountedPrice : series.price;
 
   return (
-    <div className="min-h-screen bg-[var(--bg-color)] py-10 px-4 sm:px-6 lg:px-8 font-body space-y-10">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[var(--bg-color)] pt-6 sm:pt-8 pb-16 px-4 sm:px-6 lg:px-8 font-body space-y-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Back Link */}
         <Link
@@ -111,9 +111,23 @@ export default function TestSeriesDetailPage() {
         </Link>
 
         {/* ── Compact Header Banner ────────────────────────────────────────────── */}
-        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
-          <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
+        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl overflow-hidden shadow-xs">
+          {(series.bannerUrl || series.thumbnailUrl) && (
+            <div className="w-full aspect-[3840/1326] max-h-[460px] bg-slate-950 relative overflow-hidden flex items-center justify-center border-b border-[var(--card-border)]">
+              <img
+                src={series.bannerUrl || series.thumbnailUrl}
+                alt={series.title}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLElement).style.display = 'none';
+                }}
+              />
+            </div>
+          )}
+
+          <div className="p-6 sm:p-8 space-y-6">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-md">
                 {series.exam || 'BPSC'}
               </span>
@@ -170,6 +184,7 @@ export default function TestSeriesDetailPage() {
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Enrolled</span>
               <span className="font-bold text-[var(--text-color)]">{Math.max(600, Number(series.enrolledCount) || 600)}+ Aspirants</span>
             </div>
+          </div>
           </div>
         </div>
 

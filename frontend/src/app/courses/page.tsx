@@ -23,6 +23,7 @@ function CoursesContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [coursesList, setCoursesList] = useState<any[]>([]);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
+  const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
 
   const toggleFlip = (id: string) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }));
@@ -65,13 +66,13 @@ function CoursesContent() {
   });
 
   return (
-    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-12">
+    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-16 space-y-10 font-body">
       {/* Page Header */}
       <div className="space-y-4">
-        <h1 className="text-4xl font-heading font-extrabold text-brand-primary tracking-tight">
+        <h1 className="text-3xl sm:text-4xl font-heading font-extrabold text-brand-primary tracking-tight">
           {t('courses.subtitle')}
         </h1>
-        <p className="text-slate-500 text-sm max-w-xl">
+        <p className="text-slate-500 text-xs sm:text-sm max-w-xl">
           {t('courses.personalizedDesc')}
         </p>
       </div>
@@ -113,7 +114,7 @@ function CoursesContent() {
               </div>
             </div>
 
-            {/* Stage Dropdown */}
+            {/* Stage Category Dropdown */}
             <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900/60 px-3.5 py-2 rounded-2xl border border-[var(--card-border)] w-full sm:w-auto shadow-xs">
               <label htmlFor="stage-select" className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 shrink-0">
                 Stage:
@@ -140,34 +141,64 @@ function CoursesContent() {
         {/* Courses Grid */}
         {filteredCourses.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredCourses.map((course) => (
-              <div
-                key={course.id}
-                className={`flip-card-container cursor-pointer ${flippedCards[course.id] ? 'is-flipped' : ''}`}
-                onClick={() => toggleFlip(course.id)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    toggleFlip(course.id);
-                  }
-                }}
-                tabIndex={0}
-                role="button"
-                aria-label={`Course: ${course.title}. Click to view syllabus.`}
-              >
-                <div className="flip-card-inner">
+            {filteredCourses.map((course) => {
+              const isFlipped = Boolean(flippedCards[course.id] || hoveredCourseId === course.id);
+
+              return (
+                <div
+                  key={course.id}
+                  style={{ minHeight: course.thumbnailUrl ? '390px' : '260px' }}
+                  className={`flip-card-container cursor-pointer relative ${isFlipped ? 'is-flipped' : ''}`}
+                  onClick={() => toggleFlip(course.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      toggleFlip(course.id);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Course: ${course.title}. Click to view syllabus.`}
+                >
+                  {/* Static 2D Hit Area Overlay (100% immune to 3D rotation geometry collapse) */}
+                  <div
+                    className="absolute inset-0 z-30 pointer-events-auto rounded-2xl"
+                    onMouseEnter={() => setHoveredCourseId(course.id)}
+                    onMouseLeave={() => setHoveredCourseId(null)}
+                  />
+
+                  <div className="flip-card-inner">
                   {/* Front Side */}
-                  <div className="flip-card-front course-card-premium rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 shadow-md hover:shadow-lg transition-all duration-300">
-                    <div className="flip-card-front-content flex flex-col justify-between h-full p-4 relative">
+                  <div className="flip-card-front course-card-premium rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col justify-between">
+                    {course.thumbnailUrl && (
+                      <div className="w-full h-40 sm:h-44 bg-slate-950 relative overflow-hidden shrink-0 flex items-center justify-center">
+                        <img
+                          src={course.thumbnailUrl}
+                          alt={course.title}
+                          className="w-full h-full object-contain p-1"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+                        <span className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-slate-900/80 text-amber-400 text-[9px] font-extrabold tracking-wider uppercase border border-amber-500/30 backdrop-blur-xs">
+                          {course.category || 'BATCH'}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flip-card-front-content flex flex-col justify-between flex-1 p-4 relative">
                       <div className="space-y-2.5">
-                        <div className="flex justify-between items-center">
-                          <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-xs">
-                            <BookOpen className="w-4 h-4" />
+                        {!course.thumbnailUrl && (
+                          <div className="flex justify-between items-center">
+                            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-xs">
+                              <BookOpen className="w-4 h-4" />
+                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-extrabold tracking-wider uppercase border border-slate-200/60 dark:border-white/10">
+                              {course.category || 'BATCH'}
+                            </span>
                           </div>
-                          <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-extrabold tracking-wider uppercase border border-slate-200/60 dark:border-white/10">
-                            {course.category || 'BATCH'}
-                          </span>
-                        </div>
+                        )}
 
                         <div className="space-y-1">
                           <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white leading-snug">
@@ -230,11 +261,11 @@ function CoursesContent() {
                   </div>
 
                   {/* Back Side */}
-                  <div className="flip-card-back rounded-2xl">
-                    <div className="flip-card-back-content flex flex-col justify-between h-full bg-slate-900 text-white p-4 rounded-2xl border border-white/10 shadow-xl">
+                  <div className="flip-card-back course-card-premium rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 shadow-md">
+                    <div className="flip-card-back-content flex flex-col justify-between h-full p-4 relative">
                       <div className="space-y-2.5 overflow-y-auto flex-1 pr-1">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                          <h4 className="font-heading font-black text-[10px] text-amber-400 uppercase tracking-widest flex items-center gap-1">
+                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-2">
+                          <h4 className="font-heading font-black text-[10px] text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-1">
                             <BookOpen className="w-3 h-3" />
                             <span>Course Overview</span>
                           </h4>
@@ -243,8 +274,8 @@ function CoursesContent() {
                         
                         {course.syllabus && course.syllabus.length > 0 && (
                           <div className="space-y-1">
-                            <p className="text-[9px] text-amber-400 font-black uppercase tracking-wider">Syllabus Highlights</p>
-                            <ul className="text-[11px] text-slate-300 space-y-1">
+                            <p className="text-[9px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">Syllabus Highlights</p>
+                            <ul className="text-[11px] text-slate-700 dark:text-slate-300 space-y-1">
                               {course.syllabus.map((item: string, idx: number) => (
                                 <li key={idx} className="flex items-start gap-1.5 leading-tight">
                                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1 shrink-0" />
@@ -257,10 +288,10 @@ function CoursesContent() {
 
                         {course.features && course.features.length > 0 && (
                           <div className="space-y-1">
-                            <p className="text-[9px] text-amber-400 font-black uppercase tracking-wider">Key Highlights</p>
+                            <p className="text-[9px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">Key Highlights</p>
                             <div className="flex flex-wrap gap-1">
                               {course.features.map((feat: string, idx: number) => (
-                                <span key={idx} className="px-2 py-0.5 bg-white/10 text-white border border-white/15 rounded text-[8.5px] font-bold">
+                                <span key={idx} className="px-2 py-0.5 bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white border border-slate-200 dark:border-white/15 rounded text-[8.5px] font-bold">
                                   {feat}
                                 </span>
                               ))}
@@ -269,14 +300,14 @@ function CoursesContent() {
                         )}
                       </div>
 
-                      <div className="pt-2 border-t border-white/10 flex items-center justify-between gap-2 shrink-0">
+                      <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-2 shrink-0">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleFlip(course.id);
                           }}
-                          className="text-[9px] font-black text-slate-400 hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
+                          className="text-[9px] font-black text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
                         >
                           {t('courses.flipBack')}
                         </button>
@@ -292,9 +323,10 @@ function CoursesContent() {
                       </div>
                     </div>
                   </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="text-center py-16 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-white/10">
