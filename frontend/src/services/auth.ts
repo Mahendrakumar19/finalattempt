@@ -191,19 +191,34 @@ export async function saveLessonProgress(
 }
 
 // ─── Payments: Create Order ──────────────────────────────────────────────────
-export async function createRazorpayOrder(courseId: string, accessToken: string) {
-  return apiFetch<{ id: string; amount: number; currency: string; key: string }>('/api/payments/create-order', {
+export async function createRazorpayOrder(courseId: string, accessToken?: string) {
+  return apiFetch<{ id: string; order_id: string; amount: number; currency: string; key: string }>('/api/create-order', {
     method: 'POST',
     body: JSON.stringify({ courseId })
   }, accessToken);
 }
 
+export async function createCustomRazorpayOrder(payload: { amount: number; currency?: string; receipt?: string; courseId?: string }, accessToken?: string) {
+  return apiFetch<{ id: string; order_id: string; amount: number; currency: string; key: string }>('/api/create-order', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }, accessToken);
+}
+
 // ─── Payments: Verify Payment ────────────────────────────────────────────────
 export async function verifyRazorpayPayment(
-  payload: { razorpayPaymentId: string; razorpayOrderId: string; razorpaySignature: string; courseId: string },
-  accessToken: string
+  payload: {
+    razorpayPaymentId?: string;
+    razorpayOrderId?: string;
+    razorpaySignature?: string;
+    razorpay_payment_id?: string;
+    razorpay_order_id?: string;
+    razorpay_signature?: string;
+    courseId?: string;
+  },
+  accessToken?: string
 ) {
-  return apiFetch<any>('/api/payments/verify', {
+  return apiFetch<any>('/api/verify-payment', {
     method: 'POST',
     body: JSON.stringify(payload)
   }, accessToken);

@@ -1,130 +1,159 @@
 import { Router, Response } from 'express';
 import crypto from 'crypto';
-import { authenticate, AuthRequest } from '../middleware/auth';
+import { authenticate, optionalAuth, AuthRequest } from '../middleware/auth';
 import { razorpay } from '../services/razorpay';
 import { lmsDB, db } from '../db';
 import { sendBookOrderShippingEmail } from '../services/email';
 
 const router = Router();
 
-// Create Razorpay Order (Supports both Courses and TestSeries)
-router.post('/create-order', authenticate, async (req: AuthRequest, res: Response) => {
-  const { courseId } = req.body; // Represents courseId or testSeriesId
-  if (!courseId) {
-    res.status(400).json({ success: false, error: 'courseId or testSeriesId is required.' });
-    return;
-  }
+// Create Razorpay Order (Supports Courses, TestSeries, and Custom Amounts)
+// Endpoints: POST /api/payments/create-order & POST /api/create-order
+router.post(['/create-order', '/create-order-direct'], optionalAuth, async (req: AuthRequest, res: Response) => {
+  const { courseId, amount: customAmount, currency = 'INR', receipt: customReceipt } = req.body;
 
   try {
     let amount = 0;
     let title = '';
 
-    // 1. Try fetching from lms_courses
-    const course = await lmsDB.getCourseById(courseId);
-    if (course) {
-      let rawFee = course.fee;
-      amount = typeof rawFee === 'string' ? parseInt(rawFee.replace(/[^0-9]/g, '')) * 100 : rawFee;
-      title = course.title;
-    } else {
-      // 2. Try fetching from TestSeries
-      const testSeries = await lmsDB.getTestSeriesById(courseId);
-      if (testSeries) {
-        const price = testSeries.discountedPrice || testSeries.price || 0;
-        amount = price * 100;
-        title = testSeries.title;
+    if (customAmount && Number(customAmount) > 0) {
+      // If amount passed directly (in paise or INR)
+      amount = Number(customAmount) < 100 ? Math.round(Number(customAmount) * 100) : Math.round(Number(customAmount));
+    } else if (courseId) {
+      // 1. Try fetching from lms_courses
+      const course = await lmsDB.getCourseById(courseId);
+      if (course) {
+        let rawFee = course.fee;
+        amount = typeof rawFee === 'string' ? parseInt(rawFee.replace(/[^0-9]/g, '')) * 100 : rawFee;
+        title = course.title;
+      } else {
+        // 2. Try fetching from TestSeries
+        const testSeries = await lmsDB.getTestSeriesById(courseId);
+        if (testSeries) {
+          const price = testSeries.discountedPrice || testSeries.price || 0;
+          amount = price * 100;
+          title = testSeries.title;
+        }
       }
     }
 
-    if (amount <= 0) {
-      res.status(400).json({ success: false, error: 'This course or test series is free or has invalid pricing.' });
+    if (!amount || amount < 100) {
+      res.status(400).json({ success: false, error: 'Minimum order amount must be at least 100 paise (₹1.00).' });
       return;
     }
 
     const options = {
-      amount, // amount in paises
-      currency: 'INR',
-      receipt: `receipt_order_${Date.now()}`,
+      amount, // in paise
+      currency: currency.toUpperCase(),
+      receipt: customReceipt || `receipt_order_${Date.now()}`,
     };
 
     let order;
     try {
       order = await razorpay.orders.create(options);
     } catch (e: any) {
+      console.warn('Razorpay API notice, using order fallback:', e.message);
       order = {
         id: `order_ts_${Date.now()}`,
         amount,
-        currency: 'INR'
+        currency: currency.toUpperCase()
       };
     }
 
     res.json({
       success: true,
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency,
       data: {
         id: order.id,
+        order_id: order.id,
         amount: order.amount,
         currency: order.currency,
-        key: process.env.RAZORPAY_KEY_ID || 'rzp_test_dev_dummy_key_id_123456'
+        key: process.env.RAZORPAY_KEY_ID || 'rzp_test_TTzBxGpMqc0rAD'
       }
     });
   } catch (err: any) {
     console.error('Razorpay Order Creation Error:', err);
-    res.status(500).json({ success: false, error: 'Failed to initiate checkout.' });
+    res.status(500).json({ success: false, error: err.message || 'Failed to initiate checkout.' });
   }
 });
 
-// Verify signature and complete enrollment (Idempotent)
-router.post('/verify', authenticate, async (req: AuthRequest, res: Response) => {
-  const { razorpayPaymentId, razorpayOrderId, razorpaySignature, courseId } = req.body;
+// Verify signature and complete enrollment/payment (Idempotent)
+// Endpoints: POST /api/payments/verify & POST /api/verify-payment
+router.post(['/verify', '/verify-payment'], optionalAuth, async (req: AuthRequest, res: Response) => {
+  const {
+    razorpay_payment_id,
+    razorpay_order_id,
+    razorpay_signature,
+    razorpayPaymentId,
+    razorpayOrderId,
+    razorpaySignature,
+    courseId
+  } = req.body;
 
-  if (!courseId) {
-    res.status(400).json({ success: false, error: 'Missing courseId or testSeriesId.' });
+  const paymentId = razorpay_payment_id || razorpayPaymentId;
+  const orderId = razorpay_order_id || razorpayOrderId;
+  const signature = razorpay_signature || razorpaySignature;
+
+  if (!paymentId || !orderId) {
+    res.status(400).json({ success: false, error: 'Missing payment_id or order_id.' });
     return;
   }
 
   try {
-    const key_secret = process.env.RAZORPAY_KEY_SECRET || 'rzp_test_dev_dummy_secret_78910';
-    
-    if (razorpaySignature && razorpayOrderId && !razorpayOrderId.startsWith('order_ts_')) {
+    const key_secret = process.env.RAZORPAY_KEY_SECRET || '4ViOK1jEPrPtZPYcou4ut48V';
+
+    // Verify HMAC-SHA256 signature if signature is present and not dummy order
+    if (signature && orderId && !orderId.startsWith('order_ts_') && !orderId.startsWith('order_sim_')) {
       const generated_signature = crypto
         .createHmac('sha256', key_secret)
-        .update(razorpayOrderId + '|' + razorpayPaymentId)
+        .update(orderId + '|' + paymentId)
         .digest('hex');
 
-      if (generated_signature !== razorpaySignature) {
+      if (generated_signature !== signature) {
         res.status(400).json({ success: false, error: 'Payment signature verification failed.', code: 'PAY_001' });
         return;
       }
     }
 
-    // Check if already enrolled (Idempotency)
-    const alreadyEnrolled = await lmsDB.isEnrolled(req.user!.userId, courseId);
-    if (alreadyEnrolled) {
+    // If courseId provided and user is authenticated, handle course/test series enrollment
+    if (courseId && req.user?.userId) {
+      const alreadyEnrolled = await lmsDB.isEnrolled(req.user.userId, courseId);
+      if (alreadyEnrolled) {
+        res.json({
+          success: true,
+          message: 'Already enrolled in this program.',
+          data: { courseId, userId: req.user.userId }
+        });
+        return;
+      }
+
+      let amount = 0;
+      const course = await lmsDB.getCourseById(courseId);
+      if (course) {
+        amount = typeof course.fee === 'string' ? parseInt(course.fee.replace(/[^0-9]/g, '')) * 100 : course.fee;
+      } else {
+        const ts = await lmsDB.getTestSeriesById(courseId);
+        if (ts) {
+          amount = (ts.discountedPrice || ts.price || 0) * 100;
+        }
+      }
+
+      const enrollment = await lmsDB.createEnrollment(req.user.userId, courseId, orderId, amount);
+
       res.json({
         success: true,
-        message: 'Already enrolled in this program.',
-        data: { courseId, userId: req.user!.userId }
+        data: enrollment,
+        message: 'Payment verified and enrollment successful.'
       });
       return;
     }
 
-    // Determine amount
-    let amount = 0;
-    const course = await lmsDB.getCourseById(courseId);
-    if (course) {
-      amount = typeof course.fee === 'string' ? parseInt(course.fee.replace(/[^0-9]/g, '')) * 100 : course.fee;
-    } else {
-      const ts = await lmsDB.getTestSeriesById(courseId);
-      if (ts) {
-        amount = (ts.discountedPrice || ts.price || 0) * 100;
-      }
-    }
-
-    const enrollment = await lmsDB.createEnrollment(req.user!.userId, courseId, razorpayOrderId || `ORD-${Date.now()}`, amount);
-
     res.json({
       success: true,
-      data: enrollment,
-      message: 'Enrollment successful.'
+      message: 'Payment signature verified successfully.',
+      data: { orderId, paymentId }
     });
   } catch (err: any) {
     console.error('Razorpay Signature Verification Error:', err);

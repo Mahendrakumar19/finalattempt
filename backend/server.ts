@@ -110,6 +110,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/lms/quizzes', quizzesRouter);
 app.use('/api/lms', lmsRouter);
 app.use('/api/payments', paymentsRouter);
+app.use('/api', paymentsRouter);
 app.use('/api/quizzes', quizzesRouter);
 app.use('/api/chats', chatsRouter);
 app.use('/api/faculty', facultiesRouter);
