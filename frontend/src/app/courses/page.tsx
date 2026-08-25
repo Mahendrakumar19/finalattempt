@@ -7,13 +7,14 @@ import { db } from '@/services/db';
 import { courseData } from '@/services/seedData';
 import { useTranslation } from '@/context/LocaleContext';
 
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 type CategoryType = 'All' | 'Prelims' | 'Mains' | 'Interview';
 type ExamType = 'All' | 'BPSC' | 'Arunachal PCS';
 
 function CoursesContent() {
   const { t } = useTranslation();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialCat = (searchParams.get('category') as CategoryType) || 'All';
   const initialExam = (searchParams.get('exam') as ExamType) || 'All';
@@ -149,18 +150,20 @@ function CoursesContent() {
                   key={course.id}
                   style={{ minHeight: course.thumbnailUrl ? '390px' : '260px' }}
                   className={`flip-card-container cursor-pointer relative ${isFlipped ? 'is-flipped' : ''}`}
-                  onClick={() => toggleFlip(course.id)}
+                  onClick={() => {
+                    window.location.href = `/courses/${course.id}`;
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      toggleFlip(course.id);
+                      window.location.href = `/courses/${course.id}`;
                     }
                   }}
                   tabIndex={0}
                   role="button"
-                  aria-label={`Course: ${course.title}. Click to view syllabus.`}
+                  aria-label={`Course: ${course.title}. Click to view details.`}
                 >
-                  {/* Static 2D Hit Area Overlay (100% immune to 3D rotation geometry collapse) */}
+                  {/* Static 2D Hit Area Overlay */}
                   <div
                     className="absolute inset-0 z-10 pointer-events-auto rounded-2xl"
                     onMouseEnter={() => setHoveredCourseId(course.id)}
@@ -253,9 +256,16 @@ function CoursesContent() {
                           </div>
                         </div>
 
-                        <div className="text-[8.5px] text-center text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-widest bg-amber-500/10 py-1 rounded-lg border border-amber-500/20">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFlip(course.id);
+                          }}
+                          className="w-full text-[8.5px] text-center text-amber-600 dark:text-amber-400 font-extrabold uppercase tracking-widest bg-amber-500/10 py-1 rounded-lg border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer relative z-30 pointer-events-auto"
+                        >
                           {t('courses.tapToFlip')}
-                        </div>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -310,7 +320,7 @@ function CoursesContent() {
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-2 shrink-0 relative z-40">
+                      <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-2 shrink-0 relative z-50">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -318,21 +328,23 @@ function CoursesContent() {
                             e.preventDefault();
                             toggleFlip(course.id);
                           }}
-                          className="text-[9px] font-black text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer relative z-40 pointer-events-auto"
+                          className="text-[9px] font-black text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer relative z-50 pointer-events-auto"
                         >
                           {t('courses.flipBack')}
                         </button>
                         
-                        <Link
-                          href={`/courses/${course.id}`}
+                        <button
+                          type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
+                            window.location.href = `/courses/${course.id}`;
                           }}
-                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[9px] font-black rounded-lg transition-all shadow-xs inline-flex items-center gap-1 uppercase tracking-wider relative z-40 pointer-events-auto cursor-pointer"
+                          className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 text-[9px] font-black rounded-lg transition-all shadow-xs inline-flex items-center gap-1 uppercase tracking-wider relative z-50 pointer-events-auto cursor-pointer"
                         >
                           <span>{t('courses.details')}</span>
                           <SlidersHorizontal className="w-3 h-3" />
-                        </Link>
+                        </button>
                       </div>
                     </div>
                   </div>

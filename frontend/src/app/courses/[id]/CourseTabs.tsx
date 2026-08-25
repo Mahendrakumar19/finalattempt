@@ -260,20 +260,24 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
           <div className="space-y-6">
             <h3 className="font-heading font-extrabold text-lg text-brand-primary">Program Overview</h3>
             <p className="text-xs text-slate-600 leading-relaxed max-w-2xl whitespace-pre-line">
-              {course.overview || course.description || 'This course is crafted to align with the core requirements of BPSC administrative services. You will receive customized notes, continuous performance tracking, and direct access to selected officials.'}
+              {course.overview || course.description || 'This program is meticulously designed by selected officers and subject matter experts to cover the entire syllabus with micro-scheduled classes, practice papers, and 1-on-1 mentorship.'}
             </p>
-            {course.features && course.features.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl pt-2">
-                {course.features.map((feature, idx) => (
-                  <div key={idx} className="flex gap-3 items-start">
-                    <div className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                      <Check className="w-3 h-3" />
-                    </div>
-                    <span className="text-xs text-slate-600 font-semibold">{feature}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl pt-2">
+              {(course.features && course.features.length > 0 ? course.features : [
+                'Bilingual Study Material (Hindi & English)',
+                'Prelims & Mains Integrated Test Series',
+                '1-on-1 Personalized Mentorship with Officers',
+                'Daily Mains Answer Writing & Copy Evaluation',
+                'Comprehensive Bihar Special & Current Affairs Modules'
+              ]).map((feature, idx) => (
+                <div key={idx} className="flex gap-3 items-start">
+                  <div className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-3 h-3" />
                   </div>
-                ))}
-              </div>
-            )}
+                  <span className="text-xs text-slate-600 font-semibold">{feature}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -295,14 +299,52 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
 
             <div className="space-y-6 max-w-3xl">
               {sections.length === 0 ? (
-                <div className="text-center py-10 bg-slate-50 border border-slate-100 rounded-2xl">
-                  <p className="text-xs text-slate-450 font-bold uppercase">No chapters added yet.</p>
-                  {editMode && (
-                    <button onClick={handleAddSection} className="text-xs text-blue-600 hover:underline font-bold mt-2">
-                      Create First Section
-                    </button>
-                  )}
-                </div>
+                Array.isArray(course.syllabus) && course.syllabus.length > 0 ? (
+                  <div className="space-y-4">
+                    {(course.syllabus as any[]).map((subj: any, idx: number) => (
+                      <div key={idx} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                            {idx + 1}
+                          </span>
+                          <h4 className="font-bold text-xs text-slate-900">{typeof subj === 'string' ? subj : subj.subject || `Module ${idx + 1}`}</h4>
+                        </div>
+                        {typeof subj === 'object' && Array.isArray(subj.topics) && (
+                          <ul className="text-xs text-slate-600 space-y-1 pl-8 list-disc">
+                            {subj.topics.map((top: string, tIdx: number) => (
+                              <li key={tIdx}>{top}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {[
+                      { title: 'General Studies I & Bihar Special History', lessons: ['Ancient & Medieval History of Bihar', 'Modern Indian History & Freedom Struggle', 'Art & Culture of Bihar (Mauryan, Pala, Patna Kalam)'] },
+                      { title: 'General Studies II & Polity & Economy', lessons: ['Indian Constitution & Federal Framework', 'Bihar Economy & Agricultural Statistics', 'Science & Technology in Development'] },
+                      { title: 'Prelims Test Series & Current Affairs Revision', lessons: ['12 Months National & Bihar Special Current Affairs', 'Sectional & Full-Length Mock Tests'] }
+                    ].map((sec, idx) => (
+                      <div key={idx} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                            {idx + 1}
+                          </span>
+                          <h4 className="font-bold text-xs text-slate-900">{sec.title}</h4>
+                        </div>
+                        <div className="space-y-1.5 pl-8">
+                          {sec.lessons.map((les, lIdx) => (
+                            <div key={lIdx} className="text-xs text-slate-600 flex items-center gap-2">
+                              <BookOpen className="w-3 h-3 text-slate-400" />
+                              <span>{les}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
               ) : (
                 sections.map((section: any, sIdx: number) => (
                   <div key={section.id} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">

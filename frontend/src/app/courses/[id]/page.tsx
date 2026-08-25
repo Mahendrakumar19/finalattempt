@@ -30,14 +30,25 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
       {/* Hero Header */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         <div className="lg:col-span-8 space-y-6">
+          {course.thumbnailUrl && (
+            <div className="w-full h-56 sm:h-72 bg-slate-950 rounded-3xl overflow-hidden relative border border-slate-200/80 shadow-md">
+              <img
+                src={course.thumbnailUrl}
+                alt={course.title}
+                className="w-full h-full object-contain p-2"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
+            </div>
+          )}
+
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider">
-            {course.category} Program
+            {course.category || 'BPSC'} Program
           </div>
           <h1 className="text-3xl sm:text-4xl font-heading font-extrabold text-brand-primary leading-tight">
             {course.title}
           </h1>
           <p className="text-slate-600 text-sm leading-relaxed max-w-xl">
-            {course.description}
+            {course.description || 'Comprehensive mentorship program for UPSC & State PCS aspirants with complete GS coverage, test series, and answer writing evaluation.'}
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 pt-4 border-t border-slate-100 max-w-lg">

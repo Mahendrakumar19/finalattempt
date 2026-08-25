@@ -4023,7 +4023,7 @@ class LmsDB {
   async getCourseById(id: string): Promise<any | null> {
     if (mysqlPool) {
       try {
-        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_courses WHERE id = ? LIMIT 1', [id]);
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_courses WHERE id = ? OR slug = ? LIMIT 1', [id, id]);
         if (!rows || rows.length === 0) return null;
         const r = rows[0];
         return {
@@ -4039,10 +4039,10 @@ class LmsDB {
         };
       } catch (err) { 
         console.error('[LmsDB] getCourseById MySQL error, serving local fallback:', err); 
-        return db.localStore.courses.find(c => c.id === id) || null;
+        return db.localStore.courses.find(c => c.id === id || (c as any).slug === id) || null;
       }
     }
-    return db.localStore.courses.find(c => c.id === id) || null;
+    return db.localStore.courses.find(c => c.id === id || (c as any).slug === id) || null;
   }
 
   async createCourse(data: any): Promise<any> {

@@ -885,18 +885,38 @@ html.dark ::-webkit-scrollbar-track {
   box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.08);
   border: 1px solid var(--card-border);
   transform-style: preserve-3d;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 .flip-card-front {
   background-color: var(--card-bg);
-  transform: rotateY(0deg) translateZ(1px);
+  transform: rotateY(0deg);
   z-index: 2;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .flip-card-back {
   background: var(--card-bg);
-  transform: rotateY(180deg) translateZ(1px);
+  transform: rotateY(180deg);
   z-index: 1;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.flip-card-container.is-flipped .flip-card-front {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+.flip-card-container.is-flipped .flip-card-back {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  z-index: 50 !important;
 }
 
 /* Enable pointer events for buttons/links inside flipped card */

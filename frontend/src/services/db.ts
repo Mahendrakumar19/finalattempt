@@ -56,6 +56,8 @@ export interface Course {
   category: 'BPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview' | string;
   description: string;
   overview?: string;
+  thumbnailUrl?: string;
+  bannerUrl?: string;
   duration: string;
   fee: string | number;
   price?: number;
@@ -445,7 +447,7 @@ class FinalAttemptDB {
 
   public async getCourseById(id: string): Promise<Course | undefined> {
     const courses = await this.getCourses();
-    return courses.find(c => String(c.id) === String(id));
+    return courses.find(c => String(c.id) === String(id) || String((c as any).slug) === String(id));
   }
 
   public async getSectionsByCourseId(courseId: string): Promise<CourseSection[]> {
