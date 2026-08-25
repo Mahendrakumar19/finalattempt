@@ -95,7 +95,6 @@ export default function Header() {
 
   const megaRef  = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let isSubscribed = true;
@@ -120,8 +119,6 @@ export default function Header() {
 
   /* close mega on route change */
   useEffect(() => {
-    if (openTimer.current) clearTimeout(openTimer.current);
-    if (closeTimer.current) clearTimeout(closeTimer.current);
     setActiveMega(null);
     setMobileOpen(false);
   }, [pathname]);
@@ -134,16 +131,11 @@ export default function Header() {
   /* ── mega hover handlers — must come BEFORE any conditional return ── */
   const openMega = useCallback((id: string) => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
-    if (openTimer.current) clearTimeout(openTimer.current);
-    openTimer.current = setTimeout(() => {
-      setActiveMega(id);
-    }, 140);
+    setActiveMega(id);
   }, []);
 
   const scheduledClose = useCallback(() => {
-    if (openTimer.current) clearTimeout(openTimer.current);
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => setActiveMega(null), 180);
+    closeTimer.current = setTimeout(() => setActiveMega(null), 120);
   }, []);
 
   const cancelClose = useCallback(() => {
@@ -545,9 +537,12 @@ export default function Header() {
               ref={megaRef}
               onMouseEnter={cancelClose}
               onMouseLeave={scheduledClose}
-              className="absolute left-0 right-0 top-full z-40 hidden lg:block px-6 pt-1 pb-6"
+              className="absolute left-0 right-0 top-full z-40 hidden lg:block"
             >
-              <div className="relative max-w-6xl mx-auto rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-2xl bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl p-6 sm:p-8">
+              {/* Backdrop */}
+              <div className="absolute inset-0 bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-white/10 shadow-2xl" />
+
+              <div className="relative max-w-screen-2xl mx-auto px-10 py-8">
                 <div className="flex gap-8">
 
                   {/* ── Left Hero Panel ─── */}
@@ -648,7 +643,7 @@ export default function Header() {
       {/* ── Mega Backdrop overlay (clicks outside close) ── */}
       {activeMega && (
         <div
-          className="fixed inset-0 z-30 hidden lg:block bg-slate-950/20 backdrop-blur-xs transition-opacity"
+          className="fixed inset-0 z-30 hidden lg:block"
           onClick={() => setActiveMega(null)}
         />
       )}
