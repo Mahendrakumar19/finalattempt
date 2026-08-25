@@ -100,9 +100,9 @@ export default function BookCheckoutModal({ isOpen, onClose, book }: BookCheckou
         key: orderData.key || 'rzp_test_dev_dummy_key_id_123456',
         amount: orderData.amount,
         currency: orderData.currency || 'INR',
-        name: 'Final Attempt Publications',
+        name: 'Final Attempt Publication',
         description: `Purchase: ${book.title}`,
-        image: '/darklogofull.png',
+        image: 'https://finalattemptias.com/favicon.png',
         order_id: orderData.id.startsWith('order_sim_') ? undefined : orderData.id,
         prefill: {
           name: fullName,

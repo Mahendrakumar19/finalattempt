@@ -153,9 +153,9 @@ export default function PublicationCheckoutModal({ item, onClose }: PublicationC
         key,
         amount,
         currency,
-        name: 'Final Attempt Publications',
+        name: 'Final Attempt Publication',
         description: item.title,
-        image: 'https://finalattemptias.com/logo.png',
+        image: 'https://finalattemptias.com/favicon.png',
         order_id: razorpayOrderId,
         prefill: {
           name: address.fullName,

@@ -83,9 +83,9 @@ export default function EnrollmentCard({ courseId, fee, originalPrice, discount 
         key: orderData.key,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: 'Final Attempt',
+        name: 'Final Attempt Publication',
         description: 'BPSC Course Enrollment Payment',
-        image: '/favicon.ico',
+        image: 'https://finalattemptias.com/favicon.png',
         order_id: orderData.id,
         handler: async (response: any) => {
           try {
