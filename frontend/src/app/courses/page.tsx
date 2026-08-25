@@ -162,7 +162,7 @@ function CoursesContent() {
                 >
                   {/* Static 2D Hit Area Overlay (100% immune to 3D rotation geometry collapse) */}
                   <div
-                    className="absolute inset-0 z-30 pointer-events-auto rounded-2xl"
+                    className="absolute inset-0 z-10 pointer-events-auto rounded-2xl"
                     onMouseEnter={() => setHoveredCourseId(course.id)}
                     onMouseLeave={() => setHoveredCourseId(null)}
                   />
@@ -271,7 +271,16 @@ function CoursesContent() {
                           </h4>
                           <span className="text-[8px] font-bold text-slate-400 uppercase">Syllabus</span>
                         </div>
+
+                        {/* Course Overview Description */}
+                        <div className="space-y-1">
+                          <p className="text-[9px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">Overview</p>
+                          <p className="text-[11px] text-slate-700 dark:text-slate-300 line-clamp-3 font-medium leading-relaxed">
+                            {course.description || 'Comprehensive mentorship program for UPSC & State PCS aspirants with complete GS coverage, test series, and answer writing evaluation.'}
+                          </p>
+                        </div>
                         
+                        {/* Syllabus Highlights */}
                         {course.syllabus && course.syllabus.length > 0 && (
                           <div className="space-y-1">
                             <p className="text-[9px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">Syllabus Highlights</p>
@@ -286,36 +295,40 @@ function CoursesContent() {
                           </div>
                         )}
 
-                        {course.features && course.features.length > 0 && (
-                          <div className="space-y-1">
-                            <p className="text-[9px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">Key Highlights</p>
-                            <div className="flex flex-wrap gap-1">
-                              {course.features.map((feat: string, idx: number) => (
-                                <span key={idx} className="px-2 py-0.5 bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white border border-slate-200 dark:border-white/15 rounded text-[8.5px] font-bold">
-                                  {feat}
-                                </span>
-                              ))}
-                            </div>
+                        {/* Key Feature Badges */}
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">Key Highlights</p>
+                          <div className="flex flex-wrap gap-1">
+                            {(course.features && course.features.length > 0 ? course.features : [
+                              'Bilingual Study Notes', 'Prelims & Mains Tests', '1-on-1 Mentorship', 'Answer Writing'
+                            ]).map((feat: string, idx: number) => (
+                              <span key={idx} className="px-2 py-0.5 bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white border border-slate-200 dark:border-white/15 rounded text-[8.5px] font-bold">
+                                {feat}
+                              </span>
+                            ))}
                           </div>
-                        )}
+                        </div>
                       </div>
 
-                      <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-2 shrink-0">
+                      <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-2 shrink-0 relative z-40">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            e.preventDefault();
                             toggleFlip(course.id);
                           }}
-                          className="text-[9px] font-black text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer"
+                          className="text-[9px] font-black text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-white transition-colors uppercase tracking-wider cursor-pointer relative z-40 pointer-events-auto"
                         >
                           {t('courses.flipBack')}
                         </button>
                         
                         <Link
                           href={`/courses/${course.id}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[9px] font-black rounded-lg transition-all shadow-xs inline-flex items-center gap-1 uppercase tracking-wider"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                          className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[9px] font-black rounded-lg transition-all shadow-xs inline-flex items-center gap-1 uppercase tracking-wider relative z-40 pointer-events-auto cursor-pointer"
                         >
                           <span>{t('courses.details')}</span>
                           <SlidersHorizontal className="w-3 h-3" />

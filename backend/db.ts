@@ -4050,10 +4050,11 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO lms_courses (id, title, slug, exam, category, description, overview, fee, originalPrice, discount, duration, schedule, enrolledCount, syllabus, features, faq, faculty, demoLectures, isPublished)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO lms_courses (id, title, slug, exam, category, description, overview, thumbnailUrl, bannerUrl, fee, originalPrice, discount, duration, schedule, enrolledCount, syllabus, features, faq, faculty, demoLectures, isPublished)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
           [
             data.id, data.title, slug, data.exam || 'BPSC', data.category || 'Prelims', data.description || '', data.overview || '',
+            data.thumbnailUrl || null, data.bannerUrl || null,
             data.fee || 0, data.originalPrice || null, data.discount || null, data.duration || '', data.schedule || '',
             JSON.stringify(data.syllabus || []),
             JSON.stringify(data.features || []),
@@ -4087,6 +4088,8 @@ class LmsDB {
     if (!db.localStore.courses.some(c => c.id === data.id)) {
       db.localStore.courses.push({
         ...data,
+        thumbnailUrl: data.thumbnailUrl || '',
+        bannerUrl: data.bannerUrl || '',
         syllabus: typeof data.syllabus === 'string' ? JSON.parse(data.syllabus) : data.syllabus || [],
         features: typeof data.features === 'string' ? JSON.parse(data.features) : data.features || [],
         faq: typeof data.faq === 'string' ? JSON.parse(data.faq) : data.faq || [],
@@ -4106,6 +4109,8 @@ class LmsDB {
         if (updates.title !== undefined) { fields.push('title = ?'); vals.push(updates.title); }
         if (updates.description !== undefined) { fields.push('description = ?'); vals.push(updates.description); }
         if (updates.overview !== undefined) { fields.push('overview = ?'); vals.push(updates.overview); }
+        if (updates.thumbnailUrl !== undefined) { fields.push('thumbnailUrl = ?'); vals.push(updates.thumbnailUrl); }
+        if (updates.bannerUrl !== undefined) { fields.push('bannerUrl = ?'); vals.push(updates.bannerUrl); }
         if (updates.exam !== undefined) { fields.push('exam = ?'); vals.push(updates.exam); }
         if (updates.category !== undefined) { fields.push('category = ?'); vals.push(updates.category); }
         if (updates.fee !== undefined) { fields.push('fee = ?'); vals.push(updates.fee); }
@@ -4128,6 +4133,8 @@ class LmsDB {
           const safeVals: any[] = [];
           if (updates.title !== undefined) { safeFields.push('title = ?'); safeVals.push(updates.title); }
           if (updates.description !== undefined) { safeFields.push('description = ?'); safeVals.push(updates.description); }
+          if (updates.thumbnailUrl !== undefined) { safeFields.push('thumbnailUrl = ?'); safeVals.push(updates.thumbnailUrl); }
+          if (updates.bannerUrl !== undefined) { safeFields.push('bannerUrl = ?'); safeVals.push(updates.bannerUrl); }
           if (updates.exam !== undefined) { safeFields.push('exam = ?'); safeVals.push(updates.exam); }
           if (updates.category !== undefined) { safeFields.push('category = ?'); safeVals.push(updates.category); }
           if (updates.fee !== undefined) { safeFields.push('fee = ?'); safeVals.push(updates.fee); }
