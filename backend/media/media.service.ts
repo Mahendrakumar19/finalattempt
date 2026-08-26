@@ -4,6 +4,8 @@ import crypto from 'crypto';
 import sharp from 'sharp';
 import { FileType, StorageProvider, Visibility } from '@prisma/client';
 import { mediaRepository } from './media.repository';
+import { ImageProcessor } from '../services/imageProcessor';
+import { minioStorage } from '../services/minioStorage';
 
 const UPLOADS_ROOT = path.join(process.cwd(), 'uploads');
 const ALLOWED_EXTENSIONS = [
@@ -92,51 +94,26 @@ export class MediaService {
     height?: number;
     variants: Record<string, string>;
   }> {
-    let pipeline = sharp(buffer).rotate(); // auto-rotate based on EXIF orientation
+    const result = await ImageProcessor.processImage(buffer, fileName, extension);
+    const variantsRecord: Record<string, string> = {};
 
-    const metadata = await pipeline.metadata();
-    const width = metadata.width || 0;
-    const height = metadata.height || 0;
+    for (const v of result.variants) {
+      const variantFileName = path.basename(v.key);
+      const variantPath = path.join(UPLOADS_ROOT, 'images', variantFileName);
+      fs.writeFileSync(variantPath, v.buffer);
+      variantsRecord[v.name] = `uploads/images/${variantFileName}`;
 
-    // Resize to max width 2560px (preserving aspect ratio) if larger
-    if (width > 2560) {
-      pipeline = pipeline.resize(2560, null, { withoutEnlargement: true });
-    }
-
-    // Convert to WebP with compression quality 85 and preserve transparency
-    const optimizedBuffer = await pipeline.webp({ quality: 85 }).toBuffer();
-    
-    // Generate variants: thumbnail (200px), small (640px), medium (1280px), large (1920px)
-    const baseName = path.basename(fileName, path.extname(fileName));
-    const variants: Record<string, string> = {};
-
-    const widths = {
-      thumbnail: 200,
-      small: 640,
-      medium: 1280,
-      large: 1920
-    };
-
-    for (const [key, w] of Object.entries(widths)) {
-      if (width > w) {
-        const variantBuffer = await sharp(buffer)
-          .rotate()
-          .resize(w, null, { withoutEnlargement: true })
-          .webp({ quality: 80 })
-          .toBuffer();
-        
-        const variantFileName = `${baseName}_${key}.webp`;
-        const variantPath = path.join(UPLOADS_ROOT, 'images', variantFileName);
-        fs.writeFileSync(variantPath, variantBuffer);
-        variants[key] = `uploads/images/${variantFileName}`;
-      }
+      // Upload to MinIO asynchronously
+      minioStorage.uploadBuffer(v.key, v.buffer, v.mimeType, false).catch((err) => {
+        console.warn(`[MinIO Dual-Write Warning] S3 upload for variant ${v.key} failed:`, err.message);
+      });
     }
 
     return {
-      optimizedBuffer,
-      width,
-      height,
-      variants
+      optimizedBuffer: result.optimizedBuffer,
+      width: result.width,
+      height: result.height,
+      variants: variantsRecord
     };
   }
 
@@ -189,36 +166,30 @@ export class MediaService {
       variants = processResults.variants;
       thumbnailPath = processResults.variants.thumbnail || `uploads/${subFolder}/${finalFileName}`;
     } else if (fileType === FileType.PDF) {
-      // Mock generate PDF first page thumbnail placeholder representing the PDF structure
       const pdfBaseName = path.basename(finalFileName, '.pdf');
-      const thumbFileName = `${pdfBaseName}_thumb.png`;
-      const thumbDiskPath = path.join(UPLOADS_ROOT, 'thumbnails', thumbFileName);
+      const pdfThumbResult = await ImageProcessor.generatePdfThumbnail(originalName, pdfBaseName);
+      const thumbDiskPath = path.join(UPLOADS_ROOT, 'thumbnails', path.basename(pdfThumbResult.key));
       
-      // Write clean visual card icon preview for PDFs
-      const canvas = sharp({
-        create: {
-          width: 300,
-          height: 400,
-          channels: 4,
-          background: { r: 245, g: 158, b: 11, alpha: 1 } // Orange color theme
-        }
+      fs.writeFileSync(thumbDiskPath, pdfThumbResult.buffer);
+      thumbnailPath = `uploads/thumbnails/${path.basename(pdfThumbResult.key)}`;
+
+      // Dual-write PDF thumbnail to MinIO
+      minioStorage.uploadBuffer(pdfThumbResult.key, pdfThumbResult.buffer, pdfThumbResult.mimeType, false).catch((err) => {
+        console.warn(`[MinIO Dual-Write Warning] S3 upload for PDF thumbnail ${pdfThumbResult.key} failed:`, err.message);
       });
-      const svgText = Buffer.from(
-        `<svg width="300" height="400">
-          <rect width="300" height="400" fill="#D97706"/>
-          <text x="50%" y="45%" font-family="sans-serif" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle">PDF DOCUMENT</text>
-          <text x="50%" y="55%" font-family="sans-serif" font-size="12" fill="#ffffff" opacity="0.8" text-anchor="middle">${originalName.substring(0, 30)}</text>
-        </svg>`
-      );
-      const thumbnailBuffer = await canvas.composite([{ input: svgText }]).png().toBuffer();
-      fs.writeFileSync(thumbDiskPath, thumbnailBuffer);
-      thumbnailPath = `uploads/thumbnails/${thumbFileName}`;
     }
 
     const relativeStoragePath = `uploads/${subFolder}/${finalFileName}`;
     const absoluteDiskPath = path.join(UPLOADS_ROOT, subFolder, finalFileName);
 
     fs.writeFileSync(absoluteDiskPath, finalBuffer);
+
+    // Dual-write main file buffer to MinIO
+    const s3ObjectKey = `${subFolder}/${finalFileName}`;
+    const s3MimeType = fileType === FileType.IMAGE && extension !== 'svg' ? 'image/webp' : mimetype;
+    minioStorage.uploadBuffer(s3ObjectKey, finalBuffer, s3MimeType, false).catch((err) => {
+      console.warn(`[MinIO Dual-Write Warning] S3 upload for main file ${s3ObjectKey} failed:`, err.message);
+    });
 
     // Save to Prisma
     return mediaRepository.create({
@@ -249,17 +220,17 @@ export class MediaService {
     if (!item) throw new Error('Asset not found');
 
     if (permanent) {
-      // Deletes file contents physically
+      // Deletes local file contents physically
       const diskPath = path.join(process.cwd(), item.storagePath);
       if (fs.existsSync(diskPath)) {
-        fs.unlinkSync(diskPath);
+        try { fs.unlinkSync(diskPath); } catch (_) {}
       }
       
-      // Delete thumbnail variants if they exist
+      // Delete local thumbnail if exists
       if (item.thumbnailPath) {
         const thumbPath = path.join(process.cwd(), item.thumbnailPath);
         if (fs.existsSync(thumbPath)) {
-          fs.unlinkSync(thumbPath);
+          try { fs.unlinkSync(thumbPath); } catch (_) {}
         }
       }
 
@@ -269,15 +240,34 @@ export class MediaService {
           for (const variantUrl of Object.values(meta.variants)) {
             const variantPath = path.join(process.cwd(), variantUrl as string);
             if (fs.existsSync(variantPath)) {
-              fs.unlinkSync(variantPath);
+              try { fs.unlinkSync(variantPath); } catch (_) {}
             }
           }
         }
       }
 
+      // MinIO S3 Object Deletion Dual-Delete
+      minioStorage.deleteObject(item.storagePath, item.visibility === Visibility.PRIVATE).catch((err) => {
+        console.warn(`[MinIO Dual-Delete Warning] Failed to delete main S3 object ${item.storagePath}:`, err.message);
+      });
+
+      if (item.thumbnailPath) {
+        minioStorage.deleteObject(item.thumbnailPath, item.visibility === Visibility.PRIVATE).catch((err) => {
+          console.warn(`[MinIO Dual-Delete Warning] Failed to delete thumbnail S3 object ${item.thumbnailPath}:`, err.message);
+        });
+      }
+
+      if (item.metadata && (item.metadata as any).variants) {
+        for (const variantUrl of Object.values((item.metadata as any).variants)) {
+          minioStorage.deleteObject(variantUrl as string, item.visibility === Visibility.PRIVATE).catch((err) => {
+            console.warn(`[MinIO Dual-Delete Warning] Failed to delete variant S3 object ${variantUrl}:`, err.message);
+          });
+        }
+      }
+
       return mediaRepository.delete(id, true);
     } else {
-      // Soft Delete: Move storagePath metadata reference inside database into trash folder virtual indicator
+      // Soft Delete
       return mediaRepository.delete(id, false);
     }
   }
@@ -287,8 +277,6 @@ export class MediaService {
     if (!item) throw new Error('Asset not found');
 
     const ext = path.extname(originalName).replace('.', '').toLowerCase();
-    
-    // overwrite original disk location
     const diskPath = path.join(process.cwd(), item.storagePath);
     
     let processedBuffer = fileBuffer;
@@ -299,6 +287,12 @@ export class MediaService {
 
     fs.writeFileSync(diskPath, processedBuffer);
     
+    // MinIO S3 Dual-Write Replace
+    const s3MimeType = item.fileType === FileType.IMAGE && ext !== 'svg' ? 'image/webp' : mimetype;
+    minioStorage.uploadBuffer(item.storagePath, processedBuffer, s3MimeType, item.visibility === Visibility.PRIVATE).catch((err) => {
+      console.warn(`[MinIO Dual-Write Warning] S3 upload replace for ${item.storagePath} failed:`, err.message);
+    });
+
     const checksum = this.calculateChecksum(processedBuffer);
 
     return mediaRepository.update(id, {

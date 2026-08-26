@@ -8,12 +8,14 @@ export interface ParsedBilingualQuestion {
   optionB: string;
   optionC: string;
   optionD: string;
+  optionE?: string;
   questionTextHi: string;
   optionAHi: string;
   optionBHi: string;
   optionCHi: string;
   optionDHi: string;
-  correctAnswer: 'A' | 'B' | 'C' | 'D';
+  optionEHi?: string;
+  correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E';
   explanation: string;
   explanationHi: string;
   marks?: number;
@@ -113,14 +115,14 @@ export class BilingualPdfParser {
       const uint8 = new Uint8Array(buffer);
       const parser = new PDFParse(uint8);
       const data = await parser.getText();
-      const rawText = this.cleanText(data.text || '');
+      const rawText = BilingualPdfParser.cleanText(data.text || '');
 
       if (!rawText.trim()) {
         report.errors.push('Unreadable or empty PDF. Scanned PDFs without embedded text are not supported.');
         return report;
       }
 
-      return this.parseText(rawText, report);
+      return BilingualPdfParser.parseText(rawText, report);
     } catch (err: any) {
       report.errors.push(`PDF Parsing Exception: ${err.message || err}`);
       report.isValid = false;
@@ -150,7 +152,7 @@ export class BilingualPdfParser {
     }
 
     try {
-      const text = this.cleanText(rawText);
+      const text = BilingualPdfParser.cleanText(rawText);
 
       // ─── STEP 1: Locate 4 Section Boundaries ───────────────────────────────────
       // Section markers (case-insensitive, flexible spacing):
@@ -158,10 +160,10 @@ export class BilingualPdfParser {
       // SECTION 2: HINDI QUESTIONS
       // SECTION 3: ENGLISH ANSWERS & EXPLANATIONS
       // SECTION 4: HINDI ANSWERS & EXPLANATIONS
-      const sec1Idx = this.findSection(text, /SECTION\s*1\s*[:\-–—]?\s*ENGLISH\s*QUESTIONS?/i);
-      const sec2Idx = this.findSection(text, /SECTION\s*2\s*[:\-–—]?\s*HINDI\s*QUESTIONS?/i);
-      const sec3Idx = this.findSection(text, /SECTION\s*3\s*[:\-–—]?\s*ENGLISH\s*ANSWERS?\s*[&+]?\s*EXPLANATIONS?/i);
-      const sec4Idx = this.findSection(text, /SECTION\s*4\s*[:\-–—]?\s*HINDI\s*ANSWERS?\s*[&+]?\s*EXPLANATIONS?/i);
+      const sec1Idx = BilingualPdfParser.findSection(text, /SECTION\s*1\s*[:\-–—]?\s*ENGLISH\s*QUESTIONS?/i);
+      const sec2Idx = BilingualPdfParser.findSection(text, /SECTION\s*2\s*[:\-–—]?\s*HINDI\s*QUESTIONS?/i);
+      const sec3Idx = BilingualPdfParser.findSection(text, /SECTION\s*3\s*[:\-–—]?\s*ENGLISH\s*ANSWERS?\s*[&+]?\s*EXPLANATIONS?/i);
+      const sec4Idx = BilingualPdfParser.findSection(text, /SECTION\s*4\s*[:\-–—]?\s*HINDI\s*ANSWERS?\s*[&+]?\s*EXPLANATIONS?/i);
 
       if (sec1Idx === -1) report.errors.push('SECTION 1: ENGLISH QUESTIONS — not found. Add this header before your English questions.');
       if (sec2Idx === -1) report.errors.push('SECTION 2: HINDI QUESTIONS — not found. Add this header before your Hindi questions.');
@@ -189,10 +191,10 @@ export class BilingualPdfParser {
       const hiAnsText = text.substring(sec4Idx);
 
       // ─── STEP 3: Parse Questions ────────────────────────────────────────────────
-      const enQMap = this.parseQuestions(enQText);
-      const hiQMap = this.parseQuestions(hiQText);
-      const enAMap = this.parseAnswers(enAnsText);
-      const hiAMap = this.parseAnswers(hiAnsText);
+      const enQMap = BilingualPdfParser.parseQuestions(enQText);
+      const hiQMap = BilingualPdfParser.parseQuestions(hiQText);
+      const enAMap = BilingualPdfParser.parseAnswers(enAnsText);
+      const hiAMap = BilingualPdfParser.parseAnswers(hiAnsText);
 
       report.totalQuestionsEn = enQMap.size;
       report.totalQuestionsHi = hiQMap.size;
@@ -230,15 +232,17 @@ export class BilingualPdfParser {
       const missingHiAns: number[] = [];
 
       for (const qNum of allQNums) {
-        const enQ = enQMap.get(qNum);
-        const hiQ = hiQMap.get(qNum);
-        const enA = enAMap.get(qNum);
-        const hiA = hiAMap.get(qNum);
+        const enQ = enQMap.get(qNum) || hiQMap.get(qNum);
+        const hiQ = hiQMap.get(qNum) || enQMap.get(qNum);
+        const enA = enAMap.get(qNum) || hiAMap.get(qNum) || { correctAnswer: 'A' as const, explanation: '' };
+        const hiA = hiAMap.get(qNum) || enAMap.get(qNum) || { correctAnswer: 'A' as const, explanation: '' };
 
-        if (!enQ) { missingEnQs.push(qNum); continue; }
-        if (!hiQ) { missingHiQs.push(qNum); continue; }
-        if (!enA) { missingEnAns.push(qNum); continue; }
-        if (!hiA) { missingHiAns.push(qNum); continue; }
+        if (!enQMap.get(qNum)) missingEnQs.push(qNum);
+        if (!hiQMap.get(qNum)) missingHiQs.push(qNum);
+        if (!enAMap.get(qNum)) missingEnAns.push(qNum);
+        if (!hiAMap.get(qNum)) missingHiAns.push(qNum);
+
+        if (!enQ || !hiQ) continue;
 
         report.questionsPreview.push({
           questionNumber: qNum,
@@ -247,11 +251,13 @@ export class BilingualPdfParser {
           optionB: enQ.optionB,
           optionC: enQ.optionC,
           optionD: enQ.optionD,
+          optionE: enQ.optionE || '',
           questionTextHi: hiQ.questionText,
           optionAHi: hiQ.optionA,
           optionBHi: hiQ.optionB,
           optionCHi: hiQ.optionC,
           optionDHi: hiQ.optionD,
+          optionEHi: hiQ.optionE || '',
           correctAnswer: enA.correctAnswer,
           explanation: enA.explanation,
           explanationHi: hiA.explanation
@@ -340,16 +346,12 @@ export class BilingualPdfParser {
    * Options MUST be formatted as "(a) ...", "(b) ...", "(c) ...", "(d) ..."
    */
   private static parseQuestions(sectionText: string): Map<number, {
-    questionText: string; optionA: string; optionB: string; optionC: string; optionD: string;
+    questionText: string; optionA: string; optionB: string; optionC: string; optionD: string; optionE: string;
   }> {
-    const qMap = new Map<number, { questionText: string; optionA: string; optionB: string; optionC: string; optionD: string }>();
+    const qMap = new Map<number, { questionText: string; optionA: string; optionB: string; optionC: string; optionD: string; optionE: string }>();
 
-    // Strip section dividers and headers so they don't confuse boundary detection
-    const cleanText = this.stripSeparators(sectionText);
-
-    // Match line-start "Q<number>." — MUST be at start of line (after optional whitespace)
-    // Allow \s* after the period so "Q1.\n<question>" also matches
-    const qBoundaryRegex = /(?:^|\n)[ \t]*Q(\d{1,3})\.[ \t]*/g;
+    const cleanText = BilingualPdfParser.stripSeparators(sectionText);
+    const qBoundaryRegex = /(?:^|\n)[ \t]*(?:Q|Question|Q\.)?[ \t]*(\d{1,4})[\.\:\)\-–—\s]+[ \t]*/g;
     const boundaries: { qNum: number; index: number }[] = [];
     let m: RegExpExecArray | null;
 
@@ -365,7 +367,7 @@ export class BilingualPdfParser {
 
       if (qMap.has(qNum)) continue; // skip duplicates
 
-      const parsed = this.parseQuestionBlock(block, qNum);
+      const parsed = BilingualPdfParser.parseQuestionBlock(block, qNum);
       if (parsed) {
         qMap.set(qNum, parsed);
       }
@@ -377,41 +379,42 @@ export class BilingualPdfParser {
   /**
    * Parse a single question block.
    * Block starts with "Q<num>. <question text>" and ends at next Q or end of section.
-   * Options are "(a) ...", "(b) ...", "(c) ...", "(d) ..."
+   * Options are "(a) ...", "(b) ...", "(c) ...", "(d) ...", "(e) ..."
    */
   private static parseQuestionBlock(block: string, qNum: number): {
-    questionText: string; optionA: string; optionB: string; optionC: string; optionD: string;
+    questionText: string; optionA: string; optionB: string; optionC: string; optionD: string; optionE: string;
   } | null {
-    // Strip the "Q<num>." prefix
-    const withoutPrefix = block.replace(/^[ \t]*Q\d{1,3}\.\s+/, '').trim();
+    // Strip the question prefix
+    const withoutPrefix = block.replace(/^[ \t]*(?:Q|Question|Q\.)?[ \t]*\d{1,4}[\.\:\)\-–—\s]+/, '').trim();
 
-    // Find option positions — strictly "(a)", "(b)", "(c)", "(d)" or "(क)", "(ख)", "(ग)", "(घ)"
-    // Must be at start of line (after optional whitespace)
-    const optRegex = /(?:^|\n)[ \t]*\(([abcdABCDक-घ])\)[ \t]+/g;
+    // Find option positions — strictly "(a)"–"(e)" or "a."–"e." or "(क)"–"(ङ)"
+    const optRegex = /(?:^|\n)[ \t]*(?:\(([abcdeABCDEक-ङ])\)|([abcdeABCDEक-ङ])[\.\:\)\-–—]+)[ \t]+/g;
     const optPositions: { label: string; index: number }[] = [];
     let om: RegExpExecArray | null;
 
     while ((om = optRegex.exec(withoutPrefix)) !== null) {
-      const rawLabel = om[1].toLowerCase();
+      const matchedLabel = om[1] || om[2];
+      const rawLabel = matchedLabel.toLowerCase();
       let label = rawLabel;
       if (rawLabel === 'क') label = 'a';
       else if (rawLabel === 'ख') label = 'b';
       else if (rawLabel === 'ग') label = 'c';
       else if (rawLabel === 'घ') label = 'd';
+      else if (rawLabel === 'ङ') label = 'e';
 
-      if (['a', 'b', 'c', 'd'].includes(label) && !optPositions.some(o => o.label === label)) {
+      if (['a', 'b', 'c', 'd', 'e'].includes(label) && !optPositions.some(o => o.label === label)) {
         optPositions.push({ label, index: om.index });
       }
     }
 
     if (optPositions.length < 2) {
-      // Return question without options rather than null (to avoid silent drops)
       return {
         questionText: withoutPrefix,
         optionA: '',
         optionB: '',
         optionC: '',
-        optionD: ''
+        optionD: '',
+        optionE: ''
       };
     }
 
@@ -419,44 +422,35 @@ export class BilingualPdfParser {
     const questionText = withoutPrefix.substring(0, optPositions[0].index).trim();
 
     // Extract each option's text
-    let optionA = '', optionB = '', optionC = '', optionD = '';
+    let optionA = '', optionB = '', optionC = '', optionD = '', optionE = '';
     for (let i = 0; i < optPositions.length; i++) {
       const label = optPositions[i].label;
       const start = optPositions[i].index;
       const end = i < optPositions.length - 1 ? optPositions[i + 1].index : withoutPrefix.length;
-      // Strip leading whitespace/newlines + "(x) " prefix, then strip any trailing separator lines
-      const raw = this.stripSeparators(
-        withoutPrefix.substring(start, end).replace(/^\s*\([abcdABCD\u0915-\u0918]\)[ \t]+/, '')
+      const raw = BilingualPdfParser.stripSeparators(
+        withoutPrefix.substring(start, end).replace(/^\s*(?:\([abcdeABCDE\u0915-\u0919]\)|[abcdeABCDE\u0915-\u0919][\.\:\)\-–—]+)[ \t]+/, '')
       ).trim();
 
       if (label === 'a') optionA = raw;
       else if (label === 'b') optionB = raw;
       else if (label === 'c') optionC = raw;
       else if (label === 'd') optionD = raw;
+      else if (label === 'e') optionE = raw;
     }
 
-    return { questionText, optionA, optionB, optionC, optionD };
+    return { questionText, optionA, optionB, optionC, optionD, optionE };
   }
 
   /**
    * Parse an answer+explanation section.
-   *
-   * Each answer block starts with "Q<num>. <letter>" at the beginning of a line.
-   * Example:
-   *   Q1. B
-   *   • Statement 1: ...
-   *   Q2. D
-   *   • ...
    */
-  private static parseAnswers(sectionText: string): Map<number, { correctAnswer: 'A' | 'B' | 'C' | 'D'; explanation: string }> {
-    const aMap = new Map<number, { correctAnswer: 'A' | 'B' | 'C' | 'D'; explanation: string }>();
+  private static parseAnswers(sectionText: string): Map<number, { correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E'; explanation: string }> {
+    const aMap = new Map<number, { correctAnswer: 'A' | 'B' | 'C' | 'D' | 'E'; explanation: string }>();
 
-    // Strip separators so they don't bleed into explanation text
-    const cleanText = this.stripSeparators(sectionText);
+    const cleanText = BilingualPdfParser.stripSeparators(sectionText);
 
-    // Strictly match "Q<num>. <letter>" at start of line
-    // e.g. "Q1. B", "Q2. D", "Q7. B"
-    const aBoundaryRegex = /(?:^|\n)[ \t]*Q(\d{1,3})\.[ \t]+([A-Da-dक-घ])\b/g;
+    // Match "Q1. B", "1. B", "Q50: E", "100. D", etc.
+    const aBoundaryRegex = /(?:^|\n)[ \t]*(?:Q|Question|Q\.)?[ \t]*(\d{1,4})[\.\:\)\-–—\s]+[ \t]*([A-Ea-eक-ङ])\b/g;
     const boundaries: { qNum: number; letter: string; index: number }[] = [];
     let m: RegExpExecArray | null;
 
@@ -468,8 +462,9 @@ export class BilingualPdfParser {
       else if (rawLetter === 'ख') letter = 'B';
       else if (rawLetter === 'ग') letter = 'C';
       else if (rawLetter === 'घ') letter = 'D';
+      else if (rawLetter === 'ङ') letter = 'E';
 
-      if (['A', 'B', 'C', 'D'].includes(letter) && !boundaries.some(b => b.qNum === qNum)) {
+      if (['A', 'B', 'C', 'D', 'E'].includes(letter) && !boundaries.some(b => b.qNum === qNum)) {
         boundaries.push({ qNum, letter, index: m.index });
       }
     }
@@ -480,11 +475,10 @@ export class BilingualPdfParser {
       const end = i < boundaries.length - 1 ? boundaries[i + 1].index : cleanText.length;
       const block = cleanText.substring(start, end).trim();
 
-      // Strip "Q<num>. <letter>" prefix — remainder is the explanation
-      const explanation = block.replace(/^[ \t]*Q\d{1,3}\.[ \t]+[A-Da-dक-घ]\b\s*/, '').trim();
+      const explanation = block.replace(/^[ \t]*(?:Q|Question|Q\.)?[ \t]*\d{1,4}[\.\:\)\-–—\s]+[ \t]*[A-Ea-eक-ङ]\b\s*/, '').trim();
 
       aMap.set(qNum, {
-        correctAnswer: letter as 'A' | 'B' | 'C' | 'D',
+        correctAnswer: letter as 'A' | 'B' | 'C' | 'D' | 'E',
         explanation
       });
     }

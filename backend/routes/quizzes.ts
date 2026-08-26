@@ -503,6 +503,7 @@ router.post('/admin/import-bilingual-quiz', async (req: Request, res: Response) 
         optionB: q.optionB,
         optionC: q.optionC,
         optionD: q.optionD,
+        optionE: q.optionE || null,
         correctAnswer: q.correctAnswer,
         explanation: q.explanation,
         questionTextHi: q.questionTextHi,
@@ -510,6 +511,7 @@ router.post('/admin/import-bilingual-quiz', async (req: Request, res: Response) 
         optionBHi: q.optionBHi,
         optionCHi: q.optionCHi,
         optionDHi: q.optionDHi,
+        optionEHi: q.optionEHi || null,
         explanationHi: q.explanationHi,
         marks: q.marks || 1.00,
         negativeMarks: q.negativeMarks || 0.33,
@@ -600,32 +602,36 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
       const { correctAnswer, explanation, ...publicFields } = q;
       
       // Shuffle options deterministically per question seed
-      const optionPairs = [
+      const rawOptionPairs = [
         { orig: 'A', text: publicFields.optionA, textHi: publicFields.optionAHi },
         { orig: 'B', text: publicFields.optionB, textHi: publicFields.optionBHi },
         { orig: 'C', text: publicFields.optionC, textHi: publicFields.optionCHi },
         { orig: 'D', text: publicFields.optionD, textHi: publicFields.optionDHi },
+        { orig: 'E', text: publicFields.optionE, textHi: publicFields.optionEHi },
       ];
+      const optionPairs = rawOptionPairs.filter(o => o.text || o.textHi);
 
       const shuffledOptions = shuffleArraySeeded(optionPairs, `${session.seed}-opt-${q.id}`);
       
+      const optionMap: Record<string, string> = {};
+      const labels = ['A', 'B', 'C', 'D', 'E'];
+      shuffledOptions.forEach((opt, idx) => {
+        if (labels[idx]) optionMap[labels[idx]] = opt.orig;
+      });
+
       return {
         ...publicFields,
         optionA: shuffledOptions[0]?.text || '',
         optionB: shuffledOptions[1]?.text || '',
         optionC: shuffledOptions[2]?.text || '',
         optionD: shuffledOptions[3]?.text || '',
+        optionE: shuffledOptions[4]?.text || '',
         optionAHi: shuffledOptions[0]?.textHi || null,
         optionBHi: shuffledOptions[1]?.textHi || null,
         optionCHi: shuffledOptions[2]?.textHi || null,
         optionDHi: shuffledOptions[3]?.textHi || null,
-        // Map displayed letter to canonical original option letter
-        optionMap: {
-          A: shuffledOptions[0]?.orig,
-          B: shuffledOptions[1]?.orig,
-          C: shuffledOptions[2]?.orig,
-          D: shuffledOptions[3]?.orig,
-        }
+        optionEHi: shuffledOptions[4]?.textHi || null,
+        optionMap
       };
     });
 
@@ -721,8 +727,8 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
         questionId: q.id,
         questionText: q.questionText,
         questionTextHi: q.questionTextHi,
-        options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
-        optionsHi: { A: q.optionAHi, B: q.optionBHi, C: q.optionCHi, D: q.optionDHi },
+        options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD, E: q.optionE },
+        optionsHi: { A: q.optionAHi, B: q.optionBHi, C: q.optionCHi, D: q.optionDHi, E: q.optionEHi },
         studentAnswer,
         correctAnswer: q.correctAnswer,
         explanation: q.explanation,

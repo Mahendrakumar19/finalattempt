@@ -469,11 +469,24 @@ function BlogEditorForm() {
     e.preventDefault()
     setLoading(true)
     setError(null)
-    
+
+    const stripHtml = (html: string) => (html || '').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
+    const slugifiedTitle = (formData.title || '').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const finalSlug = (formData.slug || '').trim() || slugifiedTitle || `blog-${Date.now()}`;
+
+    const autoSeoTitle = (formData.seoTitle || '').trim() || `${formData.title || 'Blog Post'} | Final Attempt IAS`;
+    const autoSeoDesc = (formData.seoDescription || '').trim() || (formData.blurb || stripHtml(formData.content || '')).slice(0, 155);
+    const autoSeoKeywords = (formData.seoKeywords || '').trim() || `${formData.title || ''}, ${formData.category || 'Strategy'}, BPSC Prelims, BPSC Mains, UPSC CSE, Final Attempt IAS`;
+
     const finalData = {
       ...formData,
       id: formData.id || `blog-${Date.now()}`,
-      status: isPublishing ? 'published' : formData.status
+      slug: finalSlug,
+      status: isPublishing ? 'published' : formData.status,
+      seoTitle: autoSeoTitle,
+      seoDescription: autoSeoDesc,
+      seoKeywords: autoSeoKeywords,
+      canonicalUrl: `https://finalattemptias.com/blog/${finalSlug}`
     }
     
     try {

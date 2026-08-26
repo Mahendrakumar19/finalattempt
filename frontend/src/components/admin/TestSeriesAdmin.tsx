@@ -89,6 +89,7 @@ const BLANK_QUESTION = {
   optionB: '',
   optionC: '',
   optionD: '',
+  optionE: '',
   correctAnswer: 'A' as const,
   explanation: '',
   marks: 1,
@@ -111,6 +112,7 @@ interface QuestionItem {
   optionB: string;
   optionC?: string;
   optionD?: string;
+  optionE?: string;
   correctAnswer?: string;
   explanation?: string;
   questionTextHi?: string;
@@ -118,6 +120,7 @@ interface QuestionItem {
   optionBHi?: string;
   optionCHi?: string;
   optionDHi?: string;
+  optionEHi?: string;
   explanationHi?: string;
   marks?: number;
   negativeMarks?: number;
@@ -621,6 +624,7 @@ export default function TestSeriesAdmin({
             optionB: q.optionB,
             optionC: q.optionC,
             optionD: q.optionD,
+            optionE: q.optionE || '',
             correctAnswer: q.correctAnswer,
             explanation: q.explanation || 'Refer to syllabus notes.',
             questionTextHi: q.questionTextHi,
@@ -628,6 +632,7 @@ export default function TestSeriesAdmin({
             optionBHi: q.optionBHi,
             optionCHi: q.optionCHi,
             optionDHi: q.optionDHi,
+            optionEHi: q.optionEHi || '',
             explanationHi: q.explanationHi,
             marks: 1,
             negativeMarks: 0.33
@@ -1284,8 +1289,9 @@ export default function TestSeriesAdmin({
                                 const optB = isHi && q.optionBHi ? q.optionBHi : q.optionB;
                                 const optC = isHi && q.optionCHi ? q.optionCHi : q.optionC;
                                 const optD = isHi && q.optionDHi ? q.optionDHi : q.optionD;
+                                const optE = isHi && q.optionEHi ? q.optionEHi : q.optionE;
                                 const exp = isHi && q.explanationHi ? q.explanationHi : q.explanation;
-                                const optsMap = { A: optA, B: optB, C: optC, D: optD };
+                                const optsMap = { A: optA, B: optB, C: optC, D: optD, E: optE };
 
                                 return (
                                   <div key={q.id} className="flex items-start gap-3 p-4 bg-[var(--card-bg)] rounded-2xl border border-[var(--card-border)]">
@@ -1295,14 +1301,14 @@ export default function TestSeriesAdmin({
                                     <div className="flex-1 min-w-0 space-y-2">
                                       <p className="text-xs text-[var(--text-color)] font-bold">{prompt}</p>
                                       <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-medium">
-                                        {(['A', 'B', 'C', 'D'] as const).map(opt => (
+                                        {(['A', 'B', 'C', 'D', 'E'] as const).map(opt => optsMap[opt] ? (
                                           <span key={opt} className={`flex items-center gap-1 p-1.5 rounded-lg border ${
                                             q.correctAnswer === opt ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-bold' : 'border-transparent'
                                           }`}>
                                             {q.correctAnswer === opt && <Check className="w-3 h-3 text-emerald-500 shrink-0" />}
                                             <span className="font-bold">{opt}.</span> {stripOptionPrefix(optsMap[opt] || '')}
                                           </span>
-                                        ))}
+                                        ) : null)}
                                       </div>
                                       {exp && (
                                         <p className="text-[10px] text-amber-600 dark:text-amber-400 font-medium bg-amber-500/5 p-2 rounded-xl border border-amber-500/10">
@@ -1355,11 +1361,11 @@ export default function TestSeriesAdmin({
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {(['A', 'B', 'C', 'D'] as const).map(opt => (
+                                {(['A', 'B', 'C', 'D', 'E'] as const).map(opt => (
                                   <div key={opt}>
-                                    <label className="text-[10px] font-bold uppercase text-slate-400">Option {opt} *</label>
+                                    <label className="text-[10px] font-bold uppercase text-slate-400">Option {opt} {opt !== 'E' ? '*' : ''}</label>
                                     <input
-                                      required
+                                      required={opt !== 'E'}
                                       type="text"
                                       value={qForm[`option${opt}` as keyof typeof qForm] as string}
                                       onChange={e => setQForm({ ...qForm, [`option${opt}`]: e.target.value })}
@@ -1378,7 +1384,7 @@ export default function TestSeriesAdmin({
                                     onChange={e => setQForm({ ...qForm, correctAnswer: e.target.value as any })}
                                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] text-xs rounded-xl outline-none mt-1 font-bold cursor-pointer"
                                   >
-                                    {(['A', 'B', 'C', 'D'] as const).map(o => <option key={o} value={o}>Option {o}</option>)}
+                                    {(['A', 'B', 'C', 'D', 'E'] as const).map(o => <option key={o} value={o}>Option {o}</option>)}
                                   </select>
                                 </div>
                                 <div>
@@ -2259,6 +2265,15 @@ export default function TestSeriesAdmin({
                     className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
                   />
                 </div>
+                <div>
+                  <label className="block text-slate-400 mb-1">Option E</label>
+                  <input
+                    type="text"
+                    value={editingQuestion.optionE || ''}
+                    onChange={e => setEditingQuestion({ ...editingQuestion, optionE: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
@@ -2273,6 +2288,7 @@ export default function TestSeriesAdmin({
                     <option value="B">Option B</option>
                     <option value="C">Option C</option>
                     <option value="D">Option D</option>
+                    <option value="E">Option E</option>
                   </select>
                 </div>
                 <div>
@@ -2408,6 +2424,7 @@ export default function TestSeriesAdmin({
                           <span>B. {stripOptionPrefix(pq.optionB)}</span>
                           <span>C. {stripOptionPrefix(pq.optionC)}</span>
                           <span>D. {stripOptionPrefix(pq.optionD)}</span>
+                          {pq.optionE && <span>E. {stripOptionPrefix(pq.optionE)}</span>}
                         </div>
                       </div>
                     ))}
@@ -2951,6 +2968,7 @@ export default function TestSeriesAdmin({
                                 <p><strong className="text-slate-400">B.</strong> {stripOptionPrefix(curQ.optionB)}</p>
                                 <p><strong className="text-slate-400">C.</strong> {stripOptionPrefix(curQ.optionC)}</p>
                                 <p><strong className="text-slate-400">D.</strong> {stripOptionPrefix(curQ.optionD)}</p>
+                                {curQ.optionE && <p><strong className="text-slate-400">E.</strong> {stripOptionPrefix(curQ.optionE)}</p>}
                               </div>
                               <div className="p-2.5 bg-amber-500/10 rounded-xl text-[11px] text-amber-700 dark:text-amber-300">
                                 <strong>Explanation:</strong> {curQ.explanation}
@@ -2966,6 +2984,7 @@ export default function TestSeriesAdmin({
                                 <p><strong className="text-amber-500">B.</strong> {stripOptionPrefix(curQ.optionBHi)}</p>
                                 <p><strong className="text-amber-500">C.</strong> {stripOptionPrefix(curQ.optionCHi)}</p>
                                 <p><strong className="text-amber-500">D.</strong> {stripOptionPrefix(curQ.optionDHi)}</p>
+                                {curQ.optionEHi && <p><strong className="text-amber-500">E.</strong> {stripOptionPrefix(curQ.optionEHi)}</p>}
                               </div>
                               <div className="p-2.5 bg-amber-500/10 rounded-xl text-[11px] text-amber-700 dark:text-amber-300">
                                 <strong>व्याख्या:</strong> {curQ.explanationHi}
@@ -3105,15 +3124,17 @@ export default function TestSeriesAdmin({
                 const seed = `seed-${inspectingSetQuiz.id}-${inspectingSetCode}`;
                 const shuffledQs = shuffleArraySeeded(rawQuestions, `${seed}-q`);
                 return shuffledQs.map((q: any) => {
-                  const optionPairs = [
+                  const rawOptionPairs = [
                     { origKey: 'A', text: q.optionA, textHi: q.optionAHi },
                     { origKey: 'B', text: q.optionB, textHi: q.optionBHi },
                     { origKey: 'C', text: q.optionC, textHi: q.optionCHi },
                     { origKey: 'D', text: q.optionD, textHi: q.optionDHi },
+                    { origKey: 'E', text: q.optionE, textHi: q.optionEHi },
                   ];
+                  const optionPairs = rawOptionPairs.filter(o => o.text || o.textHi);
                   const shuffledOpts = shuffleArraySeeded(optionPairs, `${seed}-opt-${q.id}`);
                   let mappedCorrectKey = q.correctAnswer;
-                  const newLetters = ['A', 'B', 'C', 'D'];
+                  const newLetters = ['A', 'B', 'C', 'D', 'E'];
                   shuffledOpts.forEach((opt: any, idx: number) => {
                     if (opt.origKey === q.correctAnswer) mappedCorrectKey = newLetters[idx];
                   });
@@ -3124,10 +3145,12 @@ export default function TestSeriesAdmin({
                     optionB: shuffledOpts[1]?.text || '',
                     optionC: shuffledOpts[2]?.text || '',
                     optionD: shuffledOpts[3]?.text || '',
+                    optionE: shuffledOpts[4]?.text || '',
                     optionAHi: shuffledOpts[0]?.textHi || null,
                     optionBHi: shuffledOpts[1]?.textHi || null,
                     optionCHi: shuffledOpts[2]?.textHi || null,
                     optionDHi: shuffledOpts[3]?.textHi || null,
+                    optionEHi: shuffledOpts[4]?.textHi || null,
                     mappedCorrectKey
                   };
                 });
@@ -3272,7 +3295,8 @@ export default function TestSeriesAdmin({
                             { key: 'B', text: q.optionB, textHi: q.optionBHi },
                             { key: 'C', text: q.optionC, textHi: q.optionCHi },
                             { key: 'D', text: q.optionD, textHi: q.optionDHi },
-                          ];
+                            { key: 'E', text: q.optionE, textHi: q.optionEHi },
+                          ].filter(o => o.text || o.textHi);
 
                           return `
                             <div class="q-card">

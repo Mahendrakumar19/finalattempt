@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
-  Clock, Layers, BookOpen, Award, ArrowRight, ChevronRight,
+  Clock, Layers, BookOpen, Award, ArrowRight, ChevronRight, ChevronLeft,
   Flame, Globe, MapPin, Newspaper, RefreshCw, TrendingUp,
-  Calendar, Zap, BookMarked, FileText
+  Calendar, Zap, BookMarked, FileText, Search, X, Filter, ChevronDown
 } from 'lucide-react';
 import { db, DynamicCurrentAffairEdition } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
@@ -82,6 +82,12 @@ export default function CurrentAffairsLanding() {
   const { t } = useTranslation();
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
   const [activeTopic, setActiveTopic] = useState<'all' | 'national' | 'international' | 'bihar' | 'arunachal'>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [showDateDropdown, setShowDateDropdown] = useState<boolean>(false);
+  const [bannerCalDate, setBannerCalDate] = useState<Date>(new Date());
+
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
 
   // ── Date Navigator state ─────────────────────────────────────
   const [navYear,  setNavYear]  = useState<string>('');
@@ -94,6 +100,53 @@ export default function CurrentAffairsLanding() {
       .then(list => setEditions(list || []))
       .catch(err => console.error('Error loading current affairs editions:', err));
   }, []);
+
+  // Close Date Dropdown on Outside Click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dateDropdownRef.current && !dateDropdownRef.current.contains(e.target as Node)) {
+        setShowDateDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const publishedDatesList = useMemo(() => {
+    const datesSet = new Set<string>();
+    if (Array.isArray(editions)) {
+      editions.forEach(ed => {
+        if (ed.publishDate) datesSet.add(ed.publishDate);
+      });
+    }
+    return Array.from(datesSet).sort((a, b) => b.localeCompare(a));
+  }, [editions]);
+
+  const heroCalendarDays = useMemo(() => {
+    const year = bannerCalDate.getFullYear();
+    const month = bannerCalDate.getMonth();
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    const days: Array<{ day: number | null; dateStr: string | null; hasEdition: boolean; isSelected: boolean }> = [];
+    for (let i = 0; i < firstDayIndex; i++) {
+      days.push({ day: null, dateStr: null, hasEdition: false, isSelected: false });
+    }
+
+    for (let d = 1; d <= totalDays; d++) {
+      const mStr = String(month + 1).padStart(2, '0');
+      const dStr = String(d).padStart(2, '0');
+      const formatted = `${year}-${mStr}-${dStr}`;
+      days.push({
+        day: d,
+        dateStr: formatted,
+        hasEdition: publishedDatesList.includes(formatted),
+        isSelected: formatted === selectedDate
+      });
+    }
+
+    return days;
+  }, [bannerCalDate, publishedDatesList, selectedDate]);
 
   // ── Derived hrefs ──────────────────────────────────────────
   const latestDailyHref = useMemo(() => {
@@ -142,6 +195,13 @@ export default function CurrentAffairsLanding() {
   // ── Date Navigator computed options ──────────────────────────
   const availableYears = useMemo(() => {
     const yrs = new Set<string>();
+    const currentYear = new Date().getFullYear();
+
+    // Include range of past years up to current year (2020 to currentYear)
+    for (let y = currentYear; y >= 2020; y--) {
+      yrs.add(String(y));
+    }
+
     if (Array.isArray(editions)) {
       editions.forEach(ed => {
         if (ed.publishDate && ed.publishDate.includes('-')) {
@@ -200,17 +260,27 @@ export default function CurrentAffairsLanding() {
     return null;
   }, [navDay, navWeek, navMonth, navYear]);
 
-  // ── Recent articles from editions ─────────────────────────
+  // ── Recent / Filtered articles from editions ─────────────────────────
   const recentArticles = useMemo(() => {
     const all: Array<{ title: string; date: string; category: string; slug: string; editionId: string }> = [];
+    const query = searchQuery.trim().toLowerCase();
+
     if (Array.isArray(editions)) {
       [...editions]
         .sort((a, b) => (b.publishDate || '').localeCompare(a.publishDate || ''))
-        .slice(0, 5)
         .forEach(ed => {
+          if (selectedDate && ed.publishDate !== selectedDate) {
+            return;
+          }
           (ed.articles || []).forEach(art => {
             const cat = art.category?.toLowerCase() || '';
-            if (activeTopic === 'all' || cat === activeTopic || (activeTopic === 'arunachal' && cat === 'arunachal')) {
+            const titleText = (art.title || '').toLowerCase();
+            const tagsText = (art.tags || []).join(' ').toLowerCase();
+
+            const matchesTopic = activeTopic === 'all' || cat === activeTopic || (activeTopic === 'arunachal' && cat === 'arunachal');
+            const matchesQuery = !query || titleText.includes(query) || cat.includes(query) || tagsText.includes(query);
+
+            if (matchesTopic && matchesQuery) {
               all.push({
                 title: art.title || 'Current Affairs Article',
                 date: ed.publishDate || '',
@@ -222,8 +292,8 @@ export default function CurrentAffairsLanding() {
           });
         });
     }
-    return all.slice(0, 6);
-  }, [editions, activeTopic]);
+    return all.slice(0, 18);
+  }, [editions, activeTopic, searchQuery, selectedDate]);
 
   const today = new Date();
   const todayStr = today.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -240,16 +310,18 @@ export default function CurrentAffairsLanding() {
 
       {/* ── Hero Banner ───────────────────────────────────────── */}
       <div
-        className="relative overflow-hidden border-b border-slate-200 dark:border-white/[0.07]"
+        className="relative z-20 border-b border-slate-200 dark:border-white/[0.07]"
         style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1E40AF 100%)' }}
       >
         {/* Ambient glow */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-600/10 rounded-full blur-3xl" />
+        </div>
 
-        <div className="relative max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-10 py-5 sm:py-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
+        <div className="relative max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-10 py-7 sm:py-9 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-2 flex-1 max-w-xl">
               {/* Live pulse badge */}
               <div className="flex items-center gap-2">
                 <span className="relative flex h-2 w-2">
@@ -262,18 +334,173 @@ export default function CurrentAffairsLanding() {
               <h1 className="text-2xl sm:text-3xl font-heading font-black text-white leading-tight">
                 {t('currentAffairs.title')}
               </h1>
+
+              {/* 🔍 TOPIC SEARCH INPUT BAR */}
+              <div className="relative max-w-md pt-1">
+                <Search className="w-4 h-4 text-amber-400 absolute left-3.5 top-[18px] -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search Current Affairs by topic or keyword (e.g. SEBI, Bihar, Gorkha)..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-9 py-2.5 bg-white/10 border border-white/20 focus:border-amber-400 text-white placeholder-slate-300 text-xs font-semibold rounded-2xl outline-none backdrop-blur-md transition-all shadow-inner"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-[18px] -translate-y-1/2 text-slate-300 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="flex flex-row items-center gap-3 shrink-0">
-              {/* Date badge */}
-              <div className="bg-white/10 border border-white/20 backdrop-blur-sm rounded-xl px-4 py-2 text-center">
-                <p className="text-[9px] font-bold text-blue-300 uppercase tracking-wider">Today</p>
-                <p className="text-xs font-black text-white">{todayStr}</p>
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 shrink-0">
+              {/* 📅 CLEAN THEME-MATCHED DATE CALENDAR BUTTON */}
+              <div className="relative" ref={dateDropdownRef}>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setShowDateDropdown(prev => !prev)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowDateDropdown(prev => !prev); } }}
+                  className="bg-white/10 hover:bg-white/15 border border-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 flex items-center gap-2.5 transition-all cursor-pointer shadow-md select-none group"
+                >
+                  <Calendar className="w-4 h-4 text-amber-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  <div className="flex items-center gap-2">
+                    <div className="text-left">
+                      <p className="text-[9px] font-extrabold text-blue-300 uppercase tracking-wider leading-none">
+                        {selectedDate ? 'Filter Date' : 'Today'}
+                      </p>
+                      <p className="text-xs font-black text-white whitespace-nowrap mt-0.5">
+                        {selectedDate ? formatDisplayDate(selectedDate) : todayStr}
+                      </p>
+                    </div>
+                    {selectedDate ? (
+                      <span
+                        role="button"
+                        onClick={(e) => { e.stopPropagation(); setSelectedDate(''); }}
+                        className="text-amber-400 hover:text-white p-1 rounded-full transition-colors ml-1 cursor-pointer"
+                        title="Reset Date Filter"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </span>
+                    ) : (
+                      <ChevronDown className={`w-3.5 h-3.5 text-amber-400/80 group-hover:text-amber-400 transition-transform ml-1 ${showDateDropdown ? 'rotate-180' : ''}`} />
+                    )}
+                  </div>
+                </div>
+
+                {/* 🎨 CUSTOM THEME-HARMONIOUS CALENDAR POPUP */}
+                {showDateDropdown && (
+                  <div className="absolute right-0 top-full mt-2 w-[260px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/20 backdrop-blur-2xl rounded-2xl p-3.5 shadow-2xl z-50 text-slate-900 dark:text-white space-y-3 select-none">
+                    {/* Header */}
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/10 pb-2.5">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => setBannerCalDate(new Date(bannerCalDate.getFullYear(), bannerCalDate.getMonth() - 1, 1))}
+                          className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer shrink-0"
+                          title="Previous Month"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Month Selector */}
+                        <select
+                          value={String(bannerCalDate.getMonth())}
+                          onChange={(e) => setBannerCalDate(new Date(bannerCalDate.getFullYear(), parseInt(e.target.value, 10), 1))}
+                          className="bg-slate-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 font-black text-xs rounded-lg px-1 py-0.5 border border-slate-200 dark:border-white/10 outline-none cursor-pointer"
+                        >
+                          {MONTH_DISPLAY.map((mName, idx) => (
+                            <option key={idx} value={String(idx)}>
+                              {mName.slice(0, 3)}
+                            </option>
+                          ))}
+                        </select>
+
+                        {/* Year Selector */}
+                        <select
+                          value={String(bannerCalDate.getFullYear())}
+                          onChange={(e) => setBannerCalDate(new Date(parseInt(e.target.value, 10), bannerCalDate.getMonth(), 1))}
+                          className="bg-slate-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 font-black text-xs rounded-lg px-1 py-0.5 border border-slate-200 dark:border-white/10 outline-none cursor-pointer"
+                        >
+                          {availableYears.map(yr => (
+                            <option key={yr} value={yr}>
+                              {yr}
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          type="button"
+                          onClick={() => setBannerCalDate(new Date(bannerCalDate.getFullYear(), bannerCalDate.getMonth() + 1, 1))}
+                          className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer shrink-0"
+                          title="Next Month"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {selectedDate && (
+                        <button
+                          type="button"
+                          onClick={() => { setSelectedDate(''); setShowDateDropdown(false); }}
+                          className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-0.5 cursor-pointer shrink-0 ml-1"
+                        >
+                          <X className="w-3 h-3" /> Reset
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Weekday headers */}
+                    <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-extrabold text-slate-400 dark:text-blue-300">
+                      <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                    </div>
+
+                    {/* Calendar grid */}
+                    <div className="grid grid-cols-7 gap-1 text-center">
+                      {heroCalendarDays.map((item, idx) => {
+                        if (!item.day) return <div key={idx} className="h-8" />;
+                        const isSel = item.isSelected;
+                        const hasEd = item.hasEdition;
+
+                        let dayClass = 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border-transparent';
+                        if (isSel) {
+                          dayClass = 'bg-amber-500 text-slate-950 font-black shadow-md ring-2 ring-amber-400/50 border-amber-400';
+                        } else if (hasEd) {
+                          dayClass = 'bg-amber-500/15 dark:bg-blue-500/20 text-amber-800 dark:text-blue-300 font-extrabold border-amber-500/30 dark:border-blue-500/40 hover:bg-amber-500/25 dark:hover:bg-blue-500/30';
+                        }
+
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              if (item.dateStr) {
+                                setSelectedDate(item.dateStr);
+                                setShowDateDropdown(false);
+                              }
+                            }}
+                            className={`h-8 w-full rounded-xl text-xs font-bold flex flex-col items-center justify-center transition-all cursor-pointer border relative ${dayClass}`}
+                          >
+                            <span>{item.day}</span>
+                            {hasEd && !isSel && (
+                              <span className="w-1 h-1 rounded-full bg-amber-500 dark:bg-amber-400 absolute bottom-1" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
+
               {/* CTA */}
               <Link
                 href={latestDailyHref}
-                className="flex items-center justify-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-xl transition-all hover:scale-[1.02] shadow-md shadow-amber-500/20"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-2xl transition-all hover:scale-[1.02] shadow-md shadow-amber-500/20"
               >
                 <Zap className="w-3.5 h-3.5" />
                 <span>{t('nav.todaysCA')}</span>
@@ -361,6 +588,38 @@ export default function CurrentAffairsLanding() {
                   </button>
                 ))}
               </div>
+
+              {/* Active Filters Bar */}
+              {(searchQuery || selectedDate) && (
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                  <span className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                    <Filter className="w-3 h-3 text-amber-500" /> Active Filters:
+                  </span>
+                  {searchQuery && (
+                    <span className="px-3 py-1 bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-xl font-bold flex items-center gap-1.5">
+                      <span>Search: &ldquo;{searchQuery}&rdquo;</span>
+                      <button type="button" onClick={() => setSearchQuery('')} className="hover:text-red-500 cursor-pointer">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  )}
+                  {selectedDate && (
+                    <span className="px-3 py-1 bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 rounded-xl font-bold flex items-center gap-1.5">
+                      <span>Date: {formatDisplayDate(selectedDate)}</span>
+                      <button type="button" onClick={() => setSelectedDate('')} className="hover:text-red-500 cursor-pointer">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setSearchQuery(''); setSelectedDate(''); }}
+                    className="text-[10px] font-black text-slate-400 hover:text-amber-500 hover:underline ml-1 cursor-pointer"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
 
               {recentArticles.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">

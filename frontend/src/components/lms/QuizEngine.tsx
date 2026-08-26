@@ -635,7 +635,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
               {/* Options - ~64-72px high desktop cards, high readability & click targets */}
               <div className="space-y-3.5 pt-2 max-w-4xl">
-                {['A', 'B', 'C', 'D'].map((opt) => {
+                {['A', 'B', 'C', 'D', 'E'].map((opt) => {
                   const optKey = `option${opt}`;
                   const optionText = getDisplayOptionText(currentQ, optKey);
                   if (!optionText) return null;

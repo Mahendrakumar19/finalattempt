@@ -843,6 +843,8 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN status VARCHAR(50) DEFAULT 'Submitted'"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedCopyUrl TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedAt TIMESTAMP NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_questions ADD COLUMN optionE TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_questions ADD COLUMN optionEHi TEXT NULL"); } catch (e) {}
 
     // 15. YouTube Videos Cached Metadata Table
     await pool.query(`
@@ -4979,6 +4981,7 @@ class LmsDB {
   }
 
   // ── Question Methods ──────────────────────────────────────────────────────
+  // ── Question Methods ──────────────────────────────────────────────────────
   async createQuestion(data: any): Promise<any> {
     const { v4: uuid } = await import('uuid');
     const id = data.id || `q-${Date.now()}`;
@@ -4990,6 +4993,7 @@ class LmsDB {
       optionB: data.optionB,
       optionC: data.optionC,
       optionD: data.optionD,
+      optionE: data.optionE || null,
       correctAnswer: data.correctAnswer,
       explanation: data.explanation || '',
       questionTextHi: data.questionTextHi || null,
@@ -4997,6 +5001,7 @@ class LmsDB {
       optionBHi: data.optionBHi || null,
       optionCHi: data.optionCHi || null,
       optionDHi: data.optionDHi || null,
+      optionEHi: data.optionEHi || null,
       explanationHi: data.explanationHi || null,
       marks: Number(data.marks || 1.00),
       negativeMarks: Number(data.negativeMarks || 0.33),
@@ -5007,11 +5012,11 @@ class LmsDB {
       try {
         try {
           await mysqlPool.query(
-            'INSERT INTO lms_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation, questionTextHi, optionAHi, optionBHi, optionCHi, optionDHi, explanationHi, marks, negativeMarks, orderIndex) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [question.id, question.quizId, question.questionText, question.optionA, question.optionB, question.optionC, question.optionD, question.correctAnswer, question.explanation, question.questionTextHi, question.optionAHi, question.optionBHi, question.optionCHi, question.optionDHi, question.explanationHi, question.marks, question.negativeMarks, question.orderIndex]
+            'INSERT INTO lms_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, optionE, correctAnswer, explanation, questionTextHi, optionAHi, optionBHi, optionCHi, optionDHi, optionEHi, explanationHi, marks, negativeMarks, orderIndex) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [question.id, question.quizId, question.questionText, question.optionA, question.optionB, question.optionC, question.optionD, question.optionE, question.correctAnswer, question.explanation, question.questionTextHi, question.optionAHi, question.optionBHi, question.optionCHi, question.optionDHi, question.optionEHi, question.explanationHi, question.marks, question.negativeMarks, question.orderIndex]
           );
         } catch (colErr) {
-          // Fallback if optional Hindi columns are not in MySQL schema
+          // Fallback if optional Hindi or OptionE columns are not in MySQL schema
           await mysqlPool.query(
             'INSERT INTO lms_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation, marks, negativeMarks, orderIndex) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [question.id, question.quizId, question.questionText, question.optionA, question.optionB, question.optionC, question.optionD, question.correctAnswer, question.explanation, question.marks, question.negativeMarks, question.orderIndex]
@@ -5036,8 +5041,8 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'UPDATE lms_questions SET questionText = ?, optionA = ?, optionB = ?, optionC = ?, optionD = ?, correctAnswer = ?, explanation = ?, questionTextHi = ?, optionAHi = ?, optionBHi = ?, optionCHi = ?, optionDHi = ?, explanationHi = ?, marks = ?, negativeMarks = ? WHERE id = ?',
-          [data.questionText, data.optionA, data.optionB, data.optionC, data.optionD, data.correctAnswer, data.explanation, data.questionTextHi || null, data.optionAHi || null, data.optionBHi || null, data.optionCHi || null, data.optionDHi || null, data.explanationHi || null, Number(data.marks || 1.00), Number(data.negativeMarks || 0.33), id]
+          'UPDATE lms_questions SET questionText = ?, optionA = ?, optionB = ?, optionC = ?, optionD = ?, optionE = ?, correctAnswer = ?, explanation = ?, questionTextHi = ?, optionAHi = ?, optionBHi = ?, optionCHi = ?, optionDHi = ?, optionEHi = ?, explanationHi = ?, marks = ?, negativeMarks = ? WHERE id = ?',
+          [data.questionText, data.optionA, data.optionB, data.optionC, data.optionD, data.optionE || null, data.correctAnswer, data.explanation, data.questionTextHi || null, data.optionAHi || null, data.optionBHi || null, data.optionCHi || null, data.optionDHi || null, data.optionEHi || null, data.explanationHi || null, Number(data.marks || 1.00), Number(data.negativeMarks || 0.33), id]
         );
         const idx = lmsLocalQuestions.findIndex(q => q.id === id);
         if (idx >= 0) lmsLocalQuestions[idx] = { ...lmsLocalQuestions[idx], ...data };

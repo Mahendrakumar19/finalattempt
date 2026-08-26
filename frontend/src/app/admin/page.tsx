@@ -101,6 +101,7 @@ interface CurrentAffairArticle {
 interface BlogItem {
   id: string;
   title: string;
+  slug?: string;
   publishDate: string;
   readTime: string;
   category: string;
@@ -109,6 +110,7 @@ interface BlogItem {
   seoTitle?: string;
   seoKeywords?: string;
   seoDescription?: string;
+  canonicalUrl?: string;
   blurb?: string;
 }
 
@@ -610,7 +612,9 @@ export default function AdminPortal() {
     const artIdx = articles.findIndex(a => a.id === editingArticle.id && editingArticle.id !== '');
 
     const slugifiedTitle = editingArticle.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    const finalSlug = editingArticle.slug || `${editingEdition.publishDate}-${(editingArticle.category ?? 'general').toLowerCase()}-${slugifiedTitle}`;
+    const publishedDate = editingEdition.publishDate || new Date().toISOString().split('T')[0];
+    const category = editingArticle.category || 'NATIONAL';
+    const finalSlug = editingArticle.slug || `${publishedDate}-${category.toLowerCase()}-${slugifiedTitle}`;
 
     const parseCsv = (val: string | string[] | undefined) => {
       if (Array.isArray(val)) return val;
@@ -618,14 +622,48 @@ export default function AdminPortal() {
       return [];
     };
 
+    // 💡 AUTO-POPULATE METADATA IF NOT TYPED MANUALLY
+    let subjects = parseCsv(editingArticle.subjects);
+    if (subjects.length === 0) {
+      if (category === 'NATIONAL') subjects = ['National Polity & Governance', 'Economy & Development', 'General Studies'];
+      else if (category === 'INTERNATIONAL') subjects = ['International Relations', 'Global Diplomacy', 'General Studies'];
+      else if (category === 'BIHAR') subjects = ['Bihar State Current Affairs', 'Bihar Economy & Governance', 'BPSC General Studies'];
+      else if (category === 'ARUNACHAL') subjects = ['Arunachal Pradesh State Affairs', 'Northeast Development', 'State PCS'];
+      else subjects = ['General Studies', 'Polity & Economy'];
+    }
+
+    let exams = parseCsv(editingArticle.exams);
+    if (exams.length === 0) {
+      exams = ['BPSC', 'UPSC CSE', 'State PCS'];
+    }
+
+    let tags = parseCsv(editingArticle.tags);
+    if (tags.length === 0) {
+      const extractedWords = editingArticle.title.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3).slice(0, 4);
+      tags = Array.from(new Set([category.toLowerCase(), 'current-affairs', 'bpsc-prelims', 'mains-notes', ...extractedWords]));
+    }
+
+    // 💡 AUTO-POPULATE SEO PARAMETERS IF NOT TYPED MANUALLY
+    const stripHtml = (html: string) => (html || '').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
+    const seoTitle = (editingArticle.seo?.seoTitle || '').trim() || `${editingArticle.title} | Final Attempt IAS`;
+    const canonicalUrl = (editingArticle.seo?.canonicalUrl || '').trim() || `https://finalattemptias.com/current-affairs/daily/${publishedDate}/${category.toLowerCase()}/${finalSlug}`;
+    const seoKeywords = (editingArticle.seo?.seoKeywords || '').trim() || Array.from(new Set([editingArticle.title, category, ...subjects, ...exams, ...tags])).join(', ');
+    const seoDescription = (editingArticle.seo?.seoDescription || '').trim() || (editingArticle.summary || stripHtml(editingArticle.content || '')).slice(0, 155);
+
     const nextArt = {
       ...editingArticle,
       id: editingArticle.id || `art-${Date.now()}`,
       slug: finalSlug,
-      publishedDate: editingEdition.publishDate,
-      subjects: parseCsv(editingArticle.subjects),
-      exams: parseCsv(editingArticle.exams),
-      tags: parseCsv(editingArticle.tags)
+      publishedDate,
+      subjects,
+      exams,
+      tags,
+      seo: {
+        seoTitle,
+        canonicalUrl,
+        seoKeywords,
+        seoDescription
+      }
     } as DynamicCurrentAffairArticle;
 
     if (artIdx >= 0) {
@@ -752,8 +790,26 @@ export default function AdminPortal() {
 
   const handleSaveBlog = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const stripHtml = (html: string) => (html || '').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
+    const slugifiedTitle = (blogForm.title || '').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const finalSlug = (blogForm.slug || '').trim() || slugifiedTitle || `blog-${Date.now()}`;
+
+    const autoSeoTitle = (blogForm.seoTitle || '').trim() || `${blogForm.title || 'Blog Post'} | Final Attempt IAS`;
+    const autoSeoDesc = (blogForm.seoDescription || '').trim() || (blogForm.blurb || stripHtml(blogForm.content || '')).slice(0, 155);
+    const autoSeoKeywords = (blogForm.seoKeywords || '').trim() || `${blogForm.title || ''}, ${blogForm.category || 'Strategy'}, BPSC Prelims, BPSC Mains, UPSC CSE, Final Attempt IAS`;
+
+    const preparedBlog = {
+      ...blogForm,
+      slug: finalSlug,
+      seoTitle: autoSeoTitle,
+      seoDescription: autoSeoDesc,
+      seoKeywords: autoSeoKeywords,
+      canonicalUrl: `https://finalattemptias.com/blog/${finalSlug}`
+    };
+
     if (activeModal?.type === 'add') {
-      const newItem = { ...blogForm, id: `blog-${Date.now()}`, publishDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) };
+      const newItem = { ...preparedBlog, id: `blog-${Date.now()}`, publishDate: blogForm.publishDate || new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) };
       setBlogsList(prev => [newItem, ...prev]);
       await fetch(`${BACKEND_URL}/api/blogs`, {
         method: 'POST',
@@ -761,12 +817,12 @@ export default function AdminPortal() {
         body: JSON.stringify(newItem)
       });
     } else {
-      const id = blogForm.id;
-      setBlogsList(prev => prev.map(b => b.id === id ? blogForm : b));
+      const id = preparedBlog.id;
+      setBlogsList(prev => prev.map(b => b.id === id ? preparedBlog : b));
       await fetch(`${BACKEND_URL}/api/blogs/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(blogForm)
+        body: JSON.stringify(preparedBlog)
       });
     }
     setActiveModal(null);

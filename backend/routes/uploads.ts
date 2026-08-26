@@ -71,18 +71,58 @@ const upload = multer({
 // Upload a file and get back a publicly accessible URL.
 // Protected: admin / faculty only (optional — remove authenticate middleware to open it)
 
-router.post('/upload', upload.single('file'), (req: Request, res: Response) => {
+import { minioStorage } from '../services/minioStorage';
+import { ImageProcessor } from '../services/imageProcessor';
+import { getMediaCdnUrl } from '../services/urlResolver';
+
+router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
   if (!req.file) {
     res.status(400).json({ success: false, error: 'No file uploaded.' });
     return;
   }
 
+  const filename = req.file.filename;
+  const filePath = req.file.path;
+  const mimetype = req.file.mimetype;
+  const ext = path.extname(filename).replace('.', '').toLowerCase();
+
+  // Dual-write to MinIO S3 asynchronously
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    let subfolder = 'documents';
+
+    if (['jpg', 'jpeg', 'png', 'webp', 'svg'].includes(ext)) {
+      subfolder = 'images';
+    } else if (ext === 'pdf') {
+      subfolder = 'pdfs';
+    } else if (['zip', 'rar', 'tar'].includes(ext)) {
+      subfolder = 'downloads';
+    }
+
+    const s3ObjectKey = `${subfolder}/${filename}`;
+
+    if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+      const processed = await ImageProcessor.processImage(fileBuffer, filename, ext);
+      await minioStorage.uploadBuffer(s3ObjectKey, processed.optimizedBuffer, processed.mimeType, false);
+
+      for (const v of processed.variants) {
+        await minioStorage.uploadBuffer(v.key, v.buffer, v.mimeType, false);
+      }
+    } else {
+      await minioStorage.uploadBuffer(s3ObjectKey, fileBuffer, mimetype, false);
+    }
+  } catch (err: any) {
+    console.warn(`[MinIO Dual-Write Warning] S3 upload for /api/upload (${filename}) failed:`, err.message);
+  }
+
   const backendBase = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
-  const fileUrl = `${backendBase}/api/files/${req.file.filename}`;
+  const fileUrl = `${backendBase}/api/files/${filename}`;
+  const cdnUrl = getMediaCdnUrl(filename);
 
   res.json({
     success: true,
     url: fileUrl,
+    cdnUrl,
     filename: req.file.filename,
     originalName: req.file.originalname,
     size: req.file.size,

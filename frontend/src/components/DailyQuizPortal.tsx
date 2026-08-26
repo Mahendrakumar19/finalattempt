@@ -17,12 +17,13 @@ interface Question {
   optionB: string;
   optionC: string;
   optionD: string;
+  optionE?: string;
   marks?: number;
 }
 
 interface QuestionDetail extends Question {
   questionId?: string;
-  options: { A: string; B: string; C: string; D: string };
+  options: { A: string; B: string; C: string; D: string; E?: string };
   studentAnswer: string | null;
   correctAnswer: string;
   explanation: string;
@@ -740,8 +741,9 @@ export default function DailyQuizPortal() {
                     { key: 'A', text: questions[currentQuestionIndex].optionA },
                     { key: 'B', text: questions[currentQuestionIndex].optionB },
                     { key: 'C', text: questions[currentQuestionIndex].optionC },
-                    { key: 'D', text: questions[currentQuestionIndex].optionD }
-                  ].map((opt) => {
+                    { key: 'D', text: questions[currentQuestionIndex].optionD },
+                    { key: 'E', text: questions[currentQuestionIndex].optionE }
+                  ].filter(o => o.text).map((opt) => {
                     const selected = userAnswers[questions[currentQuestionIndex].id] === opt.key;
 
                     let optClass = 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-500/50 hover:bg-amber-500/5 text-slate-800 dark:text-slate-200';

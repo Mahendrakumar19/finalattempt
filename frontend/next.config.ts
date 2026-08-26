@@ -11,6 +11,22 @@ const nextConfig: NextConfig = {
     'localhost',
     'localhost:3000'
   ],
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'media.finalattemptias.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'finalattemptias.com',
+      },
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+    ],
+  },
   async redirects() {
     return [
       // 301 permanent redirect: www → non-www (canonical domain consolidation)
