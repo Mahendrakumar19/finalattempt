@@ -2962,7 +2962,11 @@ export default function TestSeriesAdmin({
                             {/* English Column */}
                             <div className="space-y-3 border-r border-[var(--card-border)] pr-4">
                               <span className="text-[10px] font-black uppercase text-slate-400 block">ENGLISH</span>
-                              <p className="font-bold text-[var(--text-color)]">{curQ.questionText}</p>
+                              {curQ.questionText && curQ.questionText.includes('<') && curQ.questionText.includes('>') ? (
+                                <div className="font-bold text-[var(--text-color)]" dangerouslySetInnerHTML={{ __html: curQ.questionText }} />
+                              ) : (
+                                <p className="font-bold text-[var(--text-color)]">{curQ.questionText}</p>
+                              )}
                               <div className="space-y-1 text-slate-500 font-medium">
                                 <p><strong className="text-slate-400">A.</strong> {stripOptionPrefix(curQ.optionA)}</p>
                                 <p><strong className="text-slate-400">B.</strong> {stripOptionPrefix(curQ.optionB)}</p>
@@ -2978,7 +2982,11 @@ export default function TestSeriesAdmin({
                             {/* Hindi Column */}
                             <div className="space-y-3">
                               <span className="text-[10px] font-black uppercase text-amber-500 block">HINDI (हिन्दी)</span>
-                              <p className="font-bold text-[var(--text-color)]">{curQ.questionTextHi}</p>
+                              {curQ.questionTextHi && curQ.questionTextHi.includes('<') && curQ.questionTextHi.includes('>') ? (
+                                <div className="font-bold text-[var(--text-color)]" dangerouslySetInnerHTML={{ __html: curQ.questionTextHi }} />
+                              ) : (
+                                <p className="font-bold text-[var(--text-color)]">{curQ.questionTextHi}</p>
+                              )}
                               <div className="space-y-1 text-slate-500 font-medium">
                                 <p><strong className="text-amber-500">A.</strong> {stripOptionPrefix(curQ.optionAHi)}</p>
                                 <p><strong className="text-amber-500">B.</strong> {stripOptionPrefix(curQ.optionBHi)}</p>

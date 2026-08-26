@@ -630,7 +630,11 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 className={`text-base md:text-[18px] font-semibold leading-[1.6] max-w-4xl whitespace-pre-wrap break-words ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}
                 style={{ color: cbtDark ? '#FFFFFF' : '#111827' }}
               >
-                {getDisplayQuestionText(currentQ)}
+                {getDisplayQuestionText(currentQ).includes('<') && getDisplayQuestionText(currentQ).includes('>') ? (
+                  <div dangerouslySetInnerHTML={{ __html: getDisplayQuestionText(currentQ) }} />
+                ) : (
+                  getDisplayQuestionText(currentQ)
+                )}
               </div>
 
               {/* Options - ~64-72px high desktop cards, high readability & click targets */}

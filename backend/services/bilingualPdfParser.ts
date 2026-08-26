@@ -377,6 +377,100 @@ export class BilingualPdfParser {
   }
 
   /**
+   * Auto-formats "Match List-I with List-II" (and Hindi सूची-I, सूची-II) text blocks
+   * into clean, responsive HTML Tables.
+   */
+  public static formatMatchListsInText(input: string): string {
+    if (!input) return '';
+    if (input.includes('<table') || input.includes('class="match-list-container"')) return input;
+
+    const hasList1 = /List[\s\-_]*I\b|List[\s\-_]*1\b|सूची[\s\-_]*I\b|सूची[\s\-_]*1\b/i.test(input);
+    const hasList2 = /List[\s\-_]*II\b|List[\s\-_]*2\b|सूची[\s\-_]*II\b|सूची[\s\-_]*2\b/i.test(input);
+
+    if (!hasList1 || !hasList2) return input;
+
+    const rawLines = input.split('\n');
+    const promptLines: string[] = [];
+    const listRows: { left: string; right: string }[] = [];
+    let headerLeft = 'List-I';
+    let headerRight = 'List-II';
+    let codesHeader = '';
+    let inListSection = false;
+
+    for (let i = 0; i < rawLines.length; i++) {
+      const line = rawLines[i].trim();
+      if (!line) continue;
+
+      // Header line detection e.g. "List-I (Items of the Constitution)   List-II (Taken from Countries)"
+      const isHeaderLine = /List[\s\-_]*I|List[\s\-_]*1|सूची[\s\-_]*I|सूची[\s\-_]*1/i.test(line) &&
+                           /List[\s\-_]*II|List[\s\-_]*2|सूची[\s\-_]*II|सूची[\s\-_]*2/i.test(line);
+
+      if (isHeaderLine) {
+        inListSection = true;
+        const parts = line.split(/\s{2,}|\t|\|/).map(s => s.trim()).filter(Boolean);
+        if (parts.length >= 2) {
+          headerLeft = parts[0];
+          headerRight = parts[1];
+        }
+        continue;
+      }
+
+      // Column Codes header e.g. "A B C D" or "Code: A B C D" or "कूट: A B C D"
+      if (/^(?:Codes?|कूट)?\s*[\:\-\s]*[A-D\s]{3,15}$/i.test(line) || /^[A-D]\s+[B-E]\s+[C-F]\s+[D-G]$/i.test(line)) {
+        codesHeader = line;
+        inListSection = false;
+        continue;
+      }
+
+      if (inListSection) {
+        const rowParts = line.split(/\s{2,}|\t|\|/).map(s => s.trim()).filter(Boolean);
+        if (rowParts.length >= 2) {
+          listRows.push({ left: rowParts[0], right: rowParts[1] });
+        } else if (listRows.length > 0) {
+          const lastRow = listRows[listRows.length - 1];
+          if (/^[1-4A-D][\.\)]/.test(line)) {
+            lastRow.right += ' ' + line;
+          } else {
+            lastRow.left += ' ' + line;
+          }
+        } else {
+          promptLines.push(line);
+        }
+      } else {
+        promptLines.push(line);
+      }
+    }
+
+    if (listRows.length === 0) return input;
+
+    let tableHtml = `<div class="match-list-container my-3 overflow-x-auto">`;
+    if (promptLines.length > 0) {
+      tableHtml += `<p class="mb-2 font-semibold">${promptLines.join(' ')}</p>`;
+    }
+    tableHtml += `<table class="w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-xs my-2">`;
+    tableHtml += `<thead><tr class="bg-slate-100 dark:bg-slate-800/80 text-slate-900 dark:text-white border-b border-slate-200 dark:border-white/10 font-bold">`;
+    tableHtml += `<th class="p-2.5 sm:p-3 text-left border-r border-slate-200 dark:border-white/10 w-1/2">${headerLeft}</th>`;
+    tableHtml += `<th class="p-2.5 sm:p-3 text-left w-1/2">${headerRight}</th>`;
+    tableHtml += `</tr></thead><tbody class="divide-y divide-slate-100 dark:divide-white/5">`;
+
+    listRows.forEach((row, idx) => {
+      const bgClass = idx % 2 === 1 ? 'bg-slate-50/50 dark:bg-slate-900/30' : '';
+      tableHtml += `<tr class="${bgClass}">`;
+      tableHtml += `<td class="p-2.5 sm:p-3 border-r border-slate-100 dark:border-white/5 font-medium align-top">${row.left}</td>`;
+      tableHtml += `<td class="p-2.5 sm:p-3 font-medium align-top">${row.right}</td>`;
+      tableHtml += `</tr>`;
+    });
+
+    tableHtml += `</tbody></table>`;
+    if (codesHeader) {
+      tableHtml += `<p class="font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1">${codesHeader}</p>`;
+    }
+    tableHtml += `</div>`;
+
+    return tableHtml;
+  }
+
+  /**
    * Parse a single question block.
    * Block starts with "Q<num>. <question text>" and ends at next Q or end of section.
    * Options are "(a) ...", "(b) ...", "(c) ...", "(d) ...", "(e) ..."
@@ -408,8 +502,9 @@ export class BilingualPdfParser {
     }
 
     if (optPositions.length < 2) {
+      const formattedWithoutPrefix = BilingualPdfParser.formatMatchListsInText(withoutPrefix);
       return {
-        questionText: withoutPrefix,
+        questionText: formattedWithoutPrefix,
         optionA: '',
         optionB: '',
         optionC: '',
@@ -420,6 +515,7 @@ export class BilingualPdfParser {
 
     // Question text = everything before the first option
     const questionText = withoutPrefix.substring(0, optPositions[0].index).trim();
+    const formattedQuestionText = BilingualPdfParser.formatMatchListsInText(questionText);
 
     // Extract each option's text
     let optionA = '', optionB = '', optionC = '', optionD = '', optionE = '';
@@ -438,7 +534,7 @@ export class BilingualPdfParser {
       else if (label === 'e') optionE = raw;
     }
 
-    return { questionText, optionA, optionB, optionC, optionD, optionE };
+    return { questionText: formattedQuestionText, optionA, optionB, optionC, optionD, optionE };
   }
 
   /**
