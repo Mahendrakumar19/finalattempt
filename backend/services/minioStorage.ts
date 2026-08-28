@@ -52,11 +52,16 @@ export class MinioStorageService {
     }
   }
 
+  public isEnabled(): boolean {
+    return process.env.MINIO_ENABLED === 'true';
+  }
+
   private getBucketName(isPrivate: boolean = false): string {
     return isPrivate ? this.privateBucket : this.publicBucket;
   }
 
   public async ensureBucketsExist(): Promise<void> {
+    if (!this.isEnabled()) return;
     try {
       const buckets = [this.publicBucket, this.privateBucket];
       for (const bucket of buckets) {
@@ -97,6 +102,15 @@ export class MinioStorageService {
   ): Promise<{ key: string; bucket: string; url: string; size: number }> {
     const sanitizedKey = sanitizeObjectKey(key);
     const bucket = this.getBucketName(isPrivate);
+
+    if (!this.isEnabled()) {
+      return {
+        key: sanitizedKey,
+        bucket,
+        url: this.getPublicUrl(sanitizedKey),
+        size: buffer.length,
+      };
+    }
 
     try {
       const metaData = {
@@ -193,6 +207,7 @@ export class MinioStorageService {
   }
 
   public async deleteObject(key: string, isPrivate: boolean = false): Promise<boolean> {
+    if (!this.isEnabled()) return true;
     const sanitizedKey = sanitizeObjectKey(key);
     const bucket = this.getBucketName(isPrivate);
 

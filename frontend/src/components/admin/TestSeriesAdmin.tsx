@@ -148,7 +148,7 @@ export default function TestSeriesAdmin({
   const [editingExam, setEditingExam] = useState<ExamData | null>(null);
   const [savingExam, setSavingExam] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
-  const [mediaPickerTarget, setMediaPickerTarget] = useState<'exam_logo' | 'series_pdf'>('exam_logo');
+  const [mediaPickerTarget, setMediaPickerTarget] = useState<'exam_logo' | 'series_pdf' | 'series_image'>('exam_logo');
 
   // Series Add/Edit Modal
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
@@ -1763,7 +1763,7 @@ export default function TestSeriesAdmin({
                       <button
                         type="button"
                         onClick={() => {
-                          setMediaPickerTarget('series_pdf');
+                          setMediaPickerTarget('series_image');
                           setShowMediaPicker(true);
                         }}
                         className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors shadow-xs"
@@ -2674,8 +2674,10 @@ export default function TestSeriesAdmin({
           onSelect={(url) => {
             if (mediaPickerTarget === 'series_pdf') {
               setEditingSeries(prev => ({ ...prev, schedulePdfUrl: url }));
+            } else if (mediaPickerTarget === 'series_image') {
+              setEditingSeries(prev => ({ ...prev, thumbnailUrl: url }));
             } else if (editingExam) {
-              setEditingExam({ ...editingExam, logoUrl: url });
+              setEditingExam(prev => (prev ? { ...prev, logoUrl: url } : prev));
             }
             setShowMediaPicker(false);
           }}

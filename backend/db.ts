@@ -2312,111 +2312,124 @@ class BackendDB {
     const edDate = edition.publishDate; // YYYY-MM-DD
     
     if (mysqlPool) {
-      const conn = await mysqlPool.getConnection();
-      try {
-        await conn.beginTransaction();
-        
-        // 1. Insert or update edition
-        await conn.query(
-          'INSERT INTO current_affair_editions (id, publishDate, summary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE summary = ?, updatedAt = ?',
-          [edId, edDate, edition.summary ?? null, timestamp, timestamp, edition.summary ?? null, timestamp]
-        );
-        
-        if (edition.articles) {
-          for (const art of edition.articles) {
-            const artId = art.id || `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-            const artSlug = art.slug || `${edDate}-${art.category.toLowerCase()}-${art.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-            
-            // 2. SEO
-            let seoId = null;
-            if (art.seo) {
-              seoId = art.seo.id || `seo-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+      let attempt = 0;
+      const maxAttempts = 3;
+      while (attempt < maxAttempts) {
+        attempt++;
+        const conn = await mysqlPool.getConnection();
+        try {
+          await conn.beginTransaction();
+          
+          // 1. Insert or update edition
+          await conn.query(
+            'INSERT INTO current_affair_editions (id, publishDate, summary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE summary = ?, updatedAt = ?',
+            [edId, edDate, edition.summary ?? null, timestamp, timestamp, edition.summary ?? null, timestamp]
+          );
+          
+          if (edition.articles) {
+            for (const art of edition.articles) {
+              const artId = art.id || `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+              const artSlug = art.slug || `${edDate}-${art.category.toLowerCase()}-${art.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+              
+              // 2. SEO
+              let seoId = null;
+              if (art.seo) {
+                seoId = art.seo.id || `seo-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                await conn.query(
+                  'INSERT INTO current_affair_seo (id, canonicalUrl, seoTitle, seoDescription, seoKeywords) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE canonicalUrl = ?, seoTitle = ?, seoDescription = ?, seoKeywords = ?',
+                  [seoId, art.seo.canonicalUrl ?? null, art.seo.seoTitle ?? null, art.seo.seoDescription ?? null, art.seo.seoKeywords ?? null, art.seo.canonicalUrl ?? null, art.seo.seoTitle ?? null, art.seo.seoDescription ?? null, art.seo.seoKeywords ?? null]
+                );
+              }
+              
+              // 3. Article
               await conn.query(
-                'INSERT INTO current_affair_seo (id, canonicalUrl, seoTitle, seoDescription, seoKeywords) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE canonicalUrl = ?, seoTitle = ?, seoDescription = ?, seoKeywords = ?',
-                [seoId, art.seo.canonicalUrl ?? null, art.seo.seoTitle ?? null, art.seo.seoDescription ?? null, art.seo.seoKeywords ?? null, art.seo.canonicalUrl ?? null, art.seo.seoTitle ?? null, art.seo.seoDescription ?? null, art.seo.seoKeywords ?? null]
+                `INSERT INTO current_affair_articles (
+                  id, slug, title, summary, category, publishStatus, publishedDate, readingTime, importance,
+                  whyInNews, context, background, keyHighlights, importantFacts, examRelevance, previousContext, wayForward, keyTakeaways,
+                  editionId, seoId, content, createdAt, updatedAt
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                  title = ?, summary = ?, category = ?, publishStatus = ?, publishedDate = ?, readingTime = ?, importance = ?,
+                  whyInNews = ?, context = ?, background = ?, keyHighlights = ?, importantFacts = ?, examRelevance = ?, previousContext = ?, wayForward = ?, keyTakeaways = ?,
+                  seoId = ?, content = ?, updatedAt = ?`,
+                [
+                  artId, artSlug, art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
+                  art.whyInNews ?? null, art.context ?? null, art.background ?? null, art.keyHighlights ?? null, art.importantFacts ?? null, art.examRelevance ?? null, art.previousContext ?? null, art.wayForward ?? null, art.keyTakeaways ?? null,
+                  edId, seoId, art.content ?? null, timestamp, timestamp,
+                  art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
+                  art.whyInNews ?? null, art.context ?? null, art.background ?? null, art.keyHighlights ?? null, art.importantFacts ?? null, art.examRelevance ?? null, art.previousContext ?? null, art.wayForward ?? null, art.keyTakeaways ?? null,
+                  seoId, art.content ?? null, timestamp
+                ]
               );
-            }
-            
-            // 3. Article
-            await conn.query(
-              `INSERT INTO current_affair_articles (
-                id, slug, title, summary, category, publishStatus, publishedDate, readingTime, importance,
-                whyInNews, context, background, keyHighlights, importantFacts, examRelevance, previousContext, wayForward, keyTakeaways,
-                editionId, seoId, content, createdAt, updatedAt
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              ON DUPLICATE KEY UPDATE
-                title = ?, summary = ?, category = ?, publishStatus = ?, publishedDate = ?, readingTime = ?, importance = ?,
-                whyInNews = ?, context = ?, background = ?, keyHighlights = ?, importantFacts = ?, examRelevance = ?, previousContext = ?, wayForward = ?, keyTakeaways = ?,
-                seoId = ?, content = ?, updatedAt = ?`,
-              [
-                artId, artSlug, art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
-                art.whyInNews ?? null, art.context ?? null, art.background ?? null, art.keyHighlights ?? null, art.importantFacts ?? null, art.examRelevance ?? null, art.previousContext ?? null, art.wayForward ?? null, art.keyTakeaways ?? null,
-                edId, seoId, art.content ?? null, timestamp, timestamp,
-                art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
-                art.whyInNews ?? null, art.context ?? null, art.background ?? null, art.keyHighlights ?? null, art.importantFacts ?? null, art.examRelevance ?? null, art.previousContext ?? null, art.wayForward ?? null, art.keyTakeaways ?? null,
-                seoId, art.content ?? null, timestamp
-              ]
-            );
-            
-            // Clear joins
-            await conn.query('DELETE FROM current_affair_article_subjects WHERE articleId = ?', [artId]);
-            await conn.query('DELETE FROM current_affair_article_exams WHERE articleId = ?', [artId]);
-            await conn.query('DELETE FROM current_affair_article_tags WHERE articleId = ?', [artId]);
-            await conn.query('DELETE FROM current_affair_media WHERE articleId = ?', [artId]);
-            
-            // Re-insert subjects
-            if (art.subjects) {
-              for (const subName of art.subjects) {
-                const subId = `sub-${subName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-                await conn.query('INSERT IGNORE INTO current_affair_subjects (id, name) VALUES (?, ?)', [subId, subName]);
-                const [subRow]: any = await conn.query('SELECT id FROM current_affair_subjects WHERE name = ?', [subName]);
-                if (subRow.length > 0) {
-                  await conn.query('INSERT IGNORE INTO current_affair_article_subjects (articleId, subjectId) VALUES (?, ?)', [artId, subRow[0].id]);
+              
+              // Clear joins
+              await conn.query('DELETE FROM current_affair_article_subjects WHERE articleId = ?', [artId]);
+              await conn.query('DELETE FROM current_affair_article_exams WHERE articleId = ?', [artId]);
+              await conn.query('DELETE FROM current_affair_article_tags WHERE articleId = ?', [artId]);
+              await conn.query('DELETE FROM current_affair_media WHERE articleId = ?', [artId]);
+              
+              // Re-insert subjects
+              if (art.subjects) {
+                for (const subName of art.subjects) {
+                  const subId = `sub-${subName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+                  await conn.query('INSERT IGNORE INTO current_affair_subjects (id, name) VALUES (?, ?)', [subId, subName]);
+                  const [subRow]: any = await conn.query('SELECT id FROM current_affair_subjects WHERE name = ?', [subName]);
+                  if (subRow.length > 0) {
+                    await conn.query('INSERT IGNORE INTO current_affair_article_subjects (articleId, subjectId) VALUES (?, ?)', [artId, subRow[0].id]);
+                  }
                 }
               }
-            }
-            
-            // Re-insert exams
-            if (art.exams) {
-              for (const exName of art.exams) {
-                const exId = `ex-${exName.toLowerCase()}`;
-                await conn.query('INSERT IGNORE INTO current_affair_exams (id, name) VALUES (?, ?)', [exId, exName]);
-                const [exRow]: any = await conn.query('SELECT id FROM current_affair_exams WHERE name = ?', [exName]);
-                if (exRow.length > 0) {
-                  await conn.query('INSERT IGNORE INTO current_affair_article_exams (articleId, examId) VALUES (?, ?)', [artId, exRow[0].id]);
+              
+              // Re-insert exams
+              if (art.exams) {
+                for (const exName of art.exams) {
+                  const exId = `ex-${exName.toLowerCase()}`;
+                  await conn.query('INSERT IGNORE INTO current_affair_exams (id, name) VALUES (?, ?)', [exId, exName]);
+                  const [exRow]: any = await conn.query('SELECT id FROM current_affair_exams WHERE name = ?', [exName]);
+                  if (exRow.length > 0) {
+                    await conn.query('INSERT IGNORE INTO current_affair_article_exams (articleId, examId) VALUES (?, ?)', [artId, exRow[0].id]);
+                  }
                 }
               }
-            }
-            
-            // Re-insert tags
-            if (art.tags) {
-              for (const tagName of art.tags) {
-                const tagId = `tag-${tagName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-                await conn.query('INSERT IGNORE INTO current_affair_tags (id, name) VALUES (?, ?)', [tagId, tagName]);
-                const [tagRow]: any = await conn.query('SELECT id FROM current_affair_tags WHERE name = ?', [tagName]);
-                if (tagRow.length > 0) {
-                  await conn.query('INSERT IGNORE INTO current_affair_article_tags (articleId, tagId) VALUES (?, ?)', [artId, tagRow[0].id]);
+              
+              // Re-insert tags
+              if (art.tags) {
+                for (const tagName of art.tags) {
+                  const tagId = `tag-${tagName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+                  await conn.query('INSERT IGNORE INTO current_affair_tags (id, name) VALUES (?, ?)', [tagId, tagName]);
+                  const [tagRow]: any = await conn.query('SELECT id FROM current_affair_tags WHERE name = ?', [tagName]);
+                  if (tagRow.length > 0) {
+                    await conn.query('INSERT IGNORE INTO current_affair_article_tags (articleId, tagId) VALUES (?, ?)', [artId, tagRow[0].id]);
+                  }
                 }
               }
-            }
-            
-            // Re-insert media
-            if (art.media) {
-              for (const med of art.media) {
-                const medId = med.id || `med-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-                await conn.query('INSERT INTO current_affair_media (id, type, url, articleId) VALUES (?, ?, ?, ?)', [medId, med.type, med.url, artId]);
+              
+              // Re-insert media
+              if (art.media) {
+                for (const med of art.media) {
+                  const medId = med.id || `med-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+                  await conn.query('INSERT INTO current_affair_media (id, type, url, articleId) VALUES (?, ?, ?, ?)', [medId, med.type, med.url, artId]);
+                }
               }
             }
           }
+          
+          await conn.commit();
+          conn.release();
+          this.editionsCache = null;
+          return true;
+        } catch (err: any) {
+          await conn.rollback();
+          conn.release();
+          const isLockWait = err.code === 'ER_LOCK_WAIT_TIMEOUT' || err.errno === 1205 || err.errno === 1213 || err.code === 'ER_LOCK_DEADLOCK';
+          if (attempt < maxAttempts && isLockWait) {
+            console.warn(`[BackendDB] Lock wait timeout/deadlock on edition save (attempt ${attempt}/${maxAttempts}). Retrying in ${attempt * 300}ms...`);
+            await new Promise(r => setTimeout(r, attempt * 300));
+            continue;
+          }
+          console.error('[BackendDB] createOrUpdateDynamicCurrentAffairEdition error:', err);
+          return false;
         }
-        
-        await conn.commit();
-        conn.release();
-        return true;
-      } catch (err) {
-        await conn.rollback();
-        conn.release();
-        console.error('[BackendDB] createOrUpdateDynamicCurrentAffairEdition error:', err);
       }
     }
     
