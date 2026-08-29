@@ -2329,7 +2329,7 @@ class BackendDB {
     
     if (mysqlPool) {
       let attempt = 0;
-      const maxAttempts = 3;
+      const maxAttempts = 5;
       while (attempt < maxAttempts) {
         attempt++;
         const conn = await mysqlPool.getConnection();
@@ -2389,22 +2389,16 @@ class BackendDB {
                 for (const subName of art.subjects) {
                   const subId = `sub-${subName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
                   await conn.query('INSERT IGNORE INTO current_affair_subjects (id, name) VALUES (?, ?)', [subId, subName]);
-                  const [subRow]: any = await conn.query('SELECT id FROM current_affair_subjects WHERE name = ?', [subName]);
-                  if (subRow.length > 0) {
-                    await conn.query('INSERT IGNORE INTO current_affair_article_subjects (articleId, subjectId) VALUES (?, ?)', [artId, subRow[0].id]);
-                  }
+                  await conn.query('INSERT IGNORE INTO current_affair_article_subjects (articleId, subjectId) VALUES (?, ?)', [artId, subId]);
                 }
               }
               
               // Re-insert exams
               if (art.exams) {
                 for (const exName of art.exams) {
-                  const exId = `ex-${exName.toLowerCase()}`;
+                  const exId = `ex-${exName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
                   await conn.query('INSERT IGNORE INTO current_affair_exams (id, name) VALUES (?, ?)', [exId, exName]);
-                  const [exRow]: any = await conn.query('SELECT id FROM current_affair_exams WHERE name = ?', [exName]);
-                  if (exRow.length > 0) {
-                    await conn.query('INSERT IGNORE INTO current_affair_article_exams (articleId, examId) VALUES (?, ?)', [artId, exRow[0].id]);
-                  }
+                  await conn.query('INSERT IGNORE INTO current_affair_article_exams (articleId, examId) VALUES (?, ?)', [artId, exId]);
                 }
               }
               
@@ -2413,10 +2407,7 @@ class BackendDB {
                 for (const tagName of art.tags) {
                   const tagId = `tag-${tagName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
                   await conn.query('INSERT IGNORE INTO current_affair_tags (id, name) VALUES (?, ?)', [tagId, tagName]);
-                  const [tagRow]: any = await conn.query('SELECT id FROM current_affair_tags WHERE name = ?', [tagName]);
-                  if (tagRow.length > 0) {
-                    await conn.query('INSERT IGNORE INTO current_affair_article_tags (articleId, tagId) VALUES (?, ?)', [artId, tagRow[0].id]);
-                  }
+                  await conn.query('INSERT IGNORE INTO current_affair_article_tags (articleId, tagId) VALUES (?, ?)', [artId, tagId]);
                 }
               }
               
@@ -2439,8 +2430,9 @@ class BackendDB {
           conn.release();
           const isLockWait = err.code === 'ER_LOCK_WAIT_TIMEOUT' || err.errno === 1205 || err.errno === 1213 || err.code === 'ER_LOCK_DEADLOCK';
           if (attempt < maxAttempts && isLockWait) {
-            console.warn(`[BackendDB] Lock wait timeout/deadlock on edition save (attempt ${attempt}/${maxAttempts}). Retrying in ${attempt * 300}ms...`);
-            await new Promise(r => setTimeout(r, attempt * 300));
+            const backoff = Math.floor(attempt * 400 + Math.random() * 300);
+            console.warn(`[BackendDB] Lock wait timeout/deadlock on edition save (attempt ${attempt}/${maxAttempts}). Retrying in ${backoff}ms...`);
+            await new Promise(r => setTimeout(r, backoff));
             continue;
           }
           console.error('[BackendDB] createOrUpdateDynamicCurrentAffairEdition error:', err);
