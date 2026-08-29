@@ -267,10 +267,12 @@ export interface TestSeriesItem {
   examId?: string;
   stageId?: string | null;
   title: string;
+  title_hi?: string;
   slug: string;
   category?: 'Prelims' | 'Mains' | 'PYQ' | 'Interview' | string | null;
   exam: string;
   language: 'English' | 'Hindi' | string;
+  publish_target?: 'english' | 'hindi' | 'both' | string;
   status: 'active' | 'coming_soon' | 'archived' | string;
   thumbnailUrl?: string;
   bannerUrl?: string;
@@ -280,6 +282,7 @@ export interface TestSeriesItem {
   totalQuestions: number;
   duration: string;
   description: string;
+  description_hi?: string;
   highlights: string[];
   syllabus: { subject: string; topics: string[] }[];
   faq: { q: string; a: string }[];

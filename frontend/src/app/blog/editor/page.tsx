@@ -376,16 +376,25 @@ function BlogEditorForm() {
   
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
+  const [uploadingAuthorPhoto, setUploadingAuthorPhoto] = useState(false)
+  const [activeLangTab, setActiveLangTab] = useState<'en' | 'hi'>('en')
+
   const [formData, setFormData] = useState({
     id: '',
     title: '',
+    title_hi: '',
     slug: '',
     blurb: '',
+    blurb_hi: '',
     content: '',
+    content_hi: '',
     category: 'Strategy & Guidance',
-    author_name: 'Final Attempt',
+    author_name: 'Final Attempt IAS Team',
+    author_image: '',
     imageUrl: '',
     status: 'draft',
+    language: 'en',
+    publish_target: 'both',
     seoTitle: '',
     seoDescription: '',
     seoKeywords: '',
@@ -404,13 +413,19 @@ function BlogEditorForm() {
               setFormData({
                 id: post.id || '',
                 title: post.title || '',
+                title_hi: post.title_hi || '',
                 slug: post.slug || '',
                 blurb: post.blurb || post.excerpt || '',
+                blurb_hi: post.blurb_hi || '',
                 content: post.content || '',
+                content_hi: post.content_hi || '',
                 category: post.category || 'Strategy & Guidance',
-                author_name: post.author_name || 'Final Attempt',
+                author_name: post.author_name || post.author || 'Final Attempt IAS Team',
+                author_image: post.author_image || post.authorImage || '',
                 imageUrl: post.imageUrl || post.cover_image_url || '',
                 status: post.status || 'published',
+                language: post.language || (post.title_hi ? 'bilingual' : 'en'),
+                publish_target: post.publish_target || post.publishTarget || 'both',
                 seoTitle: post.seoTitle || post.seo_title || '',
                 seoDescription: post.seoDescription || post.seo_description || '',
                 seoKeywords: post.seoKeywords || '',
@@ -462,6 +477,30 @@ function BlogEditorForm() {
       setError(`Upload failed: ${msg}`)
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleAuthorPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingAuthorPhoto(true)
+    setError(null)
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${BACKEND_URL}/api/upload`, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setFormData(prev => ({ ...prev, author_image: data.url }))
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload failed';
+      setError(`Author photo upload failed: ${msg}`)
+    } finally {
+      setUploadingAuthorPhoto(false)
     }
   }
 
@@ -551,37 +590,114 @@ function BlogEditorForm() {
       <div className="grid lg:grid-cols-12 gap-8 items-start">
         {/* Main Content Area: Spans 8 Columns for wide reading view */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-md p-6 space-y-6 shadow-xl shadow-primary/5">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Post Title</label>
-              <input 
-                name="title" 
-                value={formData.title || ''} 
-                onChange={handleChange} 
-                placeholder="Enter a highly engaging, SEO-rich title..." 
-                required
-                className="w-full text-2xl sm:text-3xl font-extrabold rounded-xl border border-border/60 bg-background/50 px-5 py-4 text-foreground focus:border-primary focus:ring-1 focus:ring-primary/40 outline-none transition-all" 
-              />
+          {/* Language Switcher Tab Bar */}
+          <div className="flex items-center justify-between bg-card/60 border border-border/40 p-2 rounded-2xl">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveLangTab('en')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeLangTab === 'en'
+                    ? 'bg-primary text-primary-foreground shadow-md'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                🇬🇧 English Article
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveLangTab('hi')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeLangTab === 'hi'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-md'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <span>🇮🇳 Hindi Article (हिन्दी - Optional)</span>
+                {formData.title_hi && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
+              </button>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Content (Rich-Text WYSIWYG Editor)</label>
-              <RichTextEditor 
-                value={formData.content || ''} 
-                onChange={handleWysiwygChange} 
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Card Excerpt / Blurb</label>
-              <textarea 
-                name="blurb" 
-                value={formData.blurb || ''} 
-                onChange={handleChange} 
-                placeholder="A compelling, short summary to show on the blog feed grid..." 
-                className="w-full h-24 rounded-xl border border-border/60 bg-background/50 px-5 py-4 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary/40 outline-none resize-none transition-all leading-relaxed" 
-              />
-            </div>
+            {activeLangTab === 'hi' && (
+              <span className="text-[11px] font-semibold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl">
+                ⚡ Optional: If empty, AI dynamically translates English!
+              </span>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-md p-6 space-y-6 shadow-xl shadow-primary/5">
+            {activeLangTab === 'en' ? (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">English Post Title</label>
+                  <input 
+                    name="title" 
+                    value={formData.title || ''} 
+                    onChange={handleChange} 
+                    placeholder="Enter a highly engaging, SEO-rich title..." 
+                    required
+                    className="w-full text-2xl sm:text-3xl font-extrabold rounded-xl border border-border/60 bg-background/50 px-5 py-4 text-foreground focus:border-primary focus:ring-1 focus:ring-primary/40 outline-none transition-all" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">English Content (Rich-Text WYSIWYG Editor)</label>
+                  <RichTextEditor 
+                    value={formData.content || ''} 
+                    onChange={handleWysiwygChange} 
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">English Card Excerpt / Blurb</label>
+                  <textarea 
+                    name="blurb" 
+                    value={formData.blurb || ''} 
+                    onChange={handleChange} 
+                    placeholder="A compelling, short summary to show on the blog feed grid..." 
+                    className="w-full h-24 rounded-xl border border-border/60 bg-background/50 px-5 py-4 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary/40 outline-none resize-none transition-all leading-relaxed" 
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-amber-500 flex items-center gap-2">
+                    <span>Hindi Post Title (हिन्दी शीर्षक - Optional)</span>
+                  </label>
+                  <input 
+                    name="title_hi" 
+                    value={formData.title_hi || ''} 
+                    onChange={handleChange} 
+                    placeholder="Enter custom Hindi title (उदा. बीपीएससी तैयारी की सर्वश्रेष्ठ रणनीति)..." 
+                    className="w-full text-2xl sm:text-3xl font-extrabold rounded-xl border border-amber-500/40 bg-background/50 px-5 py-4 text-foreground focus:border-amber-500 focus:ring-1 focus:ring-amber-500/40 outline-none transition-all" 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-amber-500">
+                    Hindi Content (हिन्दी लेख - Optional WYSIWYG Editor)
+                  </label>
+                  <RichTextEditor 
+                    value={formData.content_hi || ''} 
+                    onChange={(html) => setFormData(prev => ({ ...prev, content_hi: html }))} 
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-amber-500">
+                    Hindi Card Excerpt / Blurb (हिन्दी संक्षेप - Optional)
+                  </label>
+                  <textarea 
+                    name="blurb_hi" 
+                    value={formData.blurb_hi || ''} 
+                    onChange={handleChange} 
+                    placeholder="Hindi card excerpt for blog listing..." 
+                    className="w-full h-24 rounded-xl border border-amber-500/40 bg-background/50 px-5 py-4 text-sm text-foreground focus:border-amber-500 focus:ring-1 focus:ring-amber-500/40 outline-none resize-none transition-all leading-relaxed" 
+                  />
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -591,6 +707,34 @@ function BlogEditorForm() {
           <div className="rounded-2xl border border-border/40 bg-card/50 backdrop-blur-md p-6 space-y-4 shadow-xl shadow-primary/5">
             <h3 className="font-bold text-lg text-foreground border-b border-border/40 pb-2">Publishing Settings</h3>
             
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-amber-500">Primary Article Language</label>
+              <select 
+                name="language" 
+                value={formData.language || 'en'} 
+                onChange={handleChange}
+                className="w-full rounded-xl border border-amber-500/40 bg-background/50 px-4 py-3 text-sm text-foreground focus:border-amber-500 outline-none transition-all font-bold cursor-pointer" 
+              >
+                <option value="en">🇬🇧 English Primary (Dynamic AI Hindi Fallback)</option>
+                <option value="hi">🇮🇳 Hindi Primary (हिन्दी)</option>
+                <option value="bilingual">🌐 Bilingual (Authored English & Authored Hindi)</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-wider text-primary">Where Do You Want To Publish?</label>
+              <select 
+                name="publish_target" 
+                value={formData.publish_target || 'both'} 
+                onChange={handleChange}
+                className="w-full rounded-xl border border-primary/50 bg-background/50 px-4 py-3 text-sm text-foreground focus:border-primary outline-none transition-all font-bold cursor-pointer" 
+              >
+                <option value="both">🌐 Both English & Hindi Pages (Default)</option>
+                <option value="english">🇬🇧 English Page Only (/blog in English)</option>
+                <option value="hindi">🇮🇳 Hindi Page Only (/blog in Hindi - हिन्दी)</option>
+              </select>
+            </div>
+
             <div className="space-y-2">
               <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">URL Slug</label>
               <input 
@@ -612,13 +756,44 @@ function BlogEditorForm() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Author Name</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Author Name (Optional)</label>
               <input 
                 name="author_name" 
                 value={formData.author_name || ''} 
                 onChange={handleChange} 
+                placeholder="e.g. Final Attempt IAS Team or Author Name"
                 className="w-full rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-sm text-foreground focus:border-primary outline-none transition-all" 
               />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Author Photo / Avatar (Optional)</label>
+              <div className="flex gap-2">
+                <input 
+                  name="author_image" 
+                  value={formData.author_image || ''} 
+                  onChange={handleChange} 
+                  placeholder="https://... or upload photo"
+                  className="flex-1 rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-sm text-foreground focus:border-primary outline-none transition-all font-mono text-xs" 
+                />
+                <label className={`flex cursor-pointer items-center justify-center rounded-xl border border-border/60 bg-muted px-4 transition-colors hover:bg-muted/80 ${uploadingAuthorPhoto ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                  <Upload className="h-4 w-4 text-muted-foreground" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={handleAuthorPhotoUpload}
+                    disabled={uploadingAuthorPhoto}
+                  />
+                </label>
+              </div>
+              {uploadingAuthorPhoto && <p className="text-xs text-primary animate-pulse">Uploading author photo...</p>}
+              {formData.author_image && (
+                <div className="flex items-center gap-3 pt-2 p-2 bg-muted/20 border border-border/40 rounded-xl">
+                  <img src={formData.author_image} alt="Author Avatar Preview" className="w-10 h-10 rounded-full object-cover border border-amber-500/40 shadow-xs" />
+                  <span className="text-xs font-bold text-muted-foreground">Author Photo Preview</span>
+                </div>
+              )}
             </div>
             
             <div className="space-y-2">

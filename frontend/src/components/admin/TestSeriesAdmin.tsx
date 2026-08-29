@@ -47,6 +47,7 @@ const BLANK_SERIES: Partial<TestSeriesItem> = {
   category: 'Prelims',
   exam: '71st BPSC CCE',
   language: 'English',
+  publish_target: 'both',
   status: 'active',
   price: 2999,
   discountedPrice: 1499,
@@ -330,6 +331,7 @@ export default function TestSeriesAdmin({
     const payload: TestSeriesItem = {
       id: editingSeries.id,
       title: editingSeries.title,
+      title_hi: editingSeries.title_hi || undefined,
       slug: finalSlug,
       examId: editingSeries.examId || (examsList.find(e => e.name === editingSeries.exam || e.code === editingSeries.exam)?.id || examsList[0]?.id || 'exam-bpsc'),
       category: editingSeries.category || 'Prelims',
@@ -344,6 +346,7 @@ export default function TestSeriesAdmin({
       totalQuestions: Number(editingSeries.totalQuestions) || 0,
       duration: editingSeries.duration || '6 Months Validity',
       description: editingSeries.description || '',
+      description_hi: editingSeries.description_hi || undefined,
       highlights: highlightsArray,
       syllabus: editingSeries.syllabus || [],
       faq: editingSeries.faq || [],
@@ -983,9 +986,24 @@ export default function TestSeriesAdmin({
                   <div className="p-6 space-y-4">
                     {/* Top Badges */}
                     <div className="flex justify-between items-start gap-2">
-                      <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase rounded-lg">
-                        {series.category} • {series.exam}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-black uppercase rounded-lg">
+                          {series.category} • {series.exam}
+                        </span>
+                        {series.title_hi || series.language === 'Bilingual' || (series.medium && series.medium.includes('Bilingual')) ? (
+                          <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[9px] font-black rounded-lg">
+                            🌐 Bilingual (Both)
+                          </span>
+                        ) : series.language === 'Hindi' || series.medium === 'Hindi' ? (
+                          <span className="px-2 py-0.5 bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30 text-[9px] font-black rounded-lg">
+                            🇮🇳 Hindi Only
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[9px] font-black rounded-lg">
+                            🇬🇧 EN (AI Hindi)
+                          </span>
+                        )}
+                      </div>
                       
                       {/* Published Toggle Switch */}
                       {(() => {
@@ -1017,6 +1035,11 @@ export default function TestSeriesAdmin({
                       <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] leading-snug">
                         {series.title}
                       </h4>
+                      {series.title_hi && (
+                        <p className="text-[11px] font-bold text-amber-500 leading-snug">
+                          🇮🇳 {series.title_hi}
+                        </p>
+                      )}
                       <p className="text-[10px] font-mono text-slate-400">
                         /test-series/{series.slug}
                       </p>
@@ -1462,7 +1485,7 @@ export default function TestSeriesAdmin({
             <div className="space-y-4 text-xs font-bold">
               {/* Program Title */}
               <div>
-                <label className="block text-slate-400 mb-1">Test Series Title *</label>
+                <label className="block text-slate-400 mb-1">Test Series Title (English) *</label>
                 <input
                   type="text"
                   required
@@ -1481,6 +1504,17 @@ export default function TestSeriesAdmin({
                     });
                   }}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-amber-500 mb-1 font-bold">Test Series Title (Hindi - हिन्दी optional)</label>
+                <input
+                  type="text"
+                  placeholder="Enter Hindi title ( उदा. 71वीं बीपीएससी प्रारंभिक परीक्षा ऑल इंडिया टेस्ट सीरीज)..."
+                  value={editingSeries.title_hi || ''}
+                  onChange={e => setEditingSeries({ ...editingSeries, title_hi: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 text-[var(--text-color)] rounded-xl outline-none font-bold focus:border-amber-500"
                 />
               </div>
 
@@ -1576,17 +1610,33 @@ export default function TestSeriesAdmin({
                 </div>
               </div>
 
-              {/* Language Selector */}
-              <div>
-                <label className="block text-slate-400 mb-1">Medium / Language *</label>
-                <select
-                  value={(editingSeries.language && editingSeries.language.toLowerCase().includes('hindi')) ? 'Hindi' : 'English'}
-                  onChange={e => setEditingSeries({ ...editingSeries, language: e.target.value as any, medium: e.target.value })}
-                  className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
-                >
-                  <option value="English">English Medium</option>
-                  <option value="Hindi">Hindi Medium</option>
-                </select>
+              {/* Language & Publish Target Selectors */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-400 mb-1">Medium / Language *</label>
+                  <select
+                    value={editingSeries.language || editingSeries.medium || 'Bilingual'}
+                    onChange={e => setEditingSeries({ ...editingSeries, language: e.target.value as any, medium: e.target.value })}
+                    className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
+                  >
+                    <option value="Bilingual">🌐 Bilingual (English & Hindi)</option>
+                    <option value="English">🇬🇧 English Medium Only</option>
+                    <option value="Hindi">🇮🇳 Hindi Medium Only</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-amber-500 mb-1 font-extrabold uppercase text-[10px] tracking-wider">Where Do You Want To Publish?</label>
+                  <select
+                    value={editingSeries.publish_target || 'both'}
+                    onChange={e => setEditingSeries({ ...editingSeries, publish_target: e.target.value as any })}
+                    className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
+                  >
+                    <option value="both">🌐 Both English & Hindi Pages (Default)</option>
+                    <option value="english">🇬🇧 English Page Only (/test-series)</option>
+                    <option value="hindi">🇮🇳 Hindi Page Only (/test-series in Hindi)</option>
+                  </select>
+                </div>
               </div>
               </div>
 
@@ -1842,7 +1892,7 @@ export default function TestSeriesAdmin({
 
               {/* Description */}
               <div>
-                <label className="block text-slate-400 mb-1">Program Overview & Description *</label>
+                <label className="block text-slate-400 mb-1">Program Overview & Description (English) *</label>
                 <textarea
                   required
                   rows={3}
@@ -1850,6 +1900,17 @@ export default function TestSeriesAdmin({
                   value={editingSeries.description || ''}
                   onChange={e => setEditingSeries({ ...editingSeries, description: e.target.value })}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-amber-500 mb-1 font-bold">Program Overview & Description (Hindi - हिन्दी optional)</label>
+                <textarea
+                  rows={3}
+                  placeholder="नवीनतम पैटर्न पर आधारित संपूर्ण हिंदी टेस्ट सीरीज विवरण..."
+                  value={editingSeries.description_hi || ''}
+                  onChange={e => setEditingSeries({ ...editingSeries, description_hi: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 text-[var(--text-color)] rounded-xl outline-none font-medium focus:border-amber-500"
                 />
               </div>
 

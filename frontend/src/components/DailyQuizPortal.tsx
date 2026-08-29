@@ -731,9 +731,13 @@ export default function DailyQuizPortal() {
                 </div>
 
                 {/* Question Text */}
-                <h3 className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed">
-                  {questions[currentQuestionIndex].questionText}
-                </h3>
+                {questions[currentQuestionIndex].questionText && questions[currentQuestionIndex].questionText.includes('<') && questions[currentQuestionIndex].questionText.includes('>') ? (
+                  <div className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: questions[currentQuestionIndex].questionText }} />
+                ) : (
+                  <h3 className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed">
+                    {questions[currentQuestionIndex].questionText}
+                  </h3>
+                )}
 
                 {/* Option Cards Grid */}
                 <div className="space-y-3 pt-2">
@@ -975,9 +979,13 @@ export default function DailyQuizPortal() {
                         </span>
                       </div>
 
-                      <h4 className="text-base font-heading font-bold text-[var(--text-color)] leading-relaxed">
-                        {detail.questionText}
-                      </h4>
+                      {detail.questionText && detail.questionText.includes('<') && detail.questionText.includes('>') ? (
+                        <div className="text-base font-heading font-bold text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: detail.questionText }} />
+                      ) : (
+                        <h4 className="text-base font-heading font-bold text-[var(--text-color)] leading-relaxed">
+                          {detail.questionText}
+                        </h4>
+                      )}
 
                       {/* Options with clear Correct / Incorrect Identification */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">

@@ -726,8 +726,20 @@ app.post('/api/admin/dynamic-current-affairs/combine/yearly', async (req, res) =
 // BLOGS
 app.get('/api/blogs', async (req, res) => {
   try {
-    const list = await db.getBlogs();
+    let list = await db.getBlogs();
     const targetLang = getTargetLang(req);
+    const isAdmin = Boolean(req.headers.authorization?.includes('admin') || req.query.includeDrafts === 'true');
+
+    if (!isAdmin && Array.isArray(list)) {
+      list = list.filter((b: any) => {
+        const target = b.publish_target || b.publishTarget || 'both';
+        if (target === 'both') return true;
+        if (target === 'english' && targetLang === 'en') return true;
+        if (target === 'hindi' && targetLang === 'hi') return true;
+        return false;
+      });
+    }
+
     res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
     res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
 

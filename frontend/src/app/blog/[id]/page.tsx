@@ -208,6 +208,27 @@ export default function BlogDetailPage() {
               <h1 className="text-2xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white leading-tight tracking-tight pt-1">
                 {blog.title}
               </h1>
+
+              {/* Author Info Badge */}
+              <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-white/10">
+                {blog.author_image || (blog as any).authorImage ? (
+                  <img
+                    src={resolveUrl(blog.author_image || (blog as any).authorImage)}
+                    alt={blog.author_name || blog.author || 'Author'}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-amber-500 shadow-sm shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-xs shrink-0">
+                    <User className="w-5 h-5 text-amber-500" />
+                  </div>
+                )}
+                <div>
+                  <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">Written By</span>
+                  <span className="text-xs font-black text-slate-900 dark:text-white">
+                    {blog.author_name || blog.author || 'Final Attempt IAS Team'}
+                  </span>
+                </div>
+              </div>
             </header>
 
             {/* Full-Bleed Clean Cover Image */}

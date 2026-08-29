@@ -217,10 +217,14 @@ export interface BlogItem {
   excerpt?: string;
   status?: string;
   author_name?: string;
+  author_image?: string;
   seoTitle?: string;
   seoKeywords?: string;
   seoDescription?: string;
   blurb?: string;
+  title_hi?: string;
+  content_hi?: string;
+  blurb_hi?: string;
 }
 
 export interface ResourceDownload {
@@ -662,10 +666,14 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         excerpt TEXT,
         status VARCHAR(50) DEFAULT 'published',
         author_name VARCHAR(255) DEFAULT 'Admin',
+        author_image TEXT,
         seoTitle VARCHAR(255),
         seoKeywords TEXT,
         seoDescription TEXT,
-        blurb TEXT
+        blurb TEXT,
+        title_hi TEXT,
+        content_hi TEXT,
+        blurb_hi TEXT
       )
     `);
     try {
@@ -674,10 +682,16 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS excerpt TEXT');
       await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT "published"');
       await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS author_name VARCHAR(255) DEFAULT "Admin"');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS author_image TEXT');
       await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS seoTitle VARCHAR(255)');
       await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS seoKeywords TEXT');
       await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS seoDescription TEXT');
       await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS blurb TEXT');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS title_hi TEXT');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS content_hi TEXT');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS blurb_hi TEXT');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS language VARCHAR(50) DEFAULT "en"');
+      await pool.query('ALTER TABLE blogs ADD COLUMN IF NOT EXISTS publish_target VARCHAR(50) DEFAULT "both"');
     } catch (_) {}
     
     // 7. Resources
@@ -2957,11 +2971,12 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO blogs (id, title, slug, publishDate, readTime, category, content, imageUrl, excerpt, status, author_name, seoTitle, seoKeywords, seoDescription, blurb) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO blogs (id, title, slug, publishDate, readTime, category, content, imageUrl, excerpt, status, author_name, author_image, seoTitle, seoKeywords, seoDescription, blurb, title_hi, content_hi, blurb_hi, language) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             item.id, item.title, item.slug ?? null, item.publishDate, item.readTime, item.category, item.content, item.imageUrl ?? null,
-            item.excerpt ?? null, item.status ?? 'published', item.author_name ?? 'Admin',
-            item.seoTitle ?? null, item.seoKeywords ?? null, item.seoDescription ?? null, item.blurb ?? null
+            item.excerpt ?? null, item.status ?? 'published', item.author_name ?? 'Admin', item.author_image ?? (item as any).authorImage ?? null,
+            item.seoTitle ?? null, item.seoKeywords ?? null, item.seoDescription ?? null, item.blurb ?? null,
+            item.title_hi ?? null, item.content_hi ?? null, item.blurb_hi ?? null, item.language ?? 'en'
           ]
         );
         return item;
@@ -2978,11 +2993,12 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query(
-          'UPDATE blogs SET title = ?, slug = ?, publishDate = ?, readTime = ?, category = ?, content = ?, imageUrl = ?, excerpt = ?, status = ?, author_name = ?, seoTitle = ?, seoKeywords = ?, seoDescription = ?, blurb = ? WHERE id = ?',
+          'UPDATE blogs SET title = ?, slug = ?, publishDate = ?, readTime = ?, category = ?, content = ?, imageUrl = ?, excerpt = ?, status = ?, author_name = ?, author_image = ?, seoTitle = ?, seoKeywords = ?, seoDescription = ?, blurb = ?, title_hi = ?, content_hi = ?, blurb_hi = ?, language = ? WHERE id = ?',
           [
             updated.title, updated.slug ?? null, updated.publishDate, updated.readTime, updated.category, updated.content, updated.imageUrl ?? null,
-            updated.excerpt ?? null, updated.status ?? 'published', updated.author_name ?? 'Admin',
-            updated.seoTitle ?? null, updated.seoKeywords ?? null, updated.seoDescription ?? null, updated.blurb ?? null, id
+            updated.excerpt ?? null, updated.status ?? 'published', updated.author_name ?? 'Admin', updated.author_image ?? (updated as any).authorImage ?? null,
+            updated.seoTitle ?? null, updated.seoKeywords ?? null, updated.seoDescription ?? null, updated.blurb ?? null,
+            updated.title_hi ?? null, updated.content_hi ?? null, updated.blurb_hi ?? null, updated.language ?? 'en', id
           ]
         );
         return result.affectedRows > 0;
@@ -5564,10 +5580,16 @@ class LmsDB {
             attemptsCount INT DEFAULT 0,
             passingScore INT DEFAULT 40,
             isFree TINYINT(1) DEFAULT 1,
+            title_hi TEXT,
+            description_hi TEXT,
             createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
             updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
           )
         `);
+
+        try {
+          await mysqlPool.query('ALTER TABLE daily_quizzes ADD COLUMN IF NOT EXISTS title_hi TEXT, ADD COLUMN IF NOT EXISTS description_hi TEXT');
+        } catch (_) {}
 
         await mysqlPool.query(`
           CREATE TABLE IF NOT EXISTS daily_quiz_questions (
@@ -5641,14 +5663,16 @@ class LmsDB {
       category: quiz.category || 'Daily Practice',
       attemptsCount: Number(quiz.attemptsCount || 0),
       passingScore: Number(quiz.passingScore || 40),
-      isFree: 1
+      isFree: 1,
+      title_hi: quiz.title_hi || null,
+      description_hi: quiz.description_hi || null
     };
 
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO daily_quizzes (id, title, description, publishDate, timeLimitMins, totalQuestions, difficulty, category, attemptsCount, passingScore, isFree)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO daily_quizzes (id, title, description, publishDate, timeLimitMins, totalQuestions, difficulty, category, attemptsCount, passingScore, isFree, title_hi, description_hi)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
              title = VALUES(title),
              description = VALUES(description),
@@ -5659,8 +5683,10 @@ class LmsDB {
              category = VALUES(category),
              attemptsCount = VALUES(attemptsCount),
              passingScore = VALUES(passingScore),
-             isFree = VALUES(isFree)`,
-          [record.id, record.title, record.description, record.publishDate, record.timeLimitMins, record.totalQuestions, record.difficulty, record.category, record.attemptsCount, record.passingScore, record.isFree]
+             isFree = VALUES(isFree),
+             title_hi = VALUES(title_hi),
+             description_hi = VALUES(description_hi)`,
+          [record.id, record.title, record.description, record.publishDate, record.timeLimitMins, record.totalQuestions, record.difficulty, record.category, record.attemptsCount, record.passingScore, record.isFree, record.title_hi, record.description_hi]
         );
       } catch (err) {
         console.error('[LmsDB] saveDailyQuiz MySQL error:', err);
@@ -5728,6 +5754,12 @@ class LmsDB {
       optionD: q.optionD || '',
       correctAnswer: q.correctAnswer || 'A',
       explanation: q.explanation || '',
+      questionTextHi: q.questionTextHi || null,
+      optionAHi: q.optionAHi || null,
+      optionBHi: q.optionBHi || null,
+      optionCHi: q.optionCHi || null,
+      optionDHi: q.optionDHi || null,
+      explanationHi: q.explanationHi || null,
       marks: Number(q.marks || 1.0),
       negativeMarks: Number(q.negativeMarks || 0.33)
     };
@@ -5735,8 +5767,8 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO daily_quiz_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation, marks, negativeMarks)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO daily_quiz_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation, questionTextHi, optionAHi, optionBHi, optionCHi, optionDHi, explanationHi, marks, negativeMarks)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
              questionText = VALUES(questionText),
              optionA = VALUES(optionA),
@@ -5745,9 +5777,15 @@ class LmsDB {
              optionD = VALUES(optionD),
              correctAnswer = VALUES(correctAnswer),
              explanation = VALUES(explanation),
+             questionTextHi = VALUES(questionTextHi),
+             optionAHi = VALUES(optionAHi),
+             optionBHi = VALUES(optionBHi),
+             optionCHi = VALUES(optionCHi),
+             optionDHi = VALUES(optionDHi),
+             explanationHi = VALUES(explanationHi),
              marks = VALUES(marks),
              negativeMarks = VALUES(negativeMarks)`,
-          [question.id, question.quizId, question.questionText, question.optionA, question.optionB, question.optionC, question.optionD, question.correctAnswer, question.explanation, question.marks, question.negativeMarks]
+          [question.id, question.quizId, question.questionText, question.optionA, question.optionB, question.optionC, question.optionD, question.correctAnswer, question.explanation, question.questionTextHi, question.optionAHi, question.optionBHi, question.optionCHi, question.optionDHi, question.explanationHi, question.marks, question.negativeMarks]
         );
       } catch (err) {
         console.error('[LmsDB] saveDailyQuizQuestion MySQL error:', err);

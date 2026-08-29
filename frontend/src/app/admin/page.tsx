@@ -30,6 +30,7 @@ import {
   X
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
+import { useLocale } from '@/context/LocaleContext';
 import RichTextEditor from '@/components/RichTextEditor';
 import MediaDashboard from '@/components/MediaDashboard';
 import MediaPicker from '@/components/MediaPicker';
@@ -248,6 +249,7 @@ export default function AdminPortal() {
   const [authError, setAuthError] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { locale, setLocale } = useLocale();
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -315,6 +317,8 @@ export default function AdminPortal() {
   // Form states for CRUD operations
   const [caForm, setCaForm] = useState<CurrentAffairArticle>({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
   const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '', imageUrl: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
+  const [blogTargetFilter, setBlogTargetFilter] = useState<'all' | 'english' | 'hindi' | 'both'>('all');
+  const [caTargetFilter, setCaTargetFilter] = useState<'all' | 'english' | 'hindi' | 'both'>('all');
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '', category: 'Prelims', subcategory: '' });
   const [resourceUploading, setResourceUploading] = useState(false);
   const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'BPSC Course', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
@@ -1093,6 +1097,34 @@ export default function AdminPortal() {
                   <option value="NONE">Not connected to any page</option>
                 )}
               </select>
+            </div>
+
+            {/* Global Admin Language Switcher */}
+            <div className="flex items-center gap-1 bg-[var(--card-bg)] border border-[var(--card-border)] p-1 rounded-2xl shadow-xs">
+              <button
+                type="button"
+                onClick={() => setLocale('en')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  locale === 'en'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-500 hover:text-[var(--text-color)]'
+                }`}
+                title="Switch Portal to English"
+              >
+                🇬🇧 EN
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocale('hi')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  locale === 'hi'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-500 hover:text-[var(--text-color)]'
+                }`}
+                title="Switch Portal to Hindi (हिन्दी)"
+              >
+                🇮🇳 HI
+              </button>
             </div>
 
             <button 
@@ -2269,6 +2301,33 @@ export default function AdminPortal() {
               </div>
             </div>
 
+            {/* Blogs Header with Filter Pills */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Publish Destination Filter Pills */}
+              <div className="flex flex-wrap items-center gap-2 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200 dark:border-white/10">
+                <span className="text-[10px] font-black uppercase text-slate-400 px-2">Destination Filter:</span>
+                {[
+                  { id: 'all', label: 'All Articles' },
+                  { id: 'english', label: '🇬🇧 English Page Only' },
+                  { id: 'hindi', label: '🇮🇳 Hindi Page Only' },
+                  { id: 'both', label: '🌐 Both Pages' }
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setBlogTargetFilter(tab.id as any)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                      blogTargetFilter === tab.id
+                        ? 'bg-amber-500 text-slate-950 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Blogs Table */}
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 overflow-hidden rounded-3xl shadow-sm">
               <div className="overflow-x-auto">
@@ -2277,6 +2336,8 @@ export default function AdminPortal() {
                     <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-white/10 font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-[10px]">
                       <th className="p-4">Article Title</th>
                       <th className="p-4">Category</th>
+                      <th className="p-4">Publish Target Page</th>
+                      <th className="p-4">Language Track</th>
                       <th className="p-4">Publish Date</th>
                       <th className="p-4">Read Time</th>
                       <th className="p-4">Cover Image</th>
@@ -2284,25 +2345,70 @@ export default function AdminPortal() {
                     </tr>
                   </thead>
                   <tbody>
-                    {blogsList.length === 0 ? (
+                    {blogsList.filter(b => {
+                      const target = (b as any).publish_target || (b as any).publishTarget || 'both';
+                      if (blogTargetFilter === 'all') return true;
+                      return target === blogTargetFilter;
+                    }).length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-12 text-center text-slate-400 text-xs">
-                          No blog posts found. Click <strong>&quot;Create New Blog Post&quot;</strong> above to publish your first article.
+                        <td colSpan={8} className="p-12 text-center text-slate-400 text-xs">
+                          No blog posts found for this destination filter. Click <strong>&quot;Create New Blog Post&quot;</strong> above to publish an article.
                         </td>
                       </tr>
                     ) : (
-                      blogsList.map((blog, idx) => (
-                        <tr key={blog.id || idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
-                          <td className="p-4 max-w-sm">
-                            <div className="font-extrabold text-slate-900 dark:text-white line-clamp-1">{blog.title}</div>
-                            {blog.blurb && <div className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{blog.blurb}</div>}
-                          </td>
-                          <td className="p-4">
-                            <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                              {blog.category || 'General'}
-                            </span>
-                          </td>
-                          <td className="p-4 font-mono text-slate-600 dark:text-slate-300 text-[11px]">{blog.publishDate}</td>
+                      blogsList
+                        .filter(b => {
+                          const target = (b as any).publish_target || (b as any).publishTarget || 'both';
+                          if (blogTargetFilter === 'all') return true;
+                          return target === blogTargetFilter;
+                        })
+                        .map((blog, idx) => {
+                          const isBilingual = (blog as any).language === 'bilingual' || (Boolean((blog as any).title_hi) && Boolean(blog.title));
+                          const isHindi = (blog as any).language === 'hi';
+                          const targetPage = (blog as any).publish_target || (blog as any).publishTarget || 'both';
+                          return (
+                            <tr key={blog.id || idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
+                              <td className="p-4 max-w-sm">
+                                <div className="font-extrabold text-slate-900 dark:text-white line-clamp-1">{blog.title}</div>
+                                {(blog as any).title_hi && <div className="text-[10px] text-amber-500 font-bold line-clamp-1 mt-0.5">🇮🇳 {(blog as any).title_hi}</div>}
+                                {blog.blurb && <div className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{blog.blurb}</div>}
+                              </td>
+                              <td className="p-4">
+                                <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                  {blog.category || 'General'}
+                                </span>
+                              </td>
+                              <td className="p-4">
+                                {targetPage === 'english' ? (
+                                  <span className="px-2.5 py-1 rounded-xl text-[10px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                                    🇬🇧 English Page Only
+                                  </span>
+                                ) : targetPage === 'hindi' ? (
+                                  <span className="px-2.5 py-1 rounded-xl text-[10px] font-black bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
+                                    🇮🇳 Hindi Page Only
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 rounded-xl text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                    🌐 Both Pages
+                                  </span>
+                                )}
+                              </td>
+                            <td className="p-4">
+                              {isBilingual ? (
+                                <span className="px-2 py-1 rounded-xl text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                  🌐 Bilingual (Both)
+                                </span>
+                              ) : isHindi ? (
+                                <span className="px-2 py-1 rounded-xl text-[10px] font-black bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
+                                  🇮🇳 Hindi Primary
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 rounded-xl text-[10px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                                  🇬🇧 EN (AI Hindi)
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 font-mono text-slate-600 dark:text-slate-300 text-[11px]">{blog.publishDate}</td>
                           <td className="p-4 text-slate-500 dark:text-slate-400 text-[11px]">{blog.readTime}</td>
                           <td className="p-4">
                             {blog.imageUrl ? (
@@ -2334,8 +2440,9 @@ export default function AdminPortal() {
                               </button>
                             </div>
                           </td>
-                        </tr>
-                      ))
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
@@ -3059,6 +3166,19 @@ export default function AdminPortal() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500/10 text-amber-600">{article.category}</span>
+                          {(article as any).title_hi || (article as any).language === 'bilingual' ? (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                              🌐 Bilingual (Both)
+                            </span>
+                          ) : (article as any).language === 'hi' ? (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
+                              🇮🇳 Hindi Primary
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
+                              🇬🇧 EN (AI Hindi)
+                            </span>
+                          )}
                           <span className="text-[10px] text-slate-400">{article.publishDate}</span>
                         </div>
                         <h4 className="font-bold text-sm text-slate-900 dark:text-white mt-1">{article.title}</h4>
@@ -3090,13 +3210,13 @@ export default function AdminPortal() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5 sm:col-span-1">
                       <label className="text-[10px] text-slate-400 font-bold uppercase">Article Title</label>
                       <input
                         type="text" required value={caForm.title}
                         onChange={(e) => setCaForm({ ...caForm, title: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        className="w-full px-4 py-2 border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-xs outline-none font-bold"
                       />
                     </div>
                     <div className="space-y-1.5">
@@ -3104,12 +3224,24 @@ export default function AdminPortal() {
                       <select
                         value={caForm.category}
                         onChange={(e) => setCaForm({ ...caForm, category: e.target.value as CurrentAffairArticle['category'] })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        className="w-full px-4 py-2 border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-xs outline-none font-bold cursor-pointer"
                       >
                         <option value="National">National</option>
                         <option value="International">International</option>
                         <option value="Bihar Special">Bihar Special</option>
                         <option value="Arunachal Special">Arunachal Special</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-amber-500 font-bold uppercase">Primary Article Language</label>
+                      <select
+                        value={(caForm as any).language || 'en'}
+                        onChange={(e) => setCaForm({ ...caForm, language: e.target.value } as any)}
+                        className="w-full px-4 py-2 border border-amber-500/40 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-xs outline-none font-bold cursor-pointer"
+                      >
+                        <option value="en">🇬🇧 English Primary (AI Hindi)</option>
+                        <option value="hi">🇮🇳 Hindi Primary (हिन्दी)</option>
+                        <option value="bilingual">🌐 Bilingual (Both)</option>
                       </select>
                     </div>
                   </div>

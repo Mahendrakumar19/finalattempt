@@ -85,8 +85,13 @@ export default function Blog() {
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 dark:border-white/5 mt-6 flex justify-between items-center text-xs font-bold">
-                  <span className="text-slate-400">{post.readTime}</span>
-                  <span className="text-amber-500 group-hover:translate-x-1 transition-transform flex items-center gap-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {post.author_image || (post as any).authorImage ? (
+                      <img src={resolveUrl(post.author_image || (post as any).authorImage)} alt={post.author_name || 'Author'} className="w-6 h-6 rounded-full object-cover border border-amber-500/40 shrink-0" />
+                    ) : null}
+                    <span className="text-slate-400 font-semibold text-[11px] truncate max-w-[130px]">{post.author_name || post.author || 'Final Attempt Team'}</span>
+                  </div>
+                  <span className="text-amber-500 group-hover:translate-x-1 transition-transform flex items-center gap-1 shrink-0">
                     <span>Read Post</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </span>

@@ -11,8 +11,11 @@ import { db } from '@/services/db';
 interface DailyQuiz {
   id: string;
   title: string;
+  title_hi?: string;
   description: string;
+  description_hi?: string;
   publishDate: string;
+  publish_target?: 'english' | 'hindi' | 'both' | string;
   timeLimitMins: number;
   totalQuestions: number;
   difficulty: 'EASY' | 'MEDIUM' | 'HIGH' | string;
@@ -25,12 +28,18 @@ interface DailyQuiz {
 interface Question {
   id: string;
   questionText: string;
+  questionTextHi?: string;
   optionA: string;
+  optionAHi?: string;
   optionB: string;
+  optionBHi?: string;
   optionC: string;
+  optionCHi?: string;
   optionD: string;
+  optionDHi?: string;
   correctAnswer: 'A' | 'B' | 'C' | 'D' | string;
   explanation: string;
+  explanationHi?: string;
   marks?: number;
   negativeMarks?: number;
 }
@@ -39,6 +48,7 @@ const BLANK_DAILY_QUIZ: Partial<DailyQuiz> = {
   title: 'Daily Practice: Current Affairs & Bihar GS',
   description: '10 high-yield questions covering National & Bihar Current Affairs, Polity, and Bihar Special static GS.',
   publishDate: new Date().toISOString().split('T')[0],
+  publish_target: 'both',
   timeLimitMins: 10,
   totalQuestions: 10,
   difficulty: 'MEDIUM',
@@ -67,6 +77,7 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Partial<DailyQuiz>>({ ...BLANK_DAILY_QUIZ });
   const [savingQuiz, setSavingQuiz] = useState(false);
+  const [quizModalLangTab, setQuizModalLangTab] = useState<'en' | 'hi'>('en');
 
   // Question Management State
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
@@ -77,6 +88,7 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
   const [isQModalOpen, setIsQModalOpen] = useState(false);
   const [editingQ, setEditingQ] = useState<Partial<Question>>({ ...BLANK_QUESTION });
   const [savingQ, setSavingQ] = useState(false);
+  const [qModalLangTab, setQModalLangTab] = useState<'en' | 'hi'>('en');
 
   // Fetch all daily quizzes
   const loadQuizzes = async () => {
@@ -123,7 +135,9 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
       const newQuiz: DailyQuiz = {
         id: editingQuiz.id || `dq-${Date.now()}`,
         title: editingQuiz.title || 'Daily Practice Quiz',
+        title_hi: editingQuiz.title_hi || undefined,
         description: editingQuiz.description || '',
+        description_hi: editingQuiz.description_hi || undefined,
         publishDate: editingQuiz.publishDate || new Date().toISOString().split('T')[0],
         timeLimitMins: Number(editingQuiz.timeLimitMins || 10),
         totalQuestions: Number(editingQuiz.totalQuestions || 10),
@@ -171,12 +185,18 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
       const newQ: Question = {
         id: editingQ.id || `q-${Date.now()}`,
         questionText: editingQ.questionText || '',
+        questionTextHi: editingQ.questionTextHi || undefined,
         optionA: editingQ.optionA || '',
+        optionAHi: editingQ.optionAHi || undefined,
         optionB: editingQ.optionB || '',
+        optionBHi: editingQ.optionBHi || undefined,
         optionC: editingQ.optionC || '',
+        optionCHi: editingQ.optionCHi || undefined,
         optionD: editingQ.optionD || '',
+        optionDHi: editingQ.optionDHi || undefined,
         correctAnswer: editingQ.correctAnswer || 'A',
         explanation: editingQ.explanation || '',
+        explanationHi: editingQ.explanationHi || undefined,
         marks: Number(editingQ.marks || 1.0),
         negativeMarks: Number(editingQ.negativeMarks || 0.33)
       };
@@ -290,9 +310,20 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
                     onClick={() => handleSelectQuizForQuestions(q.id)}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md">
-                        {new Date(q.publishDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md">
+                          {new Date(q.publishDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </span>
+                        {q.title_hi ? (
+                          <span className="text-[9px] font-black px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-md">
+                            🌐 Bilingual (Both)
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-black px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 rounded-md">
+                            🇬🇧 EN (AI Hindi)
+                          </span>
+                        )}
+                      </div>
                       <span className="text-[10px] font-bold uppercase px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded-md">
                         {q.difficulty}
                       </span>
@@ -461,26 +492,93 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
               </button>
             </div>
 
+            {/* Language Switcher Tabs */}
+            <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setQuizModalLangTab('en')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  quizModalLangTab === 'en'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-500 hover:text-[var(--text-color)]'
+                }`}
+              >
+                🇬🇧 English Version
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuizModalLangTab('hi')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  quizModalLangTab === 'hi'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-500 hover:text-[var(--text-color)]'
+                }`}
+              >
+                🇮🇳 Hindi Version (हिन्दी)
+              </button>
+            </div>
+
             <form onSubmit={handleSaveQuiz} className="space-y-4 text-xs">
-              <div className="space-y-1">
-                <label className="font-bold text-slate-500">Quiz Title</label>
-                <input
-                  type="text"
-                  required
-                  value={editingQuiz.title || ''}
-                  onChange={e => setEditingQuiz(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
-                />
-              </div>
+              {quizModalLangTab === 'en' ? (
+                <>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-500">English Quiz Title *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingQuiz.title || ''}
+                      onChange={e => setEditingQuiz(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-500">English Short Description</label>
+                    <textarea
+                      rows={3}
+                      value={editingQuiz.description || ''}
+                      onChange={e => setEditingQuiz(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-1">
+                    <label className="font-bold text-amber-500">Hindi Quiz Title (हिन्दी शीर्षक - Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="उदा. दैनिक समसामयिकी एवं बिहार सामान्य ज्ञान अभ्यास सेट..."
+                      value={editingQuiz.title_hi || ''}
+                      onChange={e => setEditingQuiz(prev => ({ ...prev, title_hi: e.target.value }))}
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-amber-500">Hindi Short Description (हिन्दी विवरण - Optional)</label>
+                    <textarea
+                      rows={3}
+                      placeholder="राष्ट्रीय व बिहार करंट अफेयर्स, राजव्यवस्था, और बिहार विशेष सामान्य ज्ञान के 10 प्रश्न..."
+                      value={editingQuiz.description_hi || ''}
+                      onChange={e => setEditingQuiz(prev => ({ ...prev, description_hi: e.target.value }))}
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="space-y-1">
-                <label className="font-bold text-slate-500">Short Description</label>
-                <textarea
-                  rows={3}
-                  value={editingQuiz.description || ''}
-                  onChange={e => setEditingQuiz(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
-                />
+                <label className="font-extrabold uppercase text-[10px] text-amber-500 tracking-wider">Where Do You Want To Publish?</label>
+                <select
+                  value={(editingQuiz as any).publish_target || 'both'}
+                  onChange={e => setEditingQuiz(prev => ({ ...prev, publish_target: e.target.value as any }))}
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)] font-bold cursor-pointer"
+                >
+                  <option value="both">🌐 Both English & Hindi Pages (Default)</option>
+                  <option value="english">🇬🇧 English Page Only (/daily-quiz)</option>
+                  <option value="hindi">🇮🇳 Hindi Page Only (/daily-quiz in Hindi)</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -566,66 +664,172 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
               </button>
             </div>
 
+            {/* Language Switcher Tabs */}
+            <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setQModalLangTab('en')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  qModalLangTab === 'en'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-500 hover:text-[var(--text-color)]'
+                }`}
+              >
+                🇬🇧 English Question
+              </button>
+              <button
+                type="button"
+                onClick={() => setQModalLangTab('hi')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  qModalLangTab === 'hi'
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-500 hover:text-[var(--text-color)]'
+                }`}
+              >
+                🇮🇳 Hindi Question (हिन्दी)
+              </button>
+            </div>
+
             <form onSubmit={handleSaveQuestion} className="space-y-4 text-xs">
+              {qModalLangTab === 'en' ? (
+                <>
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-500">English Question Text *</label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={editingQ.questionText || ''}
+                      onChange={e => setEditingQ(prev => ({ ...prev, questionText: e.target.value }))}
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-500">English Option A *</label>
+                      <input
+                        type="text"
+                        required
+                        value={editingQ.optionA || ''}
+                        onChange={e => setEditingQ(prev => ({ ...prev, optionA: e.target.value }))}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-500">English Option B *</label>
+                      <input
+                        type="text"
+                        required
+                        value={editingQ.optionB || ''}
+                        onChange={e => setEditingQ(prev => ({ ...prev, optionB: e.target.value }))}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-500">English Option C *</label>
+                      <input
+                        type="text"
+                        required
+                        value={editingQ.optionC || ''}
+                        onChange={e => setEditingQ(prev => ({ ...prev, optionC: e.target.value }))}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-500">English Option D *</label>
+                      <input
+                        type="text"
+                        required
+                        value={editingQ.optionD || ''}
+                        onChange={e => setEditingQ(prev => ({ ...prev, optionD: e.target.value }))}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-slate-500">English Explanation & Rationale</label>
+                    <textarea
+                      rows={3}
+                      value={editingQ.explanation || ''}
+                      onChange={e => setEditingQ(prev => ({ ...prev, explanation: e.target.value }))}
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-1">
+                    <label className="font-bold text-amber-500">Hindi Question Text (हिन्दी प्रश्न - Optional)</label>
+                    <textarea
+                      rows={3}
+                      placeholder="उदा. भारतीय संविधान के अनुच्छेद 213 के अंतर्गत राज्यपाल अध्यादेश कब जारी कर सकता है..."
+                      value={editingQ.questionTextHi || ''}
+                      onChange={e => setEditingQ(prev => ({ ...prev, questionTextHi: e.target.value }))}
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="font-bold text-amber-500">Hindi Option A (विकल्प A)</label>
+                      <input
+                        type="text"
+                        value={editingQ.optionAHi || ''}
+                        onChange={e => setEditingQ(prev => ({ ...prev, optionAHi: e.target.value }))}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-amber-500">Hindi Option B (विकल्प B)</label>
+                      <input
+                        type="text"
+                        value={editingQ.optionBHi || ''}
+                        onChange={e => setEditingQ(prev => ({ ...prev, optionBHi: e.target.value }))}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-amber-500">Hindi Option C (विकल्प C)</label>
+                      <input
+                        type="text"
+                        value={editingQ.optionCHi || ''}
+                        onChange={e => setEditingQ(prev => ({ ...prev, optionCHi: e.target.value }))}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)]"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="font-bold text-amber-500">Hindi Option D (विकल्प D)</label>
+                      <input
+                        type="text"
+                        value={editingQ.optionDHi || ''}
+                        onChange={e => setEditingQ(prev => ({ ...prev, optionDHi: e.target.value }))}
+                        className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-bold text-amber-500">Hindi Explanation (हिन्दी व्याख्या)</label>
+                    <textarea
+                      rows={3}
+                      placeholder="अनुच्छेद 213 के तहत राज्यपाल अध्यादेश केवल तभी प्रख्यापित कर सकता है जब विधानमंडल के सत्र न चल रहे हों..."
+                      value={editingQ.explanationHi || ''}
+                      onChange={e => setEditingQ(prev => ({ ...prev, explanationHi: e.target.value }))}
+                      className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="space-y-1">
-                <label className="font-bold text-slate-500">Question Text</label>
-                <textarea
-                  rows={3}
-                  required
-                  value={editingQ.questionText || ''}
-                  onChange={e => setEditingQ(prev => ({ ...prev, questionText: e.target.value }))}
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)] focus:border-amber-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-500">Option A</label>
-                  <input
-                    type="text"
-                    required
-                    value={editingQ.optionA || ''}
-                    onChange={e => setEditingQ(prev => ({ ...prev, optionA: e.target.value }))}
-                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-500">Option B</label>
-                  <input
-                    type="text"
-                    required
-                    value={editingQ.optionB || ''}
-                    onChange={e => setEditingQ(prev => ({ ...prev, optionB: e.target.value }))}
-                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-500">Option C</label>
-                  <input
-                    type="text"
-                    required
-                    value={editingQ.optionC || ''}
-                    onChange={e => setEditingQ(prev => ({ ...prev, optionC: e.target.value }))}
-                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="font-bold text-slate-500">Option D</label>
-                  <input
-                    type="text"
-                    required
-                    value={editingQ.optionD || ''}
-                    onChange={e => setEditingQ(prev => ({ ...prev, optionD: e.target.value }))}
-                    className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-bold text-slate-500">Correct Answer Key</label>
+                <label className="font-bold text-slate-500">Correct Answer Key *</label>
                 <select
                   value={editingQ.correctAnswer || 'A'}
                   onChange={e => setEditingQ(prev => ({ ...prev, correctAnswer: e.target.value }))}

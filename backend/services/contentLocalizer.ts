@@ -237,15 +237,37 @@ export class ContentLocalizer {
     targetLang: string,
     htmlFields: string[] = []
   ): Promise<T | null | undefined> {
-    if (!entity) return entity;
-    
-    // Determine source language (explicit field or auto-detect fallback)
+    const normalizedTarget = (targetLang || 'en').toLowerCase().trim();
     const explicitLang = entity.language || entity.sourceLanguage;
     
     const localized = { ...entity };
 
-    // Concurrently resolve all fields in parallel
+    if (normalizedTarget === 'hi') {
+      // Direct Authored Hindi Content Prioritization (0ms latency, zero translation API call)
+      fields.forEach((field) => {
+        const hiField = `${field}_hi`;
+        const altHiField = `${field}Hi`;
+        if (typeof localized[hiField] === 'string' && localized[hiField].trim().length > 0) {
+          localized[field as keyof T] = localized[hiField];
+        } else if (typeof localized[altHiField] === 'string' && localized[altHiField].trim().length > 0) {
+          localized[field as keyof T] = localized[altHiField];
+        }
+      });
+    }
+
+    // Concurrently resolve any remaining un-authored fields using translation engine
     await Promise.all(fields.map(async (field) => {
+      // Skip if field was already populated via authored Hindi content
+      const hiField = `${field}_hi`;
+      const altHiField = `${field}Hi`;
+      if (
+        normalizedTarget === 'hi' &&
+        ((typeof localized[hiField] === 'string' && localized[hiField].trim().length > 0) ||
+         (typeof localized[altHiField] === 'string' && localized[altHiField].trim().length > 0))
+      ) {
+        return;
+      }
+
       if (typeof localized[field] === 'string' && localized[field].trim().length > 0) {
         const isHtml = htmlFields.includes(field);
         localized[field as keyof T] = (await this.resolveLocalizedContent(

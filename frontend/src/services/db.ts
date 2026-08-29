@@ -85,12 +85,18 @@ export interface BlogItem {
   cover_image_url?: string;
   author?: string;
   author_name?: string;
+  author_image?: string;
+  authorImage?: string;
   blurb?: string;
   excerpt?: string;
+  title_hi?: string;
+  content_hi?: string;
+  blurb_hi?: string;
   seoTitle?: string;
   seoKeywords?: string;
   seoDescription?: string;
   status?: string;
+  language?: 'en' | 'hi' | 'bilingual' | string;
 }
 
 export interface CourseSection {

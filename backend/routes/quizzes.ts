@@ -222,9 +222,13 @@ const FALLBACK_DAILY_QUIZZES = [
 // Get Today's Daily Quiz Metadata
 router.get('/daily/today', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
+    const targetLang = getTargetLang(req);
     const list = await lmsDB.getAllDailyQuizzes();
     const todayStr = new Date().toISOString().split('T')[0];
-    const todayQuiz = list.find((q: any) => q.publishDate === todayStr) || list[0] || FALLBACK_DAILY_QUIZZES[0];
+    let todayQuiz = list.find((q: any) => q.publishDate === todayStr) || list[0] || FALLBACK_DAILY_QUIZZES[0];
+    if (targetLang === 'hi') {
+      todayQuiz = await ContentLocalizer.localizeEntity('daily_quiz', todayQuiz, ['title', 'description'], targetLang);
+    }
     res.json({ success: true, data: todayQuiz });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -234,8 +238,12 @@ router.get('/daily/today', optionalAuth, async (req: AuthRequest, res: Response)
 // Get Previous Daily Quizzes List
 router.get('/daily/list', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
+    const targetLang = getTargetLang(req);
     const list = await lmsDB.getAllDailyQuizzes();
-    const data = (list && list.length > 0) ? list : FALLBACK_DAILY_QUIZZES;
+    let data = (list && list.length > 0) ? list : FALLBACK_DAILY_QUIZZES;
+    if (targetLang === 'hi') {
+      data = await ContentLocalizer.localizeEntityList('daily_quiz', data, ['title', 'description'], targetLang);
+    }
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -246,7 +254,12 @@ router.get('/daily/list', optionalAuth, async (req: AuthRequest, res: Response) 
 router.get('/daily/:quizId/start', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
+    const targetLang = getTargetLang(req);
     let quiz = await lmsDB.getDailyQuizById(quizId) || FALLBACK_DAILY_QUIZZES.find(q => q.id === quizId) || { ...FALLBACK_DAILY_QUIZZES[0], id: quizId };
+    if (targetLang === 'hi') {
+      quiz = await ContentLocalizer.localizeEntity('daily_quiz', quiz, ['title', 'description'], targetLang);
+    }
+
     let questions = await lmsDB.getDailyQuizQuestions(quizId);
     if (!questions || questions.length === 0) {
       questions = FALLBACK_DAILY_QUESTIONS;
@@ -257,11 +270,13 @@ router.get('/daily/:quizId/start', optionalAuth, async (req: AuthRequest, res: R
       return publicFields;
     });
 
+    const localizedQuestions = await ContentLocalizer.localizeQuizQuestions(cleanQuestions, targetLang);
+
     res.json({
       success: true,
       data: {
         quiz,
-        questions: cleanQuestions
+        questions: localizedQuestions
       }
     });
   } catch (err: any) {
