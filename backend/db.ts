@@ -225,6 +225,8 @@ export interface BlogItem {
   title_hi?: string;
   content_hi?: string;
   blurb_hi?: string;
+  language?: string;
+  publish_target?: string;
 }
 
 export interface ResourceDownload {
@@ -2971,12 +2973,12 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO blogs (id, title, slug, publishDate, readTime, category, content, imageUrl, excerpt, status, author_name, author_image, seoTitle, seoKeywords, seoDescription, blurb, title_hi, content_hi, blurb_hi, language) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO blogs (id, title, slug, publishDate, readTime, category, content, imageUrl, excerpt, status, author_name, author_image, seoTitle, seoKeywords, seoDescription, blurb, title_hi, content_hi, blurb_hi, language, publish_target) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             item.id, item.title, item.slug ?? null, item.publishDate, item.readTime, item.category, item.content, item.imageUrl ?? null,
             item.excerpt ?? null, item.status ?? 'published', item.author_name ?? 'Admin', item.author_image ?? (item as any).authorImage ?? null,
             item.seoTitle ?? null, item.seoKeywords ?? null, item.seoDescription ?? null, item.blurb ?? null,
-            item.title_hi ?? null, item.content_hi ?? null, item.blurb_hi ?? null, item.language ?? 'en'
+            item.title_hi ?? null, item.content_hi ?? null, item.blurb_hi ?? null, item.language ?? 'en', item.publish_target ?? 'both'
           ]
         );
         return item;
@@ -2993,12 +2995,12 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query(
-          'UPDATE blogs SET title = ?, slug = ?, publishDate = ?, readTime = ?, category = ?, content = ?, imageUrl = ?, excerpt = ?, status = ?, author_name = ?, author_image = ?, seoTitle = ?, seoKeywords = ?, seoDescription = ?, blurb = ?, title_hi = ?, content_hi = ?, blurb_hi = ?, language = ? WHERE id = ?',
+          'UPDATE blogs SET title = ?, slug = ?, publishDate = ?, readTime = ?, category = ?, content = ?, imageUrl = ?, excerpt = ?, status = ?, author_name = ?, author_image = ?, seoTitle = ?, seoKeywords = ?, seoDescription = ?, blurb = ?, title_hi = ?, content_hi = ?, blurb_hi = ?, language = ?, publish_target = ? WHERE id = ?',
           [
             updated.title, updated.slug ?? null, updated.publishDate, updated.readTime, updated.category, updated.content, updated.imageUrl ?? null,
             updated.excerpt ?? null, updated.status ?? 'published', updated.author_name ?? 'Admin', updated.author_image ?? (updated as any).authorImage ?? null,
             updated.seoTitle ?? null, updated.seoKeywords ?? null, updated.seoDescription ?? null, updated.blurb ?? null,
-            updated.title_hi ?? null, updated.content_hi ?? null, updated.blurb_hi ?? null, updated.language ?? 'en', id
+            updated.title_hi ?? null, updated.content_hi ?? null, updated.blurb_hi ?? null, updated.language ?? 'en', updated.publish_target ?? 'both', id
           ]
         );
         return result.affectedRows > 0;
