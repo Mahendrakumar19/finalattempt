@@ -6,6 +6,7 @@ import { ShieldAlert, Award, FileText, Timer, Users, Maximize2, AlertOctagon, Ch
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard } from '@/services/auth';
+import { sanitizeAndRepairQuestion } from '@/utils/questionFormatter';
 
 interface QuizEngineProps {
   quizId: string;
@@ -289,7 +290,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     );
   }
 
-  const currentQ = questions[currentIndex];
+  const currentQ = sanitizeAndRepairQuestion(questions[currentIndex], activeLang);
 
   const getDisplayQuestionText = (q: any) => {
     if (activeLang === 'hi' && q?.questionTextHi) return q.questionTextHi;

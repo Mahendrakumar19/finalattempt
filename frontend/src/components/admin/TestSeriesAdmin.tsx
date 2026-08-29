@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { db, TestSeriesItem, ExamData } from '@/services/db';
 import MediaPicker from '@/components/MediaPicker';
+import { sanitizeAndRepairQuestion } from '@/utils/questionFormatter';
 
 /** Strips any leading "(a) " / "(A) " / "(क) " option prefix from stored option text */
 function stripOptionPrefix(text: string): string {
@@ -591,7 +592,7 @@ export default function TestSeriesAdmin({
           else if (['A', 'B', 'C', 'D'].includes(matchedVal)) ansLetter = matchedVal as any;
         }
 
-        parsed.push({
+        parsed.push(sanitizeAndRepairQuestion({
           questionText: qMatch[1].trim().replace(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])\s*/i, ''),
           optionA: optAMatch[1].trim(),
           optionB: optBMatch[1].trim(),
@@ -601,7 +602,7 @@ export default function TestSeriesAdmin({
           explanation: expMatch ? expMatch[1].trim() : 'Refer to official syllabus notes.',
           marks: 1,
           negativeMarks: 0.33
-        });
+        }));
       }
     }
 
