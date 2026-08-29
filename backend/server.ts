@@ -1065,10 +1065,10 @@ httpServer.listen(PORT, () => {
       const editions = await db.getDynamicCurrentAffairsEditions(false);
       if (Array.isArray(editions) && editions.length > 0) {
         let totalArticles = 0;
-        await Promise.all(editions.map(async (ed) => {
+        for (const ed of editions) {
           if (Array.isArray(ed.articles) && ed.articles.length > 0) {
             totalArticles += ed.articles.length;
-            // Warm article list metadata (title, summary) in parallel
+            // Warm article list metadata (title, summary)
             await ContentLocalizer.localizeEntityList(
               'current_affair_article',
               ed.articles,
@@ -1076,8 +1076,8 @@ httpServer.listen(PORT, () => {
               'hi',
               ['summary']
             );
-            // Warm full article content in parallel
-            await Promise.all(ed.articles.map(async (art) => {
+            // Warm full article content
+            for (const art of ed.articles) {
               if (art.slug) {
                 try {
                   const fullArt = await db.getDynamicCurrentAffairArticle(art.slug, false);
@@ -1092,9 +1092,9 @@ httpServer.listen(PORT, () => {
                   }
                 } catch (_) {}
               }
-            }));
+            }
           }
-        }));
+        }
         console.log(`[TranslationWarmUp] Successfully warmed ${editions.length} editions (${totalArticles} articles) in Hindi.`);
       }
     } catch (err: any) {
