@@ -76,7 +76,7 @@ export default function NewsTodayLayout({
         const list = await db.getDynamicCurrentAffairsEditions(false).catch(() => []);
         setEditions(list || []);
 
-        if (!resolvedEdition && list && list.length > 0) {
+        if (!initialDate && !resolvedEdition && list && list.length > 0) {
           const sorted = [...list].filter(e => e && e.publishDate).sort((a, b) => b.publishDate.localeCompare(a.publishDate));
           if (sorted.length > 0) {
             resolvedEdition = await db.getDynamicCurrentAffairsEditionByDate(sorted[0].publishDate, false).catch(() => null);
@@ -103,7 +103,12 @@ export default function NewsTodayLayout({
                 setActiveArticle(fullArt);
               }
             }
+          } else {
+            setActiveArticle(null);
           }
+        } else {
+          setCurrentEdition(null);
+          setActiveArticle(null);
         }
       } catch (err) {
         console.error('Error loading News Today data:', err);
@@ -555,75 +560,114 @@ export default function NewsTodayLayout({
           {/* ════ MAIN ARTICLE CONTENT ════ */}
           <main className="lg:col-span-8 xl:col-span-8 space-y-6 max-w-4xl">
 
-            {/* 1. ARTICLE HEADER BANNER */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 sm:p-8 space-y-4 shadow-xs">
-              <div className="flex flex-wrap gap-2 items-center text-xs">
-                {activeArticle?.category && (
-                  <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-500/20">
-                    {activeArticle.category}
-                  </span>
-                )}
-                {activeDateFormatted && (
-                  <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-white/5">
-                    <CalendarIcon className="w-3.5 h-3.5 text-amber-500" />
-                    <span>{activeDateFormatted}</span>
-                  </span>
-                )}
-                {activeArticle?.readingTime && (
-                  <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-white/5">
-                    <Clock className="w-3.5 h-3.5 text-amber-500" />
-                    <span>{activeArticle.readingTime}</span>
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-2xl sm:text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight tracking-tight">
-                {activeArticle?.title || (loading ? 'Loading Article...' : 'Current Affairs Article')}
-              </h1>
-            </div>
-
-            {/* 2. CMS ARTICLE BODY CONTENT (PARSED HTML WITH DYNAMIC HEADING IDS) */}
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 sm:p-10 space-y-6 shadow-xs">
-              {processedHtml ? (
-                <div
-                  className="article-prose-container prose prose-slate dark:prose-invert max-w-none
-                    prose-headings:font-heading prose-headings:font-black prose-headings:scroll-mt-28
-                    prose-headings:text-slate-950 dark:prose-headings:text-white
-                    prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
-                    prose-p:leading-relaxed prose-p:my-3.5 prose-p:font-medium
-                    prose-li:my-1 prose-li:font-medium
-                    prose-blockquote:border-l-4 prose-blockquote:border-amber-500
-                    prose-blockquote:bg-amber-50 dark:prose-blockquote:bg-amber-500/10
-                    prose-blockquote:rounded-r-2xl prose-blockquote:p-4 prose-blockquote:not-italic
-                    prose-a:text-amber-600 prose-a:font-bold hover:prose-a:underline"
-                  dangerouslySetInnerHTML={{ __html: processedHtml }}
-                />
-              ) : (
-                <div className="py-12 text-center space-y-3">
-                  <FileText className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
-                  <p className="text-xs text-slate-500 font-semibold">
-                    {loading ? 'Fetching article content...' : 'Content for this article is being published shortly.'}
+            {!loading && (!currentEdition || !activeArticle) ? (
+              <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-8 sm:p-12 text-center space-y-5 shadow-xs">
+                <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto border border-amber-500/20">
+                  <CalendarIcon className="w-8 h-8" />
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl sm:text-2xl font-heading font-black text-slate-900 dark:text-white">
+                    {locale === 'hi'
+                      ? `${activeDateFormatted || 'इस तिथि'} के लिए कोई समसामयिकी उपलब्ध नहीं है`
+                      : `No Current Affairs Available for ${activeDateFormatted || 'Selected Date'}`}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed font-medium">
+                    {locale === 'hi'
+                      ? 'इस चुनी गई तारीख के लिए कोई करंट अफेयर्स प्रकाशित नहीं किया गया है। कृपया कैलेंडर से कोई अन्य तारीख चुनें या नवीनतम उपलब्ध संस्करण देखें।'
+                      : 'There are no published current affairs articles for this specific date. Please select another date from the calendar or view the latest available edition.'}
                   </p>
                 </div>
-              )}
 
-              {/* 3. TAGS AT BOTTOM (EXCLUSIVELY) */}
-              {activeArticle?.tags && activeArticle.tags.length > 0 && (
-                <div className="pt-6 border-t border-slate-100 dark:border-white/5 flex flex-wrap gap-2 items-center text-xs">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 flex items-center gap-1">
-                    <Tag className="w-3 h-3" /> Tags:
-                  </span>
-                  {activeArticle.tags.map(t => (
-                    <span
-                      key={t}
-                      className="px-3 py-1 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/20 text-xs"
+                <div className="pt-2 flex flex-wrap justify-center gap-3">
+                  {editions.length > 0 && (
+                    <button
+                      onClick={() => {
+                        const sorted = [...editions].sort((a, b) => b.publishDate.localeCompare(a.publishDate));
+                        if (sorted[0]?.publishDate) {
+                          router.push(`/current-affairs/daily/${sorted[0].publishDate}`);
+                        }
+                      }}
+                      className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition-all shadow-md cursor-pointer flex items-center gap-2"
                     >
-                      #{t.replace(/^#/, '')}
-                    </span>
-                  ))}
+                      <Clock className="w-4 h-4" />
+                      <span>{locale === 'hi' ? 'नवीनतम उपलब्ध संस्करण देखें' : 'View Latest Available Edition'}</span>
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <>
+                {/* 1. ARTICLE HEADER BANNER */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 sm:p-8 space-y-4 shadow-xs">
+                  <div className="flex flex-wrap gap-2 items-center text-xs">
+                    {activeArticle?.category && (
+                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-500/20">
+                        {activeArticle.category}
+                      </span>
+                    )}
+                    {activeDateFormatted && (
+                      <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-white/5">
+                        <CalendarIcon className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{activeDateFormatted}</span>
+                      </span>
+                    )}
+                    {activeArticle?.readingTime && (
+                      <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-white/5">
+                        <Clock className="w-3.5 h-3.5 text-amber-500" />
+                        <span>{activeArticle.readingTime}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <h1 className="text-2xl sm:text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight tracking-tight">
+                    {activeArticle?.title || (loading ? 'Loading Article...' : 'Current Affairs Article')}
+                  </h1>
+                </div>
+
+                {/* 2. CMS ARTICLE BODY CONTENT (PARSED HTML WITH DYNAMIC HEADING IDS) */}
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 sm:p-10 space-y-6 shadow-xs">
+                  {processedHtml ? (
+                    <div
+                      className="article-prose-container prose prose-slate dark:prose-invert max-w-none
+                        prose-headings:font-heading prose-headings:font-black prose-headings:scroll-mt-28
+                        prose-headings:text-slate-950 dark:prose-headings:text-white
+                        prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
+                        prose-p:leading-relaxed prose-p:my-3.5 prose-p:font-medium
+                        prose-li:my-1 prose-li:font-medium
+                        prose-blockquote:border-l-4 prose-blockquote:border-amber-500
+                        prose-blockquote:bg-amber-50 dark:prose-blockquote:bg-amber-500/10
+                        prose-blockquote:rounded-r-2xl prose-blockquote:p-4 prose-blockquote:not-italic
+                        prose-a:text-amber-600 prose-a:font-bold hover:prose-a:underline"
+                      dangerouslySetInnerHTML={{ __html: processedHtml }}
+                    />
+                  ) : (
+                    <div className="py-12 text-center space-y-3">
+                      <FileText className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto" />
+                      <p className="text-xs text-slate-500 font-semibold">
+                        {loading ? 'Fetching article content...' : 'Content for this article is being published shortly.'}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 3. TAGS AT BOTTOM (EXCLUSIVELY) */}
+                  {activeArticle?.tags && activeArticle.tags.length > 0 && (
+                    <div className="pt-6 border-t border-slate-100 dark:border-white/5 flex flex-wrap gap-2 items-center text-xs">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 shrink-0 flex items-center gap-1">
+                        <Tag className="w-3 h-3" /> Tags:
+                      </span>
+                      {activeArticle.tags.map(t => (
+                        <span
+                          key={t}
+                          className="px-3 py-1 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/20 text-xs"
+                        >
+                          #{t.replace(/^#/, '')}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
           </main>
 
