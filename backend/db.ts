@@ -989,9 +989,9 @@ if (useRealDB) {
     const tempPool = mysql.createPool({
       ...dbConfig,
       waitForConnections: true,
-      connectionLimit: 10,
-      maxIdle: 10,                    // Max idle connections
-      idleTimeout: 10000,             // Close idle connections after 10s (Hostinger drops them anyway)
+      connectionLimit: 25,
+      maxIdle: 25,                    // Max idle connections
+      idleTimeout: 30000,             // Close idle connections after 30s
       queueLimit: 0,
       enableKeepAlive: true,
       keepAliveInitialDelay: 10000,   // Ping every 10s to keep connection alive

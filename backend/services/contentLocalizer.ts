@@ -242,6 +242,10 @@ export class ContentLocalizer {
     
     const localized = { ...entity };
 
+    // Entity types where translations are typed manually by team (Zero machine translation engine calls)
+    const MANUAL_ONLY_TYPES = ['current_affair_article', 'current_affairs_compilation', 'blog', 'test_series', 'exam', 'lms_question'];
+    const isManualOnly = MANUAL_ONLY_TYPES.includes(entityType);
+
     if (normalizedTarget === 'hi') {
       // Direct Authored Hindi Content Prioritization (0ms latency, zero translation API call)
       fields.forEach((field) => {
@@ -253,6 +257,10 @@ export class ContentLocalizer {
           localized[field as keyof T] = localized[altHiField];
         }
       });
+    }
+
+    if (isManualOnly) {
+      return localized; // Completely skip auto-translation engine for Current Affairs, Blogs & Test Series
     }
 
     // Concurrently resolve any remaining un-authored fields using translation engine
@@ -313,34 +321,15 @@ export class ContentLocalizer {
     return Promise.all(questions.map(async (q) => {
       const localized: Record<string, any> = { ...q };
 
-      // Requirement 13: When locale = Hindi AND authored Hindi fields exist: use them directly with ZERO translation call
-      if (normalizedTarget === 'hi' && q.questionTextHi && q.optionAHi && q.optionBHi && q.optionCHi && q.optionDHi) {
-        localized.questionText = q.questionTextHi;
-        localized.optionA = q.optionAHi;
-        localized.optionB = q.optionBHi;
-        localized.optionC = q.optionCHi;
-        localized.optionD = q.optionDHi;
+      // Use authored Hindi fields directly when target locale is Hindi (Zero machine translation call)
+      if (normalizedTarget === 'hi') {
+        if (q.questionTextHi) localized.questionText = q.questionTextHi;
+        if (q.optionAHi) localized.optionA = q.optionAHi;
+        if (q.optionBHi) localized.optionB = q.optionBHi;
+        if (q.optionCHi) localized.optionC = q.optionCHi;
+        if (q.optionDHi) localized.optionD = q.optionDHi;
+        if (q.optionEHi) localized.optionE = q.optionEHi;
         if (q.explanationHi) localized.explanation = q.explanationHi;
-      } else if (normalizedTarget !== 'en') {
-        // Fallback machine translation for legacy non-bilingual single-language questions
-        const explicitLang = q.language || q.sourceLanguage;
-        const textFields = ['questionText', 'optionA', 'optionB', 'optionC', 'optionD', 'explanation'];
-        const htmlFields = ['questionText', 'explanation'];
-
-        await Promise.all(textFields.map(async (field) => {
-          if (typeof localized[field] === 'string' && localized[field].trim().length > 0) {
-            const isHtml = htmlFields.includes(field);
-            localized[field] = await this.resolveLocalizedContent(
-              'lms_question',
-              String(q.id || 'question'),
-              field,
-              localized[field],
-              explicitLang,
-              normalizedTarget,
-              isHtml
-            );
-          }
-        }));
       }
 
       // CRITICAL: Ensure correctAnswer, id, quizId, marks are completely untouched

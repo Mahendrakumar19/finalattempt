@@ -1269,13 +1269,6 @@ httpServer.listen(PORT, () => {
     }
   }
 
-  // Start warm-up 3 seconds after server boot (reduced from 30s)
-  setTimeout(() => {
-    warmUpHindiTranslations().catch((e) => console.error('[TranslationWarmUp] Startup error:', e));
-  }, 3000);
-
-  // Re-warm every 10 minutes to pick up newly published articles automatically
-  setInterval(() => {
-    warmUpHindiTranslations().catch(() => {});
-  }, 10 * 60 * 1000);
+  // Translation warm-up engine disabled as translations for Current Affairs, Test Series, and Blogs are authored manually.
+  console.log('[TranslationWarmUp] Automatic machine translation engine disabled (Manual Translation Mode active).');
 });
