@@ -615,52 +615,89 @@ export default function TestSeriesAdmin({
     }
   };
 
-  // Handle File Upload Read (JSON, CSV, TXT, PDF, DOC)
+  // Handle File Upload Read (PDF, DOCX, DOC, TXT, JSON, CSV, HTML, Images)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.name.toLowerCase().endsWith('.pdf')) {
-      try {
-        const res = await db.parseBilingualPdf(file);
-        if (res && res.success && res.report && res.report.questionsPreview && res.report.questionsPreview.length > 0) {
-          const formatted = res.report.questionsPreview.map((q: any) => ({
-            questionText: q.questionText,
-            optionA: q.optionA,
-            optionB: q.optionB,
-            optionC: q.optionC,
-            optionD: q.optionD,
-            optionE: q.optionE || '',
-            correctAnswer: q.correctAnswer,
-            explanation: q.explanation || 'Refer to syllabus notes.',
-            questionTextHi: q.questionTextHi,
-            optionAHi: q.optionAHi,
-            optionBHi: q.optionBHi,
-            optionCHi: q.optionCHi,
-            optionDHi: q.optionDHi,
-            optionEHi: q.optionEHi || '',
-            explanationHi: q.explanationHi,
-            marks: 1,
-            negativeMarks: 0.33
-          }));
+    // Send file directly to Universal Document Import Engine (/api/document-imports)
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('filename', file.name);
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/document-imports`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+
+      if (data && data.success && data.import) {
+        // Fetch Extracted Staged QnAs from Universal Engine
+        const qnasRes = await fetch(`${BACKEND_URL}/api/document-imports/${data.import.id}/qnas`);
+        const qnasData = await qnasRes.json();
+
+        if (qnasData && Array.isArray(qnasData.qnas) && qnasData.qnas.length > 0) {
+          const formatted = qnasData.qnas.map((q: any) => {
+            let parsed: any = {};
+            try {
+              parsed = typeof q.parsedQnaJson === 'string' ? JSON.parse(q.parsedQnaJson) : q.parsedQnaJson || {};
+            } catch (_) {}
+
+            const textEn = parsed.question?.versions?.find((v: any) => v.language === 'en')?.text || q.questionText || '';
+            const textHi = parsed.question?.versions?.find((v: any) => v.language === 'hi')?.text || '';
+
+            const optsMap: Record<string, string> = {};
+            const optsMapHi: Record<string, string> = {};
+            (parsed.options || []).forEach((opt: any) => {
+              const lbl = (opt.label || '').toUpperCase();
+              optsMap[lbl] = opt.versions?.find((v: any) => v.language === 'en')?.text || opt.versions?.[0]?.text || '';
+              optsMapHi[lbl] = opt.versions?.find((v: any) => v.language === 'hi')?.text || '';
+            });
+
+            return {
+              questionText: textEn,
+              optionA: optsMap['A'] || '',
+              optionB: optsMap['B'] || '',
+              optionC: optsMap['C'] || '',
+              optionD: optsMap['D'] || '',
+              optionE: optsMap['E'] || '',
+              correctAnswer: q.correctAnswer || parsed.answer?.values?.[0] || 'A',
+              explanation: parsed.explanation?.versions?.find((v: any) => v.language === 'en')?.text || q.explanation || '',
+              questionTextHi: textHi,
+              optionAHi: optsMapHi['A'] || '',
+              optionBHi: optsMapHi['B'] || '',
+              optionCHi: optsMapHi['C'] || '',
+              optionDHi: optsMapHi['D'] || '',
+              optionEHi: optsMapHi['E'] || '',
+              explanationHi: parsed.explanation?.versions?.find((v: any) => v.language === 'hi')?.text || '',
+              questionImageUrl: parsed.question?.imageUrl || null,
+              marks: 1,
+              negativeMarks: 0.33
+            };
+          });
+
           setParsedBulkQuestions(formatted);
-          alert(`Successfully extracted ${formatted.length} questions from PDF via server parser!`);
+          alert(`✓ Successfully extracted ${formatted.length} questions from '${file.name}' via Universal Document Engine!`);
           return;
         }
-      } catch (pdfErr) {
-        console.warn('Backend PDF parse fallback to text reader:', pdfErr);
       }
+    } catch (err: any) {
+      console.warn('Universal document engine fallback:', err);
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      if (content) {
-        setBulkRawText(content);
-        handleParseBulkText(content);
-      }
-    };
-    reader.readAsText(file);
+    // Fallback for local text files
+    if (!file.name.toLowerCase().endsWith('.pdf') && !file.name.toLowerCase().endsWith('.docx') && !file.name.toLowerCase().endsWith('.doc')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (content) {
+          setBulkRawText(content);
+          handleParseBulkText(content);
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   // Submit All Bulk Parsed Questions to DB

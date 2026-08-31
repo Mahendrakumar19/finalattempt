@@ -257,6 +257,7 @@ export function QuestionBankImportModal({ isOpen, onClose, onSuccessCommit }: Qu
                 <p className="text-xs text-slate-400 mb-4">Supports PDF, DOCX, TXT, HTML, JPG, PNG, WEBP files up to 50MB</p>
                 <input
                   type="file"
+                  accept=".pdf,.docx,.doc,.txt,.csv,.json,.html,.htm,.md,.rtf,.jpg,.jpeg,.png,.webp"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                   className="hidden"
                   id="file-upload-input"

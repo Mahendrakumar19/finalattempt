@@ -35,7 +35,7 @@ router.post('/', upload.single('file'), async (req: Request, res: Response): Pro
     const mimeType = file?.mimetype || (pastedText ? 'text/plain' : 'application/octet-stream');
 
     const ext = path.extname(filename).toLowerCase();
-    const allowedExts = ['.pdf', '.docx', '.doc', '.txt', '.html', '.htm', '.md', '.rtf', '.jpg', '.jpeg', '.png', '.webp'];
+    const allowedExts = ['.pdf', '.docx', '.doc', '.txt', '.csv', '.json', '.html', '.htm', '.md', '.rtf', '.jpg', '.jpeg', '.png', '.webp'];
 
     if (file && !allowedExts.includes(ext)) {
       res.status(400).json({
