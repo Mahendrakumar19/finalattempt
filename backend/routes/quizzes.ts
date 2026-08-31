@@ -451,7 +451,7 @@ router.post('/admin/parse-bilingual-text', async (req: Request, res: Response) =
       return;
     }
 
-    const report = BilingualPdfParser.parseText(text);
+    const report = await BilingualPdfParser.parseTextAsync(text);
     res.json({ success: true, report });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

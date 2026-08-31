@@ -1,7 +1,10 @@
 import { PDFParse } from 'pdf-parse';
+import { AdapterFactory } from './documentEngine/adapters/AdapterFactory';
+import { QnaExtractor } from './documentEngine/extraction/QnaExtractor';
 
 export interface ParsedBilingualQuestion {
   questionNumber: number;
+  sectionName?: string;
   partName?: string;
   questionText: string;
   optionA: string;
@@ -53,47 +56,105 @@ export interface BilingualValidationReport {
   };
 }
 
-/**
- * STRICT BILINGUAL PDF PARSER
- *
- * Expected input format (text/pdf):
- *
- * ==================================================
- * SECTION 1: ENGLISH QUESTIONS
- * ==================================================
- * Q1. <question text>
- * (a) <option A>
- * (b) <option B>
- * (c) <option C>
- * (d) <option D>
- *
- * Q2. ...
- * --------------------------------------------------
- * ==================================================
- * SECTION 2: HINDI QUESTIONS
- * ==================================================
- * Q1. <hindi question text>
- * (a) <option A>
- * ...
- * ==================================================
- * SECTION 3: ENGLISH ANSWERS & EXPLANATIONS
- * ==================================================
- * Q1. B
- * <explanation text>
- * Q2. D
- * ...
- * ==================================================
- * SECTION 4: HINDI ANSWERS & EXPLANATIONS
- * ==================================================
- * Q1. B
- * <hindi explanation text>
- * Q2. D
- * ...
- */
 export class BilingualPdfParser {
 
   /**
-   * Parses a PDF buffer strictly following the 4-section format.
+   * Universal Primary Parser using the Universal Question Bank Ingestion & Extraction Engine.
+   * Accepts ANY format, layout, structure, or language ordering without template restrictions.
+   */
+  static async parseTextAsync(rawText: string, initialReport?: BilingualValidationReport): Promise<BilingualValidationReport> {
+    const report: BilingualValidationReport = initialReport || {
+      isValid: false,
+      totalQuestionsEn: 0,
+      totalQuestionsHi: 0,
+      totalAnswersEn: 0,
+      totalAnswersHi: 0,
+      totalExplanationsEn: 0,
+      totalExplanationsHi: 0,
+      mappedQuestionsCount: 0,
+      sectionsDetected: [],
+      errors: [],
+      warnings: [],
+      questionsPreview: []
+    };
+
+    // 1. PRIMARY: Universal Format-Agnostic Engine
+    try {
+      const doc = await AdapterFactory.process(Buffer.from(rawText, 'utf-8'), { filename: 'pasted_import.txt', mimeType: 'text/plain' });
+      const qnas = await QnaExtractor.extractQna(doc);
+
+      if (qnas && qnas.length > 0) {
+        const preview: ParsedBilingualQuestion[] = qnas.map((qna, idx) => {
+          const enVersion = qna.question.versions.find(v => v.language === 'en');
+          const hiVersion = qna.question.versions.find(v => v.language === 'hi');
+          const primaryVersion = qna.question.versions[0];
+
+          const getOpt = (label: string, lang: 'en' | 'hi') => {
+            const opt = qna.options.find(o => o.label === label);
+            if (!opt) return '';
+            const v = opt.versions.find(ver => ver.language === lang);
+            if (v) return v.text;
+            // Fallback for primary language if version language wasn't specifically marked
+            if (lang === 'en' && opt.versions[0] && opt.versions[0].language !== 'hi') {
+              return opt.versions[0].text;
+            }
+            if (lang === 'hi' && opt.versions[0] && opt.versions[0].language === 'hi') {
+              return opt.versions[0].text;
+            }
+            return '';
+          };
+
+          const enQ = enVersion?.text || (primaryVersion?.language !== 'hi' ? primaryVersion?.text : '');
+          const hiQ = hiVersion?.text || (primaryVersion?.language === 'hi' ? primaryVersion?.text : '');
+
+          const expEn = qna.explanation?.versions.find(v => v.language === 'en')?.text || (qna.explanation?.versions[0]?.language !== 'hi' ? qna.explanation?.versions[0]?.text : '');
+          const expHi = qna.explanation?.versions.find(v => v.language === 'hi')?.text || (qna.explanation?.versions[0]?.language === 'hi' ? qna.explanation?.versions[0]?.text : '');
+
+          return {
+            questionNumber: idx + 1,
+            sectionName: qna.metadata?.sectionHeader || '',
+            questionText: enQ || '',
+            optionA: getOpt('A', 'en'),
+            optionB: getOpt('B', 'en'),
+            optionC: getOpt('C', 'en'),
+            optionD: getOpt('D', 'en'),
+            optionE: getOpt('E', 'en'),
+            questionTextHi: hiQ || '',
+            optionAHi: getOpt('A', 'hi'),
+            optionBHi: getOpt('B', 'hi'),
+            optionCHi: getOpt('C', 'hi'),
+            optionDHi: getOpt('D', 'hi'),
+            optionEHi: getOpt('E', 'hi'),
+            correctAnswer: (qna.answer.values[0] as any) || 'A',
+            explanation: expEn || '',
+            explanationHi: expHi || ''
+          };
+        });
+
+        const repairedPreview = BilingualPdfParser.repairSplitBilingualQuestions(preview);
+        const detectedSections = Array.from(new Set(repairedPreview.map(q => q.sectionName).filter(Boolean))) as string[];
+
+        report.isValid = true;
+        report.questionsPreview = repairedPreview;
+        report.mappedQuestionsCount = repairedPreview.length;
+        report.totalQuestionsEn = repairedPreview.filter(q => q.questionText).length;
+        report.totalQuestionsHi = repairedPreview.filter(q => q.questionTextHi).length;
+        report.totalAnswersEn = repairedPreview.length;
+        report.totalAnswersHi = repairedPreview.length;
+        report.totalExplanationsEn = repairedPreview.filter(q => q.explanation).length;
+        report.totalExplanationsHi = repairedPreview.filter(q => q.explanationHi).length;
+        report.sectionsDetected = detectedSections.length > 0 ? detectedSections : ['UNIVERSAL FORMAT-AGNOSTIC ENGINE'];
+        report.errors = [];
+        return report;
+      }
+    } catch (_) {}
+
+    // 2. Fallback Section-based parsing
+    return this.parseText(rawText, report);
+  }
+
+  /**
+   * Parses a PDF or binary document buffer format-agnostically with OCR support.
    */
   static async parseBuffer(buffer: Buffer): Promise<BilingualValidationReport> {
     const report: BilingualValidationReport = {
@@ -112,22 +173,87 @@ export class BilingualPdfParser {
     };
 
     try {
+      // 1. PRIMARY: Universal Adapter Engine with OCR support
+      const doc = await AdapterFactory.process(buffer, { filename: 'upload_document.pdf', mimeType: 'application/pdf' });
+      const qnas = await QnaExtractor.extractQna(doc);
+
+      if (qnas && qnas.length > 0) {
+        const preview: ParsedBilingualQuestion[] = qnas.map((qna, idx) => {
+          const enVersion = qna.question.versions.find(v => v.language === 'en');
+          const hiVersion = qna.question.versions.find(v => v.language === 'hi');
+          const primaryVersion = qna.question.versions[0];
+
+          const getOpt = (label: string, lang: 'en' | 'hi') => {
+            const opt = qna.options.find(o => o.label === label);
+            if (!opt) return '';
+            const v = opt.versions.find(ver => ver.language === lang);
+            if (v) return v.text;
+            if (lang === 'en' && opt.versions[0] && opt.versions[0].language !== 'hi') {
+              return opt.versions[0].text;
+            }
+            if (lang === 'hi' && opt.versions[0] && opt.versions[0].language === 'hi') {
+              return opt.versions[0].text;
+            }
+            return '';
+          };
+
+          const enQ = enVersion?.text || (primaryVersion?.language !== 'hi' ? primaryVersion?.text : '');
+          const hiQ = hiVersion?.text || (primaryVersion?.language === 'hi' ? primaryVersion?.text : '');
+
+          const expEn = qna.explanation?.versions.find(v => v.language === 'en')?.text || (qna.explanation?.versions[0]?.language !== 'hi' ? qna.explanation?.versions[0]?.text : '');
+          const expHi = qna.explanation?.versions.find(v => v.language === 'hi')?.text || (qna.explanation?.versions[0]?.language === 'hi' ? qna.explanation?.versions[0]?.text : '');
+
+          return {
+            questionNumber: idx + 1,
+            questionText: enQ || '',
+            optionA: getOpt('A', 'en'),
+            optionB: getOpt('B', 'en'),
+            optionC: getOpt('C', 'en'),
+            optionD: getOpt('D', 'en'),
+            optionE: getOpt('E', 'en'),
+            questionTextHi: hiQ || '',
+            optionAHi: getOpt('A', 'hi'),
+            optionBHi: getOpt('B', 'hi'),
+            optionCHi: getOpt('C', 'hi'),
+            optionDHi: getOpt('D', 'hi'),
+            optionEHi: getOpt('E', 'hi'),
+            correctAnswer: (qna.answer.values[0] as any) || 'A',
+            explanation: expEn || '',
+            explanationHi: expHi || ''
+          };
+        });
+
+        const repairedPreview = BilingualPdfParser.repairSplitBilingualQuestions(preview);
+
+        report.isValid = true;
+        report.questionsPreview = repairedPreview;
+        report.mappedQuestionsCount = repairedPreview.length;
+        report.totalQuestionsEn = repairedPreview.filter(q => q.questionText).length;
+        report.totalQuestionsHi = repairedPreview.filter(q => q.questionTextHi).length;
+        report.totalAnswersEn = repairedPreview.length;
+        report.totalAnswersHi = repairedPreview.length;
+        report.totalExplanationsEn = repairedPreview.filter(q => q.explanation).length;
+        report.totalExplanationsHi = repairedPreview.filter(q => q.explanationHi).length;
+        report.sectionsDetected = ['UNIVERSAL FORMAT-AGNOSTIC ENGINE (OCR/TEXT)'];
+        report.errors = [];
+        return report;
+      }
+    } catch (_) {}
+
+    // 2. Fallback text parsing
+    try {
       const uint8 = new Uint8Array(buffer);
       const parser = new PDFParse(uint8);
       const data = await parser.getText();
       const rawText = BilingualPdfParser.cleanText(data.text || '');
 
-      if (!rawText.trim()) {
-        report.errors.push('Unreadable or empty PDF. Scanned PDFs without embedded text are not supported.');
-        return report;
+      if (rawText.trim()) {
+        return await BilingualPdfParser.parseTextAsync(rawText, report);
       }
+    } catch (_) {}
 
-      return BilingualPdfParser.parseText(rawText, report);
-    } catch (err: any) {
-      report.errors.push(`PDF Parsing Exception: ${err.message || err}`);
-      report.isValid = false;
-      return report;
-    }
+    report.errors.push('Could not detect valid questions in document.');
+    return report;
   }
 
   /**
@@ -599,5 +725,64 @@ export class BilingualPdfParser {
   /** @deprecated use cleanText */
   public static normalizeIndicText(input: string): string {
     return this.cleanText(input);
+  }
+
+  /**
+   * Post-processing repair for split preview questions
+   */
+  private static repairSplitBilingualQuestions(list: ParsedBilingualQuestion[]): ParsedBilingualQuestion[] {
+    if (list.length <= 1) return list;
+
+    const repaired: ParsedBilingualQuestion[] = [];
+    let i = 0;
+
+    while (i < list.length) {
+      const curr = list[i];
+      const next = i < list.length - 1 ? list[i + 1] : null;
+
+      if (next) {
+        const currHasOptions = Boolean(curr.optionA || curr.optionB || curr.optionAHi || curr.optionBHi);
+        const nextHasOptions = Boolean(next.optionA || next.optionB || next.optionAHi || next.optionBHi);
+
+        const currText = (curr.questionText || curr.questionTextHi || '').trim();
+        const nextText = (next.questionText || next.questionTextHi || '').trim();
+
+        const isNextTextJustNumber = /^(?:Q|Question|Question\s+No\.|Q\.|प्र\.|प्रश्न)?[ \t]*\d{1,4}[ \t]*[\.\:\)\-–—]*$/i.test(nextText);
+        const isCurrTextJustNumber = /^(?:Q|Question|Question\s+No\.|Q\.|प्र\.|प्रश्न)?[ \t]*\d{1,4}[ \t]*[\.\:\)\-–—]*$/i.test(currText);
+
+        // Pattern 1: Current has real question text but NO options, Next has number-only text AND has options
+        if (!currHasOptions && nextHasOptions && currText.length > 5 && isNextTextJustNumber) {
+          curr.optionA = next.optionA;
+          curr.optionB = next.optionB;
+          curr.optionC = next.optionC;
+          curr.optionD = next.optionD;
+          curr.optionE = next.optionE;
+          curr.optionAHi = next.optionAHi;
+          curr.optionBHi = next.optionBHi;
+          curr.optionCHi = next.optionCHi;
+          curr.optionDHi = next.optionDHi;
+          curr.optionEHi = next.optionEHi;
+          curr.correctAnswer = next.correctAnswer || curr.correctAnswer;
+          if (next.explanation) curr.explanation = next.explanation;
+          if (next.explanationHi) curr.explanationHi = next.explanationHi;
+          repaired.push(curr);
+          i += 2;
+          continue;
+        }
+
+        // Pattern 2: Current has number-only text AND NO options, Next has real question text AND options
+        if (!currHasOptions && nextHasOptions && isCurrTextJustNumber && nextText.length > 5) {
+          next.questionNumber = curr.questionNumber;
+          repaired.push(next);
+          i += 2;
+          continue;
+        }
+      }
+
+      repaired.push(curr);
+      i++;
+    }
+
+    return repaired.map((q, idx) => ({ ...q, questionNumber: idx + 1 }));
   }
 }

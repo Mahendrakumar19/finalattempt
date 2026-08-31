@@ -26,6 +26,7 @@ import pyqsRouter from './routes/pyqs';
 import bpscScraperRouter from './routes/bpscScraper';
 import ncertRouter from './routes/ncert';
 import ncertBooksRouter from './routes/ncertBooks';
+import documentImportsRouter from './routes/documentImports';
 import { verifyEmailConnection } from './services/email';
 import { ContentLocalizer, getTargetLang } from './services/contentLocalizer';
 
@@ -122,6 +123,7 @@ app.use('/api/pyqs', pyqsRouter);
 app.use('/api/bpsc', bpscScraperRouter);
 app.use('/api/ncert', ncertRouter);
 app.use('/api/ncert-books', ncertBooksRouter);
+app.use('/api/document-imports', documentImportsRouter);
 const staticUploadOptions = {
   setHeaders: (res: any, filePath: string) => {
     const ext = path.extname(filePath).toLowerCase();

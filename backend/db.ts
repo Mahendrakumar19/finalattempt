@@ -57,6 +57,31 @@ const JSON_DB_PATH = path.join(PERSISTENT_DIR, 'database_store.json');
 const JSON_DB_BACKUP_PATH = path.join(PERSISTENT_DIR, 'database_store_backup.json');
 const LOCAL_REPO_JSON_PATH = path.join(__dirname, 'database_store.json');
 
+let inMemoryStore: any = null;
+
+export function getLocalStore(): any {
+  if (inMemoryStore) return inMemoryStore;
+  try {
+    if (fs.existsSync(JSON_DB_PATH)) {
+      inMemoryStore = JSON.parse(fs.readFileSync(JSON_DB_PATH, 'utf-8'));
+      return inMemoryStore;
+    }
+  } catch (_) {}
+  inMemoryStore = {
+    leads: [], progress: [], queries: [], faculty: [], results: [],
+    currentAffairs: [], blogs: [], resources: [], settings: {} as any,
+    courses: [], sections: [], lessons: [], documentImports: [], documentQnas: []
+  };
+  return inMemoryStore;
+}
+
+export function saveLocalStore(store: any): void {
+  inMemoryStore = store;
+  try {
+    fs.writeFileSync(JSON_DB_PATH, JSON.stringify(store, null, 2), 'utf-8');
+  } catch (_) {}
+}
+
 export interface Lead {
   id: string;
   fullName: string;
@@ -754,8 +779,10 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       )
     `);
 
-    // Auto-migrate lessonId column on existing lms_quizzes table
+    // Auto-migrate lessonId, isFree, and isFirstTestFree columns on existing lms_quizzes table
     try { await pool.query('ALTER TABLE lms_quizzes ADD COLUMN lessonId VARCHAR(255)'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_quizzes ADD COLUMN isFree TINYINT(1) DEFAULT 0'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_quizzes ADD COLUMN isFirstTestFree TINYINT(1) DEFAULT 0'); } catch (_) {}
 
     // 11. LMS Questions
     await pool.query(`
@@ -782,12 +809,14 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       )
     `);
 
-    // Auto-migrate optional Hindi and score columns on existing lms_questions table
+    // Auto-migrate optional Hindi, Option E, and score columns on existing lms_questions table
     try { await pool.query('ALTER TABLE lms_questions ADD COLUMN questionTextHi TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE lms_questions ADD COLUMN optionAHi TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE lms_questions ADD COLUMN optionBHi TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE lms_questions ADD COLUMN optionCHi TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE lms_questions ADD COLUMN optionDHi TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN optionE TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE lms_questions ADD COLUMN optionEHi TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE lms_questions ADD COLUMN explanationHi TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE lms_questions ADD COLUMN marks DECIMAL(5,2) DEFAULT 1.00'); } catch (_) {}
     try { await pool.query('ALTER TABLE lms_questions ADD COLUMN negativeMarks DECIMAL(5,2) DEFAULT 0.33'); } catch (_) {}

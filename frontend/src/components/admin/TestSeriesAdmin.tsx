@@ -1323,7 +1323,17 @@ export default function TestSeriesAdmin({
                                       {idx + 1}
                                     </span>
                                     <div className="flex-1 min-w-0 space-y-2">
-                                      <p className="text-xs text-[var(--text-color)] font-bold">{prompt}</p>
+                                      <p className="text-xs text-[var(--text-color)] font-bold whitespace-pre-wrap leading-relaxed">{prompt}</p>
+
+                                      {(q.questionImageUrl || (q as any).imageUrl) && (
+                                        <div className="p-2 bg-slate-100 dark:bg-slate-900 rounded-xl border border-[var(--card-border)] max-w-md">
+                                          <img
+                                            src={q.questionImageUrl || (q as any).imageUrl}
+                                            alt="Question Visual"
+                                            className="max-h-52 max-w-full object-contain rounded-lg shadow-xs"
+                                          />
+                                        </div>
+                                      )}
                                       <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-medium">
                                         {(['A', 'B', 'C', 'D', 'E'] as const).map(opt => optsMap[opt] ? (
                                           <span key={opt} className={`flex items-center gap-1 p-1.5 rounded-lg border ${
@@ -2258,8 +2268,8 @@ export default function TestSeriesAdmin({
 
       {/* ── EDIT QUESTION MODAL ────────────────────────────────────────────── */}
       {editingQuestion && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-6 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
               <div>
                 <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Question Bank Editor</span>
@@ -2280,12 +2290,44 @@ export default function TestSeriesAdmin({
               <div>
                 <label className="block text-slate-400 mb-1">Question Prompt *</label>
                 <textarea
-                  rows={3}
+                  rows={4}
                   required
                   value={editingQuestion.questionText || ''}
                   onChange={e => setEditingQuestion({ ...editingQuestion, questionText: e.target.value })}
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs leading-relaxed"
                 />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Question Image URL / Visual Diagram (Optional)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="https://example.com/image.png or /uploads/images/q14.png"
+                    value={editingQuestion.questionImageUrl || (editingQuestion as any).imageUrl || ''}
+                    onChange={e => setEditingQuestion({ ...editingQuestion, questionImageUrl: e.target.value, imageUrl: e.target.value } as any)}
+                    className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs"
+                  />
+                  {(editingQuestion.questionImageUrl || (editingQuestion as any).imageUrl) && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingQuestion({ ...editingQuestion, questionImageUrl: '', imageUrl: '' } as any)}
+                      className="px-3 py-2 bg-red-500/10 text-red-500 text-xs font-bold rounded-xl cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                {(editingQuestion.questionImageUrl || (editingQuestion as any).imageUrl) && (
+                  <div className="mt-2 p-2 bg-slate-100 dark:bg-slate-900 rounded-xl border border-[var(--card-border)] flex flex-col items-center gap-1">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase">Attached Image Preview</span>
+                    <img
+                      src={editingQuestion.questionImageUrl || (editingQuestion as any).imageUrl}
+                      alt="Question Diagram Preview"
+                      className="max-h-44 max-w-full object-contain rounded-lg shadow-xs"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -2802,10 +2844,13 @@ export default function TestSeriesAdmin({
                   </button>
                 </div>
 
-                {/* Format guide */}
-                <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
-                  <strong className="block mb-1 uppercase tracking-wide text-[10px]">Required Format</strong>
-                  <code className="block whitespace-pre-wrap font-mono text-[10px] opacity-80">{`SECTION 1: ENGLISH QUESTIONS\nQ1. <question>\n(a) option A  (b) option B  (c) option C  (d) option D\n\nSECTION 2: HINDI QUESTIONS\nQ1. <hindi question>\n(a) विकल्प A ...\n\nSECTION 3: ENGLISH ANSWERS & EXPLANATIONS\nQ1. B\n<explanation>\n\nSECTION 4: HINDI ANSWERS & EXPLANATIONS\nQ1. B\n<hindi explanation>`}</code>
+                {/* Universal Engine Info Banner */}
+                <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-[12px] text-emerald-800 dark:text-emerald-300 leading-relaxed flex items-center gap-3">
+                  <span className="text-xl shrink-0">✨</span>
+                  <div>
+                    <strong className="block font-bold text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Universal Format-Agnostic Import Engine</strong>
+                    <span>Paste text or upload <strong>ANY format</strong>—separate English papers, separate Hindi papers, combined bilingual tests, PDFs, DOCX, or text files. No rigid section headers or specific layouts required!</span>
+                  </div>
                 </div>
 
                 {/* Parse Errors */}
@@ -2824,7 +2869,7 @@ export default function TestSeriesAdmin({
                       rows={14}
                       value={bilingualPastedText}
                       onChange={e => { setBilingualPastedText(e.target.value); setBilingualParseErrors([]); }}
-                      placeholder={`Paste your bilingual mock test here...\n\nSECTION 1: ENGLISH QUESTIONS\nQ1. With reference to Article 1...\n(a) 1 and 2 only\n(b) 2 only\n...`}
+                      placeholder="Paste any question paper or mock test here in ANY format (English, Hindi, or Bilingual)..."
                       className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl outline-none focus:border-amber-500 font-mono text-[11px] resize-y"
                     />
                     <div className="flex justify-end">
@@ -2862,16 +2907,12 @@ export default function TestSeriesAdmin({
                 {/* PDF MODE */}
                 {bilingualParseMode === 'pdf' && (
                   <div className="space-y-4">
-                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs text-red-700 dark:text-red-400">
-                      ⚠ <strong>Warning:</strong> PDF font encoding may corrupt Hindi/Devanagari text during extraction.
-                      Use <strong>Paste Text</strong> mode for reliable bilingual imports.
-                    </div>
                     <div className="p-8 border-2 border-dashed border-[var(--card-border)] rounded-3xl hover:border-amber-500/50 transition-colors space-y-4 text-center bg-slate-50/50 dark:bg-slate-900/50">
                       <FileText className="w-12 h-12 text-amber-500 mx-auto" />
                       <div className="space-y-1">
-                        <h4 className="font-heading font-bold text-base text-[var(--text-color)]">Upload Bilingual PDF Test Paper</h4>
+                        <h4 className="font-heading font-bold text-base text-[var(--text-color)]">Upload Test Paper (PDF, DOCX, Image, Text)</h4>
                         <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                          Only use if your PDF has clean embedded Unicode text.
+                          Universal Engine accepts any digital PDF, scanned image PDF, or text document.
                         </p>
                       </div>
                       <label className="inline-block px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl cursor-pointer shadow-md transition-all">
