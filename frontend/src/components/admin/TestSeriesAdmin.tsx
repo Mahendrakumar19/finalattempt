@@ -124,6 +124,8 @@ interface QuestionItem {
   optionDHi?: string;
   optionEHi?: string;
   explanationHi?: string;
+  questionImageUrl?: string;
+  imageUrl?: string;
   marks?: number;
   negativeMarks?: number;
   quizId?: string;
@@ -1325,10 +1327,10 @@ export default function TestSeriesAdmin({
                                     <div className="flex-1 min-w-0 space-y-2">
                                       <p className="text-xs text-[var(--text-color)] font-bold whitespace-pre-wrap leading-relaxed">{prompt}</p>
 
-                                      {(q.questionImageUrl || (q as any).imageUrl) && (
+                                      {(q.questionImageUrl || q.imageUrl) && (
                                         <div className="p-2 bg-slate-100 dark:bg-slate-900 rounded-xl border border-[var(--card-border)] max-w-md">
                                           <img
-                                            src={q.questionImageUrl || (q as any).imageUrl}
+                                            src={q.questionImageUrl || q.imageUrl}
                                             alt="Question Visual"
                                             className="max-h-52 max-w-full object-contain rounded-lg shadow-xs"
                                           />
