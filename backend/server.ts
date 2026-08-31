@@ -124,6 +124,11 @@ app.use('/api/bpsc', bpscScraperRouter);
 app.use('/api/ncert', ncertRouter);
 app.use('/api/ncert-books', ncertBooksRouter);
 app.use('/api/document-imports', documentImportsRouter);
+
+// Health, status & scanner fallbacks
+app.get('/favicon.ico', (_req, res) => { res.status(204).end(); });
+app.get(['/api/status', '/api/health'], (_req, res) => { res.json({ success: true, status: 'ONLINE', timestamp: new Date().toISOString() }); });
+app.get('/api/config', (_req, res) => { res.json({ success: true, version: '1.0.0' }); });
 const staticUploadOptions = {
   setHeaders: (res: any, filePath: string) => {
     const ext = path.extname(filePath).toLowerCase();
