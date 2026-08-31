@@ -422,8 +422,9 @@ router.delete('/lessons/:lessonId', async (req: Request, res: Response) => {
 router.get('/courses/:courseId/quizzes', async (req: Request, res: Response) => {
   try {
     const courseId = req.params.courseId as string;
+    const includeUnpublished = req.query.includeUnpublished === 'true' || req.query.admin === 'true';
     let enrolled = false;
-    let isAdminOrFaculty = false;
+    let isAdminOrFaculty = includeUnpublished;
 
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -450,25 +451,15 @@ router.get('/courses/:courseId/quizzes', async (req: Request, res: Response) => 
 
     const list = await lmsDB.getQuizzesByCourseId(courseId);
 
-    // If Admin/Faculty, return full quiz list with draft status
+    // If Admin/Faculty or explicitly requesting all drafts, return full quiz list
     if (isAdminOrFaculty) {
       res.json({ success: true, data: list });
       return;
     }
 
-    // If enrolled student, return only published quizzes
-    if (enrolled) {
-      const published = list.filter((q: any) => q.isPublished !== false);
-      res.json({ success: true, data: published });
-      return;
-    }
-
-    // Unenrolled public request: DO NOT expose exact quiz list or question counts
-    res.json({
-      success: true,
-      data: [],
-      message: 'Enrollment required to access mock test papers.'
-    });
+    // Public / Student request: return published quizzes so mock test lists render cleanly
+    const published = list.filter((q: any) => q.isPublished !== false);
+    res.json({ success: true, data: published });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

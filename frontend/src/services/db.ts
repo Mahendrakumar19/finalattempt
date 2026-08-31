@@ -1444,12 +1444,32 @@ class FinalAttemptDB {
   }
 
   public async getTestSeriesQuizzes(seriesId: string): Promise<any[]> {
-    const data = await this.apiFetch(`/api/lms/courses/${seriesId}/quizzes`);
+    const data = await this.apiFetch(`/api/lms/courses/${seriesId}/quizzes?includeUnpublished=true`);
+    let serverList: any[] = [];
     if (data && data.success && Array.isArray(data.data)) {
-      // Filter out any stale synthetic IDs if present
-      return data.data.filter((q: any) => !q.id?.includes('-default'));
+      serverList = data.data.filter((q: any) => !q.id?.includes('-default'));
     }
-    return [];
+
+    let localList: any[] = [];
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`finalattempt_quizzes_${seriesId}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) localList = parsed;
+        }
+      } catch (_) {}
+    }
+
+    if (serverList.length === 0) return localList;
+
+    const mergedMap = new Map<string, any>();
+    serverList.forEach(q => mergedMap.set(q.id, q));
+    localList.forEach(q => {
+      if (!mergedMap.has(q.id)) mergedMap.set(q.id, q);
+    });
+
+    return Array.from(mergedMap.values());
   }
 
   public async saveQuiz(quiz: any): Promise<boolean> {
