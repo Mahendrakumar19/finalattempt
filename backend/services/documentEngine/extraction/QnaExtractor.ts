@@ -264,6 +264,27 @@ export class QnaExtractor {
           continue;
         }
 
+        // Pattern 5: Matching Question & Split Prompt Repair
+        // Current candidate has NO options, Next candidate HAS options and text starts with "(a)", "(A)", "Codes:", or current text is a matching/list prompt
+        const isCurrMatchingPrompt = /(?:match|list\-i|list\-ii|select the correct|code|सूची|सुमेलित)/i.test(currText);
+        const isNextCodeOrOptionStart = /^[ \t]*(?:\([a-eA-E1-5]\)|\bCodes?\b|\bSelect\b|\bCorrect\b)/i.test(nextText);
+        if (!currHasOptions && nextHasOptions && (isCurrMatchingPrompt || isNextCodeOrOptionStart || currText.length > 10)) {
+          if (current.question.versions[0]) {
+            current.question.versions[0].text = `${currText}\n${nextText}`.trim();
+          }
+          current.options = next.options;
+          if (next.answer && next.answer.values.length > 0) {
+            current.answer = next.answer;
+          }
+          if (next.explanation && next.explanation.versions.length > 0) {
+            current.explanation = next.explanation;
+          }
+          current.validation = { status: 'PASS', warnings: [], errors: [] };
+          repaired.push(current);
+          i += 2; // merge split candidates into 1 single question
+          continue;
+        }
+
       }
 
       repaired.push(current);

@@ -1472,6 +1472,14 @@ class FinalAttemptDB {
     return Array.from(mergedMap.values());
   }
 
+  public async getQuizById(quizId: string): Promise<any | null> {
+    const data = await this.apiFetch(`/api/lms/quizzes/${quizId}`);
+    if (data && data.success && data.data) {
+      return data.data;
+    }
+    return null;
+  }
+
   public async saveQuiz(quiz: any): Promise<boolean> {
     const res = await this.apiFetch(`/api/lms/courses/${quiz.courseId}/quizzes`, {
       method: 'POST',

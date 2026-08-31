@@ -38,7 +38,11 @@ export class MatchingResolver {
       textAfterMatching = matchingSectionText.substring(codedOptIdx);
     }
 
-    const lines = matchingBodyText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    // Pre-pass: Break inline item markers (e.g. "I. Federal List A. 97 entries II. State list") onto newlines
+    const formattedMatchingBody = matchingBodyText
+      .replace(/([^\n])\s+([I|V|X]{1,4}|[A-Ea-e1-5])[\.\:\)\-–—]+\s+/g, '$1\n$2. ');
+
+    const lines = formattedMatchingBody.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
     let headerLeft = 'List-I';
     let headerRight = 'List-II';

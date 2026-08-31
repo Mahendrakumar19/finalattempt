@@ -3,6 +3,8 @@ import { authenticate, optionalAuth, AuthRequest } from '../middleware/auth';
 import { requireStudent } from '../middleware/role';
 import { lmsDB } from '../db';
 import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
+import { AdapterFactory } from '../services/documentEngine/adapters/AdapterFactory';
+import { QnaExtractor } from '../services/documentEngine/extraction/QnaExtractor';
 
 const router = Router();
 
@@ -427,18 +429,71 @@ import { BilingualPdfParser } from '../services/bilingualPdfParser';
 const pdfMemoryStorage = multer.memoryStorage();
 const pdfUpload = multer({ storage: pdfMemoryStorage, limits: { fileSize: 50 * 1024 * 1024 } });
 
-// Step 1a: Parse PDF Buffer & Run Validation Pass (NO DB WRITE)
+// Step 1a: Parse Any Document File (PDF, DOCX, DOC, TXT, CSV, JSON, HTML, Images) Buffer & Extract QnAs
 router.post('/admin/parse-bilingual-pdf', pdfUpload.single('file'), async (req: Request & { file?: any }, res: Response) => {
   try {
     if (!req.file || !req.file.buffer) {
-      res.status(400).json({ success: false, error: 'PDF file is required in request payload.' });
+      res.status(400).json({ success: false, error: 'Document file is required in request payload.' });
       return;
     }
 
-    const report = await BilingualPdfParser.parseBuffer(req.file.buffer);
-    res.json({ success: true, report });
+    const filename = req.file.originalname || 'question_bank.docx';
+    const mimeType = req.file.mimetype || 'application/octet-stream';
+
+    // 1. Process document buffer using Universal AdapterFactory
+    const doc = await AdapterFactory.process(req.file.buffer, { filename, mimeType });
+
+    // 2. Extract QnAs using Universal QnaExtractor
+    const qnas = await QnaExtractor.extractQna(doc);
+
+    // 3. Format questions preview payload for client compatibility
+    const questionsPreview = qnas.map(q => {
+      const enText = q.question.versions.find(v => v.language === 'en')?.text || q.question.versions[0]?.text || '';
+      const hiText = q.question.versions.find(v => v.language === 'hi')?.text || '';
+
+      const optsMap: Record<string, string> = {};
+      const optsMapHi: Record<string, string> = {};
+      q.options.forEach(opt => {
+        const lbl = (opt.label || '').toUpperCase();
+        optsMap[lbl] = opt.versions.find(v => v.language === 'en')?.text || opt.versions[0]?.text || '';
+        optsMapHi[lbl] = opt.versions.find(v => v.language === 'hi')?.text || '';
+      });
+
+      return {
+        questionText: enText,
+        optionA: optsMap['A'] || '',
+        optionB: optsMap['B'] || '',
+        optionC: optsMap['C'] || '',
+        optionD: optsMap['D'] || '',
+        optionE: optsMap['E'] || '',
+        correctAnswer: q.answer?.values?.[0] || 'A',
+        explanation: q.explanation?.versions?.find(v => v.language === 'en')?.text || q.explanation?.versions?.[0]?.text || '',
+        questionTextHi: hiText,
+        optionAHi: optsMapHi['A'] || '',
+        optionBHi: optsMapHi['B'] || '',
+        optionCHi: optsMapHi['C'] || '',
+        optionDHi: optsMapHi['D'] || '',
+        optionEHi: optsMapHi['E'] || '',
+        explanationHi: q.explanation?.versions?.find(v => v.language === 'hi')?.text || '',
+        questionImageUrl: q.question.imageUrl || null,
+        marks: 1,
+        negativeMarks: 0.33
+      };
+    });
+
+    res.json({
+      success: true,
+      report: {
+        filename,
+        totalDetected: qnas.length,
+        mappedQuestionsCount: qnas.length,
+        isValid: true,
+        errors: [],
+        questionsPreview
+      }
+    });
   } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: `Document parsing failed: ${err.message}` });
   }
 });
 

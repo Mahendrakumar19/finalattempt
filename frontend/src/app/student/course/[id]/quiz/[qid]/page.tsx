@@ -12,17 +12,21 @@ export default function StudentQuizPage({ params }: QuizPageProps) {
   const { id, qid } = resolvedParams;
 
   useEffect(() => {
-    if (id && (id.startsWith('ts-') || id.includes('test-series'))) {
-      async function redirectTestSeriesQuiz() {
-        try {
-          const { db } = await import('@/services/db');
-          const ts = await db.getTestSeriesById(id);
-          const slug = ts?.slug || id;
+    async function redirectTestSeriesQuiz() {
+      try {
+        const { db } = await import('@/services/db');
+        const quiz = await db.getQuizById(qid);
+        const seriesId = quiz?.courseId || id;
+        if (seriesId && seriesId !== 'cbt') {
+          const ts = await db.getTestSeriesById(seriesId);
+          const slug = ts?.slug || seriesId;
           window.location.replace(`/test-series/program/${slug}/attempt?quiz=${qid}`);
-        } catch (_) {
-          window.location.replace(`/test-series/program/${id}/attempt?quiz=${qid}`);
+          return;
         }
-      }
+      } catch (_) {}
+    }
+
+    if (id && (id.startsWith('ts-') || id.includes('test-series') || id === 'cbt')) {
       redirectTestSeriesQuiz();
     }
   }, [id, qid]);

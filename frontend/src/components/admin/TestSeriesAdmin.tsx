@@ -13,6 +13,76 @@ function stripOptionPrefix(text: string): string {
   return text.replace(/^\s*\([a-dA-D\u0915-\u0918]\)\s+/, '').trim();
 }
 
+/** Renders question text with support for Markdown Tables (| List-I | List-II |) and HTML */
+function renderMarkdownContent(text: string) {
+  if (!text) return null;
+
+  if (text.includes('|')) {
+    const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const tableRows: string[][] = [];
+    const textOutsideTable: string[] = [];
+
+    for (const line of rawLines) {
+      if (line.includes('|')) {
+        if (line.includes(':---') || line.includes('---')) continue;
+        const cells = line.split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+        if (cells.length >= 2) {
+          tableRows.push(cells);
+        } else if (line.length > 0) {
+          textOutsideTable.push(line);
+        }
+      } else {
+        textOutsideTable.push(line);
+      }
+    }
+
+    if (tableRows.length > 0) {
+      const headerRow = tableRows[0];
+      const dataRows = tableRows.slice(1);
+
+      return (
+        <div className="space-y-3 my-2">
+          {textOutsideTable.length > 0 && (
+            <p className="font-bold text-[var(--text-color)] leading-relaxed whitespace-pre-wrap">
+              {textOutsideTable.join('\n')}
+            </p>
+          )}
+          <div className="overflow-x-auto my-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr className="bg-amber-500/10 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 font-extrabold border-b border-slate-200 dark:border-slate-800">
+                  {headerRow.map((cell, cIdx) => (
+                    <th key={cIdx} className="px-3.5 py-2 uppercase tracking-wider font-extrabold border-r last:border-r-0 border-slate-200 dark:border-slate-800">
+                      {cell}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-[var(--text-color)]">
+                {dataRows.map((row, rIdx) => (
+                  <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-white dark:bg-slate-900/60' : 'bg-slate-50 dark:bg-slate-900/30'}>
+                    {row.map((cell, cIdx) => (
+                      <td key={cIdx} className="px-3.5 py-2 text-xs border-r last:border-r-0 border-slate-200 dark:border-slate-800">
+                        {cell}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  if (text.includes('<') && text.includes('>')) {
+    return <div className="font-bold text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: text }} />;
+  }
+
+  return <p className="font-bold text-[var(--text-color)] leading-relaxed whitespace-pre-wrap">{text}</p>;
+}
+
 function stringToSeed(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -2999,18 +3069,18 @@ export default function TestSeriesAdmin({
                 
                 {/* Validation Summary Pill */}
                 <div className={`p-4 rounded-2xl border flex items-center justify-between gap-4 text-xs font-bold ${
-                  bilingualReport.isValid ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
+                  bilingualReport?.isValid !== false ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
                 }`}>
                   <div className="flex items-center gap-2">
-                    <span className="text-base">{bilingualReport.isValid ? '✓' : '⚠️'}</span>
+                    <span className="text-base">{bilingualReport?.isValid !== false ? '✓' : '⚠️'}</span>
                     <div>
                       <span className="font-extrabold uppercase tracking-wider block">
-                        Bilingual Validation Status: {bilingualReport.isValid ? 'VALID' : 'INVALID'}
+                        Bilingual Validation Status: {bilingualReport?.isValid !== false ? 'VALID' : 'INVALID'}
                       </span>
                       <span className="text-[10px] font-medium opacity-90">
-                        {bilingualReport.isValid
-                          ? '1:1 Question mapping & answer key agreement verified across all 4 logical sections.'
-                          : `${bilingualReport.errors.length} validation errors detected. Import blocked.`}
+                        {bilingualReport?.isValid !== false
+                          ? '1:1 Question mapping & answer key agreement verified across all logical sections.'
+                          : `${(bilingualReport?.errors || []).length} validation errors detected. Import blocked.`}
                       </span>
                     </div>
                   </div>
@@ -3027,25 +3097,25 @@ export default function TestSeriesAdmin({
                 {/* Validation Metrics Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs font-bold">
                   <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
-                    <span className="text-amber-500 text-lg font-black block">{bilingualReport.mappedQuestionsCount}</span>
+                    <span className="text-amber-500 text-lg font-black block">{bilingualReport?.mappedQuestionsCount || bilingualReport?.totalDetected || (parsedBulkQuestions || []).length || 0}</span>
                     <span className="text-[10px] text-slate-400 uppercase">Mapped Questions</span>
                   </div>
                   <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
-                    <span className="text-slate-400 text-lg font-black block">{bilingualReport.totalQuestionsEn} / {bilingualReport.totalQuestionsHi}</span>
+                    <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalQuestionsEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalQuestionsHi || (parsedBulkQuestions || []).filter((q: any) => q.questionTextHi).length}</span>
                     <span className="text-[10px] text-slate-400 uppercase">En Qs / Hi Qs</span>
                   </div>
                   <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
-                    <span className="text-slate-400 text-lg font-black block">{bilingualReport.totalAnswersEn} / {bilingualReport.totalAnswersHi}</span>
+                    <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalAnswersEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalAnswersHi || (parsedBulkQuestions || []).length}</span>
                     <span className="text-[10px] text-slate-400 uppercase">En Ans / Hi Ans</span>
                   </div>
                   <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
-                    <span className="text-slate-400 text-lg font-black block">{bilingualReport.totalExplanationsEn} / {bilingualReport.totalExplanationsHi}</span>
+                    <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalExplanationsEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalExplanationsHi || 0}</span>
                     <span className="text-[10px] text-slate-400 uppercase">Explanations</span>
                   </div>
                 </div>
 
                 {/* Validation Errors Breakdown */}
-                {bilingualReport.errors.length > 0 && (
+                {Array.isArray(bilingualReport?.errors) && bilingualReport.errors.length > 0 && (
                   <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-2 text-xs text-red-500 font-medium">
                     <span className="font-extrabold uppercase tracking-wider block text-red-600 dark:text-red-400">
                       Validation Errors ({bilingualReport.errors.length}):
@@ -3106,11 +3176,7 @@ export default function TestSeriesAdmin({
                             {/* English Column */}
                             <div className="space-y-3 border-r border-[var(--card-border)] pr-4">
                               <span className="text-[10px] font-black uppercase text-slate-400 block">ENGLISH</span>
-                              {curQ.questionText && curQ.questionText.includes('<') && curQ.questionText.includes('>') ? (
-                                <div className="font-bold text-[var(--text-color)]" dangerouslySetInnerHTML={{ __html: curQ.questionText }} />
-                              ) : (
-                                <p className="font-bold text-[var(--text-color)]">{curQ.questionText}</p>
-                              )}
+                              {renderMarkdownContent(curQ.questionText)}
                               <div className="space-y-1 text-slate-500 font-medium">
                                 <p><strong className="text-slate-400">A.</strong> {stripOptionPrefix(curQ.optionA)}</p>
                                 <p><strong className="text-slate-400">B.</strong> {stripOptionPrefix(curQ.optionB)}</p>
@@ -3118,28 +3184,26 @@ export default function TestSeriesAdmin({
                                 <p><strong className="text-slate-400">D.</strong> {stripOptionPrefix(curQ.optionD)}</p>
                                 {curQ.optionE && <p><strong className="text-slate-400">E.</strong> {stripOptionPrefix(curQ.optionE)}</p>}
                               </div>
-                              <div className="p-2.5 bg-amber-500/10 rounded-xl text-[11px] text-amber-700 dark:text-amber-300">
-                                <strong>Explanation:</strong> {curQ.explanation}
-                              </div>
+                              {curQ.explanation && (
+                                <div className="p-2.5 bg-amber-500/10 rounded-xl text-[11px] text-amber-700 dark:text-amber-300">
+                                  <strong>Explanation:</strong> {curQ.explanation}
+                                </div>
+                              )}
                             </div>
 
                             {/* Hindi Column */}
                             <div className="space-y-3">
                               <span className="text-[10px] font-black uppercase text-amber-500 block">HINDI (हिन्दी)</span>
-                              {curQ.questionTextHi && curQ.questionTextHi.includes('<') && curQ.questionTextHi.includes('>') ? (
-                                <div className="font-bold text-[var(--text-color)]" dangerouslySetInnerHTML={{ __html: curQ.questionTextHi }} />
-                              ) : (
-                                <p className="font-bold text-[var(--text-color)]">{curQ.questionTextHi}</p>
-                              )}
+                              {renderMarkdownContent(curQ.questionTextHi || curQ.questionText)}
                               <div className="space-y-1 text-slate-500 font-medium">
-                                <p><strong className="text-amber-500">A.</strong> {stripOptionPrefix(curQ.optionAHi)}</p>
-                                <p><strong className="text-amber-500">B.</strong> {stripOptionPrefix(curQ.optionBHi)}</p>
-                                <p><strong className="text-amber-500">C.</strong> {stripOptionPrefix(curQ.optionCHi)}</p>
-                                <p><strong className="text-amber-500">D.</strong> {stripOptionPrefix(curQ.optionDHi)}</p>
-                                {curQ.optionEHi && <p><strong className="text-amber-500">E.</strong> {stripOptionPrefix(curQ.optionEHi)}</p>}
+                                <p><strong className="text-amber-500">A.</strong> {stripOptionPrefix(curQ.optionAHi || curQ.optionA)}</p>
+                                <p><strong className="text-amber-500">B.</strong> {stripOptionPrefix(curQ.optionBHi || curQ.optionB)}</p>
+                                <p><strong className="text-amber-500">C.</strong> {stripOptionPrefix(curQ.optionCHi || curQ.optionC)}</p>
+                                <p><strong className="text-amber-500">D.</strong> {stripOptionPrefix(curQ.optionDHi || curQ.optionD)}</p>
+                                {(curQ.optionEHi || curQ.optionE) && <p><strong className="text-amber-500">E.</strong> {stripOptionPrefix(curQ.optionEHi || curQ.optionE)}</p>}
                               </div>
                               <div className="p-2.5 bg-amber-500/10 rounded-xl text-[11px] text-amber-700 dark:text-amber-300">
-                                <strong>व्याख्या:</strong> {curQ.explanationHi}
+                                <strong>व्याख्या:</strong> {curQ.explanationHi || curQ.explanation || 'व्याख्या उपलब्ध नहीं है।'}
                               </div>
                             </div>
                           </div>
