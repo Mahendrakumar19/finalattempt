@@ -1498,13 +1498,14 @@ export default function TestSeriesAdmin({
                             <div className="space-y-3">
                               {(quizQuestions[quiz.id] || []).map((q, idx) => {
                                 const isHi = quizLangMode[quiz.id] === 'HI';
-                                const prompt = isHi && q.questionTextHi ? q.questionTextHi : q.questionText;
-                                const optA = isHi && q.optionAHi ? q.optionAHi : q.optionA;
-                                const optB = isHi && q.optionBHi ? q.optionBHi : q.optionB;
-                                const optC = isHi && q.optionCHi ? q.optionCHi : q.optionC;
-                                const optD = isHi && q.optionDHi ? q.optionDHi : q.optionD;
-                                const optE = isHi && q.optionEHi ? q.optionEHi : q.optionE;
-                                const exp = isHi && q.explanationHi ? q.explanationHi : q.explanation;
+                                const repairedQ = sanitizeAndRepairQuestion(q, isHi ? 'hi' : 'en');
+                                const prompt = isHi && repairedQ.questionTextHi ? repairedQ.questionTextHi : repairedQ.questionText;
+                                const optA = (isHi && repairedQ.optionAHi ? repairedQ.optionAHi : repairedQ.optionA) || repairedQ.optionA || '';
+                                const optB = (isHi && repairedQ.optionBHi ? repairedQ.optionBHi : repairedQ.optionB) || repairedQ.optionB || '';
+                                const optC = (isHi && repairedQ.optionCHi ? repairedQ.optionCHi : repairedQ.optionC) || repairedQ.optionC || '';
+                                const optD = (isHi && repairedQ.optionDHi ? repairedQ.optionDHi : repairedQ.optionD) || repairedQ.optionD || '';
+                                const optE = (isHi && repairedQ.optionEHi ? repairedQ.optionEHi : repairedQ.optionE) || repairedQ.optionE || '';
+                                const exp = isHi && repairedQ.explanationHi ? repairedQ.explanationHi : repairedQ.explanation;
                                 const optsMap = { A: optA, B: optB, C: optC, D: optD, E: optE };
 
                                 return (
@@ -3327,8 +3328,9 @@ export default function TestSeriesAdmin({
 
                       {/* Side by Side Preview Card */}
                       {(() => {
-                        const curQ = bilingualReport.questionsPreview[previewQuestionIndex];
-                        if (!curQ) return null;
+                        const rawCurQ = bilingualReport.questionsPreview[previewQuestionIndex];
+                        if (!rawCurQ) return null;
+                        const curQ = sanitizeAndRepairQuestion(rawCurQ, bilingualPaperLanguage === 'HINDI_ONLY' ? 'hi' : 'en');
 
                         const handleSetCorrectAnswerInPreview = (newKey: string) => {
                           if (!bilingualReport || !bilingualReport.questionsPreview) return;
