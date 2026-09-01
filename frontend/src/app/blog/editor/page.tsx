@@ -186,7 +186,7 @@ function RichTextEditor({ value, onChange }: RichTextEditorProps) {
       } else {
         alert(data.error || 'Failed uploading inline image')
       }
-    } catch (err) {
+    } catch (_) {
       alert('Failed uploading inline image')
     }
   }

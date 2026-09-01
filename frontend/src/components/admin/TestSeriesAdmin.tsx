@@ -674,7 +674,7 @@ export default function TestSeriesAdmin({
         optA = multiOptMatch[3].trim();
         optB = multiOptMatch[6].trim();
         optC = multiOptMatch[9].trim();
-        let restD = multiOptMatch[12].trim();
+        const restD = multiOptMatch[12].trim();
 
         const optEMatch = /(?:\(([eE5ङ])\)|[eE5ङ][\)\.\:\t]+)\s*([\s\S]+?)$/i.exec(restD);
         if (optEMatch) {

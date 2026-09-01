@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldAlert, Award, FileText, Timer, Users, Maximize2, AlertOctagon, CheckSquare, Square, Bookmark, Sun, Moon, Grid, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -115,6 +115,35 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, [quizState]);
 
+  const executeFinalSubmit = useCallback(async () => {
+    if (!accessToken) return;
+    setLoading(true);
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen().catch(() => {});
+      }
+    } catch (_) {}
+
+    try {
+      const res = await submitQuizAnswers(
+        quizId,
+        { answers: selectedAnswers, timeTakenSecs: timeTaken, attemptId: session?.id, setCode: session?.setCode },
+        accessToken
+      );
+      if (res.success && res.data) {
+        setResults(res.data);
+        setQuizState('result');
+        setIsConfirmSubmitOpen(false);
+      } else {
+        setError(res.error || 'Submission failed.');
+      }
+    } catch (_) {
+      setError('Failed to submit answers.');
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken, quizId, selectedAnswers, timeTaken, session]);
+
   // Active quiz timer count (Only runs when quizState === 'active')
   useEffect(() => {
     if (quizState !== 'active' || timeLeft <= 0) {
@@ -130,7 +159,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [quizState, timeLeft]);
+  }, [quizState, timeLeft, executeFinalSubmit]);
 
   // Enter Fullscreen and Begin CBT Session
   const enterFullscreenAndStart = async () => {
@@ -221,35 +250,6 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     }
   };
 
-  const executeFinalSubmit = async () => {
-    if (!accessToken) return;
-    setLoading(true);
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen().catch(() => {});
-      }
-    } catch (_) {}
-
-    try {
-      const res = await submitQuizAnswers(
-        quizId,
-        { answers: selectedAnswers, timeTakenSecs: timeTaken, attemptId: session?.id, setCode: session?.setCode },
-        accessToken
-      );
-      if (res.success && res.data) {
-        setResults(res.data);
-        setQuizState('result');
-        setIsConfirmSubmitOpen(false);
-      } else {
-        setError(res.error || 'Submission failed.');
-      }
-    } catch (err) {
-      setError('Failed to submit answers.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const loadLeaderboard = async () => {
     if (!accessToken) return;
     setLoading(true);
@@ -283,17 +283,31 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
   if (error) {
     return (
-      <div className="min-h-screen cbt-exam-wrapper flex items-center justify-center p-6">
-        <div className="p-8 border-2 border-current rounded-3xl max-w-md w-full text-center space-y-4">
-          <ShieldAlert className="w-10 h-10 mx-auto" />
-          <h2 className="text-lg font-bold">Exam System Warning</h2>
-          <p className="text-xs">{error}</p>
-          <button
-            onClick={() => router.back()}
-            className="w-full py-3 bg-current text-reverse font-bold text-xs rounded-xl"
-          >
-            Return to Portal
-          </button>
+      <div className="min-h-screen cbt-exam-wrapper flex items-center justify-center p-6 bg-slate-950 text-white">
+        <div className="p-8 border border-slate-800 bg-slate-900 rounded-3xl max-w-md w-full text-center space-y-5 shadow-2xl">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400">
+            <ShieldAlert className="w-7 h-7" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white">Exam System Warning</h2>
+            <p className="text-sm text-slate-400 mt-2 leading-relaxed">{error}</p>
+          </div>
+          <div className="pt-2 space-y-2.5">
+            {error.toLowerCase().includes('purchase') || error.toLowerCase().includes('denied') ? (
+              <button
+                onClick={() => router.push('/test-series')}
+                className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition-all"
+              >
+                Unlock Test / Purchase Test Series
+              </button>
+            ) : null}
+            <button
+              onClick={() => router.back()}
+              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-all"
+            >
+              Return to Previous Page
+            </button>
+          </div>
         </div>
       </div>
     );
