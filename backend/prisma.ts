@@ -101,10 +101,25 @@ export const prisma = new PrismaClient({
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    try { await prisma.$executeRawUnsafe(`ALTER TABLE lms_quizzes ADD COLUMN sequence_number INT NULL;`); } catch (_) {}
-    try { await prisma.$executeRawUnsafe(`ALTER TABLE lms_quizzes ADD COLUMN is_standalone_purchasable TINYINT(1) DEFAULT 0;`); } catch (_) {}
-    try { await prisma.$executeRawUnsafe(`ALTER TABLE lms_quizzes ADD COLUMN individual_price INT DEFAULT 0;`); } catch (_) {}
-    try { await prisma.$executeRawUnsafe(`ALTER TABLE lms_quizzes ADD COLUMN test_tier_category VARCHAR(50) DEFAULT 'FULL';`); } catch (_) {}
+    try {
+      const existingCols: any[] = await prisma.$queryRawUnsafe(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lms_quizzes'`
+      );
+      const colNames = new Set(existingCols.map(c => c.COLUMN_NAME || c.column_name));
+
+      if (!colNames.has('sequence_number')) {
+        await prisma.$executeRawUnsafe(`ALTER TABLE lms_quizzes ADD COLUMN sequence_number INT NULL;`);
+      }
+      if (!colNames.has('is_standalone_purchasable')) {
+        await prisma.$executeRawUnsafe(`ALTER TABLE lms_quizzes ADD COLUMN is_standalone_purchasable TINYINT(1) DEFAULT 0;`);
+      }
+      if (!colNames.has('individual_price')) {
+        await prisma.$executeRawUnsafe(`ALTER TABLE lms_quizzes ADD COLUMN individual_price INT DEFAULT 0;`);
+      }
+      if (!colNames.has('test_tier_category')) {
+        await prisma.$executeRawUnsafe(`ALTER TABLE lms_quizzes ADD COLUMN test_tier_category VARCHAR(50) DEFAULT 'FULL';`);
+      }
+    } catch (_) {}
 
     console.log('[Prisma] ✅ Entitlement system tables & columns verified in MySQL database.');
   } catch (err: any) {

@@ -133,7 +133,7 @@ export class EntitlementService {
       }
 
       // Quiz sequence number check for HALF & MINI
-      const seqNo = quiz.sequence_number;
+      seqNo = seqNo ?? quiz.sequence_number;
 
       if (seqNo !== null && seqNo !== undefined) {
         // Check HALF Entitlement using snapshot_max_sequence

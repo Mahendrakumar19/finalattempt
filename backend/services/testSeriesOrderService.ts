@@ -416,13 +416,17 @@ export class TestSeriesOrderService {
       }
 
       // 3. Mark Order Status as PAID
+      const targetGatewayOrderId = gatewayOrderId
+        ? (order.gateway_order_id || `${gatewayOrderId}-${order.id.slice(-6)}`)
+        : order.gateway_order_id;
+
       const updatedOrder = await tx.orders.update({
         where: { id: orderId },
         data: {
           status: OrderStatus.PAID,
           paid_at: new Date(),
-          gateway_order_id: gatewayOrderId || order.gateway_order_id,
-          payment_reference_id: gatewayPaymentId,
+          ...(targetGatewayOrderId ? { gateway_order_id: targetGatewayOrderId } : {}),
+          ...(gatewayPaymentId ? { payment_reference_id: gatewayPaymentId } : {}),
           payment_provider: paymentProvider
         }
       });
