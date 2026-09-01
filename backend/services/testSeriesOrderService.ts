@@ -260,7 +260,7 @@ export class TestSeriesOrderService {
           throw new Error(`Quiz '${quizId}' does not belong to series '${seriesId}'.`);
         }
 
-        if (!quiz.is_standalone_purchasable) {
+        if (quiz.is_standalone_purchasable === false) {
           throw new Error(`Test '${quiz.title}' is not available for individual purchase.`);
         }
 
@@ -293,7 +293,7 @@ export class TestSeriesOrderService {
           continue;
         }
 
-        const price = quiz.individual_price ?? 0;
+        const price = (quiz.individual_price && quiz.individual_price > 0) ? quiz.individual_price : 49;
         sanitizedItems.push({
           itemType: 'INDIVIDUAL_TEST',
           quizId: quiz.id,
