@@ -267,6 +267,7 @@ export default function TestSeriesAdmin({
   const [bilingualPastedText, setBilingualPastedText] = useState('');
   const [bilingualParseMode, setBilingualParseMode] = useState<'text' | 'pdf' | 'excel'>('text');
   const [bilingualParseErrors, setBilingualParseErrors] = useState<string[]>([]);
+  const [bilingualPaperLanguage, setBilingualPaperLanguage] = useState<'BILINGUAL' | 'HINDI_ONLY' | 'ENGLISH_ONLY'>('BILINGUAL');
   const [quizLangMode, setQuizLangMode] = useState<Record<string, 'EN' | 'HI'>>({});
 
   // Admin SET Paper & Explanation Key Inspector State
@@ -3314,129 +3315,133 @@ export default function TestSeriesAdmin({
                               </div>
                             </div>
 
-                            {/* Side-by-Side Grid */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                            {/* Responsive Language Grid */}
+                            <div className={`grid grid-cols-1 ${bilingualPaperLanguage === 'BILINGUAL' ? 'lg:grid-cols-2' : ''} gap-6 items-start`}>
                               {/* English Column */}
-                              <div className="space-y-4 lg:border-r border-[var(--card-border)] lg:pr-6">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-200 dark:bg-slate-800 px-2.5 py-1 rounded-md">ENGLISH</span>
-                                </div>
-
-                                <div className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium text-xs">
-                                  {renderMarkdownContent(curQ.questionText)}
-                                </div>
-
-                                <div className="space-y-2 pt-2">
-                                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Options (Click to Set Correct Answer)</span>
-                                  {[
-                                    { key: 'A', text: curQ.optionA },
-                                    { key: 'B', text: curQ.optionB },
-                                    { key: 'C', text: curQ.optionC },
-                                    { key: 'D', text: curQ.optionD },
-                                    ...(curQ.optionE ? [{ key: 'E', text: curQ.optionE }] : [])
-                                  ].map(opt => {
-                                    const isCorrect = curQ.correctAnswer === opt.key;
-                                    return (
-                                      <button
-                                        type="button"
-                                        key={opt.key}
-                                        onClick={() => handleSetCorrectAnswerInPreview(opt.key)}
-                                        title={`Click to set Option ${opt.key} as Correct Answer`}
-                                        className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between gap-2.5 text-xs font-medium transition-all cursor-pointer ${
-                                          isCorrect
-                                            ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-300 font-bold shadow-xs'
-                                            : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-500/50 hover:bg-amber-500/5'
-                                        }`}
-                                      >
-                                        <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                                          <span className={`w-5 h-5 shrink-0 rounded-lg flex items-center justify-center font-extrabold text-[11px] ${
-                                            isCorrect
-                                              ? 'bg-emerald-500 text-white shadow-xs'
-                                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
-                                          }`}>
-                                            {isCorrect ? '✓' : opt.key}
-                                          </span>
-                                          <span className="leading-snug break-words flex-1">{stripOptionPrefix(opt.text)}</span>
-                                        </div>
-                                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
-                                          isCorrect
-                                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent hover:text-amber-500'
-                                        }`}>
-                                          {isCorrect ? 'Correct' : 'Set Answer'}
-                                        </span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-
-                                {curQ.explanation && (
-                                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
-                                    <span className="font-extrabold uppercase tracking-wider text-[10px] text-amber-500 block">Explanation</span>
-                                    <p className="leading-relaxed">{curQ.explanation}</p>
+                              {(bilingualPaperLanguage === 'BILINGUAL' || bilingualPaperLanguage === 'ENGLISH_ONLY') && (
+                                <div className={`space-y-4 ${bilingualPaperLanguage === 'BILINGUAL' ? 'lg:border-r border-[var(--card-border)] lg:pr-6' : ''}`}>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-200 dark:bg-slate-800 px-2.5 py-1 rounded-md">ENGLISH</span>
                                   </div>
-                                )}
-                              </div>
+
+                                  <div className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium text-xs">
+                                    {renderMarkdownContent(curQ.questionText || curQ.questionTextHi)}
+                                  </div>
+
+                                  <div className="space-y-2 pt-2">
+                                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Options (Click to Set Correct Answer)</span>
+                                    {[
+                                      { key: 'A', text: curQ.optionA || curQ.optionAHi },
+                                      { key: 'B', text: curQ.optionB || curQ.optionBHi },
+                                      { key: 'C', text: curQ.optionC || curQ.optionCHi },
+                                      { key: 'D', text: curQ.optionD || curQ.optionDHi },
+                                      ...((curQ.optionE || curQ.optionEHi) ? [{ key: 'E', text: curQ.optionE || curQ.optionEHi }] : [])
+                                    ].map(opt => {
+                                      const isCorrect = curQ.correctAnswer === opt.key;
+                                      return (
+                                        <button
+                                          type="button"
+                                          key={opt.key}
+                                          onClick={() => handleSetCorrectAnswerInPreview(opt.key)}
+                                          title={`Click to set Option ${opt.key} as Correct Answer`}
+                                          className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between gap-2.5 text-xs font-medium transition-all cursor-pointer ${
+                                            isCorrect
+                                              ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-300 font-bold shadow-xs'
+                                              : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-500/50 hover:bg-amber-500/5'
+                                          }`}
+                                        >
+                                          <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                            <span className={`w-5 h-5 shrink-0 rounded-lg flex items-center justify-center font-extrabold text-[11px] ${
+                                              isCorrect
+                                                ? 'bg-emerald-500 text-white shadow-xs'
+                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                            }`}>
+                                              {isCorrect ? '✓' : opt.key}
+                                            </span>
+                                            <span className="leading-snug break-words flex-1">{stripOptionPrefix(opt.text)}</span>
+                                          </div>
+                                          <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
+                                            isCorrect
+                                              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                              : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent hover:text-amber-500'
+                                          }`}>
+                                            {isCorrect ? 'Correct' : 'Set Answer'}
+                                          </span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {(curQ.explanation || curQ.explanationHi) && (
+                                    <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+                                      <span className="font-extrabold uppercase tracking-wider text-[10px] text-amber-500 block">Explanation</span>
+                                      <p className="leading-relaxed">{curQ.explanation || curQ.explanationHi}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                               {/* Hindi Column */}
-                              <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-md">HINDI (हिन्दी)</span>
-                                </div>
+                              {(bilingualPaperLanguage === 'BILINGUAL' || bilingualPaperLanguage === 'HINDI_ONLY') && (
+                                <div className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-md">HINDI (हिन्दी माध्यम)</span>
+                                  </div>
 
-                                <div className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium text-xs">
-                                  {renderMarkdownContent(curQ.questionTextHi || curQ.questionText)}
-                                </div>
+                                  <div className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium text-xs">
+                                    {renderMarkdownContent(curQ.questionTextHi || curQ.questionText)}
+                                  </div>
 
-                                <div className="space-y-2 pt-2">
-                                  <span className="text-[10px] font-extrabold text-amber-500/80 uppercase tracking-wider block mb-1">विकल्प (Options)</span>
-                                  {[
-                                    { key: 'A', text: curQ.optionAHi || curQ.optionA },
-                                    { key: 'B', text: curQ.optionBHi || curQ.optionB },
-                                    { key: 'C', text: curQ.optionCHi || curQ.optionC },
-                                    { key: 'D', text: curQ.optionDHi || curQ.optionD },
-                                    ...((curQ.optionEHi || curQ.optionE) ? [{ key: 'E', text: curQ.optionEHi || curQ.optionE }] : [])
-                                  ].map(opt => {
-                                    const isCorrect = curQ.correctAnswer === opt.key;
-                                    return (
-                                      <button
-                                        type="button"
-                                        key={opt.key}
-                                        onClick={() => handleSetCorrectAnswerInPreview(opt.key)}
-                                        title={`Click to set Option ${opt.key} as Correct Answer`}
-                                        className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between gap-2.5 text-xs font-medium transition-all cursor-pointer ${
-                                          isCorrect
-                                            ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-300 font-bold shadow-xs'
-                                            : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-500/50 hover:bg-amber-500/5'
-                                        }`}
-                                      >
-                                        <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                                          <span className={`w-5 h-5 shrink-0 rounded-lg flex items-center justify-center font-extrabold text-[11px] ${
+                                  <div className="space-y-2 pt-2">
+                                    <span className="text-[10px] font-extrabold text-amber-500/80 uppercase tracking-wider block mb-1">विकल्प (Options)</span>
+                                    {[
+                                      { key: 'A', text: curQ.optionAHi || curQ.optionA },
+                                      { key: 'B', text: curQ.optionBHi || curQ.optionB },
+                                      { key: 'C', text: curQ.optionCHi || curQ.optionC },
+                                      { key: 'D', text: curQ.optionDHi || curQ.optionD },
+                                      ...((curQ.optionEHi || curQ.optionE) ? [{ key: 'E', text: curQ.optionEHi || curQ.optionE }] : [])
+                                    ].map(opt => {
+                                      const isCorrect = curQ.correctAnswer === opt.key;
+                                      return (
+                                        <button
+                                          type="button"
+                                          key={opt.key}
+                                          onClick={() => handleSetCorrectAnswerInPreview(opt.key)}
+                                          title={`Click to set Option ${opt.key} as Correct Answer`}
+                                          className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between gap-2.5 text-xs font-medium transition-all cursor-pointer ${
                                             isCorrect
-                                              ? 'bg-emerald-500 text-white shadow-xs'
-                                              : 'bg-amber-500/20 text-amber-500 dark:bg-amber-500/30'
+                                              ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-300 font-bold shadow-xs'
+                                              : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-500/50 hover:bg-amber-500/5'
+                                          }`}
+                                        >
+                                          <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                            <span className={`w-5 h-5 shrink-0 rounded-lg flex items-center justify-center font-extrabold text-[11px] ${
+                                              isCorrect
+                                                ? 'bg-emerald-500 text-white shadow-xs'
+                                                : 'bg-amber-500/20 text-amber-500 dark:bg-amber-500/30'
+                                            }`}>
+                                              {isCorrect ? '✓' : opt.key}
+                                            </span>
+                                            <span className="leading-snug break-words flex-1">{stripOptionPrefix(opt.text)}</span>
+                                          </div>
+                                          <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
+                                            isCorrect
+                                              ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                              : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent hover:text-amber-500'
                                           }`}>
-                                            {isCorrect ? '✓' : opt.key}
+                                            {isCorrect ? 'Correct' : 'Set Answer'}
                                           </span>
-                                          <span className="leading-snug break-words flex-1">{stripOptionPrefix(opt.text)}</span>
-                                        </div>
-                                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
-                                          isCorrect
-                                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent hover:text-amber-500'
-                                        }`}>
-                                          {isCorrect ? 'Correct' : 'Set Answer'}
-                                        </span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
 
-                                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
-                                  <span className="font-extrabold uppercase tracking-wider text-[10px] text-amber-500 block">व्याख्या (Explanation)</span>
-                                  <p className="leading-relaxed">{curQ.explanationHi || curQ.explanation || 'व्याख्या उपलब्ध नहीं है।'}</p>
+                                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+                                    <span className="font-extrabold uppercase tracking-wider text-[10px] text-amber-500 block">व्याख्या (Explanation)</span>
+                                    <p className="leading-relaxed">{curQ.explanationHi || curQ.explanation || 'व्याख्या उपलब्ध नहीं है।'}</p>
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -3447,6 +3452,28 @@ export default function TestSeriesAdmin({
                   {/* Import Configuration Form */}
                   {bilingualReport.isValid && (
                     <div className="space-y-4 border-t border-[var(--card-border)] pt-4 text-xs font-bold">
+                      <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3">
+                        <label className="block text-amber-500 font-extrabold text-xs uppercase tracking-wider">
+                          🌐 Target Paper Language / Medium *
+                        </label>
+                        <select
+                          value={bilingualPaperLanguage}
+                          onChange={e => setBilingualPaperLanguage(e.target.value as 'BILINGUAL' | 'HINDI_ONLY' | 'ENGLISH_ONLY')}
+                          className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-amber-500/40 text-[var(--text-color)] rounded-xl outline-none font-bold text-xs cursor-pointer shadow-xs"
+                        >
+                          <option value="BILINGUAL">🌐 Bilingual Paper (Hindi & English Side-by-Side)</option>
+                          <option value="HINDI_ONLY">🇮🇳 Hindi Medium Only (हिन्दी माध्यम - Direct Hindi Options, No English Translation Required)</option>
+                          <option value="ENGLISH_ONLY">🇬🇧 English Medium Only</option>
+                        </select>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                          {bilingualPaperLanguage === 'HINDI_ONLY'
+                            ? '✓ Full Hindi paper mode active: Direct Hindi option texts are preserved cleanly. No auto-translation to English is forced.'
+                            : bilingualPaperLanguage === 'ENGLISH_ONLY'
+                            ? '✓ English Medium mode active: Questions & options will render in English.'
+                            : '✓ Bilingual mode active: Questions & options render side-by-side in both Hindi and English.'}
+                        </p>
+                      </div>
+
                       <div>
                         <label className="block text-slate-400 mb-1">Quiz Paper Title *</label>
                         <input
@@ -3464,7 +3491,7 @@ export default function TestSeriesAdmin({
                           rows={2}
                           value={bilingualQuizDescription}
                           onChange={e => setBilingualQuizDescription(e.target.value)}
-                          placeholder="Official bilingual mock test paper instructions..."
+                          placeholder="Official mock test paper instructions..."
                           className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
                         />
                       </div>
@@ -3508,11 +3535,41 @@ export default function TestSeriesAdmin({
                     }
                     setImportingBilingualQuiz(true);
                     try {
+                      const questionsToCommit = (bilingualReport.questionsPreview || parsedBulkQuestions || []).map((q: any) => {
+                        if (bilingualPaperLanguage === 'HINDI_ONLY') {
+                          const mainTextHi = q.questionTextHi || q.questionText || '';
+                          const optA = q.optionAHi || q.optionA || '';
+                          const optB = q.optionBHi || q.optionB || '';
+                          const optC = q.optionCHi || q.optionC || '';
+                          const optD = q.optionDHi || q.optionD || '';
+                          const optE = q.optionEHi || q.optionE || null;
+                          const exp = q.explanationHi || q.explanation || '';
+                          return {
+                            ...q,
+                            questionText: mainTextHi,
+                            questionTextHi: mainTextHi,
+                            optionA: optA,
+                            optionB: optB,
+                            optionC: optC,
+                            optionD: optD,
+                            optionE: optE,
+                            optionAHi: optA,
+                            optionBHi: optB,
+                            optionCHi: optC,
+                            optionDHi: optD,
+                            optionEHi: optE,
+                            explanation: exp,
+                            explanationHi: exp
+                          };
+                        }
+                        return q;
+                      });
+
                       const res = await db.importBilingualQuiz({
                         title: bilingualQuizTitle.trim(),
                         courseId: selectedSeriesId || 'bpsc-foundation',
                         description: bilingualQuizDescription.trim(),
-                        questions: bilingualReport.questionsPreview || parsedBulkQuestions || [],
+                        questions: questionsToCommit,
                         replaceExisting: replaceExistingQuizConfirm
                       });
 

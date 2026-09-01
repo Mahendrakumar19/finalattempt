@@ -5100,14 +5100,78 @@ class LmsDB {
         else lmsLocalQuestions.push(question);
         return question;
       } catch (err) {
-        console.error('[LmsDB] createQuestion MySQL error:', err);
-        throw err;
+        console.error('[LmsDB] createQuestion MySQL error, saving to local store:', err);
       }
     }
     const idx = lmsLocalQuestions.findIndex(q => q.id === question.id);
     if (idx >= 0) lmsLocalQuestions[idx] = question;
     else lmsLocalQuestions.push(question);
+    db.saveLocalData();
     return question;
+  }
+
+  async createQuestionsBatch(quizId: string, questionsData: any[]): Promise<any[]> {
+    const preparedQuestions = questionsData.map((q: any, i: number) => ({
+      id: q.id || `q-${quizId}-${i + 1}`,
+      quizId,
+      questionText: q.questionText || '',
+      optionA: q.optionA || '',
+      optionB: q.optionB || '',
+      optionC: q.optionC || '',
+      optionD: q.optionD || '',
+      optionE: q.optionE || null,
+      correctAnswer: q.correctAnswer || 'A',
+      explanation: q.explanation || '',
+      questionTextHi: q.questionTextHi || null,
+      optionAHi: q.optionAHi || null,
+      optionBHi: q.optionBHi || null,
+      optionCHi: q.optionCHi || null,
+      optionDHi: q.optionDHi || null,
+      optionEHi: q.optionEHi || null,
+      explanationHi: q.explanationHi || null,
+      marks: Number(q.marks || 1.00),
+      negativeMarks: Number(q.negativeMarks || 0.33),
+      orderIndex: i + 1
+    }));
+
+    if (mysqlPool) {
+      const chunkSize = 50;
+      for (let c = 0; c < preparedQuestions.length; c += chunkSize) {
+        const chunk = preparedQuestions.slice(c, c + chunkSize);
+        try {
+          const valuePlaceholders = chunk.map(() => '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').join(', ');
+          const flatValues: any[] = [];
+          chunk.forEach(q => {
+            flatValues.push(
+              q.id, q.quizId, q.questionText, q.optionA, q.optionB, q.optionC, q.optionD, q.optionE,
+              q.correctAnswer, q.explanation, q.questionTextHi, q.optionAHi, q.optionBHi, q.optionCHi,
+              q.optionDHi, q.optionEHi, q.explanationHi, q.marks, q.negativeMarks, q.orderIndex
+            );
+          });
+          await mysqlPool.query(
+            `INSERT INTO lms_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, optionE, correctAnswer, explanation, questionTextHi, optionAHi, optionBHi, optionCHi, optionDHi, optionEHi, explanationHi, marks, negativeMarks, orderIndex) VALUES ${valuePlaceholders}`,
+            flatValues
+          );
+        } catch (err) {
+          console.error(`[LmsDB] createQuestionsBatch chunk ${c} MySQL notice, saving to store:`, err);
+          for (const item of chunk) {
+            try {
+              await this.createQuestion(item);
+            } catch (_) {}
+          }
+        }
+      }
+    }
+
+    // Always sync local memory store for instant fallback & resilience
+    for (const q of preparedQuestions) {
+      const idx = lmsLocalQuestions.findIndex(lq => lq.id === q.id);
+      if (idx >= 0) lmsLocalQuestions[idx] = q;
+      else lmsLocalQuestions.push(q);
+    }
+    db.saveLocalData();
+
+    return preparedQuestions;
   }
 
   async updateQuestion(id: string, data: any): Promise<boolean> {

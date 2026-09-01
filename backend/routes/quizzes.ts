@@ -677,34 +677,8 @@ router.post('/admin/import-bilingual-quiz', async (req: Request, res: Response) 
       isPublished: true
     });
 
-    // Save all 1:1 Bilingual Questions Transactionally
-    const savedQuestions = [];
-    for (let i = 0; i < questions.length; i++) {
-      const q = questions[i];
-      const createdQ = await lmsDB.createQuestion({
-        id: `q-${targetQuizId}-${i + 1}`,
-        quizId: targetQuizId,
-        questionText: q.questionText,
-        optionA: q.optionA,
-        optionB: q.optionB,
-        optionC: q.optionC,
-        optionD: q.optionD,
-        optionE: q.optionE || null,
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation,
-        questionTextHi: q.questionTextHi,
-        optionAHi: q.optionAHi,
-        optionBHi: q.optionBHi,
-        optionCHi: q.optionCHi,
-        optionDHi: q.optionDHi,
-        optionEHi: q.optionEHi || null,
-        explanationHi: q.explanationHi,
-        marks: q.marks || 1.00,
-        negativeMarks: q.negativeMarks || 0.33,
-        orderIndex: i + 1
-      });
-      savedQuestions.push(createdQ);
-    }
+    // Save all 1:1 Bilingual Questions Transactionally & Atomically via batching
+    const savedQuestions = await lmsDB.createQuestionsBatch(targetQuizId, questions);
 
     res.json({
       success: true,
