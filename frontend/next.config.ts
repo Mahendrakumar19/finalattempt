@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const BACKEND_ORIGIN = process.env.BACKEND_PROXY_TARGET || 'http://38.242.244.225:5000';
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.resolve(__dirname, '../'),
   allowedDevOrigins: [
     '38.242.244.225',
     '38.242.244.225:3000',

@@ -2402,6 +2402,7 @@ class BackendDB {
         attempt++;
         const conn = await mysqlPool.getConnection();
         try {
+          await conn.query('SET SESSION innodb_lock_wait_timeout = 15');
           await conn.beginTransaction();
           
           // 1. Insert or update edition
@@ -2490,20 +2491,21 @@ class BackendDB {
           }
           
           await conn.commit();
-          conn.release();
+          try { conn.release(); } catch (_) {}
           this.editionsCache = null;
           return true;
         } catch (err: any) {
-          await conn.rollback();
-          conn.release();
+          try { await conn.rollback(); } catch (_) {}
+          try { conn.release(); } catch (_) {}
           const isLockWait = err.code === 'ER_LOCK_WAIT_TIMEOUT' || err.errno === 1205 || err.errno === 1213 || err.code === 'ER_LOCK_DEADLOCK';
           if (attempt < maxAttempts && isLockWait) {
             const backoff = Math.floor(attempt * 400 + Math.random() * 300);
-            console.warn(`[BackendDB] Lock wait timeout/deadlock on edition save (attempt ${attempt}/${maxAttempts}). Retrying in ${backoff}ms...`);
             await new Promise(r => setTimeout(r, backoff));
             continue;
           }
-          console.error('[BackendDB] createOrUpdateDynamicCurrentAffairEdition error:', err);
+          if (!isLockWait) {
+            console.error('[BackendDB] createOrUpdateDynamicCurrentAffairEdition error:', err);
+          }
           return false;
         }
       }
