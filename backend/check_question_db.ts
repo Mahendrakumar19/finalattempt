@@ -1,22 +1,22 @@
-import pool from './config/database';
+import { prisma } from './prisma';
 
 async function checkQuestion() {
   try {
-    const res1 = await pool.query(
-      `SELECT id, question_text, question_text_hi, options, options_hi FROM lms_questions WHERE question_text LIKE '%चट्टानी%' OR question_text_hi LIKE '%चट्टानी%' LIMIT 5`
-    );
+    const res1 = await prisma.lms_questions.findMany({
+      where: {
+        OR: [
+          { questionText: { contains: 'चट्टानी' } },
+          { questionTextHi: { contains: 'चट्टानी' } }
+        ]
+      },
+      take: 5
+    });
     console.log("=== LMS QUESTIONS ===");
-    console.log(JSON.stringify(res1.rows, null, 2));
-
-    const res2 = await pool.query(
-      `SELECT id, question_text, options FROM test_questions WHERE question_text LIKE '%चट्टानी%' LIMIT 5`
-    );
-    console.log("=== TEST QUESTIONS ===");
-    console.log(JSON.stringify(res2.rows, null, 2));
+    console.log(JSON.stringify(res1, null, 2));
   } catch (e) {
     console.error(e);
   } finally {
-    await pool.end();
+    await prisma.$disconnect();
   }
 }
 
