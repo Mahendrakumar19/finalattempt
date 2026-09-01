@@ -597,17 +597,25 @@ export default function TestSeriesAdmin({
         const list = Array.isArray(jsonData) ? jsonData : [jsonData];
         for (const item of list) {
           if (item.questionText || item.question) {
-            parsed.push({
+            parsed.push(sanitizeAndRepairQuestion({
               questionText: item.questionText || item.question,
               optionA: item.optionA || item.a || '',
               optionB: item.optionB || item.b || '',
               optionC: item.optionC || item.c || '',
               optionD: item.optionD || item.d || '',
+              optionE: item.optionE || item.e || '',
+              questionTextHi: item.questionTextHi || item.questionHi || item.questionText || item.question,
+              optionAHi: item.optionAHi || item.optionA || '',
+              optionBHi: item.optionBHi || item.optionB || '',
+              optionCHi: item.optionCHi || item.optionC || '',
+              optionDHi: item.optionDHi || item.optionD || '',
+              optionEHi: item.optionEHi || item.optionE || '',
+              explanationHi: item.explanationHi || item.explanation || '',
               correctAnswer: (item.correctAnswer || item.answer || 'A').toString().toUpperCase().trim().charAt(0),
               explanation: item.explanation || item.solution || 'Refer to BPSC official syllabus notes.',
               marks: Number(item.marks) || 1,
               negativeMarks: Number(item.negativeMarks) || 0.33
-            });
+            }));
           }
         }
         if (parsed.length > 0) {
@@ -626,7 +634,7 @@ export default function TestSeriesAdmin({
         if (i === 0 && line.toLowerCase().includes('question')) continue;
         const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((c: string) => c.replace(/^"|"$/g, '').trim());
         if (cols.length >= 5) {
-          parsed.push({
+          parsed.push(sanitizeAndRepairQuestion({
             questionText: cols[0],
             optionA: cols[1] || '',
             optionB: cols[2] || '',
@@ -636,7 +644,7 @@ export default function TestSeriesAdmin({
             explanation: cols[6] || 'Refer to BPSC official syllabus notes.',
             marks: 1,
             negativeMarks: 0.33
-          });
+          }));
         }
       }
       if (parsed.length > 0) {
@@ -649,35 +657,89 @@ export default function TestSeriesAdmin({
     const blocks = raw.split(/(?=\n\s*(?:Q\.?\s*\d+|\d+[\.\)])\s+)/i).filter((b: string) => b.trim().length > 10);
 
     for (const block of blocks) {
-      // Extract Question Text before options (a)/(b)/(c)/(d) or (A)/(B)/(C)/(D)
-      const qMatch = block.match(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])?\s*([\s\S]+?)(?=\s*(?:[\(\[]?[A-Da-d1-4][\)\.\:\s]))/i);
+      // 1. Check if block contains embedded multi-line or single-line options (a) ... (b) ... (c) ... (d) ...
+      const multiOptMatch = block.match(/(?:^|\n|\s*)(?:\(([a-dA-D1-4क-घ])\)|([a-dA-D1-4क-घ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([b-eB-E2-5ख-ङ])\)|([b-eB-E2-5ख-ङ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([cC3ग])\)|([cC3ग])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([dD4घ])\)|([dD4घ])[\)\.\:\t]+)\s*([\s\S]+?)(?=\s*(?:\([eE5ङ]\)|[eE5ङ][\)\.\:\t]+|Ans|Answer|Explanation|Sol|Solution|$))/i);
 
-      // Extract Options (a)/(b)/(c)/(d) or (A)/(B)/(C)/(D)
-      const optAMatch = block.match(/[\(\[]?(?:A|a|1)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:B|b|2)[\)\.\:\s]|$)/i);
-      const optBMatch = block.match(/[\(\[]?(?:B|b|2)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:C|c|3)[\)\.\:\s]|$)/i);
-      const optCMatch = block.match(/[\(\[]?(?:C|c|3)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:D|d|4)[\)\.\:\s]|$)/i);
-      const optDMatch = block.match(/[\(\[]?(?:D|d|4)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:Ans|Answer|Correct|Explanation|Sol|Solution|----------|\n\s*\d+\.)[\:\s]|$)/i);
+      let qText = '';
+      let optA = '', optB = '', optC = '', optD = '', optE = '';
+
+      if (multiOptMatch) {
+        // Find index of first option marker (a)
+        const firstOptIdx = block.search(/(?:^|\n|\s*)(?:\(([aA1क])\)|[aA1क][\)\.\:\t]+)\s*/i);
+        if (firstOptIdx !== -1) {
+          qText = block.substring(0, firstOptIdx).trim();
+        } else {
+          qText = block.replace(multiOptMatch[0], '').trim();
+        }
+
+        optA = multiOptMatch[3].trim();
+        optB = multiOptMatch[6].trim();
+        optC = multiOptMatch[9].trim();
+        let restD = multiOptMatch[12].trim();
+
+        const optEMatch = /(?:\(([eE5ङ])\)|[eE5ङ][\)\.\:\t]+)\s*([\s\S]+?)$/i.exec(restD);
+        if (optEMatch) {
+          optE = optEMatch[2].trim().replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
+          optD = restD.substring(0, optEMatch.index).trim();
+        } else {
+          optD = restD.replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
+        }
+      } else {
+        // Fallback option extraction for standard MCQs
+        const qMatch = block.match(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])?\s*([\s\S]+?)(?=\s*(?:\([A-Da-d1-4]\)|[\(\[]?[A-Da-d1-4][\)\.\:\s]))/i);
+        const optAMatch = block.match(/[\(\[]?(?:A|a|1)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:B|b|2)[\)\.\:\s]|$)/i);
+        const optBMatch = block.match(/[\(\[]?(?:B|b|2)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:C|c|3)[\)\.\:\s]|$)/i);
+        const optCMatch = block.match(/[\(\[]?(?:C|c|3)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:D|d|4)[\)\.\:\s]|$)/i);
+        const optDMatch = block.match(/[\(\[]?(?:D|d|4)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:Ans|Answer|Correct|Explanation|Sol|Solution|----------|\n\s*\d+\.)[\:\s]|$)/i);
+
+        if (qMatch) qText = qMatch[1].trim();
+        if (optAMatch) optA = optAMatch[1].trim();
+        if (optBMatch) optB = optBMatch[1].trim();
+        if (optCMatch) optC = optCMatch[1].trim();
+        if (optDMatch) optD = optDMatch[1].trim();
+      }
+
+      if (!qText) {
+        qText = block.trim();
+      }
+
+      // If options are missing (e.g. user pasted a match question or question text without explicit option A/B/C/D lines)
+      if (qText && !optA && !optB) {
+        const isMatchQ = /List[\s\-_]*I|Column[\s\-_]*A|सूची[\s\-_]*I|मिलान|चट्टान|कूट/i.test(qText);
+        if (isMatchQ) {
+          optA = '3  4  1    2';
+          optB = '1   2  3    4';
+          optC = '3   1  2    4';
+          optD = '4   3  2    1';
+        } else {
+          optA = 'Option A';
+          optB = 'Option B';
+          optC = 'Option C';
+          optD = 'Option D';
+        }
+      }
 
       const ansMatch = block.match(/(?:Ans|Answer|Correct|Option)[\:\s\-]*[\(\[]?([A-Da-d1-4])[\)\]]?/i);
       const expMatch = block.match(/(?:Explanation|Sol|Solution)[\:\s]+([\s\S]+)$/i);
 
-      if (qMatch && optAMatch && optBMatch) {
-        let ansLetter: 'A' | 'B' | 'C' | 'D' = 'A';
-        if (ansMatch) {
-          const matchedVal = ansMatch[1].toUpperCase();
-          if (matchedVal === '1') ansLetter = 'A';
-          else if (matchedVal === '2') ansLetter = 'B';
-          else if (matchedVal === '3') ansLetter = 'C';
-          else if (matchedVal === '4') ansLetter = 'D';
-          else if (['A', 'B', 'C', 'D'].includes(matchedVal)) ansLetter = matchedVal as any;
-        }
+      let ansLetter: 'A' | 'B' | 'C' | 'D' = 'A';
+      if (ansMatch) {
+        const matchedVal = ansMatch[1].toUpperCase();
+        if (matchedVal === '1') ansLetter = 'A';
+        else if (matchedVal === '2') ansLetter = 'B';
+        else if (matchedVal === '3') ansLetter = 'C';
+        else if (matchedVal === '4') ansLetter = 'D';
+        else if (['A', 'B', 'C', 'D'].includes(matchedVal)) ansLetter = matchedVal as any;
+      }
 
+      if (qText) {
         parsed.push(sanitizeAndRepairQuestion({
-          questionText: qMatch[1].trim().replace(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])\s*/i, ''),
-          optionA: optAMatch[1].trim(),
-          optionB: optBMatch[1].trim(),
-          optionC: optCMatch ? optCMatch[1].trim() : '',
-          optionD: optDMatch ? optDMatch[1].trim() : '',
+          questionText: qText.replace(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])\s*/i, ''),
+          optionA: optA,
+          optionB: optB,
+          optionC: optC,
+          optionD: optD,
+          optionE: optE,
           correctAnswer: ansLetter,
           explanation: expMatch ? expMatch[1].trim() : 'Refer to official syllabus notes.',
           marks: 1,
@@ -3452,26 +3514,34 @@ export default function TestSeriesAdmin({
                   {/* Import Configuration Form */}
                   {bilingualReport.isValid && (
                     <div className="space-y-4 border-t border-[var(--card-border)] pt-4 text-xs font-bold">
-                      <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3">
-                        <label className="block text-amber-500 font-extrabold text-xs uppercase tracking-wider">
-                          🌐 Target Paper Language / Medium *
-                        </label>
-                        <select
-                          value={bilingualPaperLanguage}
-                          onChange={e => setBilingualPaperLanguage(e.target.value as 'BILINGUAL' | 'HINDI_ONLY' | 'ENGLISH_ONLY')}
-                          className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-amber-500/40 text-[var(--text-color)] rounded-xl outline-none font-bold text-xs cursor-pointer shadow-xs"
-                        >
-                          <option value="BILINGUAL">🌐 Bilingual Paper (Hindi & English Side-by-Side)</option>
-                          <option value="HINDI_ONLY">🇮🇳 Hindi Medium Only (हिन्दी माध्यम - Direct Hindi Options, No English Translation Required)</option>
-                          <option value="ENGLISH_ONLY">🇬🇧 English Medium Only</option>
-                        </select>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                          {bilingualPaperLanguage === 'HINDI_ONLY'
-                            ? '✓ Full Hindi paper mode active: Direct Hindi option texts are preserved cleanly. No auto-translation to English is forced.'
-                            : bilingualPaperLanguage === 'ENGLISH_ONLY'
-                            ? '✓ English Medium mode active: Questions & options will render in English.'
-                            : '✓ Bilingual mode active: Questions & options render side-by-side in both Hindi and English.'}
-                        </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2">
+                          <label className="block text-amber-500 font-extrabold text-xs uppercase tracking-wider">
+                            📌 Publish Target Page (Medium Access) *
+                          </label>
+                          <select
+                            value={bilingualPaperLanguage}
+                            onChange={e => setBilingualPaperLanguage(e.target.value as 'BILINGUAL' | 'HINDI_ONLY' | 'ENGLISH_ONLY')}
+                            className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-amber-500/40 text-[var(--text-color)] rounded-xl outline-none font-bold text-xs cursor-pointer shadow-xs"
+                          >
+                            <option value="BILINGUAL">🌐 Both Pages (Hindi & English Bilingual Portal)</option>
+                            <option value="HINDI_ONLY">🇮🇳 Hindi Page Only (हिन्दी माध्यम - Direct Hindi Import)</option>
+                            <option value="ENGLISH_ONLY">🇬🇧 English Page Only (English Medium Only)</option>
+                          </select>
+                        </div>
+
+                        <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-2xl space-y-2 flex flex-col justify-center">
+                          <span className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-wider">
+                            Active Page Target Mode Summary
+                          </span>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+                            {bilingualPaperLanguage === 'HINDI_ONLY'
+                              ? '✓ Hindi Page Only: Quiz will be published exclusively for Hindi medium students with 100% Hindi question bank.'
+                              : bilingualPaperLanguage === 'ENGLISH_ONLY'
+                              ? '✓ English Page Only: Quiz will be published exclusively for English medium students with English question bank.'
+                              : '✓ Both Pages: Quiz will be published to both Hindi & English portals with side-by-side bilingual question bank.'}
+                          </p>
+                        </div>
                       </div>
 
                       <div>

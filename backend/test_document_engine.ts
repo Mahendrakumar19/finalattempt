@@ -154,6 +154,25 @@ Ans: D
     console.log('✓ PASS: Question 2 (Matching) separated Left List (3) & Right List (3) from 4 coded options.');
     console.log('✓ PASS: No matching table rows were incorrectly leaked into options[].');
 
+    // Heading regression: ensure no known headings appear in question text or options
+    const knownHeadings = [
+      'क्षेत्र', 'अक्षांशीय सीमा', 'मानक समय', 'सीमावर्ती देश', 'भौतिक विभाजन',
+      'पर्वत शिखर', 'पठार', 'नदियाँ', 'जलवायु', 'Indian Geography', 'Physical Features'
+    ];
+    for (const qna of qnas) {
+      const qText = qna.question.versions[0]?.text || '';
+      for (const heading of knownHeadings) {
+        if (qText.includes(heading)) throw new Error(`Assertion Failed: Heading "${heading}" leaked into Q${qna.questionNumber} question text`);
+      }
+      for (const opt of qna.options) {
+        const optText = opt.versions[0]?.text || '';
+        for (const heading of knownHeadings) {
+          if (optText.includes(heading)) throw new Error(`Assertion Failed: Heading "${heading}" leaked into Q${qna.questionNumber} option ${opt.label}`);
+        }
+      }
+    }
+    console.log('✓ PASS: No known headings leaked into any question text or option text.');
+
     console.log('\n====================================================');
     console.log('ALL MANDATORY REGRESSION ASSERTIONS PASSED 100%');
     console.log('====================================================');

@@ -83,6 +83,12 @@ Ans: D
     const qnas = await QnaExtractor.extractQna(doc);
     console.log(`✓ Extracted & Aligned ${qnas.length} logical QnA candidates.`);
 
+    // Assert document-level language detection
+    if (doc.documentLanguage !== 'BILINGUAL' && doc.documentLanguage !== 'ENGLISH') {
+      throw new Error(`Document language detected as ${doc.documentLanguage}`);
+    }
+    console.log(`  - Document Language: ${doc.documentLanguage}`);
+
     // 3. Persist Staging Records
     console.log('\nStep 3: Staging QnAs into Persistent Storage...');
     const stagedRecords = await StagingService.saveStagedQnas(impRecord.id, qnas);

@@ -1,26 +1,70 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { 
   ArrowLeft, CheckCircle, BookOpen, Layers, 
-  ChevronDown, ChevronUp, Award, Sparkles, PhoneCall, HelpCircle
+  ChevronDown, ChevronUp, Award, Sparkles, PhoneCall, HelpCircle,
+  Lock, Check, ShoppingBag, ShieldCheck, Tag, X, ArrowRight, Zap, RefreshCw
 } from 'lucide-react';
 
 import { db, TestSeriesItem } from '@/services/db';
-
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from '@/context/LocaleContext';
 
 interface QuizItem {
   id: string;
   title: string;
-  passingScore?: number;
+  sequence_number?: number;
+  is_standalone_purchasable?: boolean;
+  individual_price?: number;
   timeLimitMins?: number;
   instructions?: string;
+  isFree?: boolean;
+}
+
+interface TestSeriesPlan {
+  id: string;
+  series_id: string;
+  plan_code: 'MINI' | 'HALF' | 'FULL';
+  title: string;
+  description?: string;
+  sequence_start_number: number;
+  sequence_end_number: number;
+  price: number;
+  discounted_price?: number;
+  is_active: boolean;
+}
+
+interface UserEntitlement {
+  id: string;
+  series_id: string;
+  entitlement_type: 'INDIVIDUAL_TEST' | 'MINI' | 'HALF' | 'FULL' | 'LEGACY_ENROLLMENT';
+  quiz_id?: string;
+  snapshot_max_sequence?: number;
+  max_sequence_number?: number;
+  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'SUPERSEDED';
+}
+
+interface CartPreviewResult {
+  grossAmount: number;
+  upgradeCreditAmount: number;
+  discountAmount: number;
+  netAmount: number;
+  items: Array<{
+    itemType: string;
+    itemTitle: string;
+    unitPrice: number;
+    quizId?: string;
+    planCode?: string;
+  }>;
+  redundantQuizIdsRemoved: string[];
+  highestExistingPlan?: string;
 }
 
 export default function TestSeriesDetailPage() {
+  const { t } = useTranslation();
   const { user, accessToken } = useAuth();
   const params = useParams();
   const rawSlug = params.slug || params.seriesSlug || params.stageSlug || params.examSlug;
@@ -28,12 +72,26 @@ export default function TestSeriesDetailPage() {
 
   const [series, setSeries] = useState<TestSeriesItem | null>(null);
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
-  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [plans, setPlans] = useState<TestSeriesPlan[]>([]);
+  const [entitlements, setEntitlements] = useState<UserEntitlement[]>([]);
+  
   const [loading, setLoading] = useState(true);
   const [openSubject, setOpenSubject] = useState<number | null>(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [showModal, setShowModal] = useState(false);
+  
+  // Selection & Cart State
+  const [selectedPackage, setSelectedPackage] = useState<'MINI' | 'HALF' | 'FULL' | null>(null);
+  const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
+  const [cartPreview, setCartPreview] = useState<CartPreviewResult | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
+  // Modals & UI States
+  const [lockedModalQuiz, setLockedModalQuiz] = useState<QuizItem | null>(null);
+  const [paymentState, setPaymentState] = useState<'IDLE' | 'CREATING_ORDER' | 'RAZORPAY_OPEN' | 'VERIFYING' | 'SUCCESS' | 'ERROR'>('IDLE');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showCheckoutDrawer, setShowCheckoutDrawer] = useState(false);
+
+  // ── Load Series, Quizzes, Plans, and User Entitlements ────────────────────
   useEffect(() => {
     async function loadDetail() {
       setLoading(true);
@@ -41,19 +99,32 @@ export default function TestSeriesDetailPage() {
         const item = await db.getTestSeriesBySlug(slug);
         setSeries(item);
         if (item && item.id) {
+          // Fetch quizzes
           const quizList = await db.getTestSeriesQuizzes(item.id);
-          setQuizzes(quizList || []);
+          const formattedQuizzes = (quizList || []).map((q: any, idx: number) => ({
+            ...q,
+            sequence_number: q.sequence_number || idx + 1,
+            is_standalone_purchasable: q.is_standalone_purchasable !== false,
+            individual_price: q.individual_price || 49
+          })).sort((a: QuizItem, b: QuizItem) => (a.sequence_number || 0) - (b.sequence_number || 0));
+          
+          setQuizzes(formattedQuizzes);
 
+          // Fetch Plans from backend Phase 3 API
+          try {
+            const planList = await db.getTestSeriesPurchasePlans(item.id);
+            setPlans(planList || []);
+          } catch (e) {
+            console.warn('Failed loading purchase plans:', e);
+          }
+
+          // Fetch Entitlements from backend Phase 3 API if logged in
           if (accessToken) {
-            const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
-            const checkRes = await fetch(`${BACKEND_URL}/api/lms/enrollments/check/${item.id}`, {
-              headers: { 'Authorization': `Bearer ${accessToken}` }
-            }).catch(() => null);
-            if (checkRes && checkRes.ok) {
-              const checkData = await checkRes.json();
-              if (checkData.success && checkData.data?.enrolled) {
-                setIsEnrolled(true);
-              }
+            try {
+              const entList = await db.getStudentEntitlements(item.id, accessToken);
+              setEntitlements(entList || []);
+            } catch (e) {
+              console.warn('Failed loading entitlements:', e);
             }
           }
         }
@@ -66,11 +137,279 @@ export default function TestSeriesDetailPage() {
     loadDetail();
   }, [slug, accessToken]);
 
+  // ── Fetch Authoritative Server-Side Cart Preview on Selection Change ──────
+  useEffect(() => {
+    if (!series || !series.id) return;
+    
+    // Construct cart payload
+    const itemsPayload: Array<{ itemType: string; planCode?: string; quizId?: string }> = [];
+    
+    if (selectedPackage) {
+      // Check if user already owns a lower package tier -> mark as UPGRADE_PLAN
+      const hasMini = entitlements.some(e => e.entitlement_type === 'MINI' && e.status === 'ACTIVE');
+      const hasHalf = entitlements.some(e => e.entitlement_type === 'HALF' && e.status === 'ACTIVE');
+      const isUpgrade = hasMini || hasHalf;
+      
+      itemsPayload.push({
+        itemType: isUpgrade ? 'UPGRADE_PLAN' : 'PACKAGE_PLAN',
+        planCode: selectedPackage
+      });
+    }
+
+    selectedQuizIds.forEach(qId => {
+      itemsPayload.push({
+        itemType: 'INDIVIDUAL_TEST',
+        quizId: qId
+      });
+    });
+
+    if (itemsPayload.length === 0) {
+      setCartPreview(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setPreviewLoading(true);
+      try {
+        const previewRes = await db.getCartPreview(series.id, itemsPayload, accessToken || undefined);
+        if (previewRes && previewRes.success) {
+          setCartPreview(previewRes.data);
+        } else if (previewRes && previewRes.error) {
+          console.warn('Cart preview backend notice:', previewRes.error);
+        }
+      } catch (err) {
+        console.error('Cart preview error:', err);
+      } finally {
+        setPreviewLoading(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [selectedPackage, selectedQuizIds, series, accessToken, entitlements]);
+
+  // ── Helper: Evaluate Quiz Ownership & Access State ────────────────────────
+  function getQuizAccessInfo(quiz: QuizItem) {
+    const seq = quiz.sequence_number || 1;
+    
+    // 1. Check Active Entitlements
+    for (const ent of entitlements) {
+      if (ent.status !== 'ACTIVE') continue;
+      
+      if (ent.entitlement_type === 'LEGACY_ENROLLMENT') {
+        return { isOwned: true, type: 'LEGACY', label: '✓ Enrolled', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      }
+      if (ent.entitlement_type === 'FULL') {
+        return { isOwned: true, type: 'FULL', label: '✓ Full Access', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      }
+      if (ent.entitlement_type === 'HALF' && seq <= (ent.snapshot_max_sequence || 28)) {
+        return { isOwned: true, type: 'HALF', label: '✓ Included in HALF', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      }
+      if (ent.entitlement_type === 'MINI' && seq <= (ent.snapshot_max_sequence || 16)) {
+        return { isOwned: true, type: 'MINI', label: '✓ Included in MINI', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      }
+      if (ent.entitlement_type === 'INDIVIDUAL_TEST' && ent.quiz_id === quiz.id) {
+        return { isOwned: true, type: 'INDIVIDUAL', label: '✓ Purchased', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      }
+    }
+
+    // 2. Check Free Quiz
+    if (quiz.isFree) {
+      return { isOwned: true, type: 'FREE', label: '✓ Free Demo Test', badgeColor: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
+    }
+
+    // 3. Check Current Cart Selection
+    if (selectedPackage) {
+      const plan = plans.find(p => p.plan_code === selectedPackage);
+      if (plan && seq >= plan.sequence_start_number && seq <= plan.sequence_end_number) {
+        return { isOwned: false, isCoveredByCartPackage: true, label: `✓ Included in ${selectedPackage}`, badgeColor: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+      }
+    }
+
+    if (selectedQuizIds.includes(quiz.id)) {
+      return { isOwned: false, isSelectedIndividual: true, label: '✓ Selected in Cart', badgeColor: 'bg-amber-500 text-slate-950 font-bold border-amber-500' };
+    }
+
+    // 4. Default Locked State
+    return { isOwned: false, isLocked: true, label: `🔒 Locked (₹${quiz.individual_price || 49})`, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200 dark:border-slate-700' };
+  }
+
+  // ── Determine Student's Highest Active Tier ───────────────────────────────
+  const activePackageEntitlement = entitlements.find(e => e.status === 'ACTIVE' && ['MINI', 'HALF', 'FULL', 'LEGACY_ENROLLMENT'].includes(e.entitlement_type));
+  const highestTier = activePackageEntitlement ? activePackageEntitlement.entitlement_type : 'NONE';
+
+  // ── Load Razorpay Script Dynamically ──────────────────────────────────────
+  const loadRazorpaySDK = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) return resolve(true);
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  // ── Handle Checkout Trigger ────────────────────────────────────────────────
+  const { refresh } = useAuth();
+  const handleInitiateCheckout = async () => {
+    let effectiveToken = accessToken;
+    if (!effectiveToken && typeof window !== 'undefined') {
+      effectiveToken = localStorage.getItem('access_token') || localStorage.getItem('token');
+    }
+
+    if (!effectiveToken) {
+      effectiveToken = await refresh();
+    }
+
+    if (!user && !effectiveToken) {
+      window.location.href = `/auth/login?redirect=/test-series/program/${slug}`;
+      return;
+    }
+
+    if (!series || (!selectedPackage && selectedQuizIds.length === 0)) {
+      alert('Please select a package or individual test to purchase.');
+      return;
+    }
+
+    setPaymentState('CREATING_ORDER');
+    setErrorMessage(null);
+
+    try {
+      // 1. Prepare items payload for backend checkout order creation
+      const itemsPayload: Array<{ itemType: string; planCode?: string; quizId?: string }> = [];
+      if (selectedPackage) {
+        const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF';
+        itemsPayload.push({
+          itemType: isUpgrade ? 'UPGRADE_PLAN' : 'PACKAGE_PLAN',
+          planCode: selectedPackage
+        });
+      }
+      selectedQuizIds.forEach(qId => {
+        itemsPayload.push({ itemType: 'INDIVIDUAL_TEST', quizId: qId });
+      });
+
+      const uId = (user as any)?.id || (user as any)?.userId || 'user';
+      const idempotencyKey = `idemp_${uId}_${series.id}_${Date.now()}`;
+
+      // 2. Call backend order creation API
+      const orderRes = await db.createTestSeriesOrder(series.id, itemsPayload, idempotencyKey, effectiveToken || undefined);
+      
+      if (!orderRes || !orderRes.success) {
+        throw new Error(orderRes?.error || 'Failed to create purchase order.');
+      }
+
+      const orderData = orderRes.data;
+
+      // 3. Zero-Amount Order (Instant Free Fulfillment / 100% Upgrade Discount)
+      if (orderRes.message?.includes('Zero payable amount') || orderData.isFreeFulfillment) {
+        setPaymentState('SUCCESS');
+        // Refresh entitlements
+        const newEnts = await db.getStudentEntitlements(series.id, effectiveToken || undefined);
+        setEntitlements(newEnts || []);
+        setSelectedPackage(null);
+        setSelectedQuizIds([]);
+        setCartPreview(null);
+        return;
+      }
+
+      // 4. Open Razorpay Checkout Popup for Paid Orders
+      setPaymentState('RAZORPAY_OPEN');
+      const sdkReady = await loadRazorpaySDK();
+      
+      if (!sdkReady) {
+        // Dev Fallback Simulation if Razorpay SDK script fails to load locally
+        console.warn('Razorpay SDK unavailable. Triggering dev simulation verification...');
+        const verifyRes = await db.verifyTestSeriesOrder({
+          orderId: orderData.orderId,
+          razorpayPaymentId: `pay_sim_${Date.now()}`,
+          razorpayOrderId: orderData.gatewayOrderId || `order_sim_${Date.now()}`
+        }, effectiveToken || undefined);
+
+        if (verifyRes && verifyRes.success) {
+          setPaymentState('SUCCESS');
+          const newEnts = await db.getStudentEntitlements(series.id, effectiveToken || undefined);
+          setEntitlements(newEnts || []);
+          setSelectedPackage(null);
+          setSelectedQuizIds([]);
+          setCartPreview(null);
+        } else {
+          throw new Error(verifyRes?.error || 'Simulated payment verification failed.');
+        }
+        return;
+      }
+
+      const currentUser = user as any;
+
+      const options = {
+        key: orderData.key || 'rzp_test_TTzBxGpMqc0rAD',
+        amount: orderData.netAmount * 100,
+        currency: orderData.currency || 'INR',
+        name: 'FinalAttempt IAS',
+        description: `Purchase for ${series.title}`,
+        order_id: orderData.gatewayOrderId,
+        prefill: {
+          name: currentUser?.fullName || '',
+          email: currentUser?.email || '',
+          contact: currentUser?.mobile || ''
+        },
+        theme: { color: '#f59e0b' },
+        handler: async function (response: any) {
+          setPaymentState('VERIFYING');
+          try {
+            const verifyRes = await db.verifyTestSeriesOrder({
+              orderId: orderData.orderId,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpaySignature: response.razorpay_signature
+            }, effectiveToken || undefined);
+
+            if (verifyRes && verifyRes.success) {
+              setPaymentState('SUCCESS');
+              const newEnts = await db.getStudentEntitlements(series.id, effectiveToken || undefined);
+              setEntitlements(newEnts || []);
+              setSelectedPackage(null);
+              setSelectedQuizIds([]);
+              setCartPreview(null);
+            } else {
+              throw new Error(verifyRes?.error || 'Payment verification failed.');
+            }
+          } catch (err: any) {
+            setPaymentState('ERROR');
+            setErrorMessage(err.message || 'Payment verification failed.');
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            setPaymentState('IDLE');
+          }
+        }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.on('payment.failed', function (response: any) {
+        setPaymentState('ERROR');
+        setErrorMessage(response.error?.description || 'Payment failed on Razorpay.');
+      });
+      rzp.open();
+
+    } catch (err: any) {
+      console.error('Checkout error:', err);
+      setPaymentState('ERROR');
+      setErrorMessage(err.message || 'Checkout failed. Please try again.');
+    }
+  };
+
+  // ── Loading Skeleton ──────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-16 space-y-6">
-        <div className="h-8 w-32 bg-slate-100 dark:bg-slate-800 rounded-xl animate-pulse" />
-        <div className="h-64 bg-slate-100 dark:bg-slate-800 rounded-3xl animate-pulse" />
+      <div className="max-w-7xl mx-auto px-4 py-16 space-y-6">
+        <div className="h-8 w-32 bg-slate-200 dark:bg-slate-800 rounded-xl animate-pulse" />
+        <div className="h-64 bg-slate-200 dark:bg-slate-800 rounded-3xl animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="h-48 bg-slate-200 dark:bg-slate-800 rounded-3xl animate-pulse" />
+          <div className="h-48 bg-slate-200 dark:bg-slate-800 rounded-3xl animate-pulse" />
+          <div className="h-48 bg-slate-200 dark:bg-slate-800 rounded-3xl animate-pulse" />
+        </div>
       </div>
     );
   }
@@ -79,219 +418,538 @@ export default function TestSeriesDetailPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
         <BookOpen className="w-16 h-16 text-slate-400 mx-auto" />
-        <h2 className="text-2xl font-heading font-black text-[var(--text-color)]">Test Series Not Found</h2>
+        <h2 className="text-2xl font-heading font-black text-[var(--text-color)]">Test Series Program Not Found</h2>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-          The test series program you requested is unavailable or has been archived.
+          The requested test series is currently unavailable or archived.
         </p>
         <Link
           href="/test-series"
           className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 text-slate-950 font-bold rounded-2xl text-xs"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to All Test Series</span>
+          <span>Return to Test Series Portal</span>
         </Link>
       </div>
     );
   }
 
-  const hasDiscount = series.discountedPrice && series.discountedPrice < series.price;
-  const displayPrice = hasDiscount ? series.discountedPrice : series.price;
-
   return (
-    <div className="min-h-screen bg-[var(--bg-color)] pt-6 sm:pt-8 pb-16 px-4 sm:px-6 lg:px-8 font-body space-y-8">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[var(--bg-color)] pt-6 sm:pt-8 pb-32 px-4 sm:px-6 lg:px-8 font-body space-y-8">
+      <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Back Link */}
+        {/* Navigation Breadcrumb */}
         <Link
           href="/test-series"
           className="text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors inline-flex items-center gap-1.5"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to Test Series Portal</span>
+          <span>{t('testSeries.backToPrograms')}</span>
         </Link>
 
-        {/* ── Compact Header Banner ────────────────────────────────────────────── */}
-        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl overflow-hidden shadow-xs">
+        {/* ── Compact Header Banner & Active Access Status ─────────────────── */}
+        <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden shadow-xs">
           {(series.bannerUrl || series.thumbnailUrl) && (
-            <div className="w-full aspect-[3840/1326] max-h-[460px] bg-slate-950 relative overflow-hidden flex items-center justify-center border-b border-[var(--card-border)]">
+            <div className="w-full aspect-video max-h-[450px] bg-slate-950 relative overflow-hidden flex items-center justify-center border-b border-[var(--card-border)]">
               <img
                 src={series.bannerUrl || series.thumbnailUrl}
                 alt={series.title}
-                className="w-full h-full object-contain"
-                onError={(e) => {
-                  (e.currentTarget as HTMLElement).style.display = 'none';
-                }}
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
               />
             </div>
           )}
 
           <div className="p-6 sm:p-8 space-y-6">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-md">
-                {series.exam || 'BPSC'}
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-0.5 rounded-md">
-                {series.language}
-              </span>
-              {series.category && (
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-md">
-                  {series.category}
-                </span>
-              )}
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 px-2.5 py-0.5 rounded-md">
+                    {series.exam || 'BPSC'}
+                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2.5 py-0.5 rounded-md">
+                    {series.language || 'Bilingual'} Medium
+                  </span>
+                  {series.category && (
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-2.5 py-0.5 rounded-md">
+                      {series.category}
+                    </span>
+                  )}
+                </div>
+
+                <h1 className="text-2xl sm:text-3xl font-heading font-black text-[var(--text-color)] leading-snug">
+                  {series.title}
+                </h1>
+              </div>
+
+              {/* Student Access Badge */}
+              <div className="bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] px-4 py-3 rounded-2xl flex items-center gap-3">
+                <ShieldCheck className="w-6 h-6 text-amber-500 shrink-0" />
+                <div>
+                  <span className="text-[9px] font-extrabold uppercase tracking-widest text-slate-400 block">{t('testSeries.myAccessStatus')}</span>
+                  <span className="text-xs font-black text-[var(--text-color)]">
+                    {highestTier === 'FULL' || highestTier === 'LEGACY_ENROLLMENT' ? t('testSeries.fullAccessUnlocked') :
+                     highestTier === 'HALF' ? t('testSeries.halfPackageActive') :
+                     highestTier === 'MINI' ? t('testSeries.miniPackageActive') :
+                     entitlements.some(e => e.entitlement_type === 'INDIVIDUAL_TEST' && e.status === 'ACTIVE') ? t('testSeries.customIndividualAccess') :
+                     t('testSeries.noActivePackage')}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-heading font-black text-[var(--text-color)] leading-snug">
-              {series.title}
-            </h1>
-
             {series.description && (
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-3xl">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-4xl">
                 {series.description}
               </p>
             )}
 
-            {Boolean(series.schedulePdfUrl) && (
-              <div className="pt-2">
-                <a
-                  href={series.schedulePdfUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-xs shadow-xs transition-all"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>Download Schedule PDF</span>
-                </a>
+            {/* Quick Metrics Bar */}
+            <div className="pt-4 border-t border-[var(--card-border)] grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+              <div>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">{t('testSeries.totalMocksPool')}</span>
+                <span className="font-bold text-[var(--text-color)]">{quizzes.length || series.totalTests || 40} CBT Tests</span>
               </div>
-            )}
-          </div>
-
-          {/* Compact Metrics Row */}
-          <div className="pt-4 border-t border-[var(--card-border)] grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Mocks</span>
-              <span className="font-bold text-[var(--text-color)]">{series.totalTests} Tests</span>
+              <div>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">{t('testSeries.individualTestRate')}</span>
+                <span className="font-bold text-[var(--text-color)]">₹49 / Test Paper</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">{t('testSeries.programValidity')}</span>
+                <span className="font-bold text-[var(--text-color)]">{series.duration || 'Unlimited Attempts'}</span>
+              </div>
+              <div>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">{t('testSeries.schedule')}</span>
+                {series.schedulePdfUrl ? (
+                  <a href={series.schedulePdfUrl} target="_blank" rel="noreferrer" className="text-amber-500 font-bold hover:underline">
+                    {t('testSeries.downloadSchedulePdf')}
+                  </a>
+                ) : (
+                  <span className="font-bold text-[var(--text-color)]">Official BPSC CBT Pattern</span>
+                )}
+              </div>
             </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Questions</span>
-              <span className="font-bold text-[var(--text-color)]">{series.totalQuestions} Qs</span>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Validity</span>
-              <span className="font-bold text-[var(--text-color)]">{series.duration}</span>
-            </div>
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Enrolled</span>
-              <span className="font-bold text-[var(--text-color)]">{Math.max(600, Number(series.enrolledCount) || 600)}+ Aspirants</span>
-            </div>
-          </div>
           </div>
         </div>
 
-
-        {/* ── Two-Column Layout ────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          
-          {/* Left Column: Test Series Schedule Workbench, Syllabus, Sample Teaser, FAQs */}
-          <div className="lg:col-span-8 space-y-10">
-            
-            {/* ── Active Mock Tests List (Shown ONLY after enrollment; masked for public users) ── */}
-            <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--card-border)] pb-4">
-                <div>
-                  <h3 className="font-heading font-black text-lg text-[var(--text-color)] flex items-center gap-2">
-                    <Award className="w-5 h-5 text-amber-500" />
-                    <span>Mock Tests & Exam Schedule {isEnrolled ? `(${quizzes.length})` : ''}</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">Official CBT Exam Pattern · Immediate Automated Scorecard & Analysis</p>
-                </div>
-
-                <span className="text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-lg border border-emerald-500/20">
-                  {series.language} Medium
-                </span>
-              </div>
-
-              {!isEnrolled ? (
-                <div className="p-8 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-[var(--card-border)] space-y-3">
-                  <BookOpen className="w-10 h-10 text-amber-500 mx-auto" />
-                  <h4 className="font-bold text-sm text-[var(--text-color)]">Enrollment Required to Access CBT Mock Papers</h4>
-                  <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    Enroll in this Test Series program to unlock all full-length mock papers, detailed solution keys, and analytics.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(true)}
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 text-slate-950 font-black rounded-xl text-xs hover:bg-amber-600 transition-colors uppercase cursor-pointer"
-                  >
-                    <span>Enroll Now to Unlock Tests</span>
-                  </button>
-                </div>
-              ) : quizzes.length === 0 ? (
-                <div className="p-8 text-center bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-[var(--card-border)] space-y-2">
-                  <BookOpen className="w-10 h-10 text-slate-400 mx-auto" />
-                  <h4 className="font-bold text-sm text-[var(--text-color)]">Quizzes Being Prepared</h4>
-                  <p className="text-xs text-slate-500">New published test papers will appear here as scheduled.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {quizzes.map((quiz, idx) => (
-                    <div
-                      key={quiz.id || idx}
-                      className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-[var(--card-border)] hover:border-amber-500/40 transition-all space-y-3"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                              MOCK TEST #{idx + 1}
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-400">
-                              {quiz.timeLimitMins ? `${quiz.timeLimitMins} Mins` : 'Standard Duration'}
-                            </span>
-                          </div>
-
-                          <h4 className="font-heading font-extrabold text-base text-[var(--text-color)]">
-                            {quiz.title}
-                          </h4>
-                        </div>
-
-                        <Link
-                          href={`/test-series/program/${slug}/attempt?quiz=${quiz.id}`}
-                          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs transition-transform hover:scale-105 inline-flex items-center gap-1.5 shadow-sm"
-                        >
-                          <span>Attempt Now</span>
-                          <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
-                        </Link>
-                      </div>
-
-                      {quiz.instructions && (
-                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                          {quiz.instructions}
-                        </p>
-                      )}
-
-                      <div className="flex flex-wrap items-center gap-4 text-[11px] font-bold text-slate-500 pt-2 border-t border-[var(--card-border)]">
-                        <span>⏱ {quiz.timeLimitMins || 120} Mins</span>
-                        <span>🎯 Official Scoring</span>
-                        <span>🌐 {series.language}</span>
-                        <span>⚡ Instant Detailed Solutions</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+        {/* ── SECTION 1: PACKAGE OPTIONS (MINI, HALF, FULL) ───────────────── */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-heading font-black text-[var(--text-color)] flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-500" />
+                <span>{t('testSeries.choosePackageTier')}</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {t('testSeries.packageTierDesc')}
+              </p>
             </div>
 
-            {/* Highlights Box */}
+            {selectedPackage && (
+              <button
+                onClick={() => setSelectedPackage(null)}
+                className="text-xs text-rose-500 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>{t('testSeries.clearPackage')}</span>
+              </button>
+            )}
+          </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* MINI Package Card */}
+            {(() => {
+              const planCode = 'MINI';
+              const plan: TestSeriesPlan = plans.find(p => p.plan_code === planCode) || {
+                id: 'mini-default',
+                series_id: series.id,
+                plan_code: 'MINI',
+                title: 'MINI Package',
+                sequence_start_number: 1,
+                sequence_end_number: 16,
+                price: 299,
+                discounted_price: undefined,
+                is_active: true
+              };
+
+              const isOwned = highestTier === 'MINI' || highestTier === 'HALF' || highestTier === 'FULL' || highestTier === 'LEGACY_ENROLLMENT';
+              const isSelected = selectedPackage === 'MINI';
+
+              return (
+                <div
+                  className={`bg-[var(--card-bg)] border-2 rounded-3xl p-6 space-y-5 transition-all relative overflow-hidden flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-amber-500 shadow-xl bg-amber-500/5'
+                      : isOwned
+                      ? 'border-emerald-500/40 opacity-90'
+                      : 'border-[var(--card-border)] hover:border-amber-500/50'
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20">
+                          {plan.title}
+                        </span>
+                        <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
+                          {t('testSeries.tests')} {plan.sequence_start_number}–{plan.sequence_end_number}
+                        </h3>
+                      </div>
+                      <span className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-black text-slate-500">
+                        16
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {t('testSeries.first')} {plan.sequence_end_number} {t('testSeries.sequentialTests')}
+                    </p>
+
+                    <div className="flex items-baseline gap-2 pt-2 border-t border-[var(--card-border)]">
+                      <span className="text-2xl font-heading font-black text-[var(--text-color)]">
+                        ₹{plan.price}
+                      </span>
+                      {plan.discounted_price && (
+                        <span className="text-xs text-slate-400 line-through">₹{plan.discounted_price}</span>
+                      )}
+                      <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.cumulative')}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    {isOwned ? (
+                      <div className="w-full py-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-2xl text-xs text-center border border-emerald-500/20 flex items-center justify-center gap-1.5">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>{t('testSeries.includedCurrentAccess')}</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setSelectedPackage(isSelected ? null : 'MINI')}
+                        className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                          isSelected
+                            ? 'bg-amber-500 text-slate-950 shadow-md'
+                            : 'bg-slate-100 dark:bg-slate-800 text-[var(--text-color)] hover:bg-amber-500 hover:text-slate-950'
+                        }`}
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>{isSelected ? t('testSeries.selectedClickRemove') : t('testSeries.selectMini').replace('{price}', plan.price.toString())}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* HALF Package Card */}
+            {(() => {
+              const planCode = 'HALF';
+              const plan: TestSeriesPlan = plans.find(p => p.plan_code === planCode) || {
+                id: 'half-default',
+                series_id: series.id,
+                plan_code: 'HALF',
+                title: 'HALF Package',
+                sequence_start_number: 1,
+                sequence_end_number: 28,
+                price: 499,
+                discounted_price: undefined,
+                is_active: true
+              };
+
+              const isOwned = highestTier === 'HALF' || highestTier === 'FULL' || highestTier === 'LEGACY_ENROLLMENT';
+              const isMiniOwned = highestTier === 'MINI';
+              const isSelected = selectedPackage === 'HALF';
+
+              return (
+                <div
+                  className={`bg-[var(--card-bg)] border-2 rounded-3xl p-6 space-y-5 transition-all relative overflow-hidden flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-amber-500 shadow-xl bg-amber-500/5'
+                      : isOwned
+                      ? 'border-emerald-500/40 opacity-90'
+                      : 'border-[var(--card-border)] hover:border-amber-500/50'
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-md border border-indigo-500/20">
+                          {plan.title}
+                        </span>
+                        <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
+                          {t('testSeries.tests')} {plan.sequence_start_number}–{plan.sequence_end_number}
+                        </h3>
+                      </div>
+                      <span className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-black text-slate-500">
+                        28
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {t('testSeries.first')} {plan.sequence_end_number} {t('testSeries.cumulatively')}
+                    </p>
+
+                    <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-heading font-black text-[var(--text-color)]">
+                          ₹{plan.price}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.cumulative')}</span>
+                      </div>
+
+                      {isMiniOwned && (
+                        <span className="text-[10px] font-extrabold text-amber-500 mt-1">
+                          {t('testSeries.upgradeFromMini')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    {isOwned ? (
+                      <div className="w-full py-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-2xl text-xs text-center border border-emerald-500/20 flex items-center justify-center gap-1.5">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>{t('testSeries.includedCurrentAccess')}</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setSelectedPackage(isSelected ? null : 'HALF')}
+                        className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                          isSelected
+                            ? 'bg-amber-500 text-slate-950 shadow-md'
+                            : 'bg-slate-100 dark:bg-slate-800 text-[var(--text-color)] hover:bg-amber-500 hover:text-slate-950'
+                        }`}
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>
+                          {isSelected
+                            ? t('testSeries.selectedClickRemove')
+                            : isMiniOwned
+                            ? t('testSeries.upgradeToHalf')
+                            : t('testSeries.selectHalf').replace('{price}', plan.price.toString())}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* FULL Package Card */}
+            {(() => {
+              const planCode = 'FULL';
+              const plan: TestSeriesPlan = plans.find(p => p.plan_code === planCode) || {
+                id: 'full-default',
+                series_id: series.id,
+                plan_code: 'FULL',
+                title: 'FULL Series Pass',
+                sequence_start_number: 1,
+                sequence_end_number: 40,
+                price: 799,
+                discounted_price: undefined,
+                is_active: true
+              };
+
+              const isOwned = highestTier === 'FULL' || highestTier === 'LEGACY_ENROLLMENT';
+              const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF';
+              const isSelected = selectedPackage === 'FULL';
+
+              return (
+                <div
+                  className={`bg-[var(--card-bg)] border-2 rounded-3xl p-6 space-y-5 transition-all relative overflow-hidden flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-amber-500 shadow-xl bg-amber-500/5'
+                      : isOwned
+                      ? 'border-emerald-500/40 opacity-90'
+                      : 'border-amber-500/40 hover:border-amber-500 shadow-md'
+                  }`}
+                >
+                  {/* Recommended Badge */}
+                  <div className="absolute top-0 right-0 bg-amber-500 text-slate-950 text-[9px] font-black uppercase px-3 py-1 rounded-bl-xl tracking-wider">
+                    {t('testSeries.bestValuePass')}
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
+                          {plan.title}
+                        </span>
+                        <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
+                          All {t('testSeries.tests')} 1–{plan.sequence_end_number}
+                        </h3>
+                      </div>
+                      <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-black">
+                        40
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {t('testSeries.fullAccessDesc')}
+                    </p>
+
+                    <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-heading font-black text-[var(--text-color)]">
+                          ₹{plan.price}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.allInclusive')}</span>
+                      </div>
+
+                      {isUpgrade && (
+                        <span className="text-[10px] font-extrabold text-amber-500 mt-1">
+                          {t('testSeries.upgradeFromTier').replace('{tier}', highestTier)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    {isOwned ? (
+                      <div className="w-full py-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-2xl text-xs text-center border border-emerald-500/20 flex items-center justify-center gap-1.5">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>{t('testSeries.fullPassActive')}</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setSelectedPackage(isSelected ? null : 'FULL')}
+                        className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                          isSelected
+                            ? 'bg-amber-500 text-slate-950 shadow-md'
+                            : 'bg-amber-500 hover:bg-amber-600 text-slate-950 font-black shadow-md'
+                        }`}
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>
+                          {isSelected
+                            ? t('testSeries.selectedClickRemove')
+                            : t('testSeries.getFullPass').replace('{price}', plan.price.toString())}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* ── SECTION 2: INDIVIDUAL TEST SELECTION GRID ───────────────────── */}
+        <div className="space-y-4 pt-4 border-t border-[var(--card-border)]">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-heading font-black text-[var(--text-color)] flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-500" />
+                <span>{t('testSeries.chooseIndividualTests')}</span>
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {t('testSeries.individualTestsDesc')}
+              </p>
+            </div>
+
+            {selectedQuizIds.length > 0 && (
+              <button
+                onClick={() => setSelectedQuizIds([])}
+                className="text-xs text-rose-500 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Deselect All Tests ({selectedQuizIds.length})</span>
+              </button>
+            )}
+          </div>
+
+          {/* Test Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {quizzes.map((quiz, idx) => {
+              const info = getQuizAccessInfo(quiz);
+              const isSelected = selectedQuizIds.includes(quiz.id);
+
+              return (
+                <div
+                  key={quiz.id || idx}
+                  onClick={() => {
+                    if (info.isOwned) {
+                      // Navigate to attempt
+                      window.location.href = `/test-series/program/${slug}/attempt?quiz=${quiz.id}`;
+                    } else if (info.isCoveredByCartPackage) {
+                      // Do nothing - already in selected package
+                    } else {
+                      // Toggle individual test selection or show modal
+                      if (isSelected) {
+                        setSelectedQuizIds(prev => prev.filter(id => id !== quiz.id));
+                      } else {
+                        setSelectedQuizIds(prev => [...prev, quiz.id]);
+                      }
+                    }
+                  }}
+                  className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                    info.isOwned
+                      ? 'bg-emerald-500/5 border-emerald-500/30 hover:border-emerald-500/60'
+                      : isSelected
+                      ? 'bg-amber-500/10 border-amber-500 shadow-md'
+                      : info.isCoveredByCartPackage
+                      ? 'bg-amber-500/5 border-amber-500/30'
+                      : 'bg-[var(--card-bg)] border-[var(--card-border)] hover:border-amber-500/50'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        TEST #{quiz.sequence_number || idx + 1}
+                      </span>
+
+                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md border ${info.badgeColor}`}>
+                        {info.label}
+                      </span>
+                    </div>
+
+                    <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] line-clamp-2 leading-snug">
+                      {quiz.title}
+                    </h4>
+                  </div>
+
+                  <div className="pt-2 border-t border-[var(--card-border)] flex items-center justify-between text-xs">
+                    <span className="text-[10px] text-slate-400 font-bold">
+                      ⏱ {quiz.timeLimitMins || 120} Mins
+                    </span>
+
+                    {info.isOwned ? (
+                      <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <span>Attempt</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </span>
+                    ) : info.isCoveredByCartPackage ? (
+                      <span className="text-[10px] font-extrabold text-amber-500">
+                        In Package
+                      </span>
+                    ) : (
+                      <span className={`text-xs font-black px-2.5 py-1 rounded-xl transition-colors ${
+                        isSelected ? 'bg-amber-500 text-slate-950' : 'bg-slate-100 dark:bg-slate-800 text-[var(--text-color)]'
+                      }`}>
+                        {isSelected ? '✓ Added' : `+ Add (₹${quiz.individual_price || 49})`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── SECTION 3: SYLLABUS & FAQS ACCORDION ───────────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-6 border-t border-[var(--card-border)]">
+          <div className="lg:col-span-8 space-y-8">
+            {/* Highlights Box */}
             <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
               <h3 className="font-heading font-black text-lg text-[var(--text-color)] flex items-center gap-2 border-b border-[var(--card-border)] pb-3">
                 <Sparkles className="w-5 h-5 text-amber-500" />
-                <span>Program Highlights & Inclusions</span>
+                <span>{t('testSeries.programFeatures')}</span>
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {series.highlights?.map((hl, idx) => (
+                {(series.highlights || [
+                  t('testSeries.feature1'),
+                  t('testSeries.feature2'),
+                  t('testSeries.feature3'),
+                  'All India Rank & State-level percentile benchmarking'
+                ]).map((hl, idx) => (
                   <div key={idx} className="flex gap-3 items-start p-3 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-[var(--card-border)]">
                     <CheckCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                     <span className="text-xs font-medium text-[var(--text-color)] leading-snug">{hl}</span>
@@ -300,66 +958,12 @@ export default function TestSeriesDetailPage() {
               </div>
             </div>
 
-            {/* Syllabus & Micro-Topics Accordion */}
-            {series.syllabus && series.syllabus.length > 0 && (
-              <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
-                <div className="flex justify-between items-center border-b border-[var(--card-border)] pb-3">
-                  <h3 className="font-heading font-black text-lg text-[var(--text-color)] flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-indigo-500" />
-                    <span>Syllabus & Test Series Structure ({series.syllabus.length} Modules)</span>
-                  </h3>
-                </div>
-
-                <div className="space-y-3">
-                  {series.syllabus.map((sub, idx) => {
-                    const isOpen = openSubject === idx;
-                    return (
-                      <div
-                        key={idx}
-                        className="border border-[var(--card-border)] rounded-2xl overflow-hidden transition-all"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => setOpenSubject(isOpen ? null : idx)}
-                          className="w-full p-4 bg-slate-50 dark:bg-slate-900/40 hover:bg-amber-500/5 flex justify-between items-center text-left transition-colors cursor-pointer"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="w-7 h-7 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-black">
-                              {idx + 1}
-                            </span>
-                            <span className="font-heading font-extrabold text-sm text-[var(--text-color)]">
-                              {sub.subject}
-                            </span>
-                          </div>
-                          {isOpen ? <ChevronUp className="w-4 h-4 text-amber-500" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                        </button>
-
-                        {isOpen && (
-                          <div className="p-4 bg-[var(--card-bg)] border-t border-[var(--card-border)] space-y-2">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Covered Micro Topics:</span>
-                            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {sub.topics.map((t, tIdx) => (
-                                <li key={tIdx} className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-2">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                                  <span>{t}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* FAQs Accordion */}
+            {/* FAQs */}
             {series.faq && series.faq.length > 0 && (
               <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
                 <h3 className="font-heading font-black text-lg text-[var(--text-color)] flex items-center gap-2 border-b border-[var(--card-border)] pb-3">
                   <HelpCircle className="w-5 h-5 text-amber-500" />
-                  <span>Frequently Asked Questions</span>
+                  <span>{t('testSeries.faqTitle')}</span>
                 </h3>
 
                 <div className="space-y-3">
@@ -390,241 +994,200 @@ export default function TestSeriesDetailPage() {
             )}
           </div>
 
-          {/* Right Sticky Sidebar: Pricing Card & Enrollment */}
-          <div className="lg:col-span-4 sticky top-24 space-y-6">
-            <div className="bg-[var(--card-bg)] border-2 border-amber-500/30 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl relative overflow-hidden">
-              <div className="space-y-2 text-center border-b border-[var(--card-border)] pb-6">
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20 inline-block">
-                  {isEnrolled ? 'ACCESS ACTIVE' : 'ENROLLMENT OPEN'}
-                </span>
-                {!isEnrolled && (
-                  <div className="flex justify-center items-baseline gap-2 pt-2">
-                    <span className="text-3xl sm:text-4xl font-heading font-black text-[var(--text-color)]">
-                      ₹{displayPrice?.toLocaleString()}
-                    </span>
-                    {hasDiscount && (
-                      <span className="text-sm font-bold text-slate-400 line-through">
-                        ₹{series.price.toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                )}
-                {hasDiscount && !isEnrolled && (
-                  <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block">
-                    Save ₹{(series.price - (series.discountedPrice || 0)).toLocaleString()} Limited Offer
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-3 text-xs text-[var(--text-color)] font-medium">
-                <div className="flex justify-between py-1 border-b border-[var(--card-border)]">
-                  <span className="text-slate-400">Target Exam:</span>
-                  <span className="font-bold">{series.exam}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[var(--card-border)]">
-                  <span className="text-slate-400">Mock Series:</span>
-                  <span className="font-bold">{isEnrolled ? `${series.totalTests} Mocks` : 'Full Length Series'}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[var(--card-border)]">
-                  <span className="text-slate-400">Language:</span>
-                  <span className="font-bold">{series.language}</span>
-                </div>
-                <div className="flex justify-between py-1 border-b border-[var(--card-border)]">
-                  <span className="text-slate-400">Validity:</span>
-                  <span className="font-bold">{series.duration}</span>
-                </div>
-              </div>
-
-              {!isEnrolled && (
-                <button
-                  type="button"
-                  onClick={() => setShowModal(true)}
-                  className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs sm:text-sm uppercase tracking-wider shadow-md hover:scale-[1.02] transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span>{isEnrolled ? 'Enrolled (Access Unlocked)' : 'Enroll in Test Series'}</span>
-                </button>
-              )}
-
-              {Boolean(series.schedulePdfUrl) && (
-                <a
-                  href={series.schedulePdfUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>Download Schedule PDF</span>
-                </a>
-              )}
-
-              <div className="text-center space-y-2 pt-2">
-                <span className="text-[10px] text-slate-400 block font-medium">Have questions before enrolling?</span>
-                <a
-                  href="tel:+919709992093"
-                  className="text-xs font-extrabold text-amber-500 hover:underline flex items-center justify-center gap-1.5"
-                >
-                  <PhoneCall className="w-3.5 h-3.5" />
-                  <span>Speak with Counselor: +91 97099 92093</span>
-                </a>
-              </div>
+          <div className="lg:col-span-4 space-y-6">
+            <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 space-y-4">
+              <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] flex items-center gap-2">
+                <PhoneCall className="w-4 h-4 text-amber-500" />
+                <span>{t('testSeries.counselingSupport')}</span>
+              </h4>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                {t('testSeries.counselingDesc')}
+              </p>
+              <a
+                href="tel:+919709992093"
+                className="w-full py-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold rounded-2xl text-xs flex items-center justify-center gap-2 border border-amber-500/20"
+              >
+                <span>{t('testSeries.callHelpline')}</span>
+              </a>
             </div>
           </div>
         </div>
 
       </div>
 
-      {/* Enrollment Quick Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs">
-          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-6 shadow-2xl relative">
-            <div className="space-y-2">
-              <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Fast Enrollment</span>
-              <h3 className="font-heading font-black text-xl text-[var(--text-color)]">Enroll in {series.title}</h3>
-              <p className="text-xs text-slate-500">Enter your details to complete enrollment and unlock test series access.</p>
+      {/* ── FLOATING STICKY SELECTION CART BAR & CHECKOUT (MOBILE & DESKTOP) ─ */}
+      {(selectedPackage || selectedQuizIds.length > 0) && (
+        <div className="fixed bottom-0 inset-x-0 z-40 bg-slate-950/95 border-t border-amber-500/30 text-white p-4 sm:p-5 backdrop-blur-md shadow-2xl transition-transform">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            
+            {/* Cart Itemization Summary */}
+            <div className="flex items-center gap-4 w-full sm:w-auto">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-6 h-6" />
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-heading font-black text-base text-amber-400">
+                    {cartPreview ? `₹${cartPreview.netAmount}` : 'Calculating...'}
+                  </span>
+                  {cartPreview && cartPreview.upgradeCreditAmount > 0 && (
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-0.5 rounded border border-emerald-500/30">
+                      ₹{cartPreview.upgradeCreditAmount} Credit Applied
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-slate-300">
+                  {selectedPackage ? `Package: ${selectedPackage}` : ''}
+                  {selectedPackage && selectedQuizIds.length > 0 ? ' + ' : ''}
+                  {selectedQuizIds.length > 0 ? `${selectedQuizIds.length} Individual Test(s)` : ''}
+                  {cartPreview?.redundantQuizIdsRemoved && cartPreview.redundantQuizIdsRemoved.length > 0 && (
+                    <span className="text-amber-400 font-bold ml-1">
+                      ({cartPreview.redundantQuizIdsRemoved.length} redundant test(s) stripped)
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
 
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const form = e.currentTarget;
-                const fullName = (form.elements.namedItem('fullName') as HTMLInputElement).value;
-                const email = (form.elements.namedItem('email') as HTMLInputElement).value;
-                const mobile = (form.elements.namedItem('mobile') as HTMLInputElement).value;
-                const state = (form.elements.namedItem('state') as HTMLInputElement).value;
-                const district = (form.elements.namedItem('district') as HTMLInputElement).value;
-
-                try {
-                  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
-                  // Update user profile info (state, district, mobile, email) if user is logged in
-                  if (accessToken) {
-                    await fetch(`${BACKEND_URL}/api/auth/profile`, {
-                      method: 'PUT',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                      },
-                      body: JSON.stringify({ fullName, email, mobile, state, district })
-                    }).catch(() => null);
-
-                    // Create real enrollment
-                    const enrollRes = await fetch(`${BACKEND_URL}/api/lms/enrollments`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                      },
-                      body: JSON.stringify({
-                        courseId: series.id,
-                        paymentOrderId: 'DIRECT_PAYMENT',
-                        amountPaid: displayPrice
-                      })
-                    });
-
-                    const enrollData = await enrollRes.json();
-                    if (enrollRes.ok || enrollData.success) {
-                      setIsEnrolled(true);
-                      setShowModal(false);
-                      alert(`Enrollment successful! Full access unlocked for ${series.title}.`);
-                      window.location.reload();
-                      return;
-                    } else if (enrollData.code === 'PAY_002') {
-                      setIsEnrolled(true);
-                      setShowModal(false);
-                      alert('You are already enrolled! Access is unlocked.');
-                      return;
-                    }
-                  } else {
-                    alert(`Thank you ${fullName}! Please log in or register to complete your instant access for ${series.title}.`);
-                    window.location.href = `/auth/login?redirect=/test-series/program/${series.slug}`;
-                    return;
-                  }
-                } catch (err: any) {
-                  console.error('Enrollment error:', err);
-                  alert('Network error while processing enrollment. Please try again.');
-                }
-              }}
-              className="space-y-4 text-xs font-bold"
-            >
-              <div>
-                <label className="block text-slate-400 mb-1">Full Name</label>
-                <input
-                  name="fullName"
-                  type="text"
-                  required
-                  defaultValue={user?.fullName || ''}
-                  placeholder="Enter your full name"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 mb-1">Email Address</label>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  defaultValue={user?.email || ''}
-                  placeholder="name@example.com"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-slate-400 mb-1">Mobile Number</label>
-                <input
-                  name="mobile"
-                  type="tel"
-                  required
-                  defaultValue={user?.mobile || ''}
-                  placeholder="+91 10-digit mobile"
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 mb-1">State</label>
-                  <input
-                    name="state"
-                    type="text"
-                    required
-                    defaultValue={(user as any)?.state || ''}
-                    placeholder="e.g. Bihar"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 mb-1">District</label>
-                  <input
-                    name="district"
-                    type="text"
-                    required
-                    defaultValue={(user as any)?.district || ''}
-                    placeholder="e.g. Patna"
-                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)]"
-                  />
-                </div>
-              </div>
-
+            {/* Action Buttons */}
+            <div className="flex items-center gap-3 w-full sm:w-auto">
               <button
-                type="submit"
-                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider cursor-pointer shadow-md mt-2"
+                onClick={() => setShowCheckoutDrawer(!showCheckoutDrawer)}
+                className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl text-xs cursor-pointer border border-slate-700"
               >
-                Proceed to Payment & Access (₹{displayPrice?.toLocaleString()})
+                {showCheckoutDrawer ? 'Hide Details' : 'View Breakdown'}
               </button>
 
               <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="w-full py-2 text-slate-400 hover:text-[var(--text-color)] text-xs text-center cursor-pointer"
+                onClick={handleInitiateCheckout}
+                disabled={paymentState !== 'IDLE' || previewLoading}
+                className="flex-1 sm:flex-none px-8 py-3.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-lg transition-transform hover:scale-105 cursor-pointer flex items-center justify-center gap-2"
               >
-                Cancel
+                {previewLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Calculating Total...</span>
+                  </>
+                ) : paymentState === 'CREATING_ORDER' ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Creating Order...</span>
+                  </>
+                ) : paymentState === 'RAZORPAY_OPEN' ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Opening Gateway...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Proceed to Pay {cartPreview ? `₹${cartPreview.netAmount}` : ''}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
-            </form>
+            </div>
+          </div>
+
+          {/* Expanded Checkout Drawer */}
+          {showCheckoutDrawer && cartPreview && (
+            <div className="max-w-7xl mx-auto pt-4 mt-4 border-t border-slate-800 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div className="space-y-2">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block">Itemized Cart Breakdown:</span>
+                {cartPreview.items.map((item, i) => (
+                  <div key={i} className="flex justify-between py-1 border-b border-slate-800/60 text-slate-300">
+                    <span>{item.itemTitle}</span>
+                    <span className="font-bold">₹{item.unitPrice}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+                <div className="flex justify-between text-slate-400">
+                  <span>Gross Total:</span>
+                  <span>₹{cartPreview.grossAmount}</span>
+                </div>
+                {cartPreview.upgradeCreditAmount > 0 && (
+                  <div className="flex justify-between text-emerald-400 font-bold">
+                    <span>Previous Tier Upgrade Credit:</span>
+                    <span>-₹{cartPreview.upgradeCreditAmount}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-base font-black text-amber-400 pt-2 border-t border-slate-800">
+                  <span>Net Payable Amount:</span>
+                  <span>₹{cartPreview.netAmount}</span>
+                </div>
+                <p className="text-[10px] text-slate-400 italic mt-1">
+                  Authoritative server-side price computation. Protected against client-side tampering.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── PAYMENT SUCCESS MODAL ────────────────────────────────────────── */}
+      {paymentState === 'SUCCESS' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[var(--card-bg)] border-2 border-emerald-500 rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl relative">
+            <div className="w-16 h-16 bg-emerald-500/20 text-emerald-500 rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle className="w-10 h-10" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="font-heading font-black text-2xl text-[var(--text-color)]">
+                Payment Verified & Unlocked!
+              </h3>
+              <p className="text-xs text-slate-500">
+                Your test series entitlements have been updated on our backend server. You now have full access to your purchased tests.
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  setPaymentState('IDLE');
+                  window.location.reload();
+                }}
+                className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md cursor-pointer"
+              >
+                <span>Start Attempting Tests Now</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* ── PAYMENT ERROR MODAL ─────────────────────────────────────────── */}
+      {paymentState === 'ERROR' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-[var(--card-bg)] border-2 border-rose-500 rounded-3xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl relative">
+            <div className="w-16 h-16 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center mx-auto">
+              <X className="w-10 h-10" />
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="font-heading font-black text-xl text-[var(--text-color)]">
+                Checkout / Payment Error
+              </h3>
+              <p className="text-xs text-rose-500 bg-rose-500/10 p-3 rounded-xl border border-rose-500/20 font-bold">
+                {errorMessage || 'Unable to complete payment verification.'}
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setPaymentState('IDLE')}
+                className="w-full py-3.5 bg-slate-800 text-white font-black rounded-2xl text-xs uppercase tracking-wider cursor-pointer"
+              >
+                <span>Close & Try Again</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

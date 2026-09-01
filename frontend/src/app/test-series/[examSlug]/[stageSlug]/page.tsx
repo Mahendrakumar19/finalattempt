@@ -150,11 +150,11 @@ export default function StageFolderPage() {
                     className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden hover:border-amber-500/40 shadow-xs hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group relative"
                   >
                     {series.thumbnailUrl && (
-                      <div className="w-full h-36 bg-slate-900 relative overflow-hidden shrink-0 flex items-center justify-center">
+                      <div className="w-full aspect-video bg-slate-900 relative overflow-hidden shrink-0 flex items-center justify-center">
                         <img
                           src={series.thumbnailUrl}
                           alt={series.title}
-                          className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform duration-500"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           onError={(e) => {
                             (e.currentTarget as HTMLElement).style.display = 'none';
                           }}

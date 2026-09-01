@@ -27,6 +27,7 @@ import bpscScraperRouter from './routes/bpscScraper';
 import ncertRouter from './routes/ncert';
 import ncertBooksRouter from './routes/ncertBooks';
 import documentImportsRouter from './routes/documentImports';
+import testSeriesPurchaseRouter from './routes/testSeriesPurchase';
 import { verifyEmailConnection } from './services/email';
 import { ContentLocalizer, getTargetLang } from './services/contentLocalizer';
 
@@ -82,6 +83,8 @@ app.use(cors({
 
 
 app.use(cookieParser());
+// Route-specific raw body parser for Razorpay Webhooks (signature verification requires raw Buffer payload)
+app.use(['/api/test-series-purchase/webhooks/razorpay', '/api/test-series/purchase/webhooks/razorpay', '/api/webhooks/razorpay'], express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -124,6 +127,8 @@ app.use('/api/bpsc', bpscScraperRouter);
 app.use('/api/ncert', ncertRouter);
 app.use('/api/ncert-books', ncertBooksRouter);
 app.use('/api/document-imports', documentImportsRouter);
+app.use('/api/test-series-purchase', testSeriesPurchaseRouter);
+app.use('/api/test-series/purchase', testSeriesPurchaseRouter);
 
 // Health, status & scanner fallbacks
 app.get('/favicon.ico', (_req, res) => { res.status(204).end(); });

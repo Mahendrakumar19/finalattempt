@@ -1,5 +1,6 @@
 export type BlockType =
   | 'DOCUMENT_TITLE'
+  | 'DOCUMENT_HEADING'
   | 'HEADING'
   | 'SUBHEADING'
   | 'PARAGRAPH'

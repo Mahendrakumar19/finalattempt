@@ -66,6 +66,7 @@ export interface NormalizedDocument {
   filename: string;
   mimeType: string;
   languages: ('en' | 'hi' | 'mixed')[];
+  documentLanguage: 'ENGLISH' | 'HINDI' | 'BILINGUAL' | 'UNKNOWN';
   metadata: {
     title?: string;
     author?: string;

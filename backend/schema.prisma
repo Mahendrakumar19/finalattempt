@@ -231,29 +231,32 @@ model lms_chat_rooms {
 }
 
 model lms_courses {
-  id              String            @id @db.VarChar(100)
-  title           String            @db.VarChar(255)
-  slug            String            @unique(map: "slug") @db.VarChar(255)
-  exam            String?           @default("BPSC") @db.VarChar(100)
-  category        String            @db.VarChar(50)
-  description     String?           @db.Text
-  thumbnailUrl    String?           @db.Text
-  previewVideoUrl String?           @db.Text
-  fee             Int               @default(0)
-  discountedFee   Int?
-  duration        String?           @db.VarChar(100)
-  schedule        String?           @db.VarChar(255)
-  enrolledCount   Int?              @default(0)
-  syllabus        String?           @db.LongText
-  features        String?           @db.LongText
-  faq             String?           @db.LongText
-  isPublished     Boolean?          @default(true)
-  isActive        Boolean?          @default(true)
-  createdAt       DateTime?         @default(now()) @db.DateTime(0)
-  lms_chat_rooms  lms_chat_rooms[]
-  lms_enrollments lms_enrollments[]
-  lms_quizzes     lms_quizzes[]
-  lms_sections    lms_sections[]
+  id                String              @id @db.VarChar(100)
+  title             String              @db.VarChar(255)
+  slug              String              @unique(map: "slug") @db.VarChar(255)
+  exam              String?             @default("BPSC") @db.VarChar(100)
+  category          String              @db.VarChar(50)
+  description       String?             @db.Text
+  thumbnailUrl      String?             @db.Text
+  previewVideoUrl   String?             @db.Text
+  fee               Int                 @default(0)
+  discountedFee     Int?
+  duration          String?             @db.VarChar(100)
+  schedule          String?             @db.VarChar(255)
+  enrolledCount     Int?                @default(0)
+  syllabus          String?             @db.LongText
+  features          String?             @db.LongText
+  faq               String?             @db.LongText
+  isPublished       Boolean?            @default(true)
+  isActive          Boolean?            @default(true)
+  createdAt         DateTime?           @default(now()) @db.DateTime(0)
+  lms_chat_rooms    lms_chat_rooms[]
+  lms_enrollments   lms_enrollments[]
+  lms_quizzes       lms_quizzes[]
+  lms_sections      lms_sections[]
+  test_series_plans test_series_plans[]
+  orders            orders[]
+  user_entitlements user_entitlements[]
 }
 
 model lms_enrollments {
@@ -348,42 +351,49 @@ model lms_quiz_attempts {
 }
 
 model lms_quiz_questions {
-  id            String                           @id @db.VarChar(36)
-  quizId        String                           @db.VarChar(100)
-  questionText  String                           @db.Text
-  optionA       String?                          @db.Text
-  optionB       String?                          @db.Text
-  optionC       String?                          @db.Text
-  optionD       String?                          @db.Text
-  correctAnswer lms_quiz_questions_correctAnswer
-  explanation   String?                          @db.Text
-  questionTextHi String?                         @db.Text
-  optionAHi      String?                         @db.Text
-  optionBHi      String?                         @db.Text
-  optionCHi      String?                         @db.Text
-  optionDHi      String?                         @db.Text
-  explanationHi  String?                         @db.Text
-  marks         Float?                           @default(1) @db.Float
-  negativeMarks Float?                           @default(0.33) @db.Float
-  lms_quizzes   lms_quizzes                      @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quiz_questions_ibfk_1")
+  id             String                           @id @db.VarChar(36)
+  quizId         String                           @db.VarChar(100)
+  questionText   String                           @db.Text
+  optionA        String?                          @db.Text
+  optionB        String?                          @db.Text
+  optionC        String?                          @db.Text
+  optionD        String?                          @db.Text
+  correctAnswer  lms_quiz_questions_correctAnswer
+  explanation    String?                          @db.Text
+  questionTextHi String?                          @db.Text
+  optionAHi      String?                          @db.Text
+  optionBHi      String?                          @db.Text
+  optionCHi      String?                          @db.Text
+  optionDHi      String?                          @db.Text
+  explanationHi  String?                          @db.Text
+  marks          Float?                           @default(1) @db.Float
+  negativeMarks  Float?                           @default(0.33) @db.Float
+  lms_quizzes    lms_quizzes                      @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quiz_questions_ibfk_1")
 
   @@index([quizId], map: "quizId")
 }
 
 model lms_quizzes {
-  id                 String               @id @db.VarChar(100)
-  courseId           String               @db.VarChar(100)
-  title              String               @db.VarChar(255)
-  description        String?              @db.Text
-  timeLimitMins      Int?                 @default(60)
-  passingScore       Int?                 @default(40)
-  isPublished        Boolean?             @default(true)
-  createdAt          DateTime?            @default(now()) @db.DateTime(0)
-  lms_quiz_attempts  lms_quiz_attempts[]
-  lms_quiz_questions lms_quiz_questions[]
-  lms_courses        lms_courses          @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quizzes_ibfk_1")
+  id                        String               @id @db.VarChar(100)
+  courseId                  String               @db.VarChar(100)
+  title                     String               @db.VarChar(255)
+  description               String?              @db.Text
+  timeLimitMins             Int?                 @default(60)
+  passingScore              Int?                 @default(40)
+  isPublished               Boolean?             @default(true)
+  createdAt                 DateTime?            @default(now()) @db.DateTime(0)
+  sequence_number           Int?
+  is_standalone_purchasable Boolean?             @default(false)
+  individual_price          Int?                 @default(0)
+  test_tier_category        String?              @default("FULL") @db.VarChar(50)
+  lms_quiz_attempts         lms_quiz_attempts[]
+  lms_quiz_questions        lms_quiz_questions[]
+  lms_courses               lms_courses          @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quizzes_ibfk_1")
+  order_items               order_items[]
+  user_entitlements         user_entitlements[]
 
   @@index([courseId], map: "courseId")
+  @@index([courseId, sequence_number], map: "idx_quiz_course_sequence")
 }
 
 model lms_sections {
@@ -493,6 +503,8 @@ model users {
   lms_quiz_attempts lms_quiz_attempts[]
   user_sessions     user_sessions[]
   mediaItems        Media[]
+  orders            orders[]
+  user_entitlements user_entitlements[]
 }
 
 enum otp_verifications_type {
@@ -564,61 +576,61 @@ enum Visibility {
 }
 
 model Media {
-  id              String          @id @default(uuid())
-  title           String
-  description     String?         @db.Text
-  fileName        String          @unique
-  originalName    String
-  fileType        FileType
-  storageProvider StorageProvider
-  mimeType        String
-  extension       String
-  size            Int
-  storagePath     String
-  thumbnailPath   String?
-  metadata        Json?           // Supports dynamic parameters
-  visibility      Visibility      @default(PUBLIC)
-  checksum        String          // SHA256 file check
-  width           Int?
-  height          Int?
-  folderId        String?
-  folder          MediaFolder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  createdById     String?         @db.VarChar(36)
-  creator         users?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  deletedAt       DateTime?
-  lastAccessedAt  DateTime?
-  usages          MediaUsage[]
-  examLogos         Exam[]
-  syllabusItems     Syllabus[]
-  strategyFeatured  StrategyBlock[] @relation("StrategyFeaturedImage")
+  id                  String          @id @default(uuid())
+  title               String
+  description         String?         @db.Text
+  fileName            String          @unique
+  originalName        String
+  fileType            FileType
+  storageProvider     StorageProvider
+  mimeType            String
+  extension           String
+  size                Int
+  storagePath         String
+  thumbnailPath       String?
+  metadata            Json? // Supports dynamic parameters
+  visibility          Visibility      @default(PUBLIC)
+  checksum            String // SHA256 file check
+  width               Int?
+  height              Int?
+  folderId            String?
+  folder              MediaFolder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  createdById         String?         @db.VarChar(36)
+  creator             users?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  deletedAt           DateTime?
+  lastAccessedAt      DateTime?
+  usages              MediaUsage[]
+  examLogos           Exam[]
+  syllabusItems       Syllabus[]
+  strategyFeatured    StrategyBlock[] @relation("StrategyFeaturedImage")
   strategyAttachments StrategyBlock[] @relation("StrategyAttachment")
-  pyqQuestions      PYQ[]           @relation("PYQQuestionPaper")
-  pyqAnswers        PYQ[]           @relation("PYQAnswerKey")
-  pyqSolutions      PYQ[]           @relation("PYQSolution")
-  ncertBooks        NCERTBook[]     @relation("NCERTBookFile")
+  pyqQuestions        PYQ[]           @relation("PYQQuestionPaper")
+  pyqAnswers          PYQ[]           @relation("PYQAnswerKey")
+  pyqSolutions        PYQ[]           @relation("PYQSolution")
+  ncertBooks          NCERTBook[]     @relation("NCERTBookFile")
 }
 
 model MediaFolder {
-  id        String        @id @default(uuid())
-  name      String
-  parentId  String?
-  parent    MediaFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
-  children  MediaFolder[] @relation("FolderHierarchy")
+  id         String        @id @default(uuid())
+  name       String
+  parentId   String?
+  parent     MediaFolder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children   MediaFolder[] @relation("FolderHierarchy")
   mediaItems Media[]
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 }
 
 model MediaUsage {
-  id          String   @id @default(uuid())
-  mediaId     String
-  media       Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  entityType  String   // e.g., "Course", "Blog", "Faculty", "Settings"
-  entityId    String   // ID of target entity
-  fieldName   String   // e.g., "thumbnailMediaId", "photoMediaId"
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  mediaId    String
+  media      Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  entityType String // e.g., "Course", "Blog", "Faculty", "Settings"
+  entityId   String // ID of target entity
+  fieldName  String // e.g., "thumbnailMediaId", "photoMediaId"
+  createdAt  DateTime @default(now())
 }
 
 enum ExamStage {
@@ -634,36 +646,36 @@ enum CompanyValueType {
 }
 
 model Exam {
-  id           String      @id @default(uuid())
+  id           String           @id @default(uuid())
   name         String
-  code         String      @unique
-  slug         String      @unique
-  description  String?     @db.Text
-  hasStages    Boolean     @default(true)
-  displayOrder Int         @default(0)
-  isActive     Boolean     @default(true)
+  code         String           @unique
+  slug         String           @unique
+  description  String?          @db.Text
+  hasStages    Boolean          @default(true)
+  displayOrder Int              @default(0)
+  isActive     Boolean          @default(true)
   logoMediaId  String?
-  logoUrl      String?     @db.Text
-  logo         Media?      @relation(fields: [logoMediaId], references: [id], onDelete: SetNull)
+  logoUrl      String?          @db.Text
+  logo         Media?           @relation(fields: [logoMediaId], references: [id], onDelete: SetNull)
   stages       ExamStageModel[]
   testSeries   TestSeries[]
   syllabusList Syllabus[]
   pyqList      PYQ[]
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 }
 
 model ExamStageModel {
-  id          String       @id @default(uuid())
-  examId      String
-  exam        Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
-  name        String
-  slug        String
-  sortOrder   Int          @default(0)
-  isActive    Boolean      @default(true)
-  testSeries  TestSeries[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         String       @id @default(uuid())
+  examId     String
+  exam       Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  name       String
+  slug       String
+  sortOrder  Int          @default(0)
+  isActive   Boolean      @default(true)
+  testSeries TestSeries[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
   @@unique([examId, slug])
   @@index([examId])
@@ -704,38 +716,38 @@ model TestSeries {
 }
 
 model Syllabus {
-  id           String     @id @default(uuid())
-  examId       String
-  exam         Exam       @relation(fields: [examId], references: [id], onDelete: Cascade)
-  stage        ExamStage
-  version      String     @default("1.0")
-  mediaId      String
-  fileMedia    Media      @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  lastUpdated  String
-  description  String?    @db.Text
-  isPublished  Boolean    @default(true)
-  sortOrder    Int        @default(0)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id          String    @id @default(uuid())
+  examId      String
+  exam        Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  stage       ExamStage
+  version     String    @default("1.0")
+  mediaId     String
+  fileMedia   Media     @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  lastUpdated String
+  description String?   @db.Text
+  isPublished Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model StrategyBlock {
-  id                    String    @id @default(uuid())
-  title                 String
-  slug                  String    @unique
-  content               String    @db.Text
-  category              String    // e.g., "Beginner Strategy", "3 Month Plan", "Book List"
-  featuredImageMediaId  String?
-  featuredImage         Media?    @relation("StrategyFeaturedImage", fields: [featuredImageMediaId], references: [id], onDelete: SetNull)
-  attachmentMediaId     String?
-  attachment            Media?    @relation("StrategyAttachment", fields: [attachmentMediaId], references: [id], onDelete: SetNull)
-  videoUrl              String?   @db.Text
-  ctaText               String?
-  ctaUrl                String?
-  sortOrder             Int       @default(0)
-  isPublished           Boolean   @default(true)
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  id                   String   @id @default(uuid())
+  title                String
+  slug                 String   @unique
+  content              String   @db.Text
+  category             String // e.g., "Beginner Strategy", "3 Month Plan", "Book List"
+  featuredImageMediaId String?
+  featuredImage        Media?   @relation("StrategyFeaturedImage", fields: [featuredImageMediaId], references: [id], onDelete: SetNull)
+  attachmentMediaId    String?
+  attachment           Media?   @relation("StrategyAttachment", fields: [attachmentMediaId], references: [id], onDelete: SetNull)
+  videoUrl             String?  @db.Text
+  ctaText              String?
+  ctaUrl               String?
+  sortOrder            Int      @default(0)
+  isPublished          Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model PYQ {
@@ -769,10 +781,10 @@ model CompanyValue {
 
 model NCERTBook {
   id          String   @id @default(uuid())
-  subject     String   // e.g. "Geography", "History", "Polity", "Economics", "Science"
-  classLevel  Int      // e.g. 6, 7, 8, 9, 10, 11, 12
-  bookName    String   // e.g. "Our Pasts - I", "Fundamentals of Physical Geography"
-  title       String   // e.g. "Class 11 Physical Geography Book"
+  subject     String // e.g. "Geography", "History", "Polity", "Economics", "Science"
+  classLevel  Int // e.g. 6, 7, 8, 9, 10, 11, 12
+  bookName    String // e.g. "Our Pasts - I", "Fundamentals of Physical Geography"
+  title       String // e.g. "Class 11 Physical Geography Book"
   language    String   @default("Hindi") // "Hindi", "English", "Bilingual"
   fileMediaId String?
   fileMedia   Media?   @relation("NCERTBookFile", fields: [fileMediaId], references: [id], onDelete: SetNull)
@@ -799,5 +811,145 @@ model translation_cache {
   @@index([entityType, entityId])
 }
 
+enum PlanCode {
+  MINI
+  HALF
+  FULL
+}
 
+enum OrderStatus {
+  CREATED
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum ItemType {
+  PACKAGE_PLAN
+  INDIVIDUAL_TEST
+  UPGRADE_PLAN
+}
+
+enum EntitlementType {
+  INDIVIDUAL_TEST
+  MINI
+  HALF
+  FULL
+  LEGACY_ENROLLMENT
+}
+
+enum EntitlementStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+  SUPERSEDED
+}
+
+model test_series_plans {
+  id                    String   @id @default(uuid()) @db.VarChar(36)
+  series_id             String   @db.VarChar(100)
+  plan_code             PlanCode
+  title                 String   @db.VarChar(255)
+  description           String?  @db.Text
+  sequence_start_number Int      @default(1)
+  sequence_end_number   Int
+  price                 Int      @default(0)
+  discounted_price      Int?
+  is_active             Boolean  @default(true)
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  lms_courses lms_courses   @relation(fields: [series_id], references: [id], onDelete: Cascade)
+  order_items order_items[]
+
+  @@unique([series_id, plan_code], map: "uq_series_plan_code")
+  @@index([series_id])
+}
+
+model orders {
+  id                    String      @id @default(uuid()) @db.VarChar(36)
+  order_number          String      @unique(map: "uq_order_number") @db.VarChar(64)
+  user_id               String      @db.VarChar(36)
+  series_id             String      @db.VarChar(100)
+  status                OrderStatus @default(CREATED)
+  currency              String      @default("INR") @db.VarChar(10)
+  gross_amount          Int         @default(0)
+  upgrade_credit_amount Int         @default(0)
+  discount_amount       Int         @default(0)
+  net_amount            Int         @default(0)
+  payment_provider      String?     @db.VarChar(50)
+  gateway_order_id      String?     @unique(map: "uq_gateway_order_id") @db.VarChar(255)
+  payment_reference_id  String?     @db.VarChar(255)
+  idempotency_key       String      @unique(map: "uq_idempotency_key") @db.VarChar(255)
+  created_at            DateTime    @default(now())
+  paid_at               DateTime?
+  updated_at            DateTime    @updatedAt
+
+  users             users               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lms_courses       lms_courses         @relation(fields: [series_id], references: [id], onDelete: Restrict)
+  order_items       order_items[]
+  user_entitlements user_entitlements[]
+
+  @@index([user_id, status])
+}
+
+model order_items {
+  id                       String   @id @default(uuid()) @db.VarChar(36)
+  order_id                 String   @db.VarChar(36)
+  item_type                ItemType
+  plan_id                  String?  @db.VarChar(36)
+  quiz_id                  String?  @db.VarChar(100)
+  from_plan_id             String?  @db.VarChar(36)
+  item_title               String   @db.VarChar(255)
+  unit_price               Int      @default(0)
+  snapshot_sequence_number Int?
+  created_at               DateTime @default(now())
+
+  orders            orders             @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  test_series_plans test_series_plans? @relation(fields: [plan_id], references: [id], onDelete: SetNull)
+  lms_quizzes       lms_quizzes?       @relation(fields: [quiz_id], references: [id], onDelete: SetNull)
+
+  @@index([order_id])
+}
+
+model user_entitlements {
+  id                    String            @id @default(uuid()) @db.VarChar(36)
+  user_id               String            @db.VarChar(36)
+  series_id             String            @db.VarChar(100)
+  entitlement_type      EntitlementType
+  quiz_id               String?           @db.VarChar(100)
+  max_sequence_number   Int?
+  snapshot_max_sequence Int?
+  source_order_id       String?           @db.VarChar(36)
+  status                EntitlementStatus @default(ACTIVE)
+  granted_at            DateTime          @default(now())
+  expires_at            DateTime?
+  updated_at            DateTime          @updatedAt
+
+  users       users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  lms_courses lms_courses  @relation(fields: [series_id], references: [id], onDelete: Cascade)
+  lms_quizzes lms_quizzes? @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  orders      orders?      @relation(fields: [source_order_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id, series_id, status])
+  @@index([user_id, quiz_id, status])
+}
+
+model admin_audit_logs {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  admin_id    String   @db.VarChar(36)
+  action      String   @db.VarChar(100)
+  entity_type String   @db.VarChar(50)
+  entity_id   String   @db.VarChar(100)
+  series_id   String?  @db.VarChar(100)
+  old_value   String?  @db.Text
+  new_value   String?  @db.Text
+  created_at  DateTime @default(now())
+
+  @@index([admin_id])
+  @@index([series_id])
+  @@index([action])
+}
 

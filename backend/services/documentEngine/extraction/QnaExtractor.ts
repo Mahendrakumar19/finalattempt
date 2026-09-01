@@ -14,6 +14,25 @@ import { DuplicateDetector } from '../validation/DuplicateDetector';
 import { ConfidenceEngine } from '../validation/ConfidenceEngine';
 import { v4 as uuidv4 } from 'uuid';
 
+const KNOWN_HEADINGS = new Set([
+  'क्षेत्र', 'अक्षांशीय सीमा', 'मानक समय', 'सीमावर्ती देश', 'भौतिक विभाजन',
+  'पर्वत शिखर', 'पठार', 'नदियाँ', 'जलवायु', 'वनस्पति', 'जीव-जगत', 'मNERAL',
+  'Indian Geography', 'Physical Features', 'Climate', 'Rivers', 'Flora', 'Fauna',
+  'Answer Key', 'उत्तर कुंजी', 'Solutions', 'व्याख्या', 'Explanations'
+]);
+
+function stripHeadingLeakage(text: string): string {
+  const lines = text.split('\n');
+  const cleaned = lines.filter(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return true;
+    if (KNOWN_HEADINGS.has(trimmed)) return false;
+    if (/^(?:Answer Key|उत्तर कुंजी|Solutions|व्याख्या|Explanations)$/i.test(trimmed)) return false;
+    return true;
+  });
+  return cleaned.join('\n').trim();
+}
+
 export class QnaExtractor {
   /**
    * Universal QnA Extractor Main Entry Point
@@ -79,6 +98,24 @@ export class QnaExtractor {
       );
 
       if (classifiedType === 'NOISE' || repeatedNoiseKeys.has(blockTextKey)) {
+        continue;
+      }
+
+      // SKIP document headings entirely from question clusters, but still track as section header
+      if (classifiedType === 'DOCUMENT_HEADING') {
+        if (currentQuestionBlocks.length > 0) {
+          const effectiveNum = currentQNum || (rawCandidates.length + 1);
+          const qna = this.buildQnaFromCluster(
+            effectiveNum,
+            currentQuestionBlocks,
+            doc.id,
+            activeSectionHeader,
+            distantAnswerMap.get(effectiveNum)
+          );
+          if (qna) rawCandidates.push(qna);
+          currentQuestionBlocks = [];
+        }
+        activeSectionHeader = block.text;
         continue;
       }
 
@@ -376,6 +413,18 @@ export class QnaExtractor {
 
       // Extract options ONLY from the text after the matching table (coded options: A-1, B-2, etc.)
       options = OptionExtractor.extractOptions(matchingResult.textAfterMatching);
+
+      if (options.length > 0 && matchingStruct && matchingStruct.leftList && matchingStruct.leftList.length > 0) {
+        const leftLabels = matchingStruct.leftList.map(item => item.label);
+        options.forEach(opt => {
+          opt.versions.forEach(v => {
+            const nums = v.text.trim().split(/\s+/);
+            if (nums.length === leftLabels.length && nums.every(n => /^\d+$/.test(n))) {
+              v.text = leftLabels.map((lbl, idx) => `${lbl}-${nums[idx]}`).join(', ');
+            }
+          });
+        });
+      }
     } else {
       // 2. Check Statement List Structure SECOND
       statements = OptionExtractor.extractStatements(fullClusterText);
@@ -418,6 +467,9 @@ export class QnaExtractor {
       .replace(/^[ \t]*(?:Q|Question|Q\.|Question\s+No\.|प्र\.|प्रश्न)?[ \t]*\d{1,4}[ \t]*[\.\:\)\-–—]+[ \t]*/i, '')
       .replace(/^[ \t]*(?:HINDI|ENGLISH)\s+QUESTIONS[ \t]*/gi, '')
       .trim();
+
+    // Strip any heading leakage from question text
+    cleanedQText = stripHeadingLeakage(cleanedQText);
 
     // Clean section header banner if present at start of question text
     if (sectionHeader && cleanedQText.toLowerCase().startsWith(sectionHeader.toLowerCase())) {

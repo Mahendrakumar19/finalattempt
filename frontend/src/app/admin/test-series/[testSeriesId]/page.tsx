@@ -43,7 +43,7 @@ export default function TestSeriesDetailPage() {
   const router = useRouter();
   const testSeriesId = params.testSeriesId as string;
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'quizzes' | 'students' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'pricing' | 'quizzes' | 'students' | 'settings'>('overview');
   const [series, setSeries] = useState<TestSeriesItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,6 +51,29 @@ export default function TestSeriesDetailPage() {
   // Quizzes tab states
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+
+  // Plans & Commercial Pricing tab states (Phase 5)
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<any | null>(null);
+  const [savingPlan, setSavingPlan] = useState(false);
+  const [planFormError, setPlanFormError] = useState<string | null>(null);
+  const [showPlanConfirmModal, setShowPlanConfirmModal] = useState(false);
+
+  // Load Plans for Commercial Tab
+  const loadPlans = useCallback(async () => {
+    if (!testSeriesId) return;
+    setLoadingPlans(true);
+    try {
+      const planList = await db.getTestSeriesPurchasePlans(testSeriesId);
+      setPlans(planList || []);
+    } catch (e) {
+      console.error('Error loading plans:', e);
+    } finally {
+      setLoadingPlans(false);
+    }
+  }, [testSeriesId]);
+
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
   const [quizForm, setQuizForm] = useState({
@@ -180,6 +203,13 @@ export default function TestSeriesDetailPage() {
       setLoadingStudents(false);
     }
   }, [testSeriesId]);
+
+  useEffect(() => {
+    loadData();
+    loadQuizzes();
+    loadStudents();
+    loadPlans();
+  }, [loadData, loadQuizzes, loadStudents, loadPlans]);
 
   // View detailed student performance & stats
   const handleViewStudentPerformance = async (student: StudentItem) => {
@@ -376,8 +406,8 @@ export default function TestSeriesDetailPage() {
       </div>
 
       {/* Tabs Bar */}
-      <div className="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-[var(--card-border)] w-fit">
-        {(['overview', 'details', 'quizzes', 'students', 'settings'] as const).map((tab) => (
+      <div className="flex flex-wrap bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-[var(--card-border)] w-fit gap-1">
+        {(['overview', 'details', 'pricing', 'quizzes', 'students', 'settings'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -387,7 +417,7 @@ export default function TestSeriesDetailPage() {
                 : 'text-slate-500 hover:text-[var(--text-color)]'
             }`}
           >
-            {tab} {tab === 'quizzes' ? `(${quizzes.length})` : tab === 'students' ? `(${students.length})` : ''}
+            {tab === 'pricing' ? 'Plans & Pricing' : tab} {tab === 'quizzes' ? `(${quizzes.length})` : tab === 'students' ? `(${students.length})` : ''}
           </button>
         ))}
       </div>
@@ -496,7 +526,366 @@ export default function TestSeriesDetailPage() {
         </form>
       )}
 
-      {/* ── TAB 3: QUIZZES ── */}
+      {/* ── TAB 3: COMMERCIAL PLANS & PRICING MANAGEMENT (PHASE 5) ── */}
+      {activeTab === 'pricing' && (
+        <div className="space-y-8">
+          {/* Section 1: Package Plan Configurations (MINI, HALF, FULL) */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-heading font-black text-lg text-[var(--text-color)] flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-amber-500" />
+                  <span>Test Series Cumulative Packages (MINI, HALF, FULL)</span>
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Configure boundaries and pricing. Existing user entitlement snapshots will remain unchanged.
+                </p>
+              </div>
+            </div>
+
+            {loadingPlans ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map(i => <div key={i} className="h-48 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl animate-pulse" />)}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {(['MINI', 'HALF', 'FULL'] as const).map(code => {
+                  const plan = plans.find(p => p.plan_code === code) || {
+                    series_id: series.id,
+                    plan_code: code,
+                    title: `${code} Package`,
+                    sequence_start_number: 1,
+                    sequence_end_number: code === 'MINI' ? 16 : code === 'HALF' ? 28 : 40,
+                    price: code === 'MINI' ? 299 : code === 'HALF' ? 499 : 799,
+                    is_active: true
+                  };
+
+                  return (
+                    <div
+                      key={code}
+                      className={`bg-[var(--card-bg)] border-2 rounded-3xl p-6 space-y-5 flex flex-col justify-between ${
+                        plan.is_active ? 'border-[var(--card-border)] hover:border-amber-500/50' : 'border-rose-500/30 opacity-70 bg-rose-500/5'
+                      }`}
+                    >
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start">
+                          <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md border ${
+                            code === 'MINI' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' :
+                            code === 'HALF' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20' :
+                            'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                          }`}>
+                            {plan.title || `${code} Package`}
+                          </span>
+
+                          <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border ${
+                            plan.is_active ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+                          }`}>
+                            {plan.is_active ? 'ACTIVE' : 'INACTIVE'}
+                          </span>
+                        </div>
+
+                        <h4 className="font-heading font-black text-xl text-[var(--text-color)]">
+                          Tests {plan.sequence_start_number}–{plan.sequence_end_number}
+                        </h4>
+
+                        <div className="flex items-baseline gap-2 pt-2 border-t border-[var(--card-border)]">
+                          <span className="text-2xl font-heading font-black text-[var(--text-color)]">
+                            ₹{plan.price}
+                          </span>
+                          {plan.discounted_price && (
+                            <span className="text-xs text-slate-400 line-through">₹{plan.discounted_price}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingPlan({ ...plan });
+                          setPlanFormError(null);
+                        }}
+                        className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>Edit {code} Configuration</span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Section 2: Individual Test Pricing & Purchasability Table */}
+          <div className="space-y-4 pt-6 border-t border-[var(--card-border)]">
+            <div>
+              <h3 className="font-heading font-black text-lg text-[var(--text-color)] flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-500" />
+                <span>Individual Test Standalone Pricing & Purchasability</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Configure rate (₹) and toggle standalone purchase capability per mock test paper.
+              </p>
+            </div>
+
+            <div className="border border-[var(--card-border)] rounded-2xl overflow-hidden bg-[var(--card-bg)] text-xs shadow-xs">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-slate-100 dark:bg-slate-800/50 border-b border-[var(--card-border)] text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">
+                  <tr>
+                    <th className="p-4">Seq #</th>
+                    <th className="p-4">Test Title</th>
+                    <th className="p-4">Individual Rate (₹)</th>
+                    <th className="p-4">Standalone Purchasable</th>
+                    <th className="p-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--card-border)] font-medium">
+                  {quizzes.map((quiz: any, idx: number) => {
+                    const seq = quiz.sequence_number || idx + 1;
+                    const price = quiz.individual_price !== undefined ? quiz.individual_price : 49;
+                    const purchasable = quiz.is_standalone_purchasable !== false;
+
+                    return (
+                      <tr key={quiz.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
+                        <td className="p-4 font-mono font-bold text-amber-500">#{seq}</td>
+                        <td className="p-4 font-bold text-[var(--text-color)]">{quiz.title}</td>
+                        <td className="p-4">
+                          <input
+                            type="number"
+                            min={0}
+                            value={price}
+                            onChange={e => {
+                              const newPrice = Number(e.target.value);
+                              setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, individual_price: newPrice } : q));
+                            }}
+                            className="w-24 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-xl font-bold text-xs outline-none"
+                          />
+                        </td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, is_standalone_purchasable: !purchasable } : q));
+                              }}
+                              className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                                purchasable ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                              }`}
+                            >
+                              <div className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
+                                purchasable ? 'translate-x-4' : 'translate-x-0'
+                              }`} />
+                            </button>
+                            <span className={`text-[10px] font-bold uppercase ${purchasable ? 'text-emerald-500' : 'text-slate-400'}`}>
+                              {purchasable ? 'Purchasable' : 'Disabled'}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4 text-right">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const res = await db.saveQuizPricingAdmin({
+                                  seriesId: series.id,
+                                  quizId: quiz.id,
+                                  individualPrice: price,
+                                  isStandalonePurchasable: purchasable
+                                });
+                                if (res && res.success) {
+                                  alert(`✓ Test #${seq} pricing saved! Rate: ₹${price}, Standalone: ${purchasable}`);
+                                } else {
+                                  alert(`Error saving test pricing: ${res?.error || 'Failed'}`);
+                                }
+                              } catch (err: any) {
+                                alert(`Error: ${err.message || 'Failed to save pricing'}`);
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-[10px] cursor-pointer shadow-xs"
+                          >
+                            Save Rate
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── EDIT PLAN CONFIGURATION MODAL (PHASE 5) ── */}
+      {editingPlan && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 text-slate-900 dark:text-white">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Commercial Plan Configuration</span>
+                <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white mt-0.5">
+                  Configure {editingPlan.plan_code} Plan
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingPlan(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Warning Banner */}
+            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-1">
+              <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Historical Entitlement Safety Guarantee</span>
+              </span>
+              <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-snug">
+                Modifications affect <strong>future purchases only</strong>. Existing student entitlement snapshots (<code className="font-mono text-amber-500">snapshot_max_sequence</code>) and past orders will remain strictly unchanged.
+              </p>
+            </div>
+
+            {planFormError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/20 text-rose-500 font-bold text-xs rounded-xl">
+                {planFormError}
+              </div>
+            )}
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setSavingPlan(true);
+                setPlanFormError(null);
+                try {
+                  const res = await db.saveTestSeriesPlanAdmin({
+                    seriesId: series.id,
+                    planCode: editingPlan.plan_code,
+                    title: editingPlan.title,
+                    description: editingPlan.description,
+                    sequenceStartNumber: Number(editingPlan.sequence_start_number) || 1,
+                    sequenceEndNumber: Number(editingPlan.sequence_end_number),
+                    price: Number(editingPlan.price),
+                    discountedPrice: editingPlan.discounted_price ? Number(editingPlan.discounted_price) : undefined,
+                    isActive: editingPlan.is_active !== false
+                  });
+
+                  if (res && res.success) {
+                    await loadPlans();
+                    setEditingPlan(null);
+                    alert(`✓ ${editingPlan.plan_code} plan updated successfully!`);
+                  } else {
+                    setPlanFormError(res?.error || 'Failed updating plan.');
+                  }
+                } catch (err: any) {
+                  setPlanFormError(err.message || 'Server error updating plan.');
+                } finally {
+                  setSavingPlan(false);
+                }
+              }}
+              className="space-y-4 text-xs font-bold"
+            >
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">Plan Display Title</label>
+                <input
+                  type="text"
+                  required
+                  value={editingPlan.title || ''}
+                  onChange={e => setEditingPlan({ ...editingPlan, title: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">Start Sequence #</label>
+                  <input
+                    type="number"
+                    required
+                    value={editingPlan.sequence_start_number || 1}
+                    onChange={e => setEditingPlan({ ...editingPlan, sequence_start_number: Number(e.target.value) })}
+                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold text-xs focus:border-amber-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">End Sequence # *</label>
+                  <input
+                    type="number"
+                    required
+                    value={editingPlan.sequence_end_number || 16}
+                    onChange={e => setEditingPlan({ ...editingPlan, sequence_end_number: Number(e.target.value) })}
+                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold text-xs focus:border-amber-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">Regular Price (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    min={0}
+                    value={editingPlan.price || 0}
+                    onChange={e => setEditingPlan({ ...editingPlan, price: Number(e.target.value) })}
+                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold text-xs focus:border-amber-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-1">Discounted Price (₹)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editingPlan.discounted_price || ''}
+                    onChange={e => setEditingPlan({ ...editingPlan, discounted_price: e.target.value ? Number(e.target.value) : undefined })}
+                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl">
+                <span className="text-slate-700 dark:text-slate-300">Active Plan Status</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingPlan({ ...editingPlan, is_active: !editingPlan.is_active })}
+                    className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
+                      editingPlan.is_active ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
+                      editingPlan.is_active ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                  </button>
+                  <span className={`text-[10px] uppercase ${editingPlan.is_active ? 'text-emerald-500' : 'text-slate-400'}`}>
+                    {editingPlan.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setEditingPlan(null)}
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-bold rounded-xl cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingPlan}
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-md cursor-pointer uppercase tracking-wider transition-colors"
+                >
+                  {savingPlan ? 'Saving...' : 'Save Configuration'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 4: QUIZZES ── */}
       {activeTab === 'quizzes' && (
         <div className="space-y-6">
           <TestSeriesAdmin initialSeriesId={series?.id || testSeriesId} initialSubTab="quizzes" />

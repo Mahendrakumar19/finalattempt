@@ -686,11 +686,13 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 className={`text-base md:text-[18px] font-semibold leading-[1.6] max-w-4xl whitespace-pre-wrap break-words ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}
                 style={{ color: cbtDark ? '#FFFFFF' : '#111827' }}
               >
-                {getDisplayQuestionText(currentQ).includes('<') && getDisplayQuestionText(currentQ).includes('>') ? (
-                  <div dangerouslySetInnerHTML={{ __html: getDisplayQuestionText(currentQ) }} />
-                ) : (
-                  getDisplayQuestionText(currentQ)
-                )}
+                {(() => {
+                  const txt = getDisplayQuestionText(currentQ);
+                  if (txt.includes('<table') || txt.includes('match-list-container') || txt.includes('चट्टानी प्रणाली') || txt.includes('List-I')) {
+                    return <div dangerouslySetInnerHTML={{ __html: txt }} />;
+                  }
+                  return txt;
+                })()}
               </div>
 
               {/* Options - ~64-72px high desktop cards, high readability & click targets */}

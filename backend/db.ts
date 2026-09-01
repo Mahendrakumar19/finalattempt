@@ -1779,6 +1779,35 @@ class BackendDB {
             item.schedulePdfUrl || null, item.moduleCode || null, item.medium || null, item.programDetails || null
           ]
         );
+
+        // Sync corresponding lms_courses record for foreign key integrity in orders/user_entitlements
+        try {
+          const { prisma } = await import('./prisma');
+          await prisma.lms_courses.upsert({
+            where: { id },
+            update: {
+              title: item.title,
+              slug,
+              fee: Number(item.price) || 0,
+              discountedFee: item.discountedPrice ? Number(item.discountedPrice) : null,
+              category: item.category || 'Test Series',
+              isPublished: item.isPublished !== false
+            },
+            create: {
+              id,
+              title: item.title,
+              slug,
+              category: item.category || 'Test Series',
+              fee: Number(item.price) || 0,
+              discountedFee: item.discountedPrice ? Number(item.discountedPrice) : null,
+              isPublished: item.isPublished !== false,
+              isActive: true
+            }
+          });
+        } catch (e: any) {
+          console.warn('[BackendDB] lms_courses upsert warning:', e.message);
+        }
+
         return { ...item, id, slug };
       } catch (err) {
         console.error('[BackendDB] saveTestSeriesRecord MySQL error:', err);

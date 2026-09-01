@@ -1689,6 +1689,94 @@ class FinalAttemptDB {
     return res?.data || [];
   }
 
+  // ── Test Series Purchase & Entitlements API ────────────────────────────────
+  public async getTestSeriesPurchasePlans(seriesId: string): Promise<any[]> {
+    const res = await this.apiFetch(`/api/test-series-purchase/${seriesId}/plans`);
+    return res?.data || [];
+  }
+
+  public async getStudentEntitlements(seriesId?: string, accessToken?: string): Promise<any[]> {
+    const url = seriesId ? `/api/test-series-purchase/entitlements?seriesId=${seriesId}` : '/api/test-series-purchase/entitlements';
+    const headers: Record<string, string> = {};
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    const res = await this.apiFetch(url, { headers });
+    return res?.data || [];
+  }
+
+  public async getCartPreview(seriesId: string, items: any[], accessToken?: string): Promise<any> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    const res = await this.apiFetch('/api/test-series-purchase/cart/preview', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ seriesId, items })
+    });
+    return res;
+  }
+
+  public async createTestSeriesOrder(seriesId: string, items: any[], idempotencyKey?: string, accessToken?: string): Promise<any> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    const res = await this.apiFetch('/api/test-series-purchase/order/create', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ seriesId, items, idempotencyKey })
+    });
+    return res;
+  }
+
+  public async verifyTestSeriesOrder(payload: { orderId: string; razorpayPaymentId?: string; razorpayOrderId?: string; razorpaySignature?: string }, accessToken?: string): Promise<any> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    const res = await this.apiFetch('/api/test-series-purchase/order/verify', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload)
+    });
+    return res;
+  }
+
+  public async saveTestSeriesPlanAdmin(payload: {
+    seriesId: string;
+    planCode: string;
+    title?: string;
+    description?: string;
+    sequenceStartNumber?: number;
+    sequenceEndNumber: number;
+    price: number;
+    discountedPrice?: number;
+    isActive?: boolean;
+  }): Promise<any> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    const res = await this.apiFetch('/api/test-series-purchase/plans/admin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload)
+    });
+    return res;
+  }
+
+  public async saveQuizPricingAdmin(payload: {
+    seriesId: string;
+    quizId: string;
+    individualPrice: number;
+    isStandalonePurchasable?: boolean;
+  }): Promise<any> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    const res = await this.apiFetch('/api/test-series-purchase/quizzes/pricing/admin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(payload)
+    });
+    return res;
+  }
+
 }
 
 

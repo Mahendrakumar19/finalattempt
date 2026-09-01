@@ -19,6 +19,7 @@ export interface ExcelParseReport {
   reviewRows: number;
   errorRows: number;
   isValid: boolean;
+  documentLanguage: 'ENGLISH' | 'HINDI' | 'BILINGUAL' | 'UNKNOWN';
   errors: string[];
   rowResults: ExcelImportRowResult[];
   qnas: ExtractedQnA[];
@@ -122,6 +123,31 @@ export class ExcelQuestionBankAdapter {
 
     let questionSequence = 0;
 
+    // Detect overall document language from populated columns
+    let hasEnglishContent = false;
+    let hasHindiContent = false;
+
+    for (let r = 1; r < rawMatrix.length; r++) {
+      const rowNum = r + 1;
+      const rowData = rawMatrix[r] || [];
+
+      const getVal = (col: string): string => {
+        const idx = colIndices[col];
+        if (idx === undefined || idx < 0 || idx >= rowData.length) return '';
+        const cellVal = rowData[idx];
+        if (cellVal === null || cellVal === undefined) return '';
+        return String(cellVal).trim();
+      };
+
+      if (getVal('questionText') || getVal('optionA')) hasEnglishContent = true;
+      if (getVal('questionTextHi') || getVal('optionAHi')) hasHindiContent = true;
+    }
+
+    let documentLanguage: 'ENGLISH' | 'HINDI' | 'BILINGUAL' | 'UNKNOWN' = 'UNKNOWN';
+    if (hasEnglishContent && hasHindiContent) documentLanguage = 'BILINGUAL';
+    else if (hasEnglishContent) documentLanguage = 'ENGLISH';
+    else if (hasHindiContent) documentLanguage = 'HINDI';
+
     for (let r = 1; r < rawMatrix.length; r++) {
       const rowNum = r + 1; // 1-indexed Excel row number
       const rowData = rawMatrix[r] || [];
@@ -133,7 +159,7 @@ export class ExcelQuestionBankAdapter {
       }
 
       questionSequence++;
-      const result = this.processRow(rowData, colIndices, rowNum, questionSequence, filename, targetSheetName);
+      const result = this.processRow(rowData, colIndices, rowNum, questionSequence, filename, targetSheetName, documentLanguage);
       rowResults.push(result);
 
       if (result.status === 'PASS') validCount++;
@@ -161,6 +187,7 @@ export class ExcelQuestionBankAdapter {
       reviewRows: reviewCount,
       errorRows: errorCount,
       isValid: !hasFatalErrors,
+      documentLanguage,
       errors: hasFatalErrors ? [`Excel import contains ${errorCount} error row(s) that must be fixed.`] : [],
       rowResults,
       qnas
@@ -203,7 +230,8 @@ export class ExcelQuestionBankAdapter {
     excelRowNumber: number,
     questionNumber: number,
     filename: string,
-    sheetName: string
+    sheetName: string,
+    documentLanguage: 'ENGLISH' | 'HINDI' | 'BILINGUAL' | 'UNKNOWN' = 'UNKNOWN'
   ): ExcelImportRowResult {
     const issues: string[] = [];
     let status: 'PASS' | 'WARNING' | 'REVIEW_REQUIRED' | 'ERROR' = 'PASS';
@@ -238,12 +266,37 @@ export class ExcelQuestionBankAdapter {
     const rawNegMarks = getVal('negativeMarks');
 
     // Rule #19: Check for partially populated invalid rows
-    if (!questionText) {
-      issues.push('Missing required field: questionText');
+    const hasEnglish = !!(questionText || optionA || optionB || optionC || optionD);
+    const hasHindi = !!(questionTextHi || optionAHi || optionBHi || optionCHi || optionDHi);
+
+    if (!hasEnglish && !hasHindi) {
+      issues.push('Missing required field: questionText or questionTextHi');
       status = 'ERROR';
+    } else if (!hasEnglish && hasHindi) {
+      // Hindi-only mode: English fields not required
+      if (!questionTextHi) {
+        issues.push('Missing required field: questionTextHi');
+        status = 'ERROR';
+      }
+    } else if (hasEnglish && !hasHindi) {
+      // English-only mode: Hindi fields not required
+      if (!questionText) {
+        issues.push('Missing required field: questionText');
+        status = 'ERROR';
+      }
+    } else {
+      // Bilingual mode: both required
+      if (!questionText) {
+        issues.push('Missing required field: questionText');
+        status = 'ERROR';
+      }
+      if (!questionTextHi) {
+        issues.push('Missing required field: questionTextHi');
+        status = 'ERROR';
+      }
     }
 
-    if (!optionA || !optionB || !optionC || !optionD) {
+    if (hasEnglish && (!optionA || !optionB || !optionC || !optionD)) {
       const missingOpts = [];
       if (!optionA) missingOpts.push('optionA');
       if (!optionB) missingOpts.push('optionB');
@@ -264,13 +317,13 @@ export class ExcelQuestionBankAdapter {
     }
 
     // Rule #12: Option E & Answer cross-validation
-    if (normalizedAns === 'E' && !optionE) {
+    if (normalizedAns === 'E' && !optionE && !optionEHi) {
       issues.push('Option E is missing but correctAnswer is set to E.');
       status = 'ERROR';
     }
 
     // Rule #13: Bilingual Option Completeness Validation
-    if (questionTextHi) {
+    if (hasEnglish && hasHindi) {
       const hiOptsPresent = [!!optionAHi, !!optionBHi, !!optionCHi, !!optionDHi];
       const anyHiOptPresent = hiOptsPresent.some(Boolean);
       const allHiOptsPresent = hiOptsPresent.every(Boolean);
@@ -304,10 +357,11 @@ export class ExcelQuestionBankAdapter {
       }
     }
 
-    // Build Question Versions
-    const qVersions: LocalizedText[] = [
-      { language: 'en', text: questionText, confidence: 1.0 }
-    ];
+    // Build Question Versions based on document language
+    const qVersions: LocalizedText[] = [];
+    if (questionText) {
+      qVersions.push({ language: 'en', text: questionText, confidence: 1.0 });
+    }
     if (questionTextHi) {
       qVersions.push({ language: 'hi', text: questionTextHi, confidence: 1.0 });
     }
@@ -317,7 +371,8 @@ export class ExcelQuestionBankAdapter {
 
     const addOpt = (lbl: 'A' | 'B' | 'C' | 'D' | 'E', enVal: string, hiVal: string) => {
       if (!enVal && !hiVal && lbl === 'E') return; // Option E is optional
-      const optVersions: LocalizedText[] = [{ language: 'en', text: enVal || 'N/A', confidence: 1.0 }];
+      const optVersions: LocalizedText[] = [];
+      if (enVal) optVersions.push({ language: 'en', text: enVal, confidence: 1.0 });
       if (hiVal) optVersions.push({ language: 'hi', text: hiVal, confidence: 1.0 });
       optionsList.push({ label: lbl, versions: optVersions });
     };
@@ -397,7 +452,7 @@ export class ExcelQuestionBankAdapter {
   }
 
   /**
-   * Helper to generate a clean error report
+   * Helper to create a clean error report
    */
   private static createErrorReport(filename: string, errorMessage: string): ExcelParseReport {
     return {
@@ -409,6 +464,7 @@ export class ExcelQuestionBankAdapter {
       reviewRows: 0,
       errorRows: 0,
       isValid: false,
+      documentLanguage: 'UNKNOWN',
       errors: [errorMessage],
       rowResults: [],
       qnas: []

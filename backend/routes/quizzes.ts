@@ -5,6 +5,7 @@ import { lmsDB } from '../db';
 import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 import { AdapterFactory } from '../services/documentEngine/adapters/AdapterFactory';
 import { QnaExtractor } from '../services/documentEngine/extraction/QnaExtractor';
+import { EntitlementService } from '../services/entitlementService';
 
 const router = Router();
 
@@ -731,18 +732,15 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
       return;
     }
 
-    // Strict Paywall Entitlement Check for TestSeries & Courses
+    // Strict Paywall Entitlement Check for TestSeries & Courses via Canonical EntitlementService
     if (req.user!.role === 'student' && !quiz.isFree) {
-      const targetCourseId = quiz.courseId;
-      let isEnrolled = false;
-      if (targetCourseId) {
-        isEnrolled = await lmsDB.isEnrolled(req.user!.userId, targetCourseId);
-      }
-      if (!isEnrolled) {
+      const accessResult = await EntitlementService.hasQuizAccess(req.user!.userId, quizId);
+      if (!accessResult.allowed) {
         res.status(403).json({
           success: false,
           code: 'QUIZ_003',
-          error: 'Access Denied: Please enroll in this test series program to attempt this CBT test paper.'
+          error: 'Access Denied: Please purchase this test series or test paper to attempt this CBT test.',
+          details: accessResult
         });
         return;
       }
@@ -855,9 +853,9 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
 
     // Entitlement verification on submit
     if (req.user!.role === 'student' && !quiz.isFree) {
-      const isEnrolled = await lmsDB.isEnrolled(req.user!.userId, quiz.courseId);
-      if (!isEnrolled) {
-        res.status(403).json({ success: false, error: 'Access Denied: Unenrolled attempt submission rejected.' });
+      const accessResult = await EntitlementService.hasQuizAccess(req.user!.userId, quizId);
+      if (!accessResult.allowed) {
+        res.status(403).json({ success: false, error: 'Access Denied: Unenrolled attempt submission rejected.', details: accessResult });
         return;
       }
     }

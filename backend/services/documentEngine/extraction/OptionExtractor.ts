@@ -1,6 +1,25 @@
 import { ExtractedOption, StatementItem } from '../core/ExtractedQnA';
 import { LanguageDetector } from '../alignment/LanguageDetector';
 
+const KNOWN_HEADINGS = new Set([
+  'क्षेत्र', 'अक्षांशीय सीमा', 'मानक समय', 'सीमावर्ती देश', 'भौतिक विभाजन',
+  'पर्वत शिखर', 'पठार', 'नदियाँ', 'जलवायु', 'वनस्पति', 'जीव-जगत',
+  'Indian Geography', 'Physical Features', 'Climate', 'Rivers', 'Flora', 'Fauna',
+  'Answer Key', 'उत्तर कुंजी', 'Solutions', 'व्याख्या', 'Explanations'
+]);
+
+function stripHeadingLeakage(text: string): string {
+  const lines = text.split('\n');
+  const cleaned = lines.filter(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return true;
+    if (KNOWN_HEADINGS.has(trimmed)) return false;
+    if (/^(?:Answer Key|उत्तर कुंजी|Solutions|व्याख्या|Explanations)$/i.test(trimmed)) return false;
+    return true;
+  });
+  return cleaned.join('\n').trim();
+}
+
 export class OptionExtractor {
   /**
    * Primary explicit option markers: (a), (b), (c), (d), A., B., C., D., (क), (ख), (ग), (घ), क., ख., ग., घ.
@@ -217,6 +236,9 @@ export class OptionExtractor {
       if (ansIdx > 0) {
         rawText = rawText.substring(0, ansIdx).trim();
       }
+
+      // Strip heading leakage from option text
+      rawText = stripHeadingLeakage(rawText);
 
       // Clean trailing embedded question boundary (e.g. "On November 15, 1949 6. The Indian Constitution...")
       const embeddedQIdx = rawText.search(/(?:\r?\n|\s+)\d{1,4}[\.\:\)\-–—]+\s+[A-Z\u0900-\u097F]/);

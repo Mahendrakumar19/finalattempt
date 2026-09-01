@@ -38,6 +38,7 @@ async function runExcelImportTestSuite() {
   assert((q1 as any).negativeMarks === 0.33, 'negativeMarks 0.33 mapped correctly');
   assert((q1 as any).sourceType === 'EXCEL', 'sourceType set to EXCEL');
   assert((q1 as any).ocrConfidence === 'NOT_APPLICABLE', 'ocrConfidence set to NOT_APPLICABLE (No OCR invoked)');
+  assert(report1.documentLanguage === 'BILINGUAL', 'Bilingual template detected documentLanguage = BILINGUAL');
 
   // Test 5: Strict Header Validation - Missing Column
   console.log('\nTest 5: Header Validation - Missing Column');

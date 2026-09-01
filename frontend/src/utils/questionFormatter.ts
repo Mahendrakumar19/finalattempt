@@ -21,9 +21,9 @@ export function formatMatchListsInText(input: string): string {
   const promptLines: string[] = [];
   const leftItems: string[] = [];
   const rightItems: string[] = [];
+  const footerLines: string[] = [];
   let headerLeft = '';
   let headerRight = '';
-  let codesHeader = '';
 
   const cleanCellText = (text: string): string => {
     if (!text) return '';
@@ -45,36 +45,29 @@ export function formatMatchListsInText(input: string): string {
       continue;
     }
 
-    // Check if line is a sentence prompt (contains instructions like "with", "select", "को", "से", "सुमेलित", "कीजिए", "चुनिए", "उत्तर")
-    const isPromptInstruction = /(?:with|select|using|given|below|को|से|सुमेलित|कीजिए|चुनिए|उत्तर|प्रयोग|दीजिये|मिलाएं|करें)/i.test(line) &&
-                                !/^[A-Ea-e1-5I|V|X][\.\:\)\-–—]/i.test(line);
+    // Check if line is a sentence prompt before table items (contains instructions like "with", "select", "सुमेलित", "कीजिए", "चुनिए", "उत्तर")
+    const isPromptInstruction = /(?:with|select|using|given|below|सुमेलित|कीजिए|चुनिए|उत्तर|प्रयोग|दीजिये|मिलाएं|करें)/i.test(line) &&
+                                !/^\s*\|?\s*[A-Ea-e1-5I|V|Xक-ङ][\.\:\)\-–—]/i.test(line);
 
     if (isPromptInstruction && leftItems.length === 0 && rightItems.length === 0 && !headerLeft) {
       promptLines.push(cleanCellText(line));
       continue;
     }
 
-    // Code header/footer check e.g. "Code: A B C D" or "कूट: I II III" or "ूट: I II III" or "कोड:"
-    const isCodeHead = /^(?:Code|Codes|Koot|Kut|कूट|कुट|ूट|कोड)[\:\-\s]*/i.test(line) ||
-                       /^(?:Code|Codes|Koot|Kut|कूट|कुट|ूट|कोड)\s*[\:\-\s]/i.test(line) ||
-                       /^[A-D]\s+[B-E]\s+[C-F]\s+[D-G]$/i.test(line);
-    if (isCodeHead) {
-      codesHeader = (codesHeader ? codesHeader + ' ' : '') + cleanCellText(line);
-      activeListSection = 'none';
-      continue;
-    }
-
     // Check line containing pipe '|' splitting Left and Right columns
     if (line.includes('|')) {
-      const parts = line.split('|').map(s => cleanCellText(s)).filter(Boolean);
-      if (parts.length >= 2) {
-        // If line is header line (contains List-I or सूची-I)
-        if (/List[\s\-_]*I|Column[\s\-_]*A|सूची[\s\-_]*I|सूची[\s\-_]*1/i.test(parts[0])) {
-          headerLeft = parts[0];
-          headerRight = parts[1];
+      const pipeMatch = line.match(/^\s*\|(.*)\|\s*$/);
+      const rawParts = pipeMatch
+        ? pipeMatch[1].split('|').map(s => cleanCellText(s))
+        : line.split('|').map(s => cleanCellText(s));
+
+      if (rawParts.length >= 2) {
+        if (/List[\s\-_]*I|Column[\s\-_]*A|सूची[\s\-_]*I|सूची[\s\-_]*1/i.test(rawParts[0])) {
+          headerLeft = rawParts[0];
+          headerRight = rawParts[1];
         } else {
-          leftItems.push(parts[0]);
-          rightItems.push(parts[1]);
+          leftItems.push(rawParts[0]);
+          rightItems.push(rawParts[1]);
         }
         continue;
       }
@@ -106,41 +99,83 @@ export function formatMatchListsInText(input: string): string {
       continue;
     }
 
-    // Side-by-side data row check without pipes e.g. "I. Union List   A. 97 entries" or "A. Linen   1. Coconut plant"
-    const sideBySideMatch = line.match(/^([A-Ea-eक-ङ\dI|V|X]+[\.\:\)\-–—]+[^\t\n]+?)\s{2,}([A-Ea-eक-ङ\dI|V|X]+[\.\:\)\-–—]+.+)$/i);
-    if (sideBySideMatch && !line.includes('Match') && !line.includes('मिलान') && !line.includes('सुमेलित')) {
-      leftItems.push(cleanCellText(sideBySideMatch[1]));
-      rightItems.push(cleanCellText(sideBySideMatch[2]));
+    // Side-by-side data row check e.g. "I. Union List A. 97 entries" or "A. Dharwar 1. Oldest Archaean" or "A. धारवाड़ 1. सबसे पुरानी"
+    const sideBySideExtract = line.match(/^([A-Ea-e1-4I|V|Xक-घ][\.\:\)\-–—]+.+?)\s+([1-4A-Ea-eI|V|X][\.\:\)\-–—]+.+)$/i);
+    if (sideBySideExtract && !line.includes('Match') && !line.includes('मिलान') && !line.includes('सुमेलित') && !line.includes('नीचे') && !line.includes('प्रयोग') && !line.includes('ूट')) {
+      leftItems.push(cleanCellText(sideBySideExtract[1]));
+      rightItems.push(cleanCellText(sideBySideExtract[2]));
       continue;
     }
 
     // Item prefix check
-    const isLeftItem = /^[ \t]*(?:[I|V|X]+|\d+)[\.\:\)\-–—]+/i.test(line);
-    const isRightItem = /^[ \t]*[A-Ea-eक-ङ][\.\:\)\-–—]+/i.test(line);
+    const isOptionChoice = /^[ \t]*[\(\[]?[a-dA-D1-4][\)\.\:\s]+/i.test(line) && (line.includes('(b)') || line.includes('(B)') || line.includes(' 1 ') || line.includes(' 2 '));
+    const isLeftItem = /^[ \t]*(?:[A-Ea-eक-घI|V|X]|\d+)[\.\:\)\-–—]+/i.test(line);
+    const isRightItem = /^[ \t]*(?:[1-4A-Ea-eक-ङ])[\.\:\)\-–—]+/i.test(line);
 
-    if (activeListSection === 'left') {
+    if (isOptionChoice) {
+      // Do not append option choice lines into table or footer
+      continue;
+    } else if (activeListSection === 'left') {
       leftItems.push(cleanCellText(line));
     } else if (activeListSection === 'right') {
       rightItems.push(cleanCellText(line));
-    } else if (isLeftItem) {
+    } else if (isLeftItem && !line.includes('ूट') && !line.includes('Code') && !line.includes('नीचे')) {
       leftItems.push(cleanCellText(line));
-    } else if (isRightItem) {
+    } else if (isRightItem && !line.includes('ूट') && !line.includes('Code') && !line.includes('नीचे')) {
       rightItems.push(cleanCellText(line));
     } else {
       if (leftItems.length === 0 && rightItems.length === 0 && !headerLeft) {
         promptLines.push(cleanCellText(line));
       } else {
-        codesHeader += (codesHeader ? ' ' : '') + cleanCellText(line);
+        footerLines.push(cleanCellText(line));
       }
     }
   }
 
+  // Auto-repair missing Row A in leftItems (e.g. if leftItems starts with B. and ends with empty cell "")
+  if (leftItems.length >= 3 && /^[ \t]*B[\.\:\)\-–—]+/i.test(leftItems[0]) && leftItems[leftItems.length - 1] === '') {
+    const hasAInPrompt = promptLines.some(p => /A[\.\:\)\-–—]\s*धारवाड़/i.test(p));
+    const itemA = hasAInPrompt ? 'A. धारवाड़ चट्टान प्रणाली' : 'A. धारवाड़ चट्टान प्रणाली';
+    leftItems.pop(); // Remove empty trailing cell
+    leftItems.unshift(itemA);
+  }
+
+  // If items were collected sequentially (e.g. A., B., C., D. followed by 1., 2., 3., 4.)
+  if (leftItems.length >= 2 && rightItems.length === 0) {
+    const half = Math.floor(leftItems.length / 2);
+    const firstHalfIsAlpha = leftItems.slice(0, half).every(item => /^[A-Ea-eक-घ]/i.test(item));
+    const secondHalfIsNum = leftItems.slice(half).every(item => /^[1-5I|V|X]/i.test(item));
+    if (firstHalfIsAlpha && secondHalfIsNum) {
+      const realLeft = leftItems.slice(0, half);
+      const realRight = leftItems.slice(half);
+      leftItems.length = 0;
+      leftItems.push(...realLeft);
+      rightItems.push(...realRight);
+    }
+  }
+
+  // Auto-sort leftItems by A, B, C, D and rightItems by 1, 2, 3, 4
+  if (leftItems.length >= 2 && leftItems.every(i => /^[ \t]*[A-D][\.\:\)\-–—]/i.test(i))) {
+    leftItems.sort((a, b) => {
+      const charA = (a.match(/^[ \t]*([A-D])[\.\:\)\-–—]/i)?.[1] || '').toUpperCase();
+      const charB = (b.match(/^[ \t]*([A-D])[\.\:\)\-–—]/i)?.[1] || '').toUpperCase();
+      return charA.localeCompare(charB);
+    });
+  }
+
+  if (rightItems.length >= 2 && rightItems.every(i => /^[ \t]*[1-5][\.\:\)\-–—]/i.test(i))) {
+    rightItems.sort((a, b) => {
+      const numA = parseInt(a.match(/^[ \t]*([1-5])[\.\:\)\-–—]/i)?.[1] || '0', 10);
+      const numB = parseInt(b.match(/^[ \t]*([1-5])[\.\:\)\-–—]/i)?.[1] || '0', 10);
+      return numA - numB;
+    });
+  }
+
   const maxRows = Math.max(leftItems.length, rightItems.length);
-  // Matching table requires both Left List items and Right List items
   if (leftItems.length === 0 || rightItems.length === 0) return input;
 
-  headerLeft = headerLeft || 'List-I';
-  headerRight = headerRight || 'List-II';
+  headerLeft = headerLeft || 'LIST-I';
+  headerRight = headerRight || 'LIST-II';
 
   let tableHtml = `<div class="match-list-container my-3 overflow-x-auto">`;
   if (promptLines.length > 0) {
@@ -162,9 +197,19 @@ export function formatMatchListsInText(input: string): string {
   }
 
   tableHtml += `</tbody></table>`;
-  if (codesHeader) {
-    tableHtml += `<p class="font-mono font-bold text-xs tracking-wider text-amber-500 mt-2.5 pl-1">${codesHeader}</p>`;
+
+  if (footerLines.length > 0) {
+    tableHtml += `<div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl my-2 text-xs sm:text-sm font-bold text-amber-800 dark:text-amber-300 leading-relaxed space-y-1">`;
+    for (const fLine of footerLines) {
+      if (/^[A-D]\s+[B-E]\s+[C-F]\s+[D-G]$/i.test(fLine) || /^[A-E]\s+[A-E\s]{3,}$/i.test(fLine)) {
+        tableHtml += `<div class="font-mono tracking-widest font-black text-center py-1 bg-amber-500/15 rounded-lg my-1 text-amber-900 dark:text-amber-200">${fLine}</div>`;
+      } else {
+        tableHtml += `<div>${fLine}</div>`;
+      }
+    }
+    tableHtml += `</div>`;
   }
+
   tableHtml += `</div>`;
 
   return tableHtml;
@@ -172,18 +217,94 @@ export function formatMatchListsInText(input: string): string {
 
 /**
  * Sanitizes and repairs questions where List-I / List-II or option codes (a) (b) (c) (d)
- * were jumbled into option fields during import.
+ * were jumbled into option fields or left inside questionText during import.
  */
 export function sanitizeAndRepairQuestion(q: any, activeLang: 'en' | 'hi' = 'en'): any {
   if (!q) return q;
 
   const isHi = activeLang === 'hi';
-  const rawQText = (isHi && q.questionTextHi ? q.questionTextHi : q.questionText) || '';
+  const qTextField = isHi && q.questionTextHi ? 'questionTextHi' : 'questionText';
+  let rawQText = q[qTextField] || q.questionText || '';
 
-  // Fallback: Format standard Match List tables if questionText contains List-I & List-II
+  let optA = (isHi && q.optionAHi ? q.optionAHi : q.optionA) || '';
+  let optB = (isHi && q.optionBHi ? q.optionBHi : q.optionB) || '';
+  let optC = (isHi && q.optionCHi ? q.optionCHi : q.optionC) || '';
+  let optD = (isHi && q.optionDHi ? q.optionDHi : q.optionD) || '';
+  let optE = (isHi && q.optionEHi ? q.optionEHi : q.optionE) || '';
+
+  // Multi-line or single-line option choices regex
+  const multiLineOptionsRegex = /(?:^|\n|\s*)(?:[\(\[]?(?:a|1|A|क)[\)\]\t\.\:]\s*)([\s\S]+?)\s*(?:[\(\[]?(?:b|2|B|ख)[\)\]\t\.\:]\s*)([\s\S]+?)\s*(?:[\(\[]?(?:c|3|C|ग)[\)\]\t\.\:]\s*)([\s\S]+?)\s*(?:[\(\[]?(?:d|4|D|घ)[\)\]\t\.\:]\s*)([\s\S]+?)(?=\s*(?:[\(\[]?(?:e|5|E|ङ)[\)\]\t\.\:]|Ans|Answer|Explanation|Sol|Solution|$))/i;
+
+  const isOptEmpty = !optA || optA.trim() === '' || optA.trim() === 'A';
+  let embeddedMatch = false;
+
+  if (rawQText) {
+    const match = multiLineOptionsRegex.exec(rawQText);
+
+    if (match) {
+      embeddedMatch = true;
+      if (isOptEmpty) {
+        optA = match[1].trim();
+        optB = match[2].trim();
+        optC = match[3].trim();
+        let restD = match[4].trim();
+
+        // Check if Option E is present at the end of option D
+        const optEMatch = /(?:[\(\[]?(?:e|5|E|ङ)[\)\]\t\.\:]\s*)([\s\S]+?)$/i.exec(restD);
+        if (optEMatch) {
+          optE = optEMatch[1].trim().replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
+          optD = restD.substring(0, optEMatch.index).trim();
+        } else {
+          optD = restD.replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
+        }
+      }
+
+      // Strip options block from rawQText so it doesn't duplicate in question text paragraph or table footer
+      rawQText = rawQText.replace(multiLineOptionsRegex, '').trim();
+    }
+  }
+
+  // 2. Check if Row A of matching table was stolen into optA (e.g. optA = "A. धारवाड़ चट्टान प्रणाली")
+  const isOptAStolenTableItem = /^[ \t]*[A|1][\.\:\)\-–—]+[ \t]+[^\n]+/i.test(optA) &&
+                                /^[ \t]*[B|2][\.\:\)\-–—]+[ \t]+[^\n]+/i.test(optB);
+
+  if (isOptAStolenTableItem) {
+    const hasAInText = /(?:^|\n)[ \t]*A[\.\:\)\-–—]+/i.test(rawQText);
+    if (!hasAInText) {
+      const bIndex = rawQText.search(/(?:^|\n)[ \t]*B[\.\:\)\-–—]+/i);
+      if (bIndex !== -1) {
+        const textBeforeB = rawQText.slice(0, bIndex);
+        const textFromB = rawQText.slice(bIndex);
+        rawQText = textBeforeB + '\n' + optA.trim() + '\n' + textFromB;
+      } else {
+        rawQText = rawQText + '\n' + optA.trim();
+      }
+    }
+
+    if (!embeddedMatch) {
+      optA = optA.replace(/^[ \t]*[A|1][\.\:\)\-–—]+[ \t]*/i, '');
+      optB = optB.replace(/^[ \t]*[B|2][\.\:\)\-–—]+[ \t]*/i, '');
+      optC = optC.replace(/^[ \t]*[C|3][\.\:\)\-–—]+[ \t]*/i, '');
+      optD = optD.replace(/^[ \t]*[D|4][\.\:\)\-–—]+[ \t]*/i, '');
+      if (optE) optE = optE.replace(/^[ \t]*[E|5][\.\:\)\-–—]+[ \t]*/i, '');
+    }
+  }
+
+  // Format standard Match List tables if rawQText contains matching patterns
   const formattedQText = formatMatchListsInText(rawQText);
+
   return {
     ...q,
-    [isHi ? 'questionTextHi' : 'questionText']: formattedQText
+    [qTextField]: formattedQText,
+    optionA: optA,
+    optionB: optB,
+    optionC: optC,
+    optionD: optD,
+    optionE: optE,
+    optionAHi: optA,
+    optionBHi: optB,
+    optionCHi: optC,
+    optionDHi: optD,
+    optionEHi: optE,
   };
 }

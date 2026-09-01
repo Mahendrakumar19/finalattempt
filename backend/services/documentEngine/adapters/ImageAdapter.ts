@@ -2,6 +2,7 @@ import { DocumentAdapter, AdapterOptions } from './DocumentAdapter';
 import { NormalizedDocument, DocumentBlock } from '../core/NormalizedDocument';
 import { DefaultOCRProvider } from '../ocr/DefaultOCRProvider';
 import { v4 as uuidv4 } from 'uuid';
+import { LanguageDetector } from '../alignment/LanguageDetector';
 
 export class ImageAdapter extends DocumentAdapter {
   readonly supportedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -31,12 +32,15 @@ export class ImageAdapter extends DocumentAdapter {
       });
     }
 
+    const docLang = LanguageDetector.detectDocumentLanguage(blocks);
+
     return {
       id: `doc-${uuidv4().substring(0, 8)}`,
       sourceType: 'IMAGE',
       filename: options?.filename || 'scanned_image.png',
       mimeType: options?.mimeType || 'image/png',
       languages: [ocrResult.language],
+      documentLanguage: docLang,
       metadata: {
         title: options?.filename
       },

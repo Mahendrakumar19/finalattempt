@@ -3,6 +3,7 @@ import { NormalizedDocument, DocumentBlock, PageAnalysis } from '../core/Normali
 import { DefaultOCRProvider } from '../ocr/DefaultOCRProvider';
 import { PDFParse } from 'pdf-parse';
 import { v4 as uuidv4 } from 'uuid';
+import { LanguageDetector } from '../alignment/LanguageDetector';
 
 export class PDFAdapter extends DocumentAdapter {
   readonly supportedMimeTypes = ['application/pdf'];
@@ -77,14 +78,16 @@ export class PDFAdapter extends DocumentAdapter {
     }
 
     const fullDocText = pages.flatMap(p => p.blocks.map(b => b.text)).join('\n');
-    const docScript = this.detectScript(fullDocText);
+    const allBlocks = pages.flatMap(p => p.blocks);
+    const docLang = LanguageDetector.detectDocumentLanguage(allBlocks);
 
     return {
       id: `doc-${uuidv4().substring(0, 8)}`,
       sourceType: pages.some(p => p.isScanned) ? 'PDF' : 'PDF',
       filename: options?.filename || 'document.pdf',
       mimeType: 'application/pdf',
-      languages: docScript === 'mixed' ? ['en', 'hi'] : [docScript],
+      languages: this.detectScript(fullDocText) === 'mixed' ? ['en', 'hi'] : [this.detectScript(fullDocText)],
+      documentLanguage: docLang,
       metadata: {
         title: options?.filename,
         totalWordCount: fullDocText.split(/\s+/).length

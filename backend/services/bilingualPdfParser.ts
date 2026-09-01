@@ -78,6 +78,16 @@ export class BilingualPdfParser {
       questionsPreview: []
     };
 
+    // Check if user uploaded a strict 4-section formatted text document
+    const has4Sections = /SECTION\s*1\s*[:\-–—]?\s*ENGLISH\s*QUESTIONS?/i.test(rawText) &&
+                         /SECTION\s*2\s*[:\-–—]?\s*HINDI\s*QUESTIONS?/i.test(rawText) &&
+                         /SECTION\s*3\s*[:\-–—]?\s*ENGLISH\s*ANSWERS?/i.test(rawText) &&
+                         /SECTION\s*4\s*[:\-–—]?\s*HINDI\s*ANSWERS?/i.test(rawText);
+
+    if (has4Sections) {
+      return BilingualPdfParser.parseText(rawText, report);
+    }
+
     // 1. PRIMARY: Universal Format-Agnostic Engine
     try {
       const doc = await AdapterFactory.process(Buffer.from(rawText, 'utf-8'), { filename: 'pasted_import.txt', mimeType: 'text/plain' });
@@ -94,8 +104,7 @@ export class BilingualPdfParser {
             if (!opt) return '';
             const v = opt.versions.find(ver => ver.language === lang);
             if (v) return v.text;
-            // Fallback for primary language if version language wasn't specifically marked
-            if (lang === 'en' && opt.versions[0] && opt.versions[0].language !== 'hi') {
+            if (lang === 'en' && opt.versions[0] && opt.versions[0].language === 'en') {
               return opt.versions[0].text;
             }
             if (lang === 'hi' && opt.versions[0] && opt.versions[0].language === 'hi') {
@@ -104,11 +113,14 @@ export class BilingualPdfParser {
             return '';
           };
 
-          const enQ = enVersion?.text || (primaryVersion?.language !== 'hi' ? primaryVersion?.text : '');
-          const hiQ = hiVersion?.text || (primaryVersion?.language === 'hi' ? primaryVersion?.text : '');
+          const isHiText = (txt?: string) => txt && /[\u0900-\u097F]/.test(txt);
+          const isEnText = (txt?: string) => txt && /[a-zA-Z]/.test(txt) && !/[\u0900-\u097F]/.test(txt);
 
-          const expEn = qna.explanation?.versions.find(v => v.language === 'en')?.text || (qna.explanation?.versions[0]?.language !== 'hi' ? qna.explanation?.versions[0]?.text : '');
-          const expHi = qna.explanation?.versions.find(v => v.language === 'hi')?.text || (qna.explanation?.versions[0]?.language === 'hi' ? qna.explanation?.versions[0]?.text : '');
+          const enQ = enVersion?.text || (isEnText(primaryVersion?.text) ? primaryVersion?.text : '');
+          const hiQ = hiVersion?.text || (isHiText(primaryVersion?.text) ? primaryVersion?.text : '');
+
+          const expEn = qna.explanation?.versions.find(v => v.language === 'en')?.text || (isEnText(qna.explanation?.versions[0]?.text) ? qna.explanation?.versions[0]?.text : '');
+          const expHi = qna.explanation?.versions.find(v => v.language === 'hi')?.text || (isHiText(qna.explanation?.versions[0]?.text) ? qna.explanation?.versions[0]?.text : '');
 
           return {
             questionNumber: idx + 1,
@@ -188,7 +200,7 @@ export class BilingualPdfParser {
             if (!opt) return '';
             const v = opt.versions.find(ver => ver.language === lang);
             if (v) return v.text;
-            if (lang === 'en' && opt.versions[0] && opt.versions[0].language !== 'hi') {
+            if (lang === 'en' && opt.versions[0] && opt.versions[0].language === 'en') {
               return opt.versions[0].text;
             }
             if (lang === 'hi' && opt.versions[0] && opt.versions[0].language === 'hi') {
@@ -197,11 +209,14 @@ export class BilingualPdfParser {
             return '';
           };
 
-          const enQ = enVersion?.text || (primaryVersion?.language !== 'hi' ? primaryVersion?.text : '');
-          const hiQ = hiVersion?.text || (primaryVersion?.language === 'hi' ? primaryVersion?.text : '');
+          const isHiText = (txt?: string) => txt && /[\u0900-\u097F]/.test(txt);
+          const isEnText = (txt?: string) => txt && /[a-zA-Z]/.test(txt) && !/[\u0900-\u097F]/.test(txt);
 
-          const expEn = qna.explanation?.versions.find(v => v.language === 'en')?.text || (qna.explanation?.versions[0]?.language !== 'hi' ? qna.explanation?.versions[0]?.text : '');
-          const expHi = qna.explanation?.versions.find(v => v.language === 'hi')?.text || (qna.explanation?.versions[0]?.language === 'hi' ? qna.explanation?.versions[0]?.text : '');
+          const enQ = enVersion?.text || (isEnText(primaryVersion?.text) ? primaryVersion?.text : '');
+          const hiQ = hiVersion?.text || (isHiText(primaryVersion?.text) ? primaryVersion?.text : '');
+
+          const expEn = qna.explanation?.versions.find(v => v.language === 'en')?.text || (isEnText(qna.explanation?.versions[0]?.text) ? qna.explanation?.versions[0]?.text : '');
+          const expHi = qna.explanation?.versions.find(v => v.language === 'hi')?.text || (isHiText(qna.explanation?.versions[0]?.text) ? qna.explanation?.versions[0]?.text : '');
 
           return {
             questionNumber: idx + 1,
@@ -504,18 +519,24 @@ export class BilingualPdfParser {
 
   /**
    * Auto-formats "Match List-I with List-II" (and Hindi सूची-I, सूची-II) text blocks
-   * into clean, responsive HTML Tables.
+   * into clean, responsive HTML / Markdown Tables.
    */
   public static formatMatchListsInText(input: string): string {
     if (!input) return '';
-    if (input.includes('<table') || input.includes('class="match-list-container"')) return input;
+    if (input.includes('<table') || input.includes('class="match-list-container"') || input.includes('| List-I |') || input.includes('| सूची-I |')) return input;
 
     const hasList1 = /List[\s\-_]*I\b|List[\s\-_]*1\b|सूची[\s\-_]*I\b|सूची[\s\-_]*1\b/i.test(input);
     const hasList2 = /List[\s\-_]*II\b|List[\s\-_]*2\b|सूची[\s\-_]*II\b|सूची[\s\-_]*2\b/i.test(input);
 
     if (!hasList1 || !hasList2) return input;
 
-    const rawLines = input.split('\n');
+    // Standardize newline formatting if inline list markers are present
+    let normalized = input
+      .replace(/([A-D1-4][\.\:\)])\s*/g, '\n$1 ')
+      .replace(/(List[\s\-_]*I{1,2}|सूची[\s\-_]*I{1,2})/gi, '\n$1')
+      .replace(/(Codes?:?|कूट:?)/gi, '\n$1');
+
+    const rawLines = normalized.split('\n');
     const promptLines: string[] = [];
     const listRows: { left: string; right: string }[] = [];
     let headerLeft = 'List-I';
@@ -527,7 +548,6 @@ export class BilingualPdfParser {
       const line = rawLines[i].trim();
       if (!line) continue;
 
-      // Header line detection e.g. "List-I (Items of the Constitution)   List-II (Taken from Countries)"
       const isHeaderLine = /List[\s\-_]*I|List[\s\-_]*1|सूची[\s\-_]*I|सूची[\s\-_]*1/i.test(line) &&
                            /List[\s\-_]*II|List[\s\-_]*2|सूची[\s\-_]*II|सूची[\s\-_]*2/i.test(line);
 
@@ -541,7 +561,6 @@ export class BilingualPdfParser {
         continue;
       }
 
-      // Column Codes header e.g. "A B C D" or "Code: A B C D" or "कूट: A B C D"
       if (/^(?:Codes?|कूट)?\s*[\:\-\s]*[A-D\s]{3,15}$/i.test(line) || /^[A-D]\s+[B-E]\s+[C-F]\s+[D-G]$/i.test(line)) {
         codesHeader = line;
         inListSection = false;
@@ -607,7 +626,8 @@ export class BilingualPdfParser {
     // Strip the question prefix
     const withoutPrefix = block.replace(/^[ \t]*(?:Q|Question|Q\.)?[ \t]*\d{1,4}[\.\:\)\-–—\s]+/, '').trim();
 
-    // Find option positions — strictly "(a)"–"(e)" or "a."–"e." or "(क)"–"(ङ)"
+    // Find option positions — strictly "(a)"–"(e)" or "(A)"–"(E)" or "a."–"e." or "(a) 3 4 1 2"
+    // Option markers must be (a)-(e), (a) 3 4 1 2, or (a) 1 2 3 4
     const optRegex = /(?:^|\n)[ \t]*(?:\(([abcdeABCDEक-ङ])\)|([abcdeABCDEक-ङ])[\.\:\)\-–—]+)[ \t]+/g;
     const optPositions: { label: string; index: number }[] = [];
     let om: RegExpExecArray | null;

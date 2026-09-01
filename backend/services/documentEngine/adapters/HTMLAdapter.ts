@@ -2,6 +2,7 @@ import { DocumentAdapter, AdapterOptions } from './DocumentAdapter';
 import { NormalizedDocument, DocumentBlock, TableCell } from '../core/NormalizedDocument';
 import * as cheerio from 'cheerio';
 import { v4 as uuidv4 } from 'uuid';
+import { LanguageDetector } from '../alignment/LanguageDetector';
 
 export class HTMLAdapter extends DocumentAdapter {
   readonly supportedMimeTypes = ['text/html', 'application/xhtml+xml'];
@@ -28,7 +29,7 @@ export class HTMLAdapter extends DocumentAdapter {
         blocks.push({
           id: `blk-html-${uuidv4().substring(0, 8)}`,
           pageNumber: 1,
-          type: tag === 'h1' ? 'HEADING' : 'SUBHEADING',
+          type: 'DOCUMENT_HEADING',
           text,
           language: lang,
           confidence: 1.0,
@@ -77,14 +78,15 @@ export class HTMLAdapter extends DocumentAdapter {
     });
 
     const docText = blocks.map(b => b.text).join('\n');
-    const docLang = this.detectScript(docText);
+    const docLang = LanguageDetector.detectDocumentLanguage(blocks);
 
     return {
       id: `doc-${uuidv4().substring(0, 8)}`,
       sourceType: 'HTML',
       filename: options?.filename || 'document.html',
       mimeType: 'text/html',
-      languages: docLang === 'mixed' ? ['en', 'hi'] : [docLang],
+      languages: this.detectScript(docText) === 'mixed' ? ['en', 'hi'] : [this.detectScript(docText)],
+      documentLanguage: docLang,
       metadata: {
         title: $('title').text() || options?.filename
       },

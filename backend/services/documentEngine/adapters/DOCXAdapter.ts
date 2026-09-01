@@ -2,6 +2,7 @@ import { DocumentAdapter, AdapterOptions } from './DocumentAdapter';
 import { NormalizedDocument, DocumentBlock, TableCell } from '../core/NormalizedDocument';
 import { v4 as uuidv4 } from 'uuid';
 import zlib from 'zlib';
+import { LanguageDetector } from '../alignment/LanguageDetector';
 
 export class DOCXAdapter extends DocumentAdapter {
   readonly supportedMimeTypes = [
@@ -46,7 +47,7 @@ export class DOCXAdapter extends DocumentAdapter {
 
       let blockType: DocumentBlock['type'] = 'PARAGRAPH';
       if (/Heading\s*\d/i.test(pXml) || /<w:pStyle\s+w:val="Heading/i.test(pXml)) {
-        blockType = 'HEADING';
+        blockType = 'DOCUMENT_HEADING';
       } else if (/<w:numPr>/i.test(pXml)) {
         blockType = 'LIST';
       }
@@ -120,6 +121,7 @@ export class DOCXAdapter extends DocumentAdapter {
     }
 
     const fullText = blocks.map(b => b.text).join('\n');
+    const docLang = LanguageDetector.detectDocumentLanguage(blocks);
 
     return {
       id: `doc-${uuidv4().substring(0, 8)}`,
@@ -127,6 +129,7 @@ export class DOCXAdapter extends DocumentAdapter {
       filename: options?.filename || 'document.docx',
       mimeType: options?.mimeType || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       languages: this.detectScript(fullText) === 'mixed' ? ['en', 'hi'] : [this.detectScript(fullText)],
+      documentLanguage: docLang,
       metadata: {
         title: options?.filename,
         totalWordCount: fullText.split(/\s+/).length

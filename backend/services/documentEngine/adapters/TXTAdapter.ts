@@ -1,6 +1,7 @@
 import { DocumentAdapter, AdapterOptions } from './DocumentAdapter';
 import { NormalizedDocument, DocumentBlock } from '../core/NormalizedDocument';
 import { v4 as uuidv4 } from 'uuid';
+import { LanguageDetector } from '../alignment/LanguageDetector';
 
 export class TXTAdapter extends DocumentAdapter {
   readonly supportedMimeTypes = ['text/plain', 'text/markdown', 'text/rtf', 'application/rtf'];
@@ -21,7 +22,7 @@ export class TXTAdapter extends DocumentAdapter {
 
       let blockType: DocumentBlock['type'] = 'PARAGRAPH';
       if (/^#{1,6}\s+/.test(line)) {
-        blockType = 'HEADING';
+        blockType = 'DOCUMENT_HEADING';
       } else if (/^[=\-]{3,}$/.test(line)) {
         blockType = 'NOISE';
       }
@@ -40,14 +41,15 @@ export class TXTAdapter extends DocumentAdapter {
       });
     }
 
-    const docLang = this.detectScript(rawText);
+    const docLang = LanguageDetector.detectDocumentLanguage(blocks);
 
     return {
       id: `doc-${uuidv4().substring(0, 8)}`,
       sourceType: options?.mimeType?.includes('markdown') ? 'MD' : 'TXT',
       filename: options?.filename || 'pasted_text.txt',
       mimeType: options?.mimeType || 'text/plain',
-      languages: docLang === 'mixed' ? ['en', 'hi'] : [docLang],
+      languages: this.detectScript(rawText) === 'mixed' ? ['en', 'hi'] : [this.detectScript(rawText)],
+      documentLanguage: docLang,
       metadata: {
         totalWordCount: rawText.split(/\s+/).length
       },

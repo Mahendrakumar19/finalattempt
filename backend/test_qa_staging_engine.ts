@@ -34,6 +34,11 @@ Ans: C
   }
   console.log('✓ PASS: Option E extracted cleanly:', optE.versions[0].text);
 
+  // Assert document language for English-only doc
+  if (doc5.documentLanguage !== 'ENGLISH') {
+    throw new Error(`English-only doc detected as ${doc5.documentLanguage}`);
+  }
+
   // Staging & LMS Commit Verification for Option E
   const imp5 = await StagingService.createImport({ adminId: 'qa-admin', filename: 'BPSC_5OPT_TEST.txt', sourceType: 'TXT', mimeType: 'text/plain', fileSize: buffer5.length });
   await StagingService.saveStagedQnas(imp5.id, qnas5);
