@@ -3267,6 +3267,30 @@ export default function TestSeriesAdmin({
                         const curQ = bilingualReport.questionsPreview[previewQuestionIndex];
                         if (!curQ) return null;
 
+                        const handleSetCorrectAnswerInPreview = (newKey: string) => {
+                          if (!bilingualReport || !bilingualReport.questionsPreview) return;
+                          const updatedPreview = [...bilingualReport.questionsPreview];
+                          updatedPreview[previewQuestionIndex] = {
+                            ...updatedPreview[previewQuestionIndex],
+                            correctAnswer: newKey,
+                            mappedCorrectKey: newKey
+                          };
+
+                          if (Array.isArray(parsedBulkQuestions) && parsedBulkQuestions[previewQuestionIndex]) {
+                            const updatedBulk = [...parsedBulkQuestions];
+                            updatedBulk[previewQuestionIndex] = {
+                              ...updatedBulk[previewQuestionIndex],
+                              correctAnswer: newKey
+                            };
+                            setParsedBulkQuestions(updatedBulk);
+                          }
+
+                          setBilingualReport({
+                            ...bilingualReport,
+                            questionsPreview: updatedPreview,
+                          });
+                        };
+
                         return (
                           <div className="bg-slate-50 dark:bg-slate-900/80 border border-[var(--card-border)] rounded-2xl p-5 space-y-5 text-xs shadow-inner">
                             {/* Header Bar */}
@@ -3285,7 +3309,7 @@ export default function TestSeriesAdmin({
                               <div className="flex items-center gap-2">
                                 <span className="text-[11px] text-slate-400 font-medium">Answer Key:</span>
                                 <span className="px-3 py-1 bg-emerald-500/15 text-emerald-500 rounded-xl font-mono font-black text-xs border border-emerald-500/30">
-                                  ({curQ.correctAnswer})
+                                  Option {curQ.correctAnswer}
                                 </span>
                               </div>
                             </div>
@@ -3303,7 +3327,7 @@ export default function TestSeriesAdmin({
                                 </div>
 
                                 <div className="space-y-2 pt-2">
-                                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Options</span>
+                                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Options (Click to Set Correct Answer)</span>
                                   {[
                                     { key: 'A', text: curQ.optionA },
                                     { key: 'B', text: curQ.optionB },
@@ -3313,23 +3337,35 @@ export default function TestSeriesAdmin({
                                   ].map(opt => {
                                     const isCorrect = curQ.correctAnswer === opt.key;
                                     return (
-                                      <div
+                                      <button
+                                        type="button"
                                         key={opt.key}
-                                        className={`p-2.5 rounded-xl border flex items-start gap-2.5 text-xs font-medium transition-colors ${
+                                        onClick={() => handleSetCorrectAnswerInPreview(opt.key)}
+                                        title={`Click to set Option ${opt.key} as Correct Answer`}
+                                        className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between gap-2.5 text-xs font-medium transition-all cursor-pointer ${
                                           isCorrect
-                                            ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-300 font-bold'
-                                            : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                                            ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-300 font-bold shadow-xs'
+                                            : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-500/50 hover:bg-amber-500/5'
                                         }`}
                                       >
-                                        <span className={`w-5 h-5 shrink-0 rounded-lg flex items-center justify-center font-extrabold text-[11px] ${
+                                        <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                          <span className={`w-5 h-5 shrink-0 rounded-lg flex items-center justify-center font-extrabold text-[11px] ${
+                                            isCorrect
+                                              ? 'bg-emerald-500 text-white shadow-xs'
+                                              : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                          }`}>
+                                            {isCorrect ? '✓' : opt.key}
+                                          </span>
+                                          <span className="leading-snug break-words flex-1">{stripOptionPrefix(opt.text)}</span>
+                                        </div>
+                                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
                                           isCorrect
-                                            ? 'bg-emerald-500 text-white'
-                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent hover:text-amber-500'
                                         }`}>
-                                          {opt.key}
+                                          {isCorrect ? 'Correct' : 'Set Answer'}
                                         </span>
-                                        <span className="leading-snug break-words flex-1">{stripOptionPrefix(opt.text)}</span>
-                                      </div>
+                                      </button>
                                     );
                                   })}
                                 </div>
@@ -3363,23 +3399,35 @@ export default function TestSeriesAdmin({
                                   ].map(opt => {
                                     const isCorrect = curQ.correctAnswer === opt.key;
                                     return (
-                                      <div
+                                      <button
+                                        type="button"
                                         key={opt.key}
-                                        className={`p-2.5 rounded-xl border flex items-start gap-2.5 text-xs font-medium transition-colors ${
+                                        onClick={() => handleSetCorrectAnswerInPreview(opt.key)}
+                                        title={`Click to set Option ${opt.key} as Correct Answer`}
+                                        className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between gap-2.5 text-xs font-medium transition-all cursor-pointer ${
                                           isCorrect
-                                            ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-300 font-bold'
-                                            : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                                            ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-600 dark:text-emerald-300 font-bold shadow-xs'
+                                            : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-500/50 hover:bg-amber-500/5'
                                         }`}
                                       >
-                                        <span className={`w-5 h-5 shrink-0 rounded-lg flex items-center justify-center font-extrabold text-[11px] ${
+                                        <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                                          <span className={`w-5 h-5 shrink-0 rounded-lg flex items-center justify-center font-extrabold text-[11px] ${
+                                            isCorrect
+                                              ? 'bg-emerald-500 text-white shadow-xs'
+                                              : 'bg-amber-500/20 text-amber-500 dark:bg-amber-500/30'
+                                          }`}>
+                                            {isCorrect ? '✓' : opt.key}
+                                          </span>
+                                          <span className="leading-snug break-words flex-1">{stripOptionPrefix(opt.text)}</span>
+                                        </div>
+                                        <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md border shrink-0 ${
                                           isCorrect
-                                            ? 'bg-emerald-500 text-white'
-                                            : 'bg-amber-500/20 text-amber-500 dark:bg-amber-500/30'
+                                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-400 border-transparent hover:text-amber-500'
                                         }`}>
-                                          {opt.key}
+                                          {isCorrect ? 'Correct' : 'Set Answer'}
                                         </span>
-                                        <span className="leading-snug break-words flex-1">{stripOptionPrefix(opt.text)}</span>
-                                      </div>
+                                      </button>
                                     );
                                   })}
                                 </div>

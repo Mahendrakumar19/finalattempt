@@ -106,9 +106,9 @@ export function formatMatchListsInText(input: string): string {
       continue;
     }
 
-    // Side-by-side data row check without pipes e.g. "I. Union List   A. 97 entries"
-    const sideBySideMatch = line.match(/^([I|V|X\d]+[\.\:\)\-–—]+[^\t]+?)\s{2,}(\[?[A-Ea-eक-ङ1-5]+[\.\:\)\-–—]+.+)$/);
-    if (sideBySideMatch && !line.includes('Match') && !line.includes('मिलान')) {
+    // Side-by-side data row check without pipes e.g. "I. Union List   A. 97 entries" or "A. Linen   1. Coconut plant"
+    const sideBySideMatch = line.match(/^([A-Ea-eक-ङ\dI|V|X]+[\.\:\)\-–—]+[^\t\n]+?)\s{2,}([A-Ea-eक-ङ\dI|V|X]+[\.\:\)\-–—]+.+)$/i);
+    if (sideBySideMatch && !line.includes('Match') && !line.includes('मिलान') && !line.includes('सुमेलित')) {
       leftItems.push(cleanCellText(sideBySideMatch[1]));
       rightItems.push(cleanCellText(sideBySideMatch[2]));
       continue;

@@ -62,9 +62,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
       try {
         const res = await startQuiz(quizId, accessToken);
         if (res.success && res.data) {
-          setQuizInfo(res.data.quiz);
+          const quizObj = res.data.quiz;
+          setQuizInfo(quizObj);
           setSession(res.data.session);
           setQuestions(res.data.questions);
+
+          // Enforce single-language test mode lock
+          const langMode = (quizObj?.languageMode || quizObj?.medium || quizObj?.language || '').toLowerCase();
+          if (langMode.includes('english') || langMode === 'en') {
+            setActiveLang('en');
+          } else if (langMode.includes('hindi') || langMode === 'hi') {
+            setActiveLang('hi');
+          }
           
           if (res.data.session?.savedAnswers) {
             setSelectedAnswers(res.data.session.savedAnswers);
@@ -376,7 +385,14 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               </div>
               <div>
                 <p className="text-[10px] uppercase font-bold" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>Exam Mode</p>
-                <p className="text-lg font-black mt-0.5" style={{ color: cbtDark ? '#FFFFFF' : '#0F172A' }}>Bilingual</p>
+                <p className="text-lg font-black mt-0.5" style={{ color: cbtDark ? '#FFFFFF' : '#0F172A' }}>
+                  {(() => {
+                    const m = (quizInfo?.languageMode || quizInfo?.medium || quizInfo?.language || '').toLowerCase();
+                    if (m.includes('english') || m === 'en') return 'English Only';
+                    if (m.includes('hindi') || m === 'hi') return 'Hindi Only';
+                    return 'Bilingual';
+                  })()}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] uppercase font-bold" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>Marking Scheme</p>
@@ -583,22 +599,47 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             </div>
 
             {/* View Language Switcher */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>View in:</span>
-              <select
-                value={activeLang}
-                onChange={(e) => setActiveLang(e.target.value as 'en' | 'hi')}
-                className="text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded cursor-pointer border outline-none"
-                style={{
-                  backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF',
-                  borderColor: cbtDark ? '#404040' : '#E5E7EB',
-                  color: cbtDark ? '#FFFFFF' : '#111827',
-                }}
-              >
-                <option value="en">English</option>
-                <option value="hi">Hindi (हिन्दी)</option>
-              </select>
-            </div>
+            {(() => {
+              const m = (quizInfo?.languageMode || quizInfo?.medium || quizInfo?.language || '').toLowerCase();
+              if (m.includes('english') || m === 'en') {
+                return (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>Language:</span>
+                    <span className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded border border-slate-300 dark:border-slate-700">
+                      English Only
+                    </span>
+                  </div>
+                );
+              }
+              if (m.includes('hindi') || m === 'hi') {
+                return (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>Language:</span>
+                    <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs rounded border border-amber-500/30">
+                      Hindi Only (केवल हिन्दी)
+                    </span>
+                  </div>
+                );
+              }
+              return (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>View in:</span>
+                  <select
+                    value={activeLang}
+                    onChange={(e) => setActiveLang(e.target.value as 'en' | 'hi')}
+                    className="text-xs font-bold px-2 py-0.5 sm:px-2.5 sm:py-1 rounded cursor-pointer border outline-none"
+                    style={{
+                      backgroundColor: cbtDark ? '#1C1C1C' : '#FFFFFF',
+                      borderColor: cbtDark ? '#404040' : '#E5E7EB',
+                      color: cbtDark ? '#FFFFFF' : '#111827',
+                    }}
+                  >
+                    <option value="en">English</option>
+                    <option value="hi">Hindi (हिन्दी)</option>
+                  </select>
+                </div>
+              );
+            })()}
           </div>
 
           {/* ── Main Viewport Split (Question & Options vs Testbook Sidebar Palette) ── */}
