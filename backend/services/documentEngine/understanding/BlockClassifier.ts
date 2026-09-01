@@ -88,10 +88,7 @@ export class BlockClassifier {
     // e.g. "(a)", "A.", "A)", "1.", "(क)", "क."
     const optMatch = /^[ \t]*(?:\(([abcdeABCDEक-ङकखगघङ])\)|\b([abcdeABCDEक-ङकखगघङ])\b[\.\:\)\-–—]+)[ \t]+/i.exec(text);
     if (optMatch) {
-      const afterText = text.substring(optMatch[0].length).trim();
-      if (!/^[A-Z]\./i.test(afterText) && !/^\.[A-Z]\./i.test(afterText)) {
-        return 'OPTION_CANDIDATE';
-      }
+      return 'OPTION_CANDIDATE';
     }
 
     // Signal 6: Question Boundary candidate evaluation

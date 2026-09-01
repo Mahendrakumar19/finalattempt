@@ -9,9 +9,8 @@ export class LanguageDetector {
     const latinCount = (text.match(/[a-zA-Z]/g) || []).length;
 
     if (devanagariCount > 0 && latinCount > 0) {
-      if (devanagariCount > latinCount * 3) return 'hi';
-      if (latinCount > devanagariCount * 3) return 'en';
-      return 'mixed';
+      if (devanagariCount >= latinCount) return 'hi';
+      return 'en';
     }
 
     if (devanagariCount > 0) return 'hi';

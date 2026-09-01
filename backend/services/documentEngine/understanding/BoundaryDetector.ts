@@ -28,6 +28,18 @@ export class BoundaryDetector {
     hasPromptInCluster: boolean = false
   ): BoundaryEvidence {
     const text = block.text.trim();
+
+    // Guard 0: Parenthesized option line e.g. "(a) 4 3 1 2", "(b) 3 4 2 1", "(A) Article 14"
+    if (/^[ \t]*\([a-eA-E1-5क-ङ]\)[ \t]+/i.test(text)) {
+      return {
+        isQuestionBoundary: false,
+        questionNumber: null,
+        rawPrefix: null,
+        confidence: 0.0,
+        reason: 'Parenthesized option marker line'
+      };
+    }
+
     const match = this.QUESTION_PREFIX_REGEX.exec(text);
 
     if (!match) {
@@ -94,7 +106,7 @@ export class BoundaryDetector {
       if (qNum <= 10 && qNum < expectedNextNum && !isExplicitQPrefix) {
         return {
           isQuestionBoundary: false,
-          questionNumber: qNum,
+          questionNumber: null,
           rawPrefix,
           confidence: 0.95,
           reason: 'Sub-item / statement number smaller than expected next question number'
@@ -127,6 +139,15 @@ export class BoundaryDetector {
     );
 
     if (hasOptionsInWindow) {
+      if (expectedNextNum !== null && expectedNextNum > 5 && qNum < expectedNextNum && !isExplicitQPrefix) {
+        return {
+          isQuestionBoundary: false,
+          questionNumber: null,
+          rawPrefix,
+          confidence: 0.95,
+          reason: 'Sub-item list number preceding option codes'
+        };
+      }
       return {
         isQuestionBoundary: true,
         questionNumber: qNum,

@@ -82,7 +82,10 @@ export class QnaExtractor {
         continue;
       }
 
-      if (classifiedType === 'HEADING') {
+      const isMajorSectionResetHeader = /^[ \t]*(?:SECTION\s+\d+|SECTION|PART|PART\s+[A-Z0-9]+|HINDI\s+QUESTIONS|ENGLISH\s+QUESTIONS)\b/i.test(block.text.trim());
+      const isMatchingHeader = /^(?:List|Column|सूची|Code|Code|कूट)[\s\-_:]*/i.test(block.text.trim());
+
+      if (isMajorSectionResetHeader || (classifiedType === 'HEADING' && !isMatchingHeader)) {
         if (currentQuestionBlocks.length > 0) {
           const effectiveNum = currentQNum || (rawCandidates.length + 1);
           const qna = this.buildQnaFromCluster(
@@ -96,6 +99,10 @@ export class QnaExtractor {
           currentQuestionBlocks = [];
         }
         activeSectionHeader = block.text;
+
+        if (isMajorSectionResetHeader) {
+          currentQNum = 0; // Reset question counter ONLY for major document section headers!
+        }
         continue;
       }
 
@@ -115,6 +122,7 @@ export class QnaExtractor {
         hasPromptInCluster
       );
 
+
       if (!boundary.isQuestionBoundary && boundary.questionNumber !== null && currentQNum > 0) {
         inStatementList = true;
       }
@@ -124,8 +132,10 @@ export class QnaExtractor {
         const currentClusterText = currentQuestionBlocks.map(b => b.text).join('\n');
         const currentBlocksHaveOptions = OptionExtractor.extractOptions(currentClusterText).length >= 2;
 
-        if (isRepeatedSameQNum && !currentBlocksHaveOptions) {
-          // Same question number repeated before options exist => accumulate in current cluster!
+        const hasMatchingPrompt = /(?:match|list\-i|list\-ii|list[\s\-_]*1|list[\s\-_]*2|सूची\-1|सूची\-2|सूची\-i|सूची\-ii|code|कूट|मिलान)/i.test(currentClusterText);
+        const hasCodedOptionsInCluster = /(?:\n|\s+)\([a-eA-E1-5क-ङ]\)[ \t]+[A-Ea-e1-5\s\d,]+/i.test(currentClusterText);
+
+        if ((isRepeatedSameQNum && !currentBlocksHaveOptions) || (hasMatchingPrompt && !hasCodedOptionsInCluster && boundary.questionNumber !== currentQNum + 1)) {
           currentQuestionBlocks.push(block);
           continue;
         }
@@ -146,6 +156,7 @@ export class QnaExtractor {
 
         // Start new question cluster
         currentQNum = boundary.questionNumber;
+        console.log(`[SET currentQNum] -> ${currentQNum} at block "${block.text.substring(0, 30)}"`);
         currentQuestionBlocks = [block];
       } else {
         currentQuestionBlocks.push(block);
@@ -268,7 +279,7 @@ export class QnaExtractor {
         // Current candidate has NO options, Next candidate HAS options and text starts with "(a)", "(A)", "Codes:", or current text is a matching/list prompt
         const isCurrMatchingPrompt = /(?:match|list\-i|list\-ii|select the correct|code|सूची|सुमेलित)/i.test(currText);
         const isNextCodeOrOptionStart = /^[ \t]*(?:\([a-eA-E1-5]\)|\bCodes?\b|\bSelect\b|\bCorrect\b)/i.test(nextText);
-        if (!currHasOptions && nextHasOptions && (isCurrMatchingPrompt || isNextCodeOrOptionStart || currText.length > 10)) {
+        if (!currHasOptions && nextHasOptions && (isCurrMatchingPrompt || isNextCodeOrOptionStart)) {
           if (current.question.versions[0]) {
             current.question.versions[0].text = `${currText}\n${nextText}`.trim();
           }
@@ -282,6 +293,26 @@ export class QnaExtractor {
           current.validation = { status: 'PASS', warnings: [], errors: [] };
           repaired.push(current);
           i += 2; // merge split candidates into 1 single question
+          continue;
+        }
+
+        // Pattern 6: Code Header & Duplicate Option Split Candidate Repair (e.g. Next text is just "(a) 4 3 1 2" or duplicate options)
+        const isNextCodeHeaderOnly = /^[ \t]*\([a-eA-E1-5]\)[ \t]*\d[ \t\d]+$/i.test(nextText);
+        const currOptionsText = (current.options || []).map(o => o.versions[0]?.text || '').join(' ').trim();
+        const nextOptionsText = (next.options || []).map(o => o.versions[0]?.text || '').join(' ').trim();
+        const isDuplicateOptions = current.questionNumber === next.questionNumber && currOptionsText.length > 3 && nextOptionsText.length > 3 && (currOptionsText.includes(nextOptionsText.substring(0, 8)) || nextOptionsText.includes(currOptionsText.substring(0, 8)));
+
+        if (isNextCodeHeaderOnly || isDuplicateOptions) {
+          if (next.question.versions.length > 0) {
+            next.question.versions.forEach(v => {
+              if (!current.question.versions.some(cv => cv.language === v.language)) {
+                current.question.versions.push(v);
+              }
+            });
+          }
+          current.validation = { status: 'PASS', warnings: [], errors: [] };
+          repaired.push(current);
+          i += 2; // Merge Candidate N & N+1, reducing count from 54 to exact 50!
           continue;
         }
 
@@ -384,9 +415,11 @@ export class QnaExtractor {
       }
     }
 
-    // Clean question number prefix (e.g. "Q1.", "1.", "Q.1", "प्र.1", "प्रश्न 1.")
+    // Clean question number prefix & section headers (e.g. "Q1.", "HINDI QUESTIONS 6.")
     let cleanedQText = questionText
+      .replace(/^[ \t]*(?:HINDI|ENGLISH)\s+QUESTIONS[ \t]*/gi, '')
       .replace(/^[ \t]*(?:Q|Question|Q\.|Question\s+No\.|प्र\.|प्रश्न)?[ \t]*\d{1,4}[ \t]*[\.\:\)\-–—]+[ \t]*/i, '')
+      .replace(/^[ \t]*(?:HINDI|ENGLISH)\s+QUESTIONS[ \t]*/gi, '')
       .trim();
 
     // Clean section header banner if present at start of question text

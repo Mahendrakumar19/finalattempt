@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  Plus, Trash2, Edit3, ChevronDown, ChevronRight, FileText, X, Check, 
+import {
+  Plus, Trash2, Edit3, ChevronDown, ChevronRight, FileText, X, Check,
   Layers, Sparkles, Eye, ArrowUp, ArrowDown, Folder
 } from 'lucide-react';
 import { db, TestSeriesItem, ExamData } from '@/services/db';
@@ -324,7 +324,7 @@ export default function TestSeriesAdmin({
       .then(list => {
         if (isSubscribed) setQuizzes(list || []);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (isSubscribed) setLoadingQuizzes(false);
       });
@@ -356,7 +356,7 @@ export default function TestSeriesAdmin({
   const handleOpenEditSeries = (item: TestSeriesItem) => {
     setSeriesModalType('edit');
     const cleanLang = (item.language && item.language.toLowerCase().includes('hindi')) ? 'Hindi' : 'English';
-    
+
     // Resolve matching examId from examsList by examId, code, or name
     const foundEx = (examsList.length > 0 ? examsList : [
       { id: 'exam-bpsc', name: 'BPSC', code: 'BPSC' },
@@ -460,7 +460,7 @@ export default function TestSeriesAdmin({
   const handleTogglePublishSeries = async (seriesItem: TestSeriesItem) => {
     const currentLive = seriesItem.isPublished !== false;
     const nextState = !currentLive;
-    
+
     // Ensure mandatory backend fields (examId, title) exist
     const updated: TestSeriesItem = {
       ...seriesItem,
@@ -606,7 +606,7 @@ export default function TestSeriesAdmin({
           setParsedBulkQuestions(parsed);
           return;
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // 2. Try parsing CSV format
@@ -712,7 +712,7 @@ export default function TestSeriesAdmin({
             let parsed: any = {};
             try {
               parsed = typeof q.parsedQnaJson === 'string' ? JSON.parse(q.parsedQnaJson) : q.parsedQnaJson || {};
-            } catch (_) {}
+            } catch (_) { }
 
             const textEn = parsed.question?.versions?.find((v: any) => v.language === 'en')?.text || q.questionText || '';
             const textHi = parsed.question?.versions?.find((v: any) => v.language === 'hi')?.text || '';
@@ -870,22 +870,20 @@ export default function TestSeriesAdmin({
             <button
               type="button"
               onClick={() => setSubTab('series')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                subTab === 'series'
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${subTab === 'series'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
                   : 'text-slate-500 hover:text-[var(--text-color)]'
-              }`}
+                }`}
             >
               Programs ({seriesList.length})
             </button>
             <button
               type="button"
               onClick={() => setSubTab('exams')}
-              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                subTab === 'exams'
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${subTab === 'exams'
                   ? 'bg-amber-500 text-slate-950 shadow-md'
                   : 'text-slate-500 hover:text-[var(--text-color)]'
-              }`}
+                }`}
             >
               Exams & Logos ({examsList.length})
             </button>
@@ -1114,7 +1112,7 @@ export default function TestSeriesAdmin({
                           </span>
                         )}
                       </div>
-                      
+
                       {/* Published Toggle Switch */}
                       {(() => {
                         const isLive = series.isPublished !== false;
@@ -1126,13 +1124,11 @@ export default function TestSeriesAdmin({
                             <button
                               type="button"
                               onClick={() => handleTogglePublishSeries(series)}
-                              className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${
-                                isLive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
-                              }`}
+                              className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer ${isLive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                                }`}
                             >
-                              <div className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${
-                                isLive ? 'translate-x-4' : 'translate-x-0'
-                              }`} />
+                              <div className={`w-4 h-4 rounded-full bg-white shadow-xs transform transition-transform ${isLive ? 'translate-x-4' : 'translate-x-0'
+                                }`} />
                             </button>
                           </div>
                         );
@@ -1360,22 +1356,20 @@ export default function TestSeriesAdmin({
                                 <button
                                   type="button"
                                   onClick={() => setQuizLangMode(prev => ({ ...prev, [quiz.id]: 'EN' }))}
-                                  className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${
-                                    (quizLangMode[quiz.id] || 'EN') === 'EN'
+                                  className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${(quizLangMode[quiz.id] || 'EN') === 'EN'
                                       ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
                                       : 'text-slate-400 hover:text-[var(--text-color)]'
-                                  }`}
+                                    }`}
                                 >
                                   EN
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => setQuizLangMode(prev => ({ ...prev, [quiz.id]: 'HI' }))}
-                                  className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${
-                                    quizLangMode[quiz.id] === 'HI'
+                                  className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${quizLangMode[quiz.id] === 'HI'
                                       ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
                                       : 'text-slate-400 hover:text-[var(--text-color)]'
-                                  }`}
+                                    }`}
                                 >
                                   हिन्दी (HI)
                                 </button>
@@ -1445,9 +1439,8 @@ export default function TestSeriesAdmin({
                                       )}
                                       <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-medium">
                                         {(['A', 'B', 'C', 'D', 'E'] as const).map(opt => optsMap[opt] ? (
-                                          <span key={opt} className={`flex items-center gap-1 p-1.5 rounded-lg border ${
-                                            q.correctAnswer === opt ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-bold' : 'border-transparent'
-                                          }`}>
+                                          <span key={opt} className={`flex items-center gap-1 p-1.5 rounded-lg border ${q.correctAnswer === opt ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-bold' : 'border-transparent'
+                                            }`}>
                                             {q.correctAnswer === opt && <Check className="w-3 h-3 text-emerald-500 shrink-0" />}
                                             <span className="font-bold">{opt}.</span> {stripOptionPrefix(optsMap[opt] || '')}
                                           </span>
@@ -1758,119 +1751,196 @@ export default function TestSeriesAdmin({
                   </select>
                 </div>
               </div>
-              </div>
+            </div>
 
-              {/* Price, Discounted Price, Total Tests, Questions & Validity */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <div>
-                  <label className="block text-slate-400 mb-1">Regular Fee (₹)</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={editingSeries.price || 0}
-                    onChange={e => setEditingSeries({ ...editingSeries, price: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 mb-1">Discounted Fee (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={editingSeries.discountedPrice || 0}
-                    onChange={e => setEditingSeries({ ...editingSeries, discountedPrice: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 mb-1">Total Mocks</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editingSeries.totalTests || 10}
-                    onChange={e => setEditingSeries({ ...editingSeries, totalTests: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 mb-1">Total Questions</label>
-                  <input
-                    type="number"
-                    min="10"
-                    value={editingSeries.totalQuestions || 1500}
-                    onChange={e => setEditingSeries({ ...editingSeries, totalQuestions: Number(e.target.value) })}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 mb-1">Validity Period *</label>
-                  <select
-                    value={editingSeries.duration || '6 Months Validity'}
-                    onChange={e => {
-                      const val = e.target.value;
-                      let days = 180;
-                      if (val.includes('1 Month')) days = 30;
-                      else if (val.includes('3 Months')) days = 90;
-                      else if (val.includes('6 Months')) days = 180;
-                      else if (val.includes('1 Year') || val.includes('12 Months')) days = 365;
-                      else if (val.includes('2 Years')) days = 730;
-                      else if (val.includes('Till Exam')) days = 365;
-
-                      setEditingSeries({
-                        ...editingSeries,
-                        duration: val,
-                        validityDays: days
-                      });
-                    }}
-                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
-                  >
-                    <option value="1 Month Validity">1 Month</option>
-                    <option value="3 Months Validity">3 Months</option>
-                    <option value="6 Months Validity">6 Months</option>
-                    <option value="1 Year Validity">1 Year (12 Months)</option>
-                    <option value="2 Years Validity">2 Years</option>
-                    <option value="Till Prelims Exam">Till Prelims Exam</option>
-                    <option value="Till Mains Exam">Till Mains Exam</option>
-                    <option value="Lifetime Access">Lifetime Access</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Schedule PDF Document URL / File Upload / Select from DAM */}
+            {/* Price, Discounted Price, Total Tests, Questions & Validity */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div>
-                <label className="block text-slate-400 mb-1">
-                  Schedule PDF Document URL (Optional - Leaves Download Schedule hidden if empty)
-                </label>
-                <div className="flex flex-wrap items-center gap-2">
+                <label className="block text-slate-400 mb-1">Regular Fee (₹)</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={editingSeries.price || 0}
+                  onChange={e => setEditingSeries({ ...editingSeries, price: Number(e.target.value) })}
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Discounted Fee (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={editingSeries.discountedPrice || 0}
+                  onChange={e => setEditingSeries({ ...editingSeries, discountedPrice: Number(e.target.value) })}
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Total Mocks</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={editingSeries.totalTests || 10}
+                  onChange={e => setEditingSeries({ ...editingSeries, totalTests: Number(e.target.value) })}
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Total Questions</label>
+                <input
+                  type="number"
+                  min="10"
+                  value={editingSeries.totalQuestions || 1500}
+                  onChange={e => setEditingSeries({ ...editingSeries, totalQuestions: Number(e.target.value) })}
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">Validity Period *</label>
+                <select
+                  value={editingSeries.duration || '6 Months Validity'}
+                  onChange={e => {
+                    const val = e.target.value;
+                    let days = 180;
+                    if (val.includes('1 Month')) days = 30;
+                    else if (val.includes('3 Months')) days = 90;
+                    else if (val.includes('6 Months')) days = 180;
+                    else if (val.includes('1 Year') || val.includes('12 Months')) days = 365;
+                    else if (val.includes('2 Years')) days = 730;
+                    else if (val.includes('Till Exam')) days = 365;
+
+                    setEditingSeries({
+                      ...editingSeries,
+                      duration: val,
+                      validityDays: days
+                    });
+                  }}
+                  className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
+                >
+                  <option value="1 Month Validity">1 Month</option>
+                  <option value="3 Months Validity">3 Months</option>
+                  <option value="6 Months Validity">6 Months</option>
+                  <option value="1 Year Validity">1 Year (12 Months)</option>
+                  <option value="2 Years Validity">2 Years</option>
+                  <option value="Till Prelims Exam">Till Prelims Exam</option>
+                  <option value="Till Mains Exam">Till Mains Exam</option>
+                  <option value="Lifetime Access">Lifetime Access</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Schedule PDF Document URL / File Upload / Select from DAM */}
+            <div>
+              <label className="block text-slate-400 mb-1">
+                Schedule PDF Document URL (Optional - Leaves Download Schedule hidden if empty)
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="url"
+                  placeholder="https://finalattemptias.com/uploads/schedules/bpsc_schedule.pdf"
+                  value={editingSeries.schedulePdfUrl || ''}
+                  onChange={e => setEditingSeries({ ...editingSeries, schedulePdfUrl: e.target.value })}
+                  className="flex-1 min-w-[200px] px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMediaPickerTarget('series_pdf');
+                    setShowMediaPicker(true);
+                  }}
+                  className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors shadow-sm"
+                >
+                  <Folder className="w-4 h-4 text-white" />
+                  <span>Select from DAM</span>
+                </button>
+                <label className="px-4 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs cursor-pointer shrink-0">
+                  <span>Upload Schedule PDF</span>
                   <input
-                    type="url"
-                    placeholder="https://finalattemptias.com/uploads/schedules/bpsc_schedule.pdf"
-                    value={editingSeries.schedulePdfUrl || ''}
-                    onChange={e => setEditingSeries({ ...editingSeries, schedulePdfUrl: e.target.value })}
-                    className="flex-1 min-w-[200px] px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs"
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const formData = new FormData();
+                      formData.append('file', file);
+                      try {
+                        const res = await fetch(`${BACKEND_URL}/api/uploads`, {
+                          method: 'POST',
+                          body: formData
+                        });
+                        const data = await res.json();
+                        if (data && data.url) {
+                          setEditingSeries(prev => ({ ...prev, schedulePdfUrl: data.url }));
+                          alert('Schedule PDF uploaded successfully!');
+                        } else {
+                          // Local object URL fallback
+                          const localUrl = URL.createObjectURL(file);
+                          setEditingSeries(prev => ({ ...prev, schedulePdfUrl: localUrl }));
+                        }
+                      } catch (_) {
+                        const localUrl = URL.createObjectURL(file);
+                        setEditingSeries(prev => ({ ...prev, schedulePdfUrl: localUrl }));
+                      }
+                    }}
                   />
+                </label>
+              </div>
+            </div>
+
+            {/* Test Series Cover / Thumbnail Image & Banner Image */}
+            <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-[var(--card-border)]">
+              <div className="flex justify-between items-center">
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-color)] uppercase tracking-wider">
+                    Test Series Cover / Thumbnail Image
+                  </label>
+                  <span className="text-[10px] text-slate-400">Card header image rendered on test series listings & program pages</span>
+                </div>
+                {editingSeries.thumbnailUrl && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setMediaPickerTarget('series_pdf');
-                      setShowMediaPicker(true);
-                    }}
-                    className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors shadow-sm"
+                    onClick={() => setEditingSeries({ ...editingSeries, thumbnailUrl: '' })}
+                    className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
                   >
-                    <Folder className="w-4 h-4 text-white" />
-                    <span>Select from DAM</span>
+                    Remove
                   </button>
-                  <label className="px-4 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-xs cursor-pointer shrink-0">
-                    <span>Upload Schedule PDF</span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                <div className="sm:col-span-8 space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="https://example.com/cover.jpg or select from DAM"
+                      value={editingSeries.thumbnailUrl || ''}
+                      onChange={e => setEditingSeries({ ...editingSeries, thumbnailUrl: e.target.value })}
+                      className="flex-1 px-4 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMediaPickerTarget('series_image');
+                        setShowMediaPicker(true);
+                      }}
+                      className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors shadow-xs"
+                    >
+                      <Folder className="w-4 h-4 text-white" />
+                      <span>DAM</span>
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">Upload Cover:</span>
                     <input
                       type="file"
-                      accept=".pdf"
-                      className="hidden"
+                      accept="image/*"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (!file) return;
@@ -1883,95 +1953,9 @@ export default function TestSeriesAdmin({
                           });
                           const data = await res.json();
                           if (data && data.url) {
-                            setEditingSeries(prev => ({ ...prev, schedulePdfUrl: data.url }));
-                            alert('Schedule PDF uploaded successfully!');
+                            setEditingSeries(prev => ({ ...prev, thumbnailUrl: data.url }));
+                            alert('Cover image uploaded successfully!');
                           } else {
-                            // Local object URL fallback
-                            const localUrl = URL.createObjectURL(file);
-                            setEditingSeries(prev => ({ ...prev, schedulePdfUrl: localUrl }));
-                          }
-                        } catch (_) {
-                          const localUrl = URL.createObjectURL(file);
-                          setEditingSeries(prev => ({ ...prev, schedulePdfUrl: localUrl }));
-                        }
-                      }}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {/* Test Series Cover / Thumbnail Image & Banner Image */}
-              <div className="space-y-4 p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-[var(--card-border)]">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <label className="block text-xs font-bold text-[var(--text-color)] uppercase tracking-wider">
-                      Test Series Cover / Thumbnail Image
-                    </label>
-                    <span className="text-[10px] text-slate-400">Card header image rendered on test series listings & program pages</span>
-                  </div>
-                  {editingSeries.thumbnailUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setEditingSeries({ ...editingSeries, thumbnailUrl: '' })}
-                      className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
-                  <div className="sm:col-span-8 space-y-2">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="https://example.com/cover.jpg or select from DAM"
-                        value={editingSeries.thumbnailUrl || ''}
-                        onChange={e => setEditingSeries({ ...editingSeries, thumbnailUrl: e.target.value })}
-                        className="flex-1 px-4 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMediaPickerTarget('series_image');
-                          setShowMediaPicker(true);
-                        }}
-                        className="px-3.5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors shadow-xs"
-                      >
-                        <Folder className="w-4 h-4 text-white" />
-                        <span>DAM</span>
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-1">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase">Upload Cover:</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          const formData = new FormData();
-                          formData.append('file', file);
-                          try {
-                            const res = await fetch(`${BACKEND_URL}/api/uploads`, {
-                              method: 'POST',
-                              body: formData
-                            });
-                            const data = await res.json();
-                            if (data && data.url) {
-                              setEditingSeries(prev => ({ ...prev, thumbnailUrl: data.url }));
-                              alert('Cover image uploaded successfully!');
-                            } else {
-                              const reader = new FileReader();
-                              reader.onload = (ev) => {
-                                if (ev.target?.result) {
-                                  setEditingSeries(prev => ({ ...prev, thumbnailUrl: ev.target?.result as string }));
-                                }
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          } catch (_) {
                             const reader = new FileReader();
                             reader.onload = (ev) => {
                               if (ev.target?.result) {
@@ -1980,227 +1964,234 @@ export default function TestSeriesAdmin({
                             };
                             reader.readAsDataURL(file);
                           }
+                        } catch (_) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            if (ev.target?.result) {
+                              setEditingSeries(prev => ({ ...prev, thumbnailUrl: ev.target?.result as string }));
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                {/* Thumbnail Card Live Preview */}
+                <div className="sm:col-span-4 flex flex-col items-center">
+                  <div className="w-full h-24 rounded-2xl bg-slate-900 border border-[var(--card-border)] overflow-hidden relative flex items-center justify-center shadow-xs">
+                    {editingSeries.thumbnailUrl ? (
+                      <img
+                        src={editingSeries.thumbnailUrl}
+                        alt="Test Series Cover Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
                         }}
-                        className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600 cursor-pointer"
                       />
-                    </div>
+                    ) : (
+                      <div className="text-center p-2">
+                        <Layers className="w-6 h-6 text-slate-500 mx-auto mb-1" />
+                        <span className="text-[9px] text-slate-400 font-bold block">No Cover Image</span>
+                      </div>
+                    )}
                   </div>
-
-                  {/* Thumbnail Card Live Preview */}
-                  <div className="sm:col-span-4 flex flex-col items-center">
-                    <div className="w-full h-24 rounded-2xl bg-slate-900 border border-[var(--card-border)] overflow-hidden relative flex items-center justify-center shadow-xs">
-                      {editingSeries.thumbnailUrl ? (
-                        <img
-                          src={editingSeries.thumbnailUrl}
-                          alt="Test Series Cover Preview"
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="text-center p-2">
-                          <Layers className="w-6 h-6 text-slate-500 mx-auto mb-1" />
-                          <span className="text-[9px] text-slate-400 font-bold block">No Cover Image</span>
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-[9px] text-slate-400 font-bold mt-1">Cover Preview</span>
-                  </div>
+                  <span className="text-[9px] text-slate-400 font-bold mt-1">Cover Preview</span>
                 </div>
               </div>
+            </div>
 
-              {/* Description */}
-              <div>
-                <label className="block text-slate-400 mb-1">Program Overview & Description (English) *</label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Comprehensive test series engineered strictly according to the latest pattern..."
-                  value={editingSeries.description || ''}
-                  onChange={e => setEditingSeries({ ...editingSeries, description: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
-                />
+            {/* Description */}
+            <div>
+              <label className="block text-slate-400 mb-1">Program Overview & Description (English) *</label>
+              <textarea
+                required
+                rows={3}
+                placeholder="Comprehensive test series engineered strictly according to the latest pattern..."
+                value={editingSeries.description || ''}
+                onChange={e => setEditingSeries({ ...editingSeries, description: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block text-amber-500 mb-1 font-bold">Program Overview & Description (Hindi - हिन्दी optional)</label>
+              <textarea
+                rows={3}
+                placeholder="नवीनतम पैटर्न पर आधारित संपूर्ण हिंदी टेस्ट सीरीज विवरण..."
+                value={editingSeries.description_hi || ''}
+                onChange={e => setEditingSeries({ ...editingSeries, description_hi: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 text-[var(--text-color)] rounded-xl outline-none font-medium focus:border-amber-500"
+              />
+            </div>
+
+            {/* Bullet Highlights (line by line) */}
+            <div>
+              <label className="block text-slate-400 mb-1">Feature Highlights (One bullet line per line)</label>
+              <textarea
+                rows={3}
+                placeholder="20 Subject-Wise Micro Sectional Tests&#10;10 Bihar Special Exclusive Mock Tests&#10;Instant Answer Keys with Video Explanations"
+                value={highlightsInput}
+                onChange={e => setHighlightsInput(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+              />
+            </div>
+
+            {/* ── SYLLABUS MODULES BUILDER ────────────────────────────── */}
+            <div className="space-y-3 pt-2 border-t border-[var(--card-border)]">
+              <div className="flex items-center justify-between">
+                <label className="block text-slate-400 font-bold uppercase tracking-wider">
+                  Syllabus & Micro-Topics Modules ({(editingSeries.syllabus || []).length})
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = editingSeries.syllabus || [];
+                    setEditingSeries({
+                      ...editingSeries,
+                      syllabus: [...current, { subject: 'New Subject Module', topics: ['Topic 1', 'Topic 2'] }]
+                    });
+                  }}
+                  className="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-[10px] font-black rounded-xl cursor-pointer"
+                >
+                  + Add Subject Module
+                </button>
               </div>
 
-              <div>
-                <label className="block text-amber-500 mb-1 font-bold">Program Overview & Description (Hindi - हिन्दी optional)</label>
-                <textarea
-                  rows={3}
-                  placeholder="नवीनतम पैटर्न पर आधारित संपूर्ण हिंदी टेस्ट सीरीज विवरण..."
-                  value={editingSeries.description_hi || ''}
-                  onChange={e => setEditingSeries({ ...editingSeries, description_hi: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 text-[var(--text-color)] rounded-xl outline-none font-medium focus:border-amber-500"
-                />
-              </div>
-
-              {/* Bullet Highlights (line by line) */}
-              <div>
-                <label className="block text-slate-400 mb-1">Feature Highlights (One bullet line per line)</label>
-                <textarea
-                  rows={3}
-                  placeholder="20 Subject-Wise Micro Sectional Tests&#10;10 Bihar Special Exclusive Mock Tests&#10;Instant Answer Keys with Video Explanations"
-                  value={highlightsInput}
-                  onChange={e => setHighlightsInput(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
-                />
-              </div>
-
-              {/* ── SYLLABUS MODULES BUILDER ────────────────────────────── */}
-              <div className="space-y-3 pt-2 border-t border-[var(--card-border)]">
-                <div className="flex items-center justify-between">
-                  <label className="block text-slate-400 font-bold uppercase tracking-wider">
-                    Syllabus & Micro-Topics Modules ({(editingSeries.syllabus || []).length})
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const current = editingSeries.syllabus || [];
-                      setEditingSeries({
-                        ...editingSeries,
-                        syllabus: [...current, { subject: 'New Subject Module', topics: ['Topic 1', 'Topic 2'] }]
-                      });
-                    }}
-                    className="px-3 py-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 text-[10px] font-black rounded-xl cursor-pointer"
-                  >
-                    + Add Subject Module
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {(editingSeries.syllabus || []).map((sub, sIdx) => (
-                    <div key={sIdx} className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-[var(--card-border)] space-y-3">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={sub.subject}
-                          onChange={e => {
-                            const nextSyllabus = [...(editingSeries.syllabus || [])];
-                            nextSyllabus[sIdx] = { ...nextSyllabus[sIdx], subject: e.target.value };
-                            setEditingSeries({ ...editingSeries, syllabus: nextSyllabus });
-                          }}
-                          className="flex-1 px-3 py-2 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] text-xs font-bold rounded-xl outline-none"
-                          placeholder="Subject Name (e.g. History & Bihar Special)"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const nextSyllabus = (editingSeries.syllabus || []).filter((_, i) => i !== sIdx);
-                            setEditingSeries({ ...editingSeries, syllabus: nextSyllabus });
-                          }}
-                          className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl"
-                          title="Remove subject"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[9px] font-bold text-slate-400 uppercase">Topics (Comma separated)</label>
-                        <input
-                          type="text"
-                          value={(sub.topics || []).join(', ')}
-                          onChange={e => {
-                            const topicsArr = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
-                            const nextSyllabus = [...(editingSeries.syllabus || [])];
-                            nextSyllabus[sIdx] = { ...nextSyllabus[sIdx], topics: topicsArr };
-                            setEditingSeries({ ...editingSeries, syllabus: nextSyllabus });
-                          }}
-                          className="w-full px-3 py-2 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] text-xs font-medium rounded-xl outline-none"
-                          placeholder="Ancient Bihar, 1857 Revolt, Freedom Movement"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── PROGRAM FAQS BUILDER ───────────────────────────────── */}
-              <div className="space-y-3 pt-2 border-t border-[var(--card-border)]">
-                <div className="flex items-center justify-between">
-                  <label className="block text-slate-400 font-bold uppercase tracking-wider">
-                    Program FAQs ({(editingSeries.faq || []).length})
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const current = editingSeries.faq || [];
-                      setEditingSeries({
-                        ...editingSeries,
-                        faq: [...current, { q: 'How do I attempt tests?', a: 'Tests unlock 24/7 in student dashboard.' }]
-                      });
-                    }}
-                    className="px-3 py-1.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 text-[10px] font-black rounded-xl cursor-pointer"
-                  >
-                    + Add FAQ Pair
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  {(editingSeries.faq || []).map((faqItem, fIdx) => (
-                    <div key={fIdx} className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-[var(--card-border)] space-y-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={faqItem.q}
-                          onChange={e => {
-                            const nextFaq = [...(editingSeries.faq || [])];
-                            nextFaq[fIdx] = { ...nextFaq[fIdx], q: e.target.value };
-                            setEditingSeries({ ...editingSeries, faq: nextFaq });
-                          }}
-                          className="flex-1 px-3 py-2 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] text-xs font-bold rounded-xl outline-none"
-                          placeholder="Question (e.g. Are tests bilingual?)"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const nextFaq = (editingSeries.faq || []).filter((_, i) => i !== fIdx);
-                            setEditingSeries({ ...editingSeries, faq: nextFaq });
-                          }}
-                          className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl"
-                          title="Remove FAQ"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <textarea
-                        rows={2}
-                        value={faqItem.a}
+              <div className="space-y-3">
+                {(editingSeries.syllabus || []).map((sub, sIdx) => (
+                  <div key={sIdx} className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-[var(--card-border)] space-y-3">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={sub.subject}
                         onChange={e => {
-                          const nextFaq = [...(editingSeries.faq || [])];
-                          nextFaq[fIdx] = { ...nextFaq[fIdx], a: e.target.value };
-                          setEditingSeries({ ...editingSeries, faq: nextFaq });
+                          const nextSyllabus = [...(editingSeries.syllabus || [])];
+                          nextSyllabus[sIdx] = { ...nextSyllabus[sIdx], subject: e.target.value };
+                          setEditingSeries({ ...editingSeries, syllabus: nextSyllabus });
+                        }}
+                        className="flex-1 px-3 py-2 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] text-xs font-bold rounded-xl outline-none"
+                        placeholder="Subject Name (e.g. History & Bihar Special)"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextSyllabus = (editingSeries.syllabus || []).filter((_, i) => i !== sIdx);
+                          setEditingSeries({ ...editingSeries, syllabus: nextSyllabus });
+                        }}
+                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl"
+                        title="Remove subject"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-bold text-slate-400 uppercase">Topics (Comma separated)</label>
+                      <input
+                        type="text"
+                        value={(sub.topics || []).join(', ')}
+                        onChange={e => {
+                          const topicsArr = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
+                          const nextSyllabus = [...(editingSeries.syllabus || [])];
+                          nextSyllabus[sIdx] = { ...nextSyllabus[sIdx], topics: topicsArr };
+                          setEditingSeries({ ...editingSeries, syllabus: nextSyllabus });
                         }}
                         className="w-full px-3 py-2 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] text-xs font-medium rounded-xl outline-none"
-                        placeholder="Answer text..."
+                        placeholder="Ancient Bihar, 1857 Revolt, Freedom Movement"
                       />
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── PROGRAM FAQS BUILDER ───────────────────────────────── */}
+            <div className="space-y-3 pt-2 border-t border-[var(--card-border)]">
+              <div className="flex items-center justify-between">
+                <label className="block text-slate-400 font-bold uppercase tracking-wider">
+                  Program FAQs ({(editingSeries.faq || []).length})
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = editingSeries.faq || [];
+                    setEditingSeries({
+                      ...editingSeries,
+                      faq: [...current, { q: 'How do I attempt tests?', a: 'Tests unlock 24/7 in student dashboard.' }]
+                    });
+                  }}
+                  className="px-3 py-1.5 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20 text-[10px] font-black rounded-xl cursor-pointer"
+                >
+                  + Add FAQ Pair
+                </button>
               </div>
 
-              {/* Status & Published Switch */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-[var(--card-border)]">
-                <div>
-                  <span className="text-xs font-bold text-[var(--text-color)] block">Publishing Control</span>
-                  <span className="text-[10px] text-slate-400 font-medium">When checked, program shows live on website & student portal immediately.</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold">{editingSeries.isPublished ? 'Live' : 'Draft'}</span>
-                  <button
-                    type="button"
-                    onClick={() => setEditingSeries({ ...editingSeries, isPublished: !editingSeries.isPublished })}
-                    className={`w-10 h-6 rounded-full p-0.5 transition-colors cursor-pointer ${
-                      editingSeries.isPublished ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
-                    }`}
-                  >
-                    <div className={`w-5 h-5 rounded-full bg-white shadow-xs transform transition-transform ${
-                      editingSeries.isPublished ? 'translate-x-4' : 'translate-x-0'
-                    }`} />
-                  </button>
-                </div>
+              <div className="space-y-3">
+                {(editingSeries.faq || []).map((faqItem, fIdx) => (
+                  <div key={fIdx} className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-[var(--card-border)] space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={faqItem.q}
+                        onChange={e => {
+                          const nextFaq = [...(editingSeries.faq || [])];
+                          nextFaq[fIdx] = { ...nextFaq[fIdx], q: e.target.value };
+                          setEditingSeries({ ...editingSeries, faq: nextFaq });
+                        }}
+                        className="flex-1 px-3 py-2 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] text-xs font-bold rounded-xl outline-none"
+                        placeholder="Question (e.g. Are tests bilingual?)"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextFaq = (editingSeries.faq || []).filter((_, i) => i !== fIdx);
+                          setEditingSeries({ ...editingSeries, faq: nextFaq });
+                        }}
+                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl"
+                        title="Remove FAQ"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <textarea
+                      rows={2}
+                      value={faqItem.a}
+                      onChange={e => {
+                        const nextFaq = [...(editingSeries.faq || [])];
+                        nextFaq[fIdx] = { ...nextFaq[fIdx], a: e.target.value };
+                        setEditingSeries({ ...editingSeries, faq: nextFaq });
+                      }}
+                      className="w-full px-3 py-2 bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] text-xs font-medium rounded-xl outline-none"
+                      placeholder="Answer text..."
+                    />
+                  </div>
+                ))}
               </div>
+            </div>
+
+            {/* Status & Published Switch */}
+            <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-[var(--card-border)]">
+              <div>
+                <span className="text-xs font-bold text-[var(--text-color)] block">Publishing Control</span>
+                <span className="text-[10px] text-slate-400 font-medium">When checked, program shows live on website & student portal immediately.</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold">{editingSeries.isPublished ? 'Live' : 'Draft'}</span>
+                <button
+                  type="button"
+                  onClick={() => setEditingSeries({ ...editingSeries, isPublished: !editingSeries.isPublished })}
+                  className={`w-10 h-6 rounded-full p-0.5 transition-colors cursor-pointer ${editingSeries.isPublished ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
+                    }`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white shadow-xs transform transition-transform ${editingSeries.isPublished ? 'translate-x-4' : 'translate-x-0'
+                    }`} />
+                </button>
+              </div>
+            </div>
 
             {/* Modal Actions */}
             <div className="flex justify-end gap-3 pt-4 border-t border-[var(--card-border)]">
@@ -2660,11 +2651,10 @@ export default function TestSeriesAdmin({
                 type="button"
                 disabled={parsedBulkQuestions.length === 0 || importingBulk}
                 onClick={() => handleImportParsedQuestions(showBulkImportModal)}
-                className={`px-6 py-2.5 font-black text-xs rounded-2xl shadow-md cursor-pointer transition-all ${
-                  parsedBulkQuestions.length > 0 && !importingBulk
+                className={`px-6 py-2.5 font-black text-xs rounded-2xl shadow-md cursor-pointer transition-all ${parsedBulkQuestions.length > 0 && !importingBulk
                     ? 'bg-amber-500 hover:bg-amber-600 text-slate-950'
                     : 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 {importingBulk ? 'Importing Questions...' : `Import ${parsedBulkQuestions.length} Questions into Quiz`}
               </button>
@@ -2932,22 +2922,20 @@ export default function TestSeriesAdmin({
                   <button
                     type="button"
                     onClick={() => { setBilingualParseMode('text'); setBilingualParseErrors([]); }}
-                    className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${
-                      bilingualParseMode === 'text'
+                    className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${bilingualParseMode === 'text'
                         ? 'bg-amber-500 text-slate-950 shadow-sm'
                         : 'text-slate-500 hover:text-[var(--text-color)]'
-                    }`}
+                      }`}
                   >
                     📋 Paste Text
                   </button>
                   <button
                     type="button"
                     onClick={() => { setBilingualParseMode('pdf'); setBilingualParseErrors([]); }}
-                    className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${
-                      bilingualParseMode === 'pdf'
+                    className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${bilingualParseMode === 'pdf'
                         ? 'bg-amber-500 text-slate-950 shadow-sm'
                         : 'text-slate-500 hover:text-[var(--text-color)]'
-                    }`}
+                      }`}
                   >
                     📄 Upload PDF
                   </button>
@@ -3066,11 +3054,10 @@ export default function TestSeriesAdmin({
             {/* STEP 2: Validation Metrics & Preview Screen */}
             {bilingualReport && (
               <div className="space-y-6">
-                
+
                 {/* Validation Summary Pill */}
-                <div className={`p-4 rounded-2xl border flex items-center justify-between gap-4 text-xs font-bold ${
-                  bilingualReport?.isValid !== false ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
-                }`}>
+                <div className={`p-4 rounded-2xl border flex items-center justify-between gap-4 text-xs font-bold ${bilingualReport?.isValid !== false ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
+                  }`}>
                   <div className="flex items-center gap-2">
                     <span className="text-base">{bilingualReport?.isValid !== false ? '✓' : '⚠️'}</span>
                     <div>
@@ -3296,7 +3283,7 @@ export default function TestSeriesAdmin({
                               if (createdQs.length > 0) {
                                 localStorage.setItem(`finalattempt_questions_${createdQuiz.id}`, JSON.stringify(createdQs));
                               }
-                            } catch (_) {}
+                            } catch (_) { }
                           }
 
                           alert(`✓ Successfully imported ${res.data.importedQuestionsCount} 1:1 bilingual questions with authored English & Hindi content!`);
@@ -3505,16 +3492,16 @@ export default function TestSeriesAdmin({
 
                       <div class="questions-list">
                         ${setQuestions.map((q, idx) => {
-                          const correctKey = q.mappedCorrectKey || q.correctAnswer;
-                          const options = [
-                            { key: 'A', text: q.optionA, textHi: q.optionAHi },
-                            { key: 'B', text: q.optionB, textHi: q.optionBHi },
-                            { key: 'C', text: q.optionC, textHi: q.optionCHi },
-                            { key: 'D', text: q.optionD, textHi: q.optionDHi },
-                            { key: 'E', text: q.optionE, textHi: q.optionEHi },
-                          ].filter(o => o.text || o.textHi);
+                  const correctKey = q.mappedCorrectKey || q.correctAnswer;
+                  const options = [
+                    { key: 'A', text: q.optionA, textHi: q.optionAHi },
+                    { key: 'B', text: q.optionB, textHi: q.optionBHi },
+                    { key: 'C', text: q.optionC, textHi: q.optionCHi },
+                    { key: 'D', text: q.optionD, textHi: q.optionDHi },
+                    { key: 'E', text: q.optionE, textHi: q.optionEHi },
+                  ].filter(o => o.text || o.textHi);
 
-                          return `
+                  return `
                             <div class="q-card">
                               <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
                                 <div style="flex: 1;">
@@ -3526,13 +3513,13 @@ export default function TestSeriesAdmin({
 
                               <div class="options-grid">
                                 ${options.map(opt => {
-                                  const isCorrect = opt.key === correctKey;
-                                  return `
+                    const isCorrect = opt.key === correctKey;
+                    return `
                                     <div class="opt-item ${isCorrect ? 'correct' : ''}">
                                       (${opt.key}) ${opt.text || ''} ${opt.textHi ? `/ ${opt.textHi}` : ''} ${isCorrect ? '✓' : ''}
                                     </div>
                                   `;
-                                }).join('')}
+                  }).join('')}
                               </div>
 
                               ${(q.explanation || q.explanationHi) ? `
@@ -3544,7 +3531,7 @@ export default function TestSeriesAdmin({
                               ` : ''}
                             </div>
                           `;
-                        }).join('')}
+                }).join('')}
                       </div>
 
                       <script>
@@ -3594,17 +3581,16 @@ export default function TestSeriesAdmin({
                           key={setCode}
                           type="button"
                           onClick={() => setInspectingSetCode(setCode)}
-                          className={`px-4 py-2 text-xs font-black rounded-xl transition-all cursor-pointer ${
-                            inspectingSetCode === setCode
+                          className={`px-4 py-2 text-xs font-black rounded-xl transition-all cursor-pointer ${inspectingSetCode === setCode
                               ? 'bg-amber-500 text-slate-950 shadow-md scale-105'
                               : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-amber-500'
-                          }`}
+                            }`}
                         >
                           {setCode}
                         </button>
                       ))}
                     </div>
-                    
+
                     <button
                       type="button"
                       onClick={handleDownloadCleanSetPdf}
@@ -3650,11 +3636,10 @@ export default function TestSeriesAdmin({
                               return (
                                 <div
                                   key={optKey}
-                                  className={`p-2.5 rounded-xl border flex items-center justify-between ${
-                                    isCorrect
+                                  className={`p-2.5 rounded-xl border flex items-center justify-between ${isCorrect
                                       ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold'
                                       : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
-                                  }`}
+                                    }`}
                                 >
                                   <span>({optKey}) {optText} {optTextHi ? ` / ${optTextHi}` : ''}</span>
                                   {isCorrect && <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 ml-1" />}

@@ -84,35 +84,52 @@ export class OptionExtractor {
     const options: ExtractedOption[] = [];
     const positions: { label: string; rawMarker: string; index: number }[] = [];
 
-    // Step 1: Search for explicit line-boundary option markers first (A., B., C., D., E. or (a), (b) at line start)
-    const lineBoundaryRegex = /(?:^|\n)[ \t]*(?:\(([abcdeABCDEक-ङकखगघङ])\)|\b([abcdeABCDEक-ङकखगघङ])\b[\.\:\)\-–—]+)[ \t]+/g;
     let match: RegExpExecArray | null;
 
-    while ((match = lineBoundaryRegex.exec(textBlock)) !== null) {
-      const matchedSymbol = match[1] || match[2];
-      const rawMarker = match[0].trim();
-      let label = matchedSymbol.toUpperCase();
-
-      if (matchedSymbol === 'क') label = 'A';
-      else if (matchedSymbol === 'ख') label = 'B';
-      else if (matchedSymbol === 'ग') label = 'C';
-      else if (matchedSymbol === 'घ') label = 'D';
-      else if (matchedSymbol === 'ङ') label = 'E';
-
-      // Skip exam metadata acronyms like C.D.P.O., B.P.S.C., P.C.S. or person initials like B. R. Ambedkar
-      const afterMatchText = textBlock.substring(match.index + match[0].length, match.index + match[0].length + 15);
-      const isInitialOrAcronym = !rawMarker.startsWith('(') && (
-        /^[A-Z]\.[A-Z]/i.test(rawMarker) ||
-        /^[A-Z]\.[ \t]+[A-Z]\./i.test(rawMarker + ' ' + afterMatchText) ||
-        /^\.[A-Z]\./i.test(afterMatchText) ||
-        /^DPO\b|^P\.C\.S\b/i.test(afterMatchText)
-      );
-      if (isInitialOrAcronym) {
-        continue;
+    // Step 0: Check for parenthesized option codes (e.g. "(a) C, A, D, B (b) C, D, A, B (c) C, D, B, A (d) D, A, C, B")
+    const parenthesizedLowerRegex = /(?:^|\n|\s+)\(([a-eA-E])\)[ \t]+/g;
+    const parenthesizedMatches: { label: string; rawMarker: string; index: number }[] = [];
+    let pMatch: RegExpExecArray | null;
+    while ((pMatch = parenthesizedLowerRegex.exec(textBlock)) !== null) {
+      const lbl = pMatch[1].toUpperCase();
+      if (!parenthesizedMatches.some(p => p.label === lbl)) {
+        parenthesizedMatches.push({ label: lbl, rawMarker: pMatch[0].trim(), index: pMatch.index });
       }
+    }
+    if (parenthesizedMatches.length >= 2) {
+      positions.push(...parenthesizedMatches);
+    }
 
-      if (['A', 'B', 'C', 'D', 'E'].includes(label) && (!positions.some(p => p.label === label) || ['क', 'ख', 'ग', 'घ', 'ङ'].includes(matchedSymbol))) {
-        positions.push({ label, rawMarker, index: match.index });
+    // Step 1: Search for explicit line-boundary option markers first (A., B., C., D., E. or (a), (b) at line start)
+    if (positions.length < 2) {
+      const lineBoundaryRegex = /(?:^|\n)[ \t]*(?:\(([abcdeABCDEक-ङकखगघङ])\)|\b([abcdeABCDEक-ङकखगघङ])\b[\.\:\)\-–—]+)[ \t]+/g;
+
+      while ((match = lineBoundaryRegex.exec(textBlock)) !== null) {
+        const matchedSymbol = match[1] || match[2];
+        const rawMarker = match[0].trim();
+        let label = matchedSymbol.toUpperCase();
+
+        if (matchedSymbol === 'क') label = 'A';
+        else if (matchedSymbol === 'ख') label = 'B';
+        else if (matchedSymbol === 'ग') label = 'C';
+        else if (matchedSymbol === 'घ') label = 'D';
+        else if (matchedSymbol === 'ङ') label = 'E';
+
+        // Skip exam metadata acronyms like C.D.P.O., B.P.S.C., P.C.S. or person initials like B. R. Ambedkar
+        const afterMatchText = textBlock.substring(match.index + match[0].length, match.index + match[0].length + 15);
+        const isInitialOrAcronym = !rawMarker.startsWith('(') && (
+          /^[A-Z]\.[A-Z]/i.test(rawMarker) ||
+          /^[A-Z]\.[ \t]+[A-Z]\./i.test(rawMarker + ' ' + afterMatchText) ||
+          /^\.[A-Z]\./i.test(afterMatchText) ||
+          /^DPO\b|^P\.C\.S\b/i.test(afterMatchText)
+        );
+        if (isInitialOrAcronym) {
+          continue;
+        }
+
+        if (['A', 'B', 'C', 'D', 'E'].includes(label) && (!positions.some(p => p.label === label) || ['क', 'ख', 'ग', 'घ', 'ङ'].includes(matchedSymbol))) {
+          positions.push({ label, rawMarker, index: match.index });
+        }
       }
     }
 
@@ -150,8 +167,10 @@ export class OptionExtractor {
       }
     }
 
-    // Step 3: Fallback to numeric markers 1.-5. ONLY if no primary markers were found
-    if (positions.length < 2) {
+    // Step 3: Fallback to numeric markers 1.-5. ONLY if no primary markers were found AND block is NOT a matching question
+    const isMatchingBlock = /(?:match|list\-i|list\-ii|list[\s\-_]*1|list[\s\-_]*2|सूची\-1|सूची\-2|सूची\-i|सूची\-ii)/i.test(textBlock);
+
+    if (positions.length < 2 && !isMatchingBlock) {
       positions.length = 0;
       let regex = new RegExp(this.NUMERIC_OPTION_REGEX);
       while ((match = regex.exec(textBlock)) !== null) {
@@ -185,8 +204,8 @@ export class OptionExtractor {
         .replace(/^[ \t\r\n]*(?:\(([abcdeABCDE1-5क-ङकखगघङ])\)|[abcdeABCDE1-5क-ङकखगघङ][\.\:\)\-–—]+)[ \t]*/, '')
         .trim();
 
-      // Clean trailing Answer/Explanation keywords if present
-      const ansIdx = rawText.search(/(?:\r?\n|\s+)(?:Ans|Answer|Explanation|Solution|Sol|उत्तर|व्याख्या)[\s\:\-]/i);
+      // Clean trailing Answer/Explanation/Code keywords if present
+      const ansIdx = rawText.search(/(?:\r?\n|\s+)(?:Ans|Answer|Explanation|Solution|Sol|Code|Codes|उत्तर|व्याख्या)[\s\:\-]/i);
       if (ansIdx > 0) {
         rawText = rawText.substring(0, ansIdx).trim();
       }

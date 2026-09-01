@@ -13,11 +13,17 @@ export class BilingualAligner {
     if (candidates.length <= 1) return candidates;
 
     const enCandidates = candidates.filter(c => {
+      const sec = (c.metadata?.sectionHeader || '').toLowerCase();
+      if (sec.includes('english')) return true;
+      if (sec.includes('hindi')) return false;
       const lang = c.question.versions[0]?.language;
       return lang === 'en' || lang === 'mixed' || lang === 'unknown';
     });
 
     const hiCandidates = candidates.filter(c => {
+      const sec = (c.metadata?.sectionHeader || '').toLowerCase();
+      if (sec.includes('hindi')) return true;
+      if (sec.includes('english')) return false;
       const lang = c.question.versions[0]?.language;
       return lang === 'hi' || (lang === 'mixed' && c.question.versions.some(v => v.language === 'hi'));
     });
