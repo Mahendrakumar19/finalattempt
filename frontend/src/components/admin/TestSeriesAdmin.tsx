@@ -664,10 +664,9 @@ export default function TestSeriesAdmin({
       let optA = '', optB = '', optC = '', optD = '', optE = '';
 
       if (multiOptMatch) {
-        // Find index of first option marker (a)
-        const firstOptIdx = block.search(/(?:^|\n|\s*)(?:\(([aA1क])\)|[aA1क][\)\.\:\t]+)\s*/i);
-        if (firstOptIdx !== -1) {
-          qText = block.substring(0, firstOptIdx).trim();
+        // Use multiOptMatch.index to get the exact start position of (a)
+        if (multiOptMatch.index !== undefined && multiOptMatch.index > 0) {
+          qText = block.substring(0, multiOptMatch.index).trim();
         } else {
           qText = block.replace(multiOptMatch[0], '').trim();
         }
@@ -1498,14 +1497,13 @@ export default function TestSeriesAdmin({
                             <div className="space-y-3">
                               {(quizQuestions[quiz.id] || []).map((q, idx) => {
                                 const isHi = quizLangMode[quiz.id] === 'HI';
-                                const repairedQ = sanitizeAndRepairQuestion(q, isHi ? 'hi' : 'en');
-                                const prompt = isHi && repairedQ.questionTextHi ? repairedQ.questionTextHi : repairedQ.questionText;
-                                const optA = (isHi && repairedQ.optionAHi ? repairedQ.optionAHi : repairedQ.optionA) || repairedQ.optionA || '';
-                                const optB = (isHi && repairedQ.optionBHi ? repairedQ.optionBHi : repairedQ.optionB) || repairedQ.optionB || '';
-                                const optC = (isHi && repairedQ.optionCHi ? repairedQ.optionCHi : repairedQ.optionC) || repairedQ.optionC || '';
-                                const optD = (isHi && repairedQ.optionDHi ? repairedQ.optionDHi : repairedQ.optionD) || repairedQ.optionD || '';
-                                const optE = (isHi && repairedQ.optionEHi ? repairedQ.optionEHi : repairedQ.optionE) || repairedQ.optionE || '';
-                                const exp = isHi && repairedQ.explanationHi ? repairedQ.explanationHi : repairedQ.explanation;
+                                const prompt = isHi && q.questionTextHi ? q.questionTextHi : q.questionText;
+                                const optA = isHi && q.optionAHi ? q.optionAHi : q.optionA;
+                                const optB = isHi && q.optionBHi ? q.optionBHi : q.optionB;
+                                const optC = isHi && q.optionCHi ? q.optionCHi : q.optionC;
+                                const optD = isHi && q.optionDHi ? q.optionDHi : q.optionD;
+                                const optE = isHi && q.optionEHi ? q.optionEHi : q.optionE;
+                                const exp = isHi && q.explanationHi ? q.explanationHi : q.explanation;
                                 const optsMap = { A: optA, B: optB, C: optC, D: optD, E: optE };
 
                                 return (
@@ -3328,9 +3326,8 @@ export default function TestSeriesAdmin({
 
                       {/* Side by Side Preview Card */}
                       {(() => {
-                        const rawCurQ = bilingualReport.questionsPreview[previewQuestionIndex];
-                        if (!rawCurQ) return null;
-                        const curQ = sanitizeAndRepairQuestion(rawCurQ, bilingualPaperLanguage === 'HINDI_ONLY' ? 'hi' : 'en');
+                        const curQ = bilingualReport.questionsPreview[previewQuestionIndex];
+                        if (!curQ) return null;
 
                         const handleSetCorrectAnswerInPreview = (newKey: string) => {
                           if (!bilingualReport || !bilingualReport.questionsPreview) return;

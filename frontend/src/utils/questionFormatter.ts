@@ -222,69 +222,76 @@ export function formatMatchListsInText(input: string): string {
 export function sanitizeAndRepairQuestion(q: any, activeLang: 'en' | 'hi' = 'en'): any {
   if (!q) return q;
 
-  const isHi = activeLang === 'hi';
-  const qTextField = isHi && q.questionTextHi ? 'questionTextHi' : 'questionText';
-  let rawQText = q[qTextField] || q.questionText || '';
+  let rawQText = q.questionText || '';
+  let rawQTextHi = q.questionTextHi || '';
 
-  let optA = (isHi && q.optionAHi ? q.optionAHi : q.optionA) || '';
-  let optB = (isHi && q.optionBHi ? q.optionBHi : q.optionB) || '';
-  let optC = (isHi && q.optionCHi ? q.optionCHi : q.optionC) || '';
-  let optD = (isHi && q.optionDHi ? q.optionDHi : q.optionD) || '';
-  let optE = (isHi && q.optionEHi ? q.optionEHi : q.optionE) || '';
+  let optA = q.optionA || q.optionAHi || '';
+  let optB = q.optionB || q.optionBHi || '';
+  let optC = q.optionC || q.optionCHi || '';
+  let optD = q.optionD || q.optionDHi || '';
+  let optE = q.optionE || q.optionEHi || '';
 
   // Multi-line or single-line option choices regex
-  const multiLineOptionsRegex = /(?:^|\n|\s*)(?:[\(\[]?(?:a|1|A|क)[\)\]\t\.\:]\s*)([\s\S]+?)\s*(?:[\(\[]?(?:b|2|B|ख)[\)\]\t\.\:]\s*)([\s\S]+?)\s*(?:[\(\[]?(?:c|3|C|ग)[\)\]\t\.\:]\s*)([\s\S]+?)\s*(?:[\(\[]?(?:d|4|D|घ)[\)\]\t\.\:]\s*)([\s\S]+?)(?=\s*(?:[\(\[]?(?:e|5|E|ङ)[\)\]\t\.\:]|Ans|Answer|Explanation|Sol|Solution|$))/i;
+  const multiLineOptionsRegex = /(?:^|\n|\s*)(?:\(([a-dA-D1-4क-घ])\)|([a-dA-D1-4क-घ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([b-eB-E2-5ख-ङ])\)|([b-eB-E2-5ख-ङ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([cC3ग])\)|([cC3ग])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([dD4घ])\)|([dD4घ])[\)\.\:\t]+)\s*([\s\S]+?)(?=\s*(?:\([eE5ङ]\)|[eE5ङ][\)\.\:\t]+|Ans|Answer|Explanation|Sol|Solution|$))/i;
 
   const isOptEmpty = !optA || optA.trim() === '' || optA.trim() === 'A';
   let embeddedMatch = false;
 
-  if (rawQText) {
-    const match = multiLineOptionsRegex.exec(rawQText);
-
+  const extractOptionsFromText = (txt: string) => {
+    const match = multiLineOptionsRegex.exec(txt);
     if (match) {
       embeddedMatch = true;
       if (isOptEmpty) {
-        optA = match[1].trim();
-        optB = match[2].trim();
-        optC = match[3].trim();
-        let restD = match[4].trim();
+        optA = match[3].trim();
+        optB = match[6].trim();
+        optC = match[9].trim();
+        let restD = match[12].trim();
 
-        // Check if Option E is present at the end of option D
-        const optEMatch = /(?:[\(\[]?(?:e|5|E|ङ)[\)\]\t\.\:]\s*)([\s\S]+?)$/i.exec(restD);
+        const optEMatch = /(?:\(([eE5ङ])\)|[eE5ङ][\)\.\:\t]+)\s*([\s\S]+?)$/i.exec(restD);
         if (optEMatch) {
-          optE = optEMatch[1].trim().replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
+          optE = optEMatch[2].trim().replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
           optD = restD.substring(0, optEMatch.index).trim();
         } else {
           optD = restD.replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
         }
       }
-
-      // Strip options block from rawQText so it doesn't duplicate in question text paragraph or table footer
-      rawQText = rawQText.replace(multiLineOptionsRegex, '').trim();
     }
-  }
+  };
 
-  // 2. Check if Row A of matching table was stolen into optA (e.g. optA = "A. धारवाड़ चट्टान प्रणाली")
+  if (rawQText) extractOptionsFromText(rawQText);
+  if (rawQTextHi && (!optA || optA.trim() === '')) extractOptionsFromText(rawQTextHi);
+
+  if (rawQText) rawQText = rawQText.replace(multiLineOptionsRegex, '').trim();
+  if (rawQTextHi) rawQTextHi = rawQTextHi.replace(multiLineOptionsRegex, '').trim();
+
+  // Check if Row A of matching table was stolen into optA (e.g. optA = "A. धारवाड़ चट्टान प्रणाली")
   const isOptAStolenTableItem = /^[ \t]*[A|1][\.\:\)\-–—]+[ \t]+[^\n]+/i.test(optA) &&
                                 /^[ \t]*[B|2][\.\:\)\-–—]+[ \t]+[^\n]+/i.test(optB);
 
   if (isOptAStolenTableItem) {
-    const hasAInText = /(?:^|\n|\|)[ \t]*A[\.\:\)\-–—]+/i.test(rawQText);
-    if (!hasAInText) {
-      const bMatch = rawQText.match(/(?:^|\n|\|)[ \t]*B[\.\:\)\-–—]+/i);
-      if (bMatch && bMatch.index !== undefined) {
-        const bIndex = bMatch.index;
-        const textBeforeB = rawQText.slice(0, bIndex);
-        const textFromB = rawQText.slice(bIndex);
-        if (rawQText[bIndex] === '|' || rawQText.slice(Math.max(0, bIndex - 1), bIndex + 1).includes('|')) {
-          rawQText = textBeforeB + '| ' + optA.trim() + ' |\n' + textFromB;
+    const restoreRowA = (text: string) => {
+      if (!text) return text;
+      const hasA = /(?:^|\n|\|)[ \t]*A[\.\:\)\-–—]+/i.test(text);
+      if (!hasA) {
+        const bMatch = text.match(/(?:^|\n|\|)[ \t]*B[\.\:\)\-–—]+/i);
+        if (bMatch && bMatch.index !== undefined) {
+          const bIdx = bMatch.index;
+          const beforeB = text.slice(0, bIdx);
+          const fromB = text.slice(bIdx);
+          if (text[bIdx] === '|' || text.slice(Math.max(0, bIdx - 1), bIdx + 1).includes('|')) {
+            return beforeB + '| ' + optA.trim() + ' |\n' + fromB;
+          } else {
+            return beforeB + '\n' + optA.trim() + '\n' + fromB;
+          }
         } else {
-          rawQText = textBeforeB + '\n' + optA.trim() + '\n' + textFromB;
+          return text + '\n' + optA.trim();
         }
-      } else {
-        rawQText = rawQText + '\n' + optA.trim();
       }
-    }
+      return text;
+    };
+
+    rawQText = restoreRowA(rawQText);
+    if (rawQTextHi) rawQTextHi = restoreRowA(rawQTextHi);
 
     if (!embeddedMatch) {
       optA = optA.replace(/^[ \t]*[A|1][\.\:\)\-–—]+[ \t]*/i, '');
@@ -295,21 +302,23 @@ export function sanitizeAndRepairQuestion(q: any, activeLang: 'en' | 'hi' = 'en'
     }
   }
 
-  // Format standard Match List tables if rawQText contains matching patterns
+  // Format standard Match List tables if rawQText / rawQTextHi contains matching patterns
   const formattedQText = formatMatchListsInText(rawQText);
+  const formattedQTextHi = rawQTextHi ? formatMatchListsInText(rawQTextHi) : formattedQText;
 
   return {
     ...q,
-    [qTextField]: formattedQText,
+    questionText: formattedQText,
+    questionTextHi: formattedQTextHi,
     optionA: optA,
     optionB: optB,
     optionC: optC,
     optionD: optD,
     optionE: optE,
-    optionAHi: optA,
-    optionBHi: optB,
-    optionCHi: optC,
-    optionDHi: optD,
-    optionEHi: optE,
+    optionAHi: q.optionAHi || optA,
+    optionBHi: q.optionBHi || optB,
+    optionCHi: q.optionCHi || optC,
+    optionDHi: q.optionDHi || optD,
+    optionEHi: q.optionEHi || optE,
   };
 }
