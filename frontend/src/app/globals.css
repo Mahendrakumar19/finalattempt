@@ -802,6 +802,19 @@ html.dark thead tr {
   background-color: rgba(255,255,255,0.03) !important;
 }
 
+/* Target matching table cells directly with !important to prevent inherited .portal-page slate color overrides */
+.match-list-container td {
+  color: var(--text-color) !important;
+}
+
+html.dark .match-list-container td,
+.dark .match-list-container td,
+html.dark .portal-page .match-list-container td,
+.portal-page .dark .match-list-container td,
+.portal-page.dark .match-list-container td {
+  color: #ffffff !important;
+}
+
 /* Cards / Panels */
 html.dark .shadow-sm,
 html.dark .shadow-md {

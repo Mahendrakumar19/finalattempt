@@ -82,7 +82,7 @@ export class QnaExtractor {
         continue;
       }
 
-      const isMajorSectionResetHeader = /^[ \t]*(?:SECTION\s+\d+|SECTION|PART|PART\s+[A-Z0-9]+|HINDI\s+QUESTIONS|ENGLISH\s+QUESTIONS)\b/i.test(block.text.trim());
+      const isMajorSectionResetHeader = /^[ \t]*(?:\d+[\.\:\)\-–—]*[ \t]*)?(?:SECTION\s+\d+|SECTION|PART|PART\s+[A-Z0-9]+|HINDI\s+QUESTIONS|ENGLISH\s+QUESTIONS)\b/i.test(block.text.trim());
       const isMatchingHeader = /^(?:List|Column|सूची|Code|Code|कूट)[\s\-_:]*/i.test(block.text.trim());
 
       if (isMajorSectionResetHeader || (classifiedType === 'HEADING' && !isMatchingHeader)) {
@@ -300,7 +300,8 @@ export class QnaExtractor {
         const isNextCodeHeaderOnly = /^[ \t]*\([a-eA-E1-5]\)[ \t]*\d[ \t\d]+$/i.test(nextText);
         const currOptionsText = (current.options || []).map(o => o.versions[0]?.text || '').join(' ').trim();
         const nextOptionsText = (next.options || []).map(o => o.versions[0]?.text || '').join(' ').trim();
-        const isDuplicateOptions = current.questionNumber === next.questionNumber && currOptionsText.length > 3 && nextOptionsText.length > 3 && (currOptionsText.includes(nextOptionsText.substring(0, 8)) || nextOptionsText.includes(currOptionsText.substring(0, 8)));
+        const hasSameSectionHeader = !current.metadata?.sectionHeader || current.metadata.sectionHeader === next.metadata?.sectionHeader;
+        const isDuplicateOptions = hasSameSectionHeader && current.questionNumber === next.questionNumber && currOptionsText.length > 3 && nextOptionsText.length > 3 && (currOptionsText.includes(nextOptionsText.substring(0, 8)) || nextOptionsText.includes(currOptionsText.substring(0, 8)));
 
         if (isNextCodeHeaderOnly || isDuplicateOptions) {
           if (next.question.versions.length > 0) {
@@ -366,6 +367,9 @@ export class QnaExtractor {
           const rText = rItem ? `${rItem.label}. ${rItem.versions[0]?.text || ''}` : '';
           matchingTableMd += `| ${lText} | ${rText} |\n`;
         }
+        if (matchingStruct.codesHeader) {
+          matchingTableMd += `\n${matchingStruct.codesHeader}\n`;
+        }
       }
 
       questionText = (matchingResult.textBeforeMatching || fullClusterText) + matchingTableMd;
@@ -388,25 +392,18 @@ export class QnaExtractor {
         return null; // Noise block preceding Q1
       }
 
-      // Find cut-off point for options or statements
+      // Find cut-off point for options: cut question text at the start of Option A
       let firstCutIdx = -1;
-
-      // Check inline parenthesized option marker (e.g. '(a)', '(A)', '(क)') first
-      const inlineCutMatch = /(?:\r?\n|\s)+\(([a-eA-E1-5क-ङकखगघङ])\)\s+/i.exec(fullClusterText);
-      if (inlineCutMatch && inlineCutMatch.index > 0) {
-        firstCutIdx = inlineCutMatch.index;
-      }
 
       if (options.length > 0 && options[0].rawMarker) {
         const optIdx = fullClusterText.indexOf(options[0].rawMarker);
-        if (optIdx > 0 && (firstCutIdx === -1 || optIdx < firstCutIdx)) {
+        if (optIdx > 0) {
           firstCutIdx = optIdx;
         }
-      }
-      if (statements.length > 0) {
-        const stmtMatch = /(?:^|\n)[ \t]*1[\.\:\)\-–—]+[ \t]+/m.exec(fullClusterText);
-        if (stmtMatch && (firstCutIdx === -1 || stmtMatch.index < firstCutIdx)) {
-          firstCutIdx = stmtMatch.index;
+      } else {
+        const inlineCutMatch = /(?:\r?\n|\s)+\(([a-eA-E1-5क-ङकखगघङ])\)\s+/i.exec(fullClusterText);
+        if (inlineCutMatch && inlineCutMatch.index > 0) {
+          firstCutIdx = inlineCutMatch.index;
         }
       }
 

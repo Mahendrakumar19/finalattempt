@@ -1616,9 +1616,19 @@ class BackendDB {
   public async getExamsHierarchy(includeUnpublished: boolean = false): Promise<any[]> {
     if (mysqlPool) {
       try {
-        let seriesQuery = `SELECT * FROM TestSeries`;
-        if (!includeUnpublished) seriesQuery += ` WHERE isPublished = 1`;
-        seriesQuery += ` ORDER BY displayOrder ASC`;
+        let seriesQuery = `
+          SELECT ts.*,
+                 COALESCE(
+                   GREATEST(
+                     COALESCE(ts.enrolledCount, 0),
+                     COALESCE((SELECT COUNT(DISTINCT e.userId) FROM lms_enrollments e WHERE e.courseId = ts.id OR e.courseId = ts.slug), 0)
+                   ),
+                   0
+                 ) AS enrolledCount
+          FROM TestSeries ts
+        `;
+        if (!includeUnpublished) seriesQuery += ` WHERE ts.isPublished = 1`;
+        seriesQuery += ` ORDER BY ts.displayOrder ASC`;
 
         // Execute batch queries in parallel for instant response
         const [[examRows], [stageRows], [seriesRows]]: [any[], any[], any[]] = await Promise.all([
@@ -1750,7 +1760,7 @@ class BackendDB {
             syllabus = VALUES(syllabus),
             faq = VALUES(faq),
             batchStartDate = VALUES(batchStartDate),
-            enrolledCount = VALUES(enrolledCount),
+            enrolledCount = IF(VALUES(enrolledCount) > 0, VALUES(enrolledCount), TestSeries.enrolledCount),
             validityDays = VALUES(validityDays),
             isPublished = VALUES(isPublished),
             displayOrder = VALUES(displayOrder),
@@ -4035,9 +4045,20 @@ class LmsDB {
   async getCourses(includeUnpublished: boolean = false): Promise<any[]> {
     if (mysqlPool) {
       try {
+        const baseSelect = `
+          SELECT c.*,
+                 COALESCE(
+                   GREATEST(
+                     COALESCE(c.enrolledCount, 0),
+                     COALESCE((SELECT COUNT(DISTINCT e.userId) FROM lms_enrollments e WHERE e.courseId = c.id OR e.courseId = c.slug), 0)
+                   ),
+                   0
+                 ) AS enrolledCount
+          FROM lms_courses c
+        `;
         const query = includeUnpublished
-          ? 'SELECT * FROM lms_courses WHERE isActive = 1 ORDER BY enrolledCount DESC'
-          : 'SELECT * FROM lms_courses WHERE isActive = 1 AND isPublished = 1 ORDER BY enrolledCount DESC';
+          ? `${baseSelect} WHERE c.isActive = 1 ORDER BY c.enrolledCount DESC`
+          : `${baseSelect} WHERE c.isActive = 1 AND c.isPublished = 1 ORDER BY c.enrolledCount DESC`;
         const [rows]: any = await mysqlPool.query(query);
         return rows.map((r: any) => ({
           ...r,

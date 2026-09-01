@@ -25,7 +25,7 @@ export class BilingualAligner {
       if (sec.includes('hindi')) return true;
       if (sec.includes('english')) return false;
       const lang = c.question.versions[0]?.language;
-      return lang === 'hi' || (lang === 'mixed' && c.question.versions.some(v => v.language === 'hi'));
+      return lang === 'hi' || lang === 'mixed' || c.question.versions.some(v => v.language === 'hi');
     });
 
     // If document is single-language, return candidates as-is
@@ -141,9 +141,9 @@ export class BilingualAligner {
 
       const enLeft = enM?.leftList || [];
       const hiLeft = hiM?.leftList || [];
-      const leftLabels = ['A', 'B', 'C', 'D', 'E'];
+      const allLeftLabels = Array.from(new Set([...enLeft.map(i => i.label), ...hiLeft.map(i => i.label), 'A', 'B', 'C', 'D', 'E', 'I', 'II', 'III', 'IV', 'V', '1', '2', '3', '4', '5']));
 
-      for (const lbl of leftLabels) {
+      for (const lbl of allLeftLabels) {
         const enItem = enLeft.find(i => i.label === lbl);
         const hiItem = hiLeft.find(i => i.label === lbl);
         const versions: LocalizedText[] = [];
@@ -158,9 +158,9 @@ export class BilingualAligner {
 
       const enRight = enM?.rightList || [];
       const hiRight = hiM?.rightList || [];
-      const rightLabels = ['1', '2', '3', '4', '5'];
+      const allRightLabels = Array.from(new Set([...enRight.map(i => i.label), ...hiRight.map(i => i.label), '1', '2', '3', '4', '5', 'A', 'B', 'C', 'D', 'E', 'I', 'II', 'III', 'IV', 'V']));
 
-      for (const lbl of rightLabels) {
+      for (const lbl of allRightLabels) {
         const enItem = enRight.find(i => i.label === lbl);
         const hiItem = hiRight.find(i => i.label === lbl);
         const versions: LocalizedText[] = [];

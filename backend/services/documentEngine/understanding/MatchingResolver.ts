@@ -16,18 +16,19 @@ export class MatchingResolver {
    * Main entry point: Parses matching table structure from question cluster text
    */
   static parseMatching(fullClusterText: string): MatchingParseResult | null {
-    if (!fullClusterText) return null;
-
     const matchHeader = this.MATCHING_HEADER_REGEX.exec(fullClusterText);
     if (!matchHeader) return null;
 
-    const headerIndex = matchHeader.index;
+    // Find index of actual table header line (e.g. List-I, List-1, सूची-I, सूची-1)
+    const listHeadMatch = /(?:^|\n)[ \t]*(?:List[\s\-_]*I\b|List[\s\-_]*1\b|Column[\s\-_]*A\b|सूची[\s\-_]*I\b|सूची[\s\-_]*1\b)/i.exec(fullClusterText);
+    const headerIndex = listHeadMatch ? listHeadMatch.index : matchHeader.index;
+    
     const textBeforeMatching = fullClusterText.substring(0, headerIndex).trim();
-    const matchingSectionText = fullClusterText.substring(headerIndex);
+    const matchingSectionText = fullClusterText.substring(headerIndex).trim();
 
-    // Look for coded option section start (e.g. "(a) A-1, B-2", "A. A-1", "Options:", "विकल्प:")
+    // Look for coded option section start (e.g. "(a) A-1, B-2", "(a) 4 3 1 2", "C A B", "4 3 1 2", "Options:", "विकल्प:")
     const codedOptIdx = matchingSectionText.search(
-      /(?:\n[ \t]*(?:Options|विकल्प)[\s\:]*|\n[ \t]*(?:\([abcdeABCDEक-ङ]\)|[abcdeABCDEक-ङ][\.\:\)\-–—]+)[ \t]+[A-Da-d1-4क-घ][\-\=\:\s\d]+)/i
+      /(?:\n[ \t]*(?:Options|विकल्प)[\s\:]*|\n[ \t]*(?:\([abcdeABCDEक-ङ]\)|[abcdeABCDEक-ङ][\.\:\)\-–—]+)[ \t]+(?:[A-Da-d1-4क-घ][\-\=\:\s\d]+|\d[\s\d,\-]{1,15})|\n[ \t]*[A-E1-5क-ङ](?:[\s,\-–—]+[A-E1-5क-ङ]){2,4}[ \t]*$)/im
     );
 
     let matchingBodyText = matchingSectionText;
@@ -46,17 +47,26 @@ export class MatchingResolver {
 
     let headerLeft = 'List-I';
     let headerRight = 'List-II';
+    let codesHeader = '';
     const leftList: MatchingListItem[] = [];
     const rightList: MatchingListItem[] = [];
 
-    // Parse headers if present
+    // Parse stacked or side-by-side headers & codes
     for (const line of lines) {
-      if (/List[\s\-_]*I|Column[\s\-_]*A|सूची[\s\-_]*I/i.test(line) && /List[\s\-_]*II|Column[\s\-_]*B|सूची[\s\-_]*II/i.test(line)) {
+      if (/List[\s\-_]*I(?![I\w])|Column[\s\-_]*A|सूची[\s\-_]*I(?![I\w])|सूची[\s\-_]*1/i.test(line) && /List[\s\-_]*II|Column[\s\-_]*B|सूची[\s\-_]*II|सूची[\s\-_]*2/i.test(line)) {
         const parts = line.split(/\s{2,}|\t|\|/).map(s => s.trim()).filter(Boolean);
         if (parts.length >= 2) {
           headerLeft = parts[0];
           headerRight = parts[1];
+        } else {
+          headerLeft = line;
         }
+      } else if (/^(?:List[\s\-_]*II|List[\s\-_]*2|Column[\s\-_]*B|सूची[\s\-_]*II|सूची[\s\-_]*2)\b/i.test(line)) {
+        headerRight = line;
+      } else if (/^(?:List[\s\-_]*I(?![I\w])|List[\s\-_]*1|Column[\s\-_]*A|सूची[\s\-_]*I(?![I\w])|सूची[\s\-_]*1)\b/i.test(line)) {
+        headerLeft = line;
+      } else if (/^(?:Code|Codes|Koot|ूट|ूट|कूट)[\:\-\s]*/i.test(line) || /^[A-D]\s+[B-E]\s+[C-F]\s+[D-G]$/i.test(line)) {
+        codesHeader = line;
       }
     }
 
@@ -65,6 +75,11 @@ export class MatchingResolver {
     const rightItemRegex = /^[ \t]*([1-5]|[ABCDEक-ङ]|[I|V|X]+)[\.\:\)\-–—]+[ \t]+([^\n\t]+)/i;
 
     for (const line of lines) {
+      // Ignore option code choice lines like "C A B", "4 3 1 2", "A B C"
+      if (/^[ \t]*(?:\([a-eA-E1-5क-ङ]\)[ \t]*)?[A-E1-5क-ङ](?:[\s,\-–—]+[A-E1-5क-ङ]){2,4}[ \t]*$/i.test(line)) {
+        continue;
+      }
+
       // Side-by-side check (e.g. "A. State Policy ...  1. Australia" or "I. Federal List  A. 97 entries")
       const sideBySideParts = line.split(/\s{2,}|\t|\|/).map(s => s.trim()).filter(Boolean);
 
@@ -170,6 +185,7 @@ export class MatchingResolver {
         headerRight,
         leftList,
         rightList,
+        codesHeader,
         tableData
       },
       textBeforeMatching,

@@ -52,7 +52,7 @@ export class BlockClassifier {
       !isExamCitationOrList &&
       !/^(?:Q|Question|Question\s+No\.|Q\.|प्र\.|प्रश्न)[ \t]*$/i.test(text) &&
       !/^(?:Q|Question|Question\s+No\.|Q\.|प्र\.|प्रश्न)?[ \t]*\d+/i.test(text) &&
-      !/^(?:Ans|Answer|Explanation|Sol|Code|List)[\s\:]/i.test(text) &&
+      !/^(?:Ans|Answer|Explanation|Sol|Code|List|उत्तर|व्याख्या|समाधान)[\s\:\-\=]/i.test(text) &&
       !isHeaderFooterNoise(text);
 
     const isKnownTopicHeading =

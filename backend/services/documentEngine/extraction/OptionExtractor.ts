@@ -86,12 +86,20 @@ export class OptionExtractor {
 
     let match: RegExpExecArray | null;
 
-    // Step 0: Check for parenthesized option codes (e.g. "(a) C, A, D, B (b) C, D, A, B (c) C, D, B, A (d) D, A, C, B")
-    const parenthesizedLowerRegex = /(?:^|\n|\s+)\(([a-eA-E])\)[ \t]+/g;
+    // Step 0: Check for parenthesized option codes (e.g. "(a) A only (b) B only (c) C only (d) All of the above")
+    // Prioritize explicit lowercase parenthesized markers (a), (b), (c), (d) first when lowercase options appear at the end
+    const parenthesizedLowerRegex = /(?:^|\n|\s+)\(([a-eक-ङ])\)[ \t]+/g;
     const parenthesizedMatches: { label: string; rawMarker: string; index: number }[] = [];
     let pMatch: RegExpExecArray | null;
     while ((pMatch = parenthesizedLowerRegex.exec(textBlock)) !== null) {
-      const lbl = pMatch[1].toUpperCase();
+      const matchedSymbol = pMatch[1];
+      let lbl = matchedSymbol.toUpperCase();
+      if (matchedSymbol === 'क') lbl = 'A';
+      else if (matchedSymbol === 'ख') lbl = 'B';
+      else if (matchedSymbol === 'ग') lbl = 'C';
+      else if (matchedSymbol === 'घ') lbl = 'D';
+      else if (matchedSymbol === 'ङ') lbl = 'E';
+
       if (!parenthesizedMatches.some(p => p.label === lbl)) {
         parenthesizedMatches.push({ label: lbl, rawMarker: pMatch[0].trim(), index: pMatch.index });
       }

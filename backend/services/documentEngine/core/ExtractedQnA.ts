@@ -25,6 +25,7 @@ export interface MatchingStructure {
   headerRight?: string;
   leftList: MatchingListItem[];
   rightList: MatchingListItem[];
+  codesHeader?: string;
   tableData?: TableData;
 }
 

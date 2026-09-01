@@ -617,11 +617,25 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                   Question No. {currentIndex + 1}
                 </span>
                 <div className="flex items-center gap-2 text-[11px] sm:text-xs font-bold">
-                  <span className={`bg-white dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-400 px-2.5 py-1 rounded-md font-bold shadow-2xs ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}>
-                    Marks: +1.0
+                  <span
+                    className={`px-2.5 py-1 rounded-md font-bold border transition-colors shadow-2xs ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}
+                    style={{
+                      backgroundColor: cbtDark ? 'rgba(16, 185, 129, 0.15)' : '#ECFDF5',
+                      borderColor: cbtDark ? 'rgba(16, 185, 129, 0.4)' : '#A7F3D0',
+                      color: cbtDark ? '#34D399' : '#047857',
+                    }}
+                  >
+                    Marks: +{currentQ?.marks || 1.0}
                   </span>
-                  <span className={`bg-white dark:bg-rose-950/40 border border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-400 px-2.5 py-1 rounded-md font-bold shadow-2xs ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}>
-                    Negative: -0.33
+                  <span
+                    className={`px-2.5 py-1 rounded-md font-bold border transition-colors shadow-2xs ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}
+                    style={{
+                      backgroundColor: cbtDark ? 'rgba(244, 63, 94, 0.15)' : '#FFF1F2',
+                      borderColor: cbtDark ? 'rgba(244, 63, 94, 0.4)' : '#FECDD3',
+                      color: cbtDark ? '#FB7185' : '#BE123C',
+                    }}
+                  >
+                    Negative: -{currentQ?.negativeMarks || 0.33}
                   </span>
                 </div>
               </div>

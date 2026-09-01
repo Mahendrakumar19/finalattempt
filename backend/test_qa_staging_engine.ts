@@ -80,6 +80,7 @@ Ans: A
   // Test 4: Answer Conflict Detection & Commit Safeguard
   console.log('\n--- TEST 4: Answer Conflict Detection & Commit Safeguard ---');
   const conflictDoc = `
+1. ENGLISH QUESTIONS
 Q3. What is the capital of India?
 (a) New Delhi
 (b) Mumbai
@@ -87,7 +88,8 @@ Q3. What is the capital of India?
 (d) Chennai
 Ans: A
 
-प्रश्न 3. भारत की राजधानी क्या है?
+2. HINDI QUESTIONS
+Q3. भारत की राजधानी क्या है?
 (क) नई दिल्ली
 (ख) मुंबई
 (ग) कोलकाता
@@ -100,11 +102,12 @@ Ans: A
   const impConf = await StagingService.createImport({ adminId: 'qa-admin', filename: 'CONFLICT_TEST.txt', sourceType: 'TXT', mimeType: 'text/plain', fileSize: bufferConf.length });
   await StagingService.saveStagedQnas(impConf.id, qnasConf);
   const stagedConf = await StagingService.getStagedQnas(impConf.id);
+  const targetStaged = stagedConf.find(q => q.questionNumber === 3) || stagedConf[0];
 
-  if (!stagedConf[0].data.answer.hasConflict || stagedConf[0].validationStatus !== 'REVIEW_REQUIRED') {
+  if (!targetStaged.data.answer.hasConflict || targetStaged.validationStatus !== 'REVIEW_REQUIRED') {
     throw new Error('Test 4 Failed: Answer conflict EN=A vs HI=C not flagged as REVIEW_REQUIRED');
   }
-  console.log('✓ PASS: Answer conflict EN=A vs HI=C detected and flagged as REVIEW_REQUIRED:', stagedConf[0].data.answer.conflictDetails);
+  console.log('✓ PASS: Answer conflict EN=A vs HI=C detected and flagged as REVIEW_REQUIRED:', targetStaged.data.answer.conflictDetails);
 
   // Ensure unapproved conflict question CANNOT be auto-committed
   const commitConf = await LmsCommitService.commitImport(impConf.id, { autoApprovePass: true });

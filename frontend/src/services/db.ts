@@ -1613,6 +1613,21 @@ class FinalAttemptDB {
     });
   }
 
+  async parseExcel(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.apiFetch('/api/quizzes/admin/parse-excel', {
+      method: 'POST',
+      body: formData
+    });
+  }
+
+  async downloadExcelTemplate(): Promise<void> {
+    if (typeof window !== 'undefined') {
+      window.open('/api/quizzes/admin/download-excel-template', '_blank');
+    }
+  }
+
   async parseBilingualText(text: string): Promise<any> {
     return this.apiFetch('/api/quizzes/admin/parse-bilingual-text', {
       method: 'POST',

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { db, TestSeriesItem, ExamData } from '@/services/db';
 import MediaPicker from '@/components/MediaPicker';
-import { sanitizeAndRepairQuestion } from '@/utils/questionFormatter';
+import { sanitizeAndRepairQuestion, formatMatchListsInText } from '@/utils/questionFormatter';
 
 /** Strips any leading "(a) " / "(A) " / "(क) " option prefix from stored option text */
 function stripOptionPrefix(text: string): string {
@@ -13,9 +13,14 @@ function stripOptionPrefix(text: string): string {
   return text.replace(/^\s*\([a-dA-D\u0915-\u0918]\)\s+/, '').trim();
 }
 
-/** Renders question text with support for Markdown Tables (| List-I | List-II |) and HTML */
+/** Renders question text with support for Side-by-Side Matching Tables, Markdown Tables (| List-I | List-II |) and HTML */
 function renderMarkdownContent(text: string) {
   if (!text) return null;
+
+  const formattedMatch = formatMatchListsInText(text);
+  if (formattedMatch !== text || formattedMatch.includes('match-list-container') || formattedMatch.includes('<table')) {
+    return <div className="font-medium text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: formattedMatch }} />;
+  }
 
   if (text.includes('|')) {
     const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -47,22 +52,22 @@ function renderMarkdownContent(text: string) {
               {textOutsideTable.join('\n')}
             </p>
           )}
-          <div className="overflow-x-auto my-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="overflow-x-auto my-2 rounded-xl border border-[var(--card-border)]">
             <table className="w-full text-xs text-left border-collapse">
               <thead>
-                <tr className="bg-amber-500/10 dark:bg-amber-500/20 text-amber-900 dark:text-amber-300 font-extrabold border-b border-slate-200 dark:border-slate-800">
+                <tr className="border-b border-[var(--card-border)] text-[var(--text-color)] font-bold">
                   {headerRow.map((cell, cIdx) => (
-                    <th key={cIdx} className="px-3.5 py-2 uppercase tracking-wider font-extrabold border-r last:border-r-0 border-slate-200 dark:border-slate-800">
+                    <th key={cIdx} className="px-3.5 py-2 uppercase tracking-wider font-bold border-r last:border-r-0 border-[var(--card-border)]">
                       {cell}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium text-[var(--text-color)]">
+              <tbody className="divide-y divide-[var(--card-border)] font-medium text-[var(--text-color)]">
                 {dataRows.map((row, rIdx) => (
-                  <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-white dark:bg-slate-900/60' : 'bg-slate-50 dark:bg-slate-900/30'}>
+                  <tr key={rIdx}>
                     {row.map((cell, cIdx) => (
-                      <td key={cIdx} className="px-3.5 py-2 text-xs border-r last:border-r-0 border-slate-200 dark:border-slate-800">
+                      <td key={cIdx} className="px-3.5 py-2 text-xs border-r last:border-r-0 border-[var(--card-border)]">
                         {cell}
                       </td>
                     ))}
@@ -260,7 +265,7 @@ export default function TestSeriesAdmin({
   const [bilingualQuizDescription, setBilingualQuizDescription] = useState('');
   const [replaceExistingQuizConfirm, setReplaceExistingQuizConfirm] = useState(false);
   const [bilingualPastedText, setBilingualPastedText] = useState('');
-  const [bilingualParseMode, setBilingualParseMode] = useState<'text' | 'pdf'>('text');
+  const [bilingualParseMode, setBilingualParseMode] = useState<'text' | 'pdf' | 'excel'>('text');
   const [bilingualParseErrors, setBilingualParseErrors] = useState<string[]>([]);
   const [quizLangMode, setQuizLangMode] = useState<Record<string, 'EN' | 'HI'>>({});
 
@@ -424,7 +429,9 @@ export default function TestSeriesAdmin({
       syllabus: editingSeries.syllabus || [],
       faq: editingSeries.faq || [],
       batchStartDate: editingSeries.batchStartDate || new Date().toISOString().split('T')[0],
-      enrolledCount: Number(editingSeries.enrolledCount) || 0,
+      enrolledCount: Number(editingSeries.enrolledCount) > 0 
+        ? Number(editingSeries.enrolledCount) 
+        : (seriesList.find(s => s.id === editingSeries.id)?.enrolledCount || 0),
       validityDays: Number(editingSeries.validityDays) || 180,
       isPublished: editingSeries.isPublished !== false,
       displayOrder: Number(editingSeries.displayOrder) || 1,
@@ -1252,11 +1259,28 @@ export default function TestSeriesAdmin({
                       setPreviewQuestionIndex(0);
                       setBilingualQuizTitle('');
                       setBilingualQuizDescription('');
+                      setBilingualParseMode('text');
                     }}
                     className="flex items-center gap-1.5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black rounded-2xl transition-all shadow-sm cursor-pointer"
                   >
                     <FileText className="w-4 h-4 text-amber-300" />
-                    <span>Import Strict Bilingual PDF</span>
+                    <span>Import Document</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowBilingualPdfModal(true);
+                      setBilingualReport(null);
+                      setPreviewQuestionIndex(0);
+                      setBilingualQuizTitle('');
+                      setBilingualQuizDescription('');
+                      setBilingualParseMode('excel');
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-2xl transition-all shadow-sm cursor-pointer"
+                  >
+                    <Layers className="w-4 h-4 text-emerald-300" />
+                    <span>Import from Excel</span>
                   </button>
 
                   <button
@@ -2890,13 +2914,15 @@ export default function TestSeriesAdmin({
 
       {/* ── STRICT BILINGUAL MOCK TEST IMPORTER WIZARD MODAL ───────────── */}
       {showBilingualPdfModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8">
-            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            
+            {/* Modal Header (Fixed Top) */}
+            <div className="flex items-center justify-between border-b border-[var(--card-border)] px-6 py-4 shrink-0 bg-[var(--card-bg)]">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Strict Bilingual Engine</span>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Universal Bilingual Engine</span>
                 <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-0.5">
-                  Bilingual Mock Test Importer
+                  Bilingual Test Importer & Review Dashboard
                 </h3>
               </div>
               <button
@@ -2907,406 +2933,587 @@ export default function TestSeriesAdmin({
                   setBilingualParseErrors([]);
                   setBilingualParseMode('text');
                 }}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-[var(--text-color)] cursor-pointer"
+                className="p-2 rounded-xl text-slate-400 hover:text-[var(--text-color)] hover:bg-slate-800 cursor-pointer transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* STEP 1: Input — Paste Text (primary) or Upload PDF (fallback) */}
-            {!bilingualReport && (
-              <div className="space-y-5">
+            {/* Modal Body (Scrollable Middle) */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-                {/* Mode Toggle Tabs */}
-                <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl text-xs font-bold w-fit">
-                  <button
-                    type="button"
-                    onClick={() => { setBilingualParseMode('text'); setBilingualParseErrors([]); }}
-                    className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${bilingualParseMode === 'text'
-                        ? 'bg-amber-500 text-slate-950 shadow-sm'
-                        : 'text-slate-500 hover:text-[var(--text-color)]'
-                      }`}
-                  >
-                    📋 Paste Text
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setBilingualParseMode('pdf'); setBilingualParseErrors([]); }}
-                    className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${bilingualParseMode === 'pdf'
-                        ? 'bg-amber-500 text-slate-950 shadow-sm'
-                        : 'text-slate-500 hover:text-[var(--text-color)]'
-                      }`}
-                  >
-                    📄 Upload PDF
-                  </button>
-                </div>
+              {/* STEP 1: Input — Paste Text (primary) or Upload PDF (fallback) */}
+              {!bilingualReport && (
+                <div className="space-y-5">
 
-                {/* Universal Engine Info Banner */}
-                <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-[12px] text-emerald-800 dark:text-emerald-300 leading-relaxed flex items-center gap-3">
-                  <span className="text-xl shrink-0">✨</span>
-                  <div>
-                    <strong className="block font-bold text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Universal Format-Agnostic Import Engine</strong>
-                    <span>Paste text or upload <strong>ANY format</strong>—separate English papers, separate Hindi papers, combined bilingual tests, PDFs, DOCX, or text files. No rigid section headers or specific layouts required!</span>
+                  {/* Mode Toggle Tabs */}
+                  <div className="flex flex-wrap gap-2 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl text-xs font-bold w-fit">
+                    <button
+                      type="button"
+                      onClick={() => { setBilingualParseMode('text'); setBilingualParseErrors([]); }}
+                      className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${bilingualParseMode === 'text'
+                          ? 'bg-amber-500 text-slate-950 shadow-sm'
+                          : 'text-slate-500 hover:text-[var(--text-color)]'
+                        }`}
+                    >
+                      📋 Paste Text
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setBilingualParseMode('pdf'); setBilingualParseErrors([]); }}
+                      className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${bilingualParseMode === 'pdf'
+                          ? 'bg-amber-500 text-slate-950 shadow-sm'
+                          : 'text-slate-500 hover:text-[var(--text-color)]'
+                        }`}
+                    >
+                      📄 Upload Document / PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setBilingualParseMode('excel'); setBilingualParseErrors([]); }}
+                      className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${bilingualParseMode === 'excel'
+                          ? 'bg-emerald-500 text-slate-950 shadow-sm font-extrabold'
+                          : 'text-slate-500 hover:text-[var(--text-color)]'
+                        }`}
+                    >
+                      📊 Import from Excel (.xlsx)
+                    </button>
                   </div>
-                </div>
 
-                {/* Parse Errors */}
-                {bilingualParseErrors.length > 0 && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-1">
-                    {bilingualParseErrors.map((e, i) => (
-                      <p key={i} className="text-xs font-medium text-red-600 dark:text-red-400">⚠ {e}</p>
-                    ))}
-                  </div>
-                )}
-
-                {/* TEXT MODE */}
-                {bilingualParseMode === 'text' && (
-                  <div className="space-y-4">
-                    <textarea
-                      rows={14}
-                      value={bilingualPastedText}
-                      onChange={e => { setBilingualPastedText(e.target.value); setBilingualParseErrors([]); }}
-                      placeholder="Paste any question paper or mock test here in ANY format (English, Hindi, or Bilingual)..."
-                      className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl outline-none focus:border-amber-500 font-mono text-[11px] resize-y"
-                    />
-                    <div className="flex justify-end">
-                      <button
-                        type="button"
-                        disabled={parsingBilingualPdf || !bilingualPastedText.trim()}
-                        onClick={async () => {
-                          if (!bilingualPastedText.trim()) return;
-                          setParsingBilingualPdf(true);
-                          setBilingualParseErrors([]);
-                          try {
-                            const res = await db.parseBilingualText(bilingualPastedText);
-                            if (res && res.success && res.report) {
-                              if (res.report.errors && res.report.errors.length > 0) {
-                                setBilingualParseErrors(res.report.errors);
-                              }
-                              setBilingualReport(res.report);
-                            } else {
-                              setBilingualParseErrors([res?.error || 'Failed to parse text.']);
-                            }
-                          } catch (err: any) {
-                            setBilingualParseErrors([err.message || 'Network error.']);
-                          } finally {
-                            setParsingBilingualPdf(false);
-                          }
-                        }}
-                        className="px-8 py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl cursor-pointer shadow-md transition-all"
-                      >
-                        {parsingBilingualPdf ? 'Parsing...' : 'Parse & Validate →'}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* PDF MODE */}
-                {bilingualParseMode === 'pdf' && (
-                  <div className="space-y-4">
-                    <div className="p-8 border-2 border-dashed border-[var(--card-border)] rounded-3xl hover:border-amber-500/50 transition-colors space-y-4 text-center bg-slate-50/50 dark:bg-slate-900/50">
-                      <FileText className="w-12 h-12 text-amber-500 mx-auto" />
-                      <div className="space-y-1">
-                        <h4 className="font-heading font-bold text-base text-[var(--text-color)]">Upload Test Paper (PDF, DOCX, Image, Text)</h4>
-                        <p className="text-xs text-slate-400 max-w-xs mx-auto">
-                          Universal Engine accepts any digital PDF, scanned image PDF, or text document.
-                        </p>
+                  {/* Info Banner */}
+                  {bilingualParseMode !== 'excel' ? (
+                    <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-[12px] text-emerald-800 dark:text-emerald-300 leading-relaxed flex items-center gap-3">
+                      <span className="text-xl shrink-0">✨</span>
+                      <div>
+                        <strong className="block font-bold text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Universal Format-Agnostic Import Engine</strong>
+                        <span>Paste text or upload <strong>ANY format</strong>—separate English papers, separate Hindi papers, combined bilingual tests, PDFs, DOCX, or text files. No rigid section headers or specific layouts required!</span>
                       </div>
-                      <label className="inline-block px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl cursor-pointer shadow-md transition-all">
-                        <span>{parsingBilingualPdf ? 'Extracting & Validating PDF...' : 'Select PDF File'}</span>
-                        <input
-                          type="file"
-                          accept=".pdf"
-                          disabled={parsingBilingualPdf}
-                          className="hidden"
-                          onChange={async (e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
+                    </div>
+                  ) : (
+                    <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-[12px] text-emerald-800 dark:text-emerald-300 leading-relaxed flex items-center gap-3">
+                      <span className="text-xl shrink-0">📊</span>
+                      <div>
+                        <strong className="block font-bold text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">Structured Question Bank Excel Engine</strong>
+                        <span>Strict 1-row-per-question importer using the canonical 17-column Excel template (`Question_Bank_Import_Template.xlsx`). Bypasses OCR for 100% structured accuracy.</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Parse Errors */}
+                  {bilingualParseErrors.length > 0 && (
+                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-1">
+                      {bilingualParseErrors.map((e, i) => (
+                        <p key={i} className="text-xs font-medium text-red-600 dark:text-red-400">⚠ {e}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* TEXT MODE */}
+                  {bilingualParseMode === 'text' && (
+                    <div className="space-y-4">
+                      <textarea
+                        rows={14}
+                        value={bilingualPastedText}
+                        onChange={e => { setBilingualPastedText(e.target.value); setBilingualParseErrors([]); }}
+                        placeholder="Paste any question paper or mock test here in ANY format (English, Hindi, or Bilingual)..."
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl outline-none focus:border-amber-500 font-mono text-[11px] resize-y"
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          disabled={parsingBilingualPdf || !bilingualPastedText.trim()}
+                          onClick={async () => {
+                            if (!bilingualPastedText.trim()) return;
                             setParsingBilingualPdf(true);
                             setBilingualParseErrors([]);
                             try {
-                              const res = await db.parseBilingualPdf(file);
+                              const res = await db.parseBilingualText(bilingualPastedText);
                               if (res && res.success && res.report) {
                                 if (res.report.errors && res.report.errors.length > 0) {
                                   setBilingualParseErrors(res.report.errors);
                                 }
                                 setBilingualReport(res.report);
-                                if (!bilingualQuizTitle) {
-                                  setBilingualQuizTitle(file.name.replace(/\.pdf$/i, '').replace(/_/g, ' '));
-                                }
                               } else {
-                                setBilingualParseErrors([res?.error || 'Failed parsing PDF document.']);
+                                setBilingualParseErrors([res?.error || 'Failed to parse text.']);
                               }
                             } catch (err: any) {
-                              setBilingualParseErrors([err.message || 'Error extracting PDF file.']);
+                              setBilingualParseErrors([err.message || 'Network error.']);
                             } finally {
                               setParsingBilingualPdf(false);
                             }
                           }}
-                        />
-                      </label>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* STEP 2: Validation Metrics & Preview Screen */}
-            {bilingualReport && (
-              <div className="space-y-6">
-
-                {/* Validation Summary Pill */}
-                <div className={`p-4 rounded-2xl border flex items-center justify-between gap-4 text-xs font-bold ${bilingualReport?.isValid !== false ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
-                  }`}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{bilingualReport?.isValid !== false ? '✓' : '⚠️'}</span>
-                    <div>
-                      <span className="font-extrabold uppercase tracking-wider block">
-                        Bilingual Validation Status: {bilingualReport?.isValid !== false ? 'VALID' : 'INVALID'}
-                      </span>
-                      <span className="text-[10px] font-medium opacity-90">
-                        {bilingualReport?.isValid !== false
-                          ? '1:1 Question mapping & answer key agreement verified across all logical sections.'
-                          : `${(bilingualReport?.errors || []).length} validation errors detected. Import blocked.`}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => { setBilingualReport(null); setBilingualParseErrors([]); }}
-                    className="px-3 py-1.5 bg-slate-800 text-white rounded-xl text-[10px] font-bold hover:bg-slate-700 cursor-pointer shrink-0"
-                  >
-                    ← Try Again
-                  </button>
-                </div>
-
-                {/* Validation Metrics Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs font-bold">
-                  <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
-                    <span className="text-amber-500 text-lg font-black block">{bilingualReport?.mappedQuestionsCount || bilingualReport?.totalDetected || (parsedBulkQuestions || []).length || 0}</span>
-                    <span className="text-[10px] text-slate-400 uppercase">Mapped Questions</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
-                    <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalQuestionsEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalQuestionsHi || (parsedBulkQuestions || []).filter((q: any) => q.questionTextHi).length}</span>
-                    <span className="text-[10px] text-slate-400 uppercase">En Qs / Hi Qs</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
-                    <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalAnswersEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalAnswersHi || (parsedBulkQuestions || []).length}</span>
-                    <span className="text-[10px] text-slate-400 uppercase">En Ans / Hi Ans</span>
-                  </div>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
-                    <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalExplanationsEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalExplanationsHi || 0}</span>
-                    <span className="text-[10px] text-slate-400 uppercase">Explanations</span>
-                  </div>
-                </div>
-
-                {/* Validation Errors Breakdown */}
-                {Array.isArray(bilingualReport?.errors) && bilingualReport.errors.length > 0 && (
-                  <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-2 text-xs text-red-500 font-medium">
-                    <span className="font-extrabold uppercase tracking-wider block text-red-600 dark:text-red-400">
-                      Validation Errors ({bilingualReport.errors.length}):
-                    </span>
-                    <ul className="list-disc pl-5 space-y-1 text-[11px] max-h-36 overflow-y-auto">
-                      {bilingualReport.errors.map((err: string, i: number) => (
-                        <li key={i}>{err}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Question Preview Side-by-Side Inspector */}
-                {bilingualReport.questionsPreview && bilingualReport.questionsPreview.length > 0 && (
-                  <div className="space-y-4 border-t border-[var(--card-border)] pt-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-black uppercase text-amber-500 tracking-wider">
-                        Question Preview ({previewQuestionIndex + 1} of {bilingualReport.questionsPreview.length})
-                      </span>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          disabled={previewQuestionIndex === 0}
-                          onClick={() => setPreviewQuestionIndex(prev => Math.max(0, prev - 1))}
-                          className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-bold disabled:opacity-30 cursor-pointer"
+                          className="px-8 py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-black text-sm rounded-2xl cursor-pointer shadow-md transition-all"
                         >
-                          Prev Q
-                        </button>
-                        <button
-                          type="button"
-                          disabled={previewQuestionIndex >= bilingualReport.questionsPreview.length - 1}
-                          onClick={() => setPreviewQuestionIndex(prev => Math.min(bilingualReport.questionsPreview.length - 1, prev + 1))}
-                          className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-xs font-bold disabled:opacity-30 cursor-pointer"
-                        >
-                          Next Q
+                          {parsingBilingualPdf ? 'Parsing...' : 'Parse & Validate →'}
                         </button>
                       </div>
                     </div>
+                  )}
 
-                    {/* Side by Side Preview Card */}
-                    {(() => {
-                      const curQ = bilingualReport.questionsPreview[previewQuestionIndex];
-                      if (!curQ) return null;
-
-                      return (
-                        <div className="bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl p-4 sm:p-6 space-y-4 text-xs">
-                          <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-2 font-bold">
-                            <span className="text-amber-500 font-extrabold text-sm">
-                              Q{curQ.questionNumber}
-                            </span>
-                            <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-500 rounded-md font-mono font-black">
-                              Correct Answer: ({curQ.correctAnswer})
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* English Column */}
-                            <div className="space-y-3 border-r border-[var(--card-border)] pr-4">
-                              <span className="text-[10px] font-black uppercase text-slate-400 block">ENGLISH</span>
-                              {renderMarkdownContent(curQ.questionText)}
-                              <div className="space-y-1 text-slate-500 font-medium">
-                                <p><strong className="text-slate-400">A.</strong> {stripOptionPrefix(curQ.optionA)}</p>
-                                <p><strong className="text-slate-400">B.</strong> {stripOptionPrefix(curQ.optionB)}</p>
-                                <p><strong className="text-slate-400">C.</strong> {stripOptionPrefix(curQ.optionC)}</p>
-                                <p><strong className="text-slate-400">D.</strong> {stripOptionPrefix(curQ.optionD)}</p>
-                                {curQ.optionE && <p><strong className="text-slate-400">E.</strong> {stripOptionPrefix(curQ.optionE)}</p>}
-                              </div>
-                              {curQ.explanation && (
-                                <div className="p-2.5 bg-amber-500/10 rounded-xl text-[11px] text-amber-700 dark:text-amber-300">
-                                  <strong>Explanation:</strong> {curQ.explanation}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Hindi Column */}
-                            <div className="space-y-3">
-                              <span className="text-[10px] font-black uppercase text-amber-500 block">HINDI (हिन्दी)</span>
-                              {renderMarkdownContent(curQ.questionTextHi || curQ.questionText)}
-                              <div className="space-y-1 text-slate-500 font-medium">
-                                <p><strong className="text-amber-500">A.</strong> {stripOptionPrefix(curQ.optionAHi || curQ.optionA)}</p>
-                                <p><strong className="text-amber-500">B.</strong> {stripOptionPrefix(curQ.optionBHi || curQ.optionB)}</p>
-                                <p><strong className="text-amber-500">C.</strong> {stripOptionPrefix(curQ.optionCHi || curQ.optionC)}</p>
-                                <p><strong className="text-amber-500">D.</strong> {stripOptionPrefix(curQ.optionDHi || curQ.optionD)}</p>
-                                {(curQ.optionEHi || curQ.optionE) && <p><strong className="text-amber-500">E.</strong> {stripOptionPrefix(curQ.optionEHi || curQ.optionE)}</p>}
-                              </div>
-                              <div className="p-2.5 bg-amber-500/10 rounded-xl text-[11px] text-amber-700 dark:text-amber-300">
-                                <strong>व्याख्या:</strong> {curQ.explanationHi || curQ.explanation || 'व्याख्या उपलब्ध नहीं है।'}
-                              </div>
-                            </div>
-                          </div>
+                  {/* PDF MODE */}
+                  {bilingualParseMode === 'pdf' && (
+                    <div className="space-y-4">
+                      <div className="p-8 border-2 border-dashed border-[var(--card-border)] rounded-3xl hover:border-amber-500/50 transition-colors space-y-4 text-center bg-slate-50/50 dark:bg-slate-900/50">
+                        <FileText className="w-12 h-12 text-amber-500 mx-auto" />
+                        <div className="space-y-1">
+                          <h4 className="font-heading font-bold text-base text-[var(--text-color)]">Upload Test Paper (PDF, DOCX, Image, Text)</h4>
+                          <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                            Universal Engine accepts any digital PDF, scanned image PDF, or text document.
+                          </p>
                         </div>
-                      );
-                    })()}
-                  </div>
-                )}
-
-                {/* Import Configuration Form */}
-                {bilingualReport.isValid && (
-                  <div className="space-y-4 border-t border-[var(--card-border)] pt-4 text-xs font-bold">
-                    <div>
-                      <label className="block text-slate-400 mb-1">Quiz Paper Title *</label>
-                      <input
-                        type="text"
-                        required
-                        value={bilingualQuizTitle}
-                        onChange={e => setBilingualQuizTitle(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-400 mb-1">Quiz Paper Instructions / Description</label>
-                      <textarea
-                        rows={2}
-                        value={bilingualQuizDescription}
-                        onChange={e => setBilingualQuizDescription(e.target.value)}
-                        placeholder="Official bilingual mock test paper instructions..."
-                        className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        id="replaceQuizCheck"
-                        checked={replaceExistingQuizConfirm}
-                        onChange={e => setReplaceExistingQuizConfirm(e.target.checked)}
-                        className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
-                      />
-                      <label htmlFor="replaceQuizCheck" className="text-slate-400 cursor-pointer">
-                        If a quiz paper with the same ID exists, overwrite and replace it.
-                      </label>
-                    </div>
-                  </div>
-                )}
-
-                {/* Final Wizard Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t border-[var(--card-border)]">
-                  <button
-                    type="button"
-                    onClick={() => setShowBilingualPdfModal(false)}
-                    className="px-5 py-2.5 border border-[var(--card-border)] text-slate-400 text-xs font-bold rounded-2xl cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={!bilingualReport.isValid || importingBilingualQuiz}
-                    onClick={async () => {
-                      if (!bilingualQuizTitle.trim()) {
-                        alert('Please enter a Quiz Paper Title.');
-                        return;
-                      }
-                      setImportingBilingualQuiz(true);
-                      try {
-                        const res = await db.importBilingualQuiz({
-                          title: bilingualQuizTitle,
-                          courseId: selectedSeriesId || 'bpsc-foundation',
-                          description: bilingualQuizDescription,
-                          questions: bilingualReport.questionsPreview,
-                          replaceExisting: replaceExistingQuizConfirm
-                        });
-
-                        if (res && res.success) {
-                          const createdQuiz = res.data.quiz;
-                          const createdQs = res.data.questions || [];
-
-                          // Save to local storage cache so UI reflects immediately
-                          if (typeof window !== 'undefined' && selectedSeriesId) {
-                            try {
-                              const storedQuizzes = localStorage.getItem(`finalattempt_quizzes_${selectedSeriesId}`);
-                              const currentQuizzes: any[] = storedQuizzes ? JSON.parse(storedQuizzes) : [];
-                              const nextQuizzes = [...currentQuizzes.filter(q => q.id !== createdQuiz.id), createdQuiz];
-                              localStorage.setItem(`finalattempt_quizzes_${selectedSeriesId}`, JSON.stringify(nextQuizzes));
-
-                              if (createdQs.length > 0) {
-                                localStorage.setItem(`finalattempt_questions_${createdQuiz.id}`, JSON.stringify(createdQs));
+                        <label className="inline-block px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl cursor-pointer shadow-md transition-all">
+                          <span>{parsingBilingualPdf ? 'Extracting & Validating PDF...' : 'Select PDF File'}</span>
+                          <input
+                            type="file"
+                            accept=".pdf"
+                            disabled={parsingBilingualPdf}
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setParsingBilingualPdf(true);
+                              setBilingualParseErrors([]);
+                              try {
+                                const res = await db.parseBilingualPdf(file);
+                                if (res && res.success && res.report) {
+                                  if (res.report.errors && res.report.errors.length > 0) {
+                                    setBilingualParseErrors(res.report.errors);
+                                  }
+                                  setBilingualReport(res.report);
+                                  if (!bilingualQuizTitle) {
+                                    setBilingualQuizTitle(file.name.replace(/\.pdf$/i, '').replace(/_/g, ' '));
+                                  }
+                                } else {
+                                  setBilingualParseErrors([res?.error || 'Failed parsing PDF document.']);
+                                }
+                              } catch (err: any) {
+                                setBilingualParseErrors([err.message || 'Error extracting PDF file.']);
+                              } finally {
+                                setParsingBilingualPdf(false);
                               }
-                            } catch (_) { }
-                          }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
 
-                          alert(`✓ Successfully imported ${res.data.importedQuestionsCount} 1:1 bilingual questions with authored English & Hindi content!`);
-                          setShowBilingualPdfModal(false);
-                          if (selectedSeriesId) {
-                            const updatedQuizzes = await db.getTestSeriesQuizzes(selectedSeriesId);
-                            setQuizzes(updatedQuizzes || []);
-                          }
-                        } else {
-                          alert(res?.error || 'Failed executing atomic quiz import.');
-                        }
-                      } catch (err: any) {
-                        alert(err.message || 'Error executing quiz import transaction.');
-                      } finally {
-                        setImportingBilingualQuiz(false);
-                      }
-                    }}
-                    className="px-8 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs rounded-2xl shadow-md cursor-pointer disabled:opacity-30 uppercase tracking-wider"
-                  >
-                    {importingBilingualQuiz ? 'Executing Atomic Import...' : 'Confirm & Execute Import'}
-                  </button>
+                  {/* EXCEL MODE */}
+                  {bilingualParseMode === 'excel' && (
+                    <div className="space-y-4">
+                      <div className="p-8 border-2 border-dashed border-emerald-500/30 rounded-3xl hover:border-emerald-500/60 transition-colors space-y-4 text-center bg-emerald-500/5 dark:bg-emerald-950/20">
+                        <FileText className="w-12 h-12 text-emerald-500 mx-auto" />
+                        <div className="space-y-1">
+                          <h4 className="font-heading font-bold text-base text-[var(--text-color)]">Upload Excel Question Bank (.xlsx)</h4>
+                          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                            Uses the 17-column Question Bank schema for 100% structured accuracy.
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center gap-3">
+                          <label className="inline-block px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs rounded-2xl cursor-pointer shadow-md transition-all">
+                            <span>{parsingBilingualPdf ? 'Parsing Excel File...' : 'Select Excel File (.xlsx)'}</span>
+                            <input
+                              type="file"
+                              accept=".xlsx,.xls"
+                              disabled={parsingBilingualPdf}
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setParsingBilingualPdf(true);
+                                setBilingualParseErrors([]);
+                                try {
+                                  const res = await db.parseExcel(file);
+                                  if (res && res.success && res.report) {
+                                    if (res.report.errors && res.report.errors.length > 0) {
+                                      setBilingualParseErrors(res.report.errors);
+                                    }
+                                    setBilingualReport(res.report);
+                                    if (!bilingualQuizTitle) {
+                                      setBilingualQuizTitle(file.name.replace(/\.xlsx$/i, '').replace(/_/g, ' '));
+                                    }
+                                  } else {
+                                    setBilingualParseErrors([res?.error || 'Failed parsing Excel file.']);
+                                  }
+                                } catch (err: any) {
+                                  setBilingualParseErrors([err.message || 'Error uploading Excel file.']);
+                                } finally {
+                                  setParsingBilingualPdf(false);
+                                }
+                              }}
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={() => db.downloadExcelTemplate()}
+                            className="px-5 py-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-2xl transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2 cursor-pointer shadow-xs"
+                          >
+                            <span>📥 Download Excel Template</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
+              )}
 
+              {/* STEP 2: Validation Metrics & Preview Screen */}
+              {bilingualReport && (
+                <div className="space-y-6">
+
+                  {/* Validation Summary Pill */}
+                  <div className={`p-4 rounded-2xl border flex items-center justify-between gap-4 text-xs font-bold ${bilingualReport?.isValid !== false ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{bilingualReport?.isValid !== false ? '✓' : '⚠️'}</span>
+                      <div>
+                        <span className="font-extrabold uppercase tracking-wider block">
+                          Bilingual Validation Status: {bilingualReport?.isValid !== false ? 'VALID' : 'INVALID'}
+                        </span>
+                        <span className="text-[10px] font-medium opacity-90">
+                          {bilingualReport?.isValid !== false
+                            ? '1:1 Question mapping & answer key agreement verified across all logical sections.'
+                            : `${(bilingualReport?.errors || []).length} validation errors detected. Import blocked.`}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => { setBilingualReport(null); setBilingualParseErrors([]); }}
+                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0 transition-colors"
+                    >
+                      ← Re-upload / Edit Input
+                    </button>
+                  </div>
+
+                  {/* Validation Metrics Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs font-bold">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                      <span className="text-amber-500 text-lg font-black block">{bilingualReport?.mappedQuestionsCount || bilingualReport?.totalDetected || (parsedBulkQuestions || []).length || 0}</span>
+                      <span className="text-[10px] text-slate-400 uppercase">Mapped Questions</span>
+                    </div>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                      <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalQuestionsEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalQuestionsHi || (parsedBulkQuestions || []).filter((q: any) => q.questionTextHi).length}</span>
+                      <span className="text-[10px] text-slate-400 uppercase">En Qs / Hi Qs</span>
+                    </div>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                      <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalAnswersEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalAnswersHi || (parsedBulkQuestions || []).length}</span>
+                      <span className="text-[10px] text-slate-400 uppercase">En Ans / Hi Ans</span>
+                    </div>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
+                      <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalExplanationsEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalExplanationsHi || 0}</span>
+                      <span className="text-[10px] text-slate-400 uppercase">Explanations</span>
+                    </div>
+                  </div>
+
+                  {/* Validation Errors Breakdown */}
+                  {Array.isArray(bilingualReport?.errors) && bilingualReport.errors.length > 0 && (
+                    <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-2 text-xs text-red-500 font-medium">
+                      <span className="font-extrabold uppercase tracking-wider block text-red-600 dark:text-red-400">
+                        Validation Errors ({bilingualReport.errors.length}):
+                      </span>
+                      <ul className="list-disc pl-5 space-y-1 text-[11px] max-h-36 overflow-y-auto">
+                        {bilingualReport.errors.map((err: string, i: number) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Question Preview Side-by-Side Inspector */}
+                  {bilingualReport.questionsPreview && bilingualReport.questionsPreview.length > 0 && (
+                    <div className="space-y-4 border-t border-[var(--card-border)] pt-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="text-xs font-black uppercase text-amber-500 tracking-wider">
+                          Question Preview ({previewQuestionIndex + 1} of {bilingualReport.questionsPreview.length})
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={previewQuestionIndex}
+                            onChange={e => setPreviewQuestionIndex(Number(e.target.value))}
+                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl text-xs font-bold outline-none cursor-pointer"
+                          >
+                            {bilingualReport.questionsPreview.map((q: any, idx: number) => (
+                              <option key={idx} value={idx}>
+                                Jump to Q{q.questionNumber || idx + 1}
+                              </option>
+                            ))}
+                          </select>
+
+                          <button
+                            type="button"
+                            disabled={previewQuestionIndex === 0}
+                            onClick={() => setPreviewQuestionIndex(prev => Math.max(0, prev - 1))}
+                            className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold disabled:opacity-30 cursor-pointer transition-colors"
+                          >
+                            ← Prev Q
+                          </button>
+                          <button
+                            type="button"
+                            disabled={previewQuestionIndex >= bilingualReport.questionsPreview.length - 1}
+                            onClick={() => setPreviewQuestionIndex(prev => Math.min(bilingualReport.questionsPreview.length - 1, prev + 1))}
+                            className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold disabled:opacity-30 cursor-pointer transition-colors"
+                          >
+                            Next Q →
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Side by Side Preview Card */}
+                      {(() => {
+                        const curQ = bilingualReport.questionsPreview[previewQuestionIndex];
+                        if (!curQ) return null;
+
+                        return (
+                          <div className="bg-slate-50 dark:bg-slate-900/80 border border-[var(--card-border)] rounded-2xl p-5 space-y-5 text-xs shadow-inner">
+                            {/* Header Bar */}
+                            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-3 font-bold">
+                              <div className="flex items-center gap-3">
+                                <span className="px-3 py-1 bg-amber-500/20 text-amber-500 font-black text-sm rounded-xl border border-amber-500/30">
+                                  Q{curQ.questionNumber}
+                                </span>
+                                {curQ.questionType && (
+                                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                    Type: {curQ.questionType}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-slate-400 font-medium">Answer Key:</span>
+                                <span className="px-3 py-1 bg-emerald-500/15 text-emerald-500 rounded-xl font-mono font-black text-xs border border-emerald-500/30">
+                                  ({curQ.correctAnswer})
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Side-by-Side Grid */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                              {/* English Column */}
+                              <div className="space-y-4 lg:border-r border-[var(--card-border)] lg:pr-6">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 bg-slate-200 dark:bg-slate-800 px-2.5 py-1 rounded-md">ENGLISH</span>
+                                </div>
+
+                                <div className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium text-xs">
+                                  {renderMarkdownContent(curQ.questionText)}
+                                </div>
+
+                                <div className="space-y-2 pt-2">
+                                  <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block mb-1">Options</span>
+                                  {[
+                                    { key: 'A', text: curQ.optionA },
+                                    { key: 'B', text: curQ.optionB },
+                                    { key: 'C', text: curQ.optionC },
+                                    { key: 'D', text: curQ.optionD },
+                                    ...(curQ.optionE ? [{ key: 'E', text: curQ.optionE }] : [])
+                                  ].map(opt => {
+                                    const isCorrect = curQ.correctAnswer === opt.key;
+                                    return (
+                                      <div
+                                        key={opt.key}
+                                        className={`p-2.5 rounded-xl border flex items-start gap-2.5 text-xs font-medium transition-colors ${
+                                          isCorrect
+                                            ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-300 font-bold'
+                                            : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                                        }`}
+                                      >
+                                        <span className={`w-5 h-5 shrink-0 rounded-lg flex items-center justify-center font-extrabold text-[11px] ${
+                                          isCorrect
+                                            ? 'bg-emerald-500 text-white'
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
+                                        }`}>
+                                          {opt.key}
+                                        </span>
+                                        <span className="leading-snug break-words flex-1">{stripOptionPrefix(opt.text)}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                {curQ.explanation && (
+                                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+                                    <span className="font-extrabold uppercase tracking-wider text-[10px] text-amber-500 block">Explanation</span>
+                                    <p className="leading-relaxed">{curQ.explanation}</p>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Hindi Column */}
+                              <div className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-md">HINDI (हिन्दी)</span>
+                                </div>
+
+                                <div className="text-slate-800 dark:text-slate-200 leading-relaxed font-medium text-xs">
+                                  {renderMarkdownContent(curQ.questionTextHi || curQ.questionText)}
+                                </div>
+
+                                <div className="space-y-2 pt-2">
+                                  <span className="text-[10px] font-extrabold text-amber-500/80 uppercase tracking-wider block mb-1">विकल्प (Options)</span>
+                                  {[
+                                    { key: 'A', text: curQ.optionAHi || curQ.optionA },
+                                    { key: 'B', text: curQ.optionBHi || curQ.optionB },
+                                    { key: 'C', text: curQ.optionCHi || curQ.optionC },
+                                    { key: 'D', text: curQ.optionDHi || curQ.optionD },
+                                    ...((curQ.optionEHi || curQ.optionE) ? [{ key: 'E', text: curQ.optionEHi || curQ.optionE }] : [])
+                                  ].map(opt => {
+                                    const isCorrect = curQ.correctAnswer === opt.key;
+                                    return (
+                                      <div
+                                        key={opt.key}
+                                        className={`p-2.5 rounded-xl border flex items-start gap-2.5 text-xs font-medium transition-colors ${
+                                          isCorrect
+                                            ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-300 font-bold'
+                                            : 'bg-white dark:bg-slate-950/60 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+                                        }`}
+                                      >
+                                        <span className={`w-5 h-5 shrink-0 rounded-lg flex items-center justify-center font-extrabold text-[11px] ${
+                                          isCorrect
+                                            ? 'bg-emerald-500 text-white'
+                                            : 'bg-amber-500/20 text-amber-500 dark:bg-amber-500/30'
+                                        }`}>
+                                          {opt.key}
+                                        </span>
+                                        <span className="leading-snug break-words flex-1">{stripOptionPrefix(opt.text)}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+
+                                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+                                  <span className="font-extrabold uppercase tracking-wider text-[10px] text-amber-500 block">व्याख्या (Explanation)</span>
+                                  <p className="leading-relaxed">{curQ.explanationHi || curQ.explanation || 'व्याख्या उपलब्ध नहीं है।'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Import Configuration Form */}
+                  {bilingualReport.isValid && (
+                    <div className="space-y-4 border-t border-[var(--card-border)] pt-4 text-xs font-bold">
+                      <div>
+                        <label className="block text-slate-400 mb-1">Quiz Paper Title *</label>
+                        <input
+                          type="text"
+                          required
+                          value={bilingualQuizTitle}
+                          onChange={e => setBilingualQuizTitle(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-400 mb-1">Quiz Paper Instructions / Description</label>
+                        <textarea
+                          rows={2}
+                          value={bilingualQuizDescription}
+                          onChange={e => setBilingualQuizDescription(e.target.value)}
+                          placeholder="Official bilingual mock test paper instructions..."
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-medium"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="replaceQuizCheck"
+                          checked={replaceExistingQuizConfirm}
+                          onChange={e => setReplaceExistingQuizConfirm(e.target.checked)}
+                          className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                        />
+                        <label htmlFor="replaceQuizCheck" className="text-slate-400 cursor-pointer">
+                          If a quiz paper with the same ID exists, overwrite and replace it.
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer (Fixed Bottom) */}
+            {bilingualReport && (
+              <div className="shrink-0 border-t border-[var(--card-border)] px-6 py-4 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50">
+                <button
+                  type="button"
+                  onClick={() => setShowBilingualPdfModal(false)}
+                  className="px-5 py-2.5 border border-[var(--card-border)] hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 text-xs font-bold rounded-2xl cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  disabled={!bilingualReport.isValid || importingBilingualQuiz}
+                  onClick={async () => {
+                    if (!bilingualQuizTitle.trim()) {
+                      alert('Please enter a Quiz Paper Title.');
+                      return;
+                    }
+                    setImportingBilingualQuiz(true);
+                    try {
+                      const res = await db.importBilingualQuiz({
+                        title: bilingualQuizTitle.trim(),
+                        courseId: selectedSeriesId || 'bpsc-foundation',
+                        description: bilingualQuizDescription.trim(),
+                        questions: bilingualReport.questionsPreview || parsedBulkQuestions || [],
+                        replaceExisting: replaceExistingQuizConfirm
+                      });
+
+                      if (res && res.success) {
+                        const createdQuiz = res.data?.quiz || { id: res.quizId || bilingualQuizTitle.toLowerCase().replace(/\s+/g, '-') };
+                        const createdQs = res.data?.questions || [];
+
+                        // Save to local storage cache so UI reflects immediately
+                        if (typeof window !== 'undefined' && selectedSeriesId) {
+                          try {
+                            const storedQuizzes = localStorage.getItem(`finalattempt_quizzes_${selectedSeriesId}`);
+                            const currentQuizzes: any[] = storedQuizzes ? JSON.parse(storedQuizzes) : [];
+                            const nextQuizzes = [...currentQuizzes.filter(q => q.id !== createdQuiz.id), createdQuiz];
+                            localStorage.setItem(`finalattempt_quizzes_${selectedSeriesId}`, JSON.stringify(nextQuizzes));
+
+                            if (createdQs.length > 0) {
+                              localStorage.setItem(`finalattempt_questions_${createdQuiz.id}`, JSON.stringify(createdQs));
+                            }
+                          } catch (_) { }
+                        }
+
+                        alert(`🎉 Successfully imported ${res.data?.importedQuestionsCount || res.committedCount || bilingualReport.mappedQuestionsCount} 1:1 bilingual questions with authored English & Hindi content into LMS Database!`);
+                        setShowBilingualPdfModal(false);
+                        setBilingualReport(null);
+                        setBilingualPastedText('');
+                        setBilingualQuizTitle('');
+                        setBilingualQuizDescription('');
+                        loadSeries();
+                        if (selectedSeriesId) {
+                          const updatedQuizzes = await db.getTestSeriesQuizzes(selectedSeriesId);
+                          setQuizzes(updatedQuizzes || []);
+                        }
+                      } else {
+                        alert(`❌ LMS Commit Failed: ${res?.error || 'Unknown database error'}`);
+                      }
+                    } catch (err: any) {
+                      alert(`❌ LMS Commit Error: ${err.message || 'Network failure'}`);
+                    } finally {
+                      setImportingBilingualQuiz(false);
+                    }
+                  }}
+                  className="px-8 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-slate-950 font-black text-xs rounded-2xl cursor-pointer shadow-md transition-all flex items-center gap-2"
+                >
+                  {importingBilingualQuiz ? (
+                    <span>Committing to Database...</span>
+                  ) : (
+                    <span>Commit & Save Quiz Paper ({bilingualReport.mappedQuestionsCount || bilingualReport.totalDetected || (parsedBulkQuestions || []).length} Questions) →</span>
+                  )}
+                </button>
               </div>
             )}
           </div>

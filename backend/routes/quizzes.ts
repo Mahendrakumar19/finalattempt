@@ -425,6 +425,8 @@ router.delete('/admin/daily/:quizId/questions/:qId', async (req: AuthRequest, re
 // ─── BILINGUAL MOCK TEST PDF IMPORT ENDPOINTS ──────────────────────────────────
 import multer from 'multer';
 import { BilingualPdfParser } from '../services/bilingualPdfParser';
+import { ExcelQuestionBankAdapter } from '../services/excelEngine/ExcelQuestionBankAdapter';
+import { StagingService } from '../services/documentEngine/staging/StagingService';
 
 const pdfMemoryStorage = multer.memoryStorage();
 const pdfUpload = multer({ storage: pdfMemoryStorage, limits: { fileSize: 50 * 1024 * 1024 } });
@@ -510,6 +512,120 @@ router.post('/admin/parse-bilingual-text', async (req: Request, res: Response) =
     res.json({ success: true, report });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Step 1c: Dedicated Excel Question Bank Import Endpoint (.xlsx ONLY)
+router.post('/admin/parse-excel', pdfUpload.single('file'), async (req: Request & { file?: any }, res: Response) => {
+  try {
+    if (!req.file || !req.file.buffer) {
+      res.status(400).json({ success: false, error: 'Excel file is required in request payload.' });
+      return;
+    }
+
+    const filename = req.file.originalname || 'Question_Bank.xlsx';
+    const ext = filename.toLowerCase().substring(filename.lastIndexOf('.'));
+    if (ext !== '.xlsx') {
+      res.status(400).json({ success: false, error: 'Invalid file format. Only .xlsx Excel files are supported for Excel Question Bank Import.' });
+      return;
+    }
+
+    // 1. Parse Excel buffer using ExcelQuestionBankAdapter
+    const excelReport = ExcelQuestionBankAdapter.parseBuffer(req.file.buffer, filename);
+
+    if (!excelReport.isValid && excelReport.totalRows === 0) {
+      res.status(400).json({
+        success: false,
+        error: excelReport.errors.join('; ') || 'Excel parsing failed validation.'
+      });
+      return;
+    }
+
+    // 2. Stage QnAs via StagingService
+    const importRecord = await StagingService.createImport({
+      adminId: 'admin',
+      filename,
+      sourceType: 'EXCEL',
+      mimeType: req.file.mimetype || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      fileSize: req.file.buffer.length
+    });
+
+    const stagedRecords = await StagingService.saveStagedQnas(importRecord.id, excelReport.qnas);
+
+    // 3. Format questions preview payload for client compatibility
+    const questionsPreview = excelReport.qnas.map(q => {
+      const enText = q.question.versions.find(v => v.language === 'en')?.text || q.question.versions[0]?.text || '';
+      const hiText = q.question.versions.find(v => v.language === 'hi')?.text || '';
+
+      const optsMap: Record<string, string> = {};
+      const optsMapHi: Record<string, string> = {};
+      q.options.forEach(opt => {
+        const lbl = (opt.label || '').toUpperCase();
+        optsMap[lbl] = opt.versions.find(v => v.language === 'en')?.text || opt.versions[0]?.text || '';
+        optsMapHi[lbl] = opt.versions.find(v => v.language === 'hi')?.text || '';
+      });
+
+      return {
+        questionNumber: q.questionNumber,
+        questionText: enText,
+        optionA: optsMap['A'] || '',
+        optionB: optsMap['B'] || '',
+        optionC: optsMap['C'] || '',
+        optionD: optsMap['D'] || '',
+        optionE: optsMap['E'] || '',
+        correctAnswer: q.answer?.values?.[0] || 'A',
+        explanation: q.explanation?.versions?.find(v => v.language === 'en')?.text || q.explanation?.versions?.[0]?.text || '',
+        questionTextHi: hiText,
+        optionAHi: optsMapHi['A'] || '',
+        optionBHi: optsMapHi['B'] || '',
+        optionCHi: optsMapHi['C'] || '',
+        optionDHi: optsMapHi['D'] || '',
+        optionEHi: optsMapHi['E'] || '',
+        explanationHi: q.explanation?.versions?.find(v => v.language === 'hi')?.text || '',
+        marks: (q as any).marks || 1.0,
+        negativeMarks: (q as any).negativeMarks || 0.33,
+        sourceRow: (q as any).sourceRow || 0
+      };
+    });
+
+    res.json({
+      success: true,
+      importId: importRecord.id,
+      report: {
+        filename: excelReport.filename,
+        sheetName: excelReport.sheetName,
+        totalDetected: excelReport.totalRows,
+        mappedQuestionsCount: excelReport.qnas.length,
+        totalQuestionsEn: excelReport.qnas.length,
+        totalQuestionsHi: excelReport.qnas.filter(q => q.question.versions.some(v => v.language === 'hi')).length,
+        totalAnswersEn: excelReport.qnas.length,
+        totalAnswersHi: excelReport.qnas.length,
+        totalExplanationsEn: excelReport.qnas.filter(q => q.explanation.versions.some(v => v.language === 'en')).length,
+        totalExplanationsHi: excelReport.qnas.filter(q => q.explanation.versions.some(v => v.language === 'hi')).length,
+        validRows: excelReport.validRows,
+        warningRows: excelReport.warningRows,
+        reviewRows: excelReport.reviewRows,
+        errorRows: excelReport.errorRows,
+        isValid: excelReport.isValid,
+        errors: excelReport.errors,
+        rowResults: excelReport.rowResults,
+        questionsPreview
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: `Excel processing failed: ${err.message}` });
+  }
+});
+
+// Step 1d: Download Canonical Excel Question Bank Template (.xlsx)
+router.get('/admin/download-excel-template', (req: Request, res: Response) => {
+  try {
+    const buffer = ExcelQuestionBankAdapter.createTemplateBuffer();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="Question_Bank_Import_Template.xlsx"');
+    res.send(buffer);
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: `Template generation failed: ${err.message}` });
   }
 });
 // Get My Quiz Attempts History

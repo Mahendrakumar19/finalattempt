@@ -5,7 +5,7 @@ export class AnswerKeyExtractor {
    * Answer Key pattern regexes
    */
   private static readonly IMMEDIATE_ANS_REGEX =
-    /(?:^|\n)[ \t]*(?:Answer|Ans|Correct\s*Answer|Correct\s*Option|Key|उत्तर)[\s\:\-\=]*([A-Ea-eक-ङ])\b/i;
+    /(?:^|\n)[\r\n\s]*(?:Answer|Ans|Correct\s*Answer|Correct\s*Option|Key|उत्तर)[\s\:\-\=]*([A-Ea-eक-ङ])\b/i;
 
   private static readonly DISTANT_ANS_KEY_REGEX =
     /(?:^|\n)[ \t]*(?:Q|Question|Q\.)?[ \t]*(\d{1,4})[\.\:\-\=\s]+[ \t]*([A-Ea-eक-ङ])\b/g;
