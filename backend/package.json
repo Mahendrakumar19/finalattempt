@@ -4,7 +4,8 @@
   "main": "server.ts",
   "scripts": {
     "dev": "nodemon --ignore database_store.json --exec ts-node -T server.ts",
-    "build": "tsc",
+    "build": "prisma generate && tsc",
+    "postinstall": "prisma generate",
     "start": "node dist/backend/server.js"
   },
   "dependencies": {
