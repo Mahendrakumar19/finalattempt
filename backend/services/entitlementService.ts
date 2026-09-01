@@ -40,8 +40,23 @@ export class EntitlementService {
 
       const seriesId = quiz.courseId;
 
-      // 1b. Free Demo Test Policy: Test #1 in any test series is always free for all candidates
-      if (quiz.sequence_number === 1 || quiz.sequence_number === 0 || quiz.isFree) {
+      // 1b. Auto-detect sequence number if null/undefined
+      let seqNo = quiz.sequence_number;
+
+      if (seqNo === null || seqNo === undefined) {
+        try {
+          const seriesQuizzes = await prisma.lms_quizzes.findMany({
+            where: { courseId: seriesId },
+            select: { id: true, createdAt: true },
+            orderBy: { createdAt: 'asc' }
+          });
+          const idx = seriesQuizzes.findIndex(q => q.id === quizId);
+          if (idx >= 0) seqNo = idx + 1;
+        } catch (_) {}
+      }
+
+      // Free Demo Test Policy: Test #1 in any test series is always free for all candidates
+      if (quiz.isFree || seqNo === 1 || seqNo === 0) {
         return {
           allowed: true,
           source: 'FREE_DEMO',
@@ -49,6 +64,25 @@ export class EntitlementService {
           seriesId,
           quizId
         };
+      }
+
+      // Check if test series has active paid plans configured
+      const plansDelegate = (prisma as any).test_series_plans;
+      if (plansDelegate) {
+        try {
+          const activePlans = await plansDelegate.findMany({
+            where: { series_id: seriesId, is_active: true }
+          });
+          if (!activePlans || activePlans.length === 0) {
+            return {
+              allowed: true,
+              source: 'FREE_PRACTICE_SERIES',
+              reason: 'Test series has no paid pricing plans and is free for practice.',
+              seriesId,
+              quizId
+            };
+          }
+        } catch (_) {}
       }
 
       // 2. Check Legacy Enrollment Compatibility (lms_enrollments)
