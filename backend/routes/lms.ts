@@ -193,6 +193,25 @@ router.post('/admin/enrollments', async (req: Request, res: Response) => {
       return;
     }
     const enrollment = await lmsDB.createEnrollment(userId, courseId, 'ADMIN_MANUAL_ASSIGN', amountPaid || 0);
+
+    // Grant FULL active entitlement in user_entitlements
+    try {
+      const { prisma } = await import('../prisma');
+      const userEntitlementsDelegate = (prisma as any).user_entitlements;
+      if (userEntitlementsDelegate) {
+        await userEntitlementsDelegate.create({
+          data: {
+            user_id: userId,
+            series_id: courseId,
+            entitlement_type: 'FULL',
+            max_sequence_number: 999,
+            snapshot_max_sequence: 999,
+            status: 'ACTIVE'
+          }
+        });
+      }
+    } catch (_) {}
+
     res.status(201).json({ success: true, data: enrollment });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -703,7 +722,26 @@ router.post('/admin/test-series/:testSeriesId/enroll', authenticate, requireAdmi
     if (!already) {
       await lmsDB.createEnrollment(userId, testSeriesId, 'ADMIN_MANUAL', 0);
     }
-    res.json({ success: true, message: 'Student successfully enrolled in Test Series.' });
+
+    // Grant FULL active entitlement in user_entitlements
+    try {
+      const { prisma } = await import('../prisma');
+      const userEntitlementsDelegate = (prisma as any).user_entitlements;
+      if (userEntitlementsDelegate) {
+        await userEntitlementsDelegate.create({
+          data: {
+            user_id: userId,
+            series_id: testSeriesId,
+            entitlement_type: 'FULL',
+            max_sequence_number: 999,
+            snapshot_max_sequence: 999,
+            status: 'ACTIVE'
+          }
+        });
+      }
+    } catch (_) {}
+
+    res.json({ success: true, message: 'Student successfully enrolled in Test Series with full access.' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -85,20 +85,19 @@ export class EntitlementService {
         } catch (_) {}
       }
 
-      // 2. Check Legacy Enrollment Compatibility (lms_enrollments)
+      // 2. Check Enrollment Compatibility (lms_enrollments for paid or admin manual enrollments)
       const legacyEnrollment = await prisma.lms_enrollments.findFirst({
         where: {
           userId,
-          courseId: seriesId,
-          paymentStatus: 'paid'
+          courseId: seriesId
         }
       });
 
       if (legacyEnrollment) {
         return {
           allowed: true,
-          source: 'LEGACY_ENROLLMENT',
-          reason: 'Valid legacy series enrollment grants full access.',
+          source: 'ENROLLMENT',
+          reason: 'Valid series enrollment or admin assignment grants full access.',
           entitlementId: legacyEnrollment.id,
           seriesId,
           quizId
