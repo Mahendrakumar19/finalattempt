@@ -269,13 +269,18 @@ export function sanitizeAndRepairQuestion(q: any, activeLang: 'en' | 'hi' = 'en'
                                 /^[ \t]*[B|2][\.\:\)\-–—]+[ \t]+[^\n]+/i.test(optB);
 
   if (isOptAStolenTableItem) {
-    const hasAInText = /(?:^|\n)[ \t]*A[\.\:\)\-–—]+/i.test(rawQText);
+    const hasAInText = /(?:^|\n|\|)[ \t]*A[\.\:\)\-–—]+/i.test(rawQText);
     if (!hasAInText) {
-      const bIndex = rawQText.search(/(?:^|\n)[ \t]*B[\.\:\)\-–—]+/i);
-      if (bIndex !== -1) {
+      const bMatch = rawQText.match(/(?:^|\n|\|)[ \t]*B[\.\:\)\-–—]+/i);
+      if (bMatch && bMatch.index !== undefined) {
+        const bIndex = bMatch.index;
         const textBeforeB = rawQText.slice(0, bIndex);
         const textFromB = rawQText.slice(bIndex);
-        rawQText = textBeforeB + '\n' + optA.trim() + '\n' + textFromB;
+        if (rawQText[bIndex] === '|' || rawQText.slice(Math.max(0, bIndex - 1), bIndex + 1).includes('|')) {
+          rawQText = textBeforeB + '| ' + optA.trim() + ' |\n' + textFromB;
+        } else {
+          rawQText = textBeforeB + '\n' + optA.trim() + '\n' + textFromB;
+        }
       } else {
         rawQText = rawQText + '\n' + optA.trim();
       }
