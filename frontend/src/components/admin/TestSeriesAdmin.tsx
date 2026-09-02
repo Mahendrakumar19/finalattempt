@@ -1326,6 +1326,22 @@ export default function TestSeriesAdmin({
                         <div className="flex items-center gap-1.5 ml-3 shrink-0">
                           <button
                             type="button"
+                            onClick={async () => {
+                              const newIsFree = !(quiz as any).isFree;
+                              setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, isFree: newIsFree } : q));
+                              await db.saveQuiz({ ...quiz, isFree: newIsFree, courseId: selectedSeriesId });
+                            }}
+                            className={`flex items-center gap-1 px-3 py-1.5 font-bold rounded-xl text-[10px] cursor-pointer transition-all border ${
+                              (quiz as any).isFree
+                                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-700'
+                            }`}
+                            title="Toggle between Free Demo (accessible to all) and Paid Test"
+                          >
+                            <span>{(quiz as any).isFree ? '🎁 Free Demo' : '🔒 Paid Test'}</span>
+                          </button>
+                          <button
+                            type="button"
                             onClick={() => handleInspectSetKey(quiz)}
                             className="flex items-center gap-1 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-bold rounded-xl text-[10px] cursor-pointer"
                             title="Inspect SET Papers (SET A, B, C, D) & Solution Explanations Key"

@@ -638,6 +638,7 @@ export default function TestSeriesDetailPage() {
                   <tr>
                     <th className="p-4">Seq #</th>
                     <th className="p-4">Test Title</th>
+                    <th className="p-4">Access Mode (Free / Paid)</th>
                     <th className="p-4">Individual Rate (₹)</th>
                     <th className="p-4">Standalone Purchasable</th>
                     <th className="p-4 text-right">Action</th>
@@ -648,11 +649,30 @@ export default function TestSeriesDetailPage() {
                     const seq = quiz.sequence_number || idx + 1;
                     const price = quiz.individual_price !== undefined ? quiz.individual_price : 49;
                     const purchasable = quiz.is_standalone_purchasable !== false;
+                    const isFree = quiz.isFree === true || (quiz as any).is_free === true;
 
                     return (
                       <tr key={quiz.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
                         <td className="p-4 font-mono font-bold text-amber-500">#{seq}</td>
                         <td className="p-4 font-bold text-[var(--text-color)]">{quiz.title}</td>
+                        <td className="p-4">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const nextFree = !isFree;
+                              setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, isFree: nextFree } : q));
+                              await db.saveQuiz({ ...quiz, isFree: nextFree, courseId: testSeriesId });
+                            }}
+                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase flex items-center gap-1 cursor-pointer transition-all border ${
+                              isFree
+                                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-300 dark:border-slate-700'
+                            }`}
+                            title="Click to toggle Free Demo vs Paid access"
+                          >
+                            <span>{isFree ? '🎁 Free Demo' : '🔒 Paid Test'}</span>
+                          </button>
+                        </td>
                         <td className="p-4">
                           <input
                             type="number"
