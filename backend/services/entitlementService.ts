@@ -24,10 +24,17 @@ export class EntitlementService {
    */
   static async hasQuizAccess(userId: string, quizId: string): Promise<QuizAccessResult> {
     try {
-      // 1. Fetch Quiz & Series Details
-      const quiz: any = await prisma.lms_quizzes.findUnique({
-        where: { id: quizId }
-      });
+      // 1. Fetch Quiz & Series Details (Unified Store Aware)
+      let quiz: any = null;
+      try {
+        const { lmsDB } = await import('../db');
+        quiz = await lmsDB.getQuizById(quizId);
+      } catch (_) {}
+      if (!quiz) {
+        quiz = await prisma.lms_quizzes.findUnique({
+          where: { id: quizId }
+        });
+      }
 
       if (!quiz) {
         return {
@@ -38,7 +45,37 @@ export class EntitlementService {
         };
       }
 
-      const seriesId = quiz.courseId;
+      const primarySeriesId = quiz.courseId;
+
+      // 1a. Resolve all candidate series IDs (Primary ID & Slug) for robust matching
+      const seriesIds = new Set<string>();
+      if (primarySeriesId) {
+        seriesIds.add(primarySeriesId);
+        try {
+          const courseObj = await prisma.lms_courses.findFirst({
+            where: { OR: [{ id: primarySeriesId }, { slug: primarySeriesId }] }
+          });
+          if (courseObj) {
+            if (courseObj.id) seriesIds.add(courseObj.id);
+            if (courseObj.slug) seriesIds.add(courseObj.slug);
+          }
+        } catch (_) {}
+        try {
+          const { lmsDB } = await import('../db');
+          const ts = await lmsDB.getTestSeriesById(primarySeriesId);
+          if (ts) {
+            if (ts.id) seriesIds.add(ts.id);
+            if (ts.slug) seriesIds.add(ts.slug);
+          }
+          const crs = await lmsDB.getCourseById(primarySeriesId);
+          if (crs) {
+            if (crs.id) seriesIds.add(crs.id);
+            if (crs.slug) seriesIds.add(crs.slug);
+          }
+        } catch (_) {}
+      }
+      const seriesIdList = Array.from(seriesIds);
+      const seriesId = primarySeriesId;
 
       // 1b. Auto-detect sequence number if null/undefined
       let seqNo = quiz.sequence_number;
@@ -46,7 +83,7 @@ export class EntitlementService {
       if (seqNo === null || seqNo === undefined) {
         try {
           const seriesQuizzes = await prisma.lms_quizzes.findMany({
-            where: { courseId: seriesId },
+            where: { courseId: { in: seriesIdList } },
             select: { id: true, createdAt: true },
             orderBy: { createdAt: 'asc' }
           });
@@ -71,7 +108,7 @@ export class EntitlementService {
       if (plansDelegate) {
         try {
           const activePlans = await plansDelegate.findMany({
-            where: { series_id: seriesId, is_active: true }
+            where: { series_id: { in: seriesIdList }, is_active: true }
           });
           if (!activePlans || activePlans.length === 0) {
             return {
@@ -89,7 +126,7 @@ export class EntitlementService {
       const legacyEnrollment = await prisma.lms_enrollments.findFirst({
         where: {
           userId,
-          courseId: seriesId
+          courseId: { in: seriesIdList }
         }
       });
 
@@ -113,7 +150,7 @@ export class EntitlementService {
       const entitlements: any[] = await userEntitlementsDelegate.findMany({
         where: {
           user_id: userId,
-          series_id: seriesId,
+          series_id: { in: seriesIdList },
           status: 'ACTIVE'
         }
       });

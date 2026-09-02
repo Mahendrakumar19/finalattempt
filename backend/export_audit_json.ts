@@ -1330,12 +1330,17 @@ async function exportAuditJson() {
       questionText_en: q.question.versions.find(v => v.language === 'en')?.text || '',
       questionText_hi: q.question.versions.find(v => v.language === 'hi')?.text || '',
       optionsCount: q.options.length,
-      options: q.options.map(opt => ({
-        label: opt.label,
-        text_en: opt.versions.find(v => v.language === 'en')?.text || '',
-        text_hi: opt.versions.find(v => v.language === 'hi')?.text || ''
-      })),
-      correctAnswer: q.answer.values[0] || 'A',
+      options: q.options.map(opt => {
+        const enVer = opt.versions.find(v => v.language === 'en');
+        const hiVer = opt.versions.find(v => v.language === 'hi');
+        const primaryText = opt.versions[0]?.text || '';
+        return {
+          label: opt.label,
+          text_en: enVer?.text || (opt.versions[0]?.language !== 'hi' ? primaryText : ''),
+          text_hi: hiVer?.text || (opt.versions[0]?.language === 'hi' ? primaryText : '')
+        };
+      }),
+      correctAnswer: q.answer.values[0] || null,
       explanation_en: q.explanation.versions.find(v => v.language === 'en')?.text || '',
       explanation_hi: q.explanation.versions.find(v => v.language === 'hi')?.text || '',
       confidenceScore: q.confidence,

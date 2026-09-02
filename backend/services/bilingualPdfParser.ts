@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { PDFParse } from 'pdf-parse';
 import { AdapterFactory } from './documentEngine/adapters/AdapterFactory';
 import { QnaExtractor } from './documentEngine/extraction/QnaExtractor';
@@ -104,12 +105,7 @@ export class BilingualPdfParser {
             if (!opt) return '';
             const v = opt.versions.find(ver => ver.language === lang);
             if (v) return v.text;
-            if (lang === 'en' && opt.versions[0] && opt.versions[0].language === 'en') {
-              return opt.versions[0].text;
-            }
-            if (lang === 'hi' && opt.versions[0] && opt.versions[0].language === 'hi') {
-              return opt.versions[0].text;
-            }
+            if (opt.versions[0]?.text) return opt.versions[0].text;
             return '';
           };
 
@@ -137,24 +133,41 @@ export class BilingualPdfParser {
             optionCHi: getOpt('C', 'hi'),
             optionDHi: getOpt('D', 'hi'),
             optionEHi: getOpt('E', 'hi'),
-            correctAnswer: (qna.answer.values[0] as any) || 'A',
+            correctAnswer: (qna.answer.values[0] as any) || null,
             explanation: expEn || '',
             explanationHi: expHi || ''
           };
         });
 
         const repairedPreview = BilingualPdfParser.repairSplitBilingualQuestions(preview);
-        const detectedSections = Array.from(new Set(repairedPreview.map(q => q.sectionName).filter(Boolean))) as string[];
+
+        // Generic structure-aware deduplication for Admin Copy-Paste Questions
+        const seenFps = new Set<string>();
+        const deduplicatedPreview = repairedPreview.filter(q => {
+          const normEn = (q.questionText || '').trim().replace(/\s+/g, ' ').toLowerCase();
+          const normHi = (q.questionTextHi || '').trim().replace(/\s+/g, ' ').toLowerCase();
+          const normOptsEn = [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE].filter(Boolean).map(s => s.trim().replace(/\s+/g, ' ').toLowerCase()).join('|');
+          const normOptsHi = [q.optionAHi, q.optionBHi, q.optionCHi, q.optionDHi, q.optionEHi].filter(Boolean).map(s => s.trim().replace(/\s+/g, ' ').toLowerCase()).join('|');
+          const fpPayload = `${normEn}:${normHi}:${normOptsEn}:${normOptsHi}`;
+          const fp = crypto.createHash('sha256').update(fpPayload).digest('hex');
+          if (seenFps.has(fp)) {
+            return false; // Skip duplicate pasted question
+          }
+          seenFps.add(fp);
+          return true;
+        });
+
+        const detectedSections = Array.from(new Set(deduplicatedPreview.map(q => q.sectionName).filter(Boolean))) as string[];
 
         report.isValid = true;
-        report.questionsPreview = repairedPreview;
-        report.mappedQuestionsCount = repairedPreview.length;
-        report.totalQuestionsEn = repairedPreview.filter(q => q.questionText).length;
-        report.totalQuestionsHi = repairedPreview.filter(q => q.questionTextHi).length;
-        report.totalAnswersEn = repairedPreview.length;
-        report.totalAnswersHi = repairedPreview.length;
-        report.totalExplanationsEn = repairedPreview.filter(q => q.explanation).length;
-        report.totalExplanationsHi = repairedPreview.filter(q => q.explanationHi).length;
+        report.questionsPreview = deduplicatedPreview;
+        report.mappedQuestionsCount = deduplicatedPreview.length;
+        report.totalQuestionsEn = deduplicatedPreview.filter(q => q.questionText).length;
+        report.totalQuestionsHi = deduplicatedPreview.filter(q => q.questionTextHi).length;
+        report.totalAnswersEn = deduplicatedPreview.length;
+        report.totalAnswersHi = deduplicatedPreview.length;
+        report.totalExplanationsEn = deduplicatedPreview.filter(q => q.explanation).length;
+        report.totalExplanationsHi = deduplicatedPreview.filter(q => q.explanationHi).length;
         report.sectionsDetected = detectedSections.length > 0 ? detectedSections : ['UNIVERSAL FORMAT-AGNOSTIC ENGINE'];
         report.errors = [];
         return report;
@@ -232,7 +245,7 @@ export class BilingualPdfParser {
             optionCHi: getOpt('C', 'hi'),
             optionDHi: getOpt('D', 'hi'),
             optionEHi: getOpt('E', 'hi'),
-            correctAnswer: (qna.answer.values[0] as any) || 'A',
+            correctAnswer: (qna.answer.values[0] as any) || null,
             explanation: expEn || '',
             explanationHi: expHi || ''
           };
@@ -375,8 +388,8 @@ export class BilingualPdfParser {
       for (const qNum of allQNums) {
         const enQ = enQMap.get(qNum) || hiQMap.get(qNum);
         const hiQ = hiQMap.get(qNum) || enQMap.get(qNum);
-        const enA = enAMap.get(qNum) || hiAMap.get(qNum) || { correctAnswer: 'A' as const, explanation: '' };
-        const hiA = hiAMap.get(qNum) || enAMap.get(qNum) || { correctAnswer: 'A' as const, explanation: '' };
+        const enA = enAMap.get(qNum) || hiAMap.get(qNum) || { correctAnswer: null as any, explanation: '' };
+        const hiA = hiAMap.get(qNum) || enAMap.get(qNum) || { correctAnswer: null as any, explanation: '' };
 
         if (!enQMap.get(qNum)) missingEnQs.push(qNum);
         if (!hiQMap.get(qNum)) missingHiQs.push(qNum);
@@ -523,18 +536,21 @@ export class BilingualPdfParser {
    */
   public static formatMatchListsInText(input: string): string {
     if (!input) return '';
-    if (input.includes('<table') || input.includes('class="match-list-container"') || input.includes('| List-I |') || input.includes('| सूची-I |')) return input;
+    if (input.includes('<table') || input.includes('class="match-list-container"') || input.includes('|')) return input;
 
     const hasList1 = /List[\s\-_]*I\b|List[\s\-_]*1\b|सूची[\s\-_]*I\b|सूची[\s\-_]*1\b/i.test(input);
     const hasList2 = /List[\s\-_]*II\b|List[\s\-_]*2\b|सूची[\s\-_]*II\b|सूची[\s\-_]*2\b/i.test(input);
 
     if (!hasList1 || !hasList2) return input;
 
-    // Standardize newline formatting if inline list markers are present
-    let normalized = input
-      .replace(/([A-D1-4][\.\:\)])\s*/g, '\n$1 ')
-      .replace(/(List[\s\-_]*I{1,2}|सूची[\s\-_]*I{1,2})/gi, '\n$1')
-      .replace(/(Codes?:?|कूट:?)/gi, '\n$1');
+    // Standardize newline formatting ONLY if no markdown pipe table is present
+    let normalized = input;
+    if (!input.includes('|')) {
+      normalized = input
+        .replace(/([A-D1-4][\.\:\)])\s*/g, '\n$1 ')
+        .replace(/(List[\s\-_]*I{1,2}|सूची[\s\-_]*I{1,2})/gi, '\n$1')
+        .replace(/(Codes?:?|कूट:?)/gi, '\n$1');
+    }
 
     const rawLines = normalized.split('\n');
     const promptLines: string[] = [];
@@ -627,8 +643,7 @@ export class BilingualPdfParser {
     const withoutPrefix = block.replace(/^[ \t]*(?:Q|Question|Q\.)?[ \t]*\d{1,4}[\.\:\)\-–—\s]+/, '').trim();
 
     // Find option positions — strictly "(a)"–"(e)" or "(A)"–"(E)" or "a."–"e." or "(a) 3 4 1 2"
-    // Option markers must be (a)-(e), (a) 3 4 1 2, or (a) 1 2 3 4
-    const optRegex = /(?:^|\n)[ \t]*(?:\(([abcdeABCDEक-ङ])\)|([abcdeABCDEक-ङ])[\.\:\)\-–—]+)[ \t]+/g;
+    const optRegex = /(?:^|\n|\s+)(?:\(([abcdeABCDEक-ङ])\)|([abcdeABCDEक-ङ])[\.\:\)\-–—]+)[ \t]+/g;
     const optPositions: { label: string; index: number }[] = [];
     let om: RegExpExecArray | null;
 

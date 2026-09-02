@@ -319,6 +319,7 @@ export interface CustomPage {
   showLocation: 'NAVBAR' | 'FOOTER' | 'HEADER_TOP' | 'SLUG_ONLY';
   displayOrder?: number;
   metaTitle?: string;
+  metaKeywords?: string;
   metaDescription?: string;
   bannerUrl?: string;
   downloadItems?: DownloadItem[];
@@ -936,6 +937,7 @@ async function initializeMySQLTables(pool: mysql.Pool) {
 
     try { await pool.query('ALTER TABLE custom_pages ADD COLUMN bannerUrl TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE custom_pages ADD COLUMN downloadItems JSON'); } catch (_) {}
+    try { await pool.query('ALTER TABLE custom_pages ADD COLUMN metaKeywords TEXT'); } catch (_) {}
 
     // LMS Courses column migrations (add exam & schedule columns if not present)
     try { await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS exam VARCHAR(100) DEFAULT 'BPSC'"); } catch (_) {}
@@ -3322,6 +3324,7 @@ class BackendDB {
     const showLocation = pageData.showLocation || 'NAVBAR';
     const displayOrder = pageData.displayOrder || 0;
     const metaTitle = pageData.metaTitle || title;
+    const metaKeywords = pageData.metaKeywords || '';
     const metaDescription = pageData.metaDescription || '';
     const bannerUrl = pageData.bannerUrl || '';
     const downloadItems = pageData.downloadItems || [];
@@ -3331,8 +3334,8 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO custom_pages (id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription, bannerUrl, downloadItems, isPublished, createdAt, updatedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO custom_pages (id, title, slug, content, showLocation, displayOrder, metaTitle, metaKeywords, metaDescription, bannerUrl, downloadItems, isPublished, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
              title = VALUES(title),
              slug = VALUES(slug),
@@ -3340,12 +3343,13 @@ class BackendDB {
              showLocation = VALUES(showLocation),
              displayOrder = VALUES(displayOrder),
              metaTitle = VALUES(metaTitle),
+             metaKeywords = VALUES(metaKeywords),
              metaDescription = VALUES(metaDescription),
              bannerUrl = VALUES(bannerUrl),
              downloadItems = VALUES(downloadItems),
              isPublished = VALUES(isPublished),
              updatedAt = VALUES(updatedAt)`,
-          [id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription, bannerUrl, JSON.stringify(downloadItems), isPublished, pageData.createdAt || now, now]
+          [id, title, slug, content, showLocation, displayOrder, metaTitle, metaKeywords, metaDescription, bannerUrl, JSON.stringify(downloadItems), isPublished, pageData.createdAt || now, now]
         );
       } catch (err) {
         handlePoolDegrade(err);
@@ -3356,7 +3360,7 @@ class BackendDB {
     if (!store.customPages) store.customPages = [];
     const idx = store.customPages.findIndex(p => p.id === id);
     const updatedRecord: CustomPage = {
-      id, title, slug, content, showLocation, displayOrder, metaTitle, metaDescription, bannerUrl, downloadItems,
+      id, title, slug, content, showLocation, displayOrder, metaTitle, metaKeywords, metaDescription, bannerUrl, downloadItems,
       isPublished: Boolean(isPublished),
       createdAt: pageData.createdAt || now,
       updatedAt: now
@@ -4562,7 +4566,33 @@ class LmsDB {
            ORDER BY e.enrolledAt DESC`,
           [userId]
         );
-        return rows.map((r: any) => ({
+
+        let entRows: any[] = [];
+        try {
+          const [eRows]: any = await mysqlPool.query(
+            `SELECT u.series_id as courseId, u.granted_at as enrolledAt, 'paid' as paymentStatus,
+                    COALESCE(c.title, ts.title) as title,
+                    COALESCE(c.category, ts.category, 'Test Series') as category,
+                    COALESCE(c.thumbnailUrl, ts.thumbnailUrl) as thumbnailUrl,
+                    ts.slug as testSeriesSlug
+             FROM user_entitlements u
+             LEFT JOIN lms_courses c ON c.id = u.series_id OR c.slug = u.series_id
+             LEFT JOIN TestSeries ts ON ts.id = u.series_id OR ts.slug = u.series_id
+             WHERE u.user_id = ? AND u.status = 'ACTIVE'`,
+            [userId]
+          );
+          entRows = eRows || [];
+        } catch (_) {}
+
+        const combinedMap = new Map<string, any>();
+        (rows || []).forEach((r: any) => combinedMap.set(r.courseId, r));
+        entRows.forEach((r: any) => {
+          if (!combinedMap.has(r.courseId)) {
+            combinedMap.set(r.courseId, r);
+          }
+        });
+
+        return Array.from(combinedMap.values()).map((r: any) => ({
           ...r,
           completedLessons: Number(r.completedLessons || 0),
           totalLessons: Number(r.totalLessons || 0),
@@ -5151,7 +5181,7 @@ class LmsDB {
       optionC: q.optionC || '',
       optionD: q.optionD || '',
       optionE: q.optionE || null,
-      correctAnswer: q.correctAnswer || 'A',
+      correctAnswer: q.correctAnswer || null,
       explanation: q.explanation || '',
       questionTextHi: q.questionTextHi || null,
       optionAHi: q.optionAHi || null,
@@ -5891,7 +5921,7 @@ class LmsDB {
       optionB: q.optionB || '',
       optionC: q.optionC || '',
       optionD: q.optionD || '',
-      correctAnswer: q.correctAnswer || 'A',
+      correctAnswer: q.correctAnswer || null,
       explanation: q.explanation || '',
       questionTextHi: q.questionTextHi || null,
       optionAHi: q.optionAHi || null,

@@ -42,8 +42,9 @@ function isStandaloneDocumentHeading(text: string, previousBlock: DocumentBlock 
   const hasAnswerMarker = /^(?:Answer|Ans|Correct\s*Answer|Key|उत्तर)[\s\:\-\=]*[A-Ea-eक-ङ]/i.test(t);
   const hasExplanationMarker = /^(?:Explanation|Solution|Sol|व्याख्या|समाधान)[\s\:\-]/i.test(t);
   const hasNumberPrefix = /^\d+[\.\:\)\-–—]/.test(t);
+  const isSubPromptInstruction = /(?:सही\s+उत्तर\s+(?:चुनिए|चुनें|दीजिए|दें)|कूट\s+का\s+प्रयोग\s+कर|कूट\s+की\s+सहायता|Select\s+the\s+correct\s+answer|Choose\s+the\s+correct\s+option)/i.test(t);
 
-  if (hasQuestionMarker || hasOptionMarker || hasAnswerMarker || hasExplanationMarker || hasNumberPrefix) {
+  if (hasQuestionMarker || hasOptionMarker || hasAnswerMarker || hasExplanationMarker || hasNumberPrefix || isSubPromptInstruction) {
     return false;
   }
 
@@ -53,22 +54,7 @@ function isStandaloneDocumentHeading(text: string, previousBlock: DocumentBlock 
 
   if (knownHeadingPrefixes) return true;
 
-  // Detect short standalone headings (1-3 words) in Devanagari or Latin that are NOT question/option/answer/explanation
-  const words = t.split(/\s+/).filter(w => w.length > 0);
-  if (words.length >= 1 && words.length <= 3) {
-    // Pure Devanagari short phrases (e.g. "अक्षांशीय सीमा", "मानक समय", "पर्वत शिखर")
-    const devanagariRatio = (t.match(/[\u0900-\u097F]/g) || []).length / t.length;
-    if (devanagariRatio > 0.7) {
-      return true;
-    }
-
-    // Pure Latin short phrases (e.g. "Indian Geography", "Physical Features")
-    const latinRatio = (t.match(/[a-zA-Z]/g) || []).length / t.length;
-    if (latinRatio > 0.7 && t === t.toUpperCase()) {
-      return true;
-    }
-  }
-
+  // Only classify as standalone heading if it matches an explicit known heading prefix or ALL CAPS Latin title
   return false;
 }
 
@@ -84,6 +70,11 @@ export class BlockClassifier {
   ): BlockType {
     const text = block.text.trim();
     if (!text || isHeaderFooterNoise(text)) return 'NOISE';
+
+    const isAssertionReasonLine = /^[ \t]*(?:कथन|अभिकथन|कारण|Assertion|Reason|\([AR]\))[ \t]*[\(\:\.\)]/i.test(text);
+    if (isAssertionReasonLine) {
+      return 'PARAGRAPH';
+    }
 
     // Signal 1: Table blocks
     if (block.type === 'TABLE' || block.tableData) {

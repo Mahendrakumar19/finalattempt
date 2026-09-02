@@ -1,22 +1,43 @@
 import { ExtractedOption, StatementItem } from '../core/ExtractedQnA';
 import { LanguageDetector } from '../alignment/LanguageDetector';
 
-const KNOWN_HEADINGS = new Set([
-  'क्षेत्र', 'अक्षांशीय सीमा', 'मानक समय', 'सीमावर्ती देश', 'भौतिक विभाजन',
-  'पर्वत शिखर', 'पठार', 'नदियाँ', 'जलवायु', 'वनस्पति', 'जीव-जगत',
-  'Indian Geography', 'Physical Features', 'Climate', 'Rivers', 'Flora', 'Fauna',
-  'Answer Key', 'उत्तर कुंजी', 'Solutions', 'व्याख्या', 'Explanations'
-]);
+/**
+ * Conservative structural heading detection (prioritizes DATA PRESERVATION over aggressive heading cleanup)
+ */
+function isSectionHeadingCandidate(line: string, indexInOption: number): boolean {
+  if (!line || indexInOption === 0) return false;
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.length > 80) return false;
+
+  // 1. Option / Question / Answer / Statement marker lines are NOT section headings
+  if (/^(?:\([a-eA-E1-5क-ङ]\)|[a-eA-E1-5क-ङ][\.\:\)\-–—]+|\d+[\.\:\)\-–—]+)/i.test(trimmed)) return false;
+
+  // 2. Strong structural title indicators (ends with section colon or starts with explicit section keyword)
+  const endsWithSectionColon = /^[A-Za-z\u0900-\u097F\s\-–—]{3,60}:$/i.test(trimmed);
+  const startsWithSectionKeyword = /^(?:CHAPTER|SECTION|PART|UNIT|TOPIC|LESSON|MODULE|भाग|अध्याय|खंड|इकाई|विषय|प्रकरण|सूचना|परिचय|निर्देश|उत्तर\s+कुंजी|Answer\s+Key|Solutions|Explanations|Notes?|व्याख्या)\b/i.test(trimmed);
+
+  // 3. Structural trailing section banner (non-first line in option, short title <= 45 chars without sentence-ending punctuation)
+  const isTrailingSectionBanner = indexInOption > 0 && trimmed.length <= 45 && !/[,\.\?\!\;]$/.test(trimmed) && !/^\d+$/.test(trimmed);
+
+  return endsWithSectionColon || startsWithSectionKeyword || isTrailingSectionBanner;
+}
 
 function stripHeadingLeakage(text: string): string {
-  const lines = text.split('\n');
-  const cleaned = lines.filter(line => {
+  if (!text) return '';
+  const lines = text.split(/\r?\n/);
+  if (lines.length <= 1) return text.trim();
+
+  const cleaned: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const trimmed = line.trim();
-    if (!trimmed) return true;
-    if (KNOWN_HEADINGS.has(trimmed)) return false;
-    if (/^(?:Answer Key|उत्तर कुंजी|Solutions|व्याख्या|Explanations)$/i.test(trimmed)) return false;
-    return true;
-  });
+    if (!trimmed) continue;
+
+    if (!isSectionHeadingCandidate(line, i)) {
+      cleaned.push(line);
+    }
+  }
+
   return cleaned.join('\n').trim();
 }
 
@@ -146,9 +167,8 @@ export class OptionExtractor {
         const afterMatchText = textBlock.substring(match.index + match[0].length, match.index + match[0].length + 15);
         const isInitialOrAcronym = !rawMarker.startsWith('(') && (
           /^[A-Z]\.[A-Z]/i.test(rawMarker) ||
-          /^[A-Z]\.[ \t]+[A-Z]\./i.test(rawMarker + ' ' + afterMatchText) ||
-          /^\.[A-Z]\./i.test(afterMatchText) ||
-          /^DPO\b|^P\.C\.S\b/i.test(afterMatchText)
+          /^[A-Z]\.[ \t]*[A-Z]\.[ \t]+[A-Z][a-z]+/i.test(rawMarker + ' ' + afterMatchText) ||
+          /^DPO\b|^P\.C\.S\b|^C\.D\.P\.O\b/i.test(afterMatchText)
         );
         if (isInitialOrAcronym) {
           continue;
@@ -213,6 +233,25 @@ export class OptionExtractor {
 
         if (['A', 'B', 'C', 'D', 'E'].includes(label) && !positions.some(p => p.label === label)) {
           positions.push({ label, rawMarker, index: match.index });
+        }
+      }
+    }
+
+    if (positions.length < 2) {
+      // Step 3b: Fallback to embedded inline choices pattern (e.g. "(a) 1 only (b) 2 only (c) Both (d) None")
+      const inlineChoiceRegex = /(?:\s*|\n*)(?:\(([a-eA-Eक-ङ])\)|([a-eA-Eक-ङ])[\)\.\:\t]+)\s*([^\n\(\)]+)/gi;
+      let inlineMatch: RegExpExecArray | null;
+      while ((inlineMatch = inlineChoiceRegex.exec(textBlock)) !== null) {
+        const sym = (inlineMatch[1] || inlineMatch[2] || '').toLowerCase();
+        let label = sym.toUpperCase();
+        if (sym === 'क') label = 'A';
+        else if (sym === 'ख') label = 'B';
+        else if (sym === 'ग') label = 'C';
+        else if (sym === 'घ') label = 'D';
+        else if (sym === 'ङ') label = 'E';
+
+        if (['A', 'B', 'C', 'D', 'E'].includes(label) && !positions.some(p => p.label === label)) {
+          positions.push({ label, rawMarker: inlineMatch[0].trim(), index: inlineMatch.index });
         }
       }
     }

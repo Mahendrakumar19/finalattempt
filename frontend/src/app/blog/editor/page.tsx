@@ -389,7 +389,7 @@ function BlogEditorForm() {
     content: '',
     content_hi: '',
     category: 'Strategy & Guidance',
-    author_name: 'Final Attempt IAS Team',
+    author_name: 'Final Attempt Team',
     author_image: '',
     imageUrl: '',
     status: 'draft',
@@ -420,7 +420,7 @@ function BlogEditorForm() {
                 content: post.content || '',
                 content_hi: post.content_hi || '',
                 category: post.category || 'Strategy & Guidance',
-                author_name: post.author_name || post.author || 'Final Attempt IAS Team',
+                author_name: post.author_name || post.author || 'Final Attempt Team',
                 author_image: post.author_image || post.authorImage || '',
                 imageUrl: post.imageUrl || post.cover_image_url || '',
                 status: post.status || 'published',
@@ -513,9 +513,9 @@ function BlogEditorForm() {
     const slugifiedTitle = (formData.title || '').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const finalSlug = (formData.slug || '').trim() || slugifiedTitle || `blog-${Date.now()}`;
 
-    const autoSeoTitle = (formData.seoTitle || '').trim() || `${formData.title || 'Blog Post'} | Final Attempt IAS`;
+    const autoSeoTitle = (formData.seoTitle || '').trim() || `${formData.title || 'Blog Post'} | Final Attempt`;
     const autoSeoDesc = (formData.seoDescription || '').trim() || (formData.blurb || stripHtml(formData.content || '')).slice(0, 155);
-    const autoSeoKeywords = (formData.seoKeywords || '').trim() || `${formData.title || ''}, ${formData.category || 'Strategy'}, BPSC Prelims, BPSC Mains, UPSC CSE, Final Attempt IAS`;
+    const autoSeoKeywords = (formData.seoKeywords || '').trim() || `${formData.title || ''}, ${formData.category || 'Strategy'}, BPSC Prelims, BPSC Mains, UPSC CSE, Final Attempt`;
 
     const finalData = {
       ...formData,
@@ -761,7 +761,7 @@ function BlogEditorForm() {
                 name="author_name" 
                 value={formData.author_name || ''} 
                 onChange={handleChange} 
-                placeholder="e.g. Final Attempt IAS Team or Author Name"
+                placeholder="e.g. Final Attempt Team or Author Name"
                 className="w-full rounded-xl border border-border/60 bg-background/50 px-4 py-3 text-sm text-foreground focus:border-primary outline-none transition-all" 
               />
             </div>

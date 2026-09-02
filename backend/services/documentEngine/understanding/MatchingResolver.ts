@@ -10,18 +10,14 @@ export interface MatchingParseResult {
 
 export class MatchingResolver {
   private static readonly MATCHING_HEADER_REGEX =
-    /(?:Match[ \t]+(?:List|Column|the[ \t]+pairs|the[ \t]+following)|List[\s\-_]*I\b|List[\s\-_]*1\b|Column[\s\-_]*A\b|सूची[\s\-_]*I\b|सूची[\s\-_]*1\b|मिलान[ \t]+कीजिए|सुमेलित[ \t]+कीजिए|कूट[ \t]+का[ \t]+प्रयोग|सही[ \t]+उत्तर[ \t]+चुनिए)/i;
+    /(?:Match[ \t]+(?:List|Column|the[ \t]+pairs|the[ \t]+following)|List[\s\-_]*I\b|List[\s\-_]*1\b|Column[\s\-_]*A\b|\u0938\u0942\u091a\u0940[\s\-_]*I\b|\u0938\u0942\u091a\u0940[\s\-_]*1\b|\u092e\u093f\u0932\u093e\u0928[ \t]+\u0915\u0940\u091c\u093f\u090f|\u0938\u0941\u092e\u0947\u0932\u093f\u0924[ \t]+\u0915\u0940\u091c\u093f\u090f|\u0915\u0942\u091f[ \t]+\u0915\u093e[ \t]+\u092a\u094d\u0930\u092f\u094b\u0917|\u0938\u0939\u0940[ \t]+\u090d\u0924\u094d\u0924\u0930[ \t]+\u091a\u0941\u0928\u093f\u090f)/i;
 
-  /**
-   * Main entry point: Parses matching table structure from question cluster text
-   */
   static parseMatching(fullClusterText: string): MatchingParseResult | null {
     const matchHeader = this.MATCHING_HEADER_REGEX.exec(fullClusterText);
     if (!matchHeader) return null;
 
-    // Find index where table list items or table header actually start (e.g. List-I, List-1, or item "A. धारवाड़")
-    const listHeadMatch = /(?:^|\n)[ \t]*(?:List[\s\-_]*I\b|List[\s\-_]*1\b|Column[\s\-_]*A\b|सूची[\s\-_]*I\b|सूची[\s\-_]*1\b)/i.exec(fullClusterText);
-    const itemMarkerMatch = /(?:^|\n)[ \t]*(?:\(?[ABCDEक-ङI|V|X]+\)?[\.\:\)\-–—]+)[ \t]+[^\n]+/i.exec(fullClusterText);
+    const listHeadMatch = /(?:^|\n)[ \t]*(?:List[\s\-_]*I\b|List[\s\-_]*1\b|Column[\s\-_]*A\b|\u0938\u0942\u091a\u0940[\s\-_]*I\b|\u0938\u0942\u091a\u0940[\s\-_]*1\b)/i.exec(fullClusterText);
+    const itemMarkerMatch = /(?:^|\n)[ \t]*(?:\(?[ABCDE\u0915-\u0919I|V|X]+\)?[\.\:\)\-–—]+)[ \t]+[^\n]+/i.exec(fullClusterText);
 
     let tableIndex = matchHeader.index;
     if (listHeadMatch) {
@@ -33,29 +29,27 @@ export class MatchingResolver {
     const textBeforeMatching = fullClusterText.substring(0, tableIndex).trim();
     const matchingSectionText = fullClusterText.substring(tableIndex).trim();
 
-    // Look for coded option section start (e.g. "(a) A-1, B-2", "(a) 4 3 1 2", "C A B", "4 3 1 2", "Options:", "विकल्प:", "नीचे दिए गए कूट")
-    const codedOptIdx = matchingSectionText.search(
-      /(?:\n[ \t]*(?:Options|विकल्प|नीचे[ \t]+दिए|कूट)[\s\:\-\w\u0900-\u097F]*|\n[ \t]*(?:\([abcdeABCDEक-ङ]\)|[abcdeABCDEक-ङ][\.\:\)\-–—]+)[ \t]+(?:[A-Da-d1-4क-घ][\-\=\:\s\d]+|\d[\s\d,\-]{1,15})|\n[ \t]*[A-E1-5क-ङ](?:[\s,\-–—]+[A-E1-5क-ङ]){2,4}[ \t]*$)/im
-    );
+    const codedOptMatch = /(?:^|\n)[ \t]*(?:(?:Options|\u0935\u093f\u0915\u0932\u094d\u092a|\u0928\u0940\u091a\u0947[ \t]+\u0926\u093f\u090f|\u0926\u093f\u090f[ \t]+\u0917\u090f|\u0915\u0942\u091f|Codes?)[\s\:\-\w\u0900-\u097F]*|(?:\([abcdeABCDE\u0915-\u0919]\)|[abcdeABCDE\u0915-\u0919][\.\:\)\-–—]+)[ \t]+(?:[A-Da-d1-4\u0915-\u0918\d][\-\=\:\s\t\d\.\,]+|\d.*))/im.exec(matchingSectionText);
+    const codedOptIdx = codedOptMatch ? codedOptMatch.index : -1;
 
     let matchingBodyText = matchingSectionText;
     let textAfterMatching = '';
 
-    if (codedOptIdx > 0) {
+    if (codedOptIdx >= 0) {
       matchingBodyText = matchingSectionText.substring(0, codedOptIdx);
       textAfterMatching = matchingSectionText.substring(codedOptIdx);
     }
 
-    // Extract any codes header / instruction text above options (e.g. "नीचे दिए गए कूट का प्रयोग कर सही उत्तर चुनिए:\n A B C D")
     let codesHeader = '';
-    const firstOptMarkerMatch = /(?:\n|^)[ \t]*(?:\(([abcdeABCDEक-ङ])\)|[abcdeABCDEक-ङ][\.\:\)\-–—]+)[ \t]+/i.exec(textAfterMatching);
+    const firstOptMarkerMatch = /(?:\n|^)[ \t]*(?:\(([abcdeABCDE\u0915-\u0919])\)|[abcdeABCDE\u0915-\u0919][\.\:\)\-–—]+)[ \t]+/i.exec(textAfterMatching);
     if (firstOptMarkerMatch && firstOptMarkerMatch.index > 0) {
       codesHeader = textAfterMatching.substring(0, firstOptMarkerMatch.index).trim();
     }
 
-    // Pre-pass: Break inline item markers (e.g. "I. Federal List A. 97 entries II. State list") onto newlines
-    const formattedMatchingBody = matchingBodyText
-      .replace(/([^\n])\s+([I|V|X]{1,4}|[A-Ea-e1-5])[\.\:\)\-–—]+\s+/g, '$1\n$2. ');
+    // Pre-pass: Break inline item markers (e.g. "I. Federal List A. 97 entries II. State list") onto newlines (DO NOT break markdown pipe lines)
+    const formattedMatchingBody = matchingBodyText.includes('|')
+      ? matchingBodyText
+      : matchingBodyText.replace(/([^\n])\s+([IVX]{1,4}|[A-Ea-e1-5])[\.\:\)\-–—]+\s+/g, '$1\n$2. ');
 
     const lines = formattedMatchingBody.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
 
@@ -66,7 +60,7 @@ export class MatchingResolver {
 
     // Parse stacked or side-by-side headers & codes
     for (const line of lines) {
-      if (/List[\s\-_]*I(?![I\w])|Column[\s\-_]*A|सूची[\s\-_]*I(?![I\w])|सूची[\s\-_]*1/i.test(line) && /List[\s\-_]*II|Column[\s\-_]*B|सूची[\s\-_]*II|सूची[\s\-_]*2/i.test(line)) {
+      if (/List[\s\-_]*I(?![I\w])|Column[\s\-_]*A|\u0938\u0942\u091a\u0940[\s\-_]*I(?![I\w])|\u0938\u0942\u091a\u0940[\s\-_]*1/i.test(line) && /List[\s\-_]*II|Column[\s\-_]*B|\u0938\u0942\u091a\u0940[\s\-_]*II|\u0938\u0942\u091a\u0940[\s\-_]*2/i.test(line)) {
         const parts = line.split(/\s{2,}|\t|\|/).map(s => s.trim()).filter(Boolean);
         if (parts.length >= 2) {
           headerLeft = parts[0];
@@ -74,34 +68,59 @@ export class MatchingResolver {
         } else {
           headerLeft = line;
         }
-      } else if (/^(?:List[\s\-_]*II|List[\s\-_]*2|Column[\s\-_]*B|सूची[\s\-_]*II|सूची[\s\-_]*2)\b/i.test(line)) {
+      } else if (/^(?:List[\s\-_]*II|List[\s\-_]*2|Column[\s\-_]*B|\u0938\u0942\u091a\u0940[\s\-_]*II|\u0938\u0942\u091a\u0940[\s\-_]*2)\b/i.test(line)) {
         headerRight = line;
-      } else if (/^(?:List[\s\-_]*I(?![I\w])|List[\s\-_]*1|Column[\s\-_]*A|सूची[\s\-_]*I(?![I\w])|सूची[\s\-_]*1)\b/i.test(line)) {
+      } else if (/^(?:List[\s\-_]*I(?![I\w])|List[\s\-_]*1|Column[\s\-_]*A|\u0938\u0942\u091a\u0940[\s\-_]*I(?![I\w])|\u0938\u0942\u091a\u0940[\s\-_]*1)\b/i.test(line)) {
         headerLeft = line;
-      } else if (/^(?:Code|Codes|Koot|ूट|ूट|कूट)[\:\-\s]*/i.test(line) || /^[A-D]\s+[B-E]\s+[C-F]\s+[D-G]$/i.test(line)) {
+      } else if (/^(?:Code|Codes|Koot|\u0915\u0942\u091f)[\:\-\s]*/i.test(line) || /^[A-D]\s+[B-E]\s+[C-F]\s+[D-G]$/i.test(line)) {
         codesHeader = line;
       }
     }
 
     // Extract Left List (A, B, C, D or I, II, III) and Right List (1, 2, 3, 4 or A, B, C)
-    const leftItemRegex = /^[ \t]*([ABCDEक-ङ]|[I|V|X]+)[\.\:\)\-–—]+[ \t]+([^\n\t]+)/i;
-    const rightItemRegex = /^[ \t]*([1-5]|[ABCDEक-ङ]|[I|V|X]+)[\.\:\)\-–—]+[ \t]+([^\n\t]+)/i;
-    const inlineBothRegex = /^[ \t]*([ABCDEक-ङ]|[I|V|X]+)[\.\:\)\-–—]+[ \t]+(.+?)[ \t]+([1-5]|[ABCDEक-ङ]|[I|V|X]+)[\.\:\)\-–—]+[ \t]+(.+)$/i;
+    const inlineBothRegex = /^[ \t]*([ABCDE\u0915-\u0919]|[IVX]+)[\.\:\)\-–—]+[ \t]+(.+?)[ \t]+([1-5]|[ABCDE\u0915-\u0919]|[IVX]+)[\.\:\)\-–—]+[ \t]+(.+)$/i;
 
     for (const line of lines) {
       // Ignore option code choice lines like "C A B", "4 3 1 2", "A B C"
-      if (/^[ \t]*(?:\([a-eA-E1-5क-ङ]\)[ \t]*)?[A-E1-5क-ङ](?:[\s,\-–—]+[A-E1-5क-ङ]){2,4}[ \t]*$/i.test(line)) {
+      if (/^[ \t]*(?:\([a-eA-E1-5\u0915-\u0919]\)[ \t]*)?[A-E1-5\u0915-\u0919](?:[\s,\-–—]+[A-E1-5\u0915-\u0919]){2,4}[ \t]*$/i.test(line)) {
         continue;
       }
 
-      // Check inline both regex first (e.g. "A. Item1 1. Item2")
+      // Check pipe table line e.g. "| A. National Park | 1. Bihar |"
+      if (line.includes('|')) {
+        const parts = line.split('|').map(s => s.trim().replace(/^[\:\-]+$/, '')).filter(Boolean);
+        if (parts.length >= 2) {
+          if (!/List[\s\-_]*I|Column[\s\-_]*A|\u0938\u0942\u091a\u0940[\s\-_]*I|\u0938\u0942\u091a\u0940[\s\-_]*1/i.test(parts[0])) {
+            const lMatch = parts[0].match(/^([A-Ea-e\u0915-\u0919]|[IVX]+)[\.\:\)\-–—]+[ \t]+(.+)$/i);
+            const rMatch = parts[1].match(/^([1-5]|[ABCDE\u0915-\u0919]|[IVX]+)[\.\:\)\-–—]+[ \t]+(.+)$/i);
+
+            let lLabel = lMatch ? lMatch[1].toUpperCase() : 'A';
+            if (lLabel === '\u0915') lLabel = 'A';
+            const lText = lMatch ? lMatch[2].trim() : parts[0];
+
+            let rLabel = rMatch ? rMatch[1].toUpperCase() : '1';
+            const rText = rMatch ? rMatch[2].trim() : parts[1];
+
+            leftList.push({
+              label: lLabel,
+              versions: [{ language: LanguageDetector.detectLanguage(lText), text: lText, confidence: 0.95 }]
+            });
+            rightList.push({
+              label: rLabel,
+              versions: [{ language: LanguageDetector.detectLanguage(rText), text: rText, confidence: 0.95 }]
+            });
+            continue;
+          }
+        }
+      }
+
       const bothMatch = inlineBothRegex.exec(line);
       if (bothMatch) {
         let lLabel = bothMatch[1].toUpperCase();
-        if (lLabel === 'क') lLabel = 'A';
-        else if (lLabel === 'ख') lLabel = 'B';
-        else if (lLabel === 'ग') lLabel = 'C';
-        else if (lLabel === 'घ') lLabel = 'D';
+        if (lLabel === '\u0915') lLabel = 'A';
+        else if (lLabel === '\u0916') lLabel = 'B';
+        else if (lLabel === '\u0917') lLabel = 'C';
+        else if (lLabel === '\u0918') lLabel = 'D';
 
         const lText = bothMatch[2].replace(/^[\| \t]+|[\| \t]+$/g, '').trim();
         const rLabel = bothMatch[3].toUpperCase();
@@ -122,85 +141,68 @@ export class MatchingResolver {
         continue;
       }
 
-      // Side-by-side check (e.g. "A. State Policy ...  1. Australia" or "I. Federal List  A. 97 entries")
-      const sideBySideParts = line.split(/\s{2,}|\t|\|/).map(s => s.trim()).filter(Boolean);
+      const sideBySideMatch = line.match(/^[ \t]*([IVX]+|[A-Ea-e1-5\u0915-\u0919])[\.\:\)\-–—]+[ \t]+(.+?)[ \t]+([ABCDEa-e1-5\u0915-\u0919]|[IVX]+)[\.\:\)\-–—]+[ \t]+(.+)$/i);
+      if (sideBySideMatch) {
+        const lLabel = sideBySideMatch[1].toUpperCase();
+        const lText = sideBySideMatch[2].replace(/^[\| \t]+|[\| \t]+$/g, '').trim();
+        const rLabel = sideBySideMatch[3].toUpperCase();
+        const rText = sideBySideMatch[4].replace(/^[\| \t]+|[\| \t]+$/g, '').trim();
 
-      if (sideBySideParts.length >= 2) {
-        const lMatch = leftItemRegex.exec(sideBySideParts[0]);
-        const rMatch = rightItemRegex.exec(sideBySideParts[1]);
+        leftList.push({
+          label: lLabel,
+          versions: [{ language: LanguageDetector.detectLanguage(lText), text: lText, confidence: 0.95 }]
+        });
+        rightList.push({
+          label: rLabel,
+          versions: [{ language: LanguageDetector.detectLanguage(rText), text: rText, confidence: 0.95 }]
+        });
+        continue;
+      }
 
-        if (lMatch) {
-          let label = lMatch[1].toUpperCase();
-          if (label === 'क') label = 'A';
-          else if (label === 'ख') label = 'B';
-          else if (label === 'ग') label = 'C';
-          else if (label === 'घ') label = 'D';
+      // Stacked check for Left (Alpha / Roman) vs Right (Numeric) items
+      const itemMatch = /^[ 	]*([IVX]+|[A-Ea-e1-5\u0915-\u0919])[\.\:\)\-–—]+[ \t]+([^\n\t]+)/i.exec(line);
+      if (itemMatch) {
+        const rawLabel = itemMatch[1].toUpperCase();
+        let label = rawLabel;
+        if (rawLabel === '\u0915') label = 'A';
+        else if (rawLabel === '\u0916') label = 'B';
+        else if (rawLabel === '\u0917') label = 'C';
+        else if (rawLabel === '\u0918') label = 'D';
 
-          const lText = lMatch[2].replace(/^[\| \t]+|[\| \t]+$/g, '').trim();
-          if (!leftList.some(item => item.label === label)) {
-            leftList.push({
-              label,
-              versions: [{ language: LanguageDetector.detectLanguage(lText), text: lText, confidence: 0.95 }]
-            });
-          }
-        }
+        const text = itemMatch[2].replace(/^[\| \t]+|[\| \t]+$/g, '').trim();
 
-        if (rMatch) {
-          let label = rMatch[1].toUpperCase();
-          const rText = rMatch[2].replace(/^[\| \t]+|[\| \t]+$/g, '').trim();
-          if (!rightList.some(item => item.label === label)) {
-            rightList.push({
-              label,
-              versions: [{ language: LanguageDetector.detectLanguage(rText), text: rText, confidence: 0.95 }]
-            });
-          }
-        }
-      } else {
-        // Stacked check
-        const lMatch = leftItemRegex.exec(line);
-        if (lMatch) {
-          let label = lMatch[1].toUpperCase();
-          if (label === 'क') label = 'A';
-          else if (label === 'ख') label = 'B';
-          else if (label === 'ग') label = 'C';
-          else if (label === 'घ') label = 'D';
+        const isAlphaOrRoman = /^[A-E\u0915-\u0919IVX]$/i.test(label) || /^[IVX]+$/i.test(label);
+        const isNumeric = /^[1-5]$/.test(label);
 
-          const text = lMatch[2].replace(/^[\| \t]+|[\| \t]+$/g, '').trim();
-
-          // If label is number 1-5 or right-list style while left list is full, place in right list
-          if (/^\d+$/.test(label) && leftList.length > 0) {
-            if (!rightList.some(item => item.label === label)) {
-              rightList.push({
-                label,
-                versions: [{ language: LanguageDetector.detectLanguage(text), text, confidence: 0.95 }]
-              });
-            }
-          } else if (!leftList.some(item => item.label === label)) {
+        if (isAlphaOrRoman && !isNumeric) {
+          leftList.push({
+            label,
+            versions: [{ language: LanguageDetector.detectLanguage(text), text, confidence: 0.95 }]
+          });
+        } else if (isNumeric) {
+          rightList.push({
+            label,
+            versions: [{ language: LanguageDetector.detectLanguage(text), text, confidence: 0.95 }]
+          });
+        } else {
+          if (leftList.length <= rightList.length) {
             leftList.push({
               label,
               versions: [{ language: LanguageDetector.detectLanguage(text), text, confidence: 0.95 }]
             });
-          }
-          continue;
-        }
-
-        const rMatch = rightItemRegex.exec(line);
-        if (rMatch) {
-          const label = rMatch[1].toUpperCase();
-          const text = rMatch[2].replace(/^[\| \t]+|[\| \t]+$/g, '').trim();
-          if (!rightList.some(item => item.label === label)) {
+          } else {
             rightList.push({
               label,
               versions: [{ language: LanguageDetector.detectLanguage(text), text, confidence: 0.95 }]
             });
           }
         }
+        continue;
       }
     }
 
     if (leftList.length === 0 || rightList.length === 0) return null;
 
-    // Construct TableData
     const tableCells: TableCell[][] = [];
     const maxRows = Math.max(leftList.length, rightList.length);
 
@@ -215,9 +217,9 @@ export class MatchingResolver {
     }
 
     const tableData: TableData = {
-      rowsCount: tableCells.length,
-      colsCount: 2,
       headers: [headerLeft, headerRight],
+      rowsCount: maxRows,
+      colsCount: 2,
       cells: tableCells
     };
 
@@ -227,11 +229,11 @@ export class MatchingResolver {
         headerRight,
         leftList,
         rightList,
-        codesHeader,
-        tableData
+        tableData,
+        codesHeader
       },
       textBeforeMatching,
-      textAfterMatching: textAfterMatching || matchingSectionText
+      textAfterMatching
     };
   }
 }

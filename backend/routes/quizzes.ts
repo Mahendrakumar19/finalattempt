@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router, Request, Response } from 'express';
 import { authenticate, optionalAuth, AuthRequest } from '../middleware/auth';
 import { requireStudent } from '../middleware/role';
@@ -469,7 +470,7 @@ router.post('/admin/parse-bilingual-pdf', pdfUpload.single('file'), async (req: 
         optionC: optsMap['C'] || '',
         optionD: optsMap['D'] || '',
         optionE: optsMap['E'] || '',
-        correctAnswer: q.answer?.values?.[0] || 'A',
+        correctAnswer: q.answer?.values?.[0] || null,
         explanation: q.explanation?.versions?.find(v => v.language === 'en')?.text || q.explanation?.versions?.[0]?.text || '',
         questionTextHi: hiText,
         optionAHi: optsMapHi['A'] || '',
@@ -574,7 +575,7 @@ router.post('/admin/parse-excel', pdfUpload.single('file'), async (req: Request 
         optionC: optsMap['C'] || '',
         optionD: optsMap['D'] || '',
         optionE: optsMap['E'] || '',
-        correctAnswer: q.answer?.values?.[0] || 'A',
+        correctAnswer: q.answer?.values?.[0] || null,
         explanation: q.explanation?.versions?.find(v => v.language === 'en')?.text || q.explanation?.versions?.[0]?.text || '',
         questionTextHi: hiText,
         optionAHi: optsMapHi['A'] || '',
@@ -678,8 +679,21 @@ router.post('/admin/import-bilingual-quiz', async (req: Request, res: Response) 
       isPublished: true
     });
 
-    // Save all 1:1 Bilingual Questions Transactionally & Atomically via batching
-    const savedQuestions = await lmsDB.createQuestionsBatch(targetQuizId, questions);
+    // Save all 1:1 Bilingual Questions Transactionally & Atomically via batching with Structure-Aware Deduplication Gate
+    const seenFps = new Set<string>();
+    const deduplicatedQuestions = questions.filter((q: any) => {
+      const normEn = (q.questionText || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      const normHi = (q.questionTextHi || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      const normOptsEn = [q.optionA, q.optionB, q.optionC, q.optionD, q.optionE].filter(Boolean).map((s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase()).join('|');
+      const normOptsHi = [q.optionAHi, q.optionBHi, q.optionCHi, q.optionDHi, q.optionEHi].filter(Boolean).map((s: string) => s.trim().replace(/\s+/g, ' ').toLowerCase()).join('|');
+      const fpPayload = `${normEn}:${normHi}:${normOptsEn}:${normOptsHi}`;
+      const fp = crypto.createHash('sha256').update(fpPayload).digest('hex');
+      if (seenFps.has(fp)) return false;
+      seenFps.add(fp);
+      return true;
+    });
+
+    const savedQuestions = await lmsDB.createQuestionsBatch(targetQuizId, deduplicatedQuestions);
 
     res.json({
       success: true,

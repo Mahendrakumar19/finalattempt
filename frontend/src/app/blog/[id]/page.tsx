@@ -225,7 +225,7 @@ export default function BlogDetailPage() {
                 <div>
                   <span className="text-[10px] font-extrabold uppercase text-slate-400 block tracking-wider">Written By</span>
                   <span className="text-xs font-black text-slate-900 dark:text-white">
-                    {blog.author_name || blog.author || 'Final Attempt IAS Team'}
+                    {blog.author_name || blog.author || 'Final Attempt Team'}
                   </span>
                 </div>
               </div>

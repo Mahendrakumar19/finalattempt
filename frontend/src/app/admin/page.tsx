@@ -649,7 +649,7 @@ export default function AdminPortal() {
 
     // 💡 AUTO-POPULATE SEO PARAMETERS IF NOT TYPED MANUALLY
     const stripHtml = (html: string) => (html || '').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-    const seoTitle = (editingArticle.seo?.seoTitle || '').trim() || `${editingArticle.title} | Final Attempt IAS`;
+    const seoTitle = (editingArticle.seo?.seoTitle || '').trim() || `${editingArticle.title} | Final Attempt`;
     const canonicalUrl = (editingArticle.seo?.canonicalUrl || '').trim() || `https://finalattemptias.com/current-affairs/daily/${publishedDate}/${category.toLowerCase()}/${finalSlug}`;
     const seoKeywords = (editingArticle.seo?.seoKeywords || '').trim() || Array.from(new Set([editingArticle.title, category, ...subjects, ...exams, ...tags])).join(', ');
     const seoDescription = (editingArticle.seo?.seoDescription || '').trim() || (editingArticle.summary || stripHtml(editingArticle.content || '')).slice(0, 155);
@@ -799,9 +799,9 @@ export default function AdminPortal() {
     const slugifiedTitle = (blogForm.title || '').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
     const finalSlug = (blogForm.slug || '').trim() || slugifiedTitle || `blog-${Date.now()}`;
 
-    const autoSeoTitle = (blogForm.seoTitle || '').trim() || `${blogForm.title || 'Blog Post'} | Final Attempt IAS`;
+    const autoSeoTitle = (blogForm.seoTitle || '').trim() || `${blogForm.title || 'Blog Post'} | Final Attempt`;
     const autoSeoDesc = (blogForm.seoDescription || '').trim() || (blogForm.blurb || stripHtml(blogForm.content || '')).slice(0, 155);
-    const autoSeoKeywords = (blogForm.seoKeywords || '').trim() || `${blogForm.title || ''}, ${blogForm.category || 'Strategy'}, BPSC Prelims, BPSC Mains, UPSC CSE, Final Attempt IAS`;
+    const autoSeoKeywords = (blogForm.seoKeywords || '').trim() || `${blogForm.title || ''}, ${blogForm.category || 'Strategy'}, BPSC Prelims, BPSC Mains, UPSC CSE, Final Attempt`;
 
     const preparedBlog = {
       ...blogForm,

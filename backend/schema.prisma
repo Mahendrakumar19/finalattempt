@@ -318,17 +318,33 @@ model lms_questions {
   optionB        String   @db.Text
   optionC        String   @db.Text
   optionD        String   @db.Text
-  correctAnswer  String   @db.Char(1)
+  optionE        String?  @db.Text
+  correctAnswer  String?  @db.Char(1)
   explanation    String?  @db.Text
   questionTextHi String?  @db.Text
   optionAHi      String?  @db.Text
   optionBHi      String?  @db.Text
   optionCHi      String?  @db.Text
   optionDHi      String?  @db.Text
+  optionEHi      String?  @db.Text
   explanationHi  String?  @db.Text
   marks          Decimal? @default(1.00) @db.Decimal(5, 2)
   negativeMarks  Decimal? @default(0.33) @db.Decimal(5, 2)
   orderIndex     Int?     @default(1)
+
+  // Lifecycle & Provenance Fields (Additive, 100% Backward Compatible)
+  questionStatus     String?  @default("VALID") @db.VarChar(50)
+  answerStatus       String?  @default("MISSING") @db.VarChar(50)
+  publishStatus      String?  @default("ANSWER_PENDING") @db.VarChar(50)
+  sourceAnswer       String?  @db.VarChar(10)
+  verifiedAnswer     String?  @db.VarChar(10)
+  verifiedBy         String?  @db.VarChar(255)
+  verifiedAt         String?  @db.VarChar(100)
+  verificationMethod String?  @db.VarChar(100)
+  sourceFile         String?  @db.VarChar(255)
+  sourceLocation     String?  @db.VarChar(255)
+  originalQuestionNumber Int?
+  structuredData     String?  @db.LongText
 
   @@index([quizId], map: "idx_question_quiz")
 }
@@ -550,6 +566,7 @@ enum lms_quiz_questions_correctAnswer {
   B
   C
   D
+  E
 }
 
 enum FileType {

@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Award, Timer, Layers, Clock,
-  BookOpen, BarChart2, Play, RefreshCw, FileText
+  BookOpen, BarChart2, Play, RefreshCw, FileText, Lock
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 import StudentPortalShell from '@/components/StudentPortalShell';
 import { db, ExamData, TestSeriesItem } from '@/services/db';
-import { getMyQuizAttempts } from '@/services/auth';
+import { getMyQuizAttempts, getMyEnrollments } from '@/services/auth';
 
 interface QuizItem {
   id: string;
@@ -51,8 +51,37 @@ export default function StudentPrelimsPage() {
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
   const [loadingTests, setLoadingTests] = useState(true);
 
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
+  const [loadingEnrollments, setLoadingEnrollments] = useState(true);
+
   const [attempts, setAttempts] = useState<AttemptItem[]>([]);
   const [loadingAttempts, setLoadingAttempts] = useState(true);
+
+  // Load active student enrollments & entitlements
+  useEffect(() => {
+    const fetchEnrollments = async () => {
+      if (!accessToken) {
+        setLoadingEnrollments(false);
+        return;
+      }
+      try {
+        const res = await getMyEnrollments(accessToken);
+        if (res && Array.isArray(res)) {
+          const ids = new Set<string>();
+          res.forEach((item: any) => {
+            if (item.courseId) ids.add(item.courseId);
+            if (item.testSeriesSlug) ids.add(item.testSeriesSlug);
+          });
+          setEnrolledCourseIds(ids);
+        }
+      } catch (err) {
+        console.error('Error loading student enrollments:', err);
+      } finally {
+        setLoadingEnrollments(false);
+      }
+    };
+    fetchEnrollments();
+  }, [accessToken]);
 
   const [analytics, setAnalytics] = useState<{
     totalAttempts: number;
@@ -349,23 +378,40 @@ export default function StudentPrelimsPage() {
                 {quizzes.map((quiz, idx) => {
                   const userAttempt = attempts.find(a => a.quizId === quiz.id);
 
+                  // Check if student has valid enrollment/entitlement for this test series or quiz
+                  const matchingSeries = testSeriesList.find(ts => ts.id === quiz.courseId || ts.slug === quiz.courseId);
+                  const isEnrolled = Boolean(
+                    (quiz.courseId && enrolledCourseIds.has(quiz.courseId)) ||
+                    (matchingSeries?.id && enrolledCourseIds.has(matchingSeries.id)) ||
+                    (matchingSeries?.slug && enrolledCourseIds.has(matchingSeries.slug))
+                  );
+
+                  const isFreeDemo = Boolean((quiz as any).isFree || (quiz as any).sequence_number === 1);
+                  const hasAccess = isEnrolled || isFreeDemo;
+
+                  const purchaseUrl = matchingSeries?.slug
+                    ? `/test-series/program/${matchingSeries.slug}`
+                    : (quiz.courseId ? `/test-series/program/${quiz.courseId}` : '/test-series');
+
                   return (
                     <div
                       key={quiz.id || idx}
-                      className="p-6 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/40 rounded-3xl transition-all shadow-xs space-y-4 flex flex-col justify-between"
+                      className={`p-6 bg-[var(--card-bg)] border ${
+                        hasAccess ? 'border-[var(--card-border)] hover:border-amber-500/40' : 'border-amber-500/30 bg-amber-500/[0.02]'
+                      } rounded-3xl transition-all shadow-xs space-y-4 flex flex-col justify-between`}
                     >
                       <div className="space-y-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1">
                             <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 inline-block">
-                              Prelims CBT Mock Test #{idx + 1}
+                              Prelims CBT Mock Test #{idx + 1} {isFreeDemo ? '• Free Demo' : ''}
                             </span>
                             <h3 className="text-lg font-heading font-black text-[var(--text-color)] leading-snug">
                               {quiz.title}
                             </h3>
                           </div>
 
-                          {userAttempt && (
+                          {userAttempt ? (
                             <span
                               className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border shrink-0 ${
                                 userAttempt.passed
@@ -375,7 +421,11 @@ export default function StudentPrelimsPage() {
                             >
                               {userAttempt.passed ? 'PASSED' : 'ATTEMPTED'}
                             </span>
-                          )}
+                          ) : !hasAccess ? (
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border bg-amber-500/10 text-amber-600 border-amber-500/30 shrink-0 flex items-center gap-1">
+                              <Lock className="w-3 h-3" /> Locked
+                            </span>
+                          ) : null}
                         </div>
 
                         {quiz.description && (
@@ -402,16 +452,26 @@ export default function StudentPrelimsPage() {
 
                       <div className="pt-4 border-t border-[var(--card-border)] flex items-center justify-between gap-3">
                         <span className="text-xs font-semibold text-slate-400">
-                          {userAttempt ? 'Completed' : 'Ready for CBT'}
+                          {userAttempt ? 'Completed' : hasAccess ? 'Ready for CBT' : 'Purchase Required'}
                         </span>
 
-                        <Link
-                          href={`/student/course/cbt/quiz/${quiz.id}`}
-                          className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md cursor-pointer"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-slate-950" />
-                          {userAttempt ? t('prelims.retake') : t('prelims.startTest')}
-                        </Link>
+                        {hasAccess ? (
+                          <Link
+                            href={`/student/course/cbt/quiz/${quiz.id}`}
+                            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md cursor-pointer"
+                          >
+                            <Play className="w-3.5 h-3.5 fill-slate-950" />
+                            {userAttempt ? t('prelims.retake') : t('prelims.startTest')}
+                          </Link>
+                        ) : (
+                          <Link
+                            href={purchaseUrl}
+                            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md cursor-pointer"
+                          >
+                            <Lock className="w-3.5 h-3.5" />
+                            Unlock / Purchase Test Series
+                          </Link>
+                        )}
                       </div>
                     </div>
                   );

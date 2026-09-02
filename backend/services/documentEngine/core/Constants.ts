@@ -17,12 +17,22 @@ export type BlockType =
 
 export type QuestionType =
   | 'MCQ'
+  | 'SINGLE_CHOICE_MCQ'
   | 'MULTI_SELECT'
+  | 'MULTIPLE_CHOICE'
   | 'TRUE_FALSE'
   | 'MATCHING'
   | 'STATEMENT_BASED'
   | 'ASSERTION_REASON'
+  | 'FILL_IN_THE_BLANK'
   | 'NUMERICAL'
+  | 'TABLE_BASED'
+  | 'PASSAGE'
+  | 'IMAGE_BASED'
+  | 'MAP_BASED'
+  | 'ORDERING'
+  | 'MULTI_PART'
+  | 'DESCRIPTIVE'
   | 'UNKNOWN';
 
 export type ImportStatus =

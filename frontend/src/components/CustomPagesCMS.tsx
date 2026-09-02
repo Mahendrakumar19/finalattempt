@@ -293,24 +293,84 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR', targetSlug 
                   />
                 </div>
 
-                {/* URL Slug Path (Strictly /downloads/[slug]) */}
+                {/* URL Slug Path */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Download URL</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Page Slug ID (URL Endpoint)</label>
                   <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 px-4 py-3 rounded-2xl text-xs font-mono text-slate-600 dark:text-slate-300">
-                    <span className="text-amber-500 font-bold">/downloads/</span>
+                    <span className="text-amber-500 font-bold">/p/</span>
                     <input
                       type="text"
-                      value={(form.slug || '').replace(/^downloads\//, '').replace(/^page\//, '')}
+                      value={(form.slug || '').replace(/^p\//, '').replace(/^downloads\//, '')}
                       onChange={(e) => {
                         const raw = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
-                        setForm({ ...form, showLocation: 'DOWNLOADS_HUB', slug: `downloads/${raw}` });
+                        setForm({ ...form, slug: raw });
                       }}
                       className="w-full bg-transparent outline-none font-bold text-slate-900 dark:text-white"
-                      placeholder="ncert"
+                      placeholder="bpsc-institute-in-patna"
                       required
                     />
                   </div>
-                  <p className="text-[10px] text-slate-400">This automatically creates the sub-page under Downloads Hub (e.g., /downloads/ncert, /downloads/bpsc-notes).</p>
+                  <p className="text-[10px] text-slate-400">Canonical URL route slug ID for SEO indexing (e.g., bpsc-institute-in-patna, bpsc-coaching-lucknow).</p>
+                </div>
+
+                {/* SEO Metadata & Helmet Engine Box */}
+                <div className="p-5 bg-gradient-to-br from-amber-500/5 via-slate-50 to-indigo-500/5 dark:from-amber-500/10 dark:via-slate-800/40 dark:to-indigo-500/10 border border-amber-500/20 rounded-3xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
+                      <Globe className="w-4 h-4" />
+                      <span>SEO & Helmet Meta Tags Configuration</span>
+                    </span>
+                    <span className="text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 px-2.5 py-0.5 rounded-full uppercase">
+                      Auto Helmet Metadata
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Meta Title */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Meta Title (Browser Title & Search Engine)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Best BPSC Institute in Patna | Top Coaching for 71st BPSC"
+                        value={form.metaTitle || ''}
+                        onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    {/* Meta Keywords */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Meta Keywords (Comma Separated)</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. bpsc institute in patna, bpsc coaching patna, best bpsc academy"
+                        value={form.metaKeywords || ''}
+                        onChange={(e) => setForm({ ...form, metaKeywords: e.target.value })}
+                        className="w-full px-3.5 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Meta Description */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Meta Description (Search Snippet summary)</label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. Top rated BPSC coaching institute in Patna offering 71st & 72nd BPSC Prelims, Mains, Essay guidance, mock test series and expert mentorship."
+                      value={form.metaDescription || ''}
+                      onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
+                      className="w-full px-3.5 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                    />
+                  </div>
+
+                  {/* Live Helmet / Next.js Metadata Output Snippet Preview */}
+                  <div className="bg-slate-900 text-slate-200 p-3.5 rounded-2xl text-[11px] font-mono space-y-1 border border-slate-700">
+                    <p className="text-[10px] font-bold text-amber-400 uppercase tracking-wider font-sans mb-1">⚡ Generated Helmet & Head Output Tags Preview:</p>
+                    <div className="text-emerald-400">&lt;title&gt;{form.metaTitle || form.title || 'Page Title'} | Final Attempt IAS&lt;/title&gt;</div>
+                    <div className="text-sky-300">&lt;meta name="keywords" content="{form.metaKeywords || 'bpsc, civil services, institute'}" /&gt;</div>
+                    <div className="text-sky-300">&lt;meta name="description" content="{form.metaDescription || 'Page description for search engines...'}" /&gt;</div>
+                    <div className="text-purple-300">&lt;link rel="canonical" href="https://finalattemptias.com/p/{(form.slug || 'page').replace(/^downloads\//, '').replace(/^p\//, '')}" /&gt;</div>
+                  </div>
                 </div>
 
                 {/* Custom Page Category Logo */}

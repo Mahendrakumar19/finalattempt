@@ -290,6 +290,7 @@ export interface CustomPage {
   showLocation: 'NAVBAR' | 'FOOTER' | 'HEADER_TOP' | 'SLUG_ONLY' | 'DOWNLOADS_HUB';
   displayOrder?: number;
   metaTitle?: string;
+  metaKeywords?: string;
   metaDescription?: string;
   bannerUrl?: string;
   logoUrl?: string;

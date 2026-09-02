@@ -6,7 +6,7 @@ import { ShieldAlert, Award, FileText, Timer, Users, Maximize2, AlertOctagon, Ch
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard } from '@/services/auth';
-import { sanitizeAndRepairQuestion } from '@/utils/questionFormatter';
+import { sanitizeAndRepairQuestion, renderFormattedQuestionText } from '@/utils/questionFormatter';
 
 interface QuizEngineProps {
   quizId: string;
@@ -701,11 +701,12 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 style={{ color: cbtDark ? '#FFFFFF' : '#111827' }}
               >
                 {(() => {
-                  const txt = getDisplayQuestionText(currentQ);
-                  if (txt.includes('<table') || txt.includes('match-list-container') || txt.includes('<') || txt.includes('List-I')) {
-                    return <div dangerouslySetInnerHTML={{ __html: txt }} />;
+                  const rawTxt = getDisplayQuestionText(currentQ);
+                  const { isHtml, formatted } = renderFormattedQuestionText(rawTxt);
+                  if (isHtml) {
+                    return <div dangerouslySetInnerHTML={{ __html: formatted }} />;
                   }
-                  return txt;
+                  return rawTxt;
                 })()}
               </div>
 

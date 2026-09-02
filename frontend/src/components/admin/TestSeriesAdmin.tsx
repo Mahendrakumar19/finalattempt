@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { db, TestSeriesItem, ExamData } from '@/services/db';
 import MediaPicker from '@/components/MediaPicker';
-import { sanitizeAndRepairQuestion, formatMatchListsInText } from '@/utils/questionFormatter';
+import { sanitizeAndRepairQuestion, formatMatchListsInText, renderFormattedQuestionText } from '@/utils/questionFormatter';
 
 /** Strips any leading "(a) " / "(A) " / "(क) " option prefix from stored option text */
 function stripOptionPrefix(text: string): string {
@@ -16,75 +16,10 @@ function stripOptionPrefix(text: string): string {
 /** Renders question text with support for Side-by-Side Matching Tables, Markdown Tables (| List-I | List-II |) and HTML */
 function renderMarkdownContent(text: string) {
   if (!text) return null;
-
-  const formattedMatch = formatMatchListsInText(text);
-  if (formattedMatch !== text || formattedMatch.includes('match-list-container') || formattedMatch.includes('<table')) {
-    return <div className="font-medium text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: formattedMatch }} />;
+  const { isHtml, formatted } = renderFormattedQuestionText(text);
+  if (isHtml) {
+    return <div className="font-medium text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />;
   }
-
-  if (text.includes('|')) {
-    const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    const tableRows: string[][] = [];
-    const textOutsideTable: string[] = [];
-
-    for (const line of rawLines) {
-      if (line.includes('|')) {
-        if (line.includes(':---') || line.includes('---')) continue;
-        const cells = line.split('|').map(c => c.trim()).filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
-        if (cells.length >= 2) {
-          tableRows.push(cells);
-        } else if (line.length > 0) {
-          textOutsideTable.push(line);
-        }
-      } else {
-        textOutsideTable.push(line);
-      }
-    }
-
-    if (tableRows.length > 0) {
-      const headerRow = tableRows[0];
-      const dataRows = tableRows.slice(1);
-
-      return (
-        <div className="space-y-3 my-2">
-          {textOutsideTable.length > 0 && (
-            <p className="font-bold text-[var(--text-color)] leading-relaxed whitespace-pre-wrap">
-              {textOutsideTable.join('\n')}
-            </p>
-          )}
-          <div className="overflow-x-auto my-2 rounded-xl border border-[var(--card-border)]">
-            <table className="w-full text-xs text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[var(--card-border)] text-[var(--text-color)] font-bold">
-                  {headerRow.map((cell, cIdx) => (
-                    <th key={cIdx} className="px-3.5 py-2 uppercase tracking-wider font-bold border-r last:border-r-0 border-[var(--card-border)]">
-                      {cell}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--card-border)] font-medium text-[var(--text-color)]">
-                {dataRows.map((row, rIdx) => (
-                  <tr key={rIdx}>
-                    {row.map((cell, cIdx) => (
-                      <td key={cIdx} className="px-3.5 py-2 text-xs border-r last:border-r-0 border-[var(--card-border)]">
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
-    }
-  }
-
-  if (text.includes('<') && text.includes('>')) {
-    return <div className="font-bold text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: text }} />;
-  }
-
   return <p className="font-bold text-[var(--text-color)] leading-relaxed whitespace-pre-wrap">{text}</p>;
 }
 
@@ -1245,7 +1180,7 @@ export default function TestSeriesAdmin({
 
                     <div className="flex items-center gap-2">
                       <a
-                        href={`/admin/test-series/${series.id}`}
+                        href={`/admin/test-series/${series.slug || series.id}`}
                         className="px-3 py-1.5 bg-amber-500 text-slate-950 hover:bg-amber-600 font-bold rounded-xl text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
                       >
                         <Layers className="w-3.5 h-3.5" />

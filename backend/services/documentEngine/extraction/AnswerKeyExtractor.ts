@@ -7,9 +7,6 @@ export class AnswerKeyExtractor {
   private static readonly IMMEDIATE_ANS_REGEX =
     /(?:^|\n)[\r\n\s]*(?:Answer|Ans|Correct\s*Answer|Correct\s*Option|Key|उत्तर)[\s\:\-\=]*([A-Ea-eक-ङ])\b/i;
 
-  private static readonly DISTANT_ANS_KEY_REGEX =
-    /(?:^|\n)[ \t]*(?:Q|Question|Q\.)?[ \t]*(\d{1,4})[\.\:\-\=\s]+[ \t]*([A-Ea-eक-ङ])\b/g;
-
   /**
    * Extracts immediate answer candidate following question text or options
    */
@@ -38,10 +35,15 @@ export class AnswerKeyExtractor {
    */
   static extractDistantAnswerKeyMap(fullDocumentText: string): Map<number, ExtractedAnswer> {
     const answerMap = new Map<number, ExtractedAnswer>();
+
+    // Locate Answer Key section if present
+    const ansKeySectionIdx = fullDocumentText.search(/(?:^|\n)[ \t]*(?:Answer\s*Key|Solutions|उत्तर\s*कुंजी|उत्तर)[\s\:\-\n]+/i);
+    const textToScan = ansKeySectionIdx !== -1 ? fullDocumentText.substring(ansKeySectionIdx) : fullDocumentText;
+
+    const regex = /(?:^|\n)[ \t]*(?:Q|Question|Q\.|प्रश्न)?[ \t]*(\d{1,4})[\.\:\-\=\s]+[\(\[]?([A-Ea-eक-ङ])[\)\]]?(?=$|\r|\n|\s+)/gi;
     let match: RegExpExecArray | null;
 
-    const regex = new RegExp(this.DISTANT_ANS_KEY_REGEX);
-    while ((match = regex.exec(fullDocumentText)) !== null) {
+    while ((match = regex.exec(textToScan)) !== null) {
       const qNum = parseInt(match[1], 10);
       let letter = match[2].toUpperCase();
 

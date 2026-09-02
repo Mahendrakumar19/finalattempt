@@ -7,6 +7,7 @@ import {
   HelpCircle, Eye, Calendar, Clock, Award, Play, Sparkles, RefreshCw, AlertCircle 
 } from 'lucide-react';
 import { db } from '@/services/db';
+import { renderFormattedQuestionText } from '@/utils/questionFormatter';
 
 interface DailyQuiz {
   id: string;
@@ -430,9 +431,18 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
                         </div>
                       </div>
 
-                      <h4 className="font-heading font-bold text-sm text-[var(--text-color)]">
-                        {q.questionText}
-                      </h4>
+                      {(() => {
+                        const raw = q.questionText || '';
+                        const { isHtml, formatted } = renderFormattedQuestionText(raw);
+                        if (isHtml) {
+                          return <div className="font-heading font-bold text-sm text-[var(--text-color)]" dangerouslySetInnerHTML={{ __html: formatted }} />;
+                        }
+                        return (
+                          <h4 className="font-heading font-bold text-sm text-[var(--text-color)]">
+                            {raw}
+                          </h4>
+                        );
+                      })()}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                         {[

@@ -30,9 +30,13 @@ import documentImportsRouter from './routes/documentImports';
 import testSeriesPurchaseRouter from './routes/testSeriesPurchase';
 import { verifyEmailConnection } from './services/email';
 import { ContentLocalizer, getTargetLang } from './services/contentLocalizer';
+import { seedLocationPages } from './seed_location_pages';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// Seed target location SEO landing pages on startup
+seedLocationPages().catch(err => console.error('[Location SEO Seed Error]:', err));
 
 // Trust reverse proxy header (Render, Heroku, Vercel, etc.)
 app.set('trust proxy', 1);

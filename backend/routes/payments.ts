@@ -119,15 +119,20 @@ router.post(['/verify', '/verify-payment'], optionalAuth, async (req: AuthReques
 
     // If courseId provided and user is authenticated, handle course/test series enrollment
     if (courseId && req.user?.userId) {
-      const alreadyEnrolled = await lmsDB.isEnrolled(req.user.userId, courseId);
-      if (alreadyEnrolled) {
-        res.json({
-          success: true,
-          message: 'Already enrolled in this program.',
-          data: { courseId, userId: req.user.userId }
-        });
-        return;
-      }
+      let targetIds = [courseId];
+      try {
+        const ts = await lmsDB.getTestSeriesById(courseId);
+        if (ts) {
+          if (ts.id) targetIds.push(ts.id);
+          if (ts.slug) targetIds.push(ts.slug);
+        }
+        const crs = await lmsDB.getCourseById(courseId);
+        if (crs) {
+          if (crs.id) targetIds.push(crs.id);
+          if (crs.slug) targetIds.push(crs.slug);
+        }
+      } catch (_) {}
+      targetIds = Array.from(new Set(targetIds.filter(Boolean)));
 
       let amount = 0;
       const course = await lmsDB.getCourseById(courseId);
@@ -140,12 +145,41 @@ router.post(['/verify', '/verify-payment'], optionalAuth, async (req: AuthReques
         }
       }
 
-      const enrollment = await lmsDB.createEnrollment(req.user.userId, courseId, orderId, amount);
+      let lastEnrollment: any = null;
+      for (const sid of targetIds) {
+        const alreadyEnrolled = await lmsDB.isEnrolled(req.user.userId, sid);
+        if (!alreadyEnrolled) {
+          lastEnrollment = await lmsDB.createEnrollment(req.user.userId, sid, orderId, amount);
+        }
+
+        // Grant active entitlement in user_entitlements
+        try {
+          const { prisma } = await import('../prisma');
+          const userEntitlementsDelegate = (prisma as any).user_entitlements;
+          if (userEntitlementsDelegate) {
+            const existingEnt = await userEntitlementsDelegate.findFirst({
+              where: { user_id: req.user.userId, series_id: sid, entitlement_type: 'FULL', status: 'ACTIVE' }
+            });
+            if (!existingEnt) {
+              await userEntitlementsDelegate.create({
+                data: {
+                  user_id: req.user.userId,
+                  series_id: sid,
+                  entitlement_type: 'FULL',
+                  max_sequence_number: 999,
+                  snapshot_max_sequence: 999,
+                  status: 'ACTIVE'
+                }
+              });
+            }
+          }
+        } catch (_) {}
+      }
 
       res.json({
         success: true,
-        data: enrollment,
-        message: 'Payment verified and enrollment successful.'
+        data: lastEnrollment || { courseId, userId: req.user.userId },
+        message: 'Payment verified and enrollment successful with full test series access.'
       });
       return;
     }

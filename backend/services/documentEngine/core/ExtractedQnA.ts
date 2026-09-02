@@ -54,6 +54,39 @@ export interface QnaConfidenceScore {
   overall: number;
 }
 
+export interface AssertionReasonData {
+  assertion: LocalizedText[];
+  reason: LocalizedText[];
+}
+
+export interface BlankItemData {
+  id: string;
+  blankIndex: number;
+  acceptedAnswers: LocalizedText[];
+  numericTarget?: number;
+  tolerance?: number;
+}
+
+export interface PassageData {
+  id: string;
+  title?: string;
+  versions: LocalizedText[];
+  childQuestionNumbers?: number[];
+}
+
+export interface OrderingItemData {
+  id: string;
+  orderIndex: number;
+  versions: LocalizedText[];
+}
+
+export interface MediaItemData {
+  id: string;
+  url: string;
+  caption?: string;
+  type?: 'IMAGE' | 'AUDIO' | 'VIDEO' | 'MAP';
+}
+
 export interface ExtractedQnA {
   id: string;
   stagingId?: string;
@@ -77,8 +110,12 @@ export interface ExtractedQnA {
     statements?: StatementItem[];
     matching?: MatchingStructure;
     tableData?: TableData;
+    assertionReason?: AssertionReasonData;
+    blanks?: BlankItemData[];
+    passage?: PassageData;
+    orderingItems?: OrderingItemData[];
     imageUrl?: string;
-    images?: { url: string; caption?: string }[];
+    images?: MediaItemData[];
   };
 
   options: ExtractedOption[];

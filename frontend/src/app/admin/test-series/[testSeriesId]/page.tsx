@@ -159,10 +159,14 @@ export default function TestSeriesDetailPage() {
 
   // Load Test Series details
   const loadData = useCallback(async () => {
+    if (!testSeriesId) return;
     setLoading(true);
     try {
-      const all = await db.getTestSeries(true);
-      const found = all.find(s => s.id === testSeriesId || s.slug === testSeriesId);
+      let found = await db.getTestSeriesById(testSeriesId);
+      if (!found) {
+        const all = await db.getTestSeries(true);
+        found = all.find(s => s.id === testSeriesId || s.slug === testSeriesId) || null;
+      }
       if (found) {
         setSeries(found);
       }

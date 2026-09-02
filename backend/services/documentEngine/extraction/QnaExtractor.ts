@@ -5,6 +5,7 @@ import { BlockClassifier, isHeaderFooterNoise } from '../understanding/BlockClas
 import { BoundaryDetector } from '../understanding/BoundaryDetector';
 import { QuestionTypeDetector } from '../understanding/QuestionTypeDetector';
 import { MatchingResolver } from '../understanding/MatchingResolver';
+import { TopLevelQuestionSegmenter, TopLevelQuestionSpan } from '../understanding/TopLevelQuestionSegmenter';
 import { OptionExtractor } from './OptionExtractor';
 import { AnswerKeyExtractor } from './AnswerKeyExtractor';
 import { ExplanationExtractor } from './ExplanationExtractor';
@@ -78,139 +79,29 @@ export class QnaExtractor {
       allBlocks.map(b => b.text).join('\n')
     );
 
-    // 3. Iterative Structural Parser Loop
-    let currentQNum = 0;
-    let activeSectionHeader: string | undefined = undefined;
-    let currentQuestionBlocks: DocumentBlock[] = [];
-    let inStatementList = false;
+    // Filter out edge noise blocks
+    const filteredBlocks = allBlocks.filter(b => !isHeaderFooterNoise(b.text) && !repeatedNoiseKeys.has(b.text.trim().toLowerCase()));
 
-    for (let i = 0; i < allBlocks.length; i++) {
-      const block = allBlocks[i];
-      const prevBlock = i > 0 ? allBlocks[i - 1] : null;
-      const nextBlocks = allBlocks.slice(i + 1, i + 16);
-      const blockTextKey = block.text.trim().toLowerCase();
+    // 3. TWO-PASS ARCHITECTURE
+    // PASS 1: Authoritative Top-Level Question Segmentation (Zero internal splitting)
+    const questionSpans: TopLevelQuestionSpan[] = TopLevelQuestionSegmenter.segment(filteredBlocks);
 
-      const classifiedType = BlockClassifier.classifyBlock(
-        block,
-        prevBlock,
-        nextBlocks,
-        currentQNum + 1
-      );
+    // PASS 2: Internal Content Structural Parsing per isolated span
+    for (let idx = 0; idx < questionSpans.length; idx++) {
+      const span = questionSpans[idx];
+      const qNum = span.originalQuestionNumber || (idx + 1);
 
-      if (classifiedType === 'NOISE' || repeatedNoiseKeys.has(blockTextKey)) {
-        continue;
-      }
-
-      // SKIP document headings entirely from question clusters, but still track as section header
-      if (classifiedType === 'DOCUMENT_HEADING') {
-        if (currentQuestionBlocks.length > 0) {
-          const effectiveNum = currentQNum || (rawCandidates.length + 1);
-          const qna = this.buildQnaFromCluster(
-            effectiveNum,
-            currentQuestionBlocks,
-            doc.id,
-            activeSectionHeader,
-            distantAnswerMap.get(effectiveNum)
-          );
-          if (qna) rawCandidates.push(qna);
-          currentQuestionBlocks = [];
-        }
-        activeSectionHeader = block.text;
-        continue;
-      }
-
-      const isMajorSectionResetHeader = /^[ \t]*(?:\d+[\.\:\)\-–—]*[ \t]*)?(?:SECTION\s+\d+|SECTION|PART|PART\s+[A-Z0-9]+|HINDI\s+QUESTIONS|ENGLISH\s+QUESTIONS)\b/i.test(block.text.trim());
-      const isMatchingHeader = /^(?:List|Column|सूची|Code|Code|कूट)[\s\-_:]*/i.test(block.text.trim());
-
-      if (isMajorSectionResetHeader || (classifiedType === 'HEADING' && !isMatchingHeader)) {
-        if (currentQuestionBlocks.length > 0) {
-          const effectiveNum = currentQNum || (rawCandidates.length + 1);
-          const qna = this.buildQnaFromCluster(
-            effectiveNum,
-            currentQuestionBlocks,
-            doc.id,
-            activeSectionHeader,
-            distantAnswerMap.get(effectiveNum)
-          );
-          if (qna) rawCandidates.push(qna);
-          currentQuestionBlocks = [];
-        }
-        activeSectionHeader = block.text;
-
-        if (isMajorSectionResetHeader) {
-          currentQNum = 0; // Reset question counter ONLY for major document section headers!
-        }
-        continue;
-      }
-
-      if (classifiedType === 'OPTION_CANDIDATE') {
-        inStatementList = false;
-      }
-
-      const clusterText = currentQuestionBlocks.map(b => b.text).join('\n').toLowerCase();
-      const hasPromptInCluster = /consider the following|match list|select the correct|कथनों पर विचार|सुमेलित कीजिए|list[\s\-_]*i|column[\s\-_]*a/i.test(clusterText) && !/(?:options\:|\([abcdeABCDEक-ङ]\))/i.test(clusterText);
-
-      const boundary = BoundaryDetector.evaluate(
-        block,
-        prevBlock,
-        nextBlocks,
-        currentQNum + 1,
-        inStatementList,
-        hasPromptInCluster
-      );
-
-
-      if (!boundary.isQuestionBoundary && boundary.questionNumber !== null && currentQNum > 0) {
-        inStatementList = true;
-      }
-
-      if (boundary.isQuestionBoundary && boundary.questionNumber !== null) {
-        const isRepeatedSameQNum = boundary.questionNumber === currentQNum;
-        const currentClusterText = currentQuestionBlocks.map(b => b.text).join('\n');
-        const currentBlocksHaveOptions = OptionExtractor.extractOptions(currentClusterText).length >= 2;
-
-        const hasMatchingPrompt = /(?:match|list\-i|list\-ii|list[\s\-_]*1|list[\s\-_]*2|सूची\-1|सूची\-2|सूची\-i|सूची\-ii|code|कूट|मिलान)/i.test(currentClusterText);
-        const hasCodedOptionsInCluster = /(?:\n|\s+)\([a-eA-E1-5क-ङ]\)[ \t]+[A-Ea-e1-5\s\d,]+/i.test(currentClusterText);
-
-        if ((isRepeatedSameQNum && !currentBlocksHaveOptions) || (hasMatchingPrompt && !hasCodedOptionsInCluster && boundary.questionNumber !== currentQNum + 1)) {
-          currentQuestionBlocks.push(block);
-          continue;
-        }
-
-        inStatementList = false;
-        // Flush previously accumulated question cluster
-        if (currentQuestionBlocks.length > 0) {
-          const effectiveNum = currentQNum || (rawCandidates.length + 1);
-          const qna = this.buildQnaFromCluster(
-            effectiveNum,
-            currentQuestionBlocks,
-            doc.id,
-            activeSectionHeader,
-            distantAnswerMap.get(effectiveNum)
-          );
-          if (qna) rawCandidates.push(qna);
-        }
-
-        // Start new question cluster
-        currentQNum = boundary.questionNumber;
-        console.log(`[SET currentQNum] -> ${currentQNum} at block "${block.text.substring(0, 30)}"`);
-        currentQuestionBlocks = [block];
-      } else {
-        currentQuestionBlocks.push(block);
-      }
-    }
-
-    // Flush last accumulated question cluster
-    if (currentQuestionBlocks.length > 0) {
-      const effectiveNum = currentQNum || (rawCandidates.length + 1);
       const qna = this.buildQnaFromCluster(
-        effectiveNum,
-        currentQuestionBlocks,
+        qNum,
+        span.blocks,
         doc.id,
-        activeSectionHeader,
-        distantAnswerMap.get(effectiveNum)
+        undefined,
+        distantAnswerMap.get(qNum)
       );
-      if (qna) rawCandidates.push(qna);
+
+      if (qna) {
+        rawCandidates.push(qna);
+      }
     }
 
     // 3.5 Stray & Split Questions Repair Pass
@@ -280,7 +171,7 @@ export class QnaExtractor {
           if (next.explanation && next.explanation.versions.length > 0) {
             current.explanation = next.explanation;
           }
-          current.validation = { status: 'PASS', warnings: [], errors: [] };
+          ConfidenceEngine.calculateConfidence(current);
           repaired.push(current);
           i += 2; // skip both current and next
           continue;
@@ -306,7 +197,7 @@ export class QnaExtractor {
           if (next.explanation && next.explanation.versions.length > 0) {
             current.explanation = next.explanation;
           }
-          current.validation = { status: 'PASS', warnings: [], errors: [] };
+          ConfidenceEngine.calculateConfidence(current);
           repaired.push(current);
           i += 2; // skip both
           continue;
@@ -327,7 +218,7 @@ export class QnaExtractor {
           if (next.explanation && next.explanation.versions.length > 0) {
             current.explanation = next.explanation;
           }
-          current.validation = { status: 'PASS', warnings: [], errors: [] };
+          ConfidenceEngine.calculateConfidence(current);
           repaired.push(current);
           i += 2; // merge split candidates into 1 single question
           continue;
@@ -348,7 +239,7 @@ export class QnaExtractor {
               }
             });
           }
-          current.validation = { status: 'PASS', warnings: [], errors: [] };
+          ConfidenceEngine.calculateConfidence(current);
           repaired.push(current);
           i += 2; // Merge Candidate N & N+1, reducing count from 54 to exact 50!
           continue;
@@ -411,20 +302,8 @@ export class QnaExtractor {
 
       questionText = (matchingResult.textBeforeMatching || fullClusterText) + matchingTableMd;
 
-      // Extract options ONLY from the text after the matching table (coded options: A-1, B-2, etc.)
+      // Extract options ONLY from the text after the matching table (coded options: A-1, B-2, 3 4 1 2, etc.)
       options = OptionExtractor.extractOptions(matchingResult.textAfterMatching);
-
-      if (options.length > 0 && matchingStruct && matchingStruct.leftList && matchingStruct.leftList.length > 0) {
-        const leftLabels = matchingStruct.leftList.map(item => item.label);
-        options.forEach(opt => {
-          opt.versions.forEach(v => {
-            const nums = v.text.trim().split(/\s+/);
-            if (nums.length === leftLabels.length && nums.every(n => /^\d+$/.test(n))) {
-              v.text = leftLabels.map((lbl, idx) => `${lbl}-${nums[idx]}`).join(', ');
-            }
-          });
-        });
-      }
     } else {
       // 2. Check Statement List Structure SECOND
       statements = OptionExtractor.extractStatements(fullClusterText);
@@ -444,7 +323,9 @@ export class QnaExtractor {
       // Find cut-off point for options: cut question text at the start of Option A
       let firstCutIdx = -1;
 
-      if (options.length > 0 && options[0].rawMarker) {
+      if (options.length > 0 && typeof (options[0] as any).index === 'number' && (options[0] as any).index > 0) {
+        firstCutIdx = (options[0] as any).index;
+      } else if (options.length > 0 && options[0].rawMarker) {
         const optIdx = fullClusterText.indexOf(options[0].rawMarker);
         if (optIdx > 0) {
           firstCutIdx = optIdx;

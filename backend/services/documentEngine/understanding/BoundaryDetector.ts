@@ -40,6 +40,17 @@ export class BoundaryDetector {
       };
     }
 
+    // Guard 0.5: Document Section / Chapter Title line e.g. "CHAPTER 12:", "SECTION 3.", "PART II.", "अध्याय 4."
+    if (/^[ \t]*(?:CHAPTER|SECTION|PART|UNIT|TOPIC|LESSON|MODULE|भाग|अध्याय|खंड|इकाई|विषय)\b/i.test(text)) {
+      return {
+        isQuestionBoundary: false,
+        questionNumber: null,
+        rawPrefix: null,
+        confidence: 0.0,
+        reason: 'Document section/chapter title line'
+      };
+    }
+
     const match = this.QUESTION_PREFIX_REGEX.exec(text);
 
     if (!match) {

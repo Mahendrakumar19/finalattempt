@@ -93,5 +93,92 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   } catch (_) {}
 
+  try {
+    // Dynamic courses mapping
+    const coursesRes = await fetch(`${apiBase}/api/lms/courses`, { next: { revalidate: 3600 } });
+    if (coursesRes.ok) {
+      const coursesData = await coursesRes.json();
+      const courses = Array.isArray(coursesData) ? coursesData : (coursesData?.data || []);
+      if (Array.isArray(courses)) {
+        courses.forEach((c: any) => {
+          if (c.isPublished !== false) {
+            dynamicPaths.push({
+              url: `${baseUrl}/courses/${c.id}`,
+              lastModified: new Date(c.updatedAt || c.createdAt || now),
+              changeFrequency: 'weekly',
+              priority: 0.9,
+            });
+          }
+        });
+      }
+    }
+  } catch (_) {}
+
+  try {
+    // Dynamic test series mapping (exams, stages, programs)
+    const testSeriesRes = await fetch(`${apiBase}/api/test-series/hierarchy`, { next: { revalidate: 3600 } });
+    if (testSeriesRes.ok) {
+      const resJson = await testSeriesRes.json();
+      const exams = Array.isArray(resJson) ? resJson : (resJson?.data || []);
+      if (Array.isArray(exams)) {
+        exams.forEach((ex: any) => {
+          if (ex.slug) {
+            dynamicPaths.push({
+              url: `${baseUrl}/test-series/${ex.slug}`,
+              lastModified: now,
+              changeFrequency: 'weekly',
+              priority: 0.85,
+            });
+          }
+          if (Array.isArray(ex.stages)) {
+            ex.stages.forEach((stg: any) => {
+              if (ex.slug && stg.slug) {
+                dynamicPaths.push({
+                  url: `${baseUrl}/test-series/${ex.slug}/${stg.slug}`,
+                  lastModified: now,
+                  changeFrequency: 'weekly',
+                  priority: 0.8,
+                });
+              }
+            });
+          }
+          if (Array.isArray(ex.testSeries)) {
+            ex.testSeries.forEach((series: any) => {
+              if (series.slug) {
+                dynamicPaths.push({
+                  url: `${baseUrl}/test-series/program/${series.slug}`,
+                  lastModified: new Date(series.updatedAt || series.createdAt || now),
+                  changeFrequency: 'weekly',
+                  priority: 0.9,
+                });
+              }
+            });
+          }
+        });
+      }
+    }
+  } catch (_) {}
+
+  try {
+    // Dynamic custom pages and location SEO landing pages (/p/[slug])
+    const customPagesRes = await fetch(`${apiBase}/api/custom-pages?publishedOnly=true`, { next: { revalidate: 3600 } });
+    if (customPagesRes.ok) {
+      const pageData = await customPagesRes.json();
+      const pages = Array.isArray(pageData) ? pageData : (pageData?.data || []);
+      if (Array.isArray(pages)) {
+        pages.forEach((p: any) => {
+          if (p.slug) {
+            dynamicPaths.push({
+              url: `${baseUrl}/p/${p.slug}`,
+              lastModified: new Date(p.updatedAt || p.createdAt || now),
+              changeFrequency: 'weekly',
+              priority: 0.85,
+            });
+          }
+        });
+      }
+    }
+  } catch (_) {}
+
   return [...staticPaths, ...dynamicPaths];
 }

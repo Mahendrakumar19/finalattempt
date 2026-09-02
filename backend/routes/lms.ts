@@ -718,28 +718,45 @@ router.post('/admin/test-series/:testSeriesId/enroll', authenticate, requireAdmi
     return;
   }
   try {
-    const already = await lmsDB.isEnrolled(userId, testSeriesId);
-    if (!already) {
-      await lmsDB.createEnrollment(userId, testSeriesId, 'ADMIN_MANUAL', 0);
-    }
-
-    // Grant FULL active entitlement in user_entitlements
+    let targetIds = [testSeriesId];
     try {
-      const { prisma } = await import('../prisma');
-      const userEntitlementsDelegate = (prisma as any).user_entitlements;
-      if (userEntitlementsDelegate) {
-        await userEntitlementsDelegate.create({
-          data: {
-            user_id: userId,
-            series_id: testSeriesId,
-            entitlement_type: 'FULL',
-            max_sequence_number: 999,
-            snapshot_max_sequence: 999,
-            status: 'ACTIVE'
-          }
-        });
+      const ts = await lmsDB.getTestSeriesById(testSeriesId);
+      if (ts) {
+        if (ts.id) targetIds.push(ts.id);
+        if (ts.slug) targetIds.push(ts.slug);
       }
     } catch (_) {}
+    targetIds = Array.from(new Set(targetIds.filter(Boolean)));
+
+    for (const sid of targetIds) {
+      const already = await lmsDB.isEnrolled(userId, sid);
+      if (!already) {
+        await lmsDB.createEnrollment(userId, sid, 'ADMIN_MANUAL', 0);
+      }
+
+      // Grant FULL active entitlement in user_entitlements
+      try {
+        const { prisma } = await import('../prisma');
+        const userEntitlementsDelegate = (prisma as any).user_entitlements;
+        if (userEntitlementsDelegate) {
+          const existingEnt = await userEntitlementsDelegate.findFirst({
+            where: { user_id: userId, series_id: sid, entitlement_type: 'FULL', status: 'ACTIVE' }
+          });
+          if (!existingEnt) {
+            await userEntitlementsDelegate.create({
+              data: {
+                user_id: userId,
+                series_id: sid,
+                entitlement_type: 'FULL',
+                max_sequence_number: 999,
+                snapshot_max_sequence: 999,
+                status: 'ACTIVE'
+              }
+            });
+          }
+        }
+      } catch (_) {}
+    }
 
     res.json({ success: true, message: 'Student successfully enrolled in Test Series with full access.' });
   } catch (err: any) {
