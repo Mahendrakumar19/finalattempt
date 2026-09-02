@@ -4982,6 +4982,7 @@ class LmsDB {
       timeLimitMins: Number(data.timeLimitMins || 30),
       passingScore: Number(data.passingScore || 40.00),
       isPublished: data.isPublished ? 1 : 0,
+      isFree: data.isFree ? 1 : 0,
       createdAt: new Date().toISOString()
     };
 
