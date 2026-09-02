@@ -702,7 +702,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               >
                 {(() => {
                   const txt = getDisplayQuestionText(currentQ);
-                  if (txt.includes('<table') || txt.includes('match-list-container') || txt.includes('चट्टानी प्रणाली') || txt.includes('List-I')) {
+                  if (txt.includes('<table') || txt.includes('match-list-container') || txt.includes('<') || txt.includes('List-I')) {
                     return <div dangerouslySetInnerHTML={{ __html: txt }} />;
                   }
                   return txt;

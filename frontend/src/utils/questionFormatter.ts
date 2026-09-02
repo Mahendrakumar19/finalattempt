@@ -4,20 +4,32 @@
  */
 export function formatMatchListsInText(input: string): string {
   if (!input) return '';
-  if (input.includes('<table') || input.includes('class="match-list-container"')) return input;
 
-  const hasMatchKeyword = /(?:Match|मिलान|जोड़ी|Column|सूची|List)/i.test(input);
-  const hasRomanItems = /(?:^|\n)[ \t]*(?:[I|V|X]+|\d+)[\.\:\)\-–—]+[ \t]+/i.test(input);
-  const hasAlphaItems = /(?:^|\n)[ \t]*[A-Ea-eक-ङ][\.\:\)\-–—]+[ \t]+/i.test(input);
+  let textToParse = input;
+  if (textToParse.includes('<table') || textToParse.includes('class="match-list-container"')) {
+    // If the HTML table already contains non-empty <tr> data rows, keep it
+    if (/<tr[^>]*>[\s\S]*?<td/i.test(textToParse)) {
+      return input;
+    }
+    // Otherwise, strip out empty table markup to allow full re-parsing
+    textToParse = textToParse
+      .replace(/<div class="match-list-container"[^>]*>[\s\S]*?<\/div>/gi, '')
+      .replace(/<table[^>]*>[\s\S]*?<\/table>/gi, '')
+      .trim();
+  }
 
-  const hasList1 = /List[\s\-_]*I\b|List[\s\-_]*1\b|Column[\s\-_]*A\b|सूची[\s\-_]*I\b|सूची[\s\-_]*1\b/i.test(input);
-  const hasList2 = /List[\s\-_]*II\b|List[\s\-_]*2\b|Column[\s\-_]*B\b|सूची[\s\-_]*II\b|सूची[\s\-_]*2\b/i.test(input);
+  const hasMatchKeyword = /(?:Match|मिलान|जोड़ी|Column|सूची|List)/i.test(textToParse);
+  const hasRomanItems = /(?:^|\n)[ \t]*(?:[I|V|X]+|\d+)[\.\:\)\-–—]+[ \t]+/i.test(textToParse);
+  const hasAlphaItems = /(?:^|\n)[ \t]*[A-Ea-eक-ङ][\.\:\)\-–—]+[ \t]+/i.test(textToParse);
 
-  if (!hasList1 && !hasList2 && (!hasMatchKeyword || (!hasRomanItems && !hasAlphaItems))) {
+  const hasList1 = /List[\s\-_]*I\b|List[\s\-_]*1\b|Column[\s\-_]*A\b|सूची[\s\-_]*I\b|सूची[\s\-_]*1\b/i.test(textToParse);
+  const hasList2 = /List[\s\-_]*II\b|List[\s\-_]*2\b|Column[\s\-_]*B\b|सूची[\s\-_]*II\b|सूची[\s\-_]*2\b/i.test(textToParse);
+
+  if (!hasList1 && !hasList2 && (!hasMatchKeyword || (!hasRomanItems && !hasAlphaItems)) && !textToParse.includes('|')) {
     return input;
   }
 
-  const rawLines = input.split('\n');
+  const rawLines = textToParse.split('\n');
   const promptLines: string[] = [];
   const leftItems: string[] = [];
   const rightItems: string[] = [];
@@ -231,74 +243,80 @@ export function sanitizeAndRepairQuestion(q: any, activeLang: 'en' | 'hi' = 'en'
   let optD = q.optionD || q.optionDHi || '';
   let optE = q.optionE || q.optionEHi || '';
 
-  // Multi-line or single-line option choices regex
+  // Multi-line or single-line option choices regex (e.g. "(a) 3 4 1 2 (b) 1 2 3 4 (c) 3 1 2 4 (d) 4 3 2 1")
   const multiLineOptionsRegex = /(?:^|\n|\s*)(?:\(([a-dA-D1-4क-घ])\)|([a-dA-D1-4क-घ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([b-eB-E2-5ख-ङ])\)|([b-eB-E2-5ख-ङ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([cC3ग])\)|([cC3ग])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([dD4घ])\)|([dD4घ])[\)\.\:\t]+)\s*([\s\S]+?)(?=\s*(?:\([eE5ङ]\)|[eE5ङ][\)\.\:\t]+|Ans|Answer|Explanation|Sol|Solution|$))/i;
 
-  const isOptEmpty = !optA || optA.trim() === '' || optA.trim() === 'A';
-  let embeddedMatch = false;
+  let extractedOptA = '';
+  let extractedOptB = '';
+  let extractedOptC = '';
+  let extractedOptD = '';
+  let extractedOptE = '';
+  let foundEmbeddedOptions = false;
 
-  const extractOptionsFromText = (txt: string) => {
-    const match = multiLineOptionsRegex.exec(txt);
+  const tryExtractOptions = (str: string) => {
+    if (!str) return false;
+    const match = multiLineOptionsRegex.exec(str);
     if (match) {
-      embeddedMatch = true;
-      if (isOptEmpty) {
-        optA = match[3].trim();
-        optB = match[6].trim();
-        optC = match[9].trim();
-        let restD = match[12].trim();
+      foundEmbeddedOptions = true;
+      extractedOptA = match[3].trim();
+      extractedOptB = match[6].trim();
+      extractedOptC = match[9].trim();
+      let restD = match[12].trim();
 
-        const optEMatch = /(?:\(([eE5ङ])\)|[eE5ङ][\)\.\:\t]+)\s*([\s\S]+?)$/i.exec(restD);
-        if (optEMatch) {
-          optE = optEMatch[2].trim().replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
-          optD = restD.substring(0, optEMatch.index).trim();
-        } else {
-          optD = restD.replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
-        }
+      const optEMatch = /(?:\(([eE5ङ])\)|[eE5ङ][\)\.\:\t]+)\s*([\s\S]+?)$/i.exec(restD);
+      if (optEMatch) {
+        extractedOptE = optEMatch[2].trim().replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
+        extractedOptD = restD.substring(0, optEMatch.index).trim();
+      } else {
+        extractedOptD = restD.replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
       }
+      return true;
     }
+    return false;
   };
 
-  if (rawQText) extractOptionsFromText(rawQText);
-  if (rawQTextHi && (!optA || optA.trim() === '')) extractOptionsFromText(rawQTextHi);
+  // Search across option fields (especially optD, optC) and questionText for embedded choices
+  tryExtractOptions(optD) ||
+  tryExtractOptions(optC) ||
+  tryExtractOptions(optB) ||
+  tryExtractOptions(optA) ||
+  tryExtractOptions(rawQText) ||
+  tryExtractOptions(rawQTextHi);
 
-  if (rawQText) rawQText = rawQText.replace(multiLineOptionsRegex, '').trim();
-  if (rawQTextHi) rawQTextHi = rawQTextHi.replace(multiLineOptionsRegex, '').trim();
+  // Check if option fields contain stolen table rows (pipes '|' or list items)
+  const isStolenOptionsTable = optA.includes('|') || optB.includes('|') || optC.includes('|') || optD.includes('|') ||
+                               foundEmbeddedOptions ||
+                               /^[ \t]*[A|1][\.\:\)\-–—]+/i.test(optA);
 
-  // Check if Row A of matching table was stolen into optA (e.g. optA = "A. धारवाड़ चट्टान प्रणाली")
-  const isOptAStolenTableItem = /^[ \t]*[A|1][\.\:\)\-–—]+[ \t]+[^\n]+/i.test(optA) &&
-                                /^[ \t]*[B|2][\.\:\)\-–—]+[ \t]+[^\n]+/i.test(optB);
+  if (isStolenOptionsTable) {
+    const tableFragments: string[] = [];
 
-  if (isOptAStolenTableItem) {
-    const restoreRowA = (text: string) => {
-      if (!text) return text;
-      const hasA = /(?:^|\n|\|)[ \t]*A[\.\:\)\-–—]+/i.test(text);
-      if (!hasA) {
-        const bMatch = text.match(/(?:^|\n|\|)[ \t]*B[\.\:\)\-–—]+/i);
-        if (bMatch && bMatch.index !== undefined) {
-          const bIdx = bMatch.index;
-          const beforeB = text.slice(0, bIdx);
-          const fromB = text.slice(bIdx);
-          if (text[bIdx] === '|' || text.slice(Math.max(0, bIdx - 1), bIdx + 1).includes('|')) {
-            return beforeB + '| ' + optA.trim() + ' |\n' + fromB;
-          } else {
-            return beforeB + '\n' + optA.trim() + '\n' + fromB;
-          }
-        } else {
-          return text + '\n' + optA.trim();
-        }
+    [optA, optB, optC, optD, optE].forEach((optStr) => {
+      if (!optStr) return;
+      // Strip out the embedded option choices block if present
+      let cleanFrag = optStr.replace(multiLineOptionsRegex, '').trim();
+      cleanFrag = cleanFrag.replace(/^[a-dA-D][\)\.\:]\s*/, '');
+      if (cleanFrag) {
+        tableFragments.push(cleanFrag);
       }
-      return text;
-    };
+    });
 
-    rawQText = restoreRowA(rawQText);
-    if (rawQTextHi) rawQTextHi = restoreRowA(rawQTextHi);
+    if (foundEmbeddedOptions) {
+      optA = extractedOptA;
+      optB = extractedOptB;
+      optC = extractedOptC;
+      optD = extractedOptD;
+      if (extractedOptE) optE = extractedOptE;
+    }
 
-    if (!embeddedMatch) {
-      optA = optA.replace(/^[ \t]*[A|1][\.\:\)\-–—]+[ \t]*/i, '');
-      optB = optB.replace(/^[ \t]*[B|2][\.\:\)\-–—]+[ \t]*/i, '');
-      optC = optC.replace(/^[ \t]*[C|3][\.\:\)\-–—]+[ \t]*/i, '');
-      optD = optD.replace(/^[ \t]*[D|4][\.\:\)\-–—]+[ \t]*/i, '');
-      if (optE) optE = optE.replace(/^[ \t]*[E|5][\.\:\)\-–—]+[ \t]*/i, '');
+    if (tableFragments.length > 0) {
+      const mergedTableRows = '\n' + tableFragments.join('\n');
+      if (rawQText && !rawQText.includes(tableFragments[0])) {
+        rawQText += mergedTableRows;
+      }
+      if (rawQTextHi && !rawQTextHi.includes(tableFragments[0])) {
+        rawQTextHi += mergedTableRows;
+      }
     }
   }
 
