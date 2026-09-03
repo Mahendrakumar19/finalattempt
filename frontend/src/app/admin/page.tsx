@@ -4407,7 +4407,6 @@ export default function AdminPortal() {
                       <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Published</span>
                       <button
                         type="button"
-                        disabled={!editMode}
                         onClick={async () => {
                           const nextPub = !course.isPublished;
                           setCoursesList(prev => prev.map(c => c.id === course.id ? { ...c, isPublished: nextPub } : c));
@@ -4417,8 +4416,9 @@ export default function AdminPortal() {
                             body: JSON.stringify({ isPublished: nextPub })
                           });
                         }}
-                        className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-all duration-300 focus:outline-none ${course.isPublished ? 'bg-emerald-500' : 'bg-slate-350'
-                          } ${!editMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`w-10 h-6 flex items-center rounded-full p-0.5 transition-all duration-300 focus:outline-none cursor-pointer ${course.isPublished ? 'bg-emerald-500' : 'bg-slate-350'
+                          }`}
+                        title="Click to toggle Live/Draft status of this Course"
                       >
                         <div
                           className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform duration-300 ${course.isPublished ? 'translate-x-4' : 'translate-x-0'

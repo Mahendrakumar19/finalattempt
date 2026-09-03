@@ -378,9 +378,25 @@ export default function TestSeriesDetailPage() {
               <span className="px-2.5 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-bold text-[10px] uppercase rounded-md">
                 {series.category} • {series.exam}
               </span>
-              <span className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-md border ${series.isPublished !== false ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-800 border-[var(--card-border)] text-slate-500'}`}>
-                {series.isPublished !== false ? 'Published' : 'Draft'}
-              </span>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!series) return;
+                  const nextState = series.isPublished === false ? true : false;
+                  const updated = { ...series, isPublished: nextState };
+                  setSeries(updated);
+                  await db.saveTestSeries(updated);
+                }}
+                className={`px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-md border cursor-pointer transition-all flex items-center gap-1 ${
+                  series.isPublished !== false
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
+                    : 'bg-slate-100 dark:bg-slate-800 border-[var(--card-border)] text-slate-500 hover:bg-slate-200'
+                }`}
+                title="Click to toggle Live/Draft status of this Test Series"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${series.isPublished !== false ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                <span>{series.isPublished !== false ? 'Published' : 'Draft'}</span>
+              </button>
             </div>
             <h1 className="text-2xl font-black text-[var(--text-color)] mt-1">{series.title}</h1>
           </div>
@@ -490,6 +506,56 @@ export default function TestSeriesDetailPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Exam Target Category</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 71st BPSC CCE"
+                  value={series.exam || ''}
+                  onChange={e => setSeries({ ...series, exam: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-xs text-[var(--text-color)] outline-none mt-1 font-bold"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Program Stage / Category</label>
+                <select
+                  value={series.category || 'Prelims'}
+                  onChange={e => setSeries({ ...series, category: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-xs text-[var(--text-color)] outline-none mt-1 font-bold cursor-pointer"
+                >
+                  <option value="Prelims">Prelims</option>
+                  <option value="Mains">Mains</option>
+                  <option value="Combined">Combined (Prelims + Mains)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Medium / Language</label>
+                <select
+                  value={series.language || series.medium || 'Bilingual'}
+                  onChange={e => setSeries({ ...series, language: e.target.value, medium: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-xs text-[var(--text-color)] outline-none mt-1 font-bold cursor-pointer"
+                >
+                  <option value="Bilingual">Bilingual (English & Hindi)</option>
+                  <option value="Hindi">Hindi Only</option>
+                  <option value="English">English Only</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase text-slate-400">Duration / Validity</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 6 Months, Unlimited"
+                  value={series.duration || ''}
+                  onChange={e => setSeries({ ...series, duration: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-xs text-[var(--text-color)] outline-none mt-1 font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
                 <label className="text-[10px] font-bold uppercase text-slate-400">Price (₹)</label>
                 <input
                   type="number"
@@ -507,6 +573,39 @@ export default function TestSeriesDetailPage() {
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-xs text-[var(--text-color)] outline-none mt-1"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase text-slate-400">Thumbnail Cover Image URL</label>
+              <input
+                type="text"
+                placeholder="https://example.com/thumbnail.jpg"
+                value={series.thumbnailUrl || ''}
+                onChange={e => setSeries({ ...series, thumbnailUrl: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-xs text-[var(--text-color)] outline-none mt-1 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase text-slate-400">Banner Header Image URL</label>
+              <input
+                type="text"
+                placeholder="https://example.com/banner.jpg"
+                value={series.bannerUrl || ''}
+                onChange={e => setSeries({ ...series, bannerUrl: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-xs text-[var(--text-color)] outline-none mt-1 font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase text-slate-400">Schedule PDF Download URL</label>
+              <input
+                type="text"
+                placeholder="https://example.com/schedule.pdf"
+                value={series.schedulePdfUrl || ''}
+                onChange={e => setSeries({ ...series, schedulePdfUrl: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-2xl text-xs text-[var(--text-color)] outline-none mt-1 font-mono"
+              />
             </div>
 
             <div>
@@ -559,8 +658,8 @@ export default function TestSeriesDetailPage() {
                     plan_code: code,
                     title: `${code} Package`,
                     sequence_start_number: 1,
-                    sequence_end_number: code === 'MINI' ? 16 : code === 'HALF' ? 28 : 40,
-                    price: code === 'MINI' ? 299 : code === 'HALF' ? 499 : 799,
+                    sequence_end_number: code === 'MINI' ? 16 : code === 'HALF' ? 28 : (quizzes.length > 0 ? Math.max(quizzes.length, 40) : 40),
+                    price: code === 'MINI' ? 299 : code === 'HALF' ? 499 : (series.discountedPrice || series.price || 799),
                     is_active: true
                   };
 
@@ -591,6 +690,12 @@ export default function TestSeriesDetailPage() {
                         <h4 className="font-heading font-black text-xl text-[var(--text-color)]">
                           Tests {plan.sequence_start_number}–{plan.sequence_end_number}
                         </h4>
+
+                        {plan.description && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-xl border border-[var(--card-border)]">
+                            {plan.description}
+                          </p>
+                        )}
 
                         <div className="flex items-baseline gap-2 pt-2 border-t border-[var(--card-border)]">
                           <span className="text-2xl font-heading font-black text-[var(--text-color)]">
@@ -817,6 +922,17 @@ export default function TestSeriesDetailPage() {
                   required
                   value={editingPlan.title || ''}
                   onChange={e => setEditingPlan({ ...editingPlan, title: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 dark:text-slate-300 mb-1">Package Description & Features for Users</label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Complete test series package with 40 full-length CBT mock tests, detailed bilingual explanations, rank analysis, and downloadable solution PDFs."
+                  value={editingPlan.description || ''}
+                  onChange={e => setEditingPlan({ ...editingPlan, description: e.target.value })}
                   className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs focus:border-amber-500 transition-colors"
                 />
               </div>

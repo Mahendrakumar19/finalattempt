@@ -600,7 +600,7 @@ export default function TestSeriesDetailPage() {
                     </div>
 
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      {t('testSeries.first')} {plan.sequence_end_number} {t('testSeries.sequentialTests')}
+                      {plan.description || `${t('testSeries.first')} ${plan.sequence_end_number} ${t('testSeries.sequentialTests')}`}
                     </p>
 
                     <div className="flex items-baseline gap-2 pt-2 border-t border-[var(--card-border)]">
@@ -683,7 +683,7 @@ export default function TestSeriesDetailPage() {
                     </div>
 
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      {t('testSeries.first')} {plan.sequence_end_number} {t('testSeries.cumulatively')}
+                      {plan.description || `${t('testSeries.first')} ${plan.sequence_end_number} ${t('testSeries.cumulatively')}`}
                     </p>
 
                     <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
@@ -782,7 +782,7 @@ export default function TestSeriesDetailPage() {
                     </div>
 
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      {t('testSeries.fullAccessDesc')}
+                      {plan.description || t('testSeries.fullAccessDesc')}
                     </p>
 
                     <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">

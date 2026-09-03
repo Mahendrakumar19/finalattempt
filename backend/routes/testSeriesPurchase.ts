@@ -8,6 +8,7 @@ import { TestSeriesOrderService, RequestedCartItem } from '../services/testSerie
 import { AuditLogService } from '../services/auditLogService';
 import { razorpay } from '../services/razorpay';
 import { PlanCode } from '@prisma/client';
+import { lmsDB } from '../db';
 
 const router = Router();
 
@@ -18,9 +19,19 @@ const router = Router();
 router.get('/:seriesId/plans', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const seriesId = req.params.seriesId as string;
+    let targetIds = [seriesId];
+    try {
+      const ts = await lmsDB.getTestSeriesById(seriesId);
+      if (ts) {
+        if (ts.id) targetIds.push(ts.id);
+        if (ts.slug) targetIds.push(ts.slug);
+      }
+    } catch (_) {}
+    targetIds = Array.from(new Set(targetIds.filter(Boolean)));
+
     const plans = await prisma.test_series_plans.findMany({
       where: {
-        series_id: seriesId,
+        series_id: { in: targetIds },
         is_active: true
       },
       orderBy: { sequence_start_number: 'asc' }
@@ -95,34 +106,47 @@ router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest,
     // Find existing plan for audit logging
     const oldPlan = existingPlans.find(p => p.plan_code === planCode);
 
-    const plan = await prisma.test_series_plans.upsert({
-      where: {
-        series_id_plan_code: {
-          series_id: seriesId,
-          plan_code: planCode as PlanCode
-        }
-      },
-      update: {
-        title: title || `${planCode} Package`,
-        description: description || null,
-        sequence_start_number: numSeqStart,
-        sequence_end_number: numSeqEnd,
-        price: numPrice,
-        discounted_price: discountedPrice !== undefined && discountedPrice !== null ? Number(discountedPrice) : null,
-        is_active: isActive !== undefined ? Boolean(isActive) : true
-      },
-      create: {
-        series_id: seriesId,
-        plan_code: planCode as PlanCode,
-        title: title || `${planCode} Package`,
-        description: description || null,
-        sequence_start_number: numSeqStart,
-        sequence_end_number: numSeqEnd,
-        price: numPrice,
-        discounted_price: discountedPrice !== undefined && discountedPrice !== null ? Number(discountedPrice) : null,
-        is_active: isActive !== undefined ? Boolean(isActive) : true
+    let targetSeriesIds = [seriesId];
+    try {
+      const ts = await lmsDB.getTestSeriesById(seriesId);
+      if (ts) {
+        if (ts.id) targetSeriesIds.push(ts.id);
+        if (ts.slug) targetSeriesIds.push(ts.slug);
       }
-    });
+    } catch (_) {}
+    targetSeriesIds = Array.from(new Set(targetSeriesIds.filter(Boolean)));
+
+    let plan: any = null;
+    for (const sid of targetSeriesIds) {
+      plan = await prisma.test_series_plans.upsert({
+        where: {
+          series_id_plan_code: {
+            series_id: sid,
+            plan_code: planCode as PlanCode
+          }
+        },
+        update: {
+          title: title || `${planCode} Package`,
+          description: description || null,
+          sequence_start_number: numSeqStart,
+          sequence_end_number: numSeqEnd,
+          price: numPrice,
+          discounted_price: discountedPrice !== undefined && discountedPrice !== null ? Number(discountedPrice) : null,
+          is_active: isActive !== undefined ? Boolean(isActive) : true
+        },
+        create: {
+          series_id: sid,
+          plan_code: planCode as PlanCode,
+          title: title || `${planCode} Package`,
+          description: description || null,
+          sequence_start_number: numSeqStart,
+          sequence_end_number: numSeqEnd,
+          price: numPrice,
+          discounted_price: discountedPrice !== undefined && discountedPrice !== null ? Number(discountedPrice) : null,
+          is_active: isActive !== undefined ? Boolean(isActive) : true
+        }
+      });
+    }
 
     // Determine audit log action
     let actionType: 'PLAN_PRICE_CHANGE' | 'PLAN_BOUNDARY_CHANGE' | 'PLAN_ACTIVATION_CHANGE' = 'PLAN_PRICE_CHANGE';
