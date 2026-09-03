@@ -2,9 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { ArrowLeft, BookOpen, Clock, AlertTriangle, ShieldCheck } from 'lucide-react';
-import { db } from '@/services/db';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import QuizEngine from '@/components/lms/QuizEngine';
 
@@ -14,9 +12,8 @@ function TestAttemptContent() {
   const quizIdParam = searchParams.get('quiz');
   const { user, accessToken } = useAuth();
   
-  const [quizId, setQuizId] = useState<string | null>(quizIdParam);
-  const [loading, setLoading] = useState(!quizIdParam);
-  const [error, setError] = useState<string | null>(null);
+  const quizId = quizIdParam;
+  const error = !quizId ? 'A specific quiz paper parameter (?quiz=id) is required to enter CBT exam mode.' : null;
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -24,29 +21,9 @@ function TestAttemptContent() {
       if (!user && !token) {
         const currentUrl = window.location.pathname + window.location.search;
         window.location.href = `/auth/login?redirect=${encodeURIComponent(currentUrl)}`;
-        return;
       }
     }
-
-    if (quizIdParam) {
-      setQuizId(quizIdParam);
-      setLoading(false);
-    } else {
-      setError('A specific quiz paper parameter (?quiz=id) is required to enter CBT exam mode.');
-      setLoading(false);
-    }
-  }, [quizIdParam, user, accessToken]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
-        <div className="text-center space-y-4">
-          <div className="w-10 h-10 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-white/60 text-xs font-bold uppercase tracking-wider">Loading CBT Exam Engine...</p>
-        </div>
-      </div>
-    );
-  }
+  }, [user, accessToken]);
 
   if (error || !quizId) {
     return (

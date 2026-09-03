@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { 
   ArrowLeft, CheckCircle, BookOpen, Layers, 
-  ChevronDown, ChevronUp, Award, Sparkles, PhoneCall, HelpCircle,
-  Lock, Check, ShoppingBag, ShieldCheck, Tag, X, ArrowRight, Zap, RefreshCw
+  ChevronDown, ChevronUp, Sparkles, PhoneCall, HelpCircle,
+  ShoppingBag, ShieldCheck, X, ArrowRight, RefreshCw
 } from 'lucide-react';
 
 import { db, TestSeriesItem } from '@/services/db';
@@ -76,7 +76,6 @@ export default function TestSeriesDetailPage() {
   const [entitlements, setEntitlements] = useState<UserEntitlement[]>([]);
   
   const [loading, setLoading] = useState(true);
-  const [openSubject, setOpenSubject] = useState<number | null>(0);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   
   // Selection & Cart State
@@ -86,7 +85,6 @@ export default function TestSeriesDetailPage() {
   const [previewLoading, setPreviewLoading] = useState(false);
 
   // Modals & UI States
-  const [lockedModalQuiz, setLockedModalQuiz] = useState<QuizItem | null>(null);
   const [paymentState, setPaymentState] = useState<'IDLE' | 'CREATING_ORDER' | 'RAZORPAY_OPEN' | 'VERIFYING' | 'SUCCESS' | 'ERROR'>('IDLE');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showCheckoutDrawer, setShowCheckoutDrawer] = useState(false);
@@ -101,7 +99,7 @@ export default function TestSeriesDetailPage() {
         if (item && item.id) {
           // Fetch quizzes
           const quizList = await db.getTestSeriesQuizzes(item.id);
-          const formattedQuizzes = (quizList || []).map((q: any, idx: number) => ({
+          const formattedQuizzes = (quizList || []).map((q: QuizItem, idx: number) => ({
             ...q,
             sequence_number: q.sequence_number || idx + 1,
             is_standalone_purchasable: q.is_standalone_purchasable !== false,
@@ -164,8 +162,10 @@ export default function TestSeriesDetailPage() {
     });
 
     if (itemsPayload.length === 0) {
-      setCartPreview(null);
-      return;
+      const resetTimer = setTimeout(() => {
+        setCartPreview(null);
+      }, 0);
+      return () => clearTimeout(resetTimer);
     }
 
     const timer = setTimeout(async () => {
@@ -240,7 +240,8 @@ export default function TestSeriesDetailPage() {
   // ── Load Razorpay Script Dynamically ──────────────────────────────────────
   const loadRazorpaySDK = (): Promise<boolean> => {
     return new Promise((resolve) => {
-      if ((window as any).Razorpay) return resolve(true);
+      const win = window as unknown as Record<string, unknown>;
+      if (win.Razorpay) return resolve(true);
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.onload = () => resolve(true);
@@ -288,7 +289,8 @@ export default function TestSeriesDetailPage() {
         itemsPayload.push({ itemType: 'INDIVIDUAL_TEST', quizId: qId });
       });
 
-      const uId = (user as any)?.id || (user as any)?.userId || 'user';
+      const userObj = user as Record<string, unknown> | null;
+      const uId = (userObj?.id as string) || (userObj?.userId as string) || 'user';
       const idempotencyKey = `idemp_${uId}_${series.id}_${Date.now()}`;
 
       // 2. Call backend order creation API
@@ -338,7 +340,7 @@ export default function TestSeriesDetailPage() {
         return;
       }
 
-      const currentUser = user as any;
+      const currentUser = user as Record<string, unknown> | null;
 
       const options = {
         key: orderData.key || 'rzp_test_TTzBxGpMqc0rAD',
@@ -348,19 +350,19 @@ export default function TestSeriesDetailPage() {
         description: `Purchase for ${series.title}`,
         order_id: orderData.gatewayOrderId,
         prefill: {
-          name: currentUser?.fullName || '',
-          email: currentUser?.email || '',
-          contact: currentUser?.mobile || ''
+          name: (currentUser?.fullName as string) || '',
+          email: (currentUser?.email as string) || '',
+          contact: (currentUser?.mobile as string) || ''
         },
         theme: { color: '#f59e0b' },
-        handler: async function (response: any) {
+        handler: async function (response: Record<string, unknown>) {
           setPaymentState('VERIFYING');
           try {
             const verifyRes = await db.verifyTestSeriesOrder({
               orderId: orderData.orderId,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpayOrderId: response.razorpay_order_id,
-              razorpaySignature: response.razorpay_signature
+              razorpayPaymentId: response.razorpay_payment_id as string,
+              razorpayOrderId: response.razorpay_order_id as string,
+              razorpaySignature: response.razorpay_signature as string
             }, effectiveToken || undefined);
 
             if (verifyRes && verifyRes.success) {
@@ -373,9 +375,10 @@ export default function TestSeriesDetailPage() {
             } else {
               throw new Error(verifyRes?.error || 'Payment verification failed.');
             }
-          } catch (err: any) {
+          } catch (err: unknown) {
             setPaymentState('ERROR');
-            setErrorMessage(err.message || 'Payment verification failed.');
+            const errObj = err as Error;
+            setErrorMessage(errObj.message || 'Payment verification failed.');
           }
         },
         modal: {
@@ -385,17 +388,20 @@ export default function TestSeriesDetailPage() {
         }
       };
 
-      const rzp = new (window as any).Razorpay(options);
-      rzp.on('payment.failed', function (response: any) {
+      const win = window as unknown as { Razorpay: new (opts: unknown) => { on: (event: string, cb: (res: Record<string, unknown>) => void) => void; open: () => void } };
+      const rzp = new win.Razorpay(options);
+      rzp.on('payment.failed', function (response: Record<string, unknown>) {
         setPaymentState('ERROR');
-        setErrorMessage(response.error?.description || 'Payment failed on Razorpay.');
+        const errDesc = (response.error as Record<string, unknown>)?.description as string;
+        setErrorMessage(errDesc || 'Payment failed on Razorpay.');
       });
       rzp.open();
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Checkout error:', err);
       setPaymentState('ERROR');
-      setErrorMessage(err.message || 'Checkout failed. Please try again.');
+      const errObj = err as Error;
+      setErrorMessage(errObj.message || 'Checkout failed. Please try again.');
     }
   };
 
