@@ -231,6 +231,17 @@ export class TestSeriesOrderService {
       }
     }
 
+    const targetSeriesIds = [seriesId, canonicalSeriesId];
+    try {
+      const { db } = await import('../db');
+      const ts = await db.getTestSeriesBySlugOrId(seriesId);
+      if (ts) {
+        if (ts.id) targetSeriesIds.push(ts.id);
+        if (ts.slug) targetSeriesIds.push(ts.slug);
+      }
+    } catch (_) {}
+    const uniqueSeriesIds = Array.from(new Set(targetSeriesIds.filter(Boolean)));
+
     // Process Individual Test Requests
     const individualRequests = requestedItems.filter(i => i.itemType === 'INDIVIDUAL_TEST' && i.quizId);
     const uniqueQuizIds = Array.from(new Set(individualRequests.map(i => i.quizId!)));
@@ -238,15 +249,12 @@ export class TestSeriesOrderService {
     if (uniqueQuizIds.length > 0) {
       const quizzes = await prisma.lms_quizzes.findMany({
         where: {
-          id: { in: uniqueQuizIds },
-          OR: [
-            { courseId: canonicalSeriesId },
-            { courseId: seriesId }
-          ]
+          id: { in: uniqueQuizIds }
         },
         select: {
           id: true,
           title: true,
+          courseId: true,
           sequence_number: true,
           is_standalone_purchasable: true,
           individual_price: true
@@ -254,9 +262,34 @@ export class TestSeriesOrderService {
       });
 
       for (const quizId of uniqueQuizIds) {
-        const quiz = quizzes.find(q => q.id === quizId);
+        let quiz = quizzes.find(q => q.id === quizId);
 
         if (!quiz) {
+          try {
+            const { lmsDB } = await import('../db');
+            const foundQ = await lmsDB.getQuizById(quizId);
+            if (foundQ) {
+              quiz = {
+                id: foundQ.id,
+                title: foundQ.title,
+                courseId: foundQ.courseId || foundQ.seriesId || seriesId,
+                sequence_number: foundQ.sequenceNumber || null,
+                is_standalone_purchasable: true,
+                individual_price: foundQ.individualPrice || 49
+              } as any;
+            }
+          } catch (_) {}
+        }
+
+        if (!quiz) {
+          throw new Error(`Quiz '${quizId}' not found.`);
+        }
+
+        const quizCourseId = quiz.courseId || '';
+        const belongsToSeries = uniqueSeriesIds.includes(quizCourseId) ||
+          uniqueSeriesIds.some(sid => quizId.includes(sid) || quizCourseId.includes(sid));
+
+        if (!belongsToSeries) {
           throw new Error(`Quiz '${quizId}' does not belong to series '${seriesId}'.`);
         }
 
