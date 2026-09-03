@@ -4,19 +4,30 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, BookOpen, Clock, AlertTriangle, ShieldCheck } from 'lucide-react';
-import QuizEngine from '@/components/lms/QuizEngine';
 import { db } from '@/services/db';
+import { useAuth } from '@/hooks/useAuth';
+import QuizEngine from '@/components/lms/QuizEngine';
 
 function TestAttemptContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const quizIdParam = searchParams.get('quiz');
+  const { user, accessToken } = useAuth();
   
   const [quizId, setQuizId] = useState<string | null>(quizIdParam);
   const [loading, setLoading] = useState(!quizIdParam);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = accessToken || localStorage.getItem('access_token') || localStorage.getItem('token');
+      if (!user && !token) {
+        const currentUrl = window.location.pathname + window.location.search;
+        window.location.href = `/auth/login?redirect=${encodeURIComponent(currentUrl)}`;
+        return;
+      }
+    }
+
     if (quizIdParam) {
       setQuizId(quizIdParam);
       setLoading(false);
@@ -24,7 +35,7 @@ function TestAttemptContent() {
       setError('A specific quiz paper parameter (?quiz=id) is required to enter CBT exam mode.');
       setLoading(false);
     }
-  }, [quizIdParam]);
+  }, [quizIdParam, user, accessToken]);
 
   if (loading) {
     return (

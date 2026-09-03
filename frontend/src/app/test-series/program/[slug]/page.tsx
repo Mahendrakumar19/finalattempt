@@ -866,8 +866,17 @@ export default function TestSeriesDetailPage() {
                   key={quiz.id || idx}
                   onClick={() => {
                     if (info.isOwned) {
+                      const targetUrl = `/test-series/program/${slug}/attempt?quiz=${quiz.id}`;
+                      let token = accessToken;
+                      if (!token && typeof window !== 'undefined') {
+                        token = localStorage.getItem('access_token') || localStorage.getItem('token');
+                      }
+                      if (!user && !token) {
+                        window.location.href = `/auth/login?redirect=${encodeURIComponent(targetUrl)}`;
+                        return;
+                      }
                       // Navigate to attempt
-                      window.location.href = `/test-series/program/${slug}/attempt?quiz=${quiz.id}`;
+                      window.location.href = targetUrl;
                     } else if (info.isCoveredByCartPackage) {
                       // Do nothing - already in selected package
                     } else {
