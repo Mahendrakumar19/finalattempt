@@ -456,6 +456,7 @@ export default function TestSeriesDetailPage() {
         <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden shadow-xs">
           {(series.bannerUrl || series.thumbnailUrl) && (
             <div className="w-full aspect-video max-h-[450px] bg-slate-950 relative overflow-hidden flex items-center justify-center border-b border-[var(--card-border)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={series.bannerUrl || series.thumbnailUrl}
                 alt={series.title}
