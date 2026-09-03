@@ -733,7 +733,7 @@ export default function TestSeriesDetailPage() {
                         </div>
 
                         <h4 className="font-heading font-black text-xl text-[var(--text-color)]">
-                          Tests {plan.sequence_start_number}–{plan.sequence_end_number}
+                          Tests 1–{plan.sequence_end_number}
                         </h4>
 
                         {plan.description && (
@@ -942,7 +942,7 @@ export default function TestSeriesDetailPage() {
                     planCode: editingPlan.plan_code,
                     title: editingPlan.title,
                     description: editingPlan.description,
-                    sequenceStartNumber: Number(editingPlan.sequence_start_number) || 1,
+                    sequenceStartNumber: 1,
                     sequenceEndNumber: Number(editingPlan.sequence_end_number),
                     price: Number(editingPlan.price),
                     discountedPrice: editingPlan.discounted_price ? Number(editingPlan.discounted_price) : undefined,

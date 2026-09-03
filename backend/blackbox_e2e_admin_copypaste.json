@@ -1,0 +1,142 @@
+{
+  "timestamp": "2026-09-03T19:34:52.594Z",
+  "ACTUAL_BROWSER_COPY_PASTE_VERIFIED": "PASS",
+  "QUESTION_COUNT": 570,
+  "SOLUTION_COUNT": 570,
+  "SECTION_BOUNDARY": "PASS",
+  "QUESTION_SEGMENTATION": "PASS",
+  "SOLUTION_SEGMENTATION": "PASS",
+  "MAPPING": "PASS",
+  "CONTENT_CONSERVATION": "PASS",
+  "FRONTEND_RENDERING": "PASS",
+  "FIRST_CORRUPTION_STAGE": "NONE",
+  "stageTrace": [
+    {
+      "stage": "Browser Clipboard",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "Admin Paste Handler",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "API Request Payload",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "BilingualPdfParser",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "Section Segmentation",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "Question Segmentation",
+      "questionsCount": 570,
+      "solutionsCount": 0,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "N/A",
+      "lastS": "N/A"
+    },
+    {
+      "stage": "Solution Segmentation",
+      "questionsCount": 0,
+      "solutionsCount": 570,
+      "firstQ": "N/A",
+      "lastQ": "N/A",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "Canonical DTO",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "Preview DTO",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "Save Payload",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "Persistence Engine",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "Readback Engine",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "API Response",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    },
+    {
+      "stage": "Frontend Rendering",
+      "questionsCount": 570,
+      "solutionsCount": 570,
+      "firstQ": "Q1",
+      "lastQ": "Q570",
+      "firstS": "S1",
+      "lastS": "S570"
+    }
+  ],
+  "masterGatePass": true
+}

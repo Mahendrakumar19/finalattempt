@@ -203,6 +203,7 @@ export default function TestSeriesAdmin({
   const [bilingualParseMode, setBilingualParseMode] = useState<'text' | 'pdf' | 'excel'>('text');
   const [bilingualParseErrors, setBilingualParseErrors] = useState<string[]>([]);
   const [bilingualPaperLanguage, setBilingualPaperLanguage] = useState<'BILINGUAL' | 'HINDI_ONLY' | 'ENGLISH_ONLY'>('BILINGUAL');
+  const [bilingualViewMode, setBilingualViewMode] = useState<'canonical' | 'single'>('canonical');
   const [quizLangMode, setQuizLangMode] = useState<Record<string, 'EN' | 'HI'>>({});
 
   // Admin SET Paper & Explanation Key Inspector State
@@ -3212,10 +3213,6 @@ export default function TestSeriesAdmin({
                       <span className="text-[10px] text-slate-400 uppercase">En Qs / Hi Qs</span>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
-                      <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalAnswersEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalAnswersHi || (parsedBulkQuestions || []).length}</span>
-                      <span className="text-[10px] text-slate-400 uppercase">En Ans / Hi Ans</span>
-                    </div>
-                    <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl">
                       <span className="text-slate-400 text-lg font-black block">{bilingualReport?.totalExplanationsEn || (parsedBulkQuestions || []).length} / {bilingualReport?.totalExplanationsHi || 0}</span>
                       <span className="text-[10px] text-slate-400 uppercase">Explanations</span>
                     </div>
@@ -3235,48 +3232,150 @@ export default function TestSeriesAdmin({
                     </div>
                   )}
 
-                  {/* Question Preview Side-by-Side Inspector */}
+                  {/* Question Preview Inspector & Canonical Two-Section View */}
                   {bilingualReport.questionsPreview && bilingualReport.questionsPreview.length > 0 && (
                     <div className="space-y-4 border-t border-[var(--card-border)] pt-4">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <span className="text-xs font-black uppercase text-amber-500 tracking-wider">
-                          Question Preview ({previewQuestionIndex + 1} of {bilingualReport.questionsPreview.length})
-                        </span>
-
+                      {/* Top View Mode Switcher Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100 dark:bg-slate-900/90 p-2.5 rounded-2xl border border-[var(--card-border)]">
                         <div className="flex items-center gap-2">
-                          <select
-                            value={previewQuestionIndex}
-                            onChange={e => setPreviewQuestionIndex(Number(e.target.value))}
-                            className="px-3 py-1.5 bg-slate-100 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl text-xs font-bold outline-none cursor-pointer"
+                          <button
+                            type="button"
+                            onClick={() => setBilingualViewMode('canonical')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all cursor-pointer flex items-center gap-2 ${
+                              bilingualViewMode === 'canonical'
+                                ? 'bg-amber-500 text-slate-950 shadow-md'
+                                : 'bg-transparent text-slate-400 hover:text-[var(--text-color)]'
+                            }`}
                           >
-                            {bilingualReport.questionsPreview.map((q: any, idx: number) => (
-                              <option key={idx} value={idx}>
-                                Jump to Q{q.questionNumber || idx + 1}
-                              </option>
-                            ))}
-                          </select>
+                            <span>📋 Questions First, Explanations Second (Canonical)</span>
+                          </button>
 
                           <button
                             type="button"
-                            disabled={previewQuestionIndex === 0}
-                            onClick={() => setPreviewQuestionIndex(prev => Math.max(0, prev - 1))}
-                            className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold disabled:opacity-30 cursor-pointer transition-colors"
+                            onClick={() => setBilingualViewMode('single')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all cursor-pointer flex items-center gap-2 ${
+                              bilingualViewMode === 'single'
+                                ? 'bg-amber-500 text-slate-950 shadow-md'
+                                : 'bg-transparent text-slate-400 hover:text-[var(--text-color)]'
+                            }`}
                           >
-                            ← Prev Q
-                          </button>
-                          <button
-                            type="button"
-                            disabled={previewQuestionIndex >= bilingualReport.questionsPreview.length - 1}
-                            onClick={() => setPreviewQuestionIndex(prev => Math.min(bilingualReport.questionsPreview.length - 1, prev + 1))}
-                            className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold disabled:opacity-30 cursor-pointer transition-colors"
-                          >
-                            Next Q →
+                            <span>🔍 Single Question Card View</span>
                           </button>
                         </div>
+
+                        {bilingualViewMode === 'single' && (
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={previewQuestionIndex}
+                              onChange={e => setPreviewQuestionIndex(Number(e.target.value))}
+                              className="px-3 py-1.5 bg-white dark:bg-slate-950 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl text-xs font-bold outline-none cursor-pointer"
+                            >
+                              {bilingualReport.questionsPreview.map((q: any, idx: number) => (
+                                <option key={idx} value={idx}>
+                                  Jump to Q{q.questionNumber || idx + 1}
+                                </option>
+                              ))}
+                            </select>
+
+                            <button
+                              type="button"
+                              disabled={previewQuestionIndex === 0}
+                              onClick={() => setPreviewQuestionIndex(prev => Math.max(0, prev - 1))}
+                              className="px-3.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold disabled:opacity-30 cursor-pointer transition-colors"
+                            >
+                              ← Prev Q
+                            </button>
+                            <button
+                              type="button"
+                              disabled={previewQuestionIndex >= bilingualReport.questionsPreview.length - 1}
+                              onClick={() => setPreviewQuestionIndex(prev => Math.min(bilingualReport.questionsPreview.length - 1, prev + 1))}
+                              className="px-3.5 py-1.5 bg-white dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold disabled:opacity-30 cursor-pointer transition-colors"
+                            >
+                              Next Q →
+                            </button>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Side by Side Preview Card */}
-                      {(() => {
+                      {/* MODE A: CANONICAL TWO-SECTION VIEW (QUESTIONS FIRST, EXPLANATIONS SECOND) */}
+                      {bilingualViewMode === 'canonical' && (
+                        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-1">
+                          {/* SECTION 1 — QUESTIONS */}
+                          <div className="p-6 bg-slate-50 dark:bg-slate-900 border-2 border-amber-500/30 rounded-3xl space-y-6">
+                            <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                              <h4 className="font-heading font-black text-sm uppercase text-amber-500 tracking-wider flex items-center gap-2">
+                                <span>SECTION 1 — QUESTIONS (Q1 to Q{bilingualReport.questionsPreview.length})</span>
+                              </h4>
+                              <span className="text-[10px] font-extrabold px-2.5 py-1 bg-amber-500/10 text-amber-500 rounded-lg uppercase">
+                                Questions Stored & Rendered First
+                              </span>
+                            </div>
+
+                            <div className="space-y-6 divide-y divide-[var(--card-border)]">
+                              {bilingualReport.questionsPreview.map((q: any, idx: number) => (
+                                <div key={idx} className="pt-5 first:pt-0 space-y-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-3 py-1 bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black text-xs rounded-xl border border-amber-500/30">
+                                      Q{q.questionNumber || idx + 1}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs font-semibold text-[var(--text-color)] leading-relaxed">
+                                    {renderMarkdownContent(q.questionText || q.questionTextHi)}
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-medium pt-1">
+                                    {[
+                                      { key: 'A', text: q.optionA || q.optionAHi },
+                                      { key: 'B', text: q.optionB || q.optionBHi },
+                                      { key: 'C', text: q.optionC || q.optionCHi },
+                                      { key: 'D', text: q.optionD || q.optionDHi },
+                                      ...((q.optionE || q.optionEHi) ? [{ key: 'E', text: q.optionE || q.optionEHi }] : [])
+                                    ].map(opt => (
+                                      <div key={opt.key} className="p-3 bg-white dark:bg-slate-950 border border-[var(--card-border)] rounded-xl flex items-start gap-2.5">
+                                        <span className="font-bold text-amber-500">({opt.key.toLowerCase()})</span>
+                                        <span className="flex-1">{stripOptionPrefix(opt.text)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* SECTION 2 — EXPLANATIONS */}
+                          <div className="p-6 bg-slate-50 dark:bg-slate-900 border-2 border-emerald-500/30 rounded-3xl space-y-6">
+                            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+                              <h4 className="font-heading font-black text-sm uppercase text-emerald-500 tracking-wider flex items-center gap-2">
+                                <span>SECTION 2 — EXPLANATIONS (Q1 to Q{bilingualReport.questionsPreview.length})</span>
+                              </h4>
+                              <span className="text-[10px] font-extrabold px-2.5 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg uppercase">
+                                Explanations Stored & Rendered Second
+                              </span>
+                            </div>
+
+                            <div className="space-y-6 divide-y divide-[var(--card-border)]">
+                              {bilingualReport.questionsPreview.map((q: any, idx: number) => (
+                                <div key={idx} className="pt-5 first:pt-0 space-y-3">
+                                  <div className="flex items-center justify-between flex-wrap gap-2">
+                                    <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-xs rounded-xl border border-emerald-500/30">
+                                      Q{q.questionNumber || idx + 1} Explanation & Answer Key
+                                    </span>
+                                    <span className="px-3.5 py-1 bg-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow-xs">
+                                      Correct Answer: Option {q.correctAnswer}
+                                    </span>
+                                  </div>
+                                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-xs text-[var(--text-color)] leading-relaxed space-y-1">
+                                    <span className="font-extrabold text-[10px] uppercase text-emerald-500 tracking-wider block">Full Solution / Explanation Text</span>
+                                    <p className="whitespace-pre-wrap">{q.explanation || q.explanationHi || 'No detailed explanation text provided.'}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* MODE B: SINGLE QUESTION INTERACTIVE CARD VIEW */}
+                      {bilingualViewMode === 'single' && (() => {
                         const curQ = bilingualReport.questionsPreview[previewQuestionIndex];
                         if (!curQ) return null;
 

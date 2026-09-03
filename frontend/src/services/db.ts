@@ -1462,15 +1462,23 @@ class FinalAttemptDB {
       } catch (_) {}
     }
 
-    if (serverList.length === 0) return localList;
-
     const mergedMap = new Map<string, any>();
     serverList.forEach(q => mergedMap.set(q.id, q));
     localList.forEach(q => {
       if (!mergedMap.has(q.id)) mergedMap.set(q.id, q);
     });
 
-    return Array.from(mergedMap.values());
+    const list = Array.from(mergedMap.values());
+    list.sort((a, b) => {
+      const timeA = new Date(a.createdAt || a.created_at || 0).getTime();
+      const timeB = new Date(b.createdAt || b.created_at || 0).getTime();
+      return timeA - timeB;
+    });
+
+    return list.map((q, idx) => ({
+      ...q,
+      sequence_number: idx + 1
+    }));
   }
 
   public async getQuizById(quizId: string): Promise<any | null> {

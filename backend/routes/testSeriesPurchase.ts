@@ -63,7 +63,8 @@ router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest,
       return;
     }
 
-    const numSeqStart = Number(sequenceStartNumber) || 1;
+    // Cumulative Packages (MINI, HALF, FULL) always cover test papers starting from Test #1
+    const numSeqStart = validPlanCodes.includes(planCode) ? 1 : (Number(sequenceStartNumber) || 1);
     const numSeqEnd = Number(sequenceEndNumber);
     const numPrice = Number(price);
 

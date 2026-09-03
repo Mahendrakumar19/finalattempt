@@ -73,12 +73,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
           let hasEngContent = false;
           let hasHiContent = false;
+          const devanagariRegex = /[\u0900-\u097F]/;
+          const latinRegex = /[a-zA-Z]/;
+
           for (const q of qList) {
-            if ((q.questionText && q.questionText.trim().length > 0) || (q.optionA && q.optionA.trim().length > 0)) {
-              hasEngContent = true;
-            }
-            if ((q.questionTextHi && q.questionTextHi.trim().length > 0) || (q.optionAHi && q.optionAHi.trim().length > 0)) {
+            const txt = (q.questionText || '') + (q.optionA || '');
+            const txtHi = (q.questionTextHi || '') + (q.optionAHi || '');
+
+            if (devanagariRegex.test(txt) || devanagariRegex.test(txtHi)) {
               hasHiContent = true;
+            }
+            if ((latinRegex.test(txt) && !devanagariRegex.test(txt)) || (latinRegex.test(txtHi) && !devanagariRegex.test(txtHi))) {
+              hasEngContent = true;
             }
           }
 
@@ -86,6 +92,9 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             setActiveLang('hi');
           } else if (langMode.includes('english') || langMode === 'en' || (hasEngContent && !hasHiContent)) {
             setActiveLang('en');
+          } else {
+            if (locale === 'hi') setActiveLang('hi');
+            else setActiveLang('en');
           }
           
           if (res.data.session?.savedAnswers) {
@@ -631,12 +640,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
               let hasEngContent = false;
               let hasHiContent = false;
+              const devanagariRegex = /[\u0900-\u097F]/;
+              const latinRegex = /[a-zA-Z]/;
+
               for (const q of questions) {
-                if ((q.questionText && q.questionText.trim().length > 0) || (q.optionA && q.optionA.trim().length > 0)) {
-                  hasEngContent = true;
-                }
-                if ((q.questionTextHi && q.questionTextHi.trim().length > 0) || (q.optionAHi && q.optionAHi.trim().length > 0)) {
+                const txt = (q.questionText || '') + (q.optionA || '');
+                const txtHi = (q.questionTextHi || '') + (q.optionAHi || '');
+
+                if (devanagariRegex.test(txt) || devanagariRegex.test(txtHi)) {
                   hasHiContent = true;
+                }
+                if ((latinRegex.test(txt) && !devanagariRegex.test(txt)) || (latinRegex.test(txtHi) && !devanagariRegex.test(txtHi))) {
+                  hasEngContent = true;
                 }
               }
 
@@ -648,21 +663,23 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>Language:</span>
                     <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs rounded border border-amber-500/30">
-                      Hindi Only (केवल हिन्दी)
+                      Hindi (हिन्दी)
                     </span>
                   </div>
                 );
               }
+
               if (isEnglishOnly) {
                 return (
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>Language:</span>
                     <span className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded border border-slate-300 dark:border-slate-700">
-                      English Only
+                      English
                     </span>
                   </div>
                 );
               }
+
               return (
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>View in:</span>

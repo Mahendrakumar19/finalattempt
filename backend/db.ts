@@ -5106,13 +5106,20 @@ class LmsDB {
         const primaryId = tsRows && tsRows.length > 0 ? tsRows[0].id : courseId;
         const slugId = tsRows && tsRows.length > 0 ? tsRows[0].slug : courseId;
 
-        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quizzes WHERE courseId = ? OR courseId = ? ORDER BY createdAt DESC', [primaryId, slugId]);
-        if (rows) return rows;
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quizzes WHERE courseId = ? OR courseId = ? ORDER BY createdAt ASC, id ASC', [primaryId, slugId]);
+        if (rows && Array.isArray(rows)) {
+          return rows.map((q: any, idx: number) => ({
+            ...q,
+            sequence_number: idx + 1
+          }));
+        }
       } catch (err) { console.error('[LmsDB] getQuizzesByCourseId MySQL error:', err); }
     }
     const [tsRows]: any = await (mysqlPool ? mysqlPool.query('SELECT id, slug FROM TestSeries WHERE id = ? OR slug = ? LIMIT 1', [courseId, courseId]) : [[]]);
     const targetIds = tsRows && tsRows.length > 0 ? [tsRows[0].id, tsRows[0].slug] : [courseId];
-    return lmsLocalQuizzes.filter(q => targetIds.includes(q.courseId));
+    const list = lmsLocalQuizzes.filter(q => targetIds.includes(q.courseId));
+    list.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+    return list.map((q, idx) => ({ ...q, sequence_number: idx + 1 }));
   }
 
   // ── Question Methods ──────────────────────────────────────────────────────

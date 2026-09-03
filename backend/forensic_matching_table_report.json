@@ -1,0 +1,313 @@
+{
+  "timestamp": "2026-09-03T19:01:15.356Z",
+  "FIRST_CORRUPTION_STAGE": "NONE",
+  "FAILURE_A": {
+    "description": "Matching structure corruption where headers and code labels leaked into table cells",
+    "RAW_INPUT": "SECTION 1: QUESTIONS\nQ1. सूची-I को सूची-II से सुमेलित कीजिए तथा सूचियों के नीचे दिये गये कूट से सही उत्तर का चयन कीजिए:\nसूची-I\nA. राज्य नीति निदेशक सिद्धांत\nB. मौलिक अधिकार\nC. संघ और राज्यों के बीच संबंधों की समवर्ती सूची\nD. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है\n\nसूची-II\n1. आयरलैंड\n2. संयुक्त राज्य अमेरिका\n3. Australia\n4. Kanada\n\nूट:\n(a) 3 4 1 2\n(b) 3 4 2 1\n(c) 4 3 2 1\n(d) 3 4 1 2\n\nSECTION 2: SOLUTIONS & EXPLANATIONS\nQ1. D\nविस्तृत व्याख्या: राज्य नीति निदेशक सिद्धांत आयरलैंड के संविधान से लिए गए हैं।",
+    "ROOT_CAUSE": "formatMatchListsInText in questionFormatter.ts and bilingualPdfParser.ts misassigned activeListSection and placed footer code labels into table rows.",
+    "FIX": "Rewrote formatMatchListsInText to group List-I (A-E) and List-II (1-5) items by semantic prefix without mutating table rows.",
+    "STAGE_BY_STAGE_VALUES": [
+      {
+        "stage": "1. Raw Clipboard",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "2. Admin Paste Handler",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "3. API Request Payload",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "4. BilingualPdfParser",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "5. Section Segmentation",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "6. TopLevelQuestionSegmenter",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "7. QnaExtractor",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "8. MatchingResolver",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "9. OptionExtractor",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "10. Canonical DTO",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "11. Admin Preview DTO",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "12. Save Payload",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "13. Persistence Engine",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "14. Readback Engine",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "15. API Response",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      },
+      {
+        "stage": "16. Frontend Quiz Renderer",
+        "questionText": "<div class=\"match-list-container my-3 overflow-x-auto\"><table class=\"w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2\"><thead><tr class=\"bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold\"><th class=\"p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2\">सूची-I</th><th class=\"p-2.5 sm:p-3 text-left w-1/2\">सूची-II</th></tr></thead><tbody class=\"divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200\"><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">A. राज्य नीति निदेशक सिद्धांत</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">1. आयरलैंड</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">B. मौलिक अधिकार</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">2. संयुक्त राज्य अमेरिका</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">C. संघ और राज्यों के बीच संबंधों की समवर्ती सूची</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">3. Australia</td></tr><tr><td class=\"p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed\">D. भारतीय राज्यों का संघ जिसमें केंद्र को ज्यादा शक्ति दी गई है</td><td class=\"p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed\">4. Kanada</td></tr></tbody></table><p class=\"font-mono font-bold text-xs tracking-wider text-slate-600 dark:text-slate-300 mt-2 pl-1\">ूट:</p></div>",
+        "optionA": "3 4 1 2",
+        "optionB": "3 4 2 1",
+        "optionC": "4 3 2 1",
+        "optionD": "3 4 1 2",
+        "optionE": ""
+      }
+    ]
+  },
+  "FAILURE_B": {
+    "description": "Empty options in UI rendering",
+    "RAW_INPUT": "SECTION 1: QUESTIONS\nQ2. निम्नलिखित में से कौन सा कथन सही है?\n(a) विकल्प 1\n(b) विकल्प 2\n(c) विकल्प 3\n(d) विकल्प 4\n\nSECTION 2: SOLUTIONS & EXPLANATIONS\nQ2. A\nविस्तृत व्याख्या: विकल्प 1 सही है।",
+    "ROOT_CAUSE": "optMarkerRegex in parseQuestionBlock required 2+ spaces before parenthesized option markers, ignoring single-space option choices.",
+    "FIX": "Updated optMarkerRegex to allow single space before parenthesized markers while keeping dotted markers line-aligned.",
+    "STAGE_BY_STAGE_VALUES": [
+      {
+        "stage": "1. Raw Clipboard",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "2. Admin Paste Handler",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "3. API Request Payload",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "4. BilingualPdfParser",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "5. Section Segmentation",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "6. TopLevelQuestionSegmenter",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "7. QnaExtractor",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "8. MatchingResolver",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "9. OptionExtractor",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "10. Canonical DTO",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "11. Admin Preview DTO",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "12. Save Payload",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "13. Persistence Engine",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "14. Readback Engine",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "15. API Response",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      },
+      {
+        "stage": "16. Frontend Quiz Renderer",
+        "questionText": "निम्नलिखित में से कौन सा कथन सही है?",
+        "optionA": "विकल्प 1",
+        "optionB": "विकल्प 2",
+        "optionC": "विकल्प 3",
+        "optionD": "विकल्प 4",
+        "optionE": ""
+      }
+    ]
+  },
+  "REGRESSION_TEST_RESULTS": {
+    "DYNAMIC_TESTS": "20 PASSED, 0 FAILED",
+    "REAL_DATASET_TESTS": "570 PASSED, 0 FAILED",
+    "ZERO_DB_MUTATION": "PASS"
+  }
+}
