@@ -638,13 +638,54 @@ export default function TestSeriesDetailPage() {
               <div>
                 <h3 className="font-heading font-black text-lg text-[var(--text-color)] flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-amber-500" />
-                  <span>Test Series Cumulative Packages (MINI, HALF, FULL)</span>
+                  <span>Test Series Cumulative Packages (MINI, HALF, COMPLETE TEST SERIES)</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Configure boundaries and pricing. Existing user entitlement snapshots will remain unchanged.
+                  Configure boundaries, prices, and features for MINI, HALF, and Complete Test Series Pass.
                 </p>
               </div>
             </div>
+
+            {/* Complete Test Series Dedicated Quick Access Banner */}
+            {(() => {
+              const fullPlan = plans.find(p => p.plan_code === 'FULL') || {
+                series_id: series.id,
+                plan_code: 'FULL',
+                title: 'COMPLETE TEST SERIES',
+                sequence_start_number: 1,
+                sequence_end_number: (quizzes.length > 0 ? Math.max(quizzes.length, 40) : 40),
+                price: (series.discountedPrice || series.price || 799),
+                is_active: true
+              };
+              return (
+                <div className="p-4 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">
+                        FULL ACCESS PASS • COMPLETE TEST SERIES
+                      </span>
+                      <h4 className="font-heading font-black text-base text-[var(--text-color)]">
+                        Tests 1–{fullPlan.sequence_end_number} • ₹{fullPlan.price} {fullPlan.discounted_price ? `(Was ₹${fullPlan.discounted_price})` : ''}
+                      </h4>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingPlan({ ...fullPlan, title: fullPlan.title || 'COMPLETE TEST SERIES' });
+                      setPlanFormError(null);
+                    }}
+                    className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    <span>Edit Complete Test Series</span>
+                  </button>
+                </div>
+              );
+            })()}
 
             {loadingPlans ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -656,12 +697,16 @@ export default function TestSeriesDetailPage() {
                   const plan = plans.find(p => p.plan_code === code) || {
                     series_id: series.id,
                     plan_code: code,
-                    title: `${code} Package`,
+                    title: code === 'FULL' ? 'COMPLETE TEST SERIES' : `${code} Package`,
                     sequence_start_number: 1,
                     sequence_end_number: code === 'MINI' ? 16 : code === 'HALF' ? 28 : (quizzes.length > 0 ? Math.max(quizzes.length, 40) : 40),
                     price: code === 'MINI' ? 299 : code === 'HALF' ? 499 : (series.discountedPrice || series.price || 799),
                     is_active: true
                   };
+
+                  const displayTitle = code === 'FULL'
+                    ? (plan.title && plan.title !== 'FULL Package' ? plan.title : 'COMPLETE TEST SERIES')
+                    : (plan.title || `${code} Package`);
 
                   return (
                     <div
@@ -677,7 +722,7 @@ export default function TestSeriesDetailPage() {
                             code === 'HALF' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20' :
                             'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                           }`}>
-                            {plan.title || `${code} Package`}
+                            {displayTitle}
                           </span>
 
                           <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md border ${
@@ -710,13 +755,17 @@ export default function TestSeriesDetailPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          setEditingPlan({ ...plan });
+                          setEditingPlan({ ...plan, title: displayTitle });
                           setPlanFormError(null);
                         }}
-                        className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                        className={`w-full py-3 font-black rounded-2xl text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs ${
+                          code === 'FULL'
+                            ? 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
+                            : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                        }`}
                       >
                         <Edit3 className="w-3.5 h-3.5" />
-                        <span>Edit {code} Configuration</span>
+                        <span>Edit {code === 'FULL' ? 'COMPLETE TEST SERIES' : `${code} Package`}</span>
                       </button>
                     </div>
                   );

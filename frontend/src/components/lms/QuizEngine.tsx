@@ -67,12 +67,25 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
           setSession(res.data.session);
           setQuestions(res.data.questions);
 
-          // Enforce single-language test mode lock
-          const langMode = (quizObj?.languageMode || quizObj?.medium || quizObj?.language || '').toLowerCase();
-          if (langMode.includes('english') || langMode === 'en') {
-            setActiveLang('en');
-          } else if (langMode.includes('hindi') || langMode === 'hi') {
+          // Enforce single-language test mode lock based on quiz medium and question content
+          const qList = res.data.questions || [];
+          const langMode = (quizObj?.languageMode || quizObj?.medium || quizObj?.language || quizObj?.language_mode || '').toLowerCase();
+
+          let hasEngContent = false;
+          let hasHiContent = false;
+          for (const q of qList) {
+            if ((q.questionText && q.questionText.trim().length > 0) || (q.optionA && q.optionA.trim().length > 0)) {
+              hasEngContent = true;
+            }
+            if ((q.questionTextHi && q.questionTextHi.trim().length > 0) || (q.optionAHi && q.optionAHi.trim().length > 0)) {
+              hasHiContent = true;
+            }
+          }
+
+          if (langMode.includes('hindi') || langMode === 'hi' || (hasHiContent && !hasEngContent)) {
             setActiveLang('hi');
+          } else if (langMode.includes('english') || langMode === 'en' || (hasEngContent && !hasHiContent)) {
+            setActiveLang('en');
           }
           
           if (res.data.session?.savedAnswers) {
@@ -614,23 +627,38 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
             {/* View Language Switcher */}
             {(() => {
-              const m = (quizInfo?.languageMode || quizInfo?.medium || quizInfo?.language || '').toLowerCase();
-              if (m.includes('english') || m === 'en') {
-                return (
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>Language:</span>
-                    <span className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded border border-slate-300 dark:border-slate-700">
-                      English Only
-                    </span>
-                  </div>
-                );
+              const langMode = (quizInfo?.languageMode || quizInfo?.medium || quizInfo?.language || quizInfo?.language_mode || '').toLowerCase();
+
+              let hasEngContent = false;
+              let hasHiContent = false;
+              for (const q of questions) {
+                if ((q.questionText && q.questionText.trim().length > 0) || (q.optionA && q.optionA.trim().length > 0)) {
+                  hasEngContent = true;
+                }
+                if ((q.questionTextHi && q.questionTextHi.trim().length > 0) || (q.optionAHi && q.optionAHi.trim().length > 0)) {
+                  hasHiContent = true;
+                }
               }
-              if (m.includes('hindi') || m === 'hi') {
+
+              const isHindiOnly = langMode.includes('hindi') || langMode === 'hi' || (hasHiContent && !hasEngContent);
+              const isEnglishOnly = langMode.includes('english') || langMode === 'en' || (hasEngContent && !hasHiContent);
+
+              if (isHindiOnly) {
                 return (
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>Language:</span>
                     <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs rounded border border-amber-500/30">
                       Hindi Only (केवल हिन्दी)
+                    </span>
+                  </div>
+                );
+              }
+              if (isEnglishOnly) {
+                return (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>Language:</span>
+                    <span className="px-2.5 py-1 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs rounded border border-slate-300 dark:border-slate-700">
+                      English Only
                     </span>
                   </div>
                 );
