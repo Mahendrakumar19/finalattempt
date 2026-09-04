@@ -1786,6 +1786,7 @@ class FinalAttemptDB {
     quizId: string;
     individualPrice: number;
     isStandalonePurchasable?: boolean;
+    isFree?: boolean;
   }): Promise<any> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
     const res = await this.apiFetch('/api/test-series-purchase/quizzes/pricing/admin', {

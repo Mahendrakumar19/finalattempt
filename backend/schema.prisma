@@ -402,6 +402,7 @@ model lms_quizzes {
   is_standalone_purchasable Boolean?             @default(false)
   individual_price          Int?                 @default(0)
   test_tier_category        String?              @default("FULL") @db.VarChar(50)
+  isFree                    Boolean?             @default(false)
   lms_quiz_attempts         lms_quiz_attempts[]
   lms_quiz_questions        lms_quiz_questions[]
   lms_courses               lms_courses          @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quizzes_ibfk_1")

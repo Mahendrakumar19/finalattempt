@@ -211,7 +211,7 @@ router.delete('/plans/admin/:planId', authenticate, requireAdmin, async (req: Au
  */
 router.post('/quizzes/pricing/admin', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
-    const { seriesId, quizId, individualPrice, isStandalonePurchasable } = req.body;
+    const { seriesId, quizId, individualPrice, isStandalonePurchasable, isFree } = req.body;
 
     if (!seriesId || !quizId || individualPrice === undefined) {
       res.status(400).json({ success: false, error: 'seriesId, quizId, and individualPrice are required.' });
@@ -244,12 +244,17 @@ router.post('/quizzes/pricing/admin', authenticate, requireAdmin, async (req: Au
       return;
     }
 
+    const updateData: any = {
+      individual_price: numPrice,
+      is_standalone_purchasable: isStandalonePurchasable !== undefined ? Boolean(isStandalonePurchasable) : true
+    };
+    if (isFree !== undefined) {
+      updateData.isFree = Boolean(isFree);
+    }
+
     const updatedQuiz = await prisma.lms_quizzes.update({
       where: { id: quizId },
-      data: {
-        individual_price: numPrice,
-        is_standalone_purchasable: isStandalonePurchasable !== undefined ? Boolean(isStandalonePurchasable) : true
-      }
+      data: updateData
     });
 
     const actionType = quiz.individual_price !== numPrice ? 'QUIZ_PRICE_CHANGE' : 'STANDALONE_PURCHASABLE_CHANGE';
@@ -261,8 +266,8 @@ router.post('/quizzes/pricing/admin', authenticate, requireAdmin, async (req: Au
       entityType: 'QUIZ',
       entityId: quizId,
       seriesId: seriesId,
-      oldValue: { price: quiz.individual_price, standalone: quiz.is_standalone_purchasable },
-      newValue: { price: updatedQuiz.individual_price, standalone: updatedQuiz.is_standalone_purchasable }
+      oldValue: { price: quiz.individual_price, standalone: quiz.is_standalone_purchasable, isFree: quiz.isFree },
+      newValue: { price: updatedQuiz.individual_price, standalone: updatedQuiz.is_standalone_purchasable, isFree: updatedQuiz.isFree }
     });
 
     res.json({ success: true, data: updatedQuiz });

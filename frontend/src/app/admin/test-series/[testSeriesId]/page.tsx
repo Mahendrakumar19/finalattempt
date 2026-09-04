@@ -812,8 +812,18 @@ export default function TestSeriesDetailPage() {
                             type="button"
                             onClick={async () => {
                               const nextFree = !isFree;
-                              setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, isFree: nextFree } : q));
-                              await db.saveQuiz({ ...quiz, isFree: nextFree, courseId: testSeriesId });
+                              setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, isFree: nextFree, is_free: nextFree } : q));
+                              try {
+                                await db.saveQuizPricingAdmin({
+                                  seriesId: series?.id || testSeriesId,
+                                  quizId: quiz.id,
+                                  individualPrice: price,
+                                  isStandalonePurchasable: purchasable,
+                                  isFree: nextFree
+                                });
+                              } catch (err) {
+                                console.error('Failed to update free mode', err);
+                              }
                             }}
                             className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase flex items-center gap-1 cursor-pointer transition-all border ${
                               isFree
@@ -863,13 +873,14 @@ export default function TestSeriesDetailPage() {
                             onClick={async () => {
                               try {
                                 const res = await db.saveQuizPricingAdmin({
-                                  seriesId: series.id,
+                                  seriesId: series?.id || testSeriesId,
                                   quizId: quiz.id,
                                   individualPrice: price,
-                                  isStandalonePurchasable: purchasable
+                                  isStandalonePurchasable: purchasable,
+                                  isFree: isFree
                                 });
                                 if (res && res.success) {
-                                  alert(`✓ Test #${seq} pricing saved! Rate: ₹${price}, Standalone: ${purchasable}`);
+                                  alert(`✓ Test #${seq} pricing saved! Rate: ₹${price}, Mode: ${isFree ? 'Free Demo' : 'Paid'}, Standalone: ${purchasable}`);
                                 } else {
                                   alert(`Error saving test pricing: ${res?.error || 'Failed'}`);
                                 }

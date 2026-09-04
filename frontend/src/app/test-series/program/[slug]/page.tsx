@@ -667,9 +667,11 @@ export default function TestSeriesDetailPage() {
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {plan.description || `${t('testSeries.first')} ${plan.sequence_end_number} ${t('testSeries.sequentialTests')}`}
-                    </p>
+                    {plan.description && (
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        {plan.description}
+                      </p>
+                    )}
 
                     {(() => {
                       const p1 = Number(plan.price) || 0;
@@ -769,9 +771,11 @@ export default function TestSeriesDetailPage() {
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {plan.description || `${t('testSeries.first')} ${plan.sequence_end_number} ${t('testSeries.cumulatively')}`}
-                    </p>
+                    {plan.description && (
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        {plan.description}
+                      </p>
+                    )}
 
                     {(() => {
                       const p1 = Number(plan.price) || 0;
@@ -885,9 +889,11 @@ export default function TestSeriesDetailPage() {
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {plan.description || `Full package covering tests 1 to ${plan.sequence_end_number}`}
-                    </p>
+                    {plan.description && (
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        {plan.description}
+                      </p>
+                    )}
 
                     {(() => {
                       const p1 = Number(plan.price) || 0;
@@ -958,7 +964,7 @@ export default function TestSeriesDetailPage() {
                 plan_code: 'COMPLETE',
                 title: 'COMPLETE Test Series',
                 sequence_start_number: 1,
-                sequence_end_number: quizzes.length || 40,
+                sequence_end_number: 40,
                 price: 399,
                 discounted_price: undefined,
                 is_active: true
@@ -968,7 +974,9 @@ export default function TestSeriesDetailPage() {
               if (plan.included_quiz_ids) {
                 try { customCount = JSON.parse(plan.included_quiz_ids).length; } catch {}
               }
-              const testCount = customCount > 0 ? customCount : (quizzes.length || plan.sequence_end_number || 40);
+              const startSeq = plan.sequence_start_number || 1;
+              const endSeq = plan.sequence_end_number || 40;
+              const testCount = customCount > 0 ? customCount : (endSeq - startSeq + 1);
 
               const isOwned = highestTier === 'COMPLETE' || highestTier === 'LEGACY_ENROLLMENT';
               const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF' || highestTier === 'FULL';
@@ -993,7 +1001,7 @@ export default function TestSeriesDetailPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
-                          {customCount > 0 ? `${customCount} Selected Tests` : `All Tests (${plan.sequence_start_number || 1}–${testCount})`}
+                          {customCount > 0 ? `${customCount} Selected Tests` : `Tests ${startSeq}–${endSeq}`}
                         </span>
                         <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
                           {plan.title}
@@ -1003,6 +1011,12 @@ export default function TestSeriesDetailPage() {
                         {testCount}
                       </span>
                     </div>
+
+                    {plan.description && (
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        {plan.description}
+                      </p>
+                    )}
 
                     {(() => {
                       const p1 = Number(plan.price) || 0;
