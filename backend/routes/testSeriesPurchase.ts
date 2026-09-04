@@ -37,7 +37,20 @@ router.get('/:seriesId/plans', optionalAuth, async (req: AuthRequest, res: Respo
       orderBy: { sequence_start_number: 'asc' }
     });
 
-    res.json({ success: true, data: plans });
+    // Deduplicate by plan_code, preferring most recently updated record
+    const planMap = new Map<string, any>();
+    plans.forEach(p => {
+      if (!planMap.has(p.plan_code)) {
+        planMap.set(p.plan_code, p);
+      } else {
+        const existing = planMap.get(p.plan_code);
+        if (new Date(p.updated_at || p.created_at || 0) >= new Date(existing.updated_at || existing.created_at || 0)) {
+          planMap.set(p.plan_code, p);
+        }
+      }
+    });
+
+    res.json({ success: true, data: Array.from(planMap.values()) });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -57,14 +70,14 @@ router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest,
       return;
     }
 
-    const validPlanCodes = ['MINI', 'HALF', 'FULL', 'COMPLETE'];
-    if (!validPlanCodes.includes(planCode)) {
-      res.status(400).json({ success: false, error: `Invalid planCode. Must be one of: ${validPlanCodes.join(', ')}` });
+    const sanitizedPlanCode = String(planCode).trim().toUpperCase().replace(/[^A-Z0-9_]/g, '_');
+    if (!sanitizedPlanCode || sanitizedPlanCode.length < 2) {
+      res.status(400).json({ success: false, error: 'Invalid planCode. Must be at least 2 alphanumeric characters.' });
       return;
     }
 
-    // Cumulative Packages (MINI, HALF, FULL, COMPLETE) cover test papers starting from Test #1
-    const numSeqStart = validPlanCodes.includes(planCode) ? 1 : (Number(sequenceStartNumber) || 1);
+    // Cumulative Packages cover test papers starting from sequenceStartNumber (defaults to 1)
+    const numSeqStart = Number(sequenceStartNumber) > 0 ? Number(sequenceStartNumber) : 1;
     const numSeqEnd = Number(sequenceEndNumber);
     const numPrice = Number(price);
 
@@ -89,7 +102,7 @@ router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest,
       where: { series_id: seriesId }
     });
 
-    const oldPlan = existingPlans.find(p => p.plan_code === planCode);
+    const oldPlan = existingPlans.find(p => p.plan_code === sanitizedPlanCode);
 
     let targetSeriesIds = [seriesId];
     try {
@@ -107,11 +120,11 @@ router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest,
         where: {
           series_id_plan_code: {
             series_id: sid,
-            plan_code: planCode as PlanCode
+            plan_code: sanitizedPlanCode as any
           }
         },
         update: {
-          title: title || (planCode === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${planCode} Package`),
+          title: title || (sanitizedPlanCode === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${sanitizedPlanCode} Package`),
           description: description || null,
           sequence_start_number: numSeqStart,
           sequence_end_number: numSeqEnd,
@@ -122,8 +135,8 @@ router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest,
         },
         create: {
           series_id: sid,
-          plan_code: planCode as PlanCode,
-          title: title || (planCode === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${planCode} Package`),
+          plan_code: sanitizedPlanCode as any,
+          title: title || (sanitizedPlanCode === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${sanitizedPlanCode} Package`),
           description: description || null,
           sequence_start_number: numSeqStart,
           sequence_end_number: numSeqEnd,
@@ -161,6 +174,38 @@ router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest,
 });
 
 /**
+ * DELETE /api/test-series/plans/admin/:planId
+ * Admin endpoint to delete a test series package plan
+ */
+router.delete('/plans/admin/:planId', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const planId = req.params.planId as string;
+    if (!planId) {
+      res.status(400).json({ success: false, error: 'planId is required.' });
+      return;
+    }
+
+    const plan = await (prisma.test_series_plans as any).findUnique({ where: { id: planId } });
+    if (plan) {
+      await (prisma.test_series_plans as any).deleteMany({
+        where: {
+          OR: [
+            { id: planId },
+            { plan_code: plan.plan_code }
+          ]
+        }
+      });
+    } else {
+      await (prisma.test_series_plans as any).deleteMany({ where: { plan_code: planId } });
+    }
+
+    res.json({ success: true, message: 'Plan deleted successfully' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+/**
  * POST /api/test-series/quizzes/pricing/admin
  * Admin endpoint to configure individual test price & standalone purchasability
  */
@@ -184,7 +229,17 @@ router.post('/quizzes/pricing/admin', authenticate, requireAdmin, async (req: Au
       where: { id: quizId }
     });
 
-    if (!quiz || quiz.courseId !== seriesId) {
+    let validSeriesIds = [seriesId];
+    try {
+      const ts = await lmsDB.getTestSeriesById(seriesId);
+      if (ts) {
+        if (ts.id) validSeriesIds.push(ts.id);
+        if (ts.slug) validSeriesIds.push(ts.slug);
+      }
+    } catch (_) {}
+    validSeriesIds = Array.from(new Set(validSeriesIds.filter(Boolean)));
+
+    if (!quiz || (quiz.courseId && !validSeriesIds.includes(quiz.courseId))) {
       res.status(400).json({ success: false, error: `Quiz '${quizId}' does not belong to series '${seriesId}'.` });
       return;
     }

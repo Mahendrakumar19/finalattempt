@@ -495,12 +495,12 @@ export default function TestSeriesDetailPage() {
         {/* ── Compact Header Banner & Active Access Status ─────────────────── */}
         <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden shadow-xs">
           {(series.bannerUrl || series.thumbnailUrl) && (
-            <div className="w-full aspect-video max-h-[450px] bg-slate-950 relative overflow-hidden flex items-center justify-center border-b border-[var(--card-border)]">
+            <div className="w-full bg-slate-950 relative overflow-hidden flex items-center justify-center border-b border-[var(--card-border)] p-2 sm:p-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={series.bannerUrl || series.thumbnailUrl}
                 alt={series.title}
-                className="w-full h-full object-cover"
+                className="w-full max-h-[550px] object-contain rounded-2xl"
                 onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
               />
             </div>
@@ -545,9 +545,24 @@ export default function TestSeriesDetailPage() {
             </div>
 
             {series.description && (
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed max-w-4xl">
-                {series.description}
-              </p>
+              <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-4xl space-y-3 whitespace-pre-line font-medium">
+                {series.description.split(/\n+/).map((paragraph, idx) => {
+                  if (paragraph.includes('✓')) {
+                    const parts = paragraph.split('✓').map(s => s.trim()).filter(Boolean);
+                    return (
+                      <div key={idx} className="space-y-1.5 my-2">
+                        {parts.map((item, i) => (
+                          <div key={i} className="flex items-start gap-2 text-slate-700 dark:text-slate-200">
+                            <span className="text-emerald-500 font-black shrink-0 mt-0.5">✓</span>
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return <p key={idx}>{paragraph}</p>;
+                })}
+              </div>
             )}
 
             {/* Quick Metrics Bar */}
@@ -641,10 +656,10 @@ export default function TestSeriesDetailPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-md border border-amber-500/20">
-                          {plan.title}
+                          {customCount > 0 ? `${customCount} Selected Tests` : `${t('testSeries.tests')} ${plan.sequence_start_number || 1}–${plan.sequence_end_number}`}
                         </span>
                         <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
-                          {customCount > 0 ? `${customCount} Selected Tests` : `${t('testSeries.tests')} ${plan.sequence_start_number}–${plan.sequence_end_number}`}
+                          {plan.title}
                         </h3>
                       </div>
                       <span className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-black text-slate-500">
@@ -730,10 +745,10 @@ export default function TestSeriesDetailPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-md border border-indigo-500/20">
-                          {plan.title}
+                          {customCount > 0 ? `${customCount} Selected Tests` : `${t('testSeries.tests')} ${plan.sequence_start_number || 17}–${plan.sequence_end_number}`}
                         </span>
                         <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
-                          {customCount > 0 ? `${customCount} Selected Tests` : `${t('testSeries.tests')} ${plan.sequence_start_number}–${plan.sequence_end_number}`}
+                          {plan.title}
                         </h3>
                       </div>
                       <span className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-black text-slate-500">
@@ -830,10 +845,10 @@ export default function TestSeriesDetailPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
-                          {plan.title}
+                          {customCount > 0 ? `${customCount} Selected Tests` : `${t('testSeries.tests')} ${plan.sequence_start_number || 29}–${plan.sequence_end_number}`}
                         </span>
                         <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
-                          {customCount > 0 ? `${customCount} Selected Tests` : `${t('testSeries.tests')} ${plan.sequence_start_number}–${plan.sequence_end_number}`}
+                          {plan.title}
                         </h3>
                       </div>
                       <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-black">
@@ -933,10 +948,10 @@ export default function TestSeriesDetailPage() {
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
-                          {plan.title}
+                          {customCount > 0 ? `${customCount} Selected Tests` : `All Tests (${plan.sequence_start_number || 1}–${testCount})`}
                         </span>
                         <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
-                          {customCount > 0 ? `${customCount} Selected Tests` : `All Tests (1–${testCount})`}
+                          {plan.title}
                         </h3>
                       </div>
                       <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-black">

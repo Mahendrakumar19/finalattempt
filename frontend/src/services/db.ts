@@ -1772,6 +1772,15 @@ class FinalAttemptDB {
     return res;
   }
 
+  public async deleteTestSeriesPlanAdmin(planId: string): Promise<any> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    const res = await this.apiFetch(`/api/test-series-purchase/plans/admin/${planId}`, {
+      method: 'DELETE',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    return res;
+  }
+
   public async saveQuizPricingAdmin(payload: {
     seriesId: string;
     quizId: string;

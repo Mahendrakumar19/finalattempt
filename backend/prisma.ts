@@ -28,7 +28,7 @@ export const prisma = new PrismaClient({
       CREATE TABLE IF NOT EXISTS test_series_plans (
         id VARCHAR(36) PRIMARY KEY,
         series_id VARCHAR(100) NOT NULL,
-        plan_code ENUM('MINI', 'HALF', 'FULL') NOT NULL,
+        plan_code VARCHAR(50) NOT NULL,
         title VARCHAR(255) NOT NULL,
         description TEXT NULL,
         sequence_start_number INT NOT NULL DEFAULT 1,
@@ -42,6 +42,10 @@ export const prisma = new PrismaClient({
         INDEX idx_series (series_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    try {
+      await prisma.$executeRawUnsafe(`ALTER TABLE test_series_plans MODIFY COLUMN plan_code VARCHAR(50) NOT NULL;`);
+    } catch (_) {}
 
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS orders (
