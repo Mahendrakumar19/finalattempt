@@ -155,49 +155,49 @@ export class EntitlementService {
         }
       });
 
-      // Check FULL Entitlement
-      const fullEntitlement = entitlements.find(e => e.entitlement_type === 'FULL');
-      if (fullEntitlement) {
+      // Check COMPLETE Entitlement (All tests unlocked)
+      const completeEntitlement = entitlements.find(e => e.entitlement_type === 'COMPLETE');
+      if (completeEntitlement) {
         return {
           allowed: true,
-          source: 'FULL',
-          reason: 'Full Test Series package entitlement.',
-          entitlementId: fullEntitlement.id,
+          source: 'COMPLETE',
+          reason: 'Complete Test Series package entitlement.',
+          entitlementId: completeEntitlement.id,
           seriesId,
           quizId
         };
       }
 
-      // Quiz sequence number check for HALF & MINI
+      // Check FULL, HALF, and MINI package entitlements (Checking included_quiz_ids OR sequence numbers)
       seqNo = seqNo ?? quiz.sequence_number;
 
-      if (seqNo !== null && seqNo !== undefined) {
-        // Check HALF Entitlement using snapshot_max_sequence
-        const halfEntitlement = entitlements.find(e => e.entitlement_type === 'HALF');
-        if (halfEntitlement) {
-          const cap = halfEntitlement.snapshot_max_sequence ?? halfEntitlement.max_sequence_number ?? 28;
-          if (seqNo <= cap) {
-            return {
-              allowed: true,
-              source: 'HALF',
-              reason: `Half Test Series entitlement covers test sequence #${seqNo} (Cap: #${cap}).`,
-              entitlementId: halfEntitlement.id,
-              seriesId,
-              quizId
-            };
-          }
-        }
+      // Fetch package plans if needed for included_quiz_ids check
+      const seriesPlans = await (prisma as any).test_series_plans.findMany({
+        where: { series_id: { in: seriesIdList }, is_active: true }
+      }).catch(() => []);
 
-        // Check MINI Entitlement using snapshot_max_sequence
-        const miniEntitlement = entitlements.find(e => e.entitlement_type === 'MINI');
-        if (miniEntitlement) {
-          const cap = miniEntitlement.snapshot_max_sequence ?? miniEntitlement.max_sequence_number ?? 16;
-          if (seqNo <= cap) {
+      for (const pType of ['FULL', 'HALF', 'MINI'] as const) {
+        const ent = entitlements.find(e => e.entitlement_type === pType);
+        if (ent) {
+          const matchingPlan = seriesPlans.find((p: any) => p.plan_code === pType);
+          let isQuizIncluded = false;
+
+          if (matchingPlan && matchingPlan.included_quiz_ids) {
+            try {
+              const includedArray = JSON.parse(matchingPlan.included_quiz_ids);
+              if (Array.isArray(includedArray) && includedArray.includes(quizId)) {
+                isQuizIncluded = true;
+              }
+            } catch (_) {}
+          }
+
+          const cap = ent.snapshot_max_sequence ?? ent.max_sequence_number ?? (pType === 'FULL' ? 30 : pType === 'HALF' ? 20 : 10);
+          if (isQuizIncluded || (seqNo !== null && seqNo !== undefined && seqNo <= cap)) {
             return {
               allowed: true,
-              source: 'MINI',
-              reason: `Mini Test Series entitlement covers test sequence #${seqNo} (Cap: #${cap}).`,
-              entitlementId: miniEntitlement.id,
+              source: pType,
+              reason: `${pType} Package entitlement grants access to quiz '${quizId}' (Seq #${seqNo || 'custom'}).`,
+              entitlementId: ent.id,
               seriesId,
               quizId
             };

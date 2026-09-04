@@ -3,7 +3,7 @@ import { PlanCode, OrderStatus, ItemType, EntitlementType } from '@prisma/client
 
 export interface RequestedCartItem {
   itemType: 'PACKAGE_PLAN' | 'INDIVIDUAL_TEST' | 'UPGRADE_PLAN';
-  planCode?: 'MINI' | 'HALF' | 'FULL';
+  planCode?: 'MINI' | 'HALF' | 'FULL' | 'COMPLETE';
   quizId?: string;
 }
 
@@ -87,7 +87,7 @@ export class TestSeriesOrderService {
     });
 
     // ── Default fallback plans when admin hasn't configured plans yet ──────────
-    // These match the frontend's hardcoded defaults to allow checkout before admin configures plans
+    // 4 Cumulative Package Tiers: MINI, HALF, FULL, COMPLETE
     const FALLBACK_PLANS: Array<{
       id: string; series_id: string; plan_code: PlanCode;
       title: string; description: string | null;
@@ -98,20 +98,27 @@ export class TestSeriesOrderService {
       {
         id: `${canonicalSeriesId}-mini-default`, series_id: canonicalSeriesId,
         plan_code: 'MINI' as PlanCode, title: 'MINI Package', description: null,
-        sequence_start_number: 1, sequence_end_number: 16,
+        sequence_start_number: 1, sequence_end_number: 10,
         price: 299, discounted_price: null, is_active: true,
         created_at: new Date(), updated_at: new Date()
       },
       {
         id: `${canonicalSeriesId}-half-default`, series_id: canonicalSeriesId,
         plan_code: 'HALF' as PlanCode, title: 'HALF Package', description: null,
-        sequence_start_number: 1, sequence_end_number: 28,
+        sequence_start_number: 1, sequence_end_number: 20,
         price: 499, discounted_price: null, is_active: true,
         created_at: new Date(), updated_at: new Date()
       },
       {
         id: `${canonicalSeriesId}-full-default`, series_id: canonicalSeriesId,
-        plan_code: 'FULL' as PlanCode, title: 'FULL Series Pass', description: null,
+        plan_code: 'FULL' as PlanCode, title: 'FULL Package', description: null,
+        sequence_start_number: 1, sequence_end_number: 30,
+        price: 699, discounted_price: null, is_active: true,
+        created_at: new Date(), updated_at: new Date()
+      },
+      {
+        id: `${canonicalSeriesId}-complete-default`, series_id: canonicalSeriesId,
+        plan_code: 'COMPLETE' as PlanCode, title: 'COMPLETE TEST SERIES', description: null,
         sequence_start_number: 1, sequence_end_number: 40,
         price: 799, discounted_price: null, is_active: true,
         created_at: new Date(), updated_at: new Date()
@@ -137,7 +144,7 @@ export class TestSeriesOrderService {
     });
 
     const activePackageEntitlement = activeEntitlements.find(e =>
-      ['MINI', 'HALF', 'FULL'].includes(e.entitlement_type)
+      ['MINI', 'HALF', 'FULL', 'COMPLETE'].includes(e.entitlement_type)
     );
 
     const activeOwnedQuizIds = new Set(
@@ -155,7 +162,7 @@ export class TestSeriesOrderService {
 
     // Determine if cart contains a package plan purchase
     const packageRequest = requestedItems.find(i => i.itemType === 'PACKAGE_PLAN' || i.itemType === 'UPGRADE_PLAN');
-    let targetPackagePlanCode: 'MINI' | 'HALF' | 'FULL' | null = packageRequest?.planCode || null;
+    let targetPackagePlanCode: 'MINI' | 'HALF' | 'FULL' | 'COMPLETE' | null = packageRequest?.planCode || null;
 
     let targetPackagePlan = targetPackagePlanCode
       ? activePlans.find(p => p.plan_code === targetPackagePlanCode)
@@ -164,7 +171,7 @@ export class TestSeriesOrderService {
     // Process Package / Upgrade Items
     if (packageRequest) {
       if (!targetPackagePlanCode) {
-        throw new Error('Package plan code (MINI, HALF, FULL) is required for package orders.');
+        throw new Error('Package plan code (MINI, HALF, FULL, COMPLETE) is required for package orders.');
       }
 
       if (!targetPackagePlan) {
@@ -174,7 +181,7 @@ export class TestSeriesOrderService {
       // Upgrade Validation & Downgrade Prevention
       if (activePackageEntitlement) {
         const currentTier = activePackageEntitlement.entitlement_type;
-        const tierRank: Record<string, number> = { MINI: 1, HALF: 2, FULL: 3 };
+        const tierRank: Record<string, number> = { MINI: 1, HALF: 2, FULL: 3, COMPLETE: 4 };
 
         const currentRank = tierRank[currentTier] || 0;
         const targetRank = tierRank[targetPackagePlanCode] || 0;
@@ -482,13 +489,15 @@ export class TestSeriesOrderService {
             if (planIdUpper.includes('-MINI-') || planIdUpper.endsWith('-MINI-DEFAULT')) planCode = 'MINI' as PlanCode;
             else if (planIdUpper.includes('-HALF-') || planIdUpper.endsWith('-HALF-DEFAULT')) planCode = 'HALF' as PlanCode;
             else if (planIdUpper.includes('-FULL-') || planIdUpper.endsWith('-FULL-DEFAULT')) planCode = 'FULL' as PlanCode;
+            else if (planIdUpper.includes('-COMPLETE-') || planIdUpper.endsWith('-COMPLETE-DEFAULT')) planCode = 'COMPLETE' as PlanCode;
 
             // Also try from item_title
             if (!planCode) {
               const titleUpper = (item.item_title || '').toUpperCase();
               if (titleUpper.includes(' MINI')) planCode = 'MINI' as PlanCode;
               else if (titleUpper.includes(' HALF')) planCode = 'HALF' as PlanCode;
-              else if (titleUpper.includes(' FULL') || titleUpper.includes('FULL SERIES')) planCode = 'FULL' as PlanCode;
+              else if (titleUpper.includes(' COMPLETE') || titleUpper.includes('COMPLETE TEST')) planCode = 'COMPLETE' as PlanCode;
+              else if (titleUpper.includes(' FULL')) planCode = 'FULL' as PlanCode;
             }
 
             if (planCode && item.snapshot_sequence_number) {
@@ -497,7 +506,7 @@ export class TestSeriesOrderService {
                 id: item.plan_id!,
                 series_id: order.series_id,
                 plan_code: planCode,
-                title: `${planCode} Package`,
+                title: planCode === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${planCode} Package`,
                 description: null,
                 sequence_start_number: 1,
                 sequence_end_number: item.snapshot_sequence_number,
@@ -528,7 +537,7 @@ export class TestSeriesOrderService {
                 user_id: order.user_id,
                 series_id: order.series_id,
                 status: 'ACTIVE',
-                entitlement_type: { in: ['MINI', 'HALF'] }
+                entitlement_type: { in: ['MINI', 'HALF', 'FULL'] }
               },
               data: {
                 status: 'SUPERSEDED'

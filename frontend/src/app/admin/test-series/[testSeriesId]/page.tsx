@@ -19,6 +19,7 @@ interface QuizItem {
   passingScore?: number;
   isPublished?: boolean;
   questionCount?: number;
+  sequence_number?: number;
 }
 
 interface StudentItem {
@@ -632,81 +633,48 @@ export default function TestSeriesDetailPage() {
       {/* ── TAB 3: COMMERCIAL PLANS & PRICING MANAGEMENT (PHASE 5) ── */}
       {activeTab === 'pricing' && (
         <div className="space-y-8">
-          {/* Section 1: Package Plan Configurations (MINI, HALF, FULL) */}
+          {/* Section 1: Package Plan Configurations (MINI, HALF, FULL, COMPLETE) */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-heading font-black text-lg text-[var(--text-color)] flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-amber-500" />
-                  <span>Test Series Cumulative Packages (MINI, HALF, COMPLETE TEST SERIES)</span>
+                  <span>Test Series Packages (MINI, HALF, FULL, COMPLETE TEST SERIES)</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Configure boundaries, prices, and features for MINI, HALF, and Complete Test Series Pass.
+                  Configure boundaries, pricing, and specific quiz assignments for MINI, HALF, FULL, and Complete Test Series Pass.
                 </p>
               </div>
             </div>
 
-            {/* Complete Test Series Dedicated Quick Access Banner */}
-            {(() => {
-              const fullPlan = plans.find(p => p.plan_code === 'FULL') || {
-                series_id: series.id,
-                plan_code: 'FULL',
-                title: 'COMPLETE TEST SERIES',
-                sequence_start_number: 1,
-                sequence_end_number: (quizzes.length > 0 ? Math.max(quizzes.length, 40) : 40),
-                price: (series.discountedPrice || series.price || 799),
-                is_active: true
-              };
-              return (
-                <div className="p-4 bg-emerald-500/10 border-2 border-emerald-500/30 rounded-2xl flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-black">
-                      <Sparkles className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <span className="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">
-                        FULL ACCESS PASS • COMPLETE TEST SERIES
-                      </span>
-                      <h4 className="font-heading font-black text-base text-[var(--text-color)]">
-                        Tests 1–{fullPlan.sequence_end_number} • ₹{fullPlan.price} {fullPlan.discounted_price ? `(Was ₹${fullPlan.discounted_price})` : ''}
-                      </h4>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingPlan({ ...fullPlan, title: fullPlan.title || 'COMPLETE TEST SERIES' });
-                      setPlanFormError(null);
-                    }}
-                    className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    <span>Edit Complete Test Series</span>
-                  </button>
-                </div>
-              );
-            })()}
-
             {loadingPlans ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[1, 2, 3].map(i => <div key={i} className="h-48 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl animate-pulse" />)}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[1, 2, 3, 4].map(i => <div key={i} className="h-48 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl animate-pulse" />)}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {(['MINI', 'HALF', 'FULL'] as const).map(code => {
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {(['MINI', 'HALF', 'FULL', 'COMPLETE'] as const).map(code => {
                   const plan = plans.find(p => p.plan_code === code) || {
                     series_id: series.id,
                     plan_code: code,
-                    title: code === 'FULL' ? 'COMPLETE TEST SERIES' : `${code} Package`,
+                    title: code === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${code} Package`,
                     sequence_start_number: 1,
-                    sequence_end_number: code === 'MINI' ? 16 : code === 'HALF' ? 28 : (quizzes.length > 0 ? Math.max(quizzes.length, 40) : 40),
-                    price: code === 'MINI' ? 299 : code === 'HALF' ? 499 : (series.discountedPrice || series.price || 799),
+                    sequence_end_number: code === 'MINI' ? 10 : code === 'HALF' ? 20 : code === 'FULL' ? 30 : (quizzes.length > 0 ? Math.max(quizzes.length, 40) : 40),
+                    price: code === 'MINI' ? 299 : code === 'HALF' ? 499 : code === 'FULL' ? 699 : (series.discountedPrice || series.price || 799),
                     is_active: true
                   };
 
-                  const displayTitle = code === 'FULL'
-                    ? (plan.title && plan.title !== 'FULL Package' ? plan.title : 'COMPLETE TEST SERIES')
+                  const displayTitle = code === 'COMPLETE'
+                    ? (plan.title && plan.title !== 'COMPLETE Package' ? plan.title : 'COMPLETE TEST SERIES')
                     : (plan.title || `${code} Package`);
+
+                  let includedCount = 0;
+                  if (plan.included_quiz_ids) {
+                    try {
+                      const parsed = typeof plan.included_quiz_ids === 'string' ? JSON.parse(plan.included_quiz_ids) : plan.included_quiz_ids;
+                      if (Array.isArray(parsed) && parsed.length > 0) includedCount = parsed.length;
+                    } catch (_) {}
+                  }
 
                   return (
                     <div
@@ -720,6 +688,7 @@ export default function TestSeriesDetailPage() {
                           <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md border ${
                             code === 'MINI' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' :
                             code === 'HALF' ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20' :
+                            code === 'FULL' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' :
                             'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
                           }`}>
                             {displayTitle}
@@ -733,11 +702,11 @@ export default function TestSeriesDetailPage() {
                         </div>
 
                         <h4 className="font-heading font-black text-xl text-[var(--text-color)]">
-                          Tests 1–{plan.sequence_end_number}
+                          {includedCount > 0 ? `${includedCount} Specific Quizzes` : `Tests 1–${plan.sequence_end_number}`}
                         </h4>
 
                         {plan.description && (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-xl border border-[var(--card-border)]">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900/60 p-2.5 rounded-xl border border-[var(--card-border)] line-clamp-2">
                             {plan.description}
                           </p>
                         )}
@@ -756,16 +725,23 @@ export default function TestSeriesDetailPage() {
                         type="button"
                         onClick={() => {
                           setEditingPlan({ ...plan, title: displayTitle });
+                          let ids: string[] = [];
+                          if (plan.included_quiz_ids) {
+                            try {
+                              ids = typeof plan.included_quiz_ids === 'string' ? JSON.parse(plan.included_quiz_ids) : plan.included_quiz_ids;
+                            } catch (_) {}
+                          }
+                          setSelectedStudentStats(null); // reuse variable or set plan quiz ids state
                           setPlanFormError(null);
                         }}
                         className={`w-full py-3 font-black rounded-2xl text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs ${
-                          code === 'FULL'
+                          code === 'COMPLETE'
                             ? 'bg-emerald-500 hover:bg-emerald-600 text-slate-950'
                             : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
                         }`}
                       >
                         <Edit3 className="w-3.5 h-3.5" />
-                        <span>Edit {code === 'FULL' ? 'COMPLETE TEST SERIES' : `${code} Package`}</span>
+                        <span>Edit {code === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${code} Package`}</span>
                       </button>
                     </div>
                   );
@@ -937,6 +913,16 @@ export default function TestSeriesDetailPage() {
                 setSavingPlan(true);
                 setPlanFormError(null);
                 try {
+                  let includedQuizIdsArray: string[] | undefined = undefined;
+                  if (editingPlan.included_quiz_ids) {
+                    try {
+                      const parsed = typeof editingPlan.included_quiz_ids === 'string' ? JSON.parse(editingPlan.included_quiz_ids) : editingPlan.included_quiz_ids;
+                      if (Array.isArray(parsed) && parsed.length > 0) {
+                        includedQuizIdsArray = parsed;
+                      }
+                    } catch (_) {}
+                  }
+
                   const res = await db.saveTestSeriesPlanAdmin({
                     seriesId: series.id,
                     planCode: editingPlan.plan_code,
@@ -946,6 +932,7 @@ export default function TestSeriesDetailPage() {
                     sequenceEndNumber: Number(editingPlan.sequence_end_number),
                     price: Number(editingPlan.price),
                     discountedPrice: editingPlan.discounted_price ? Number(editingPlan.discounted_price) : undefined,
+                    includedQuizIds: includedQuizIdsArray,
                     isActive: editingPlan.is_active !== false
                   });
 
@@ -1006,6 +993,77 @@ export default function TestSeriesDetailPage() {
                     onChange={e => setEditingPlan({ ...editingPlan, sequence_end_number: Number(e.target.value) })}
                     className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold text-xs focus:border-amber-500 transition-colors"
                   />
+                </div>
+              </div>
+
+              {/* Specific Quizzes Assignment Section */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-slate-700 dark:text-slate-300">Specific Included Quizzes (Optional)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      let ids: string[] = [];
+                      if (editingPlan.included_quiz_ids) {
+                        try { ids = typeof editingPlan.included_quiz_ids === 'string' ? JSON.parse(editingPlan.included_quiz_ids) : editingPlan.included_quiz_ids; } catch (_) {}
+                      }
+                      if (Array.isArray(ids) && ids.length === quizzes.length) {
+                        setEditingPlan({ ...editingPlan, included_quiz_ids: JSON.stringify([]) });
+                      } else {
+                        setEditingPlan({ ...editingPlan, included_quiz_ids: JSON.stringify(quizzes.map(q => q.id)) });
+                      }
+                    }}
+                    className="text-amber-500 font-bold hover:underline text-[10px] cursor-pointer"
+                  >
+                    {(() => {
+                      let ids: string[] = [];
+                      if (editingPlan.included_quiz_ids) {
+                        try { ids = typeof editingPlan.included_quiz_ids === 'string' ? JSON.parse(editingPlan.included_quiz_ids) : editingPlan.included_quiz_ids; } catch (_) {}
+                      }
+                      return Array.isArray(ids) && ids.length === quizzes.length ? 'Deselect All' : 'Select All Quizzes';
+                    })()}
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400 mb-2">
+                  Pick specific tests included in this pack. If no specific tests are checked, access defaults to sequence range (Tests 1 to {editingPlan.sequence_end_number || 'X'}).
+                </p>
+
+                <div className="max-h-44 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl p-2 space-y-1 bg-slate-50 dark:bg-slate-900/60 styled-scrollbar">
+                  {quizzes.length === 0 ? (
+                    <p className="text-slate-400 text-[11px] p-2 text-center">No quizzes created in this test series yet.</p>
+                  ) : (
+                    quizzes.map((quiz, qIdx) => {
+                      let currentSelectedIds: string[] = [];
+                      if (editingPlan.included_quiz_ids) {
+                        try {
+                          currentSelectedIds = typeof editingPlan.included_quiz_ids === 'string' ? JSON.parse(editingPlan.included_quiz_ids) : editingPlan.included_quiz_ids;
+                        } catch (_) {}
+                      }
+                      if (!Array.isArray(currentSelectedIds)) currentSelectedIds = [];
+                      const isChecked = currentSelectedIds.includes(quiz.id);
+
+                      return (
+                        <label key={quiz.id} className="flex items-center gap-2 p-1.5 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors text-slate-800 dark:text-slate-200 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              let nextIds = [...currentSelectedIds];
+                              if (e.target.checked) {
+                                if (!nextIds.includes(quiz.id)) nextIds.push(quiz.id);
+                              } else {
+                                nextIds = nextIds.filter(id => id !== quiz.id);
+                              }
+                              setEditingPlan({ ...editingPlan, included_quiz_ids: JSON.stringify(nextIds) });
+                            }}
+                            className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500"
+                          />
+                          <span className="font-mono text-[10px] text-amber-500 font-bold">#{quiz.sequence_number || qIdx + 1}</span>
+                          <span className="flex-1 truncate">{quiz.title}</span>
+                        </label>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 

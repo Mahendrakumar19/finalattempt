@@ -832,6 +832,7 @@ enum PlanCode {
   MINI
   HALF
   FULL
+  COMPLETE
 }
 
 enum OrderStatus {
@@ -854,6 +855,7 @@ enum EntitlementType {
   MINI
   HALF
   FULL
+  COMPLETE
   LEGACY_ENROLLMENT
 }
 
@@ -874,6 +876,7 @@ model test_series_plans {
   sequence_end_number   Int
   price                 Int      @default(0)
   discounted_price      Int?
+  included_quiz_ids     String?  @db.LongText
   is_active             Boolean  @default(true)
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt

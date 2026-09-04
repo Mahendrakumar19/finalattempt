@@ -27,20 +27,21 @@ interface QuizItem {
 interface TestSeriesPlan {
   id: string;
   series_id: string;
-  plan_code: 'MINI' | 'HALF' | 'FULL';
+  plan_code: 'MINI' | 'HALF' | 'FULL' | 'COMPLETE';
   title: string;
   description?: string;
   sequence_start_number: number;
   sequence_end_number: number;
   price: number;
   discounted_price?: number;
+  included_quiz_ids?: string;
   is_active: boolean;
 }
 
 interface UserEntitlement {
   id: string;
   series_id: string;
-  entitlement_type: 'INDIVIDUAL_TEST' | 'MINI' | 'HALF' | 'FULL' | 'LEGACY_ENROLLMENT';
+  entitlement_type: 'INDIVIDUAL_TEST' | 'MINI' | 'HALF' | 'FULL' | 'COMPLETE' | 'LEGACY_ENROLLMENT';
   quiz_id?: string;
   snapshot_max_sequence?: number;
   max_sequence_number?: number;
@@ -79,7 +80,7 @@ export default function TestSeriesDetailPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   
   // Selection & Cart State
-  const [selectedPackage, setSelectedPackage] = useState<'MINI' | 'HALF' | 'FULL' | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<'MINI' | 'HALF' | 'FULL' | 'COMPLETE' | null>(null);
   const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
   const [cartPreview, setCartPreview] = useState<CartPreviewResult | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -146,7 +147,8 @@ export default function TestSeriesDetailPage() {
       // Check if user already owns a lower package tier -> mark as UPGRADE_PLAN
       const hasMini = entitlements.some(e => e.entitlement_type === 'MINI' && e.status === 'ACTIVE');
       const hasHalf = entitlements.some(e => e.entitlement_type === 'HALF' && e.status === 'ACTIVE');
-      const isUpgrade = hasMini || hasHalf;
+      const hasFull = entitlements.some(e => e.entitlement_type === 'FULL' && e.status === 'ACTIVE');
+      const isUpgrade = hasMini || hasHalf || hasFull;
       
       itemsPayload.push({
         itemType: isUpgrade ? 'UPGRADE_PLAN' : 'PACKAGE_PLAN',
@@ -195,17 +197,41 @@ export default function TestSeriesDetailPage() {
     for (const ent of entitlements) {
       if (ent.status !== 'ACTIVE') continue;
       
-      if (ent.entitlement_type === 'LEGACY_ENROLLMENT') {
-        return { isOwned: true, type: 'LEGACY', label: '✓ Enrolled', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      if (ent.entitlement_type === 'LEGACY_ENROLLMENT' || ent.entitlement_type === 'COMPLETE') {
+        return { isOwned: true, type: ent.entitlement_type, label: '✓ Complete Access', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
       }
       if (ent.entitlement_type === 'FULL') {
-        return { isOwned: true, type: 'FULL', label: '✓ Full Access', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+        const plan = plans.find(p => p.plan_code === 'FULL');
+        let inPlan = seq <= (ent.snapshot_max_sequence || plan?.sequence_end_number || 40);
+        if (plan?.included_quiz_ids) {
+          try {
+            const ids: string[] = JSON.parse(plan.included_quiz_ids);
+            if (ids.length > 0) inPlan = ids.includes(quiz.id);
+          } catch {}
+        }
+        if (inPlan) return { isOwned: true, type: 'FULL', label: '✓ Included in FULL', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
       }
-      if (ent.entitlement_type === 'HALF' && seq <= (ent.snapshot_max_sequence || 28)) {
-        return { isOwned: true, type: 'HALF', label: '✓ Included in HALF', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      if (ent.entitlement_type === 'HALF') {
+        const plan = plans.find(p => p.plan_code === 'HALF');
+        let inPlan = seq <= (ent.snapshot_max_sequence || plan?.sequence_end_number || 28);
+        if (plan?.included_quiz_ids) {
+          try {
+            const ids: string[] = JSON.parse(plan.included_quiz_ids);
+            if (ids.length > 0) inPlan = ids.includes(quiz.id);
+          } catch {}
+        }
+        if (inPlan) return { isOwned: true, type: 'HALF', label: '✓ Included in HALF', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
       }
-      if (ent.entitlement_type === 'MINI' && seq <= (ent.snapshot_max_sequence || 16)) {
-        return { isOwned: true, type: 'MINI', label: '✓ Included in MINI', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
+      if (ent.entitlement_type === 'MINI') {
+        const plan = plans.find(p => p.plan_code === 'MINI');
+        let inPlan = seq <= (ent.snapshot_max_sequence || plan?.sequence_end_number || 16);
+        if (plan?.included_quiz_ids) {
+          try {
+            const ids: string[] = JSON.parse(plan.included_quiz_ids);
+            if (ids.length > 0) inPlan = ids.includes(quiz.id);
+          } catch {}
+        }
+        if (inPlan) return { isOwned: true, type: 'MINI', label: '✓ Included in MINI', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
       }
       if (ent.entitlement_type === 'INDIVIDUAL_TEST' && ent.quiz_id === quiz.id) {
         return { isOwned: true, type: 'INDIVIDUAL', label: '✓ Purchased', badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' };
@@ -220,7 +246,21 @@ export default function TestSeriesDetailPage() {
     // 3. Check Current Cart Selection
     if (selectedPackage) {
       const plan = plans.find(p => p.plan_code === selectedPackage);
-      if (plan && seq >= plan.sequence_start_number && seq <= plan.sequence_end_number) {
+      let isCovered = false;
+      if (plan) {
+        if (plan.included_quiz_ids) {
+          try {
+            const ids: string[] = JSON.parse(plan.included_quiz_ids);
+            if (ids.length > 0) isCovered = ids.includes(quiz.id);
+            else isCovered = seq >= plan.sequence_start_number && seq <= plan.sequence_end_number;
+          } catch {
+            isCovered = seq >= plan.sequence_start_number && seq <= plan.sequence_end_number;
+          }
+        } else {
+          isCovered = seq >= plan.sequence_start_number && seq <= plan.sequence_end_number;
+        }
+      }
+      if (isCovered) {
         return { isOwned: false, isCoveredByCartPackage: true, label: `✓ Included in ${selectedPackage}`, badgeColor: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
       }
     }
@@ -234,7 +274,7 @@ export default function TestSeriesDetailPage() {
   }
 
   // ── Determine Student's Highest Active Tier ───────────────────────────────
-  const activePackageEntitlement = entitlements.find(e => e.status === 'ACTIVE' && ['MINI', 'HALF', 'FULL', 'LEGACY_ENROLLMENT'].includes(e.entitlement_type));
+  const activePackageEntitlement = entitlements.find(e => e.status === 'ACTIVE' && ['MINI', 'HALF', 'FULL', 'COMPLETE', 'LEGACY_ENROLLMENT'].includes(e.entitlement_type));
   const highestTier = activePackageEntitlement ? activePackageEntitlement.entitlement_type : 'NONE';
 
   // ── Load Razorpay Script Dynamically ──────────────────────────────────────
@@ -562,7 +602,7 @@ export default function TestSeriesDetailPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* MINI Package Card */}
             {(() => {
               const planCode = 'MINI';
@@ -578,7 +618,13 @@ export default function TestSeriesDetailPage() {
                 is_active: true
               };
 
-              const isOwned = highestTier === 'MINI' || highestTier === 'HALF' || highestTier === 'FULL' || highestTier === 'LEGACY_ENROLLMENT';
+              let customCount = 0;
+              if (plan.included_quiz_ids) {
+                try { customCount = JSON.parse(plan.included_quiz_ids).length; } catch {}
+              }
+              const testCount = customCount > 0 ? customCount : (plan.sequence_end_number - plan.sequence_start_number + 1);
+
+              const isOwned = highestTier === 'MINI' || highestTier === 'HALF' || highestTier === 'FULL' || highestTier === 'COMPLETE' || highestTier === 'LEGACY_ENROLLMENT';
               const isSelected = selectedPackage === 'MINI';
 
               return (
@@ -598,11 +644,11 @@ export default function TestSeriesDetailPage() {
                           {plan.title}
                         </span>
                         <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
-                          {t('testSeries.tests')} {plan.sequence_start_number}–{plan.sequence_end_number}
+                          {customCount > 0 ? `${customCount} Selected Tests` : `${t('testSeries.tests')} ${plan.sequence_start_number}–${plan.sequence_end_number}`}
                         </h3>
                       </div>
                       <span className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-black text-slate-500">
-                        16
+                        {testCount}
                       </span>
                     </div>
 
@@ -660,7 +706,13 @@ export default function TestSeriesDetailPage() {
                 is_active: true
               };
 
-              const isOwned = highestTier === 'HALF' || highestTier === 'FULL' || highestTier === 'LEGACY_ENROLLMENT';
+              let customCount = 0;
+              if (plan.included_quiz_ids) {
+                try { customCount = JSON.parse(plan.included_quiz_ids).length; } catch {}
+              }
+              const testCount = customCount > 0 ? customCount : (plan.sequence_end_number - plan.sequence_start_number + 1);
+
+              const isOwned = highestTier === 'HALF' || highestTier === 'FULL' || highestTier === 'COMPLETE' || highestTier === 'LEGACY_ENROLLMENT';
               const isMiniOwned = highestTier === 'MINI';
               const isSelected = selectedPackage === 'HALF';
 
@@ -681,11 +733,11 @@ export default function TestSeriesDetailPage() {
                           {plan.title}
                         </span>
                         <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
-                          {t('testSeries.tests')} {plan.sequence_start_number}–{plan.sequence_end_number}
+                          {customCount > 0 ? `${customCount} Selected Tests` : `${t('testSeries.tests')} ${plan.sequence_start_number}–${plan.sequence_end_number}`}
                         </h3>
                       </div>
                       <span className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-black text-slate-500">
-                        28
+                        {testCount}
                       </span>
                     </div>
 
@@ -746,15 +798,21 @@ export default function TestSeriesDetailPage() {
                 id: 'full-default',
                 series_id: series.id,
                 plan_code: 'FULL',
-                title: 'FULL Series Pass',
+                title: 'FULL Package',
                 sequence_start_number: 1,
                 sequence_end_number: 40,
-                price: 799,
+                price: 699,
                 discounted_price: undefined,
                 is_active: true
               };
 
-              const isOwned = highestTier === 'FULL' || highestTier === 'LEGACY_ENROLLMENT';
+              let customCount = 0;
+              if (plan.included_quiz_ids) {
+                try { customCount = JSON.parse(plan.included_quiz_ids).length; } catch {}
+              }
+              const testCount = customCount > 0 ? customCount : (plan.sequence_end_number - plan.sequence_start_number + 1);
+
+              const isOwned = highestTier === 'FULL' || highestTier === 'COMPLETE' || highestTier === 'LEGACY_ENROLLMENT';
               const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF';
               const isSelected = selectedPackage === 'FULL';
 
@@ -768,11 +826,6 @@ export default function TestSeriesDetailPage() {
                       : 'border-amber-500/40 hover:border-amber-500 shadow-md'
                   }`}
                 >
-                  {/* Recommended Badge */}
-                  <div className="absolute top-0 right-0 bg-amber-500 text-slate-950 text-[9px] font-black uppercase px-3 py-1 rounded-bl-xl tracking-wider">
-                    {t('testSeries.bestValuePass')}
-                  </div>
-
                   <div className="space-y-4">
                     <div className="flex justify-between items-start">
                       <div>
@@ -780,16 +833,16 @@ export default function TestSeriesDetailPage() {
                           {plan.title}
                         </span>
                         <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
-                          All {t('testSeries.tests')} 1–{plan.sequence_end_number}
+                          {customCount > 0 ? `${customCount} Selected Tests` : `${t('testSeries.tests')} ${plan.sequence_start_number}–${plan.sequence_end_number}`}
                         </h3>
                       </div>
                       <span className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-xs font-black">
-                        40
+                        {testCount}
                       </span>
                     </div>
 
                     <p className="text-xs text-slate-500 leading-relaxed">
-                      {plan.description || t('testSeries.fullAccessDesc')}
+                      {plan.description || `Full package covering tests 1 to ${plan.sequence_end_number}`}
                     </p>
 
                     <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
@@ -812,7 +865,7 @@ export default function TestSeriesDetailPage() {
                     {isOwned ? (
                       <div className="w-full py-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-2xl text-xs text-center border border-emerald-500/20 flex items-center justify-center gap-1.5">
                         <CheckCircle className="w-4 h-4" />
-                        <span>{t('testSeries.fullPassActive')}</span>
+                        <span>{t('testSeries.includedCurrentAccess')}</span>
                       </div>
                     ) : (
                       <button
@@ -827,7 +880,110 @@ export default function TestSeriesDetailPage() {
                         <span>
                           {isSelected
                             ? t('testSeries.selectedClickRemove')
-                            : t('testSeries.getFullPass').replace('{price}', plan.price.toString())}
+                            : `Select Full (₹${plan.price})`}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* COMPLETE TEST SERIES Package Card */}
+            {(() => {
+              const planCode = 'COMPLETE';
+              const plan: TestSeriesPlan = plans.find(p => p.plan_code === planCode) || {
+                id: 'complete-default',
+                series_id: series.id,
+                plan_code: 'COMPLETE',
+                title: 'COMPLETE Test Series',
+                sequence_start_number: 1,
+                sequence_end_number: quizzes.length || 40,
+                price: 399,
+                discounted_price: undefined,
+                is_active: true
+              };
+
+              let customCount = 0;
+              if (plan.included_quiz_ids) {
+                try { customCount = JSON.parse(plan.included_quiz_ids).length; } catch {}
+              }
+              const testCount = customCount > 0 ? customCount : (quizzes.length || plan.sequence_end_number || 40);
+
+              const isOwned = highestTier === 'COMPLETE' || highestTier === 'LEGACY_ENROLLMENT';
+              const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF' || highestTier === 'FULL';
+              const isSelected = selectedPackage === 'COMPLETE';
+
+              return (
+                <div
+                  className={`bg-[var(--card-bg)] border-2 rounded-3xl p-6 space-y-5 transition-all relative overflow-hidden flex flex-col justify-between ${
+                    isSelected
+                      ? 'border-emerald-500 shadow-xl bg-emerald-500/5'
+                      : isOwned
+                      ? 'border-emerald-500/40 opacity-90'
+                      : 'border-emerald-500/40 hover:border-emerald-500 shadow-lg'
+                  }`}
+                >
+                  {/* Recommended Badge */}
+                  <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-black uppercase px-3 py-1 rounded-bl-xl tracking-wider">
+                    BEST VALUE PASS
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-md border border-emerald-500/20">
+                          {plan.title}
+                        </span>
+                        <h3 className="font-heading font-black text-xl text-[var(--text-color)] mt-2">
+                          {customCount > 0 ? `${customCount} Selected Tests` : `All Tests (1–${testCount})`}
+                        </h3>
+                      </div>
+                      <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xs font-black">
+                        {testCount}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      {plan.description || 'Full Access Pass to all current and upcoming tests in this series.'}
+                    </p>
+
+                    <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-heading font-black text-emerald-600 dark:text-emerald-400">
+                          ₹{plan.price}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium">All-Inclusive Pass</span>
+                      </div>
+
+                      {isUpgrade && (
+                        <span className="text-[10px] font-extrabold text-amber-500 mt-1">
+                          Upgrade from {highestTier} tier
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    {isOwned ? (
+                      <div className="w-full py-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-2xl text-xs text-center border border-emerald-500/20 flex items-center justify-center gap-1.5">
+                        <CheckCircle className="w-4 h-4" />
+                        <span>{t('testSeries.fullPassActive')}</span>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setSelectedPackage(isSelected ? null : 'COMPLETE')}
+                        className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                          isSelected
+                            ? 'bg-emerald-500 text-white shadow-md'
+                            : 'bg-emerald-500 hover:bg-emerald-600 text-white font-black shadow-md'
+                        }`}
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>
+                          {isSelected
+                            ? t('testSeries.selectedClickRemove')
+                            : `Get Complete Series (₹${plan.price})`}
                         </span>
                       </button>
                     )}

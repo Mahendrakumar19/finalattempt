@@ -1754,6 +1754,7 @@ class FinalAttemptDB {
     sequenceEndNumber: number;
     price: number;
     discountedPrice?: number;
+    includedQuizIds?: string[];
     isActive?: boolean;
   }): Promise<any> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;

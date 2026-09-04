@@ -50,23 +50,28 @@ router.get('/:seriesId/plans', optionalAuth, async (req: AuthRequest, res: Respo
  */
 router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
-    const { seriesId, planCode, title, description, sequenceStartNumber, sequenceEndNumber, price, discountedPrice, isActive } = req.body;
+    const { seriesId, planCode, title, description, sequenceStartNumber, sequenceEndNumber, price, discountedPrice, includedQuizIds, isActive } = req.body;
 
     if (!seriesId || !planCode || sequenceEndNumber === undefined || price === undefined) {
       res.status(400).json({ success: false, error: 'seriesId, planCode, sequenceEndNumber, and price are required.' });
       return;
     }
 
-    const validPlanCodes = ['MINI', 'HALF', 'FULL'];
+    const validPlanCodes = ['MINI', 'HALF', 'FULL', 'COMPLETE'];
     if (!validPlanCodes.includes(planCode)) {
       res.status(400).json({ success: false, error: `Invalid planCode. Must be one of: ${validPlanCodes.join(', ')}` });
       return;
     }
 
-    // Cumulative Packages (MINI, HALF, FULL) always cover test papers starting from Test #1
+    // Cumulative Packages (MINI, HALF, FULL, COMPLETE) cover test papers starting from Test #1
     const numSeqStart = validPlanCodes.includes(planCode) ? 1 : (Number(sequenceStartNumber) || 1);
     const numSeqEnd = Number(sequenceEndNumber);
     const numPrice = Number(price);
+
+    // Format included quiz IDs as JSON string if passed
+    const formattedQuizIds = Array.isArray(includedQuizIds)
+      ? JSON.stringify(includedQuizIds)
+      : (typeof includedQuizIds === 'string' ? includedQuizIds : null);
 
     // Validation 1: Price and Sequence Range Boundaries
     if (isNaN(numPrice) || numPrice < 0) {
@@ -74,37 +79,16 @@ router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest,
       return;
     }
 
-    if (isNaN(numSeqStart) || isNaN(numSeqEnd) || numSeqStart >= numSeqEnd) {
-      res.status(400).json({ success: false, error: 'sequenceStartNumber must be strictly less than sequenceEndNumber.' });
-      return;
-    }
-
-    // Validation 2: Package Hierarchy Validation (MINI < HALF < FULL)
-    const existingPlans = await prisma.test_series_plans.findMany({
-      where: { series_id: seriesId }
-    });
-
-    const miniPlan = planCode === 'MINI' ? { sequence_end_number: numSeqEnd } : existingPlans.find(p => p.plan_code === 'MINI');
-    const halfPlan = planCode === 'HALF' ? { sequence_end_number: numSeqEnd } : existingPlans.find(p => p.plan_code === 'HALF');
-    const fullPlan = planCode === 'FULL' ? { sequence_end_number: numSeqEnd } : existingPlans.find(p => p.plan_code === 'FULL');
-
-    if (miniPlan && halfPlan && miniPlan.sequence_end_number >= halfPlan.sequence_end_number) {
-      res.status(400).json({
-        success: false,
-        error: `Invalid package hierarchy: MINI boundary (${miniPlan.sequence_end_number}) must be strictly less than HALF boundary (${halfPlan.sequence_end_number}).`
-      });
-      return;
-    }
-
-    if (halfPlan && fullPlan && halfPlan.sequence_end_number >= fullPlan.sequence_end_number) {
-      res.status(400).json({
-        success: false,
-        error: `Invalid package hierarchy: HALF boundary (${halfPlan.sequence_end_number}) must be strictly less than FULL boundary (${fullPlan.sequence_end_number}).`
-      });
+    if (isNaN(numSeqStart) || isNaN(numSeqEnd) || numSeqStart > numSeqEnd) {
+      res.status(400).json({ success: false, error: 'sequenceStartNumber must be less than or equal to sequenceEndNumber.' });
       return;
     }
 
     // Find existing plan for audit logging
+    const existingPlans = await prisma.test_series_plans.findMany({
+      where: { series_id: seriesId }
+    });
+
     const oldPlan = existingPlans.find(p => p.plan_code === planCode);
 
     let targetSeriesIds = [seriesId];
@@ -119,7 +103,7 @@ router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest,
 
     let plan: any = null;
     for (const sid of targetSeriesIds) {
-      plan = await prisma.test_series_plans.upsert({
+      plan = await (prisma.test_series_plans as any).upsert({
         where: {
           series_id_plan_code: {
             series_id: sid,
@@ -127,23 +111,25 @@ router.post('/plans/admin', authenticate, requireAdmin, async (req: AuthRequest,
           }
         },
         update: {
-          title: title || `${planCode} Package`,
+          title: title || (planCode === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${planCode} Package`),
           description: description || null,
           sequence_start_number: numSeqStart,
           sequence_end_number: numSeqEnd,
           price: numPrice,
           discounted_price: discountedPrice !== undefined && discountedPrice !== null ? Number(discountedPrice) : null,
+          included_quiz_ids: formattedQuizIds,
           is_active: isActive !== undefined ? Boolean(isActive) : true
         },
         create: {
           series_id: sid,
           plan_code: planCode as PlanCode,
-          title: title || `${planCode} Package`,
+          title: title || (planCode === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${planCode} Package`),
           description: description || null,
           sequence_start_number: numSeqStart,
           sequence_end_number: numSeqEnd,
           price: numPrice,
           discounted_price: discountedPrice !== undefined && discountedPrice !== null ? Number(discountedPrice) : null,
+          included_quiz_ids: formattedQuizIds,
           is_active: isActive !== undefined ? Boolean(isActive) : true
         }
       });
