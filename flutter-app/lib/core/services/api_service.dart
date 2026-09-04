@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'storage_service.dart';
 
-const String kBaseUrl = 'https://finalattemptias.com';
+const String kBaseUrl = 'https://finalattemptias.com/api';
 
 final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService(ref.read(storageServiceProvider));

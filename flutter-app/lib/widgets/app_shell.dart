@@ -8,10 +8,10 @@ class AppShell extends StatelessWidget {
 
   static const _tabs = [
     (path: '/', icon: Icons.home_rounded, label: 'Home'),
+    (path: '/test-series', icon: Icons.assignment_turned_in_rounded, label: 'Test Series'),
     (path: '/courses', icon: Icons.school_rounded, label: 'Courses'),
     (path: '/current-affairs', icon: Icons.newspaper_rounded, label: 'Current Affairs'),
     (path: '/pyq', icon: Icons.library_books_rounded, label: 'PYQs'),
-    (path: '/blog', icon: Icons.article_rounded, label: 'Blog'),
   ];
 
   int _selectedIndex(BuildContext context) {

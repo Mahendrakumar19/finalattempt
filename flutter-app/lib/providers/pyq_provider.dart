@@ -25,7 +25,7 @@ final pyqFilterProvider = StateProvider<PyqFilter>((ref) => const PyqFilter());
 
 final pyqExamsProvider = FutureProvider<List<PyqExamModel>>((ref) async {
   final api = ref.read(apiServiceProvider);
-  final data = await api.get('/api/syllabus-strategy/exams');
+  final data = await api.get('/syllabus-strategy/exams');
   if (data is Map && data['success'] == true && data['data'] is List) {
     return (data['data'] as List)
         .map((e) => PyqExamModel.fromJson(e as Map<String, dynamic>))
@@ -44,7 +44,7 @@ final pyqListProvider = FutureProvider<List<PyqModel>>((ref) async {
   if (filter.year != 'ALL') params['year'] = filter.year;
   if (filter.search.isNotEmpty) params['search'] = filter.search;
 
-  final data = await api.get('/api/pyqs', params: params);
+  final data = await api.get('/pyqs', params: params);
   if (data is Map && data['success'] == true && data['data'] is List) {
     return (data['data'] as List)
         .map((e) => PyqModel.fromJson(e as Map<String, dynamic>))

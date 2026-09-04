@@ -20,6 +20,10 @@ import '../../screens/student/dashboard_screen.dart';
 import '../../screens/student/profile_screen.dart';
 import '../../widgets/app_shell.dart';
 
+import '../../screens/test_series/test_series_catalog_screen.dart';
+import '../../screens/test_series/test_series_detail_screen.dart';
+import '../../screens/test_series/test_player_screen.dart';
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
 
@@ -44,11 +48,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, child) => AppShell(child: child),
         routes: [
           GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
+          GoRoute(path: '/test-series', builder: (_, __) => const TestSeriesCatalogScreen()),
           GoRoute(path: '/courses', builder: (_, __) => const CoursesScreen()),
           GoRoute(path: '/pyq', builder: (_, __) => const PYQScreen()),
           GoRoute(path: '/current-affairs', builder: (_, __) => const CurrentAffairsScreen()),
           GoRoute(path: '/blog', builder: (_, __) => const BlogScreen()),
         ],
+      ),
+      GoRoute(
+        path: '/test-series/:id',
+        builder: (_, state) => TestSeriesDetailScreen(seriesId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/test/:id/attempt',
+        builder: (_, state) => TestPlayerScreen(quizId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/courses/:id',

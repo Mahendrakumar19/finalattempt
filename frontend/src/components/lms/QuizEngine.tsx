@@ -1330,15 +1330,77 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
                         {/* Question body */}
                         <div className="px-5 py-4 space-y-5" style={{ backgroundColor: bg }}>
-                          {/* Question text — never clipped */}
-                          <p
-                            className="leading-relaxed"
-                            style={{ fontSize: '15px', color: text, lineHeight: '1.7', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                          >
-                            {qText}
-                          </p>
+                          {/* Question text — formatted & HTML aware */}
+                          {(() => {
+                            const { isHtml, formatted } = renderFormattedQuestionText(qText || '');
+                            if (isHtml) {
+                              return (
+                                <div
+                                  className="leading-relaxed space-y-2 text-sm sm:text-base font-medium overflow-x-auto"
+                                  style={{ color: text, lineHeight: '1.7', wordBreak: 'break-word' }}
+                                  dangerouslySetInnerHTML={{ __html: formatted }}
+                                />
+                              );
+                            }
+                            return (
+                              <p
+                                className="leading-relaxed text-sm sm:text-base font-medium"
+                                style={{ color: text, lineHeight: '1.7', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+                              >
+                                {qText}
+                              </p>
+                            );
+                          })()}
 
-                          {/* Answer comparison */}
+                          {/* Options grid with HTML awareness if options present */}
+                          {det.options && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                              {Object.entries(det.options)
+                                .filter(([, optVal]) => Boolean(optVal))
+                                .map(([optKey]) => {
+                                  const optValEn = (det.options as Record<string, string>)?.[optKey] || '';
+                                  const optValHi = (det.optionsHi as Record<string, string>)?.[optKey] || '';
+                                  const rawOptText = activeLang === 'hi' && optValHi ? optValHi : optValEn;
+
+                                  const isCorrectOpt = det.correctAnswer === optKey;
+                                  const isUserSelect = det.studentAnswer === optKey;
+
+                                  let cardStyle = 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400';
+                                  if (isCorrectOpt) {
+                                    cardStyle = 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold';
+                                  } else if (isUserSelect && !isCorrectOpt) {
+                                    cardStyle = 'bg-red-500/15 border-red-500 text-red-700 dark:text-red-300 font-bold';
+                                  }
+
+                                  const { isHtml: isOptHtml, formatted: formattedOpt } = renderFormattedQuestionText(rawOptText);
+
+                                  return (
+                                    <div
+                                      key={optKey}
+                                      className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs sm:text-sm transition-all ${cardStyle}`}
+                                    >
+                                      <div className="flex items-center gap-2.5">
+                                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] shrink-0 ${
+                                          isCorrectOpt ? 'bg-emerald-500 text-slate-950' : isUserSelect ? 'bg-red-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                                        }`}>
+                                          {optKey}
+                                        </span>
+                                        {isOptHtml ? (
+                                          <span dangerouslySetInnerHTML={{ __html: formattedOpt }} />
+                                        ) : (
+                                          <span>{rawOptText}</span>
+                                        )}
+                                      </div>
+
+                                      {isCorrectOpt && <span className="text-emerald-500 font-black text-sm shrink-0">✓</span>}
+                                      {isUserSelect && !isCorrectOpt && <span className="text-red-500 font-black text-sm shrink-0">✕</span>}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          )}
+
+                          {/* Answer summary comparison */}
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {/* Your answer */}
                             <div

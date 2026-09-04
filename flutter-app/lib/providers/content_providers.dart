@@ -6,7 +6,7 @@ import '../models/site_settings_model.dart';
 
 final blogsProvider = FutureProvider<List<BlogModel>>((ref) async {
   final api = ref.read(apiServiceProvider);
-  final data = await api.get('/api/blogs');
+  final data = await api.get('/blogs');
   if (data is List) {
     return data.map((b) => BlogModel.fromJson(b as Map<String, dynamic>)).toList();
   }
@@ -15,7 +15,7 @@ final blogsProvider = FutureProvider<List<BlogModel>>((ref) async {
 
 final facultyProvider = FutureProvider<List<FacultyModel>>((ref) async {
   final api = ref.read(apiServiceProvider);
-  final data = await api.get('/api/faculty');
+  final data = await api.get('/faculty');
   if (data is List) {
     return data.map((f) => FacultyModel.fromJson(f as Map<String, dynamic>)).toList();
   }
@@ -24,7 +24,7 @@ final facultyProvider = FutureProvider<List<FacultyModel>>((ref) async {
 
 final resultsProvider = FutureProvider<List<ResultModel>>((ref) async {
   final api = ref.read(apiServiceProvider);
-  final data = await api.get('/api/results');
+  final data = await api.get('/results');
   if (data is List) {
     return data.map((r) => ResultModel.fromJson(r as Map<String, dynamic>)).toList();
   }
@@ -33,7 +33,7 @@ final resultsProvider = FutureProvider<List<ResultModel>>((ref) async {
 
 final settingsProvider = FutureProvider<SiteSettingsModel>((ref) async {
   final api = ref.read(apiServiceProvider);
-  final data = await api.get('/api/settings');
+  final data = await api.get('/settings');
   if (data is Map<String, dynamic>) {
     return SiteSettingsModel.fromJson(data);
   }

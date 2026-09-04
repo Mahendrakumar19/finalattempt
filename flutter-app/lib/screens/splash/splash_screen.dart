@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/theme/app_theme.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -21,7 +22,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1000),
     );
     _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
@@ -34,7 +35,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Future<void> _navigate() async {
-    await Future.delayed(const Duration(milliseconds: 2000));
+    await Future.delayed(const Duration(milliseconds: 1800));
     if (!mounted) return;
     final storage = ref.read(storageServiceProvider);
     if (storage.isLoggedIn()) {
@@ -53,7 +54,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF020617),
+      backgroundColor: Colors.white,
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnim,
@@ -62,58 +63,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF59E0B),
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFF59E0B).withOpacity(0.4),
-                        blurRadius: 40,
-                        spreadRadius: 8,
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'FA',
-                      style: TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF020617),
-                        letterSpacing: -1,
-                      ),
-                    ),
-                  ),
+                // Clean Favicon Icon
+                Image.asset(
+                  'assets/images/favicon.png',
+                  height: 72,
+                  width: 72,
+                  fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'Final Attempt',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "Let's Make Your Attempt Final",
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withOpacity(0.5),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                SizedBox(
+                const SizedBox(height: 36),
+                const SizedBox(
                   width: 28,
                   height: 28,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: const Color(0xFFF59E0B).withOpacity(0.7),
+                    strokeWidth: 2.5,
+                    color: AppTheme.primaryBlue,
                   ),
                 ),
               ],
