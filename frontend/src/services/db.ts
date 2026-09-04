@@ -1248,35 +1248,39 @@ class FinalAttemptDB {
 
     const data = await this.apiFetch(`/api/test-series/hierarchy?includeUnpublished=${includeUnpublished}`);
     const localExams = this.getLocalExamsStore();
-    let exams: ExamData[] = [];
+    const getExamIdentityKeys = (e: ExamData): string[] => {
+      const keys: string[] = [];
+      if (e.id) keys.push(e.id.toLowerCase().trim());
+      if (e.code) keys.push(e.code.toLowerCase().trim());
+      if (e.slug) keys.push(e.slug.toLowerCase().trim());
+      if (e.name) keys.push(e.name.toLowerCase().trim());
+      return keys;
+    };
 
+    let exams: ExamData[] = [];
     let allSeries: TestSeriesItem[] = [];
+
+    const mergedList: ExamData[] = [];
+    const seenKeys = new Set<string>();
+
+    const addExamIfUnique = (e: ExamData) => {
+      const eKeys = getExamIdentityKeys(e);
+      const isDuplicate = eKeys.some(k => seenKeys.has(k));
+      if (!isDuplicate) {
+        mergedList.push(e);
+        eKeys.forEach(k => seenKeys.add(k));
+      }
+    };
+
     if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
-      const serverMap = new Map<string, ExamData>();
-      data.data.forEach((e: ExamData) => {
-        const key = (e.code || e.slug || e.name || e.id).toLowerCase().trim();
-        if (!serverMap.has(key)) {
-          serverMap.set(key, e);
-        }
-      });
-      localExams.forEach(e => {
-        const key = (e.code || e.slug || e.name || e.id).toLowerCase().trim();
-        if (!serverMap.has(key)) {
-          serverMap.set(key, e);
-        }
-      });
-      exams = Array.from(serverMap.values());
+      data.data.forEach((e: ExamData) => addExamIfUnique(e));
+      localExams.forEach((e: ExamData) => addExamIfUnique(e));
+      exams = mergedList;
       this.setLocalExamsStore(exams);
       allSeries = exams.flatMap(e => e.testSeries || []);
     } else {
-      const uniqueMap = new Map<string, ExamData>();
-      localExams.forEach(e => {
-        const key = (e.code || e.slug || e.name || e.id).toLowerCase().trim();
-        if (!uniqueMap.has(key)) {
-          uniqueMap.set(key, e);
-        }
-      });
-      exams = Array.from(uniqueMap.values());
+      localExams.forEach((e: ExamData) => addExamIfUnique(e));
+      exams = mergedList;
       allSeries = await this.getTestSeries(includeUnpublished);
     }
 
