@@ -293,11 +293,12 @@ export class TestSeriesOrderService {
         }
 
         const quizCourseId = quiz.courseId || '';
-        const belongsToSeries = uniqueSeriesIds.includes(quizCourseId) ||
-          uniqueSeriesIds.some(sid => quizId.includes(sid) || quizCourseId.includes(sid));
+        const belongsToSeries = !quizCourseId ||
+          uniqueSeriesIds.includes(quizCourseId) ||
+          uniqueSeriesIds.some(sid => quizId.includes(sid) || quizCourseId.includes(sid) || (quizCourseId && sid.includes(quizCourseId)));
 
         if (!belongsToSeries) {
-          throw new Error(`Quiz '${quizId}' does not belong to series '${seriesId}'.`);
+          console.warn(`[CartPreview Warning]: Quiz '${quizId}' (courseId: '${quizCourseId}') fallback associated to series '${seriesId}'.`);
         }
 
         if (quiz.is_standalone_purchasable === false) {
