@@ -66,17 +66,6 @@ function StudentDashboardContent() {
     requireAuth('/auth/login/student');
   }, [requireAuth, isLoading]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{t('student.verifyingSession')}</p>
-        </div>
-      </div>
-    );
-  }
-
   // Fetch enrollments and test series quizzes from backend / DB
   useEffect(() => {
     if (!accessToken) return;
@@ -132,6 +121,17 @@ function StudentDashboardContent() {
     };
     load();
   }, [accessToken]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{t('student.verifyingSession')}</p>
+        </div>
+      </div>
+    );
+  }
 
 
   const sidebarLinks: { name: string; icon: any; href?: string; tab?: DashTab }[] = [

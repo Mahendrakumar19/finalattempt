@@ -452,12 +452,12 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
                     <p>No chat history available for this thread.</p>
                   </div>
                 ) : (
-                  messages.map((msg) => {
+                  messages.map((msg, idx) => {
                     const isAdmin = msg.role === 'admin';
                     const isEditingThis = editingMsg?.id === msg.id;
 
                     return (
-                      <div key={msg.id || Math.random()} className={`group relative flex items-start gap-2 ${isAdmin ? 'justify-end' : ''}`}>
+                      <div key={msg.id || `msg-${idx}`} className={`group relative flex items-start gap-2 ${isAdmin ? 'justify-end' : ''}`}>
                         {!isAdmin && (
                           <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-1">
                             {msg.fullName ? msg.fullName.charAt(0).toUpperCase() : 'S'}

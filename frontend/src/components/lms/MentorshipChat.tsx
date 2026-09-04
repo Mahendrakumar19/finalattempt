@@ -372,12 +372,12 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
               <p className="text-[10px] text-slate-400 mt-1">Send a message directly to the Admin below. Our officers &amp; mentors reply promptly.</p>
             </div>
           ) : (
-            messages.map((msg) => {
+            messages.map((msg, idx) => {
               const isSelf = msg.senderId === (user?.id || 'guest-student-user');
               const isEditingThis = editingMsg?.id === msg.id;
 
               return (
-                <div key={msg.id || Math.random()} className={`group relative flex items-start gap-2.5 ${isSelf ? 'justify-end' : ''}`}>
+                <div key={msg.id || `msg-${idx}`} className={`group relative flex items-start gap-2.5 ${isSelf ? 'justify-end' : ''}`}>
                   {!isSelf && (
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                       {msg.fullName?.charAt(0).toUpperCase() || '?'}

@@ -252,9 +252,9 @@ export class ContentLocalizer {
         const hiField = `${field}_hi`;
         const altHiField = `${field}Hi`;
         if (typeof localized[hiField] === 'string' && localized[hiField].trim().length > 0) {
-          localized[field as keyof T] = localized[hiField];
+          localized[field as keyof T] = localized[hiField] as any;
         } else if (typeof localized[altHiField] === 'string' && localized[altHiField].trim().length > 0) {
-          localized[field as keyof T] = localized[altHiField];
+          localized[field as keyof T] = localized[altHiField] as any;
         }
       });
     }
