@@ -20,7 +20,7 @@ function TestAttemptContent() {
       const token = accessToken || localStorage.getItem('access_token') || localStorage.getItem('token');
       if (!user && !token) {
         const currentUrl = window.location.pathname + window.location.search;
-        window.location.href = `/auth/login?redirect=${encodeURIComponent(currentUrl)}`;
+        window.location.href = `/auth/login/student?redirect=${encodeURIComponent(currentUrl)}`;
       }
     }
   }, [user, accessToken]);

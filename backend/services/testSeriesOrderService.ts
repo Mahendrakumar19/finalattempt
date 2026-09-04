@@ -160,23 +160,22 @@ export class TestSeriesOrderService {
     let grossAmount = 0;
     let upgradeCreditAmount = 0;
 
-    // Determine if cart contains a package plan purchase
-    const packageRequest = requestedItems.find(i => i.itemType === 'PACKAGE_PLAN' || i.itemType === 'UPGRADE_PLAN');
-    let targetPackagePlanCode: 'MINI' | 'HALF' | 'FULL' | 'COMPLETE' | null = packageRequest?.planCode || null;
+    // Process Package / Upgrade Items (Support selecting multiple package plans simultaneously)
+    const packageRequests = requestedItems.filter(i => i.itemType === 'PACKAGE_PLAN' || i.itemType === 'UPGRADE_PLAN');
+    const targetPackagePlans: any[] = [];
 
-    let targetPackagePlan = targetPackagePlanCode
-      ? activePlans.find(p => p.plan_code === targetPackagePlanCode)
-      : null;
-
-    // Process Package / Upgrade Items
-    if (packageRequest) {
-      if (!targetPackagePlanCode) {
-        throw new Error('Package plan code (MINI, HALF, FULL, COMPLETE) is required for package orders.');
+    for (const packageReq of packageRequests) {
+      const planCode = packageReq.planCode;
+      if (!planCode) {
+        throw new Error('Package plan code (MINI, HALF, FULL, COMPLETE, etc.) is required for package orders.');
       }
 
-      if (!targetPackagePlan) {
-        throw new Error(`Plan '${targetPackagePlanCode}' is not active or configured for this series. Please contact support.`);
+      const plan = activePlans.find(p => p.plan_code === planCode);
+      if (!plan) {
+        throw new Error(`Plan '${planCode}' is not active or configured for this series. Please contact support.`);
       }
+
+      targetPackagePlans.push(plan);
 
       // Upgrade Validation & Downgrade Prevention
       if (activePackageEntitlement) {
@@ -184,7 +183,7 @@ export class TestSeriesOrderService {
         const tierRank: Record<string, number> = { MINI: 1, HALF: 2, FULL: 3, COMPLETE: 4 };
 
         const currentRank = tierRank[currentTier] || 0;
-        const targetRank = tierRank[targetPackagePlanCode] || 0;
+        const targetRank = tierRank[planCode] || 0;
 
         if (targetRank <= currentRank) {
           throw new Error(`Invalid upgrade request: You already own ${currentTier}. Cannot downgrade or re-purchase the same tier.`);
@@ -207,31 +206,29 @@ export class TestSeriesOrderService {
           if (prevPlan) previousPaidAmount = prevPlan.discounted_price ?? prevPlan.price;
         }
 
-        const newPlanPrice = targetPackagePlan.discounted_price ?? targetPackagePlan.price;
+        const newPlanPrice = plan.discounted_price ?? plan.price;
         upgradeCreditAmount = Math.min(previousPaidAmount, newPlanPrice);
         const itemPrice = newPlanPrice;
 
         sanitizedItems.push({
           itemType: 'UPGRADE_PLAN',
-          planId: targetPackagePlan.id,
+          planId: plan.id,
           fromPlanId: activePackageEntitlement.id,
-          itemTitle: `Upgrade from ${currentTier} to ${targetPackagePlan.title}`,
+          itemTitle: `Upgrade from ${currentTier} to ${plan.title}`,
           unitPrice: itemPrice,
-          // Store snapshot so fulfillOrder can grant entitlements even for fallback plan IDs
-          sequenceNumber: targetPackagePlan.sequence_end_number
+          sequenceNumber: plan.sequence_end_number
         });
 
         grossAmount += itemPrice;
       } else {
         // Fresh Package Purchase
-        const itemPrice = targetPackagePlan.discounted_price ?? targetPackagePlan.price;
+        const itemPrice = plan.discounted_price ?? plan.price;
         sanitizedItems.push({
           itemType: 'PACKAGE_PLAN',
-          planId: targetPackagePlan.id,
-          itemTitle: targetPackagePlan.title,
+          planId: plan.id,
+          itemTitle: plan.title,
           unitPrice: itemPrice,
-          // Store snapshot so fulfillOrder can grant entitlements even for fallback plan IDs
-          sequenceNumber: targetPackagePlan.sequence_end_number
+          sequenceNumber: plan.sequence_end_number
         });
 
         grossAmount += itemPrice;
@@ -315,8 +312,8 @@ export class TestSeriesOrderService {
         const quizSeq = quiz.sequence_number;
         let coveredBySelectedPackage = false;
 
-        if (targetPackagePlan && quizSeq !== null && quizSeq !== undefined) {
-          if (quizSeq >= targetPackagePlan.sequence_start_number && quizSeq <= targetPackagePlan.sequence_end_number) {
+        if (targetPackagePlans.length > 0 && quizSeq !== null && quizSeq !== undefined) {
+          if (targetPackagePlans.some(tp => quizSeq >= tp.sequence_start_number && quizSeq <= tp.sequence_end_number)) {
             coveredBySelectedPackage = true;
           }
         }

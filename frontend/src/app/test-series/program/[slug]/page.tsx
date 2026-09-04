@@ -79,8 +79,8 @@ export default function TestSeriesDetailPage() {
   const [loading, setLoading] = useState(true);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   
-  // Selection & Cart State
-  const [selectedPackage, setSelectedPackage] = useState<'MINI' | 'HALF' | 'FULL' | 'COMPLETE' | null>(null);
+  // Selection & Cart State (Multi-package selection supported)
+  const [selectedPackages, setSelectedPackages] = useState<string[]>([]);
   const [selectedQuizIds, setSelectedQuizIds] = useState<string[]>([]);
   const [cartPreview, setCartPreview] = useState<CartPreviewResult | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -143,16 +143,17 @@ export default function TestSeriesDetailPage() {
     // Construct cart payload
     const itemsPayload: Array<{ itemType: string; planCode?: string; quizId?: string }> = [];
     
-    if (selectedPackage) {
-      // Check if user already owns a lower package tier -> mark as UPGRADE_PLAN
+    if (selectedPackages.length > 0) {
       const hasMini = entitlements.some(e => e.entitlement_type === 'MINI' && e.status === 'ACTIVE');
       const hasHalf = entitlements.some(e => e.entitlement_type === 'HALF' && e.status === 'ACTIVE');
       const hasFull = entitlements.some(e => e.entitlement_type === 'FULL' && e.status === 'ACTIVE');
       const isUpgrade = hasMini || hasHalf || hasFull;
-      
-      itemsPayload.push({
-        itemType: isUpgrade ? 'UPGRADE_PLAN' : 'PACKAGE_PLAN',
-        planCode: selectedPackage
+
+      selectedPackages.forEach(pkgCode => {
+        itemsPayload.push({
+          itemType: isUpgrade ? 'UPGRADE_PLAN' : 'PACKAGE_PLAN',
+          planCode: pkgCode
+        });
       });
     }
 
@@ -187,7 +188,7 @@ export default function TestSeriesDetailPage() {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [selectedPackage, selectedQuizIds, series, accessToken, entitlements]);
+  }, [selectedPackages, selectedQuizIds, series, accessToken, entitlements]);
 
   // ── Helper: Evaluate Quiz Ownership & Access State ────────────────────────
   function getQuizAccessInfo(quiz: QuizItem) {
@@ -243,25 +244,32 @@ export default function TestSeriesDetailPage() {
       return { isOwned: true, type: 'FREE', label: '✓ Free Demo Test', badgeColor: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
     }
 
-    // 3. Check Current Cart Selection
-    if (selectedPackage) {
-      const plan = plans.find(p => p.plan_code === selectedPackage);
-      let isCovered = false;
-      if (plan) {
-        if (plan.included_quiz_ids) {
-          try {
-            const ids: string[] = JSON.parse(plan.included_quiz_ids);
-            if (ids.length > 0) isCovered = ids.includes(quiz.id);
-            else isCovered = seq >= plan.sequence_start_number && seq <= plan.sequence_end_number;
-          } catch {
+    // 3. Check Current Cart Selection (Multi-package support)
+    if (selectedPackages.length > 0) {
+      let coveredPackageCode: string | null = null;
+      for (const pkgCode of selectedPackages) {
+        const plan = plans.find(p => p.plan_code === pkgCode);
+        if (plan) {
+          let isCovered = false;
+          if (plan.included_quiz_ids) {
+            try {
+              const ids: string[] = JSON.parse(plan.included_quiz_ids);
+              if (ids.length > 0) isCovered = ids.includes(quiz.id);
+              else isCovered = seq >= plan.sequence_start_number && seq <= plan.sequence_end_number;
+            } catch {
+              isCovered = seq >= plan.sequence_start_number && seq <= plan.sequence_end_number;
+            }
+          } else {
             isCovered = seq >= plan.sequence_start_number && seq <= plan.sequence_end_number;
           }
-        } else {
-          isCovered = seq >= plan.sequence_start_number && seq <= plan.sequence_end_number;
+          if (isCovered) {
+            coveredPackageCode = pkgCode;
+            break;
+          }
         }
       }
-      if (isCovered) {
-        return { isOwned: false, isCoveredByCartPackage: true, label: `✓ Included in ${selectedPackage}`, badgeColor: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
+      if (coveredPackageCode) {
+        return { isOwned: false, isCoveredByCartPackage: true, label: `✓ Included in ${coveredPackageCode}`, badgeColor: 'bg-amber-500/10 text-amber-600 border-amber-500/20' };
       }
     }
 
@@ -303,11 +311,11 @@ export default function TestSeriesDetailPage() {
     }
 
     if (!user && !effectiveToken) {
-      window.location.href = `/auth/login?redirect=/test-series/program/${slug}`;
+      window.location.href = `/auth/login/student?redirect=/test-series/program/${slug}`;
       return;
     }
 
-    if (!series || (!selectedPackage && selectedQuizIds.length === 0)) {
+    if (!series || (selectedPackages.length === 0 && selectedQuizIds.length === 0)) {
       alert('Please select a package or individual test to purchase.');
       return;
     }
@@ -318,11 +326,13 @@ export default function TestSeriesDetailPage() {
     try {
       // 1. Prepare items payload for backend checkout order creation
       const itemsPayload: Array<{ itemType: string; planCode?: string; quizId?: string }> = [];
-      if (selectedPackage) {
-        const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF';
-        itemsPayload.push({
-          itemType: isUpgrade ? 'UPGRADE_PLAN' : 'PACKAGE_PLAN',
-          planCode: selectedPackage
+      if (selectedPackages.length > 0) {
+        const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF' || highestTier === 'FULL';
+        selectedPackages.forEach(pkgCode => {
+          itemsPayload.push({
+            itemType: isUpgrade ? 'UPGRADE_PLAN' : 'PACKAGE_PLAN',
+            planCode: pkgCode
+          });
         });
       }
       selectedQuizIds.forEach(qId => {
@@ -348,7 +358,7 @@ export default function TestSeriesDetailPage() {
         // Refresh entitlements
         const newEnts = await db.getStudentEntitlements(series.id, effectiveToken || undefined);
         setEntitlements(newEnts || []);
-        setSelectedPackage(null);
+        setSelectedPackages([]);
         setSelectedQuizIds([]);
         setCartPreview(null);
         return;
@@ -371,7 +381,7 @@ export default function TestSeriesDetailPage() {
           setPaymentState('SUCCESS');
           const newEnts = await db.getStudentEntitlements(series.id, effectiveToken || undefined);
           setEntitlements(newEnts || []);
-          setSelectedPackage(null);
+          setSelectedPackages([]);
           setSelectedQuizIds([]);
           setCartPreview(null);
         } else {
@@ -409,7 +419,7 @@ export default function TestSeriesDetailPage() {
               setPaymentState('SUCCESS');
               const newEnts = await db.getStudentEntitlements(series.id, effectiveToken || undefined);
               setEntitlements(newEnts || []);
-              setSelectedPackage(null);
+              setSelectedPackages([]);
               setSelectedQuizIds([]);
               setCartPreview(null);
             } else {
@@ -606,13 +616,13 @@ export default function TestSeriesDetailPage() {
               </p>
             </div>
 
-            {selectedPackage && (
+            {selectedPackages.length > 0 && (
               <button
-                onClick={() => setSelectedPackage(null)}
+                onClick={() => setSelectedPackages([])}
                 className="text-xs text-rose-500 font-bold hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
-                <span>{t('testSeries.clearPackage')}</span>
+                <span>{t('testSeries.clearPackage')} ({selectedPackages.length})</span>
               </button>
             )}
           </div>
@@ -640,7 +650,7 @@ export default function TestSeriesDetailPage() {
               const testCount = customCount > 0 ? customCount : (plan.sequence_end_number - plan.sequence_start_number + 1);
 
               const isOwned = highestTier === 'MINI' || highestTier === 'HALF' || highestTier === 'FULL' || highestTier === 'COMPLETE' || highestTier === 'LEGACY_ENROLLMENT';
-              const isSelected = selectedPackage === 'MINI';
+              const isSelected = selectedPackages.includes('MINI');
 
               return (
                 <div
@@ -705,7 +715,7 @@ export default function TestSeriesDetailPage() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => setSelectedPackage(isSelected ? null : 'MINI')}
+                        onClick={() => setSelectedPackages(prev => isSelected ? prev.filter(code => code !== 'MINI') : [...prev, 'MINI'])}
                         className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
                           isSelected
                             ? 'bg-amber-500 text-slate-950 shadow-md'
@@ -744,7 +754,7 @@ export default function TestSeriesDetailPage() {
 
               const isOwned = highestTier === 'HALF' || highestTier === 'FULL' || highestTier === 'COMPLETE' || highestTier === 'LEGACY_ENROLLMENT';
               const isMiniOwned = highestTier === 'MINI';
-              const isSelected = selectedPackage === 'HALF';
+              const isSelected = selectedPackages.includes('HALF');
 
               return (
                 <div
@@ -817,7 +827,7 @@ export default function TestSeriesDetailPage() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => setSelectedPackage(isSelected ? null : 'HALF')}
+                        onClick={() => setSelectedPackages(prev => isSelected ? prev.filter(code => code !== 'HALF') : [...prev, 'HALF'])}
                         className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
                           isSelected
                             ? 'bg-amber-500 text-slate-950 shadow-md'
@@ -862,7 +872,7 @@ export default function TestSeriesDetailPage() {
 
               const isOwned = highestTier === 'FULL' || highestTier === 'COMPLETE' || highestTier === 'LEGACY_ENROLLMENT';
               const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF';
-              const isSelected = selectedPackage === 'FULL';
+              const isSelected = selectedPackages.includes('FULL');
 
               return (
                 <div
@@ -935,7 +945,7 @@ export default function TestSeriesDetailPage() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => setSelectedPackage(isSelected ? null : 'FULL')}
+                        onClick={() => setSelectedPackages(prev => isSelected ? prev.filter(code => code !== 'FULL') : [...prev, 'FULL'])}
                         className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
                           isSelected
                             ? 'bg-amber-500 text-slate-950 shadow-md'
@@ -980,7 +990,7 @@ export default function TestSeriesDetailPage() {
 
               const isOwned = highestTier === 'COMPLETE' || highestTier === 'LEGACY_ENROLLMENT';
               const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF' || highestTier === 'FULL';
-              const isSelected = selectedPackage === 'COMPLETE';
+              const isSelected = selectedPackages.includes('COMPLETE');
 
               return (
                 <div
@@ -1058,7 +1068,7 @@ export default function TestSeriesDetailPage() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => setSelectedPackage(isSelected ? null : 'COMPLETE')}
+                        onClick={() => setSelectedPackages(prev => isSelected ? prev.filter(code => code !== 'COMPLETE') : [...prev, 'COMPLETE'])}
                         className={`w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 ${
                           isSelected
                             ? 'bg-emerald-500 text-white shadow-md'
@@ -1121,7 +1131,7 @@ export default function TestSeriesDetailPage() {
                         token = localStorage.getItem('access_token') || localStorage.getItem('token');
                       }
                       if (!user && !token) {
-                        window.location.href = `/auth/login?redirect=${encodeURIComponent(targetUrl)}`;
+                        window.location.href = `/auth/login/student?redirect=${encodeURIComponent(targetUrl)}`;
                         return;
                       }
                       // Navigate to attempt
@@ -1274,7 +1284,7 @@ export default function TestSeriesDetailPage() {
       </div>
 
       {/* ── FLOATING STICKY SELECTION CART BAR & CHECKOUT (MOBILE & DESKTOP) ─ */}
-      {(selectedPackage || selectedQuizIds.length > 0) && (
+      {(selectedPackages.length > 0 || selectedQuizIds.length > 0) && (
         <div className="fixed bottom-0 inset-x-0 z-40 bg-slate-950/95 border-t border-amber-500/30 text-white p-4 sm:p-5 backdrop-blur-md shadow-2xl transition-transform">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
             
@@ -1297,8 +1307,8 @@ export default function TestSeriesDetailPage() {
                 </div>
 
                 <p className="text-xs text-slate-300">
-                  {selectedPackage ? `Package: ${selectedPackage}` : ''}
-                  {selectedPackage && selectedQuizIds.length > 0 ? ' + ' : ''}
+                  {selectedPackages.length > 0 ? `Package(s): ${selectedPackages.join(', ')}` : ''}
+                  {selectedPackages.length > 0 && selectedQuizIds.length > 0 ? ' + ' : ''}
                   {selectedQuizIds.length > 0 ? `${selectedQuizIds.length} Individual Test(s)` : ''}
                   {cartPreview?.redundantQuizIdsRemoved && cartPreview.redundantQuizIdsRemoved.length > 0 && (
                     <span className="text-amber-400 font-bold ml-1">

@@ -1449,7 +1449,8 @@ export default function TestSeriesAdmin({
                             <div className="space-y-3">
                               {(quizQuestions[quiz.id] || []).map((q, idx) => {
                                 const isHi = quizLangMode[quiz.id] === 'HI';
-                                const prompt = isHi && q.questionTextHi ? q.questionTextHi : q.questionText;
+                                const rawPrompt = isHi && q.questionTextHi ? q.questionTextHi : q.questionText;
+                                const { isHtml, formatted } = renderFormattedQuestionText(rawPrompt || '');
                                 const optA = isHi && q.optionAHi ? q.optionAHi : q.optionA;
                                 const optB = isHi && q.optionBHi ? q.optionBHi : q.optionB;
                                 const optC = isHi && q.optionCHi ? q.optionCHi : q.optionC;
@@ -1463,8 +1464,15 @@ export default function TestSeriesAdmin({
                                     <span className="w-6 h-6 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5">
                                       {idx + 1}
                                     </span>
-                                    <div className="flex-1 min-w-0 space-y-2">
-                                      <p className="text-xs text-[var(--text-color)] font-bold whitespace-pre-wrap leading-relaxed">{prompt}</p>
+                                    <div className="flex-1 min-w-0 space-y-2 overflow-x-auto">
+                                      {isHtml ? (
+                                        <div
+                                          className="text-xs text-[var(--text-color)] font-bold leading-relaxed q-html-container overflow-x-auto"
+                                          dangerouslySetInnerHTML={{ __html: formatted }}
+                                        />
+                                      ) : (
+                                        <p className="text-xs text-[var(--text-color)] font-bold whitespace-pre-wrap leading-relaxed">{formatted}</p>
+                                      )}
 
                                       {(q.questionImageUrl || q.imageUrl) && (
                                         <div className="p-2 bg-slate-100 dark:bg-slate-900 rounded-xl border border-[var(--card-border)] max-w-md">
