@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard } from '@/services/auth';
 import { sanitizeAndRepairQuestion, renderFormattedQuestionText } from '@/utils/questionFormatter';
+import FormattedExplanation from '@/components/FormattedExplanation';
 
 interface QuizEngineProps {
   quizId: string;
@@ -1370,16 +1371,16 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                           {/* Explanation */}
                           {explanation && (
                             <div
-                              className="rounded-xl px-4 py-4 space-y-2"
-                              style={{ backgroundColor: surface, border: `1px solid ${border}` }}
+                              className="rounded-2xl p-4 sm:p-5 space-y-3 shadow-xs border"
+                              style={{ backgroundColor: surface, borderColor: border }}
                             >
-                              <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: textSec }}>Explanation</p>
-                              <p
-                                className="leading-relaxed"
-                                style={{ fontSize: '14px', color: textSec, lineHeight: '1.75', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-                              >
-                                {explanation}
-                              </p>
+                              <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: border }}>
+                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                                  Explanation & Analysis
+                                </p>
+                              </div>
+                              <FormattedExplanation content={explanation} isDark={cbtDark} />
                             </div>
                           )}
                         </div>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { db } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
 import { renderFormattedQuestionText } from '@/utils/questionFormatter';
+import FormattedExplanation from '@/components/FormattedExplanation';
 import { 
   Sparkles, Calendar, Clock, HelpCircle, Trophy, Award, ArrowLeft, ArrowRight,
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Bookmark, ChevronRight,
@@ -1033,14 +1034,14 @@ export default function DailyQuizPortal() {
                       </div>
 
                       {/* Explanation Section */}
-                      <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-1 text-xs">
-                        <span className="font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider block">
-                          📖 {t('dailyQuiz.explanation', 'Exam Rationale & Explanation')}
-                        </span>
-                        <p className="text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                          {detail.explanation}
-                        </p>
-                      </div>
+                      {detail.explanation && (
+                        <div className="p-4 sm:p-5 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
+                          <span className="font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider block text-xs">
+                            📖 {t('dailyQuiz.explanation', 'Exam Rationale & Explanation')}
+                          </span>
+                          <FormattedExplanation content={detail.explanation} />
+                        </div>
+                      )}
 
                     </div>
                   ))}

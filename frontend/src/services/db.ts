@@ -1178,7 +1178,7 @@ class FinalAttemptDB {
   private getLocalExamsStore(): ExamData[] {
     const DEFAULT_HIERARCHY: ExamData[] = [
       {
-        id: 'exam-bpsc',
+        id: '5cb632ed-d17d-4f2d-af21-8d5374782f5e',
         name: 'BPSC',
         code: 'BPSC',
         slug: 'bpsc',
@@ -1186,8 +1186,8 @@ class FinalAttemptDB {
         displayOrder: 1,
         isActive: true,
         stages: [
-          { id: 'stage-bpsc-prelims', examId: 'exam-bpsc', name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
-          { id: 'stage-bpsc-mains', examId: 'exam-bpsc', name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
+          { id: 'stage-bpsc-prelims', examId: '5cb632ed-d17d-4f2d-af21-8d5374782f5e', name: 'Prelims', slug: 'prelims', sortOrder: 1, isActive: true },
+          { id: 'stage-bpsc-mains', examId: '5cb632ed-d17d-4f2d-af21-8d5374782f5e', name: 'Mains', slug: 'mains', sortOrder: 2, isActive: true }
         ]
       },
       {
@@ -1274,7 +1274,6 @@ class FinalAttemptDB {
 
     if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
       data.data.forEach((e: ExamData) => addExamIfUnique(e));
-      localExams.forEach((e: ExamData) => addExamIfUnique(e));
       exams = mergedList;
       this.setLocalExamsStore(exams);
       allSeries = exams.flatMap(e => e.testSeries || []);
