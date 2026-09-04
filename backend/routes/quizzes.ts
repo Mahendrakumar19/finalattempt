@@ -790,10 +790,17 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
 
     const localizedQuestions = await ContentLocalizer.localizeQuizQuestions(cleanQuestions, targetLang);
 
+    // Compute dynamic total marks from sum of question marks (default 1 mark per question)
+    const totalMaxMarks = questions.reduce((sum: number, q: any) => sum + (Number(q.marks) || 1.0), 0);
+
     res.json({
       success: true,
       data: {
-        quiz,
+        quiz: {
+          ...quiz,
+          totalMaxMarks,
+          maxMarks: totalMaxMarks
+        },
         session: {
           id: session.id,
           setCode: session.setCode,

@@ -146,11 +146,13 @@ export default function StudentPrelimsPage() {
           results.forEach((qList, idx) => {
             const seriesTitle = seriesToFetch[idx]?.title || 'Prelims Series';
             qList.forEach((q: QuizItem) => {
+              const itemAny = q as any;
+              const calcMaxMarks = q.maxMarks || itemAny.totalMaxMarks || (itemAny.totalQuestions ? Number(itemAny.totalQuestions) : 100);
               allQuizzes.push({
                 ...q,
                 seriesTitle,
-                maxMarks: q.maxMarks || 150,
-                durationMinutes: q.durationMinutes || 120,
+                maxMarks: calcMaxMarks,
+                durationMinutes: q.durationMinutes || (q as any).timeLimitMins || 120,
               });
             });
           });

@@ -421,19 +421,16 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 <p className="text-lg font-black mt-0.5" style={{ color: cbtDark ? '#FFFFFF' : '#0F172A' }}>{quizInfo?.timeLimitMins || 60} Mins</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase font-bold" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>Exam Mode</p>
-                <p className="text-lg font-black mt-0.5" style={{ color: cbtDark ? '#FFFFFF' : '#0F172A' }}>
-                  {(() => {
-                    const m = (quizInfo?.languageMode || quizInfo?.medium || quizInfo?.language || '').toLowerCase();
-                    if (m.includes('english') || m === 'en') return 'English Only';
-                    if (m.includes('hindi') || m === 'hi') return 'Hindi Only';
-                    return 'Bilingual';
-                  })()}
+                <p className="text-[10px] uppercase font-bold" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>Total Marks</p>
+                <p className="text-lg font-black mt-0.5 text-amber-500" style={{ color: cbtDark ? '#F59E0B' : '#D97706' }}>
+                  {quizInfo?.maxMarks || questions.reduce((sum, q) => sum + (Number(q.marks) || 1.0), 0)} Marks
                 </p>
               </div>
               <div>
                 <p className="text-[10px] uppercase font-bold" style={{ color: cbtDark ? '#A3A3A3' : '#64748B' }}>Marking Scheme</p>
-                <p className="text-lg font-black mt-0.5" style={{ color: cbtDark ? '#FFFFFF' : '#0F172A' }}>+1.0 / -0.33</p>
+                <p className="text-lg font-black mt-0.5" style={{ color: cbtDark ? '#FFFFFF' : '#0F172A' }}>
+                  +{questions[0]?.marks || 1.0} / -{questions[0]?.negativeMarks || 0.33}
+                </p>
               </div>
             </div>
 
