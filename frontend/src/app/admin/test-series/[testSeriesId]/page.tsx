@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
-  ArrowLeft, Layers, FileText, Users, Settings, Plus, Edit3, Trash2, Check, X, Eye, 
-  Upload, Sparkles, BookOpen, AlertCircle, ShieldCheck, Sun, Moon, Search, Filter
+  ArrowLeft, Layers, Users, Plus, Edit3, Trash2, X, Eye, 
+  Sparkles, AlertCircle, Sun, Moon, Search
 } from 'lucide-react';
 import { db, TestSeriesItem } from '@/services/db';
 import { useTheme } from '@/context/ThemeContext';
@@ -41,7 +41,6 @@ interface StudentItem {
 export default function TestSeriesDetailPage() {
   const { theme, toggleTheme } = useTheme();
   const params = useParams();
-  const router = useRouter();
   const testSeriesId = params.testSeriesId as string;
 
   const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'pricing' | 'quizzes' | 'students' | 'settings'>('overview');
@@ -59,7 +58,6 @@ export default function TestSeriesDetailPage() {
   const [editingPlan, setEditingPlan] = useState<any | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
   const [planFormError, setPlanFormError] = useState<string | null>(null);
-  const [showPlanConfirmModal, setShowPlanConfirmModal] = useState(false);
 
   // Load Plans for Commercial Tab
   const loadPlans = useCallback(async () => {
@@ -229,12 +227,6 @@ export default function TestSeriesDetailPage() {
       setLoadingStudentAttempts(false);
     }
   };
-
-  useEffect(() => {
-    loadData();
-    loadQuizzes();
-    loadStudents();
-  }, [loadData, loadQuizzes, loadStudents]);
 
   // Save Edit Details
   const handleSaveDetails = async (e: React.FormEvent) => {
@@ -734,14 +726,27 @@ export default function TestSeriesDetailPage() {
                             </p>
                           )}
 
-                          <div className="flex items-baseline gap-2 pt-2 border-t border-[var(--card-border)]">
-                            <span className="text-2xl font-heading font-black text-[var(--text-color)]">
-                              ₹{plan.price}
-                            </span>
-                            {plan.discounted_price && (
-                              <span className="text-xs text-slate-400 line-through">₹{plan.discounted_price}</span>
-                            )}
-                          </div>
+                          {(() => {
+                            const p1 = Number(plan.price) || 0;
+                            const p2 = plan.discounted_price !== undefined && plan.discounted_price !== null ? Number(plan.discounted_price) : null;
+                            let sellingPrice = p1;
+                            let originalMrp: number | null = null;
+                            if (p2 !== null && p2 > 0) {
+                              sellingPrice = Math.min(p1, p2);
+                              originalMrp = Math.max(p1, p2);
+                              if (sellingPrice === originalMrp) originalMrp = null;
+                            }
+                            return (
+                              <div className="flex items-baseline gap-2 pt-2 border-t border-[var(--card-border)]">
+                                <span className="text-2xl font-heading font-black text-[var(--text-color)]">
+                                  ₹{sellingPrice}
+                                </span>
+                                {originalMrp !== null && (
+                                  <span className="text-xs text-slate-400 line-through">₹{originalMrp}</span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         <button

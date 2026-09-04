@@ -671,15 +671,28 @@ export default function TestSeriesDetailPage() {
                       {plan.description || `${t('testSeries.first')} ${plan.sequence_end_number} ${t('testSeries.sequentialTests')}`}
                     </p>
 
-                    <div className="flex items-baseline gap-2 pt-2 border-t border-[var(--card-border)]">
-                      <span className="text-2xl font-heading font-black text-[var(--text-color)]">
-                        ₹{plan.price}
-                      </span>
-                      {plan.discounted_price && (
-                        <span className="text-xs text-slate-400 line-through">₹{plan.discounted_price}</span>
-                      )}
-                      <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.cumulative')}</span>
-                    </div>
+                    {(() => {
+                      const p1 = Number(plan.price) || 0;
+                      const p2 = plan.discounted_price !== undefined && plan.discounted_price !== null ? Number(plan.discounted_price) : null;
+                      let sellingPrice = p1;
+                      let originalMrp: number | null = null;
+                      if (p2 !== null && p2 > 0) {
+                        sellingPrice = Math.min(p1, p2);
+                        originalMrp = Math.max(p1, p2);
+                        if (sellingPrice === originalMrp) originalMrp = null;
+                      }
+                      return (
+                        <div className="flex items-baseline gap-2 pt-2 border-t border-[var(--card-border)]">
+                          <span className="text-2xl font-heading font-black text-[var(--text-color)]">
+                            ₹{sellingPrice}
+                          </span>
+                          {originalMrp !== null && (
+                            <span className="text-xs text-slate-400 line-through">₹{originalMrp}</span>
+                          )}
+                          <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.cumulative')}</span>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="pt-4">
@@ -760,20 +773,36 @@ export default function TestSeriesDetailPage() {
                       {plan.description || `${t('testSeries.first')} ${plan.sequence_end_number} ${t('testSeries.cumulatively')}`}
                     </p>
 
-                    <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-heading font-black text-[var(--text-color)]">
-                          ₹{plan.price}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.cumulative')}</span>
-                      </div>
+                    {(() => {
+                      const p1 = Number(plan.price) || 0;
+                      const p2 = plan.discounted_price !== undefined && plan.discounted_price !== null ? Number(plan.discounted_price) : null;
+                      let sellingPrice = p1;
+                      let originalMrp: number | null = null;
+                      if (p2 !== null && p2 > 0) {
+                        sellingPrice = Math.min(p1, p2);
+                        originalMrp = Math.max(p1, p2);
+                        if (sellingPrice === originalMrp) originalMrp = null;
+                      }
+                      return (
+                        <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-heading font-black text-[var(--text-color)]">
+                              ₹{sellingPrice}
+                            </span>
+                            {originalMrp !== null && (
+                              <span className="text-xs text-slate-400 line-through">₹{originalMrp}</span>
+                            )}
+                            <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.cumulative')}</span>
+                          </div>
 
-                      {isMiniOwned && (
-                        <span className="text-[10px] font-extrabold text-amber-500 mt-1">
-                          {t('testSeries.upgradeFromMini')}
-                        </span>
-                      )}
-                    </div>
+                          {isMiniOwned && (
+                            <span className="text-[10px] font-extrabold text-amber-500 mt-1">
+                              {t('testSeries.upgradeFromMini')}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="pt-4">
@@ -860,20 +889,36 @@ export default function TestSeriesDetailPage() {
                       {plan.description || `Full package covering tests 1 to ${plan.sequence_end_number}`}
                     </p>
 
-                    <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-heading font-black text-[var(--text-color)]">
-                          ₹{plan.price}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.allInclusive')}</span>
-                      </div>
+                    {(() => {
+                      const p1 = Number(plan.price) || 0;
+                      const p2 = plan.discounted_price !== undefined && plan.discounted_price !== null ? Number(plan.discounted_price) : null;
+                      let sellingPrice = p1;
+                      let originalMrp: number | null = null;
+                      if (p2 !== null && p2 > 0) {
+                        sellingPrice = Math.min(p1, p2);
+                        originalMrp = Math.max(p1, p2);
+                        if (sellingPrice === originalMrp) originalMrp = null;
+                      }
+                      return (
+                        <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-heading font-black text-[var(--text-color)]">
+                              ₹{sellingPrice}
+                            </span>
+                            {originalMrp !== null && (
+                              <span className="text-xs text-slate-400 line-through">₹{originalMrp}</span>
+                            )}
+                            <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.allInclusive')}</span>
+                          </div>
 
-                      {isUpgrade && (
-                        <span className="text-[10px] font-extrabold text-amber-500 mt-1">
-                          {t('testSeries.upgradeFromTier').replace('{tier}', highestTier)}
-                        </span>
-                      )}
-                    </div>
+                          {isUpgrade && (
+                            <span className="text-[10px] font-extrabold text-amber-500 mt-1">
+                              {t('testSeries.upgradeFromTier').replace('{tier}', highestTier)}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="pt-4">
@@ -959,24 +1004,36 @@ export default function TestSeriesDetailPage() {
                       </span>
                     </div>
 
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      {plan.description || 'Full Access Pass to all current and upcoming tests in this series.'}
-                    </p>
+                    {(() => {
+                      const p1 = Number(plan.price) || 0;
+                      const p2 = plan.discounted_price !== undefined && plan.discounted_price !== null ? Number(plan.discounted_price) : null;
+                      let sellingPrice = p1;
+                      let originalMrp: number | null = null;
+                      if (p2 !== null && p2 > 0) {
+                        sellingPrice = Math.min(p1, p2);
+                        originalMrp = Math.max(p1, p2);
+                        if (sellingPrice === originalMrp) originalMrp = null;
+                      }
+                      return (
+                        <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-heading font-black text-emerald-600 dark:text-emerald-400">
+                              ₹{sellingPrice}
+                            </span>
+                            {originalMrp !== null && (
+                              <span className="text-xs text-slate-400 line-through">₹{originalMrp}</span>
+                            )}
+                            <span className="text-[10px] text-slate-400 font-medium">All-Inclusive Pass</span>
+                          </div>
 
-                    <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-heading font-black text-emerald-600 dark:text-emerald-400">
-                          ₹{plan.price}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-medium">All-Inclusive Pass</span>
-                      </div>
-
-                      {isUpgrade && (
-                        <span className="text-[10px] font-extrabold text-amber-500 mt-1">
-                          Upgrade from {highestTier} tier
-                        </span>
-                      )}
-                    </div>
+                          {isUpgrade && (
+                            <span className="text-[10px] font-extrabold text-amber-500 mt-1">
+                              Upgrade from {highestTier} tier
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="pt-4">
