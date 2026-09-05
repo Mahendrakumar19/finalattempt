@@ -1471,17 +1471,34 @@ class FinalAttemptDB {
       if (!mergedMap.has(q.id)) mergedMap.set(q.id, q);
     });
 
+    const extractTestNumber = (title: string): number => {
+      if (!title) return 9999;
+      const match = title.match(/(?:test|tests|quiz|मि​नी|टेस्ट|\b)\s*[-:]?\s*(\d+)/i);
+      return match ? parseInt(match[1], 10) : 9999;
+    };
+
     const list = Array.from(mergedMap.values());
     list.sort((a, b) => {
-      const timeA = new Date(a.createdAt || a.created_at || 0).getTime();
-      const timeB = new Date(b.createdAt || b.created_at || 0).getTime();
+      const numA = extractTestNumber(a.title);
+      const numB = extractTestNumber(b.title);
+      if (numA !== numB) return numA - numB;
+      const timeA = new Date(a.createdAt || a.created_at || 0).getTime() || 0;
+      const timeB = new Date(b.createdAt || b.created_at || 0).getTime() || 0;
       return timeA - timeB;
     });
 
-    return list.map((q, idx) => ({
-      ...q,
-      sequence_number: idx + 1
-    }));
+    return list.map((q, idx) => {
+      const price = q.individual_price !== undefined && q.individual_price !== null
+        ? Number(q.individual_price)
+        : (q.individualPrice !== undefined && q.individualPrice !== null ? Number(q.individualPrice) : 49);
+      const validPrice = isNaN(price) ? 49 : price;
+      return {
+        ...q,
+        individual_price: validPrice,
+        individualPrice: validPrice,
+        sequence_number: idx + 1
+      };
+    });
   }
 
   public async getQuizById(quizId: string): Promise<any | null> {

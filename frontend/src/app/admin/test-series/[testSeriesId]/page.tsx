@@ -799,7 +799,10 @@ export default function TestSeriesDetailPage() {
                 <tbody className="divide-y divide-[var(--card-border)] font-medium">
                   {quizzes.map((quiz: any, idx: number) => {
                     const seq = quiz.sequence_number || idx + 1;
-                    const price = quiz.individual_price !== undefined ? quiz.individual_price : 49;
+                    const rawPrice = quiz.individual_price !== undefined && quiz.individual_price !== null 
+                      ? quiz.individual_price 
+                      : (quiz.individualPrice !== undefined && quiz.individualPrice !== null ? quiz.individualPrice : 49);
+                    const price = typeof rawPrice === 'number' ? rawPrice : (Number(rawPrice) || 0);
                     const purchasable = quiz.is_standalone_purchasable !== false;
                     const isFree = quiz.isFree === true || (quiz as any).is_free === true;
 
@@ -841,8 +844,9 @@ export default function TestSeriesDetailPage() {
                             min={0}
                             value={price}
                             onChange={e => {
-                              const newPrice = Number(e.target.value);
-                              setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, individual_price: newPrice } : q));
+                              const val = e.target.value;
+                              const newPrice = val === '' ? 0 : Number(val);
+                              setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, individual_price: newPrice, individualPrice: newPrice } : q));
                             }}
                             className="w-24 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-[var(--card-border)] rounded-xl font-bold text-xs outline-none"
                           />
@@ -880,6 +884,7 @@ export default function TestSeriesDetailPage() {
                                   isFree: isFree
                                 });
                                 if (res && res.success) {
+                                  setQuizzes(prev => prev.map(q => q.id === quiz.id ? { ...q, individual_price: price, individualPrice: price } : q));
                                   alert(`✓ Test #${seq} pricing saved! Rate: ₹${price}, Mode: ${isFree ? 'Free Demo' : 'Paid'}, Standalone: ${purchasable}`);
                                 } else {
                                   alert(`Error saving test pricing: ${res?.error || 'Failed'}`);
