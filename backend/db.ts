@@ -2553,6 +2553,7 @@ class BackendDB {
   }
 
   public async deleteDynamicCurrentAffairArticle(id: string): Promise<boolean> {
+    this.editionsCache = null;
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query('DELETE FROM current_affair_articles WHERE id = ?', [id]);
@@ -2577,6 +2578,7 @@ class BackendDB {
   }
 
   public async deleteDynamicCurrentAffairEdition(id: string): Promise<boolean> {
+    this.editionsCache = null;
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query('DELETE FROM current_affair_editions WHERE id = ?', [id]);
