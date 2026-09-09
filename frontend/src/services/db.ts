@@ -1435,15 +1435,36 @@ class FinalAttemptDB {
   public async saveTestSeries(series: Partial<TestSeriesItem>): Promise<boolean> {
     this.clearCache('test_series');
     this.clearCache('exams');
+
+    // Ensure examId matches a valid MySQL Exam record ID (prevents FK constraint fails)
+    const localExams = this.getLocalExamsStore();
+    let resolvedExamId = series.examId;
+
+    if (!resolvedExamId || resolvedExamId === 'exam-bpsc' || resolvedExamId === 'bpsc') {
+      const match = localExams.find(e =>
+        (series.exam && (e.code?.toLowerCase() === series.exam.toLowerCase() || e.name?.toLowerCase() === series.exam.toLowerCase())) ||
+        e.id === '5cb632ed-d17d-4f2d-af21-8d5374782f5e'
+      );
+      resolvedExamId = match ? match.id : '5cb632ed-d17d-4f2d-af21-8d5374782f5e';
+    } else {
+      const matchedEx = localExams.find(e => e.id === resolvedExamId || (series.exam && (e.code?.toLowerCase() === series.exam.toLowerCase() || e.name?.toLowerCase() === series.exam.toLowerCase())));
+      if (matchedEx) resolvedExamId = matchedEx.id;
+    }
+
+    const sanitizedSeries = {
+      ...series,
+      examId: resolvedExamId
+    };
+
     const currentList = this.getLocalTestSeriesStore();
-    const existingIdx = currentList.findIndex(s => s.id === series.id);
+    const existingIdx = currentList.findIndex(s => s.id === sanitizedSeries.id);
     let nextList: TestSeriesItem[] = [];
 
     if (existingIdx >= 0) {
       nextList = [...currentList];
-      nextList[existingIdx] = { ...nextList[existingIdx], ...series } as TestSeriesItem;
+      nextList[existingIdx] = { ...nextList[existingIdx], ...sanitizedSeries } as TestSeriesItem;
     } else {
-      nextList = [series as TestSeriesItem, ...currentList];
+      nextList = [sanitizedSeries as TestSeriesItem, ...currentList];
     }
 
     this.setLocalTestSeriesStore(nextList);
@@ -1451,7 +1472,7 @@ class FinalAttemptDB {
     const res = await this.apiFetch('/api/admin/test-series', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(series)
+      body: JSON.stringify(sanitizedSeries)
     });
     this.clearCache();
     return res?.success || true;
