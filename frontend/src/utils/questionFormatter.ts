@@ -53,12 +53,27 @@ export function formatMatchListsInText(input: string): string {
       const isList2Head = !isList1Head && list2Regex.test(line);
 
       if (isList1Head) {
-        const list2Match = list2Regex.exec(line);
-        if (list2Match && list2Match.index > 0) {
-          headerLeft = line.substring(0, list2Match.index).trim().replace(/^\|+|\|+$/g, '');
-          headerRight = line.substring(list2Match.index).trim().replace(/^\|+|\|+$/g, '');
+        // If line contains intro prompt before header (e.g., "Match List-I with List-II"), split intro text out
+        const list1Match = list1Regex.exec(line);
+        if (list1Match && list1Match.index > 0) {
+          const intro = line.substring(0, list1Match.index).trim();
+          if (intro) promptLines.push(intro);
+          const headerPart = line.substring(list1Match.index).trim();
+          const list2Match = list2Regex.exec(headerPart);
+          if (list2Match && list2Match.index > 0) {
+            headerLeft = headerPart.substring(0, list2Match.index).trim().replace(/^\|+|\|+$/g, '');
+            headerRight = headerPart.substring(list2Match.index).trim().replace(/^\|+|\|+$/g, '');
+          } else {
+            headerLeft = headerPart.replace(/^\|+|\|+$/g, '');
+          }
         } else {
-          headerLeft = line.trim().replace(/^\|+|\|+$/g, '');
+          const list2Match = list2Regex.exec(line);
+          if (list2Match && list2Match.index > 0) {
+            headerLeft = line.substring(0, list2Match.index).trim().replace(/^\|+|\|+$/g, '');
+            headerRight = line.substring(list2Match.index).trim().replace(/^\|+|\|+$/g, '');
+          } else {
+            headerLeft = line.trim().replace(/^\|+|\|+$/g, '');
+          }
         }
         continue;
       }

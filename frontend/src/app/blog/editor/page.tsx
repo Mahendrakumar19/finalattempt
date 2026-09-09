@@ -602,7 +602,7 @@ function BlogEditorForm() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }`}
               >
-                🇬🇧 English Article
+                English Article
               </button>
               <button
                 type="button"
@@ -613,7 +613,7 @@ function BlogEditorForm() {
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }`}
               >
-                <span>🇮🇳 Hindi Article (हिन्दी - Optional)</span>
+                <span>Hindi Article (हिन्दी - Optional)</span>
                 {formData.title_hi && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>}
               </button>
             </div>
@@ -715,9 +715,9 @@ function BlogEditorForm() {
                 onChange={handleChange}
                 className="w-full rounded-xl border border-amber-500/40 bg-background/50 px-4 py-3 text-sm text-foreground focus:border-amber-500 outline-none transition-all font-bold cursor-pointer" 
               >
-                <option value="en">🇬🇧 English Primary (Dynamic AI Hindi Fallback)</option>
-                <option value="hi">🇮🇳 Hindi Primary (हिन्दी)</option>
-                <option value="bilingual">🌐 Bilingual (Authored English & Authored Hindi)</option>
+                <option value="en">English Primary (Dynamic AI Hindi Fallback)</option>
+                <option value="hi">Hindi Primary (हिन्दी)</option>
+                <option value="bilingual"> Bilingual (Authored English & Authored Hindi)</option>
               </select>
             </div>
 
@@ -730,8 +730,8 @@ function BlogEditorForm() {
                 className="w-full rounded-xl border border-primary/50 bg-background/50 px-4 py-3 text-sm text-foreground focus:border-primary outline-none transition-all font-bold cursor-pointer" 
               >
                 <option value="both">🌐 Both English & Hindi Pages (Default)</option>
-                <option value="english">🇬🇧 English Page Only (/blog in English)</option>
-                <option value="hindi">🇮🇳 Hindi Page Only (/blog in Hindi - हिन्दी)</option>
+                <option value="english">English Page Only (/blog in English)</option>
+                <option value="hindi">Hindi Page Only (/blog in Hindi - हिन्दी)</option>
               </select>
             </div>
 

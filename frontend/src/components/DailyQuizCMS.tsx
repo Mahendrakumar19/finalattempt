@@ -321,7 +321,7 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
                           </span>
                         ) : (
                           <span className="text-[9px] font-black px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 rounded-md">
-                            🇬🇧 EN (AI Hindi)
+                            EN (AI Hindi)
                           </span>
                         )}
                       </div>
@@ -513,7 +513,7 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
                     : 'text-slate-500 hover:text-[var(--text-color)]'
                 }`}
               >
-                🇬🇧 English Version
+                English Version
               </button>
               <button
                 type="button"
@@ -524,7 +524,7 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
                     : 'text-slate-500 hover:text-[var(--text-color)]'
                 }`}
               >
-                🇮🇳 Hindi Version (हिन्दी)
+                Hindi Version (हिन्दी)
               </button>
             </div>
 
@@ -586,8 +586,8 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
                   className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)] font-bold cursor-pointer"
                 >
                   <option value="both">🌐 Both English & Hindi Pages (Default)</option>
-                  <option value="english">🇬🇧 English Page Only (/daily-quiz)</option>
-                  <option value="hindi">🇮🇳 Hindi Page Only (/daily-quiz in Hindi)</option>
+                  <option value="english">English Page Only (/daily-quiz)</option>
+                  <option value="hindi">Hindi Page Only (/daily-quiz in Hindi)</option>
                 </select>
               </div>
 
@@ -685,7 +685,7 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
                     : 'text-slate-500 hover:text-[var(--text-color)]'
                 }`}
               >
-                🇬🇧 English Question
+                English Question
               </button>
               <button
                 type="button"
@@ -696,7 +696,7 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
                     : 'text-slate-500 hover:text-[var(--text-color)]'
                 }`}
               >
-                🇮🇳 Hindi Question (हिन्दी)
+                Hindi Question (हिन्दी)
               </button>
             </div>
 

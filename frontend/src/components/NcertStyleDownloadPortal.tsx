@@ -248,13 +248,13 @@ export default function NcertStyleDownloadPortal({
                 onClick={() => setSelectedLanguage('English')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${selectedLanguage === 'English' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'}`}
               >
-                🇬🇧 {t('currentAffairs.english')}
+                {t('currentAffairs.english')}
               </button>
               <button
                 onClick={() => setSelectedLanguage('Hindi')}
                 className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all ${selectedLanguage === 'Hindi' ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900'}`}
               >
-                🇮🇳 {t('currentAffairs.hindi')}
+                {t('currentAffairs.hindi')}
               </button>
             </div>
           )}

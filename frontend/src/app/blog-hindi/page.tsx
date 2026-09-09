@@ -60,7 +60,7 @@ export default function BlogHindi() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-6">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl text-xs font-black uppercase tracking-wider mb-2">
-              <span>🇮🇳 हिन्दी ब्लॉग पोर्टल</span>
+              <span>हिन्दी ब्लॉग पोर्टल</span>
             </div>
             <h1 className="text-3xl font-heading font-black text-slate-900 dark:text-white">
               सभी हिंदी लेख एवं सिविल सेवा मार्गदर्शन
@@ -75,7 +75,7 @@ export default function BlogHindi() {
             onClick={() => setLocale('en', true)}
             className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-900 dark:text-white font-bold rounded-xl text-xs flex items-center gap-2 border border-slate-200 dark:border-white/10 transition-all"
           >
-            <span>🇬🇧 Switch to English Blogs</span>
+            <span>Switch to English Blogs</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>

@@ -581,14 +581,10 @@ export default function TestSeriesDetailPage() {
             )}
 
             {/* Quick Metrics Bar */}
-            <div className="pt-4 border-t border-[var(--card-border)] grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+            <div className="pt-4 border-t border-[var(--card-border)] grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div>
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">{t('testSeries.totalMocksPool')}</span>
                 <span className="font-bold text-[var(--text-color)]">{quizzes.length || series.totalTests || 40} CBT Tests</span>
-              </div>
-              <div>
-                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">{t('testSeries.individualTestRate')}</span>
-                <span className="font-bold text-[var(--text-color)]">₹49 / Test Paper</span>
               </div>
               <div>
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">{t('testSeries.programValidity')}</span>
@@ -845,7 +841,7 @@ export default function TestSeriesDetailPage() {
                             ? t('testSeries.selectedClickRemove')
                             : isMiniOwned
                             ? t('testSeries.upgradeToHalf')
-                            : t('testSeries.selectHalf').replace('{price}', plan.price.toString())}
+                            : t('testSeries.selectHalf').replace('{price}', (plan.discounted_price !== undefined && plan.discounted_price !== null && Number(plan.discounted_price) > 0 ? Math.min(Number(plan.price), Number(plan.discounted_price)) : Number(plan.price)).toString())}
                         </span>
                       </button>
                     )}
@@ -879,6 +875,16 @@ export default function TestSeriesDetailPage() {
               const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF';
               const isSelected = selectedPackages.includes('FULL');
 
+              const p1 = Number(plan.price) || 0;
+              const p2 = plan.discounted_price !== undefined && plan.discounted_price !== null ? Number(plan.discounted_price) : null;
+              let sellingPrice = p1;
+              let originalMrp: number | null = null;
+              if (p2 !== null && p2 > 0) {
+                sellingPrice = Math.min(p1, p2);
+                originalMrp = Math.max(p1, p2);
+                if (sellingPrice === originalMrp) originalMrp = null;
+              }
+
               return (
                 <div
                   className={`bg-[var(--card-bg)] border-2 rounded-3xl p-6 space-y-5 transition-all relative overflow-hidden flex flex-col justify-between ${
@@ -910,36 +916,23 @@ export default function TestSeriesDetailPage() {
                       </p>
                     )}
 
-                    {(() => {
-                      const p1 = Number(plan.price) || 0;
-                      const p2 = plan.discounted_price !== undefined && plan.discounted_price !== null ? Number(plan.discounted_price) : null;
-                      let sellingPrice = p1;
-                      let originalMrp: number | null = null;
-                      if (p2 !== null && p2 > 0) {
-                        sellingPrice = Math.min(p1, p2);
-                        originalMrp = Math.max(p1, p2);
-                        if (sellingPrice === originalMrp) originalMrp = null;
-                      }
-                      return (
-                        <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-heading font-black text-[var(--text-color)]">
-                              ₹{sellingPrice}
-                            </span>
-                            {originalMrp !== null && (
-                              <span className="text-xs text-slate-400 line-through">₹{originalMrp}</span>
-                            )}
-                            <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.allInclusive')}</span>
-                          </div>
+                    <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-heading font-black text-[var(--text-color)]">
+                          ₹{sellingPrice}
+                        </span>
+                        {originalMrp !== null && (
+                          <span className="text-xs text-slate-400 line-through">₹{originalMrp}</span>
+                        )}
+                        <span className="text-[10px] text-slate-400 font-medium">{t('testSeries.allInclusive')}</span>
+                      </div>
 
-                          {isUpgrade && (
-                            <span className="text-[10px] font-extrabold text-amber-500 mt-1">
-                              {t('testSeries.upgradeFromTier').replace('{tier}', highestTier)}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()}
+                      {isUpgrade && (
+                        <span className="text-[10px] font-extrabold text-amber-500 mt-1">
+                          {t('testSeries.upgradeFromTier').replace('{tier}', highestTier)}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-4">
@@ -961,7 +954,7 @@ export default function TestSeriesDetailPage() {
                         <span>
                           {isSelected
                             ? t('testSeries.selectedClickRemove')
-                            : `Select Full (₹${plan.price})`}
+                            : `Select Full (₹${sellingPrice})`}
                         </span>
                       </button>
                     )}
@@ -996,6 +989,16 @@ export default function TestSeriesDetailPage() {
               const isOwned = highestTier === 'COMPLETE' || highestTier === 'LEGACY_ENROLLMENT';
               const isUpgrade = highestTier === 'MINI' || highestTier === 'HALF' || highestTier === 'FULL';
               const isSelected = selectedPackages.includes('COMPLETE');
+
+              const p1 = Number(plan.price) || 0;
+              const p2 = plan.discounted_price !== undefined && plan.discounted_price !== null ? Number(plan.discounted_price) : null;
+              let sellingPrice = p1;
+              let originalMrp: number | null = null;
+              if (p2 !== null && p2 > 0) {
+                sellingPrice = Math.min(p1, p2);
+                originalMrp = Math.max(p1, p2);
+                if (sellingPrice === originalMrp) originalMrp = null;
+              }
 
               return (
                 <div
@@ -1033,36 +1036,23 @@ export default function TestSeriesDetailPage() {
                       </p>
                     )}
 
-                    {(() => {
-                      const p1 = Number(plan.price) || 0;
-                      const p2 = plan.discounted_price !== undefined && plan.discounted_price !== null ? Number(plan.discounted_price) : null;
-                      let sellingPrice = p1;
-                      let originalMrp: number | null = null;
-                      if (p2 !== null && p2 > 0) {
-                        sellingPrice = Math.min(p1, p2);
-                        originalMrp = Math.max(p1, p2);
-                        if (sellingPrice === originalMrp) originalMrp = null;
-                      }
-                      return (
-                        <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-heading font-black text-emerald-600 dark:text-emerald-400">
-                              ₹{sellingPrice}
-                            </span>
-                            {originalMrp !== null && (
-                              <span className="text-xs text-slate-400 line-through">₹{originalMrp}</span>
-                            )}
-                            <span className="text-[10px] text-slate-400 font-medium">All-Inclusive Pass</span>
-                          </div>
+                    <div className="flex flex-col pt-2 border-t border-[var(--card-border)]">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-heading font-black text-emerald-600 dark:text-emerald-400">
+                          ₹{sellingPrice}
+                        </span>
+                        {originalMrp !== null && (
+                          <span className="text-xs text-slate-400 line-through">₹{originalMrp}</span>
+                        )}
+                        <span className="text-[10px] text-slate-400 font-medium">All-Inclusive Pass</span>
+                      </div>
 
-                          {isUpgrade && (
-                            <span className="text-[10px] font-extrabold text-amber-500 mt-1">
-                              Upgrade from {highestTier} tier
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })()}
+                      {isUpgrade && (
+                        <span className="text-[10px] font-extrabold text-amber-500 mt-1">
+                          Upgrade from {highestTier} tier
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-4">
@@ -1084,7 +1074,7 @@ export default function TestSeriesDetailPage() {
                         <span>
                           {isSelected
                             ? t('testSeries.selectedClickRemove')
-                            : `Get Complete Series (₹${plan.price})`}
+                            : `Get Complete Series (₹${sellingPrice})`}
                         </span>
                       </button>
                     )}

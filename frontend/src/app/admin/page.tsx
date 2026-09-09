@@ -1111,7 +1111,7 @@ export default function AdminPortal() {
                 }`}
                 title="Switch Portal to English"
               >
-                🇬🇧 EN
+                EN
               </button>
               <button
                 type="button"
@@ -2308,8 +2308,8 @@ export default function AdminPortal() {
                 <span className="text-[10px] font-black uppercase text-slate-400 px-2">Destination Filter:</span>
                 {[
                   { id: 'all', label: 'All Articles' },
-                  { id: 'english', label: '🇬🇧 English Page Only' },
-                  { id: 'hindi', label: '🇮🇳 Hindi Page Only' },
+                  { id: 'english', label: 'English Page Only' },
+                  { id: 'hindi', label: 'Hindi Page Only' },
                   { id: 'both', label: '🌐 Both Pages' }
                 ].map((tab) => (
                   <button
@@ -2381,11 +2381,11 @@ export default function AdminPortal() {
                               <td className="p-4">
                                 {targetPage === 'english' ? (
                                   <span className="px-2.5 py-1 rounded-xl text-[10px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-                                    🇬🇧 English Page Only
+                                    English Page Only
                                   </span>
                                 ) : targetPage === 'hindi' ? (
                                   <span className="px-2.5 py-1 rounded-xl text-[10px] font-black bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
-                                    🇮🇳 Hindi Page Only
+                                    Hindi Page Only
                                   </span>
                                 ) : (
                                   <span className="px-2.5 py-1 rounded-xl text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
@@ -2400,11 +2400,11 @@ export default function AdminPortal() {
                                 </span>
                               ) : isHindi ? (
                                 <span className="px-2 py-1 rounded-xl text-[10px] font-black bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
-                                  🇮🇳 Hindi Primary
+                                  Hindi Primary
                                 </span>
                               ) : (
                                 <span className="px-2 py-1 rounded-xl text-[10px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-                                  🇬🇧 EN (AI Hindi)
+                                  EN (AI Hindi)
                                 </span>
                               )}
                             </td>
@@ -3172,11 +3172,11 @@ export default function AdminPortal() {
                             </span>
                           ) : (article as any).language === 'hi' ? (
                             <span className="px-2 py-0.5 rounded text-[9px] font-black bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
-                              🇮🇳 Hindi Primary
+                              Hindi Primary
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded text-[9px] font-black bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30">
-                              🇬🇧 EN (AI Hindi)
+                              EN (AI Hindi)
                             </span>
                           )}
                           <span className="text-[10px] text-slate-400">{article.publishDate}</span>
@@ -3239,9 +3239,9 @@ export default function AdminPortal() {
                         onChange={(e) => setCaForm({ ...caForm, language: e.target.value } as any)}
                         className="w-full px-4 py-2 border border-amber-500/40 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-xs outline-none font-bold cursor-pointer"
                       >
-                        <option value="en">🇬🇧 English Primary (AI Hindi)</option>
-                        <option value="hi">🇮🇳 Hindi Primary (हिन्दी)</option>
-                        <option value="bilingual">🌐 Bilingual (Both)</option>
+                        <option value="en">English</option>
+                        <option value="hi">Hindi</option>
+                        <option value="bilingual">Bilingual</option>
                       </select>
                     </div>
                   </div>

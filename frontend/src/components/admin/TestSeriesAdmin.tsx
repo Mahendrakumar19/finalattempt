@@ -1112,11 +1112,11 @@ export default function TestSeriesAdmin({
                           </span>
                         ) : series.language === 'Hindi' || series.medium === 'Hindi' ? (
                           <span className="px-2 py-0.5 bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30 text-[9px] font-black rounded-lg">
-                            🇮🇳 Hindi Only
+                            Hindi Only
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[9px] font-black rounded-lg">
-                            🇬🇧 EN (AI Hindi)
+                            EN (AI Hindi)
                           </span>
                         )}
                       </div>
@@ -1783,8 +1783,8 @@ export default function TestSeriesAdmin({
                     className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
                   >
                     <option value="Bilingual">🌐 Bilingual (English & Hindi)</option>
-                    <option value="English">🇬🇧 English Medium Only</option>
-                    <option value="Hindi">🇮🇳 Hindi Medium Only</option>
+                    <option value="English">English Medium Only</option>
+                    <option value="Hindi">Hindi Medium Only</option>
                   </select>
                 </div>
 
@@ -1796,8 +1796,8 @@ export default function TestSeriesAdmin({
                     className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
                   >
                     <option value="both">🌐 Both English & Hindi Pages (Default)</option>
-                    <option value="english">🇬🇧 English Page Only (/test-series)</option>
-                    <option value="hindi">🇮🇳 Hindi Page Only (/test-series in Hindi)</option>
+                    <option value="english">English Page Only (/test-series)</option>
+                    <option value="hindi">Hindi Page Only (/test-series in Hindi)</option>
                   </select>
                 </div>
               </div>
@@ -3595,8 +3595,8 @@ export default function TestSeriesAdmin({
                             className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-amber-500/40 text-[var(--text-color)] rounded-xl outline-none font-bold text-xs cursor-pointer shadow-xs"
                           >
                             <option value="BILINGUAL">🌐 Both Pages (Hindi & English Bilingual Portal)</option>
-                            <option value="HINDI_ONLY">🇮🇳 Hindi Page Only (हिन्दी माध्यम - Direct Hindi Import)</option>
-                            <option value="ENGLISH_ONLY">🇬🇧 English Page Only (English Medium Only)</option>
+                            <option value="HINDI_ONLY">Hindi Page Only (हिन्दी माध्यम - Direct Hindi Import)</option>
+                            <option value="ENGLISH_ONLY">English Page Only (English Medium Only)</option>
                           </select>
                         </div>
 
