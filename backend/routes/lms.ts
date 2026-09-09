@@ -525,11 +525,23 @@ router.get('/quizzes/:quizId/questions', async (req, res) => {
   }
 });
 
-// Add a question to a quiz
+// Add or Upsert a question to a quiz
 router.post('/quizzes/:quizId/questions', async (req, res) => {
   try {
-    const question = await lmsDB.createQuestion({ ...req.body, quizId: req.params.quizId });
-    res.status(201).json({ success: true, data: question });
+    const quizId = req.params.quizId;
+    const body = { ...req.body, quizId };
+    let question;
+    if (body.id) {
+      const existing = await lmsDB.updateQuestion(body.id, body);
+      if (existing) {
+        question = body;
+      } else {
+        question = await lmsDB.createQuestion(body);
+      }
+    } else {
+      question = await lmsDB.createQuestion(body);
+    }
+    res.status(200).json({ success: true, data: question });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -539,7 +551,7 @@ router.post('/quizzes/:quizId/questions', async (req, res) => {
 router.put('/questions/:questionId', async (req, res) => {
   try {
     await lmsDB.updateQuestion(req.params.questionId, req.body);
-    res.json({ success: true, message: 'Question updated successfully' });
+    res.json({ success: true, message: 'Question updated successfully', data: req.body });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

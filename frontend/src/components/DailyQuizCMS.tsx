@@ -105,7 +105,17 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
   };
 
   useEffect(() => {
-    loadQuizzes();
+    let isSubscribed = true;
+    setLoading(true);
+    db.getPreviousDailyQuizzes()
+      .then(data => {
+        if (isSubscribed) setQuizzes(data || []);
+      })
+      .catch(err => console.error('Failed loading daily quizzes:', err))
+      .finally(() => {
+        if (isSubscribed) setLoading(false);
+      });
+    return () => { isSubscribed = false; };
   }, []);
 
   // Fetch questions for a selected quiz

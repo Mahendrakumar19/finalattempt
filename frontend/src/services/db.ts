@@ -97,6 +97,9 @@ export interface BlogItem {
   seoDescription?: string;
   status?: string;
   language?: 'en' | 'hi' | 'bilingual' | string;
+  publish_target?: string;
+  publishTarget?: string;
+  createdAt?: string;
 }
 
 export interface CourseSection {
@@ -1565,11 +1568,22 @@ class FinalAttemptDB {
   }
 
   public async saveQuestion(question: any): Promise<boolean> {
-    const res = await this.apiFetch(`/api/lms/quizzes/${question.quizId}/questions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(question)
-    });
+    let res: any;
+    if (question.id) {
+      res = await this.apiFetch(`/api/lms/questions/${question.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(question)
+      });
+    }
+    if (!res || !res.success) {
+      res = await this.apiFetch(`/api/lms/quizzes/${question.quizId}/questions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(question)
+      });
+    }
+
     if (res && (res.success || res.data)) {
       if (typeof window !== 'undefined') {
         try {

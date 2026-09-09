@@ -97,6 +97,12 @@ interface CurrentAffairArticle {
   analysis?: string;
   wayForward?: string;
   practiceQuestion?: string;
+  language?: string;
+  title_hi?: string;
+  summary_hi?: string;
+  content_hi?: string;
+  publish_target?: string;
+  publishTarget?: string;
 }
 
 interface BlogItem {
@@ -108,11 +114,23 @@ interface BlogItem {
   category: string;
   content: string;
   imageUrl?: string;
+  cover_image_url?: string;
   seoTitle?: string;
   seoKeywords?: string;
   seoDescription?: string;
   canonicalUrl?: string;
   blurb?: string;
+  blurb_hi?: string;
+  title_hi?: string;
+  content_hi?: string;
+  author?: string;
+  author_name?: string;
+  author_image?: string;
+  authorImage?: string;
+  language?: string;
+  publish_target?: string;
+  publishTarget?: string;
+  createdAt?: string;
 }
 
 interface ResourceDownload {
@@ -318,7 +336,6 @@ export default function AdminPortal() {
   const [caForm, setCaForm] = useState<CurrentAffairArticle>({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
   const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '', imageUrl: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
   const [blogTargetFilter, setBlogTargetFilter] = useState<'all' | 'english' | 'hindi' | 'both'>('all');
-  const [caTargetFilter, setCaTargetFilter] = useState<'all' | 'english' | 'hindi' | 'both'>('all');
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '', category: 'Prelims', subcategory: '' });
   const [resourceUploading, setResourceUploading] = useState(false);
   const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'BPSC Course', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
@@ -2315,7 +2332,7 @@ export default function AdminPortal() {
                   <button
                     key={tab.id}
                     type="button"
-                    onClick={() => setBlogTargetFilter(tab.id as any)}
+                    onClick={() => setBlogTargetFilter(tab.id as 'all' | 'english' | 'hindi' | 'both')}
                     className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
                       blogTargetFilter === tab.id
                         ? 'bg-amber-500 text-slate-950 shadow-sm'
@@ -2346,7 +2363,7 @@ export default function AdminPortal() {
                   </thead>
                   <tbody>
                     {blogsList.filter(b => {
-                      const target = (b as any).publish_target || (b as any).publishTarget || 'both';
+                      const target = b.publish_target || b.publishTarget || 'both';
                       if (blogTargetFilter === 'all') return true;
                       return target === blogTargetFilter;
                     }).length === 0 ? (
@@ -2358,19 +2375,19 @@ export default function AdminPortal() {
                     ) : (
                       blogsList
                         .filter(b => {
-                          const target = (b as any).publish_target || (b as any).publishTarget || 'both';
+                          const target = b.publish_target || b.publishTarget || 'both';
                           if (blogTargetFilter === 'all') return true;
                           return target === blogTargetFilter;
                         })
                         .map((blog, idx) => {
-                          const isBilingual = (blog as any).language === 'bilingual' || (Boolean((blog as any).title_hi) && Boolean(blog.title));
-                          const isHindi = (blog as any).language === 'hi';
-                          const targetPage = (blog as any).publish_target || (blog as any).publishTarget || 'both';
+                          const isBilingual = blog.language === 'bilingual' || (Boolean(blog.title_hi) && Boolean(blog.title));
+                          const isHindi = blog.language === 'hi';
+                          const targetPage = blog.publish_target || blog.publishTarget || 'both';
                           return (
                             <tr key={blog.id || idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
                               <td className="p-4 max-w-sm">
                                 <div className="font-extrabold text-slate-900 dark:text-white line-clamp-1">{blog.title}</div>
-                                {(blog as any).title_hi && <div className="text-[10px] text-amber-500 font-bold line-clamp-1 mt-0.5">🇮🇳 {(blog as any).title_hi}</div>}
+                                {blog.title_hi && <div className="text-[10px] text-amber-500 font-bold line-clamp-1 mt-0.5">🇮🇳 {blog.title_hi}</div>}
                                 {blog.blurb && <div className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{blog.blurb}</div>}
                               </td>
                               <td className="p-4">
@@ -2739,12 +2756,13 @@ export default function AdminPortal() {
                                         });
                                         const data = await res.json();
                                         if (data.success) {
-                                          alert(`📊 Performance Breakdown for ${user.fullName}:\n\nTotal Quiz Attempts: ${data.data.length}\nPassed: ${data.data.filter((a: any) => a.passed).length}\n\nRecent Tests:\n` + 
-                                            data.data.slice(0, 5).map((a: any, i: number) => 
-                                              `${i + 1}. ${a.quizTitle || 'Mock Test'} [${a.setCode || 'SET-A'}]: Score ${a.score}/${a.maxScore} (${a.passed ? 'PASSED' : 'FAILED'}) on ${new Date(a.submittedAt).toLocaleDateString('en-IN')}`
+                                          type StudentAttempt = { quizTitle?: string; setCode?: string; score?: number; maxScore?: number; passed?: boolean; submittedAt?: string };
+                                          alert(`📊 Performance Breakdown for ${user.fullName}:\n\nTotal Quiz Attempts: ${data.data.length}\nPassed: ${data.data.filter((a: StudentAttempt) => a.passed).length}\n\nRecent Tests:\n` + 
+                                            data.data.slice(0, 5).map((a: StudentAttempt, i: number) => 
+                                              `${i + 1}. ${a.quizTitle || 'Mock Test'} [${a.setCode || 'SET-A'}]: Score ${a.score}/${a.maxScore} (${a.passed ? 'PASSED' : 'FAILED'}) on ${a.submittedAt ? new Date(a.submittedAt).toLocaleDateString('en-IN') : 'N/A'}`
                                             ).join('\n'));
                                         }
-                                      } catch (err) {
+                                      } catch {
                                         alert('Failed to load performance metrics for this student.');
                                       }
                                     }}
@@ -3166,11 +3184,11 @@ export default function AdminPortal() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-amber-500/10 text-amber-600">{article.category}</span>
-                          {(article as any).title_hi || (article as any).language === 'bilingual' ? (
+                          {article.title_hi || article.language === 'bilingual' ? (
                             <span className="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
                               🌐 Bilingual (Both)
                             </span>
-                          ) : (article as any).language === 'hi' ? (
+                          ) : article.language === 'hi' ? (
                             <span className="px-2 py-0.5 rounded text-[9px] font-black bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/30">
                               Hindi Primary
                             </span>
@@ -3235,8 +3253,8 @@ export default function AdminPortal() {
                     <div className="space-y-1.5">
                       <label className="text-[10px] text-amber-500 font-bold uppercase">Primary Article Language</label>
                       <select
-                        value={(caForm as any).language || 'en'}
-                        onChange={(e) => setCaForm({ ...caForm, language: e.target.value } as any)}
+                        value={caForm.language || 'en'}
+                        onChange={(e) => setCaForm({ ...caForm, language: e.target.value })}
                         className="w-full px-4 py-2 border border-amber-500/40 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-xs outline-none font-bold cursor-pointer"
                       >
                         <option value="en">English</option>

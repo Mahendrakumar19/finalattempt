@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -28,11 +29,11 @@ export default function BlogHindi() {
       try {
         const bg = await db.getBlogs();
         // Filter out items targeted strictly for English only
-        const filtered = (bg || []).filter((b: any) => {
+        const filtered = (bg || []).filter((b: BlogItem) => {
           const target = b.publish_target || b.publishTarget || 'both';
           return target === 'both' || target === 'hindi';
         });
-        const sorted = [...filtered].sort((a: any, b: any) => {
+        const sorted = [...filtered].sort((a: BlogItem, b: BlogItem) => {
           const timeA = new Date(a.publishDate || a.createdAt || 0).getTime() || 0;
           const timeB = new Date(b.publishDate || b.createdAt || 0).getTime() || 0;
           return timeB - timeA;
@@ -100,10 +101,10 @@ export default function BlogHindi() {
                   className="bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200/80 dark:border-white/10 p-6 flex flex-col justify-between hover:shadow-xl hover:border-amber-500/50 transition-all duration-300 group"
                 >
                   <div className="space-y-4">
-                    {(post.imageUrl || (post as any).cover_image_url) && (
+                    {(post.imageUrl || post.cover_image_url) && (
                       <div className="w-full aspect-[16/9] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center relative">
                         <img
-                          src={resolveUrl(post.imageUrl || (post as any).cover_image_url)}
+                          src={resolveUrl(post.imageUrl || post.cover_image_url)}
                           alt={displayTitle}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
@@ -126,10 +127,10 @@ export default function BlogHindi() {
 
                   <div className="pt-4 border-t border-slate-100 dark:border-white/5 mt-6 flex justify-between items-center text-xs font-bold">
                     <div className="flex items-center gap-2 min-w-0">
-                      {post.author_image || (post as any).authorImage ? (
-                        <img src={resolveUrl(post.author_image || (post as any).authorImage)} alt={post.author_name || 'Author'} className="w-6 h-6 rounded-full object-cover border border-amber-500/40 shrink-0" />
+                      {post.author_image || post.authorImage ? (
+                        <img src={resolveUrl(post.author_image || post.authorImage)} alt={post.author_name || 'Author'} className="w-6 h-6 rounded-full object-cover border border-amber-500/40 shrink-0" />
                       ) : null}
-                      <span className="text-slate-400 font-semibold text-[11px] truncate max-w-[130px]">{post.author_name || (post as any).author || 'फ़ाइनल अटेम्प्ट टीम'}</span>
+                      <span className="text-slate-400 font-semibold text-[11px] truncate max-w-[130px]">{post.author_name || post.author || 'फ़ाइनल अटेम्प्ट टीम'}</span>
                     </div>
                     <span className="text-amber-500 group-hover:translate-x-1 transition-transform flex items-center gap-1 shrink-0">
                       <span>लेख पढ़ें</span>

@@ -255,16 +255,29 @@ export default function TestSeriesAdmin({
   }, [initialSeriesId, selectedSeriesId]);
 
   useEffect(() => {
-    loadSeries();
-  }, [loadSeries]);
+    let isSubscribed = true;
+    setLoadingSeries(true);
+    db.getTestSeries(true)
+      .then((list: any[]) => {
+        if (!isSubscribed) return;
+        setSeriesList(list || []);
+        if (list && list.length > 0) {
+          const matched = initialSeriesId ? list.find((s: any) => s.id === initialSeriesId || s.slug === initialSeriesId) : null;
+          const targetId = matched ? matched.id : (selectedSeriesId || list[0].id);
+          setSelectedSeriesId(targetId);
+        }
+      })
+      .catch((err: any) => console.error('Failed loading test series:', err))
+      .finally(() => {
+        if (isSubscribed) setLoadingSeries(false);
+      });
+    return () => { isSubscribed = false; };
+  }, [initialSeriesId]);
 
   // Sync quizzes when selected test series changes
   useEffect(() => {
-    if (!selectedSeriesId) {
-      return;
-    }
+    if (!selectedSeriesId) return;
     let isSubscribed = true;
-    setLoadingQuizzes(true);
     db.getTestSeriesQuizzes(selectedSeriesId)
       .then(list => {
         if (isSubscribed) setQuizzes(list || []);
@@ -273,7 +286,6 @@ export default function TestSeriesAdmin({
       .finally(() => {
         if (isSubscribed) setLoadingQuizzes(false);
       });
-
     return () => { isSubscribed = false; };
   }, [selectedSeriesId]);
 

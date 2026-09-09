@@ -5262,11 +5262,13 @@ class LmsDB {
         );
         const idx = lmsLocalQuestions.findIndex(q => q.id === id);
         if (idx >= 0) lmsLocalQuestions[idx] = { ...lmsLocalQuestions[idx], ...data };
+        db.saveLocalData();
         return true;
       } catch (err) { console.error('[LmsDB] updateQuestion MySQL error:', err); }
     }
     const idx = lmsLocalQuestions.findIndex(q => q.id === id);
     if (idx >= 0) lmsLocalQuestions[idx] = { ...lmsLocalQuestions[idx], ...data };
+    db.saveLocalData();
     return true;
   }
 
@@ -5276,11 +5278,13 @@ class LmsDB {
         await mysqlPool.query('DELETE FROM lms_questions WHERE id = ?', [id]);
         const qIdx = lmsLocalQuestions.findIndex(q => q.id === id);
         if (qIdx >= 0) lmsLocalQuestions.splice(qIdx, 1);
+        db.saveLocalData();
         return true;
       } catch (err) { console.error('[LmsDB] deleteQuestion MySQL error:', err); }
     }
     const qIdx = lmsLocalQuestions.findIndex(q => q.id === id);
     if (qIdx >= 0) lmsLocalQuestions.splice(qIdx, 1);
+    db.saveLocalData();
     return true;
   }
 
