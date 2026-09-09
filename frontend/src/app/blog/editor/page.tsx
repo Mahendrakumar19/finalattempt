@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import { useState, useEffect, Suspense, useRef } from 'react'
@@ -186,7 +187,7 @@ function RichTextEditor({ value, onChange }: RichTextEditorProps) {
       } else {
         alert(data.error || 'Failed uploading inline image')
       }
-    } catch (_) {
+    } catch {
       alert('Failed uploading inline image')
     }
   }

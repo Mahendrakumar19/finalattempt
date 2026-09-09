@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Trash2, Edit3, ChevronDown, ChevronRight, FileText, X, Check,
-  Layers, Sparkles, Eye, ArrowUp, ArrowDown, Folder
+  Layers, Sparkles, ArrowUp, ArrowDown, Folder
 } from 'lucide-react';
 import { db, TestSeriesItem, ExamData } from '@/services/db';
 import MediaPicker from '@/components/MediaPicker';
-import { sanitizeAndRepairQuestion, formatMatchListsInText, renderFormattedQuestionText } from '@/utils/questionFormatter';
+import { sanitizeAndRepairQuestion, renderFormattedQuestionText } from '@/utils/questionFormatter';
 
 /** Strips any leading "(a) " / "(A) " / "(क) " option prefix from stored option text */
 function stripOptionPrefix(text: string): string {
@@ -256,7 +258,6 @@ export default function TestSeriesAdmin({
 
   useEffect(() => {
     let isSubscribed = true;
-    setLoadingSeries(true);
     db.getTestSeries(true)
       .then((list: any[]) => {
         if (!isSubscribed) return;
@@ -272,7 +273,7 @@ export default function TestSeriesAdmin({
         if (isSubscribed) setLoadingSeries(false);
       });
     return () => { isSubscribed = false; };
-  }, [initialSeriesId]);
+  }, [initialSeriesId, selectedSeriesId]);
 
   // Sync quizzes when selected test series changes
   useEffect(() => {
@@ -462,7 +463,6 @@ export default function TestSeriesAdmin({
     if (!selectedSeriesId) return;
     setSavingQuiz(true);
     try {
-      const isEdit = !!(quizForm as any).id;
       const id = (quizForm as any).id || `quiz-${selectedSeriesId}-${Date.now()}`;
       const payload = { ...quizForm, id, courseId: selectedSeriesId };
       const success = await db.saveQuiz(payload);
@@ -573,7 +573,7 @@ export default function TestSeriesAdmin({
           setParsedBulkQuestions(parsed);
           return;
         }
-      } catch (_) { }
+      } catch { }
     }
 
     // 2. Try parsing CSV format
@@ -732,7 +732,7 @@ export default function TestSeriesAdmin({
             let parsed: any = {};
             try {
               parsed = typeof q.parsedQnaJson === 'string' ? JSON.parse(q.parsedQnaJson) : q.parsedQnaJson || {};
-            } catch (_) { }
+            } catch { }
 
             const textEn = parsed.question?.versions?.find((v: any) => v.language === 'en')?.text || q.questionText || '';
             const textHi = parsed.question?.versions?.find((v: any) => v.language === 'hi')?.text || '';
@@ -1945,7 +1945,7 @@ export default function TestSeriesAdmin({
                           const localUrl = URL.createObjectURL(file);
                           setEditingSeries(prev => ({ ...prev, schedulePdfUrl: localUrl }));
                         }
-                      } catch (_) {
+                      } catch {
                         const localUrl = URL.createObjectURL(file);
                         setEditingSeries(prev => ({ ...prev, schedulePdfUrl: localUrl }));
                       }
@@ -2026,7 +2026,7 @@ export default function TestSeriesAdmin({
                             };
                             reader.readAsDataURL(file);
                           }
-                        } catch (_) {
+                        } catch {
                           const reader = new FileReader();
                           reader.onload = (ev) => {
                             if (ev.target?.result) {
@@ -3740,7 +3740,7 @@ export default function TestSeriesAdmin({
                             if (createdQs.length > 0) {
                               localStorage.setItem(`finalattempt_questions_${createdQuiz.id}`, JSON.stringify(createdQs));
                             }
-                          } catch (_) { }
+                          } catch { }
                         }
 
                         alert(`🎉 Successfully imported ${res.data?.importedQuestionsCount || res.committedCount || bilingualReport.mappedQuestionsCount} 1:1 bilingual questions with authored English & Hindi content into LMS Database!`);

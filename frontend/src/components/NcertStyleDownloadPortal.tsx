@@ -1,9 +1,10 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, FileText, Download, BookOpen, Eye, Home, ChevronRight, X, Layers, Globe, Filter } from 'lucide-react';
-import { db, CustomPage, DownloadItem } from '@/services/db';
+import { Search, Download, BookOpen, Eye, Home, ChevronRight, X, Layers } from 'lucide-react';
+import { db, CustomPage, DownloadItem, ExamData } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
 import PublicationCheckoutModal from './PublicationCheckoutModal';
 
@@ -43,7 +44,7 @@ export default function NcertStyleDownloadPortal({
   const [selectedType, setSelectedType] = useState<string>('ALL');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('ALL');
   const [loading, setLoading] = useState(true);
-  const [examsList, setExamsList] = useState<any[]>([]);
+  const [examsList, setExamsList] = useState<ExamData[]>([]);
 
   // Category Modal state (Standard Vault items like NCERT/PYQ)
   const [activeCategoryModal, setActiveCategoryModal] = useState<string | null>(null);
@@ -72,7 +73,7 @@ export default function NcertStyleDownloadPortal({
         const res = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
         const examsData = await res.json();
         if (!ignore && examsData.success && Array.isArray(examsData.data)) {
-          setExamsList(examsData.data.filter((e: any) => e.isActive !== false));
+          setExamsList(examsData.data.filter((e: ExamData) => e.isActive !== false));
         }
       } catch (err) {
         console.error(`Error loading portal downloads/${pageSlug}:`, err);
@@ -101,10 +102,10 @@ export default function NcertStyleDownloadPortal({
 
     if (matchedExam) {
       if (matchedExam.logoUrl) return matchedExam.logoUrl;
-      if (matchedExam.logo?.storagePath) {
-        const p = matchedExam.logo.storagePath;
-        if (p.startsWith('http://') || p.startsWith('https://')) return p;
-        return `${BACKEND_URL}/${p.replace(/^\//, '')}`;
+      const logoStoragePath = (matchedExam as { logo?: { storagePath?: string } }).logo?.storagePath;
+      if (logoStoragePath) {
+        if (logoStoragePath.startsWith('http://') || logoStoragePath.startsWith('https://')) return logoStoragePath;
+        return `${BACKEND_URL}/${logoStoragePath.replace(/^\//, '')}`;
       }
     }
     return null;

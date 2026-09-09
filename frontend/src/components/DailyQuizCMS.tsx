@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-  Flame, Plus, Trash2, Edit3, ChevronDown, ChevronRight, Check, X, 
-  HelpCircle, Eye, Calendar, Clock, Award, Play, Sparkles, RefreshCw, AlertCircle 
+  Flame, Plus, Trash2, Edit3, X, 
+  HelpCircle, Eye, Sparkles, RefreshCw, AlertCircle 
 } from 'lucide-react';
 import { db } from '@/services/db';
 import { renderFormattedQuestionText } from '@/utils/questionFormatter';
@@ -70,7 +70,11 @@ const BLANK_QUESTION: Partial<Question> = {
   negativeMarks: 0.33
 };
 
-export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
+interface DailyQuizCMSProps {
+  BACKEND_URL?: string;
+}
+
+export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
   const [quizzes, setQuizzes] = useState<DailyQuiz[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -106,7 +110,6 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
 
   useEffect(() => {
     let isSubscribed = true;
-    setLoading(true);
     db.getPreviousDailyQuizzes()
       .then(data => {
         if (isSubscribed) setQuizzes(data || []);
@@ -591,8 +594,8 @@ export default function DailyQuizCMS({ BACKEND_URL }: { BACKEND_URL: string }) {
               <div className="space-y-1">
                 <label className="font-extrabold uppercase text-[10px] text-amber-500 tracking-wider">Where Do You Want To Publish?</label>
                 <select
-                  value={(editingQuiz as any).publish_target || 'both'}
-                  onChange={e => setEditingQuiz(prev => ({ ...prev, publish_target: e.target.value as any }))}
+                  value={editingQuiz.publish_target || 'both'}
+                  onChange={e => setEditingQuiz(prev => ({ ...prev, publish_target: e.target.value as 'both' | 'english' | 'hindi' }))}
                   className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/40 rounded-xl outline-none text-[var(--text-color)] font-bold cursor-pointer"
                 >
                   <option value="both">🌐 Both English & Hindi Pages (Default)</option>

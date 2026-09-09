@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { courseData, facultyData, resultData, currentAffairsData, pyqData, blogData, resourceData, testSeriesData, TestSeriesItem } from './seedData';
 export type { TestSeriesItem };
 
@@ -100,6 +101,36 @@ export interface BlogItem {
   publish_target?: string;
   publishTarget?: string;
   createdAt?: string;
+}
+
+export interface DailyQuizItem {
+  id: string;
+  title: string;
+  description?: string;
+  publishDate: string;
+  timeLimitMins?: number;
+  totalQuestions?: number;
+  difficulty?: string;
+  category?: string;
+  attemptsCount?: number;
+  passingScore?: number;
+  isFree?: boolean;
+  [key: string]: unknown;
+}
+
+export interface DailyQuizQuestion {
+  id: string;
+  questionText: string;
+  optionA?: string;
+  optionB?: string;
+  optionC?: string;
+  optionD?: string;
+  optionE?: string;
+  correctAnswer?: string;
+  explanation?: string;
+  marks?: number;
+  negativeMarks?: number;
+  [key: string]: unknown;
 }
 
 export interface CourseSection {
@@ -655,8 +686,8 @@ class FinalAttemptDB {
   }
 
   // ── Daily Quiz Service Methods & Fallback Stores ─────────────────────────
-  private getLocalDailyQuizStore(): any[] {
-    const DEFAULT_DAILY_QUIZZES = [
+  private getLocalDailyQuizStore(): DailyQuizItem[] {
+    const DEFAULT_DAILY_QUIZZES: DailyQuizItem[] = [
       {
         id: 'dq-today-set-1',
         title: 'Daily Practice: Current Affairs & Bihar GS',
@@ -713,7 +744,7 @@ class FinalAttemptDB {
     return DEFAULT_DAILY_QUIZZES;
   }
 
-  private setLocalDailyQuizStore(list: any[]) {
+  private setLocalDailyQuizStore(list: DailyQuizItem[]) {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('finalattempt_daily_quizzes_store', JSON.stringify(list));
@@ -721,8 +752,8 @@ class FinalAttemptDB {
     }
   }
 
-  private getLocalDailyQuestionStore(quizId: string): any[] {
-    const DEFAULT_QUESTIONS = [
+  private getLocalDailyQuestionStore(quizId: string): DailyQuizQuestion[] {
+    const DEFAULT_QUESTIONS: DailyQuizQuestion[] = [
       {
         id: 'q-1',
         questionText: 'With reference to the Bihar Economic Survey 2024-25, which sector recorded the highest growth rate in the state economy?',
@@ -761,7 +792,7 @@ class FinalAttemptDB {
     return DEFAULT_QUESTIONS;
   }
 
-  private setLocalDailyQuestionStore(quizId: string, questions: any[]) {
+  private setLocalDailyQuestionStore(quizId: string, questions: DailyQuizQuestion[]) {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(`finalattempt_dq_questions_${quizId}`, JSON.stringify(questions));
@@ -769,37 +800,37 @@ class FinalAttemptDB {
     }
   }
 
-  public async getTodayDailyQuiz(): Promise<any> {
+  public async getTodayDailyQuiz<T = any>(): Promise<T> {
     const res = (await this.apiFetch('/api/quizzes/daily/today')) || (await this.apiFetch('/api/lms/quizzes/daily/today'));
     if (res && res.data) {
       return res.data;
     }
     const store = this.getLocalDailyQuizStore();
     const todayStr = new Date().toISOString().split('T')[0];
-    return store.find((q: any) => q.publishDate === todayStr) || store[0];
+    return (store.find((q: DailyQuizItem) => q.publishDate === todayStr) || store[0]) as unknown as T;
   }
 
-  public async getPreviousDailyQuizzes(): Promise<any[]> {
+  public async getPreviousDailyQuizzes<T = any>(): Promise<T[]> {
     const res = (await this.apiFetch('/api/quizzes/daily/list')) || (await this.apiFetch('/api/lms/quizzes/daily/list'));
     if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
       this.setLocalDailyQuizStore(res.data);
-      return res.data;
+      return res.data as T[];
     }
-    return this.getLocalDailyQuizStore();
+    return this.getLocalDailyQuizStore() as unknown as T[];
   }
 
-  public async startDailyQuiz(quizId: string): Promise<any> {
+  public async startDailyQuiz<T = any>(quizId: string): Promise<T> {
     const res = (await this.apiFetch(`/api/quizzes/daily/${quizId}/start`)) || (await this.apiFetch(`/api/lms/quizzes/daily/${quizId}/start`));
     if (res && res.data && res.data.questions) {
-      return res.data;
+      return res.data as T;
     }
     const store = this.getLocalDailyQuizStore();
-    const quiz = store.find((q: any) => q.id === quizId) || { ...store[0], id: quizId };
+    const quiz = store.find((q: DailyQuizItem) => q.id === quizId) || { ...store[0], id: quizId };
     const questions = this.getLocalDailyQuestionStore(quizId);
-    return { quiz, questions };
+    return { quiz, questions } as unknown as T;
   }
 
-  public async submitDailyQuiz(quizId: string, answers: Record<string, string>, timeTakenSecs: number): Promise<any> {
+  public async submitDailyQuiz<T = any>(quizId: string, answers: Record<string, string>, timeTakenSecs: number): Promise<T> {
     const res = (await this.apiFetch(`/api/quizzes/daily/${quizId}/submit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -809,7 +840,7 @@ class FinalAttemptDB {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ answers, timeTakenSecs })
     }));
-    if (res && res.data) return res.data;
+    if (res && res.data) return res.data as T;
 
     // Local fallback evaluation
     const questions = this.getLocalDailyQuestionStore(quizId);
@@ -823,8 +854,8 @@ class FinalAttemptDB {
     for (const q of questions) {
       const studentAnswer = answers[q.id];
       const correct = studentAnswer === q.correctAnswer;
-      const questionMarks = q.marks || 1.0;
-      const negativeVal = q.negativeMarks || 0.33;
+      const questionMarks = (q.marks as number) || 1.0;
+      const negativeVal = (q.negativeMarks as number) || 0.33;
       maxScore += questionMarks;
 
       if (studentAnswer) {
@@ -865,19 +896,19 @@ class FinalAttemptDB {
       unansweredCount,
       timeTakenSecs: timeTakenSecs || 0,
       details
-    };
+    } as unknown as T;
   }
 
-  public async getDailyQuizLeaderboard(quizId: string): Promise<any[]> {
+  public async getDailyQuizLeaderboard<T = any>(quizId: string): Promise<T[]> {
     const res = (await this.apiFetch(`/api/quizzes/daily/${quizId}/leaderboard`)) || (await this.apiFetch(`/api/lms/quizzes/daily/${quizId}/leaderboard`));
-    return res?.data || [];
+    return (res?.data || []) as T[];
   }
 
-  public async saveDailyQuiz(quiz: any): Promise<any> {
+  public async saveDailyQuiz<T = any>(quiz: any): Promise<T> {
     // 1. Instantly persist to local storage cache so UI updates immediately
     const store = this.getLocalDailyQuizStore();
-    const existingIdx = store.findIndex((q: any) => q.id === quiz.id);
-    let nextStore: any[] = [];
+    const existingIdx = store.findIndex((q: DailyQuizItem) => q.id === quiz.id);
+    let nextStore: DailyQuizItem[] = [];
     if (existingIdx >= 0) {
       nextStore = [...store];
       nextStore[existingIdx] = { ...nextStore[existingIdx], ...quiz };
@@ -897,12 +928,12 @@ class FinalAttemptDB {
       body: JSON.stringify(quiz)
     }));
 
-    return res?.data || quiz;
+    return (res?.data || quiz) as T;
   }
 
   public async deleteDailyQuiz(id: string): Promise<boolean> {
     const store = this.getLocalDailyQuizStore();
-    const nextStore = store.filter((q: any) => q.id !== id);
+    const nextStore = store.filter((q: DailyQuizItem) => q.id !== id);
     this.setLocalDailyQuizStore(nextStore);
 
     const res = (await this.apiFetch(`/api/quizzes/admin/daily/${id}`, {
@@ -913,10 +944,10 @@ class FinalAttemptDB {
     return res?.success !== false;
   }
 
-  public async saveDailyQuizQuestion(quizId: string, question: any): Promise<any> {
+  public async saveDailyQuizQuestion<T = any>(quizId: string, question: any): Promise<T> {
     const qStore = this.getLocalDailyQuestionStore(quizId);
-    const existingIdx = qStore.findIndex((q: any) => q.id === question.id);
-    let nextQStore: any[] = [];
+    const existingIdx = qStore.findIndex((q: DailyQuizQuestion) => q.id === question.id);
+    let nextQStore: DailyQuizQuestion[] = [];
     if (existingIdx >= 0) {
       nextQStore = [...qStore];
       nextQStore[existingIdx] = { ...nextQStore[existingIdx], ...question };
@@ -935,12 +966,12 @@ class FinalAttemptDB {
       body: JSON.stringify(question)
     }));
 
-    return res?.data || question;
+    return (res?.data || question) as T;
   }
 
   public async deleteDailyQuizQuestion(quizId: string, qId: string): Promise<boolean> {
     const qStore = this.getLocalDailyQuestionStore(quizId);
-    const nextQStore = qStore.filter((q: any) => q.id !== qId);
+    const nextQStore = qStore.filter((q: DailyQuizQuestion) => q.id !== qId);
     this.setLocalDailyQuestionStore(quizId, nextQStore);
 
     const res = (await this.apiFetch(`/api/quizzes/admin/daily/${quizId}/questions/${qId}`, {
@@ -952,12 +983,12 @@ class FinalAttemptDB {
   }
 
   // ── Database Backup & Restore Methods ──────────────────────────────────────
-  public async exportDatabaseBackup(): Promise<any> {
+  public async exportDatabaseBackup(): Promise<Record<string, unknown> | null> {
     const res = await this.apiFetch('/api/lms/admin/database/export');
     return res || null;
   }
 
-  public async importDatabaseBackup(backupData: any): Promise<boolean> {
+  public async importDatabaseBackup(backupData: Record<string, unknown>): Promise<boolean> {
     const res = await this.apiFetch('/api/lms/admin/database/import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1076,7 +1107,7 @@ class FinalAttemptDB {
     return res?.data || null;
   }
 
-  public async previewCombineWeekly(fromDate: string, toDate: string): Promise<any> {
+  public async previewCombineWeekly<T = any>(fromDate: string, toDate: string): Promise<T> {
     const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/weekly/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1085,7 +1116,7 @@ class FinalAttemptDB {
     return res;
   }
 
-  public async combineWeekly(fromDate: string, toDate: string): Promise<any> {
+  public async combineWeekly<T = any>(fromDate: string, toDate: string): Promise<T> {
     const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/weekly', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1094,7 +1125,7 @@ class FinalAttemptDB {
     return res;
   }
 
-  public async previewCombineMonthly(year: string, month: string): Promise<any> {
+  public async previewCombineMonthly<T = any>(year: string, month: string): Promise<T> {
     const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/monthly/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1103,7 +1134,7 @@ class FinalAttemptDB {
     return res;
   }
 
-  public async combineMonthly(year: string, month: string): Promise<any> {
+  public async combineMonthly<T = any>(year: string, month: string): Promise<T> {
     const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/monthly', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1112,7 +1143,7 @@ class FinalAttemptDB {
     return res;
   }
 
-  public async previewCombineYearly(year: string): Promise<any> {
+  public async previewCombineYearly<T = any>(year: string): Promise<T> {
     const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/yearly/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1121,7 +1152,7 @@ class FinalAttemptDB {
     return res;
   }
 
-  public async combineYearly(year: string, combineAvailableOnly: boolean = false): Promise<any> {
+  public async combineYearly<T = any>(year: string, combineAvailableOnly: boolean = false): Promise<T> {
     const res = await this.apiFetch('/api/admin/dynamic-current-affairs/combine/yearly', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1450,11 +1481,11 @@ class FinalAttemptDB {
     return res?.success || true;
   }
 
-  public async getTestSeriesQuizzes(seriesId: string): Promise<any[]> {
+  public async getTestSeriesQuizzes<T = any>(seriesId: string): Promise<T[]> {
     const data = await this.apiFetch(`/api/lms/courses/${seriesId}/quizzes?includeUnpublished=true`);
     let serverList: any[] = [];
     if (data && data.success && Array.isArray(data.data)) {
-      serverList = data.data.filter((q: any) => !q.id?.includes('-default'));
+      serverList = data.data.filter((q: any) => !String(q.id).includes('-default'));
     }
 
     let localList: any[] = [];
@@ -1469,9 +1500,9 @@ class FinalAttemptDB {
     }
 
     const mergedMap = new Map<string, any>();
-    serverList.forEach(q => mergedMap.set(q.id, q));
+    serverList.forEach(q => mergedMap.set(String(q.id), q));
     localList.forEach(q => {
-      if (!mergedMap.has(q.id)) mergedMap.set(q.id, q);
+      if (!mergedMap.has(String(q.id))) mergedMap.set(String(q.id), q);
     });
 
     const extractTestNumber = (title: string): number => {
@@ -1500,14 +1531,14 @@ class FinalAttemptDB {
         individual_price: validPrice,
         individualPrice: validPrice,
         sequence_number: idx + 1
-      };
+      } as T;
     });
   }
 
-  public async getQuizById(quizId: string): Promise<any | null> {
+  public async getQuizById<T = any>(quizId: string): Promise<T | null> {
     const data = await this.apiFetch(`/api/lms/quizzes/${quizId}`);
     if (data && data.success && data.data) {
-      return data.data;
+      return data.data as T;
     }
     return null;
   }
@@ -1559,16 +1590,16 @@ class FinalAttemptDB {
     return false;
   }
 
-  public async getQuizQuestions(quizId: string): Promise<any[]> {
+  public async getQuizQuestions<T = any>(quizId: string): Promise<T[]> {
     const data = await this.apiFetch(`/api/lms/quizzes/${quizId}/questions`);
     if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
-      return data.data;
+      return data.data as T[];
     }
     return [];
   }
 
   public async saveQuestion(question: any): Promise<boolean> {
-    let res: any;
+    let res: any = null;
     if (question.id) {
       res = await this.apiFetch(`/api/lms/questions/${question.id}`, {
         method: 'PUT',
@@ -1647,7 +1678,7 @@ class FinalAttemptDB {
     return res?.success || true;
   }
 
-  async parseBilingualPdf(file: File): Promise<any> {
+  async parseBilingualPdf<T = any>(file: File): Promise<T> {
     const formData = new FormData();
     formData.append('file', file);
     return this.apiFetch('/api/quizzes/admin/parse-bilingual-pdf', {
@@ -1656,7 +1687,7 @@ class FinalAttemptDB {
     });
   }
 
-  async parseExcel(file: File): Promise<any> {
+  async parseExcel<T = any>(file: File): Promise<T> {
     const formData = new FormData();
     formData.append('file', file);
     return this.apiFetch('/api/quizzes/admin/parse-excel', {
@@ -1671,7 +1702,7 @@ class FinalAttemptDB {
     }
   }
 
-  async parseBilingualText(text: string): Promise<any> {
+  async parseBilingualText<T = any>(text: string): Promise<T> {
     return this.apiFetch('/api/quizzes/admin/parse-bilingual-text', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1679,14 +1710,14 @@ class FinalAttemptDB {
     });
   }
 
-  async importBilingualQuiz(payload: {
+  async importBilingualQuiz<T = any>(payload: {
     quizId?: string;
     title: string;
     courseId?: string;
     description?: string;
     questions: any[];
     replaceExisting?: boolean;
-  }): Promise<any> {
+  }): Promise<T> {
     return this.apiFetch('/api/quizzes/admin/import-bilingual-quiz', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1694,7 +1725,7 @@ class FinalAttemptDB {
     });
   }
 
-  async getTestSeriesEnrolledStudents(testSeriesId: string): Promise<any[]> {
+  async getTestSeriesEnrolledStudents<T = any>(testSeriesId: string): Promise<T[]> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
     const res = await this.apiFetch(`/api/lms/admin/test-series/${testSeriesId}/students`, {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
@@ -1724,7 +1755,7 @@ class FinalAttemptDB {
     return res?.success || false;
   }
 
-  async getStudentQuizAttempts(userId: string): Promise<any[]> {
+  async getStudentQuizAttempts<T = any>(userId: string): Promise<T[]> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
     const res = await this.apiFetch(`/api/lms/admin/students/${userId}/attempts`, {
       headers: token ? { 'Authorization': `Bearer ${token}` } : {}
@@ -1733,12 +1764,12 @@ class FinalAttemptDB {
   }
 
   // ── Test Series Purchase & Entitlements API ────────────────────────────────
-  public async getTestSeriesPurchasePlans(seriesId: string): Promise<any[]> {
+  public async getTestSeriesPurchasePlans<T = any>(seriesId: string): Promise<T[]> {
     const res = await this.apiFetch(`/api/test-series-purchase/${seriesId}/plans`);
     return res?.data || [];
   }
 
-  public async getStudentEntitlements(seriesId?: string, accessToken?: string): Promise<any[]> {
+  public async getStudentEntitlements<T = any>(seriesId?: string, accessToken?: string): Promise<T[]> {
     const url = seriesId ? `/api/test-series-purchase/entitlements?seriesId=${seriesId}` : '/api/test-series-purchase/entitlements';
     const headers: Record<string, string> = {};
     if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
@@ -1746,7 +1777,7 @@ class FinalAttemptDB {
     return res?.data || [];
   }
 
-  public async getCartPreview(seriesId: string, items: any[], accessToken?: string): Promise<any> {
+  public async getCartPreview<T = any>(seriesId: string, items: any[], accessToken?: string): Promise<T> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
     const res = await this.apiFetch('/api/test-series-purchase/cart/preview', {
@@ -1757,7 +1788,7 @@ class FinalAttemptDB {
     return res;
   }
 
-  public async createTestSeriesOrder(seriesId: string, items: any[], idempotencyKey?: string, accessToken?: string): Promise<any> {
+  public async createTestSeriesOrder<T = any>(seriesId: string, items: any[], idempotencyKey?: string, accessToken?: string): Promise<T> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
     const res = await this.apiFetch('/api/test-series-purchase/order/create', {
@@ -1768,7 +1799,7 @@ class FinalAttemptDB {
     return res;
   }
 
-  public async verifyTestSeriesOrder(payload: { orderId: string; razorpayPaymentId?: string; razorpayOrderId?: string; razorpaySignature?: string }, accessToken?: string): Promise<any> {
+  public async verifyTestSeriesOrder<T = any>(payload: { orderId: string; razorpayPaymentId?: string; razorpayOrderId?: string; razorpaySignature?: string }, accessToken?: string): Promise<T> {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
     const res = await this.apiFetch('/api/test-series-purchase/order/verify', {
@@ -1779,7 +1810,7 @@ class FinalAttemptDB {
     return res;
   }
 
-  public async saveTestSeriesPlanAdmin(payload: {
+  public async saveTestSeriesPlanAdmin<T = any>(payload: {
     seriesId: string;
     planCode: string;
     title?: string;
@@ -1790,7 +1821,7 @@ class FinalAttemptDB {
     discountedPrice?: number;
     includedQuizIds?: string[];
     isActive?: boolean;
-  }): Promise<any> {
+  }): Promise<T> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
     const res = await this.apiFetch('/api/test-series-purchase/plans/admin', {
       method: 'POST',
@@ -1803,7 +1834,7 @@ class FinalAttemptDB {
     return res;
   }
 
-  public async deleteTestSeriesPlanAdmin(planId: string): Promise<any> {
+  public async deleteTestSeriesPlanAdmin<T = any>(planId: string): Promise<T> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
     const res = await this.apiFetch(`/api/test-series-purchase/plans/admin/${planId}`, {
       method: 'DELETE',
@@ -1812,13 +1843,13 @@ class FinalAttemptDB {
     return res;
   }
 
-  public async saveQuizPricingAdmin(payload: {
+  public async saveQuizPricingAdmin<T = any>(payload: {
     seriesId: string;
     quizId: string;
     individualPrice: number;
     isStandalonePurchasable?: boolean;
     isFree?: boolean;
-  }): Promise<any> {
+  }): Promise<T> {
     const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
     const res = await this.apiFetch('/api/test-series-purchase/quizzes/pricing/admin', {
       method: 'POST',
