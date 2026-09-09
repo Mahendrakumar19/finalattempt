@@ -1189,7 +1189,20 @@ class FinalAttemptDB {
         const stored = localStorage.getItem('finalattempt_test_series_store');
         if (stored !== null) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) return parsed;
+          if (Array.isArray(parsed)) {
+            let modified = false;
+            const updated = parsed.map((item: TestSeriesItem) => {
+              if (!item.batchStartDate || item.batchStartDate === '04 September 2026' || item.batchStartDate === '2026-09-04' || item.batchStartDate === '09 August 2026') {
+                modified = true;
+                return { ...item, batchStartDate: '10 September 2026' };
+              }
+              return item;
+            });
+            if (modified) {
+              localStorage.setItem('finalattempt_test_series_store', JSON.stringify(updated));
+            }
+            return updated;
+          }
         } else {
           // Initialize once with seed data
           localStorage.setItem('finalattempt_test_series_store', JSON.stringify(testSeriesData));

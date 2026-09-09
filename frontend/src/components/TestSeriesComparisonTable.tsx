@@ -16,13 +16,18 @@ interface TestSeriesComparisonTableProps {
 export function formatDateFormatted(rawDate?: string): string {
   if (!rawDate) return '10 September 2026';
   
-  // If already formatted like "09 August 2026", return directly
-  if (/^\d{1,2}\s+[A-Za-z]+\s+\d{4}$/.test(rawDate.trim())) {
-    return rawDate.trim();
+  const trimmed = rawDate.trim();
+  if (trimmed === '04 September 2026' || trimmed === '09 August 2026' || trimmed === '2026-09-04' || trimmed === '2026-08-09') {
+    return '10 September 2026';
+  }
+
+  // If already formatted like "10 September 2026", return directly
+  if (/^\d{1,2}\s+[A-Za-z]+\s+\d{4}$/.test(trimmed)) {
+    return trimmed;
   }
 
   try {
-    const parsed = new Date(rawDate);
+    const parsed = new Date(trimmed);
     if (!isNaN(parsed.getTime())) {
       return parsed.toLocaleDateString('en-GB', {
         day: '2-digit',
@@ -32,7 +37,7 @@ export function formatDateFormatted(rawDate?: string): string {
     }
   } catch (_) {}
 
-  return rawDate;
+  return trimmed;
 }
 
 export default function TestSeriesComparisonTable({
