@@ -802,9 +802,66 @@ html.dark thead tr {
   background-color: rgba(255,255,255,0.03) !important;
 }
 
-/* Target matching table cells directly with !important to prevent inherited .portal-page slate color overrides */
-.match-list-container td {
-  color: var(--text-color) !important;
+/* High-Contrast Match Table Styling for CBT Dark & Light Modes */
+.match-list-container td,
+.match-list-container th {
+  color: inherit !important;
+}
+
+.cbt-dark .match-list-container,
+.cbt-dark .match-list-container table,
+.cbt-dark .match-list-container td,
+.cbt-dark .match-list-container th,
+.cbt-dark .match-list-container tr,
+.cbt-dark .match-list-container p,
+.cbt-dark table,
+.cbt-dark table td,
+.cbt-dark table th,
+.cbt-dark table tr,
+.cbt-dark table p {
+  color: #FFFFFF !important;
+}
+
+.cbt-dark .match-list-container th,
+.cbt-dark table thead th,
+.cbt-dark table thead tr {
+  background-color: rgba(245, 158, 11, 0.25) !important;
+  color: #FBBF24 !important;
+}
+
+.cbt-dark .match-list-container td,
+.cbt-dark table tbody td {
+  background-color: rgba(17, 24, 39, 0.6) !important;
+  color: #FFFFFF !important;
+  border-color: rgba(245, 158, 11, 0.25) !important;
+}
+
+.cbt-light .match-list-container,
+.cbt-light .match-list-container table,
+.cbt-light .match-list-container td,
+.cbt-light .match-list-container th,
+.cbt-light .match-list-container tr,
+.cbt-light .match-list-container p,
+.cbt-light table,
+.cbt-light table td,
+.cbt-light table th,
+.cbt-light table tr,
+.cbt-light table p {
+  color: #0F172A !important;
+}
+
+.cbt-light .match-list-container th,
+.cbt-light table thead th,
+.cbt-light table thead tr {
+  background-color: #FEF3C7 !important;
+  color: #92400E !important;
+}
+
+.cbt-light .match-list-container td,
+.cbt-light table tbody td {
+  background-color: #FEFCE8 !important;
+  color: #0F172A !important;
+  border-color: #FDE68A !important;
 }
 
 html.dark .match-list-container td,

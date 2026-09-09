@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { Layers, ArrowRight, ArrowLeft, BookOpen, CheckCircle, FileText } from 'lucide-react';
 import { db, ExamData, ExamStageData, TestSeriesItem } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
+import { formatDateFormatted } from '@/components/TestSeriesComparisonTable';
 
 export default function StageFolderPage() {
   const { t } = useTranslation();
@@ -194,7 +195,7 @@ export default function StageFolderPage() {
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase text-slate-400">{t('testSeriesHub.startDate')}</span>
-                          <span className="font-bold">{series.batchStartDate || '09 August 2026'}</span>
+                          <span className="font-bold">{formatDateFormatted(series.batchStartDate)}</span>
                         </div>
                         {series.programDetails && (
                           <div className="flex items-start justify-between gap-2 pt-0.5">

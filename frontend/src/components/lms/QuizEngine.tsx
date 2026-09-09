@@ -740,7 +740,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
               {/* Question Text - 18px Desktop / 16px Mobile, font-semibold (600), line-height ~1.6, max readable width */}
               <div
-                className={`text-base md:text-[18px] font-semibold leading-[1.6] max-w-4xl whitespace-pre-wrap break-words ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}
+                className={`text-base md:text-[18px] font-semibold leading-[1.6] max-w-4xl whitespace-pre-wrap break-words ${cbtDark ? 'cbt-dark' : 'cbt-light'} ${activeLang === 'hi' ? 'cbt-devanagari-text' : ''}`}
                 style={{ color: cbtDark ? '#FFFFFF' : '#111827' }}
               >
                 {(() => {
@@ -1333,7 +1333,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                             if (isHtml) {
                               return (
                                 <div
-                                  className="leading-relaxed space-y-2 text-sm sm:text-base font-medium overflow-x-auto"
+                                  className={`leading-relaxed space-y-2 text-sm sm:text-base font-medium overflow-x-auto ${cbtDark ? 'cbt-dark' : 'cbt-light'}`}
                                   style={{ color: text, lineHeight: '1.7', wordBreak: 'break-word' }}
                                   dangerouslySetInnerHTML={{ __html: formatted }}
                                 />

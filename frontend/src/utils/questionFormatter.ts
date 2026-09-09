@@ -124,20 +124,20 @@ export function formatMatchListsInText(input: string): string {
 
   let tableHtml = `<div class="match-list-container my-3 overflow-x-auto">`;
   if (promptLines.length > 0) {
-    tableHtml += `<p class="mb-2 font-bold text-[var(--text-color)] leading-relaxed">${promptLines.join(' ')}</p>`;
+    tableHtml += `<p class="mb-2 font-bold leading-relaxed">${promptLines.join(' ')}</p>`;
   }
-  tableHtml += `<table class="w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 my-2">`;
-  tableHtml += `<thead><tr class="bg-slate-100 dark:bg-slate-800 border-b border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-100 font-bold">`;
-  tableHtml += `<th class="p-2.5 sm:p-3 text-left border-r border-slate-300 dark:border-slate-700 w-1/2">${headerLeft}</th>`;
+  tableHtml += `<table class="w-full text-xs sm:text-sm border-collapse rounded-xl overflow-hidden border border-amber-500/30 my-2">`;
+  tableHtml += `<thead><tr class="bg-amber-500/20 border-b border-amber-500/30 font-extrabold">`;
+  tableHtml += `<th class="p-2.5 sm:p-3 text-left border-r border-amber-500/30 w-1/2">${headerLeft}</th>`;
   tableHtml += `<th class="p-2.5 sm:p-3 text-left w-1/2">${headerRight}</th>`;
-  tableHtml += `</tr></thead><tbody class="divide-y divide-slate-200 dark:divide-slate-700 text-slate-800 dark:text-slate-200">`;
+  tableHtml += `</tr></thead><tbody class="divide-y divide-amber-500/20">`;
 
   for (let r = 0; r < maxRows; r++) {
     const lText = leftItems[r] || '';
     const rText = rightItems[r] || '';
     tableHtml += `<tr>`;
-    tableHtml += `<td class="p-2.5 sm:p-3 border-r border-slate-200 dark:border-slate-700 font-medium align-top dark:text-white leading-relaxed">${lText}</td>`;
-    tableHtml += `<td class="p-2.5 sm:p-3 font-medium align-top dark:text-white leading-relaxed">${rText}</td>`;
+    tableHtml += `<td class="p-2.5 sm:p-3 border-r border-amber-500/20 font-medium align-top leading-relaxed">${lText}</td>`;
+    tableHtml += `<td class="p-2.5 sm:p-3 font-medium align-top leading-relaxed">${rText}</td>`;
     tableHtml += `</tr>`;
   }
 

@@ -8,6 +8,7 @@ import {
 import { db, TestSeriesItem, ExamData } from '@/services/db';
 import MediaPicker from '@/components/MediaPicker';
 import { sanitizeAndRepairQuestion, renderFormattedQuestionText } from '@/utils/questionFormatter';
+import { formatDateFormatted } from '@/components/TestSeriesComparisonTable';
 
 /** Strips any leading "(a) " / "(A) " / "(क) " option prefix from stored option text */
 function stripOptionPrefix(text: string): string {
@@ -382,6 +383,7 @@ export default function TestSeriesAdmin({
       syllabus: editingSeries.syllabus || [],
       faq: editingSeries.faq || [],
       batchStartDate: editingSeries.batchStartDate || new Date().toISOString().split('T')[0],
+      scheduledReleaseAt: editingSeries.scheduledReleaseAt || '',
       enrolledCount: Number(editingSeries.enrolledCount) > 0 
         ? Number(editingSeries.enrolledCount) 
         : (seriesList.find(s => s.id === editingSeries.id)?.enrolledCount || 0),
@@ -1180,7 +1182,17 @@ export default function TestSeriesAdmin({
                       <div>Mocks: <span className="text-[var(--text-color)]">{series.totalTests} Tests</span></div>
                       <div>Questions: <span className="text-[var(--text-color)]">{series.totalQuestions} Qs</span></div>
                       <div>Fee: <span className="text-emerald-500 font-extrabold">₹{series.discountedPrice || series.price}</span></div>
-                      <div>Validity: <span className="text-[var(--text-color)]">{series.duration}</span></div>
+                      <div>Start Date: <span className="text-amber-500 font-extrabold">{formatDateFormatted(series.batchStartDate)}</span></div>
+                      {series.scheduledReleaseAt && (
+                        <div className="col-span-2 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-xl border border-amber-500/20 flex items-center justify-between mt-1">
+                          <span>⏰ Auto-Publish: {series.scheduledReleaseAt.replace('T', ' ')}</span>
+                          {new Date(series.scheduledReleaseAt).getTime() <= Date.now() ? (
+                            <span className="text-emerald-500 font-black">✓ Live</span>
+                          ) : (
+                            <span className="text-amber-600 dark:text-amber-400 font-black">Scheduled</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1893,6 +1905,59 @@ export default function TestSeriesAdmin({
                   <option value="Till Mains Exam">Till Mains Exam</option>
                   <option value="Lifetime Access">Lifetime Access</option>
                 </select>
+              </div>
+            </div>
+
+            {/* Start / Launch Date & Auto-Publish Schedule Controls */}
+            <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <span>Start / Launch Date & Automatic Publishing Schedule</span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-color)] mb-1">
+                    Start Date / Launch Date (Shown on Student Portal)
+                  </label>
+                  <input
+                    type="date"
+                    value={
+                      editingSeries.batchStartDate && /^\d{4}-\d{2}-\d{2}$/.test(editingSeries.batchStartDate)
+                        ? editingSeries.batchStartDate
+                        : editingSeries.batchStartDate
+                        ? (() => {
+                            try {
+                              const parsed = new Date(editingSeries.batchStartDate);
+                              return !isNaN(parsed.getTime()) ? parsed.toISOString().split('T')[0] : '';
+                            } catch { return ''; }
+                          })()
+                        : ''
+                    }
+                    onChange={e => setEditingSeries({ ...editingSeries, batchStartDate: e.target.value })}
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Displays as: <strong className="text-amber-500">{editingSeries.batchStartDate ? formatDateFormatted(editingSeries.batchStartDate) : '10 September 2026'}</strong> in Comparison Table
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[var(--text-color)] mb-1">
+                    Auto-Publish Date & Time (Scheduled Release)
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={editingSeries.scheduledReleaseAt || ''}
+                    onChange={e => setEditingSeries({ ...editingSeries, scheduledReleaseAt: e.target.value })}
+                    className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
+                  />
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    System will automatically publish this program live at this exact timestamp.
+                  </span>
+                </div>
               </div>
             </div>
 

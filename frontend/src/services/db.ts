@@ -1375,10 +1375,22 @@ class FinalAttemptDB {
         }
       });
       combined = Array.from(serverMap.values());
-      this.setLocalTestSeriesStore(combined);
     } else {
       combined = localStore;
     }
+
+    // Auto-Publish Schedule Evaluation
+    combined.forEach(s => {
+      if (s.scheduledReleaseAt) {
+        const releaseTime = new Date(s.scheduledReleaseAt).getTime();
+        if (!isNaN(releaseTime) && Date.now() >= releaseTime) {
+          s.isPublished = true;
+          if (s.status === 'scheduled' || s.status === 'coming_soon') {
+            s.status = 'active';
+          }
+        }
+      }
+    });
 
     const finalResult = includeUnpublished ? combined : combined.filter(s => s.isPublished !== false);
     this.setCachedData(cacheKey, finalResult);
