@@ -36,22 +36,32 @@ export function formatMatchListsInText(input: string): string {
     }
 
     const inlinePair = line.match(/^[ \t]*([A-Ea-eक-ङ1-5|IVX]+)[\.\:\)\-–—]+[ \t]+(.+?)[ \t]+([A-Ea-eक-ङ1-5|IVX]+)[\.\:\)\-–—]+[ \t]+(.+)$/i);
-    const isLeft = /^[ \t]*([A-Ea-eक-ङ]|[IVX]+)[\.\:\)\-–—]+[ \t]*/i.test(line);
-    const isRight = /^[ \t]*([1-5]|[IVX]+|[A-Ea-eक-ङ])[\.\:\)\-–—]+[ \t]*/i.test(line);
-
+    
     if (inlinePair && !line.startsWith('Code') && !line.startsWith('कोड') && !line.startsWith('कूट') && !line.includes('Match') && !line.includes('सूची-I') && !line.includes('सूची-II') && !line.includes('List-I') && !line.includes('List-II')) {
       leftItems.push(`${inlinePair[1]}. ${inlinePair[2].trim()}`);
       rightItems.push(`${inlinePair[3]}. ${inlinePair[4].trim()}`);
       continue;
     }
 
-    if (!inlinePair && !isLeft && !isRight) {
-      const list2Regex = /(?:List[\s\-_]*II\b|List[\s\-_]*2\b|Column[\s\-_]*B\b|Column[\s\-_]*II\b|Column[\s\-_]*2\b|सूची[\s\-_]*II\b|सूची[\s\-_]*2\b)/i;
-      const list1Regex = /(?:List[\s\-_]*I\b|List[\s\-_]*1\b|Column[\s\-_]*A\b|Column[\s\-_]*I\b|Column[\s\-_]*1\b|सूची[\s\-_]*I\b|सूची[\s\-_]*1\b)/i;
+    // Check if line contains a standalone left item (A, B, C, D, E) vs right item (1, 2, 3, 4, 5 / I, II, III)
+    const isLeftItem = /^[ \t]*([A-Ea-eक-ङ])[\.\:\)\-–—]+[ \t]*/i.test(line);
+    const isRightItem = !isLeftItem && /^[ \t]*([1-5]|[IVX]+)[\.\:\)\-–—]+[ \t]*/i.test(line);
 
-      const isList1Head = list1Regex.test(line);
-      const isList2Head = !isList1Head && list2Regex.test(line);
+    if (isLeftItem) {
+      leftItems.push(line);
+      continue;
+    } else if (isRightItem) {
+      rightItems.push(line);
+      continue;
+    }
 
+    const list2Regex = /(?:List[\s\-_]*II\b|List[\s\-_]*2\b|Column[\s\-_]*B\b|Column[\s\-_]*II\b|Column[\s\-_]*2\b|सूची[\s\-_]*II\b|सूची[\s\-_]*2\b)/i;
+    const list1Regex = /(?:List[\s\-_]*I\b|List[\s\-_]*1\b|Column[\s\-_]*A\b|Column[\s\-_]*I\b|Column[\s\-_]*1\b|सूची[\s\-_]*I\b|सूची[\s\-_]*1\b)/i;
+
+    const isList1Head = list1Regex.test(line);
+    const isList2Head = !isList1Head && list2Regex.test(line);
+
+    if (isList1Head || isList2Head) {
       if (isList1Head) {
         // If line contains intro prompt before header (e.g., "Match List-I with List-II"), split intro text out
         const list1Match = list1Regex.exec(line);
@@ -98,11 +108,7 @@ export function formatMatchListsInText(input: string): string {
       }
     }
 
-    if (isLeft) {
-      leftItems.push(line);
-    } else if (isRight) {
-      rightItems.push(line);
-    } else if (leftItems.length === 0 && rightItems.length === 0) {
+    if (leftItems.length === 0 && rightItems.length === 0) {
       promptLines.push(line);
     }
   }
