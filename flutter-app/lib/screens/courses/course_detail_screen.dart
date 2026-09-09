@@ -12,17 +12,28 @@ class CourseDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final courseAsync = ref.watch(courseDetailProvider(courseId));
+    final bg = AppTheme.bgOf(context);
+    final cardBg = AppTheme.cardBgOf(context);
+    final borderCol = AppTheme.borderOf(context);
+    final textPrimary = AppTheme.textPrimaryOf(context);
 
     return Scaffold(
+      backgroundColor: bg,
       appBar: AppBar(
+        backgroundColor: cardBg,
+        elevation: 0.5,
+        scrolledUnderElevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: Icon(Icons.arrow_back_ios_new, size: 18, color: textPrimary),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Course Details'),
+        title: Text(
+          'Course Details',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_rounded),
+            icon: Icon(Icons.share_rounded, color: textPrimary),
             onPressed: () {},
           ),
         ],
@@ -30,7 +41,7 @@ class CourseDetailScreen extends ConsumerWidget {
       body: courseAsync.when(
         data: (course) {
           if (course == null) {
-            return const Center(child: Text('Course not found', style: TextStyle(color: AppTheme.textMuted)));
+            return const Center(child: Text('Course not found', style: TextStyle(color: AppColors.textMuted)));
           }
           return SingleChildScrollView(
             child: Column(
@@ -41,8 +52,10 @@ class CourseDetailScreen extends ConsumerWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+                    color: AppColors.primaryBlue,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(20),
+                      bottomRight: Radius.circular(20),
                     ),
                   ),
                   child: Column(
@@ -52,17 +65,18 @@ class CourseDetailScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppTheme.amber.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppTheme.amber.withOpacity(0.3)),
                           ),
-                          child: Text(course.category!,
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.amber, letterSpacing: 0.6),
+                          child: Text(
+                            course.category!,
+                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.6),
                           ),
                         ),
                       const SizedBox(height: 12),
-                      Text(course.title,
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
+                      Text(
+                        course.title,
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -75,8 +89,9 @@ class CourseDetailScreen extends ConsumerWidget {
                       ),
                       if (course.fee != null) ...[
                         const SizedBox(height: 16),
-                        Text('₹${course.fee}',
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.amber),
+                        Text(
+                          '₹${course.fee}',
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
                         ),
                       ],
                       const SizedBox(height: 16),
@@ -84,7 +99,13 @@ class CourseDetailScreen extends ConsumerWidget {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () => context.push('/login'),
-                          child: const Text('Enroll Now'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.primaryBlue,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          child: const Text('Enroll Now', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                         ),
                       ),
                     ],
@@ -98,12 +119,14 @@ class CourseDetailScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('About this Course',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                        Text(
+                          'About this Course',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
                         ),
                         const SizedBox(height: 8),
-                        Text(course.description!,
-                          style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary, height: 1.6),
+                        Text(
+                          course.description!,
+                          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.6),
                         ),
                       ],
                     ),
@@ -116,17 +139,18 @@ class CourseDetailScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('What\'s Included',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                        Text(
+                          'What\'s Included',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
                         ),
                         const SizedBox(height: 10),
                         ...course.features.map((f) => Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Row(
                             children: [
-                              const Icon(Icons.check_circle_rounded, color: AppTheme.success, size: 16),
+                              const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 16),
                               const SizedBox(width: 8),
-                              Expanded(child: Text(f, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary))),
+                              Expanded(child: Text(f, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))),
                             ],
                           ),
                         )),
@@ -141,34 +165,35 @@ class CourseDetailScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Syllabus',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                        Text(
+                          'Syllabus',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
                         ),
                         const SizedBox(height: 10),
                         ...course.syllabus.asMap().entries.map((e) => Container(
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: AppTheme.bgCard,
+                            color: cardBg,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: AppTheme.borderColor),
+                            border: Border.all(color: borderCol),
                           ),
                           child: Row(
                             children: [
                               Container(
                                 width: 24, height: 24,
                                 decoration: BoxDecoration(
-                                  color: AppTheme.amber.withOpacity(0.15),
+                                  color: AppColors.primaryBlue.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Center(
                                   child: Text('${e.key + 1}',
-                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppTheme.amber),
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.primaryBlue),
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              Expanded(child: Text(e.value, style: const TextStyle(fontSize: 13, color: AppTheme.textSecondary))),
+                              Expanded(child: Text(e.value, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary))),
                             ],
                           ),
                         )),
@@ -180,10 +205,11 @@ class CourseDetailScreen extends ConsumerWidget {
           );
         },
         loading: () => const LoadingShimmer(height: 400),
-        error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppTheme.error))),
+        error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.error))),
       ),
     );
   }
+
 }
 
 class _InfoChip extends StatelessWidget {

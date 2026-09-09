@@ -76,9 +76,10 @@ class TestPlayerState {
     TestResultSummary? resultSummary,
   }) {
     return TestPlayerState(
-      quiz: this.quiz,
-      questions: this.questions,
+      quiz: quiz,
+      questions: questions,
       currentIndex: currentIndex ?? this.currentIndex,
+
       userAnswers: userAnswers ?? this.userAnswers,
       markedForReview: markedForReview ?? this.markedForReview,
       questionStatuses: questionStatuses ?? this.questionStatuses,

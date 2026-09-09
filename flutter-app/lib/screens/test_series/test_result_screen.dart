@@ -98,11 +98,11 @@ class _TestResultScreenState extends State<TestResultScreen> {
                   // Breakdown grid
                   Row(
                     children: [
-                      Expanded(child: _breakdownTile('Correct', '${summary.correctCount}', Colors.green)),
+                      Expanded(child: _breakdownTile(Icons.check_circle_rounded, 'Correct', '${summary.correctCount}', Colors.green)),
                       const SizedBox(width: 12),
-                      Expanded(child: _breakdownTile('Incorrect', '${summary.incorrectCount}', Colors.red)),
+                      Expanded(child: _breakdownTile(Icons.cancel_rounded, 'Incorrect', '${summary.incorrectCount}', Colors.red)),
                       const SizedBox(width: 12),
-                      Expanded(child: _breakdownTile('Unattempted', '${summary.unattemptedCount}', Colors.orange)),
+                      Expanded(child: _breakdownTile(Icons.help_outline_rounded, 'Unattempted', '${summary.unattemptedCount}', Colors.orange)),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -161,19 +161,26 @@ class _TestResultScreenState extends State<TestResultScreen> {
     );
   }
 
-  Widget _breakdownTile(String label, String count, Color color) {
+  Widget _breakdownTile(IconData icon, String label, String count, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          Text(count, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: color),
+              const SizedBox(width: 4),
+              Text(label, style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.9))),
+            ],
+          ),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 12, color: color.withOpacity(0.9))),
+          Text(count, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );

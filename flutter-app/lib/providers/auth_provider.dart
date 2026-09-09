@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../core/services/api_service.dart';
+
 import '../core/services/storage_service.dart';
 import '../core/services/auth_service.dart';
 
@@ -126,6 +126,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = state.copyWith(isLoading: false, error: e.toString());
       return e.toString();
     }
+  }
+
+  Future<void> updateProfile({
+    required String name,
+    String? mobile,
+    String? targetExam,
+  }) async {
+    await _storage.saveUserProfile(name: name, mobile: mobile, targetExam: targetExam);
+    state = state.copyWith(userName: name);
   }
 
   Future<void> logout() async {

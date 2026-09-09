@@ -6,22 +6,26 @@ import '../../providers/test_series_provider.dart';
 import '../../providers/pyq_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/localization/app_localizations.dart';
 import '../../widgets/loading_shimmer.dart';
+import '../../widgets/app_logo.dart';
+import '../../widgets/top_header_actions.dart';
 import '../../models/test_series_model.dart';
 import '../../models/current_affair_model.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  String _getGreeting() {
+  String _getGreeting(AppLocalizations loc) {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return loc.tr('good_morning');
+    if (hour < 17) return loc.tr('good_afternoon');
+    return loc.tr('good_evening');
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final loc = ref.watch(appLocalizationsProvider);
     final authState = ref.watch(authStateProvider);
     final testSeriesAsync = ref.watch(testSeriesListProvider);
     final caAsync = ref.watch(caEditionsProvider);
@@ -31,249 +35,178 @@ class HomeScreen extends ConsumerWidget {
         ? authState.userName!.split(' ').first
         : 'Aspirant';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenSize = MediaQuery.of(context).size;
+    final accentCircleRadius = screenSize.width * 0.75;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(testSeriesListProvider);
-            ref.invalidate(caEditionsProvider);
-            ref.invalidate(pyqListProvider);
-          },
-          child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-            slivers: [
-              // 1. Sleek Header & Greeting
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                sliver: SliverToBoxAdapter(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
+      backgroundColor: AppTheme.bgOf(context),
+      body: Stack(
+        children: [
+          // Top-right pale blue organic accent
+          Positioned(
+            top: -accentCircleRadius * 0.45,
+            right: -accentCircleRadius * 0.35,
+            child: Container(
+              width: accentCircleRadius,
+              height: accentCircleRadius,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE8F1FF),
+              ),
+            ),
+          ),
+          // Bottom-left pale blue organic accent
+          Positioned(
+            bottom: -accentCircleRadius * 0.45,
+            left: -accentCircleRadius * 0.35,
+            child: Container(
+              width: accentCircleRadius,
+              height: accentCircleRadius,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEBF3FF),
+              ),
+            ),
+          ),
+          // Scroll Content
+          SafeArea(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(testSeriesListProvider);
+                ref.invalidate(caEditionsProvider);
+                ref.invalidate(pyqListProvider);
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                slivers: [
+                  // 1. Sleek Header & Greeting
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                    sliver: SliverToBoxAdapter(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Image.asset(
-                            'assets/images/favicon.png',
-                            height: 32,
-                            width: 32,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${_getGreeting()}, $userName 👋',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.textDarkPrimary,
-                                ),
-                              ),
-                              const Text(
-                                'Ready for your Final Attempt?',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppTheme.textMuted,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.notifications_none_rounded, color: AppTheme.primaryBlue, size: 22),
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('No new notifications')),
-                              );
-                            },
-                          ),
-                          if (authState.isLoggedIn)
-                            GestureDetector(
-                              onTap: () => context.push('/student/profile'),
-                              child: CircleAvatar(
-                                radius: 18,
-                                backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                                child: Text(
-                                  userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                                  style: const TextStyle(
-                                    color: AppTheme.primaryBlue,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                const AppLogo(height: 32),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${_getGreeting(loc)}, $userName 👋',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppTheme.textPrimaryOf(context),
+                                        ),
+                                      ),
+                                      Text(
+                                        loc.tr('ready_prompt'),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppTheme.textMuted,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                            )
-                          else
-                            ElevatedButton(
-                              onPressed: () => context.push('/login'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.primaryBlue,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                minimumSize: Size.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                              ),
-                              child: const Text('Sign In', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                              ],
                             ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-
-                    // 2. Actionable Continue Test / Discovery Card
-                    _buildContinueOrDiscoveryCard(context, ref),
-
-                    const SizedBox(height: 24),
-
-                    // 3. Quick Action Cards Grid
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const _SectionTitle('Quick Actions'),
-                          const SizedBox(height: 12),
-                          GridView.count(
-                            crossAxisCount: 4,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 0.85,
-                            children: const [
-                              _QuickActionCard(
-                                icon: Icons.assignment_turned_in_rounded,
-                                label: 'Test Series',
-                                path: '/test-series',
-                                color: AppTheme.primaryBlue,
-                              ),
-                              _QuickActionCard(
-                                icon: Icons.newspaper_rounded,
-                                label: 'Current Affairs',
-                                path: '/current-affairs',
-                                color: Color(0xFF10B981),
-                              ),
-                              _QuickActionCard(
-                                icon: Icons.library_books_rounded,
-                                label: 'PYQs',
-                                path: '/pyq',
-                                color: Color(0xFFF59E0B),
-                              ),
-                              _QuickActionCard(
-                                icon: Icons.school_rounded,
-                                label: 'Courses',
-                                path: '/courses',
-                                color: AppTheme.secondaryBlue,
-                              ),
-                            ],
                           ),
+                          const SizedBox(width: 8),
+                          const TopHeaderActions(),
                         ],
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 28),
+                  SliverToBoxAdapter(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
 
-                    // 4. Test Series Section (Horizontally Scrollable)
-                    _buildTestSeriesSection(context, ref, testSeriesAsync),
+                        // 2. Actionable Dynamic Featured Test Pass Card
+                        _buildContinueOrDiscoveryCard(context, ref, loc, testSeriesAsync),
 
-                    const SizedBox(height: 28),
+                        const SizedBox(height: 24),
 
-                    // 5. Current Affairs Latest Edition Card
-                    _buildCurrentAffairsSection(context, ref, caAsync),
+                        // 3. Quick Action Cards Grid
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _SectionTitle(loc.tr('quick_actions')),
+                              const SizedBox(height: 12),
+                              GridView.count(
+                                crossAxisCount: 4,
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: 0.85,
+                                children: [
+                                  _QuickActionCard(
+                                    icon: Icons.assignment_turned_in_rounded,
+                                    label: loc.tr('test_series'),
+                                    path: '/test-series',
+                                    color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue,
+                                  ),
+                                  _QuickActionCard(
+                                    icon: Icons.newspaper_rounded,
+                                    label: loc.tr('current_affairs'),
+                                    path: '/current-affairs',
+                                    color: isDark ? const Color(0xFF34D399) : const Color(0xFF10B981),
+                                  ),
+                                  _QuickActionCard(
+                                    icon: Icons.library_books_rounded,
+                                    label: loc.tr('pyqs'),
+                                    path: '/pyq',
+                                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B),
+                                  ),
+                                  _QuickActionCard(
+                                    icon: Icons.school_rounded,
+                                    label: loc.tr('courses'),
+                                    path: '/courses',
+                                    color: isDark ? const Color(0xFFA78BFA) : AppTheme.secondaryBlue,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
 
-                    const SizedBox(height: 28),
+                        const SizedBox(height: 28),
 
-                    // 6. PYQ Practice Banner
-                    _buildPYQSection(context, ref, pyqsAsync),
+                        // 4. Test Series Section (Horizontally Scrollable)
+                        _buildTestSeriesSection(context, ref, loc, testSeriesAsync),
 
-                    const SizedBox(height: 36),
-                  ],
-                ),
+                        const SizedBox(height: 28),
+
+                        // 5. Current Affairs Latest Edition Card
+                        _buildCurrentAffairsSection(context, ref, loc, caAsync),
+
+                        const SizedBox(height: 28),
+
+                        // 6. PYQ Practice Banner
+                        _buildPYQSection(context, ref, loc, pyqsAsync),
+
+                        const SizedBox(height: 36),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // 2. Continue Test Card
-  Widget _buildContinueOrDiscoveryCard(BuildContext context, WidgetRef ref) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.primaryBlue, Color(0xFF1D4ED8)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.18),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'FEATURED TEST PASS',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
-                ),
-              ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            '70th BPSC Prelims Full Mock Test 01',
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white, height: 1.25),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            '150 Questions • 120 Mins • Bilingual (Hindi & English)',
-            style: TextStyle(fontSize: 12, color: Colors.white70),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () {
-              context.push('/test/quiz-bpsc-demo-1/attempt');
-            },
-            icon: const Icon(Icons.play_arrow_rounded, size: 18),
-            label: const Text('Start Free Mock Test'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppTheme.primaryBlue,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -281,18 +214,101 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  // 2. Actionable Dynamic Featured Test Pass Card
+  Widget _buildContinueOrDiscoveryCard(BuildContext context, WidgetRef ref, AppLocalizations loc, AsyncValue<List<TestSeries>> testSeriesAsync) {
+    return testSeriesAsync.when(
+      loading: () => const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: LoadingShimmer(height: 140),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (list) {
+        if (list.isEmpty) return const SizedBox.shrink();
+
+        final featured = list.first;
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppTheme.primaryBlue, Color(0xFF1D4ED8)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.18),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${loc.tr('featured_test')} • ${featured.examCategory.toUpperCase()}',
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                featured.title,
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white, height: 1.25),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${featured.totalTests} Tests • ${featured.freeTestsCount} Free Mocks • ${featured.language}',
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () {
+                  context.push('/test-series/${featured.id}');
+                },
+                icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                label: Text(loc.tr('start_practice')),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppTheme.primaryBlue,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   // 4. Test Series Section
-  Widget _buildTestSeriesSection(BuildContext context, WidgetRef ref, AsyncValue<List<TestSeries>> testSeriesAsync) {
+  Widget _buildTestSeriesSection(BuildContext context, WidgetRef ref, AppLocalizations loc, AsyncValue<List<TestSeries>> testSeriesAsync) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _SectionTitle(
-            'Test Series',
+            loc.tr('test_series'),
             action: TextButton(
               onPressed: () => context.push('/test-series'),
-              child: const Text('See all', style: TextStyle(color: AppTheme.primaryBlue, fontSize: 13, fontWeight: FontWeight.bold)),
+              child: Text(loc.tr('see_all'), style: TextStyle(color: AppTheme.primaryOf(context), fontSize: 13, fontWeight: FontWeight.bold)),
             ),
           ),
         ),
@@ -327,11 +343,11 @@ class HomeScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: AppTheme.cardBgOf(context),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.borderLight),
+                    border: Border.all(color: AppTheme.borderOf(context)),
                   ),
-                  child: const Text('No test series packages available.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                  child: Text('No test series packages available.', style: TextStyle(fontSize: 12, color: AppTheme.textMutedOf(context))),
                 ),
               );
             }
@@ -355,17 +371,17 @@ class HomeScreen extends ConsumerWidget {
   }
 
   // 5. Current Affairs Section
-  Widget _buildCurrentAffairsSection(BuildContext context, WidgetRef ref, AsyncValue<List<CurrentAffairEditionModel>> caAsync) {
+  Widget _buildCurrentAffairsSection(BuildContext context, WidgetRef ref, AppLocalizations loc, AsyncValue<List<CurrentAffairEditionModel>> caAsync) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: _SectionTitle(
-            'Daily Current Affairs',
+            loc.tr('daily_current_affairs'),
             action: TextButton(
               onPressed: () => context.push('/current-affairs'),
-              child: const Text('See all', style: TextStyle(color: AppTheme.primaryBlue, fontSize: 13, fontWeight: FontWeight.bold)),
+              child: Text(loc.tr('see_all'), style: TextStyle(color: AppTheme.primaryOf(context), fontSize: 13, fontWeight: FontWeight.bold)),
             ),
           ),
         ),
@@ -400,23 +416,25 @@ class HomeScreen extends ConsumerWidget {
                 child: Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
+                    color: AppTheme.cardBgOf(context),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppTheme.borderLight),
+                    border: Border.all(color: AppTheme.borderOf(context)),
                   ),
-                  child: const Text('No recent current affairs published yet.', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                  child: Text('No recent current affairs published yet.', style: TextStyle(fontSize: 12, color: AppTheme.textMutedOf(context))),
                 ),
               );
             }
 
             final latest = editions.first;
+            final primaryColor = AppTheme.primaryOf(context);
+
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppTheme.cardBgOf(context),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.borderLight),
+                border: Border.all(color: AppTheme.borderOf(context)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.03),
@@ -430,10 +448,10 @@ class HomeScreen extends ConsumerWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                      color: primaryColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.newspaper_rounded, color: AppTheme.primaryBlue, size: 22),
+                    child: Icon(Icons.newspaper_rounded, color: primaryColor, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -441,13 +459,13 @@ class HomeScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Daily Edition — ${latest.publishDate}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textDarkPrimary),
+                          '${loc.tr('daily_current_affairs')} — ${latest.publishDate}',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryOf(context)),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           '${latest.articles.length} exam-relevant articles available',
-                          style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                          style: TextStyle(fontSize: 12, color: AppTheme.textMutedOf(context)),
                         ),
                       ],
                     ),
@@ -455,14 +473,14 @@ class HomeScreen extends ConsumerWidget {
                   ElevatedButton(
                     onPressed: () => context.push('/current-affairs'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                      foregroundColor: AppTheme.primaryBlue,
+                      backgroundColor: primaryColor.withValues(alpha: 0.15),
+                      foregroundColor: primaryColor,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
-                    child: const Text('Read Now'),
+                    child: Text(loc.tr('read_now')),
                   ),
                 ],
               ),
@@ -474,15 +492,22 @@ class HomeScreen extends ConsumerWidget {
   }
 
   // 6. PYQ Practice Section
-  Widget _buildPYQSection(BuildContext context, WidgetRef ref, AsyncValue<dynamic> pyqsAsync) {
+  Widget _buildPYQSection(BuildContext context, WidgetRef ref, AppLocalizations loc, AsyncValue<dynamic> pyqsAsync) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFBEB);
+    final borderColor = isDark ? const Color(0xFF334155) : const Color(0xFFFDE68A);
+    final titleColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E);
+    final subtitleColor = isDark ? const Color(0xFFFCD34D) : const Color(0xFFB45309);
+    final iconColor = isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFBEB),
+          color: cardBg,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFFDE68A)),
+          border: Border.all(color: borderColor),
         ),
         child: Row(
           children: [
@@ -490,24 +515,24 @@ class HomeScreen extends ConsumerWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                color: iconColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.library_books_rounded, color: Color(0xFFD97706), size: 22),
+              child: Icon(Icons.library_books_rounded, color: iconColor, size: 22),
             ),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Practice Past Exam Papers',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
+                    loc.tr('practice_past_papers'),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: titleColor),
                   ),
-                  SizedBox(height: 2),
+                  const SizedBox(height: 2),
                   Text(
-                    'Solve official Prelims & Mains PYQs with answer keys',
-                    style: TextStyle(fontSize: 11, color: Color(0xFFB45309)),
+                    loc.tr('solve_pyqs_sub'),
+                    style: TextStyle(fontSize: 11, color: subtitleColor),
                   ),
                 ],
               ),
@@ -522,7 +547,7 @@ class HomeScreen extends ConsumerWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
               ),
-              child: const Text('Practice PYQ'),
+              child: Text(loc.tr('practice_pyq')),
             ),
           ],
         ),
@@ -587,14 +612,18 @@ class _TestSeriesHomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = AppTheme.primaryOf(context);
+
     return Container(
       width: 220,
       margin: const EdgeInsets.only(right: 12),
       child: Card(
-        elevation: 1,
+        elevation: isDark ? 0 : 1,
+        color: AppTheme.cardBgOf(context),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppTheme.borderLight),
+          side: BorderSide(color: AppTheme.borderOf(context)),
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
@@ -611,18 +640,18 @@ class _TestSeriesHomeCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                        color: primaryColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         series.examCategory.toUpperCase(),
-                        style: const TextStyle(color: AppTheme.primaryBlue, fontSize: 9, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: primaryColor, fontSize: 9, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       series.title,
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, height: 1.2),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, height: 1.2, color: AppTheme.textPrimaryOf(context)),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -633,11 +662,11 @@ class _TestSeriesHomeCard extends StatelessWidget {
                   children: [
                     Text(
                       '${series.totalTests} Mocks',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                      style: TextStyle(fontSize: 11, color: AppTheme.textMutedOf(context)),
                     ),
                     Text(
                       series.price > 0 ? '₹${series.price.toInt()}' : 'Free',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primaryColor),
                     ),
                   ],
                 ),
@@ -663,7 +692,7 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDarkPrimary),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textPrimaryOf(context)),
         ),
         if (action != null) action!,
       ],

@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/courses_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/storage_service.dart';
+import '../../widgets/top_header_actions.dart';
 
 class StudentDashboardScreen extends ConsumerWidget {
   const StudentDashboardScreen({super.key});
@@ -15,22 +16,35 @@ class StudentDashboardScreen extends ConsumerWidget {
     final storage = ref.read(storageServiceProvider);
 
     return Scaffold(
+      backgroundColor: AppTheme.bgOf(context),
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        backgroundColor: AppTheme.bgOf(context),
+        elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Hello, ${storage.getUserName() ?? 'Aspirant'} 👋',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            const Text('Ready to conquer today?',
-              style: TextStyle(fontSize: 11, color: AppTheme.textMuted, fontWeight: FontWeight.w500)),
+            Text(
+              'Hello, ${storage.getUserName() ?? 'Aspirant'} 👋',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimaryOf(context),
+              ),
+            ),
+            const Text(
+              'Ready to conquer today?',
+              style: TextStyle(
+                fontSize: 11,
+                color: AppTheme.textMuted,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_rounded, color: AppTheme.amber),
-            onPressed: () => context.push('/student/profile'),
-          ),
+        actions: const [
+          TopHeaderActions(),
+          SizedBox(width: 8),
         ],
       ),
       body: SingleChildScrollView(
@@ -39,31 +53,50 @@ class StudentDashboardScreen extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Stats Row
-            Row(
+            const Row(
               children: [
-                _StatCard(icon: Icons.school_rounded, label: 'Enrolled', value: '—', color: const Color(0xFF3B82F6)),
-                const SizedBox(width: 12),
+                _StatCard(icon: Icons.school_rounded, label: 'Enrolled', value: '—', color: Color(0xFF3B82F6)),
+                SizedBox(width: 12),
                 _StatCard(icon: Icons.check_circle_rounded, label: 'Progress', value: '0%', color: AppTheme.success),
-                const SizedBox(width: 12),
-                _StatCard(icon: Icons.emoji_events_rounded, label: 'Quizzes', value: '0', color: AppTheme.amber),
+                SizedBox(width: 12),
+                _StatCard(icon: Icons.emoji_events_rounded, label: 'Quizzes', value: '0', color: AppTheme.warning),
               ],
             ),
 
             const SizedBox(height: 24),
 
             // Quick Actions
-            const Text('Quick Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+            Text(
+              'Quick Actions',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimaryOf(context),
+              ),
+            ),
             const SizedBox(height: 12),
             Row(
               children: [
-                _ActionTile(icon: Icons.newspaper_rounded, label: 'Current Affairs', color: const Color(0xFF10B981),
-                  onTap: () => context.go('/current-affairs')),
+                _ActionTile(
+                  icon: Icons.newspaper_rounded,
+                  label: 'Current Affairs',
+                  color: const Color(0xFF10B981),
+                  onTap: () => context.go('/current-affairs'),
+                ),
                 const SizedBox(width: 12),
-                _ActionTile(icon: Icons.library_books_rounded, label: 'PYQ Papers', color: AppTheme.amber,
-                  onTap: () => context.go('/pyq')),
+                _ActionTile(
+                  icon: Icons.library_books_rounded,
+                  label: 'PYQ Papers',
+                  color: AppTheme.warning,
+                  onTap: () => context.go('/pyq'),
+                ),
                 const SizedBox(width: 12),
-                _ActionTile(icon: Icons.article_rounded, label: 'Blog', color: const Color(0xFF8B5CF6),
-                  onTap: () => context.go('/blog')),
+                _ActionTile(
+                  icon: Icons.article_rounded,
+                  label: 'Blog',
+                  color: const Color(0xFF8B5CF6),
+                  onTap: () => context.go('/blog'),
+                ),
               ],
             ),
 
@@ -73,10 +106,20 @@ class StudentDashboardScreen extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Available Courses', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                Text(
+                  'Available Courses',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimaryOf(context),
+                  ),
+                ),
                 TextButton(
                   onPressed: () => context.go('/courses'),
-                  child: const Text('All Courses', style: TextStyle(color: AppTheme.amber, fontSize: 12, fontWeight: FontWeight.w700)),
+                  child: const Text(
+                    'All Courses',
+                    style: TextStyle(color: AppTheme.primaryBlue, fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
                 ),
               ],
             ),
@@ -87,28 +130,35 @@ class StudentDashboardScreen extends ConsumerWidget {
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppTheme.bgCard,
+                    color: AppTheme.cardBgOf(context),
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppTheme.borderColor),
+                    border: Border.all(color: AppTheme.borderOf(context)),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        width: 44, height: 44,
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
-                          color: AppTheme.amber.withOpacity(0.1),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.school_rounded, color: AppTheme.amber, size: 22),
+                        child: const Icon(Icons.school_rounded, color: AppTheme.primaryBlue, size: 22),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(c.title,
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
-                              maxLines: 1, overflow: TextOverflow.ellipsis,
+                            Text(
+                              c.title,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textPrimaryOf(context),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             if (c.duration != null)
                               Text(c.duration!, style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
@@ -117,13 +167,16 @@ class StudentDashboardScreen extends ConsumerWidget {
                       ),
                       TextButton(
                         onPressed: () => context.push('/courses/${c.id}'),
-                        child: const Text('View', style: TextStyle(color: AppTheme.amber, fontSize: 11, fontWeight: FontWeight.w700)),
+                        child: const Text(
+                          'View',
+                          style: TextStyle(color: AppTheme.primaryBlue, fontSize: 11, fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ],
                   ),
                 )).toList(),
               ),
-              loading: () => const CircularProgressIndicator(color: AppTheme.amber),
+              loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryBlue)),
               error: (_, __) => const SizedBox.shrink(),
             ),
 
@@ -165,9 +218,9 @@ class _StatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [
@@ -197,15 +250,17 @@ class _ActionTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withOpacity(0.2)),
+            border: Border.all(color: color.withValues(alpha: 0.2)),
           ),
           child: Column(
             children: [
               Icon(icon, color: color, size: 24),
               const SizedBox(height: 6),
-              Text(label, textAlign: TextAlign.center,
+              Text(
+                label,
+                textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color, height: 1.2),
               ),
             ],
@@ -215,3 +270,4 @@ class _ActionTile extends StatelessWidget {
     );
   }
 }
+

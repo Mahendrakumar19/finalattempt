@@ -6,6 +6,7 @@ import { Search, Download, BookOpen, Eye, Home, ChevronRight, X, Folder, ArrowLe
 import { db, CustomPage, DownloadItem } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
 import PublicationCheckoutModal from './PublicationCheckoutModal';
+import ShareButton from './ShareButton';
 
 const FOLDER_PALETTES = [
   { bg: 'from-purple-500/15 via-purple-500/5 to-transparent', border: 'border-purple-500/30 hover:border-purple-500', text: 'text-purple-600 dark:text-purple-400', badge: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30', iconBg: 'bg-purple-600 text-white' },
@@ -62,6 +63,27 @@ export default function PublicationsStorefront() {
     loadPage();
     loadExams();
   }, [loadPage, loadExams]);
+
+  useEffect(() => {
+    if (!pageData || !pageData.downloadItems || pageData.downloadItems.length === 0) return;
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const targetId = params.get('book') || params.get('item') || params.get('slug');
+      if (targetId) {
+        const found = pageData.downloadItems.find(
+          i => i.id === targetId ||
+               i.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') === targetId.toLowerCase()
+        );
+        if (found) {
+          const targetFolder = found.examCategory || found.type;
+          if (targetFolder) {
+            setActiveFolder(targetFolder);
+          }
+          setActiveDetailModal(found);
+        }
+      }
+    }
+  }, [pageData]);
 
   const getCategoryLogo = (categoryName: string): string | null => {
     if (!categoryName) return null;
@@ -484,6 +506,12 @@ export default function PublicationsStorefront() {
 
                       {/* Action Buttons */}
                       <div className="flex items-center gap-2">
+                        <ShareButton
+                          title={item.title}
+                          text={`Check out ${item.title} on Final Attempt Publications!`}
+                          url={`/downloads/fa-publication?book=${item.id}`}
+                          variant="icon"
+                        />
                         {item.samplePdfUrl && item.samplePdfUrl.trim() !== '' && (
                           <button
                             onClick={() => setActiveSampleModal({ title: item.title, samplePdfUrl: item.samplePdfUrl! })}
@@ -590,12 +618,20 @@ export default function PublicationsStorefront() {
                   Publication Overview &amp; Details
                 </h3>
               </div>
-              <button
-                onClick={() => setActiveDetailModal(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <ShareButton
+                  title={activeDetailModal.title}
+                  text={`Check out ${activeDetailModal.title} on Final Attempt Publications!`}
+                  url={`/downloads/fa-publication?book=${activeDetailModal.id}`}
+                  variant="compact"
+                />
+                <button
+                  onClick={() => setActiveDetailModal(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Content Body */}

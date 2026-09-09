@@ -21,17 +21,21 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
   Widget build(BuildContext context) {
     final seriesAsync = ref.watch(testSeriesDetailProvider(widget.seriesId));
     final quizzesAsync = ref.watch(testSeriesQuizzesProvider(widget.seriesId));
+    final bg = AppTheme.bgOf(context);
+    final cardBg = AppTheme.cardBgOf(context);
+    final textPrimary = AppTheme.textPrimaryOf(context);
+
 
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
+        backgroundColor: bg,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: cardBg,
           elevation: 0.5,
           scrolledUnderElevation: 0.5,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.textPrimary),
+            icon: Icon(Icons.arrow_back_ios_new, size: 18, color: textPrimary),
             onPressed: () {
               if (Navigator.of(context).canPop()) {
                 context.pop();
@@ -45,10 +49,10 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
               series.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: textPrimary,
               ),
             ),
             loading: () => const Text('Loading...'),
@@ -69,14 +73,14 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
         ),
         body: seriesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
-          error: (err, _) => _buildErrorState(err.toString()),
+          error: (err, _) => _buildErrorState(context, err.toString()),
           data: (series) {
             return TabBarView(
               children: [
                 // Tab 1: Test List
                 quizzesAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
-                  error: (e, _) => _buildErrorState(e.toString()),
+                  error: (e, _) => _buildErrorState(context, e.toString()),
                   data: (quizzes) => _buildTestList(context, series, quizzes),
                 ),
                 // Tab 2: Overview
@@ -95,6 +99,10 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
   }
 
   Widget _buildTestList(BuildContext context, TestSeries series, List<TestQuiz> quizzes) {
+    final cardBg = AppTheme.cardBgOf(context);
+    final borderCol = AppTheme.borderOf(context);
+    final textPrimary = AppTheme.textPrimaryOf(context);
+
     // Filter quizzes by tier filter
     final filteredQuizzes = quizzes.where((q) {
       if (_selectedFilterTab == 'ALL') return true;
@@ -108,26 +116,26 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
       children: [
         // Sub-filter bar (All, Full Mock, Sectional, Free)
         Container(
-          color: Colors.white,
+          color: cardBg,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildFilterChip('ALL', 'All Tests (${quizzes.length})'),
-                _buildFilterChip('FULL', 'Full Mocks'),
-                _buildFilterChip('SECTIONAL', 'Sectional'),
-                _buildFilterChip('FREE', 'Free Demo'),
+                _buildFilterChip(context, 'ALL', 'All Tests (${quizzes.length})'),
+                _buildFilterChip(context, 'FULL', 'Full Mocks'),
+                _buildFilterChip(context, 'SECTIONAL', 'Sectional'),
+                _buildFilterChip(context, 'FREE', 'Free Demo'),
               ],
             ),
           ),
         ),
-        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+        Divider(height: 1, color: borderCol),
 
         // Test List
         Expanded(
           child: filteredQuizzes.isEmpty
-              ? _buildEmptyQuizState()
+              ? _buildEmptyQuizState(context)
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
@@ -139,12 +147,12 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: borderCol),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.02),
+                            color: Colors.black.withValues(alpha: 0.02),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -180,7 +188,9 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFF1F5F9),
+                                        color: Theme.of(context).brightness == Brightness.dark
+                                            ? const Color(0xFF1E293B)
+                                            : const Color(0xFFF1F5F9),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
@@ -214,10 +224,10 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                             const SizedBox(height: 8),
                             Text(
                               quiz.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.textPrimary,
+                                color: textPrimary,
                               ),
                             ),
                             if (quiz.description != null && quiz.description!.isNotEmpty) ...[
@@ -291,8 +301,10 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     );
   }
 
-  Widget _buildFilterChip(String key, String label) {
+  Widget _buildFilterChip(BuildContext context, String key, String label) {
     final isSelected = _selectedFilterTab == key;
+    final borderCol = AppTheme.borderOf(context);
+
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: InkWell(
@@ -305,10 +317,14 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.lightBlueBackground : const Color(0xFFF1F5F9),
+            color: isSelected
+                ? AppColors.lightBlueBackground
+                : (Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1E293B)
+                    : const Color(0xFFF1F5F9)),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected ? AppColors.primaryBlue : const Color(0xFFE2E8F0),
+              color: isSelected ? AppColors.primaryBlue : borderCol,
             ),
           ),
           child: Text(
@@ -325,6 +341,10 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
   }
 
   Widget _buildOverviewTab(BuildContext context, TestSeries series) {
+    final cardBg = AppTheme.cardBgOf(context);
+    final borderCol = AppTheme.borderOf(context);
+    final textPrimary = AppTheme.textPrimaryOf(context);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       physics: const BouncingScrollPhysics(),
@@ -336,7 +356,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.primaryBlue,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,17 +396,17 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
           const SizedBox(height: 20),
 
           // Highlights Section
-          const Text(
+          Text(
             'Package Highlights',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary),
           ),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              color: cardBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderCol),
             ),
             child: Column(
               children: (series.highlights.isNotEmpty
@@ -407,7 +427,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                             Expanded(
                               child: Text(
                                 h,
-                                style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, height: 1.3),
+                                style: TextStyle(fontSize: 13, color: textPrimary, height: 1.3),
                               ),
                             ),
                           ],
@@ -419,18 +439,18 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
           const SizedBox(height: 20),
 
           // Description Section
-          const Text(
+          Text(
             'Description',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary),
           ),
           const SizedBox(height: 8),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              color: cardBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderCol),
             ),
             child: Text(
               series.description ?? 'Prepare for your competitive exams with comprehensive mock test series designed by expert educators. Features real exam simulation with instant performance diagnostics.',
@@ -443,17 +463,17 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
+              color: cardBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderCol),
             ),
             child: Column(
               children: [
-                _buildSpecRow('Validity', '${series.validityDays} Days access from enrollment'),
-                const Divider(height: 16, color: Color(0xFFE2E8F0)),
-                _buildSpecRow('Language', series.language),
-                const Divider(height: 16, color: Color(0xFFE2E8F0)),
-                _buildSpecRow('Total Enrolled', '${series.enrolledCount}+ Students'),
+                _buildSpecRow(context, 'Validity', '${series.validityDays} Days access from enrollment'),
+                Divider(height: 16, color: borderCol),
+                _buildSpecRow(context, 'Language', series.language),
+                Divider(height: 16, color: borderCol),
+                _buildSpecRow(context, 'Total Enrolled', '${series.enrolledCount}+ Students'),
               ],
             ),
           ),
@@ -463,12 +483,12 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     );
   }
 
-  Widget _buildSpecRow(String label, String value) {
+  Widget _buildSpecRow(BuildContext context, String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimaryOf(context))),
       ],
     );
   }
@@ -494,15 +514,18 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     }
 
     final price = series.discountedPrice ?? series.price;
+    final cardBg = AppTheme.cardBgOf(context);
+    final borderCol = AppTheme.borderOf(context);
+    final textPrimary = AppTheme.textPrimaryOf(context);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(top: BorderSide(color: Color(0xFFE2E8F0))),
+        color: cardBg,
+        border: Border(top: BorderSide(color: borderCol)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -3),
           ),
@@ -519,10 +542,10 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                 const Text('Special Price', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                 Text(
                   '₹${price.toInt()}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+                    color: textPrimary,
                   ),
                 ),
               ],
@@ -554,21 +577,21 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     );
   }
 
-  Widget _buildEmptyQuizState() {
+  Widget _buildEmptyQuizState(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.assignment_outlined, size: 44, color: AppColors.textMuted),
-            SizedBox(height: 12),
+          children: [
+            const Icon(Icons.assignment_outlined, size: 44, color: AppColors.textMuted),
+            const SizedBox(height: 12),
             Text(
               'No tests found in this category',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimaryOf(context)),
             ),
-            SizedBox(height: 4),
-            Text(
+            const SizedBox(height: 4),
+            const Text(
               'Try selecting another filter tab above.',
               style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
@@ -578,7 +601,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     );
   }
 
-  Widget _buildErrorState(String error) {
+  Widget _buildErrorState(BuildContext context, String error) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -587,9 +610,9 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
           children: [
             const Icon(Icons.error_outline_rounded, size: 48, color: Color(0xFFEF4444)),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Unable to load Test Details',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimaryOf(context)),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -616,4 +639,3 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     );
   }
 }
-

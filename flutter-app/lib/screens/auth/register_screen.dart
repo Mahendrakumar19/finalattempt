@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
+import '../../widgets/app_logo.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -57,7 +58,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
     if (!mounted) return;
     if (error == null) {
-      context.go('/student/dashboard');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Account created successfully! Welcome to Final Attempt.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      context.go('/');
     } else {
       setState(() {
         _errorMessage = error;
@@ -156,25 +164,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Image.asset(
-                              'assets/images/logo_light.png',
-                              height: 70,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Image.asset(
-                                  'assets/images/logo.png',
-                                  height: 70,
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Image.asset(
-                                      'assets/images/favicon.png',
-                                      height: 60,
-                                      fit: BoxFit.contain,
-                                    );
-                                  },
-                                );
-                              },
-                            ),
+                            const AppLogo(height: 70),
                             const SizedBox(height: 10),
                             const Text(
                               'PREPARE  •  PRACTICE  •  SUCCEED',

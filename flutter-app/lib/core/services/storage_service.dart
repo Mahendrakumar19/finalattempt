@@ -22,6 +22,8 @@ class StorageService {
   static const _keyUserName = 'user_name';
   static const _keyUserEmail = 'user_email';
   static const _keyUserRole = 'user_role';
+  static const _keyUserMobile = 'user_mobile';
+  static const _keyTargetExam = 'user_target_exam';
 
   Future<void> saveToken(String token) async {
     await _prefs.setString(_keyToken, token);
@@ -47,10 +49,22 @@ class StorageService {
     await _prefs.setString(_keyUserRole, role);
   }
 
+  Future<void> saveUserProfile({
+    required String name,
+    String? mobile,
+    String? targetExam,
+  }) async {
+    await _prefs.setString(_keyUserName, name);
+    if (mobile != null) await _prefs.setString(_keyUserMobile, mobile);
+    if (targetExam != null) await _prefs.setString(_keyTargetExam, targetExam);
+  }
+
   String? getUserId() => _prefs.getString(_keyUserId);
   String? getUserName() => _prefs.getString(_keyUserName);
   String? getUserEmail() => _prefs.getString(_keyUserEmail);
   String? getUserRole() => _prefs.getString(_keyUserRole);
+  String? getUserMobile() => _prefs.getString(_keyUserMobile);
+  String? getTargetExam() => _prefs.getString(_keyTargetExam);
 
   bool isLoggedIn() {
     final token = _prefs.getString(_keyToken);
@@ -64,5 +78,7 @@ class StorageService {
     await _prefs.remove(_keyUserName);
     await _prefs.remove(_keyUserEmail);
     await _prefs.remove(_keyUserRole);
+    await _prefs.remove(_keyUserMobile);
+    await _prefs.remove(_keyTargetExam);
   }
 }

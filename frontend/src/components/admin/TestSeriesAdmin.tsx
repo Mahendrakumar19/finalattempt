@@ -78,6 +78,7 @@ const BLANK_SERIES: Partial<TestSeriesItem> = {
     { q: 'Can I attempt tests 24/7?', a: 'Yes, tests are accessible anytime once unlocked.' }
   ],
   batchStartDate: new Date().toISOString().split('T')[0],
+  scheduledReleaseAt: '',
   enrolledCount: 0,
   validityDays: 180,
   isPublished: true,
@@ -92,7 +93,8 @@ const BLANK_QUIZ = {
   passingScore: 40,
   setMode: 'single' as 'single' | 'multi',
   defaultSet: 'SET-A',
-  availableSets: ['SET-A', 'SET-B', 'SET-C', 'SET-D']
+  availableSets: ['SET-A', 'SET-B', 'SET-C', 'SET-D'],
+  scheduledReleaseAt: ''
 };
 
 const BLANK_QUESTION = {
@@ -115,6 +117,7 @@ interface QuizItem {
   timeLimitMins?: number;
   passingScore?: number;
   courseId?: string;
+  scheduledReleaseAt?: string;
 }
 
 interface QuestionItem {
@@ -1361,7 +1364,8 @@ export default function TestSeriesAdmin({
                                 description: quiz.description || '',
                                 setMode: (quiz as any).setMode || 'single',
                                 defaultSet: (quiz as any).defaultSet || 'SET-A',
-                                availableSets: (quiz as any).availableSets || ['SET-A', 'SET-B', 'SET-C', 'SET-D']
+                                availableSets: (quiz as any).availableSets || ['SET-A', 'SET-B', 'SET-C', 'SET-D'],
+                                scheduledReleaseAt: (quiz as any).scheduledReleaseAt || ''
                               });
                               setShowQuizForm(true);
                             }}
@@ -2295,7 +2299,7 @@ export default function TestSeriesAdmin({
                 />
               </div>
 
-              {/* Time Limit & Passing Cut-off */}
+              {/* Time Limit & Scheduled Release Date */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-slate-700 dark:text-slate-300 mb-1.5 text-xs">Time Limit (Minutes)</label>
@@ -2307,6 +2311,15 @@ export default function TestSeriesAdmin({
                   />
                 </div>
 
+                <div>
+                  <label className="block text-amber-600 dark:text-amber-400 mb-1.5 text-xs font-bold">Auto-Release Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    value={(quizForm as any).scheduledReleaseAt || ''}
+                    onChange={e => setQuizForm({ ...quizForm, scheduledReleaseAt: e.target.value } as any)}
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-900 border border-amber-500/50 text-slate-900 dark:text-white rounded-xl outline-none font-medium text-xs shadow-xs focus:border-amber-500 transition-colors"
+                  />
+                </div>
               </div>
 
               {/* SET-Wise Exam Paper Access Configuration Card */}

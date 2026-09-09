@@ -6,11 +6,15 @@ final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>((r
   return ThemeModeNotifier(ref.read(storageServiceProvider));
 });
 
+final appLanguageProvider = StateNotifierProvider<AppLanguageNotifier, String>((ref) {
+  return AppLanguageNotifier(ref.read(storageServiceProvider));
+});
+
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {
   final StorageService _storage;
   static const _keyThemeMode = 'theme_mode_preference';
 
-  ThemeModeNotifier(this._storage) : super(ThemeMode.dark) {
+  ThemeModeNotifier(this._storage) : super(ThemeMode.light) {
     _loadTheme();
   }
 
@@ -23,7 +27,7 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
     } else if (saved == 'system') {
       state = ThemeMode.system;
     } else {
-      state = ThemeMode.dark; // Default to dark theme
+      state = ThemeMode.light; // Default to light theme matching visual design reference
     }
   }
 
@@ -38,5 +42,28 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
     } else {
       setThemeMode(ThemeMode.dark);
     }
+  }
+}
+
+class AppLanguageNotifier extends StateNotifier<String> {
+  final StorageService _storage;
+  static const _keyLanguage = 'app_language_preference';
+
+  AppLanguageNotifier(this._storage) : super('en') {
+    _loadLanguage();
+  }
+
+  void _loadLanguage() {
+    final saved = _storage.prefs.getString(_keyLanguage);
+    if (saved != null && saved.isNotEmpty) {
+      state = saved;
+    } else {
+      state = 'en';
+    }
+  }
+
+  Future<void> setLanguage(String langCode) async {
+    state = langCode;
+    await _storage.prefs.setString(_keyLanguage, langCode);
   }
 }

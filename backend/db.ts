@@ -1692,7 +1692,8 @@ class BackendDB {
       }
     }
 
-    return [];
+    const localStore = getLocalStore();
+    return localStore.exams || [];
   }
 
   public async getExamBySlug(slug: string): Promise<any | null> {
@@ -1739,8 +1740,8 @@ class BackendDB {
           `INSERT INTO TestSeries (
             id, examId, exam, stageId, title, slug, category, language, status, thumbnailUrl, bannerUrl,
             price, discountedPrice, totalTests, totalQuestions, duration, description, highlights, syllabus, faq,
-            batchStartDate, enrolledCount, validityDays, isPublished, displayOrder, schedulePdfUrl, moduleCode, medium, programDetails, createdAt, updatedAt
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            batchStartDate, scheduledReleaseAt, enrolledCount, validityDays, isPublished, displayOrder, schedulePdfUrl, moduleCode, medium, programDetails, createdAt, updatedAt
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
           ON DUPLICATE KEY UPDATE
             examId = VALUES(examId),
             exam = VALUES(exam),
@@ -1762,6 +1763,7 @@ class BackendDB {
             syllabus = VALUES(syllabus),
             faq = VALUES(faq),
             batchStartDate = VALUES(batchStartDate),
+            scheduledReleaseAt = VALUES(scheduledReleaseAt),
             enrolledCount = IF(VALUES(enrolledCount) > 0, VALUES(enrolledCount), TestSeries.enrolledCount),
             validityDays = VALUES(validityDays),
             isPublished = VALUES(isPublished),
@@ -1776,7 +1778,7 @@ class BackendDB {
             item.status || 'active', item.thumbnailUrl || null, item.bannerUrl || null, Number(item.price) || 0,
             item.discountedPrice ? Number(item.discountedPrice) : null, Number(item.totalTests) || 0, Number(item.totalQuestions) || 0,
             item.duration || '6 Months Validity', item.description || null, JSON.stringify(item.highlights || []),
-            JSON.stringify(item.syllabus || []), JSON.stringify(item.faq || []), item.batchStartDate || null,
+            JSON.stringify(item.syllabus || []), JSON.stringify(item.faq || []), item.batchStartDate || null, item.scheduledReleaseAt || null,
             Number(item.enrolledCount) || 0, Number(item.validityDays) || 180, item.isPublished !== false ? 1 : 0, Number(item.displayOrder) || 1,
             item.schedulePdfUrl || null, item.moduleCode || null, item.medium || null, item.programDetails || null
           ]
@@ -3667,6 +3669,10 @@ async function initializeAuthTables(pool: mysql.Pool) {
         FOREIGN KEY (courseId) REFERENCES lms_courses(id) ON DELETE CASCADE
       )
     `);
+    try {
+      await pool.query('ALTER TABLE lms_quizzes ADD COLUMN IF NOT EXISTS scheduledReleaseAt VARCHAR(100)');
+      await pool.query('ALTER TABLE TestSeries ADD COLUMN IF NOT EXISTS scheduledReleaseAt VARCHAR(100)');
+    } catch (_) {}
 
     // Quiz Questions Table
     await pool.query(`
@@ -4985,14 +4991,15 @@ class LmsDB {
       passingScore: Number(data.passingScore || 40.00),
       isPublished: data.isPublished ? 1 : 0,
       isFree: data.isFree ? 1 : 0,
+      scheduledReleaseAt: data.scheduledReleaseAt || null,
       createdAt: new Date().toISOString()
     };
 
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_quizzes (id, courseId, lessonId, title, description, timeLimitMins, passingScore, isPublished, isFree) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE courseId = VALUES(courseId), title = VALUES(title), description = VALUES(description), timeLimitMins = VALUES(timeLimitMins), passingScore = VALUES(passingScore), isPublished = VALUES(isPublished), isFree = VALUES(isFree)',
-          [quiz.id, quiz.courseId, quiz.lessonId, quiz.title, quiz.description, quiz.timeLimitMins, quiz.passingScore, quiz.isPublished ? 1 : 0, quiz.isFree ? 1 : 0]
+          'INSERT INTO lms_quizzes (id, courseId, lessonId, title, description, timeLimitMins, passingScore, isPublished, isFree, scheduledReleaseAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE courseId = VALUES(courseId), title = VALUES(title), description = VALUES(description), timeLimitMins = VALUES(timeLimitMins), passingScore = VALUES(passingScore), isPublished = VALUES(isPublished), isFree = VALUES(isFree), scheduledReleaseAt = VALUES(scheduledReleaseAt)',
+          [quiz.id, quiz.courseId, quiz.lessonId, quiz.title, quiz.description, quiz.timeLimitMins, quiz.passingScore, quiz.isPublished ? 1 : 0, quiz.isFree ? 1 : 0, quiz.scheduledReleaseAt]
         );
         const idx = lmsLocalQuizzes.findIndex(q => q.id === id);
         if (idx >= 0) lmsLocalQuizzes[idx] = { ...lmsLocalQuizzes[idx], ...quiz };
@@ -5005,8 +5012,8 @@ class LmsDB {
           try {
             await mysqlPool.query('ALTER TABLE lms_quizzes DROP FOREIGN KEY lms_quizzes_ibfk_1');
             await mysqlPool.query(
-              'INSERT INTO lms_quizzes (id, courseId, lessonId, title, description, timeLimitMins, passingScore, isPublished, isFree) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE courseId = VALUES(courseId), title = VALUES(title), description = VALUES(description), timeLimitMins = VALUES(timeLimitMins), passingScore = VALUES(passingScore), isPublished = VALUES(isPublished), isFree = VALUES(isFree)',
-              [quiz.id, quiz.courseId, quiz.lessonId, quiz.title, quiz.description, quiz.timeLimitMins, quiz.passingScore, quiz.isPublished ? 1 : 0, quiz.isFree ? 1 : 0]
+              'INSERT INTO lms_quizzes (id, courseId, lessonId, title, description, timeLimitMins, passingScore, isPublished, isFree, scheduledReleaseAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE courseId = VALUES(courseId), title = VALUES(title), description = VALUES(description), timeLimitMins = VALUES(timeLimitMins), passingScore = VALUES(passingScore), isPublished = VALUES(isPublished), isFree = VALUES(isFree), scheduledReleaseAt = VALUES(scheduledReleaseAt)',
+              [quiz.id, quiz.courseId, quiz.lessonId, quiz.title, quiz.description, quiz.timeLimitMins, quiz.passingScore, quiz.isPublished ? 1 : 0, quiz.isFree ? 1 : 0, quiz.scheduledReleaseAt]
             );
             const idx = lmsLocalQuizzes.findIndex(q => q.id === id);
             if (idx >= 0) lmsLocalQuizzes[idx] = { ...lmsLocalQuizzes[idx], ...quiz };
@@ -5031,12 +5038,12 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'UPDATE lms_quizzes SET title = ?, description = ?, timeLimitMins = ?, passingScore = ?, isPublished = ?, isFree = ? WHERE id = ?',
-          [data.title, data.description, Number(data.timeLimitMins || 30), Number(data.passingScore || 40.00), data.isPublished ? 1 : 0, data.isFree ? 1 : 0, id]
+          'UPDATE lms_quizzes SET title = ?, description = ?, timeLimitMins = ?, passingScore = ?, isPublished = ?, isFree = ?, scheduledReleaseAt = ? WHERE id = ?',
+          [data.title, data.description, Number(data.timeLimitMins || 30), Number(data.passingScore || 40.00), data.isPublished ? 1 : 0, data.isFree ? 1 : 0, data.scheduledReleaseAt || null, id]
         );
         const idx = lmsLocalQuizzes.findIndex(q => q.id === id);
         if (idx >= 0) {
-          lmsLocalQuizzes[idx] = { ...lmsLocalQuizzes[idx], title: data.title, description: data.description, timeLimitMins: Number(data.timeLimitMins || 30), passingScore: Number(data.passingScore || 40.00), isPublished: data.isPublished ? 1 : 0, isFree: data.isFree ? 1 : 0 };
+          lmsLocalQuizzes[idx] = { ...lmsLocalQuizzes[idx], title: data.title, description: data.description, timeLimitMins: Number(data.timeLimitMins || 30), passingScore: Number(data.passingScore || 40.00), isPublished: data.isPublished ? 1 : 0, isFree: data.isFree ? 1 : 0, scheduledReleaseAt: data.scheduledReleaseAt || null };
         }
         db.saveLocalData();
         return true;
@@ -5053,7 +5060,8 @@ class LmsDB {
         description: data.description,
         timeLimitMins: Number(data.timeLimitMins || 30),
         passingScore: Number(data.passingScore || 40.00),
-        isPublished: data.isPublished ? 1 : 0
+        isPublished: data.isPublished ? 1 : 0,
+        scheduledReleaseAt: data.scheduledReleaseAt || null
       };
     }
     db.saveLocalData();

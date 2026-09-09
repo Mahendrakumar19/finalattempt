@@ -760,6 +760,20 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
       }
     }
 
+    // Check if test paper is scheduled for a future release date/time
+    if (req.user!.role !== 'admin' && quiz.scheduledReleaseAt) {
+      const releaseTime = new Date(quiz.scheduledReleaseAt).getTime();
+      if (!isNaN(releaseTime) && releaseTime > Date.now()) {
+        res.status(403).json({
+          success: false,
+          code: 'QUIZ_SCHEDULED',
+          error: `This test paper is scheduled for release on ${new Date(quiz.scheduledReleaseAt).toLocaleString('en-IN')}. Please return when it unlocks.`,
+          scheduledReleaseAt: quiz.scheduledReleaseAt
+        });
+        return;
+      }
+    }
+
     // Create or retrieve persistent session (Set Code & Seed)
     const session = await lmsDB.createOrGetQuizSession(req.user!.userId, quizId, quiz.timeLimitMins || 60);
 

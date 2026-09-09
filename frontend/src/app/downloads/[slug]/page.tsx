@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { db, CustomPage, DownloadItem } from '@/services/db';
 import { Download, FileText, ArrowLeft, Calendar, AlertCircle, Eye, CheckCircle, ExternalLink, File, Film, Archive, Search, BookOpen } from 'lucide-react';
 
+import ShareButton from '@/components/ShareButton';
+
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 function getFileIcon(type: string = '') {
@@ -115,7 +117,7 @@ export default function DynamicDownloadPage() {
   return (
     <main className="min-h-screen bg-[var(--bg-color)] py-10 px-4 sm:px-6 lg:px-8 space-y-8 max-w-7xl mx-auto">
       {/* Breadcrumb Navigation */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <Link
           href="/downloads"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-amber-500 transition-colors"
@@ -124,9 +126,17 @@ export default function DynamicDownloadPage() {
           <span>Back to Downloads Hub</span>
         </Link>
 
-        <span className="text-[10px] font-extrabold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl uppercase tracking-widest">
-          DYNAMIC DOWNLOAD PORTAL
-        </span>
+        <div className="flex items-center gap-2">
+          <ShareButton
+            title={page.title}
+            text={page.metaDescription || `Download official study resources for ${page.title}`}
+            url={`/downloads/${slug}`}
+            variant="compact"
+          />
+          <span className="text-[10px] font-extrabold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-xl uppercase tracking-widest">
+            DYNAMIC DOWNLOAD PORTAL
+          </span>
+        </div>
       </div>
 
       {/* Hero Header Banner (PYQ Style) */}

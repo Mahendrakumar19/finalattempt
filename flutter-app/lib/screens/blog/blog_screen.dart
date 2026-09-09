@@ -107,7 +107,7 @@ class _BlogCard extends StatelessWidget {
                           style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
                         ),
                         if (blog.readTime != null) ...[
-                          Text(' · ', style: TextStyle(color: AppTheme.textMuted.withOpacity(0.5))),
+                          Text(' · ', style: TextStyle(color: AppTheme.textMuted.withValues(alpha: 0.5))),
                           Text(blog.readTime!, style: const TextStyle(fontSize: 10, color: AppTheme.textMuted)),
                         ],
                       ],

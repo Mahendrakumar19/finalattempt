@@ -12,6 +12,7 @@ import {
 import { db, TestSeriesItem } from '@/services/db';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
+import ShareButton from '@/components/ShareButton';
 
 interface QuizItem {
   id: string;
@@ -22,6 +23,7 @@ interface QuizItem {
   timeLimitMins?: number;
   instructions?: string;
   isFree?: boolean;
+  scheduledReleaseAt?: string;
 }
 
 interface TestSeriesPlan {
@@ -493,14 +495,17 @@ export default function TestSeriesDetailPage() {
     <div className="min-h-screen bg-[var(--bg-color)] pt-6 sm:pt-8 pb-32 px-4 sm:px-6 lg:px-8 font-body space-y-8">
       <div className="max-w-7xl mx-auto space-y-8">
         
-        {/* Navigation Breadcrumb */}
-        <Link
-          href="/test-series"
-          className="text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors inline-flex items-center gap-1.5"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>{t('testSeries.backToPrograms')}</span>
-        </Link>
+        {/* Navigation Breadcrumb & Share */}
+        <div className="flex items-center justify-between gap-4">
+          <Link
+            href="/test-series"
+            className="text-xs font-bold text-amber-500 hover:text-amber-600 transition-colors inline-flex items-center gap-1.5"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>{t('testSeries.backToPrograms')}</span>
+          </Link>
+          <ShareButton title={`${series?.title || 'Test Series'} - Final Attempt IAS`} variant="button" />
+        </div>
 
         {/* ── Compact Header Banner & Active Access Status ─────────────────── */}
         <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl overflow-hidden shadow-xs">
@@ -1119,11 +1124,16 @@ export default function TestSeriesDetailPage() {
             {quizzes.map((quiz, idx) => {
               const info = getQuizAccessInfo(quiz);
               const isSelected = selectedQuizIds.includes(quiz.id);
+              const isScheduledFuture = quiz.scheduledReleaseAt ? (new Date(quiz.scheduledReleaseAt).getTime() > Date.now()) : false;
 
               return (
                 <div
                   key={quiz.id || idx}
                   onClick={() => {
+                    if (isScheduledFuture) {
+                      alert(`This test paper is scheduled for release on ${new Date(quiz.scheduledReleaseAt!).toLocaleString('en-IN')}. It will auto-unlock at the scheduled time.`);
+                      return;
+                    }
                     if (info.isOwned) {
                       const targetUrl = `/test-series/program/${slug}/attempt?quiz=${quiz.id}`;
                       let token = accessToken;
@@ -1148,7 +1158,9 @@ export default function TestSeriesDetailPage() {
                     }
                   }}
                   className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
-                    info.isOwned
+                    isScheduledFuture
+                      ? 'bg-amber-500/5 border-amber-500/30'
+                      : info.isOwned
                       ? 'bg-emerald-500/5 border-emerald-500/30 hover:border-emerald-500/60'
                       : isSelected
                       ? 'bg-amber-500/10 border-amber-500 shadow-md'
@@ -1158,14 +1170,28 @@ export default function TestSeriesDetailPage() {
                   }`}
                 >
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-1">
                       <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                         TEST #{quiz.sequence_number || idx + 1}
                       </span>
 
-                      <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md border ${info.badgeColor}`}>
-                        {info.label}
-                      </span>
+                      <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                        {isScheduledFuture ? (
+                          <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-md border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 flex items-center gap-1">
+                            🕒 {new Date(quiz.scheduledReleaseAt!).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                          </span>
+                        ) : (
+                          <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-md border ${info.badgeColor}`}>
+                            {info.label}
+                          </span>
+                        )}
+                        <ShareButton
+                          title={`${quiz.title} - Final Attempt IAS`}
+                          path={`/test-series/program/${slug}?quiz=${quiz.id}`}
+                          variant="icon"
+                          size="sm"
+                        />
+                      </div>
                     </div>
 
                     <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] line-clamp-2 leading-snug">
@@ -1178,7 +1204,11 @@ export default function TestSeriesDetailPage() {
                       ⏱ {quiz.timeLimitMins || 120} Mins
                     </span>
 
-                    {info.isOwned ? (
+                    {isScheduledFuture ? (
+                      <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                        🔒 Locked (Scheduled)
+                      </span>
+                    ) : info.isOwned ? (
                       <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                         <span>Attempt</span>
                         <ArrowRight className="w-3 h-3" />

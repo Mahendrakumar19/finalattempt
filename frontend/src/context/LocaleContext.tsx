@@ -47,7 +47,7 @@ const DICTS: Record<Locale, Record<string, unknown>> = {
 ─────────────────────────────────────────────────────────── */
 interface LocaleContextType {
   locale: Locale;
-  setLocale: (locale: Locale) => void;
+  setLocale: (locale: Locale, skipReload?: boolean) => void;
   t: TFunction;
   isLocaleSelected: boolean; // false = first visit, show language selection modal
 }
@@ -84,7 +84,10 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     }
   }, [locale, mounted]);
 
-  const setLocale = useCallback((newLocale: Locale) => {
+  const setLocale = useCallback((newLocale: Locale, skipReload: boolean = false) => {
+    const existingCookie = Cookies.get(LOCALE_COOKIE);
+    const isSameLocale = existingCookie === newLocale;
+
     setLocaleState(newLocale);
     setIsLocaleSelected(true);
     Cookies.set(LOCALE_COOKIE, newLocale, {
@@ -94,7 +97,8 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     });
     document.documentElement.lang = newLocale;
     document.documentElement.classList.toggle('locale-hi', newLocale === 'hi');
-    if (typeof window !== 'undefined') {
+
+    if (!skipReload && !isSameLocale && typeof window !== 'undefined') {
       window.location.reload();
     }
   }, []);

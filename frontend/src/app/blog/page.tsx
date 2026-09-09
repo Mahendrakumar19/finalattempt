@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Calendar, ArrowRight } from 'lucide-react';
 import { db, BlogItem } from '@/services/db';
-import { useTranslation } from '@/context/LocaleContext';
+import { useLocale } from '@/context/LocaleContext';
 
 export default function Blog() {
-  const { locale } = useTranslation();
+  const { locale, setLocale } = useLocale();
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,10 +19,20 @@ export default function Blog() {
   };
 
   useEffect(() => {
+    // Automatically switch full site language context to English for /blog
+    if (locale !== 'en') {
+      setLocale('en', true);
+    }
+
     const loadBlogs = async () => {
       try {
         const bg = await db.getBlogs();
-        const sorted = [...(bg || [])].sort((a: any, b: any) => {
+        // Filter out items targeted strictly for Hindi only
+        const filtered = (bg || []).filter((b: any) => {
+          const target = b.publish_target || b.publishTarget || 'both';
+          return target === 'both' || target === 'english';
+        });
+        const sorted = [...filtered].sort((a: any, b: any) => {
           const timeA = new Date(a.publishDate || a.createdAt || 0).getTime() || 0;
           const timeB = new Date(b.publishDate || b.createdAt || 0).getTime() || 0;
           return timeB - timeA;
@@ -35,7 +45,7 @@ export default function Blog() {
       }
     };
     loadBlogs();
-  }, [locale]);
+  }, [locale, setLocale]);
 
   const stripHtml = (html: string) => {
     if (!html) return '';
@@ -59,6 +69,7 @@ export default function Blog() {
 
           <Link
             href="/blog-hindi"
+            onClick={() => setLocale('hi', true)}
             className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold rounded-xl text-xs flex items-center gap-2 border border-amber-500/30 transition-all"
           >
             <span>🇮🇳 Switch to Hindi Blogs (हिन्दी पोर्टल)</span>

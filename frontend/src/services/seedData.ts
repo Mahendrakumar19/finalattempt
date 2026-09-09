@@ -296,6 +296,7 @@ export interface TestSeriesItem {
   medium?: 'English' | 'Hindi' | string;
   programDetails?: string;
   schedulePdfUrl?: string;
+  scheduledReleaseAt?: string;
 }
 
 export const testSeriesData: TestSeriesItem[] = [

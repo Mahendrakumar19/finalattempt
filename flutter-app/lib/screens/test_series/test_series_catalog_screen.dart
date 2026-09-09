@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../providers/test_series_provider.dart';
 import '../../models/test_series_model.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/localization/app_localizations.dart';
+import '../../widgets/swipeable_package_card.dart';
+import '../../widgets/top_header_actions.dart';
 
 class TestSeriesCatalogScreen extends ConsumerStatefulWidget {
   const TestSeriesCatalogScreen({super.key});
@@ -15,7 +18,7 @@ class TestSeriesCatalogScreen extends ConsumerStatefulWidget {
 class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'All';
-  String _selectedSort = 'Recommended';
+  bool _isSwipeView = false;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -26,201 +29,286 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
 
   @override
   Widget build(BuildContext context) {
+    final loc = ref.watch(appLocalizationsProvider);
     final testSeriesAsync = ref.watch(testSeriesListProvider);
+    final bg = AppTheme.bgOf(context);
+    final cardBg = AppTheme.cardBgOf(context);
+    final borderCol = AppTheme.borderOf(context);
+    final textPrimary = AppTheme.textPrimaryOf(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFA6AFB8),
+      backgroundColor: bg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: cardBg,
         elevation: 0.5,
         scrolledUnderElevation: 0.5,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_new, size: 18, color: textPrimary),
           onPressed: () {
             if (Navigator.of(context).canPop()) {
               context.pop();
             } else {
-              context.go('/home');
+              context.go('/');
             }
           },
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Test Series Store',
+            Text(
+              loc.tr('test_series_catalog'),
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: textPrimary,
                 letterSpacing: -0.3,
               ),
             ),
-            Text(
-              'Find the right test for your preparation',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w400,
-                color: AppColors.textSecondary,
-              ),
-            ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: _isSwipeView ? 'Switch to List View' : 'Switch to Swipe Cards View',
+            icon: Icon(
+              _isSwipeView ? Icons.view_list_rounded : Icons.swipe_rounded,
+              color: AppTheme.primaryOf(context),
+            ),
+            onPressed: () {
+              setState(() {
+                _isSwipeView = !_isSwipeView;
+              });
+            },
+          ),
+          const TopHeaderActions(),
+          const SizedBox(width: 8),
+        ],
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(testSeriesListProvider);
-        },
-        child: Column(
-          children: [
-            // Top Search & Category Filter Section
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Column(
-                children: [
-                  // Search Bar
-                  Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (val) {
-                        setState(() {
-                          _searchQuery = val.trim();
-                        });
-                      },
-                      style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-                      decoration: InputDecoration(
-                        hintText: 'Search exam or test series...',
-                        hintStyle: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                        prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondary),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18, color: AppColors.textSecondary),
-                                onPressed: () {
-                                  _searchController.clear();
+      body: Stack(
+        children: [
+          // Background organic accent circle
+          Positioned(
+            top: -60,
+            right: -60,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? const Color(0xFF1E293B)
+                    : const Color(0xFFE8F1FF),
+              ),
+            ),
+          ),
+          RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(testSeriesListProvider);
+            },
+            child: Column(
+              children: [
+                // Top Search & Category Filter Section
+                Container(
+                  color: cardBg,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                  child: Column(
+                    children: [
+                      // Search Bar
+                      Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF1E293B)
+                              : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: borderCol),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (val) {
+                            setState(() {
+                              _searchQuery = val.trim();
+                            });
+                          },
+                          style: TextStyle(fontSize: 14, color: textPrimary),
+                          decoration: InputDecoration(
+                            hintText: 'Search exam or test series...',
+                            hintStyle: TextStyle(fontSize: 13, color: AppTheme.textMutedOf(context)),
+                            prefixIcon: Icon(Icons.search, size: 20, color: AppTheme.textMutedOf(context)),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(Icons.clear, size: 18, color: AppTheme.textMutedOf(context)),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() {
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Categories Horizontal Bar
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        child: Row(
+                          children: ['All', 'BPSC', 'UPSC', 'Bihar Daroga', 'STET', 'SSC', 'Banking'].map((cat) {
+                            final isSelected = _selectedCategory == cat;
+                            final primaryCol = AppTheme.primaryOf(context);
+                            final isDark = Theme.of(context).brightness == Brightness.dark;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8),
+                              child: InkWell(
+                                onTap: () {
                                   setState(() {
-                                    _searchQuery = '';
+                                    _selectedCategory = cat;
                                   });
                                 },
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Categories Horizontal Bar
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    child: Row(
-                      children: ['All', 'BPSC', 'UPSC', 'Bihar Daroga', 'STET', 'SSC', 'Banking'].map((cat) {
-                        final isSelected = _selectedCategory == cat;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: InkWell(
-                            onTap: () {
-                              setState(() {
-                                _selectedCategory = cat;
-                              });
-                            },
-                            borderRadius: BorderRadius.circular(20),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                              decoration: BoxDecoration(
-                                color: isSelected ? AppColors.primaryBlue : const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isSelected ? AppColors.primaryBlue : const Color(0xFFE2E8F0),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 150),
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? primaryCol
+                                        : (isDark
+                                            ? const Color(0xFF1E293B)
+                                            : const Color(0xFFF1F5F9)),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: isSelected ? primaryCol : borderCol,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    cat,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                      color: isSelected
+                                          ? (isDark ? Colors.black : Colors.white)
+                                          : AppTheme.textPrimaryOf(context),
+                                    ),
+                                  ),
                                 ),
                               ),
-                              child: Text(
-                                cat,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Divider(height: 1, color: borderCol),
+
+                // Catalog List Area
+                Expanded(
+                  child: testSeriesAsync.when(
+                    loading: () => _buildSkeletonLoading(context),
+                    error: (err, stack) => _buildErrorState(context, err.toString()),
+                    data: (list) {
+                      var filtered = list.where((item) {
+                        final matchesCategory = _selectedCategory == 'All' ||
+                            item.examCategory.toLowerCase().contains(_selectedCategory.toLowerCase()) ||
+                            item.title.toLowerCase().contains(_selectedCategory.toLowerCase());
+                        final matchesQuery = _searchQuery.isEmpty ||
+                            item.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                            item.examCategory.toLowerCase().contains(_searchQuery.toLowerCase());
+                        return matchesCategory && matchesQuery;
+                      }).toList();
+
+                      if (filtered.isEmpty) {
+                        return _buildEmptyState(context);
+                      }
+
+                      if (_isSwipeView) {
+                        final swipeItems = filtered.map((s) => SwipeablePackageItem(
+                          id: s.id,
+                          title: s.title,
+                          category: s.examCategory,
+                          totalTests: s.totalTests,
+                          freeTests: s.freeTestsCount,
+                          rating: 4.8,
+                          originalPrice: s.price > 0 ? s.price.toInt() : 499,
+                          discountPrice: s.discountedPrice != null ? s.discountedPrice!.toInt() : (s.price > 0 ? s.price.toInt() : 0),
+                          highlights: [
+                            '${s.fullLengthCount} Full-length mock tests included',
+                            'Language: ${s.language}',
+                            'All India Rank & Performance Analytics',
+                          ],
+                          badgeText: s.isPurchased ? 'UNLOCKED' : 'PASS PRO',
+                          themeColor: AppTheme.primaryBlue,
+                        )).toList();
+
+                        return SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: SwipeablePackageDeck(
+                            items: swipeItems,
+                            onSwiped: (item, isLiked) {
+                              final action = isLiked ? 'Pass Saved' : 'Pass Skipped';
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('$action: ${item.title}'),
+                                  duration: const Duration(seconds: 1),
+                                  behavior: SnackBarBehavior.floating,
+                                  margin: const EdgeInsets.all(16),
                                 ),
-                              ),
-                            ),
+                              );
+                            },
                           ),
                         );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                      }
 
-            const Divider(height: 1, color: Color(0xFFE2E8F0)),
-
-            // Catalog List Area
-            Expanded(
-              child: testSeriesAsync.when(
-                loading: () => _buildSkeletonLoading(),
-                error: (err, stack) => _buildErrorState(err.toString()),
-                data: (list) {
-                  // Apply Category & Search Filter
-                  var filtered = list.where((item) {
-                    final matchesCategory = _selectedCategory == 'All' ||
-                        item.examCategory.toLowerCase().contains(_selectedCategory.toLowerCase()) ||
-                        item.title.toLowerCase().contains(_selectedCategory.toLowerCase());
-                    final matchesQuery = _searchQuery.isEmpty ||
-                        item.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                        item.examCategory.toLowerCase().contains(_searchQuery.toLowerCase());
-                    return matchesCategory && matchesQuery;
-                  }).toList();
-
-                  if (filtered.isEmpty) {
-                    return _buildEmptyState();
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                    itemCount: filtered.length,
-                    itemBuilder: (context, index) {
-                      final series = filtered[index];
-                      return _buildTestSeriesCard(context, series);
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, index) {
+                          final series = filtered[index];
+                          return _buildTestSeriesCard(context, series);
+                        },
+                      );
                     },
-                  );
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTestSeriesCard(BuildContext context, TestSeries series) {
     final hasDiscount = series.discountedPrice != null && series.discountedPrice! < series.price;
+    final cardBg = AppTheme.cardBgOf(context);
+    final borderCol = AppTheme.borderOf(context);
+    final textPrimary = AppTheme.textPrimaryOf(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderCol),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
           context.push('/test-series/${series.id}');
         },
@@ -229,7 +317,6 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Row: Category Tag & Access Status Badge
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -292,39 +379,38 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
               ),
               const SizedBox(height: 10),
 
-              // Title
               Text(
                 series.title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: textPrimary,
                   height: 1.3,
                 ),
               ),
               const SizedBox(height: 12),
 
-              // Test Features / Metrics grid
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8FAFC),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildMetric(Icons.assignment_outlined, '${series.totalTests}', 'Total Tests'),
-                    _buildVerticalDivider(),
-                    _buildMetric(Icons.quiz_outlined, '${series.fullLengthCount}', 'Full Length'),
-                    _buildVerticalDivider(),
-                    _buildMetric(Icons.translate, series.language.contains('Bilingual') ? 'Hindi & Eng' : series.language, 'Language'),
+                    _buildMetric(context, Icons.assignment_outlined, '${series.totalTests}', 'Total Tests'),
+                    _buildVerticalDivider(borderCol),
+                    _buildMetric(context, Icons.quiz_outlined, '${series.fullLengthCount}', 'Full Length'),
+                    _buildVerticalDivider(borderCol),
+                    _buildMetric(context, Icons.translate, series.language.contains('Bilingual') ? 'Hindi & Eng' : series.language, 'Language'),
                   ],
                 ),
               ),
               const SizedBox(height: 14),
 
-              // Price & CTA Action Button Row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -346,10 +432,10 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
                         children: [
                           Text(
                             hasDiscount ? '₹${series.discountedPrice!.toInt()}' : '₹${series.price.toInt()}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
+                              color: textPrimary,
                             ),
                           ),
                           const SizedBox(width: 4),
@@ -386,20 +472,21 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
     );
   }
 
-  Widget _buildMetric(IconData icon, String value, String label) {
+  Widget _buildMetric(BuildContext context, IconData icon, String value, String label) {
     return Column(
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 14, color: AppColors.primaryBlue),
+
             const SizedBox(width: 4),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryOf(context),
               ),
             ),
           ],
@@ -409,19 +496,23 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
           label,
           style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
         ),
+
       ],
     );
   }
 
-  Widget _buildVerticalDivider() {
+  Widget _buildVerticalDivider(Color borderCol) {
     return Container(
       height: 24,
       width: 1,
-      color: const Color(0xFFE2E8F0),
+      color: borderCol,
     );
   }
 
-  Widget _buildSkeletonLoading() {
+  Widget _buildSkeletonLoading(BuildContext context) {
+    final cardBg = AppTheme.cardBgOf(context);
+    final borderCol = AppTheme.borderOf(context);
+
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: 3,
@@ -430,20 +521,20 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
           margin: const EdgeInsets.only(bottom: 16),
           height: 180,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            color: cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderCol),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+          child: const Padding(
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(height: 16, width: 80, color: const Color(0xFFF1F5F9)),
-                const SizedBox(height: 12),
-                Container(height: 20, width: double.infinity, color: const Color(0xFFF1F5F9)),
-                const SizedBox(height: 16),
-                Container(height: 40, width: double.infinity, color: const Color(0xFFF1F5F9)),
+                SizedBox(height: 16, width: 80, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFFF1F5F9)))),
+                SizedBox(height: 12),
+                SizedBox(height: 20, width: double.infinity, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFFF1F5F9)))),
+                SizedBox(height: 16),
+                SizedBox(height: 40, width: double.infinity, child: DecoratedBox(decoration: BoxDecoration(color: Color(0xFFF1F5F9)))),
               ],
             ),
           ),
@@ -452,7 +543,7 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -461,9 +552,9 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
           children: [
             const Icon(Icons.search_off_outlined, size: 48, color: AppColors.textMuted),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'No Test Series Found',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimaryOf(context)),
             ),
             const SizedBox(height: 6),
             Text(
@@ -479,7 +570,7 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
     );
   }
 
-  Widget _buildErrorState(String message) {
+  Widget _buildErrorState(BuildContext context, String message) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -488,9 +579,9 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
           children: [
             const Icon(Icons.wifi_off_rounded, size: 48, color: Color(0xFFEF4444)),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Unable to Load Catalog',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimaryOf(context)),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -516,4 +607,5 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
     );
   }
 }
+
 

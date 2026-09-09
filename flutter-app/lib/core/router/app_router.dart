@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../screens/splash/splash_screen.dart';
@@ -18,6 +18,7 @@ import '../../screens/auth/login_screen.dart';
 import '../../screens/auth/register_screen.dart';
 import '../../screens/student/dashboard_screen.dart';
 import '../../screens/student/profile_screen.dart';
+import '../../screens/chat/chat_screen.dart';
 import '../../widgets/app_shell.dart';
 
 import '../../screens/test_series/test_series_catalog_screen.dart';
@@ -31,12 +32,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     redirect: (context, state) {
       final isLoggedIn = authState.isLoggedIn;
+      final isOnSplash = state.matchedLocation == '/splash';
       final isOnAuth = state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register');
-      final isOnStudent = state.matchedLocation.startsWith('/student');
 
-      if (isOnStudent && !isLoggedIn) return '/login';
-      if (isOnAuth && isLoggedIn) return '/';
+      if (isOnSplash) return null;
+
+      // Force mandatory login: Guest exploration disabled
+      if (!isLoggedIn && !isOnAuth) {
+        return '/login';
+      }
+
+      // If logged in and trying to access login/register, go to Home
+      if (isLoggedIn && isOnAuth) {
+        return '/';
+      }
+
       return null;
     },
     routes: [
@@ -49,39 +60,40 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
           GoRoute(path: '/test-series', builder: (_, __) => const TestSeriesCatalogScreen()),
+          GoRoute(
+            path: '/test-series/:id',
+            builder: (_, state) => TestSeriesDetailScreen(seriesId: state.pathParameters['id']!),
+          ),
           GoRoute(path: '/courses', builder: (_, __) => const CoursesScreen()),
+          GoRoute(
+            path: '/courses/:id',
+            builder: (_, state) => CourseDetailScreen(courseId: state.pathParameters['id']!),
+          ),
           GoRoute(path: '/pyq', builder: (_, __) => const PYQScreen()),
           GoRoute(path: '/current-affairs', builder: (_, __) => const CurrentAffairsScreen()),
+          GoRoute(
+            path: '/current-affairs/article/:slug',
+            builder: (_, state) => CAArticleScreen(slug: state.pathParameters['slug']!),
+          ),
           GoRoute(path: '/blog', builder: (_, __) => const BlogScreen()),
+          GoRoute(
+            path: '/blog/:id',
+            builder: (_, state) => BlogDetailScreen(blogId: state.pathParameters['id']!),
+          ),
+          GoRoute(path: '/faculty', builder: (_, __) => const FacultyScreen()),
+          GoRoute(path: '/achievers', builder: (_, __) => const AchieversScreen()),
+          GoRoute(path: '/about', builder: (_, __) => const AboutScreen()),
+          GoRoute(path: '/student/dashboard', builder: (_, __) => const StudentDashboardScreen()),
+          GoRoute(path: '/student/profile', builder: (_, __) => const StudentProfileScreen()),
+          GoRoute(path: '/chat', builder: (_, __) => const ChatScreen()),
         ],
-      ),
-      GoRoute(
-        path: '/test-series/:id',
-        builder: (_, state) => TestSeriesDetailScreen(seriesId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/test/:id/attempt',
         builder: (_, state) => TestPlayerScreen(quizId: state.pathParameters['id']!),
       ),
-      GoRoute(
-        path: '/courses/:id',
-        builder: (_, state) => CourseDetailScreen(courseId: state.pathParameters['id']!),
-      ),
-      GoRoute(
-        path: '/current-affairs/article/:slug',
-        builder: (_, state) => CAArticleScreen(slug: state.pathParameters['slug']!),
-      ),
-      GoRoute(
-        path: '/blog/:id',
-        builder: (_, state) => BlogDetailScreen(blogId: state.pathParameters['id']!),
-      ),
-      GoRoute(path: '/faculty', builder: (_, __) => const FacultyScreen()),
-      GoRoute(path: '/achievers', builder: (_, __) => const AchieversScreen()),
-      GoRoute(path: '/about', builder: (_, __) => const AboutScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: '/student/dashboard', builder: (_, __) => const StudentDashboardScreen()),
-      GoRoute(path: '/student/profile', builder: (_, __) => const StudentProfileScreen()),
     ],
   );
 });

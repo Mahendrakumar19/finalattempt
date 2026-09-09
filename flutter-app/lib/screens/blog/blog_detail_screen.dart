@@ -63,7 +63,7 @@ class BlogDetailScreen extends ConsumerWidget {
                         children: [
                           CircleAvatar(
                             radius: 14,
-                            backgroundColor: AppTheme.amber.withOpacity(0.2),
+                            backgroundColor: AppTheme.amber.withValues(alpha: 0.2),
                             child: const Icon(Icons.person_rounded, size: 16, color: AppTheme.amber),
                           ),
                           const SizedBox(width: 8),

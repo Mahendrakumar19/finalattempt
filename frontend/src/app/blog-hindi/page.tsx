@@ -7,7 +7,7 @@ import { db, BlogItem } from '@/services/db';
 import { useLocale } from '@/context/LocaleContext';
 
 export default function BlogHindi() {
-  const { setLocale } = useLocale();
+  const { locale, setLocale } = useLocale();
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,14 +19,19 @@ export default function BlogHindi() {
   };
 
   useEffect(() => {
-    // Automatically switch language context to Hindi for /blog-hindi
-    setLocale('hi');
+    // Automatically switch language context to Hindi for /blog-hindi without reloading
+    if (locale !== 'hi') {
+      setLocale('hi', true);
+    }
 
     const loadBlogs = async () => {
       try {
         const bg = await db.getBlogs();
         // Filter out items targeted strictly for English only
-        const filtered = (bg || []).filter((b: any) => b.publish_target !== 'english');
+        const filtered = (bg || []).filter((b: any) => {
+          const target = b.publish_target || b.publishTarget || 'both';
+          return target === 'both' || target === 'hindi';
+        });
         const sorted = [...filtered].sort((a: any, b: any) => {
           const timeA = new Date(a.publishDate || a.createdAt || 0).getTime() || 0;
           const timeB = new Date(b.publishDate || b.createdAt || 0).getTime() || 0;
@@ -40,7 +45,7 @@ export default function BlogHindi() {
       }
     };
     loadBlogs();
-  }, [setLocale]);
+  }, [locale, setLocale]);
 
   const stripHtml = (html: string) => {
     if (!html) return '';
@@ -67,6 +72,7 @@ export default function BlogHindi() {
 
           <Link
             href="/blog"
+            onClick={() => setLocale('en', true)}
             className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-900 dark:text-white font-bold rounded-xl text-xs flex items-center gap-2 border border-slate-200 dark:border-white/10 transition-all"
           >
             <span>🇬🇧 Switch to English Blogs</span>

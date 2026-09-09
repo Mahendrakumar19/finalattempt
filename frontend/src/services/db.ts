@@ -374,7 +374,7 @@ class FinalAttemptDB {
     });
   }
 
-  public async verifyPublicationOrder(payload: any) {
+  public async verifyPublicationOrder(payload: Record<string, unknown>) {
     return this.apiFetch('/api/payments/verify-publication-order', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -397,7 +397,7 @@ class FinalAttemptDB {
   }
 
   public async updateBookOrderShipping(id: string, updates: { deliveryStatus?: string; courierName?: string; trackingNumber?: string; notes?: string }): Promise<boolean> {
-    return this.updateBookOrder(id, updates as any);
+    return this.updateBookOrder(id, updates as Partial<BookOrder>);
   }
 
   public async deleteBookOrder(id: string): Promise<boolean> {
@@ -454,7 +454,7 @@ class FinalAttemptDB {
 
   public async getCourseById(id: string): Promise<Course | undefined> {
     const courses = await this.getCourses();
-    return courses.find(c => String(c.id) === String(id) || String((c as any).slug) === String(id));
+    return courses.find(c => String(c.id) === String(id) || String((c as unknown as { slug?: string }).slug) === String(id));
   }
 
   public async getSectionsByCourseId(courseId: string): Promise<CourseSection[]> {
@@ -705,7 +705,7 @@ class FinalAttemptDB {
           localStorage.setItem('finalattempt_daily_quizzes_store', JSON.stringify(DEFAULT_DAILY_QUIZZES));
           return DEFAULT_DAILY_QUIZZES;
         }
-      } catch (_) {}
+      } catch {}
     }
     return DEFAULT_DAILY_QUIZZES;
   }
@@ -714,7 +714,7 @@ class FinalAttemptDB {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('finalattempt_daily_quizzes_store', JSON.stringify(list));
-      } catch (_) {}
+      } catch {}
     }
   }
 
@@ -753,7 +753,7 @@ class FinalAttemptDB {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) return parsed;
         }
-      } catch (_) {}
+      } catch {}
     }
     return DEFAULT_QUESTIONS;
   }
@@ -762,7 +762,7 @@ class FinalAttemptDB {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(`finalattempt_dq_questions_${quizId}`, JSON.stringify(questions));
-      } catch (_) {}
+      } catch {}
     }
   }
 
@@ -1161,7 +1161,7 @@ class FinalAttemptDB {
           localStorage.setItem('finalattempt_test_series_store', JSON.stringify(testSeriesData));
           return testSeriesData;
         }
-      } catch (_) {}
+      } catch {}
     }
     return testSeriesData;
   }
@@ -1171,7 +1171,7 @@ class FinalAttemptDB {
       try {
         localStorage.setItem('finalattempt_test_series_store', JSON.stringify(list));
         window.dispatchEvent(new CustomEvent('test_series_updated', { detail: list }));
-      } catch (_) {}
+      } catch {}
     }
   }
 
@@ -1227,7 +1227,7 @@ class FinalAttemptDB {
           localStorage.setItem('finalattempt_exams_store', JSON.stringify(DEFAULT_HIERARCHY));
           return DEFAULT_HIERARCHY;
         }
-      } catch (_) {}
+      } catch {}
     }
     return DEFAULT_HIERARCHY;
   }
@@ -1236,7 +1236,7 @@ class FinalAttemptDB {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('finalattempt_exams_store', JSON.stringify(list));
-      } catch (_) {}
+      } catch {}
     }
   }
 
@@ -1462,7 +1462,7 @@ class FinalAttemptDB {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) localList = parsed;
         }
-      } catch (_) {}
+      } catch {}
     }
 
     const mergedMap = new Map<string, any>();
@@ -1529,7 +1529,7 @@ class FinalAttemptDB {
             next = [...current, quiz];
           }
           localStorage.setItem(`finalattempt_quizzes_${quiz.courseId}`, JSON.stringify(next));
-        } catch (_) {}
+        } catch {}
       }
       return true;
     }
@@ -1549,7 +1549,7 @@ class FinalAttemptDB {
             const next = current.filter(q => q.id !== quizId);
             localStorage.setItem(`finalattempt_quizzes_${seriesId}`, JSON.stringify(next));
           }
-        } catch (_) {}
+        } catch {}
       }
       return true;
     }
@@ -1584,7 +1584,7 @@ class FinalAttemptDB {
             next = [...current, question];
           }
           localStorage.setItem(`finalattempt_questions_${question.quizId}`, JSON.stringify(next));
-        } catch (_) {}
+        } catch {}
       }
       return true;
     }
@@ -1610,7 +1610,7 @@ class FinalAttemptDB {
         const current: any[] = stored ? JSON.parse(stored) : [];
         const next = [...current, ...questions];
         localStorage.setItem(`finalattempt_questions_${quizId}`, JSON.stringify(next));
-      } catch (_) {}
+      } catch {}
     }
     return allSuccess;
   }
@@ -1624,7 +1624,7 @@ class FinalAttemptDB {
           const next = current.filter(q => q.id !== questionId);
           localStorage.setItem(`finalattempt_questions_${quizId}`, JSON.stringify(next));
         }
-      } catch (_) {}
+      } catch {}
     }
 
     const res = await this.apiFetch(`/api/lms/questions/${questionId}`, {

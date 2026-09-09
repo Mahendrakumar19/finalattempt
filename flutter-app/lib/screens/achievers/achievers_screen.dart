@@ -94,7 +94,7 @@ class AchieversScreen extends ConsumerWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: AppTheme.amber.withOpacity(0.08),
+                              color: AppTheme.amber.withValues(alpha: 0.08),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text('Batch ${r.year}',
