@@ -1189,22 +1189,8 @@ class FinalAttemptDB {
         const stored = localStorage.getItem('finalattempt_test_series_store');
         if (stored !== null) {
           const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed)) {
-            let modified = false;
-            const updated = parsed.map((item: TestSeriesItem) => {
-              if (!item.batchStartDate || item.batchStartDate === '04 September 2026' || item.batchStartDate === '2026-09-04' || item.batchStartDate === '09 August 2026') {
-                modified = true;
-                return { ...item, batchStartDate: '10 September 2026' };
-              }
-              return item;
-            });
-            if (modified) {
-              localStorage.setItem('finalattempt_test_series_store', JSON.stringify(updated));
-            }
-            return updated;
-          }
+          if (Array.isArray(parsed)) return parsed;
         } else {
-          // Initialize once with seed data
           localStorage.setItem('finalattempt_test_series_store', JSON.stringify(testSeriesData));
           return testSeriesData;
         }
@@ -1436,19 +1422,22 @@ class FinalAttemptDB {
     this.clearCache('test_series');
     this.clearCache('exams');
 
-    // Ensure examId matches a valid MySQL Exam record ID (prevents FK constraint fails)
+    // Dynamically match valid Exam record ID from available exams (prevents FK constraint fails)
     const localExams = this.getLocalExamsStore();
+    const searchExamName = (series.exam || series.examId || '').toLowerCase().trim();
+    
     let resolvedExamId = series.examId;
+    const matchedEx = localExams.find(e =>
+      e.id === series.examId ||
+      e.code?.toLowerCase() === searchExamName ||
+      e.name?.toLowerCase() === searchExamName ||
+      (e.slug && searchExamName.includes(e.slug.toLowerCase()))
+    );
 
-    if (!resolvedExamId || resolvedExamId === 'exam-bpsc' || resolvedExamId === 'bpsc') {
-      const match = localExams.find(e =>
-        (series.exam && (e.code?.toLowerCase() === series.exam.toLowerCase() || e.name?.toLowerCase() === series.exam.toLowerCase())) ||
-        e.id === '5cb632ed-d17d-4f2d-af21-8d5374782f5e'
-      );
-      resolvedExamId = match ? match.id : '5cb632ed-d17d-4f2d-af21-8d5374782f5e';
-    } else {
-      const matchedEx = localExams.find(e => e.id === resolvedExamId || (series.exam && (e.code?.toLowerCase() === series.exam.toLowerCase() || e.name?.toLowerCase() === series.exam.toLowerCase())));
-      if (matchedEx) resolvedExamId = matchedEx.id;
+    if (matchedEx) {
+      resolvedExamId = matchedEx.id;
+    } else if (localExams.length > 0) {
+      resolvedExamId = localExams[0].id;
     }
 
     const sanitizedSeries = {

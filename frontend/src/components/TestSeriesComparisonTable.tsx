@@ -14,14 +14,9 @@ interface TestSeriesComparisonTableProps {
 
 // Helper to consistently format dates as "DD Month YYYY" (e.g. 10 September 2026)
 export function formatDateFormatted(rawDate?: string): string {
-  if (!rawDate) return '10 September 2026';
+  if (!rawDate) return '';
   
   const trimmed = rawDate.trim();
-  if (trimmed === '04 September 2026' || trimmed === '09 August 2026' || trimmed === '2026-09-04' || trimmed === '2026-08-09') {
-    return '10 September 2026';
-  }
-
-  // If already formatted like "10 September 2026", return directly
   if (/^\d{1,2}\s+[A-Za-z]+\s+\d{4}$/.test(trimmed)) {
     return trimmed;
   }

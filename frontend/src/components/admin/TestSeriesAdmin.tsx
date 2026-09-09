@@ -295,14 +295,14 @@ export default function TestSeriesAdmin({
   const handleOpenAddSeries = () => {
     setSeriesModalType('add');
     const newId = `ts-${Date.now()}`;
-    const defaultEx = examsList[0] || { id: '5cb632ed-d17d-4f2d-af21-8d5374782f5e', name: 'BPSC', code: 'BPSC', hasStages: true, stages: [{ id: 'stage-bpsc-prelims', name: 'Prelims' }] };
-    const examName = defaultEx.code || defaultEx.name || 'bpsc';
+    const defaultEx = examsList[0] || { id: '', name: 'General', code: 'GENERAL', hasStages: false, stages: [] };
+    const examName = defaultEx.code || defaultEx.name || 'exam';
     const initial = {
       ...BLANK_SERIES,
       id: newId,
       slug: `${examName.toLowerCase()}-test-series`,
       examId: defaultEx.id,
-      exam: defaultEx.code || defaultEx.name || 'BPSC',
+      exam: defaultEx.code || defaultEx.name || 'Exam',
       stageId: defaultEx.hasStages && defaultEx.stages?.[0] ? defaultEx.stages[0].id : null,
       category: defaultEx.hasStages && defaultEx.stages?.[0] ? defaultEx.stages[0].name : 'Prelims'
     };
@@ -317,18 +317,14 @@ export default function TestSeriesAdmin({
     const cleanLang = (item.language && item.language.toLowerCase().includes('hindi')) ? 'Hindi' : 'English';
 
     // Resolve matching examId from examsList by examId, code, or name
-    const foundEx = (examsList.length > 0 ? examsList : [
-      { id: '5cb632ed-d17d-4f2d-af21-8d5374782f5e', name: 'BPSC', code: 'BPSC' },
-      { id: 'exam-appsc', name: 'APPSC', code: 'APPSC' },
-      { id: 'exam-apssb', name: 'APSSB', code: 'APSSB' }
-    ]).find((ex: any) =>
+    const foundEx = examsList.find((ex: any) =>
       ex.id === item.examId ||
       ex.code?.toLowerCase() === (item.exam || '').toLowerCase() ||
       ex.name?.toLowerCase() === (item.exam || '').toLowerCase() ||
-      (item.exam || '').toLowerCase().includes(ex.slug || '')
+      (item.exam || '').toLowerCase().includes((ex.slug || '').toLowerCase())
     );
 
-    const resolvedExamId = foundEx ? foundEx.id : (item.examId || '5cb632ed-d17d-4f2d-af21-8d5374782f5e');
+    const resolvedExamId = foundEx ? foundEx.id : (item.examId || examsList[0]?.id || '');
 
     setEditingSeries({
       ...item,
@@ -365,7 +361,7 @@ export default function TestSeriesAdmin({
       title: editingSeries.title,
       title_hi: editingSeries.title_hi || undefined,
       slug: finalSlug,
-      examId: editingSeries.examId || (examsList.find(e => e.name === editingSeries.exam || e.code === editingSeries.exam)?.id || examsList[0]?.id || '5cb632ed-d17d-4f2d-af21-8d5374782f5e'),
+      examId: editingSeries.examId || (examsList.find(e => e.name === editingSeries.exam || e.code === editingSeries.exam)?.id || examsList[0]?.id || ''),
       category: editingSeries.category || 'Prelims',
       exam: editingSeries.exam || 'BPSC',
       language: (editingSeries.language && editingSeries.language.toLowerCase().includes('hindi')) ? 'Hindi' : 'English',
@@ -426,7 +422,7 @@ export default function TestSeriesAdmin({
     // Ensure mandatory backend fields (examId, title) exist
     const updated: TestSeriesItem = {
       ...seriesItem,
-      examId: seriesItem.examId || (examsList.find(e => e.name === seriesItem.exam || e.code === seriesItem.exam)?.id || examsList[0]?.id || '5cb632ed-d17d-4f2d-af21-8d5374782f5e'),
+      examId: seriesItem.examId || (examsList.find(e => e.name === seriesItem.exam || e.code === seriesItem.exam)?.id || examsList[0]?.id || ''),
       isPublished: nextState
     };
 
@@ -1723,24 +1719,20 @@ export default function TestSeriesAdmin({
                 <div>
                   <label className="block text-slate-400 mb-1">Target Exam *</label>
                   <select
-                    value={editingSeries.examId || (examsList[0]?.id || '5cb632ed-d17d-4f2d-af21-8d5374782f5e')}
+                    value={editingSeries.examId || (examsList[0]?.id || '')}
                     onChange={e => {
                       const selectedExId = e.target.value;
-                      const selectedExObj = (examsList.length > 0 ? examsList : [
-                        { id: '5cb632ed-d17d-4f2d-af21-8d5374782f5e', name: 'BPSC', code: 'BPSC', hasStages: true, stages: [{ id: 'stage-bpsc-prelims', name: 'Prelims' }, { id: 'stage-bpsc-mains', name: 'Mains' }] },
-                        { id: 'exam-appsc', name: 'APPSC', code: 'APPSC', hasStages: true, stages: [{ id: 'stage-appsc-prelims', name: 'Prelims' }, { id: 'stage-appsc-mains', name: 'Mains' }] },
-                        { id: 'exam-apssb', name: 'APSSB', code: 'APSSB', hasStages: false, stages: [] }
-                      ]).find(ex => ex.id === selectedExId);
+                      const selectedExObj = examsList.find(ex => ex.id === selectedExId) || examsList[0];
                       const defaultStageId = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].id : null;
                       const defaultCategory = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].name : null;
-                      const newExamCode = selectedExObj?.code || selectedExObj?.name || 'bpsc';
+                      const newExamCode = selectedExObj?.code || selectedExObj?.name || 'exam';
                       const categoryPart = (defaultCategory || '').toLowerCase().replace(/[^a-z0-9]/g, '');
                       const titlePart = (editingSeries.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
                       const autoSlug = [newExamCode.toLowerCase().replace(/[^a-z0-9]/g, ''), categoryPart, titlePart].filter(Boolean).join('-');
                       setEditingSeries({
                         ...editingSeries,
                         examId: selectedExId,
-                        exam: selectedExObj?.code || selectedExObj?.name || 'BPSC',
+                        exam: selectedExObj?.code || selectedExObj?.name || '',
                         stageId: defaultStageId,
                         category: defaultCategory,
                         slug: autoSlug
@@ -1748,11 +1740,7 @@ export default function TestSeriesAdmin({
                     }}
                     className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
                   >
-                    {(examsList.length > 0 ? examsList : [
-                      { id: '5cb632ed-d17d-4f2d-af21-8d5374782f5e', name: 'BPSC', code: 'BPSC', hasStages: true },
-                      { id: 'exam-appsc', name: 'APPSC', code: 'APPSC', hasStages: true },
-                      { id: 'exam-apssb', name: 'APSSB', code: 'APSSB', hasStages: false }
-                    ]).map((ex: any) => (
+                    {examsList.map((ex: any) => (
                       <option key={ex.id} value={ex.id}>{ex.name} ({ex.hasStages ? 'Has Stages' : 'Direct Series'})</option>
                     ))}
                   </select>
@@ -1761,12 +1749,7 @@ export default function TestSeriesAdmin({
                 <div>
                   <label className="block text-slate-400 mb-1">Exam Stage</label>
                   {(() => {
-                    const effectiveList = examsList.length > 0 ? examsList : [
-                      { id: '5cb632ed-d17d-4f2d-af21-8d5374782f5e', name: 'BPSC', code: 'BPSC', hasStages: true, stages: [{ id: 'stage-bpsc-prelims', name: 'Prelims' }, { id: 'stage-bpsc-mains', name: 'Mains' }] },
-                      { id: 'exam-appsc', name: 'APPSC', code: 'APPSC', hasStages: true, stages: [{ id: 'stage-appsc-prelims', name: 'Prelims' }, { id: 'stage-appsc-mains', name: 'Mains' }] },
-                      { id: 'exam-apssb', name: 'APSSB', code: 'APSSB', hasStages: false, stages: [] }
-                    ];
-                    const currentEx = effectiveList.find((ex: any) => ex.id === editingSeries.examId) || effectiveList[0];
+                    const currentEx = examsList.find((ex: any) => ex.id === editingSeries.examId) || examsList[0];
                     if (!currentEx || !currentEx.hasStages || !currentEx.stages || currentEx.stages.length === 0) {
                       return (
                         <div className="px-3 py-3 bg-slate-100 dark:bg-slate-800 border border-[var(--card-border)] text-slate-400 rounded-xl font-bold">
