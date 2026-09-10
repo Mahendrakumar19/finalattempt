@@ -9,7 +9,7 @@ import FormattedExplanation from '@/components/FormattedExplanation';
 import { 
   Sparkles, Calendar, Clock, HelpCircle, Trophy, Award, ArrowLeft, ArrowRight,
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Bookmark, ChevronRight,
-  Search, Play, Check, BarChart2, User
+  Search, Play, Check, BarChart2, User, X
 } from 'lucide-react';
 
 interface Question {
@@ -116,6 +116,7 @@ export default function DailyQuizPortal() {
   const [resultData, setResultData] = useState<QuizResultData | null>(null);
   const [showReviewMode, setShowReviewMode] = useState(false);
   const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(false);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   // Fetch lightweight landing page metadata
   const loadLandingData = useCallback(async () => {
@@ -221,6 +222,7 @@ export default function DailyQuizPortal() {
         setResultData(res);
         setTimerActive(false);
         setViewMode('result');
+        setTimeout(() => setShowPurchaseModal(true), 600);
       } else {
         setErrorMsg('Failed to process quiz submission. Please try again.');
       }
@@ -1168,6 +1170,92 @@ export default function DailyQuizPortal() {
         )}
 
       </div>
+
+      {/* ── DEMO TEST COMPLETION PURCHASE MODAL ── */}
+      {showPurchaseModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[var(--card-bg)] border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-6 text-[var(--text-color)] overflow-hidden">
+            
+            {/* Top Banner Accent */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600" />
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowPurchaseModal(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header Badge & Title */}
+            <div className="text-center space-y-2 pt-2">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-black uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" /> Demo Practice Test Completed
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-heading font-black tracking-tight leading-tight">
+                Unlock Full BPSC Test Series
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
+                Supercharge your BPSC Prelims preparation with 40+ Full Mocks, Micro Topic-Wise Practice & State Leaderboard!
+              </p>
+            </div>
+
+            {/* Feature Bullets */}
+            <div className="space-y-3 bg-slate-900/60 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-xs font-bold">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>40 Micro Topic-Wise & Full-Length Mock Tests (3,200+ Questions)</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>Instant All India Rank & Accuracy Diagnostic Radar</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>Downloadable PDF Solutions & Subject Specialist Explanations</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>1 Year Unlimited Access (PATNA Offline Test Option Included)</span>
+              </div>
+            </div>
+
+            {/* Pricing Section */}
+            <div className="flex items-center justify-between p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Special Offer Price</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-amber-500">₹ 449</span>
+                  <span className="text-sm line-through text-slate-400">₹ 1,120</span>
+                </div>
+              </div>
+              <span className="px-3 py-1 bg-amber-500 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-lg shadow-sm">
+                60% OFF
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-2.5">
+              <Link
+                href="/test-series"
+                onClick={() => setShowPurchaseModal(false)}
+                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01]"
+              >
+                <span>Purchase Full Test Series (₹449)</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowPurchaseModal(false)}
+                className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 font-bold transition-colors cursor-pointer"
+              >
+                Close & Review Test Answers
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

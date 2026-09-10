@@ -4515,7 +4515,7 @@ class LmsDB {
         const primaryId = tsRows && tsRows.length > 0 ? tsRows[0].id : testSeriesId;
         const slugId = tsRows && tsRows.length > 0 ? tsRows[0].slug : testSeriesId;
 
-        const [rows]: any = await mysqlPool.query(
+        const [lmsRows]: any = await mysqlPool.query(
           `SELECT e.id as enrollmentId, e.userId, e.paymentOrderId, e.paymentStatus, e.amountPaid, e.enrolledAt,
                   u.fullName, u.email, u.mobile, u.targetExam, u.state, u.district,
                   (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND (q.courseId = ? OR q.courseId = ?)) as totalAttempts,
@@ -4526,7 +4526,35 @@ class LmsDB {
            ORDER BY e.enrolledAt DESC`,
           [primaryId, slugId, primaryId, slugId, primaryId, slugId]
         );
-        if (rows && rows.length > 0) return rows;
+
+        let entRows: any[] = [];
+        try {
+          const [eRows]: any = await mysqlPool.query(
+            `SELECT u_ent.id as entitlementId, u_ent.user_id as userId, 'ONLINE_PAYMENT' as paymentOrderId, 'paid' as paymentStatus, 0 as amountPaid, u_ent.granted_at as enrolledAt,
+                    u.fullName, u.email, u.mobile, u.targetExam, u.state, u.district,
+                    (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND (q.courseId = ? OR q.courseId = ?)) as totalAttempts,
+                    (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND (q.courseId = ? OR q.courseId = ?) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
+             FROM user_entitlements u_ent
+             JOIN users u ON u.id = u_ent.user_id
+             WHERE (u_ent.series_id = ? OR u_ent.series_id = ?) AND u_ent.status = 'ACTIVE'
+             ORDER BY u_ent.granted_at DESC`,
+            [primaryId, slugId, primaryId, slugId, primaryId, slugId]
+          );
+          entRows = eRows || [];
+        } catch (_) {}
+
+        const userMap = new Map<string, any>();
+        (lmsRows || []).forEach((r: any) => userMap.set(r.userId, r));
+        entRows.forEach((r: any) => {
+          if (!userMap.has(r.userId)) {
+            userMap.set(r.userId, {
+              enrollmentId: r.entitlementId || r.userId,
+              ...r
+            });
+          }
+        });
+
+        if (userMap.size > 0) return Array.from(userMap.values());
       } catch (err) {
         console.error('[LmsDB] getTestSeriesEnrolledStudents MySQL error:', err);
       }
@@ -5500,6 +5528,7 @@ class LmsDB {
 
   async createOrGetQuizSession(userId: string, quizId: string, durationMins: number): Promise<any> {
     const { v4: uuid } = await import('uuid');
+    const resolvedDuration = Number(durationMins) > 0 ? Number(durationMins) : 40;
     
     // Check if an IN_PROGRESS session already exists
     if (mysqlPool) {
@@ -5510,17 +5539,23 @@ class LmsDB {
         );
         if (rows && rows.length > 0) {
           const sess = rows[0];
-          return {
-            id: sess.id,
-            userId: sess.userId,
-            quizId: sess.quizId,
-            setCode: sess.setCode || 'SET-A',
-            seed: sess.seed || `seed-${sess.id}`,
-            startedAt: sess.startedAt,
-            expiresAt: sess.expiresAt,
-            status: sess.status,
-            answers: typeof sess.answers === 'string' ? JSON.parse(sess.answers || '{}') : (sess.answers || {})
-          };
+          const expTime = new Date(sess.expiresAt).getTime();
+          if (expTime > Date.now() + 5000) {
+            return {
+              id: sess.id,
+              userId: sess.userId,
+              quizId: sess.quizId,
+              setCode: sess.setCode || 'SET-A',
+              seed: sess.seed || `seed-${sess.id}`,
+              startedAt: sess.startedAt,
+              expiresAt: sess.expiresAt,
+              status: sess.status,
+              answers: typeof sess.answers === 'string' ? JSON.parse(sess.answers || '{}') : (sess.answers || {})
+            };
+          } else {
+            // Expired attempt — mark as EXPIRED so user gets a fresh attempt with full duration
+            await mysqlPool.query('UPDATE lms_quiz_attempts SET status = "EXPIRED" WHERE id = ?', [sess.id]);
+          }
         }
       } catch (err) { console.error('[LmsDB] createOrGetQuizSession select MySQL error:', err); }
     }
@@ -5531,7 +5566,7 @@ class LmsDB {
     const setCode = setCodes[Math.floor(Math.random() * setCodes.length)];
     const seed = `seed-${quizId}-${setCode}`;
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + (durationMins || 60) * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + resolvedDuration * 60 * 1000);
 
     const session = {
       id,

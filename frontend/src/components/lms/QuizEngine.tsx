@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Award, FileText, Timer, Users, Maximize2, AlertOctagon, CheckSquare, Square, Bookmark, Sun, Moon, Grid, X } from 'lucide-react';
+import Link from 'next/link';
+import { ShieldAlert, Award, FileText, Timer, Users, Maximize2, AlertOctagon, CheckSquare, Square, Bookmark, Sun, Moon, Grid, X, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard } from '@/services/auth';
@@ -50,6 +51,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   // Result states
   const [results, setResults] = useState<any>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   // Synchronize language from locale context on load
   useEffect(() => {
@@ -102,13 +104,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             setSelectedAnswers(res.data.session.savedAnswers);
           }
 
+          const quizDuration = Number(quizObj?.timeLimitMins || quizObj?.durationMinutes || quizObj?.durationMins || 40);
           if (res.data.session?.expiresAt) {
             const exp = new Date(res.data.session.expiresAt).getTime();
             const now = Date.now();
-            const secsLeft = Math.max(0, Math.floor((exp - now) / 1000));
-            setTimeLeft(secsLeft);
+            const secsLeft = Math.floor((exp - now) / 1000);
+            if (secsLeft > 5) {
+              setTimeLeft(secsLeft);
+            } else {
+              setTimeLeft(quizDuration * 60);
+            }
           } else {
-            setTimeLeft((res.data.quiz.timeLimitMins || 60) * 60);
+            setTimeLeft(quizDuration * 60);
           }
         } else {
           setError(res.error || 'Failed to load quiz details.');
@@ -157,6 +164,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
         setResults(res.data);
         setQuizState('result');
         setIsConfirmSubmitOpen(false);
+        setTimeout(() => setShowPurchaseModal(true), 600);
       } else {
         setError(res.error || 'Submission failed.');
       }
@@ -188,16 +196,17 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   const enterFullscreenAndStart = async () => {
     setFullscreenError(null);
     try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
+      if (document.documentElement && typeof document.documentElement.requestFullscreen === 'function' && !document.fullscreenElement) {
+        await document.documentElement.requestFullscreen().catch(() => {});
       }
+    } catch (_) {
+      // Browsers like iOS Safari do not support requestFullscreen on iPhone
+    } finally {
       setQuizState('active');
       setIsPaused(false);
       if (questions[0]?.id) {
         setVisitedQuestions(prev => ({ ...prev, [questions[0].id]: true }));
       }
-    } catch (err: any) {
-      setFullscreenError('Fullscreen mode is required to start this examination. Please allow fullscreen access.');
     }
   };
 
@@ -214,12 +223,13 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   // Re-enter Fullscreen from warning overlay
   const reEnterFullscreen = async () => {
     try {
-      if (!document.fullscreenElement) {
-        await document.documentElement.requestFullscreen();
+      if (document.documentElement && typeof document.documentElement.requestFullscreen === 'function' && !document.fullscreenElement) {
+        await document.documentElement.requestFullscreen().catch(() => {});
       }
-      setIsPaused(false);
     } catch (e) {
-      // Browser blocked gesture
+      // Browser blocked gesture or iOS unsupported
+    } finally {
+      setIsPaused(false);
     }
   };
 
@@ -1227,16 +1237,28 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                     </div>
                   </div>
 
-                  {/* Pass / Fail status badge */}
-                  <div
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider"
-                    style={{
-                      backgroundColor: passed ? successBg : errorBg,
-                      border: `1.5px solid ${passed ? successBorder : errorBorder}`,
-                      color: passed ? successText : errorText,
-                    }}
-                  >
-                    {passed ? '✓ QUALIFIED' : '✕ NOT CLEARED'}
+                  {/* Pass / Fail status badge & Purchase Offer Banner */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                    <div
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider"
+                      style={{
+                        backgroundColor: passed ? successBg : errorBg,
+                        border: `1.5px solid ${passed ? successBorder : errorBorder}`,
+                        color: passed ? successText : errorText,
+                      }}
+                    >
+                      {passed ? '✓ QUALIFIED' : '✕ NOT CLEARED'}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPurchaseModal(true)}
+                      className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-600 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-all transform hover:scale-[1.02]"
+                    >
+                      <Sparkles className="w-4 h-4 fill-current text-slate-950" />
+                      <span>Unlock 40+ Mock Test Series (₹449)</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
                   </div>
 
                   {/* Score progress bar */}
@@ -1740,6 +1762,92 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
           </div>
         );
       })()}
+
+      {/* ── 6. DEMO TEST COMPLETION PURCHASE MODAL ── */}
+      {showPurchaseModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[var(--card-bg)] border-2 border-amber-500/50 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative space-y-6 text-[var(--text-color)] overflow-hidden">
+            
+            {/* Top Banner Accent */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600" />
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowPurchaseModal(false)}
+              className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-100 rounded-full hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header Badge & Title */}
+            <div className="text-center space-y-2 pt-2">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-black uppercase tracking-wider">
+                <Sparkles className="w-3.5 h-3.5" /> Demo Test Completed
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-heading font-black tracking-tight leading-tight">
+                Unlock Full BPSC Test Series
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
+                Take your BPSC Prelims prep to the next level with 40+ Full Mocks, Sectional Tests, Rank Radar & Detailed Solutions!
+              </p>
+            </div>
+
+            {/* Feature Bullets */}
+            <div className="space-y-3 bg-slate-900/60 dark:bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-xs font-bold">
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>40 Micro Topic-Wise & Full-Length Mock Tests (3,200+ Questions)</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>Instant All India Rank & Performance Radar</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>Downloadable PDF Solutions & Extra Revision Notes</span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <span>1 Year Validity (Online CBT & Patna Center Offline Access)</span>
+              </div>
+            </div>
+
+            {/* Pricing Section */}
+            <div className="flex items-center justify-between p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+              <div>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Special Discount Fee</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-black text-amber-500">₹ 449</span>
+                  <span className="text-sm line-through text-slate-400">₹ 1,120</span>
+                </div>
+              </div>
+              <span className="px-3 py-1 bg-amber-500 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-lg shadow-sm">
+                60% OFF
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-2.5">
+              <Link
+                href="/test-series"
+                onClick={() => setShowPurchaseModal(false)}
+                className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01]"
+              >
+                <span>Purchase Full Test Series (₹449)</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowPurchaseModal(false)}
+                className="w-full py-2 text-xs text-slate-400 hover:text-slate-200 font-bold transition-colors cursor-pointer"
+              >
+                Review My Demo Test Answers
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
