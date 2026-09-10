@@ -1310,7 +1310,7 @@ export default function TestSeriesDetailPage() {
                   </thead>
                   <tbody className="divide-y divide-[var(--card-border)] font-medium">
                     {filteredStudents.map((st) => (
-                      <tr key={st.userId}>
+                      <tr key={st.enrollmentId || `${st.userId}_${st.planName}_${st.enrolledAt}`}>
                         <td className="p-4 font-bold text-[var(--text-color)]">{st.fullName}</td>
                         <td className="p-4 text-slate-600 dark:text-slate-300">
                           <div>{st.mobile || 'N/A'}</div>

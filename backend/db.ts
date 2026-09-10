@@ -1000,6 +1000,7 @@ if (useRealDB) {
       connectTimeout: 10000,          // 10s connect timeout for remote Hostinger host
       charset: 'utf8mb4'
     });
+    mysqlPool = tempPool;
 
     // Handle connection pool errors (prevent crash on ECONNRESET / MySQL drops)
     (tempPool as any).on('error', (err: any) => {
@@ -1017,7 +1018,6 @@ if (useRealDB) {
     tempPool.getConnection()
       .then(async (connection) => {
         console.log('MySQL Database connection verified successfully.');
-        mysqlPool = tempPool;
         connection.release();
         
         // Run schema tables setup
@@ -4532,185 +4532,204 @@ class LmsDB {
   }
 
   async getTestSeriesEnrolledStudents(testSeriesId: string): Promise<any[]> {
-    if (mysqlPool) {
+    try {
+      const { prisma } = await import('./prisma');
+      const targetIds = new Set<string>();
+      if (testSeriesId) targetIds.add(testSeriesId);
+
+      // 1. Fetch matching TestSeries IDs and Slugs
       try {
-        const targetIds = new Set<string>();
-        if (testSeriesId) targetIds.add(testSeriesId);
-
-        try {
-          const [tsRows]: any = await mysqlPool.query(
-            'SELECT id, slug FROM TestSeries WHERE id = ? OR slug = ? OR slug LIKE ? OR id LIKE ?',
-            [testSeriesId, testSeriesId, `%${testSeriesId}%`, `%${testSeriesId}%`]
-          );
-          (tsRows || []).forEach((r: any) => {
-            if (r.id) targetIds.add(r.id);
-            if (r.slug) targetIds.add(r.slug);
-          });
-        } catch (_) {}
-
-        try {
-          const [cRows]: any = await mysqlPool.query(
-            'SELECT id, slug FROM lms_courses WHERE id = ? OR slug = ? OR slug LIKE ? OR id LIKE ?',
-            [testSeriesId, testSeriesId, `%${testSeriesId}%`, `%${testSeriesId}%`]
-          );
-          (cRows || []).forEach((r: any) => {
-            if (r.id) targetIds.add(r.id);
-            if (r.slug) targetIds.add(r.slug);
-          });
-        } catch (_) {}
-
-        try {
-          const [qRows]: any = await mysqlPool.query(
-            'SELECT id FROM lms_quizzes WHERE courseId IN (?) OR courseId = ?',
-            [Array.from(targetIds), testSeriesId]
-          );
-          (qRows || []).forEach((r: any) => {
-            if (r.id) targetIds.add(r.id);
-          });
-        } catch (_) {}
-
-        const idList = Array.from(targetIds).filter(Boolean);
-        if (idList.length === 0) idList.push(testSeriesId);
-
-        const placeholders = idList.map(() => '?').join(',');
-
-        // 1. Fetch from lms_enrollments (5 placeholder sets)
-        let lmsRows: any[] = [];
-        try {
-          const [rows]: any = await mysqlPool.query(
-            `SELECT e.id as enrollmentId, e.userId, e.paymentOrderId, e.paymentStatus, e.amountPaid, e.enrolledAt,
-                    u.fullName, u.email, u.mobile, u.targetExam, u.state, u.district,
-                    'Full Access' as planName,
-                    (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND (q.courseId IN (${placeholders}) OR q.id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders})))) as totalAttempts,
-                    (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND (q.courseId IN (${placeholders}) OR q.id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders}))) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
-             FROM lms_enrollments e
-             JOIN users u ON u.id = e.userId
-             WHERE e.courseId IN (${placeholders}) OR e.courseId IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders}))
-             ORDER BY e.enrolledAt DESC`,
-            [...idList, ...idList, ...idList, ...idList, ...idList]
-          );
-          lmsRows = rows || [];
-        } catch (err: any) {
-          console.error('[LmsDB] getTestSeriesEnrolledStudents lms_enrollments query error:', err.message);
-        }
-
-        // 2. Fetch from user_entitlements (5 placeholder sets)
-        let entRows: any[] = [];
-        try {
-          const [eRows]: any = await mysqlPool.query(
-            `SELECT u_ent.id as entitlementId, u_ent.user_id as userId,
-                    COALESCE(o.order_number, o.payment_reference_id, 'ONLINE_PAYMENT') as paymentOrderId,
-                    'paid' as paymentStatus,
-                    COALESCE(o.net_amount, 0) as amountPaid,
-                    u_ent.granted_at as enrolledAt,
-                    u.fullName, u.email, u.mobile, u.targetExam, u.state, u.district,
-                    u_ent.entitlement_type as entitlementType,
-                    q_ent.title as quizTitle,
-                    (SELECT oi.item_title FROM order_items oi WHERE oi.order_id = u_ent.source_order_id LIMIT 1) as orderItemTitle,
-                    (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND (q.courseId IN (${placeholders}) OR q.id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders})))) as totalAttempts,
-                    (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND (q.courseId IN (${placeholders}) OR q.id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders}))) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
-             FROM user_entitlements u_ent
-             JOIN users u ON u.id = u_ent.user_id
-             LEFT JOIN lms_quizzes q_ent ON q_ent.id = u_ent.quiz_id
-             LEFT JOIN orders o ON o.id = u_ent.source_order_id OR (o.user_id = u_ent.user_id AND o.status = 'PAID')
-             WHERE u_ent.status = 'ACTIVE' AND (
-               u_ent.series_id IN (${placeholders}) OR
-               u_ent.quiz_id IN (${placeholders}) OR
-               u_ent.quiz_id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders}))
-             )
-             ORDER BY u_ent.granted_at DESC`,
-            [...idList, ...idList, ...idList, ...idList, ...idList, ...idList]
-          );
-          entRows = eRows || [];
-        } catch (err: any) {
-          console.error('[LmsDB] getTestSeriesEnrolledStudents user_entitlements query error:', err.message);
-        }
-
-        // 3. Fetch from orders table directly (5 placeholder sets)
-        let orderRows: any[] = [];
-        try {
-          const [oRows]: any = await mysqlPool.query(
-            `SELECT o.id as orderId, o.user_id as userId,
-                    COALESCE(o.order_number, o.payment_reference_id, 'ONLINE_PAYMENT') as paymentOrderId,
-                    'paid' as paymentStatus,
-                    o.net_amount as amountPaid,
-                    o.paid_at as enrolledAt,
-                    u.fullName, u.email, u.mobile, u.targetExam, u.state, u.district,
-                    (SELECT oi.item_title FROM order_items oi WHERE oi.order_id = o.id LIMIT 1) as orderItemTitle,
-                    (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = o.user_id AND (q.courseId IN (${placeholders}) OR q.id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders})))) as totalAttempts,
-                    (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = o.user_id AND (q.courseId IN (${placeholders}) OR q.id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders}))) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
-             FROM orders o
-             JOIN users u ON u.id = o.user_id
-             WHERE o.status = 'PAID' AND (
-               o.series_id IN (${placeholders}) OR 
-               o.id IN (SELECT order_id FROM order_items WHERE quiz_id IN (${placeholders}) OR quiz_id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders})))
-             )
-             ORDER BY o.paid_at DESC`,
-            [...idList, ...idList, ...idList, ...idList, ...idList, ...idList]
-          );
-          orderRows = oRows || [];
-        } catch (err: any) {
-          console.error('[LmsDB] getTestSeriesEnrolledStudents orders query error:', err.message);
-        }
-
-        const formatPlanName = (r: any): string => {
-          if (r.entitlementType === 'INDIVIDUAL_TEST' || r.quizTitle) {
-            return r.quizTitle ? `Single Test: ${r.quizTitle}` : (r.orderItemTitle || 'Single Test Purchase');
-          }
-          if (r.entitlementType === 'MINI') return 'MINI Package';
-          if (r.entitlementType === 'HALF') return 'HALF Package';
-          if (r.entitlementType === 'FULL') return 'FULL Package';
-          if (r.entitlementType === 'COMPLETE') return 'COMPLETE Test Series';
-          if (r.orderItemTitle) return r.orderItemTitle;
-          if (r.paymentOrderId === 'ADMIN_MANUAL') return 'Admin Manual';
-          return 'Full Access';
-        };
-
-        const userMap = new Map<string, any>();
-        lmsRows.forEach((r: any) => {
-          const key = `${r.userId}_Full Access`;
-          userMap.set(key, { ...r, planName: r.paymentOrderId === 'ADMIN_MANUAL' ? 'Admin Manual' : 'Full Access' });
+        const tsList = await prisma.testSeries.findMany({
+          where: {
+            OR: [
+              { id: testSeriesId },
+              { slug: testSeriesId },
+              { id: { contains: testSeriesId } },
+              { slug: { contains: testSeriesId } }
+            ]
+          },
+          select: { id: true, slug: true }
         });
-
-        orderRows.forEach((r: any) => {
-          const pName = formatPlanName(r);
-          const key = `${r.userId}_${pName}`;
-          if (!userMap.has(key)) {
-            userMap.set(key, {
-              enrollmentId: r.orderId || r.userId,
-              ...r,
-              planName: pName
-            });
-          } else {
-            const existing = userMap.get(key);
-            if (Number(r.amountPaid) > 0) existing.amountPaid = Number(r.amountPaid);
-            if (r.paymentOrderId && r.paymentOrderId !== 'ADMIN_MANUAL') existing.paymentOrderId = r.paymentOrderId;
-          }
+        tsList.forEach(t => {
+          if (t.id) targetIds.add(t.id);
+          if (t.slug) targetIds.add(t.slug);
         });
+      } catch (_) {}
 
-        entRows.forEach((r: any) => {
-          const pName = formatPlanName(r);
-          const key = `${r.userId}_${pName}`;
-          if (!userMap.has(key)) {
-            userMap.set(key, {
-              enrollmentId: r.entitlementId || r.userId,
-              ...r,
-              planName: pName
-            });
-          } else {
-            const existing = userMap.get(key);
-            if (Number(r.amountPaid) > 0 && !existing.amountPaid) existing.amountPaid = Number(r.amountPaid);
-            if (r.paymentOrderId && r.paymentOrderId !== 'ADMIN_MANUAL' && existing.paymentOrderId === 'ADMIN_MANUAL') {
-              existing.paymentOrderId = r.paymentOrderId;
-            }
-          }
+      // 2. Fetch lms_courses IDs and Slugs
+      try {
+        const cList = await prisma.lms_courses.findMany({
+          where: {
+            OR: [
+              { id: testSeriesId },
+              { slug: testSeriesId },
+              { id: { contains: testSeriesId } },
+              { slug: { contains: testSeriesId } }
+            ]
+          },
+          select: { id: true, slug: true }
         });
+        cList.forEach(c => {
+          if (c.id) targetIds.add(c.id);
+          if (c.slug) targetIds.add(c.slug);
+        });
+      } catch (_) {}
 
-        return Array.from(userMap.values());
-      } catch (err) {
-        console.error('[LmsDB] getTestSeriesEnrolledStudents MySQL error:', err);
+      // 3. Fetch lms_quizzes IDs
+      try {
+        const quizzes = await prisma.lms_quizzes.findMany({
+          where: { courseId: { in: Array.from(targetIds) } },
+          select: { id: true }
+        });
+        quizzes.forEach(q => targetIds.add(q.id));
+      } catch (_) {}
+
+      const idList = Array.from(targetIds).filter(Boolean);
+      if (idList.length === 0) idList.push(testSeriesId);
+
+      const formattedIds = idList.map(id => `'${id}'`).join(',');
+
+      // 1. Fetch from lms_enrollments
+      let lmsRows: any[] = [];
+      try {
+        lmsRows = await prisma.$queryRawUnsafe<any[]>(`
+          SELECT e.id as enrollmentId, e.userId, e.paymentOrderId, e.paymentStatus, e.amountPaid, e.enrolledAt,
+                 u.fullName, u.email, u.mobile, u.targetExam,
+                 'Full Access' as planName,
+                 (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds}))) as totalAttempts,
+                 (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds})) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
+          FROM lms_enrollments e
+          JOIN users u ON u.id = e.userId
+          WHERE e.courseId IN (${formattedIds}) OR e.courseId IN (SELECT id FROM lms_quizzes WHERE courseId IN (${formattedIds}))
+          ORDER BY e.enrolledAt DESC
+        `);
+      } catch (err: any) {
+        console.error('[LmsDB] getTestSeriesEnrolledStudents lms_enrollments query error:', err.message);
       }
+
+      // 2. Fetch from user_entitlements
+      let entRows: any[] = [];
+      try {
+        entRows = await prisma.$queryRawUnsafe<any[]>(`
+          SELECT u_ent.id as entitlementId, u_ent.user_id as userId,
+                 COALESCE(o.order_number, o.payment_reference_id, 'ONLINE_PAYMENT') as paymentOrderId,
+                 'paid' as paymentStatus,
+                 COALESCE(o.net_amount, 0) as amountPaid,
+                 u_ent.granted_at as enrolledAt,
+                 u.fullName, u.email, u.mobile, u.targetExam,
+                 u_ent.entitlement_type as entitlementType,
+                 q_ent.title as quizTitle,
+                 (SELECT oi.item_title FROM order_items oi WHERE oi.order_id = u_ent.source_order_id LIMIT 1) as orderItemTitle,
+                 (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds}))) as totalAttempts,
+                 (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds})) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
+          FROM user_entitlements u_ent
+          JOIN users u ON u.id = u_ent.user_id
+          LEFT JOIN lms_quizzes q_ent ON q_ent.id = u_ent.quiz_id
+          LEFT JOIN orders o ON o.id = u_ent.source_order_id OR (o.user_id = u_ent.user_id AND o.status = 'PAID')
+          WHERE u_ent.status = 'ACTIVE' AND (
+            u_ent.series_id IN (${formattedIds}) OR
+            u_ent.quiz_id IN (${formattedIds})
+          )
+          ORDER BY u_ent.granted_at DESC
+        `);
+      } catch (err: any) {
+        console.error('[LmsDB] getTestSeriesEnrolledStudents user_entitlements query error:', err.message);
+      }
+
+      // 3. Fetch from orders table directly
+      let orderRows: any[] = [];
+      try {
+        orderRows = await prisma.$queryRawUnsafe<any[]>(`
+          SELECT o.id as orderId, o.user_id as userId,
+                 COALESCE(o.order_number, o.payment_reference_id, 'ONLINE_PAYMENT') as paymentOrderId,
+                 'paid' as paymentStatus,
+                 o.net_amount as amountPaid,
+                 o.paid_at as enrolledAt,
+                 u.fullName, u.email, u.mobile, u.targetExam,
+                 (SELECT oi.item_title FROM order_items oi WHERE oi.order_id = o.id LIMIT 1) as orderItemTitle,
+                 (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = o.user_id AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds}))) as totalAttempts,
+                 (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = o.user_id AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds})) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
+          FROM orders o
+          JOIN users u ON u.id = o.user_id
+          WHERE o.status = 'PAID' AND (
+            o.series_id IN (${formattedIds}) OR 
+            o.id IN (SELECT order_id FROM order_items WHERE quiz_id IN (${formattedIds}))
+          )
+          ORDER BY o.paid_at DESC
+        `);
+      } catch (err: any) {
+        console.error('[LmsDB] getTestSeriesEnrolledStudents orders query error:', err.message);
+      }
+
+      const formatPlanName = (r: any): string => {
+        if (r.entitlementType === 'INDIVIDUAL_TEST' || r.quizTitle) {
+          return r.quizTitle ? `Single Test: ${r.quizTitle}` : (r.orderItemTitle || 'Single Test Purchase');
+        }
+        if (r.entitlementType === 'MINI') return 'MINI Package';
+        if (r.entitlementType === 'HALF') return 'HALF Package';
+        if (r.entitlementType === 'FULL') return 'FULL Package';
+        if (r.entitlementType === 'COMPLETE') return 'COMPLETE Test Series';
+        if (r.orderItemTitle) return r.orderItemTitle;
+        if (r.paymentOrderId === 'ADMIN_MANUAL') return 'Admin Manual';
+        return 'Full Access';
+      };
+
+      const normalizeRow = (r: any) => ({
+        ...r,
+        totalAttempts: Number(r.totalAttempts || 0),
+        amountPaid: Number(r.amountPaid || 0)
+      });
+
+      const userMap = new Map<string, any>();
+      lmsRows.forEach((r: any) => {
+        const norm = normalizeRow(r);
+        const key = `${norm.userId}_Full Access`;
+        userMap.set(key, { ...norm, planName: norm.paymentOrderId === 'ADMIN_MANUAL' ? 'Admin Manual' : 'Full Access' });
+      });
+
+      orderRows.forEach((r: any) => {
+        const norm = normalizeRow(r);
+        const pName = formatPlanName(norm);
+        const key = `${norm.userId}_${pName}`;
+        if (!userMap.has(key)) {
+          userMap.set(key, {
+            enrollmentId: norm.orderId || norm.userId,
+            ...norm,
+            planName: pName
+          });
+        } else {
+          const existing = userMap.get(key);
+          if (norm.amountPaid > 0) existing.amountPaid = norm.amountPaid;
+          if (norm.paymentOrderId && norm.paymentOrderId !== 'ADMIN_MANUAL') existing.paymentOrderId = norm.paymentOrderId;
+        }
+      });
+
+      entRows.forEach((r: any) => {
+        const norm = normalizeRow(r);
+        const pName = formatPlanName(norm);
+        const key = `${norm.userId}_${pName}`;
+        if (!userMap.has(key)) {
+          userMap.set(key, {
+            enrollmentId: norm.entitlementId || norm.userId,
+            ...norm,
+            planName: pName
+          });
+        } else {
+          const existing = userMap.get(key);
+          if (norm.amountPaid > 0 && !existing.amountPaid) existing.amountPaid = norm.amountPaid;
+          if (norm.paymentOrderId && norm.paymentOrderId !== 'ADMIN_MANUAL' && existing.paymentOrderId === 'ADMIN_MANUAL') {
+            existing.paymentOrderId = norm.paymentOrderId;
+          }
+        }
+      });
+
+      const result = Array.from(userMap.values());
+      if (result.length > 0) return result;
+    } catch (err: any) {
+      console.error('[LmsDB] getTestSeriesEnrolledStudents Prisma query error:', err.message);
     }
+
+    // Fallback to local store if Prisma query returns empty / errors out
     const [tsRows]: any = await (mysqlPool ? mysqlPool.query('SELECT id, slug FROM TestSeries WHERE id = ? OR slug = ? LIMIT 1', [testSeriesId, testSeriesId]) : [[]]);
     const targetIds = tsRows && tsRows.length > 0 ? [tsRows[0].id, tsRows[0].slug] : [testSeriesId];
 
