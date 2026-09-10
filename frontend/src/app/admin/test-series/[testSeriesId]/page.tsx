@@ -34,6 +34,7 @@ interface StudentItem {
   paymentStatus: string;
   amountPaid: number;
   enrolledAt: string;
+  planName?: string;
   totalAttempts?: number;
   latestScore?: number;
 }
@@ -208,10 +209,20 @@ export default function TestSeriesDetailPage() {
   }, [testSeriesId]);
 
   useEffect(() => {
-    loadData();
-    loadQuizzes();
-    loadStudents();
-    loadPlans();
+    let isMounted = true;
+    const fetchData = async () => {
+      if (!isMounted) return;
+      await Promise.all([
+        loadData(),
+        loadQuizzes(),
+        loadStudents(),
+        loadPlans()
+      ]);
+    };
+    fetchData();
+    return () => {
+      isMounted = false;
+    };
   }, [loadData, loadQuizzes, loadStudents, loadPlans]);
 
   // View detailed student performance & stats
@@ -1290,6 +1301,7 @@ export default function TestSeriesDetailPage() {
                     <tr>
                       <th className="p-4">Student Name</th>
                       <th className="p-4">Mobile / Email</th>
+                      <th className="p-4">Plan / Purchased Item</th>
                       <th className="p-4">State & District</th>
                       <th className="p-4">Enrolled At</th>
                       <th className="p-4">Payment</th>
@@ -1303,6 +1315,11 @@ export default function TestSeriesDetailPage() {
                         <td className="p-4 text-slate-600 dark:text-slate-300">
                           <div>{st.mobile || 'N/A'}</div>
                           <div className="text-[10px] text-slate-400">{st.email}</div>
+                        </td>
+                        <td className="p-4">
+                          <span className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 rounded-lg text-[10px] font-black uppercase tracking-wide">
+                            {st.planName || 'Full Access'}
+                          </span>
                         </td>
                         <td className="p-4 text-slate-600 dark:text-slate-300">
                           {st.state || st.district ? (

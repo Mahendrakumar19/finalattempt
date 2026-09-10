@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { courseData, facultyData, resultData, currentAffairsData, pyqData, blogData, resourceData, testSeriesData, TestSeriesItem } from './seedData';
+import { courseData, facultyData, resultData, currentAffairsData, pyqData, blogData, resourceData, TestSeriesItem } from './seedData';
 export type { TestSeriesItem };
 
 export interface ExamStageData {
@@ -1190,13 +1190,10 @@ class FinalAttemptDB {
         if (stored !== null) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed)) return parsed;
-        } else {
-          localStorage.setItem('finalattempt_test_series_store', JSON.stringify(testSeriesData));
-          return testSeriesData;
         }
       } catch {}
     }
-    return testSeriesData;
+    return [];
   }
 
   private setLocalTestSeriesStore(list: TestSeriesItem[]) {
@@ -1291,7 +1288,6 @@ class FinalAttemptDB {
     };
 
     let exams: ExamData[] = [];
-    let allSeries: TestSeriesItem[] = [];
 
     const mergedList: ExamData[] = [];
     const seenKeys = new Set<string>();
@@ -1309,25 +1305,13 @@ class FinalAttemptDB {
       data.data.forEach((e: ExamData) => addExamIfUnique(e));
       exams = mergedList;
       this.setLocalExamsStore(exams);
-      allSeries = exams.flatMap(e => e.testSeries || []);
     } else {
       localExams.forEach((e: ExamData) => addExamIfUnique(e));
       exams = mergedList;
-      allSeries = await this.getTestSeries(includeUnpublished);
     }
 
     const result = exams.map((ex) => {
-      const examKey = (ex.code || ex.name || ex.id || '').toLowerCase();
-      const matchedSeries = (ex.testSeries && ex.testSeries.length > 0) ? ex.testSeries : allSeries.filter((s) => {
-        const seriesExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
-        return (
-          s.examId === ex.id ||
-          seriesExam.includes(examKey) ||
-          (examKey.includes('bpsc') && seriesExam.includes('bpsc')) ||
-          ((examKey.includes('appsc') || examKey.includes('appcs')) && (seriesExam.includes('appsc') || seriesExam.includes('appcs'))) ||
-          (examKey.includes('apssb') && seriesExam.includes('apssb'))
-        );
-      });
+      const matchedSeries = ex.testSeries || [];
 
       // Ensure stage-wise exams have default Prelims and Mains stages if empty
       let resolvedStages = ex.stages || [];
@@ -1366,14 +1350,9 @@ class FinalAttemptDB {
     const localStore = this.getLocalTestSeriesStore();
     let combined: TestSeriesItem[] = [];
 
-    if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
-      const serverMap = new Map<string, TestSeriesItem>(data.data.map((item: TestSeriesItem) => [item.id, item]));
-      localStore.forEach(item => {
-        if (!serverMap.has(item.id)) {
-          serverMap.set(item.id, item);
-        }
-      });
-      combined = Array.from(serverMap.values());
+    if (data && data.success && Array.isArray(data.data)) {
+      combined = data.data;
+      this.setLocalTestSeriesStore(combined);
     } else {
       combined = localStore;
     }
