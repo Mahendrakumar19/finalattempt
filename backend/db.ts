@@ -4525,46 +4525,124 @@ class LmsDB {
   async getTestSeriesEnrolledStudents(testSeriesId: string): Promise<any[]> {
     if (mysqlPool) {
       try {
-        const [tsRows]: any = await mysqlPool.query('SELECT id, slug FROM TestSeries WHERE id = ? OR slug = ? LIMIT 1', [testSeriesId, testSeriesId]);
-        const primaryId = tsRows && tsRows.length > 0 ? tsRows[0].id : testSeriesId;
-        const slugId = tsRows && tsRows.length > 0 ? tsRows[0].slug : testSeriesId;
+        const targetIds = new Set<string>();
+        if (testSeriesId) targetIds.add(testSeriesId);
 
-        const [lmsRows]: any = await mysqlPool.query(
-          `SELECT e.id as enrollmentId, e.userId, e.paymentOrderId, e.paymentStatus, e.amountPaid, e.enrolledAt,
-                  u.fullName, u.email, u.mobile, u.targetExam, u.state, u.district,
-                  (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND (q.courseId = ? OR q.courseId = ?)) as totalAttempts,
-                  (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND (q.courseId = ? OR q.courseId = ?) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
-           FROM lms_enrollments e
-           JOIN users u ON u.id = e.userId
-           WHERE e.courseId = ? OR e.courseId = ?
-           ORDER BY e.enrolledAt DESC`,
-          [primaryId, slugId, primaryId, slugId, primaryId, slugId]
-        );
+        try {
+          const [tsRows]: any = await mysqlPool.query(
+            'SELECT id, slug FROM TestSeries WHERE id = ? OR slug = ? OR slug LIKE ? OR id LIKE ?',
+            [testSeriesId, testSeriesId, `%${testSeriesId}%`, `%${testSeriesId}%`]
+          );
+          (tsRows || []).forEach((r: any) => {
+            if (r.id) targetIds.add(r.id);
+            if (r.slug) targetIds.add(r.slug);
+          });
+        } catch (_) {}
 
+        try {
+          const [cRows]: any = await mysqlPool.query(
+            'SELECT id, slug FROM lms_courses WHERE id = ? OR slug = ? OR slug LIKE ? OR id LIKE ?',
+            [testSeriesId, testSeriesId, `%${testSeriesId}%`, `%${testSeriesId}%`]
+          );
+          (cRows || []).forEach((r: any) => {
+            if (r.id) targetIds.add(r.id);
+            if (r.slug) targetIds.add(r.slug);
+          });
+        } catch (_) {}
+
+        const idList = Array.from(targetIds).filter(Boolean);
+        if (idList.length === 0) idList.push(testSeriesId);
+
+        const placeholders = idList.map(() => '?').join(',');
+
+        // 1. Fetch from lms_enrollments
+        let lmsRows: any[] = [];
+        try {
+          const [rows]: any = await mysqlPool.query(
+            `SELECT e.id as enrollmentId, e.userId, e.paymentOrderId, e.paymentStatus, e.amountPaid, e.enrolledAt,
+                    u.fullName, u.email, u.mobile, u.targetExam, u.state, u.district,
+                    (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND q.courseId IN (${placeholders})) as totalAttempts,
+                    (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND q.courseId IN (${placeholders}) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
+             FROM lms_enrollments e
+             JOIN users u ON u.id = e.userId
+             WHERE e.courseId IN (${placeholders})
+             ORDER BY e.enrolledAt DESC`,
+            [...idList, ...idList, ...idList]
+          );
+          lmsRows = rows || [];
+        } catch (_) {}
+
+        // 2. Fetch from user_entitlements
         let entRows: any[] = [];
         try {
           const [eRows]: any = await mysqlPool.query(
-            `SELECT u_ent.id as entitlementId, u_ent.user_id as userId, 'ONLINE_PAYMENT' as paymentOrderId, 'paid' as paymentStatus, 0 as amountPaid, u_ent.granted_at as enrolledAt,
+            `SELECT u_ent.id as entitlementId, u_ent.user_id as userId,
+                    COALESCE(o.order_number, o.payment_reference_id, 'ONLINE_PAYMENT') as paymentOrderId,
+                    'paid' as paymentStatus,
+                    COALESCE(o.net_amount, 0) as amountPaid,
+                    u_ent.granted_at as enrolledAt,
                     u.fullName, u.email, u.mobile, u.targetExam, u.state, u.district,
-                    (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND (q.courseId = ? OR q.courseId = ?)) as totalAttempts,
-                    (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND (q.courseId = ? OR q.courseId = ?) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
+                    (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND q.courseId IN (${placeholders})) as totalAttempts,
+                    (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND q.courseId IN (${placeholders}) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
              FROM user_entitlements u_ent
              JOIN users u ON u.id = u_ent.user_id
-             WHERE (u_ent.series_id = ? OR u_ent.series_id = ?) AND u_ent.status = 'ACTIVE'
+             LEFT JOIN orders o ON o.id = u_ent.source_order_id OR (o.user_id = u_ent.user_id AND o.status = 'PAID')
+             WHERE u_ent.series_id IN (${placeholders}) AND u_ent.status = 'ACTIVE'
              ORDER BY u_ent.granted_at DESC`,
-            [primaryId, slugId, primaryId, slugId, primaryId, slugId]
+            [...idList, ...idList, ...idList]
           );
           entRows = eRows || [];
         } catch (_) {}
 
+        // 3. Fetch from orders table directly
+        let orderRows: any[] = [];
+        try {
+          const [oRows]: any = await mysqlPool.query(
+            `SELECT o.id as orderId, o.user_id as userId,
+                    COALESCE(o.order_number, o.payment_reference_id, 'ONLINE_PAYMENT') as paymentOrderId,
+                    'paid' as paymentStatus,
+                    o.net_amount as amountPaid,
+                    o.paid_at as enrolledAt,
+                    u.fullName, u.email, u.mobile, u.targetExam, u.state, u.district,
+                    (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = o.user_id AND q.courseId IN (${placeholders})) as totalAttempts,
+                    (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = o.user_id AND q.courseId IN (${placeholders}) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
+             FROM orders o
+             JOIN users u ON u.id = o.user_id
+             WHERE o.series_id IN (${placeholders}) AND o.status = 'PAID'
+             ORDER BY o.paid_at DESC`,
+            [...idList, ...idList, ...idList]
+          );
+          orderRows = oRows || [];
+        } catch (_) {}
+
         const userMap = new Map<string, any>();
-        (lmsRows || []).forEach((r: any) => userMap.set(r.userId, r));
+        lmsRows.forEach((r: any) => userMap.set(r.userId, r));
+
+        orderRows.forEach((r: any) => {
+          const existing = userMap.get(r.userId);
+          if (!existing) {
+            userMap.set(r.userId, {
+              enrollmentId: r.orderId || r.userId,
+              ...r
+            });
+          } else {
+            if (Number(r.amountPaid) > 0) existing.amountPaid = Number(r.amountPaid);
+            if (r.paymentOrderId && r.paymentOrderId !== 'ADMIN_MANUAL') existing.paymentOrderId = r.paymentOrderId;
+          }
+        });
+
         entRows.forEach((r: any) => {
-          if (!userMap.has(r.userId)) {
+          const existing = userMap.get(r.userId);
+          if (!existing) {
             userMap.set(r.userId, {
               enrollmentId: r.entitlementId || r.userId,
               ...r
             });
+          } else {
+            if (Number(r.amountPaid) > 0 && !existing.amountPaid) existing.amountPaid = Number(r.amountPaid);
+            if (r.paymentOrderId && r.paymentOrderId !== 'ADMIN_MANUAL' && existing.paymentOrderId === 'ADMIN_MANUAL') {
+              existing.paymentOrderId = r.paymentOrderId;
+            }
           }
         });
 

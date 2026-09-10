@@ -572,6 +572,21 @@ export class TestSeriesOrderService {
         }
       }
 
+      // Also sync lms_enrollments for LMS table compatibility
+      try {
+        await tx.lms_enrollments.create({
+          data: {
+            id: `enr-${order.id}`,
+            userId: order.user_id,
+            courseId: order.series_id,
+            paymentOrderId: order.order_number || gatewayPaymentId || 'RAZORPAY',
+            paymentStatus: 'paid',
+            amountPaid: order.net_amount,
+            enrolledAt: new Date()
+          }
+        }).catch(() => {});
+      } catch (_) {}
+
       console.log(`[OrderFulfillment] ✅ Order ${order.order_number} (${order.id}) successfully fulfilled.`);
 
       return {

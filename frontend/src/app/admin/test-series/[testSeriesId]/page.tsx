@@ -1316,7 +1316,11 @@ export default function TestSeriesDetailPage() {
                         <td className="p-4 text-slate-500 dark:text-slate-400">{new Date(st.enrolledAt).toLocaleDateString('en-IN')}</td>
                         <td className="p-4">
                           <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-md text-[9px] uppercase font-bold">
-                            {st.paymentOrderId === 'ADMIN_MANUAL' ? 'ADMIN / MANUAL' : 'PAID'}
+                            {st.paymentOrderId === 'ADMIN_MANUAL'
+                              ? 'ADMIN / MANUAL'
+                              : (st.amountPaid > 0
+                                  ? `₹${st.amountPaid} (${st.paymentOrderId && !st.paymentOrderId.includes('ONLINE') ? st.paymentOrderId : 'ONLINE'})`
+                                  : 'PAID (ONLINE)')}
                           </span>
                         </td>
                         <td className="p-4 text-right">
