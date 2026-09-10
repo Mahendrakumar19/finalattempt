@@ -159,6 +159,7 @@ export default function TestSeriesAdmin({
   initialSubTab = 'series'
 }: TestSeriesAdminProps) {
   const [subTab, setSubTab] = useState<'series' | 'quizzes' | 'exams'>(initialSubTab);
+  const [nowTimestamp] = useState<number>(() => Date.now());
 
   // Test Series programs list state
   const [seriesList, setSeriesList] = useState<TestSeriesItem[]>([]);
@@ -1182,7 +1183,7 @@ export default function TestSeriesAdmin({
                       {series.scheduledReleaseAt && (
                         <div className="col-span-2 text-[10px] font-bold text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-xl border border-amber-500/20 flex items-center justify-between mt-1">
                           <span>⏰ Auto-Publish: {series.scheduledReleaseAt.replace('T', ' ')}</span>
-                          {new Date(series.scheduledReleaseAt).getTime() <= Date.now() ? (
+                          {new Date(series.scheduledReleaseAt).getTime() <= nowTimestamp ? (
                             <span className="text-emerald-500 font-black">✓ Live</span>
                           ) : (
                             <span className="text-amber-600 dark:text-amber-400 font-black">Scheduled</span>
