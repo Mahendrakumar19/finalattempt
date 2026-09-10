@@ -35,10 +35,11 @@ export function formatMatchListsInText(input: string): string {
       continue;
     }
 
-    const inlinePair = line.match(/^[ \t]*([A-Ea-eक-ङ1-5|IVX]+)[\.\:\)\-–—]+[ \t]+(.+?)[ \t]+([A-Ea-eक-ङ1-5|IVX]+)[\.\:\)\-–—]+[ \t]+(.+)$/i);
+    const inlinePair = line.match(/^[ \t]*([A-Ea-eक-ङ])[\.\:\)\-–—]+[ \t]*(.+?)[ \t]{2,}([1-5]|[IVX]+)[\.\:\)\-–—]+[ \t]*(.+)$/i) ||
+                       line.match(/^[ \t]*([A-Ea-eक-ङ])[\.\:\)\-–—]+[ \t]*(.+?)[ \t]+([1-5]|[IVX]+)[\.\:\)\-–—]+[ \t]*(.+)$/i);
     
     if (inlinePair && !line.startsWith('Code') && !line.startsWith('कोड') && !line.startsWith('कूट') && !line.includes('Match') && !line.includes('सूची-I') && !line.includes('सूची-II') && !line.includes('List-I') && !line.includes('List-II')) {
-      leftItems.push(`${inlinePair[1]}. ${inlinePair[2].trim()}`);
+      leftItems.push(`${inlinePair[1].toUpperCase()}. ${inlinePair[2].trim()}`);
       rightItems.push(`${inlinePair[3]}. ${inlinePair[4].trim()}`);
       continue;
     }
