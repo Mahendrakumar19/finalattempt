@@ -4559,12 +4559,22 @@ class LmsDB {
           });
         } catch (_) {}
 
+        try {
+          const [qRows]: any = await mysqlPool.query(
+            'SELECT id FROM lms_quizzes WHERE courseId IN (?) OR courseId = ?',
+            [Array.from(targetIds), testSeriesId]
+          );
+          (qRows || []).forEach((r: any) => {
+            if (r.id) targetIds.add(r.id);
+          });
+        } catch (_) {}
+
         const idList = Array.from(targetIds).filter(Boolean);
         if (idList.length === 0) idList.push(testSeriesId);
 
         const placeholders = idList.map(() => '?').join(',');
 
-        // 1. Fetch from lms_enrollments
+        // 1. Fetch from lms_enrollments (5 placeholder sets)
         let lmsRows: any[] = [];
         try {
           const [rows]: any = await mysqlPool.query(
@@ -4580,9 +4590,11 @@ class LmsDB {
             [...idList, ...idList, ...idList, ...idList, ...idList]
           );
           lmsRows = rows || [];
-        } catch (_) {}
+        } catch (err: any) {
+          console.error('[LmsDB] getTestSeriesEnrolledStudents lms_enrollments query error:', err.message);
+        }
 
-        // 2. Fetch from user_entitlements
+        // 2. Fetch from user_entitlements (5 placeholder sets)
         let entRows: any[] = [];
         try {
           const [eRows]: any = await mysqlPool.query(
@@ -4603,15 +4615,18 @@ class LmsDB {
              LEFT JOIN orders o ON o.id = u_ent.source_order_id OR (o.user_id = u_ent.user_id AND o.status = 'PAID')
              WHERE u_ent.status = 'ACTIVE' AND (
                u_ent.series_id IN (${placeholders}) OR
+               u_ent.quiz_id IN (${placeholders}) OR
                u_ent.quiz_id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders}))
              )
              ORDER BY u_ent.granted_at DESC`,
-            [...idList, ...idList, ...idList, ...idList, ...idList]
+            [...idList, ...idList, ...idList, ...idList, ...idList, ...idList]
           );
           entRows = eRows || [];
-        } catch (_) {}
+        } catch (err: any) {
+          console.error('[LmsDB] getTestSeriesEnrolledStudents user_entitlements query error:', err.message);
+        }
 
-        // 3. Fetch from orders table directly
+        // 3. Fetch from orders table directly (5 placeholder sets)
         let orderRows: any[] = [];
         try {
           const [oRows]: any = await mysqlPool.query(
@@ -4628,13 +4643,15 @@ class LmsDB {
              JOIN users u ON u.id = o.user_id
              WHERE o.status = 'PAID' AND (
                o.series_id IN (${placeholders}) OR 
-               o.id IN (SELECT order_id FROM order_items WHERE quiz_id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders})))
+               o.id IN (SELECT order_id FROM order_items WHERE quiz_id IN (${placeholders}) OR quiz_id IN (SELECT id FROM lms_quizzes WHERE courseId IN (${placeholders})))
              )
              ORDER BY o.paid_at DESC`,
-            [...idList, ...idList, ...idList, ...idList, ...idList]
+            [...idList, ...idList, ...idList, ...idList, ...idList, ...idList]
           );
           orderRows = oRows || [];
-        } catch (_) {}
+        } catch (err: any) {
+          console.error('[LmsDB] getTestSeriesEnrolledStudents orders query error:', err.message);
+        }
 
         const formatPlanName = (r: any): string => {
           if (r.entitlementType === 'INDIVIDUAL_TEST' || r.quizTitle) {
@@ -4650,43 +4667,46 @@ class LmsDB {
         };
 
         const userMap = new Map<string, any>();
-        lmsRows.forEach((r: any) => userMap.set(r.userId, { ...r, planName: r.paymentOrderId === 'ADMIN_MANUAL' ? 'Admin Manual' : 'Full Access' }));
+        lmsRows.forEach((r: any) => {
+          const key = `${r.userId}_Full Access`;
+          userMap.set(key, { ...r, planName: r.paymentOrderId === 'ADMIN_MANUAL' ? 'Admin Manual' : 'Full Access' });
+        });
 
         orderRows.forEach((r: any) => {
           const pName = formatPlanName(r);
-          const existing = userMap.get(r.userId);
-          if (!existing) {
-            userMap.set(r.userId, {
+          const key = `${r.userId}_${pName}`;
+          if (!userMap.has(key)) {
+            userMap.set(key, {
               enrollmentId: r.orderId || r.userId,
               ...r,
               planName: pName
             });
           } else {
+            const existing = userMap.get(key);
             if (Number(r.amountPaid) > 0) existing.amountPaid = Number(r.amountPaid);
             if (r.paymentOrderId && r.paymentOrderId !== 'ADMIN_MANUAL') existing.paymentOrderId = r.paymentOrderId;
-            if (pName && pName !== 'Full Access') existing.planName = pName;
           }
         });
 
         entRows.forEach((r: any) => {
           const pName = formatPlanName(r);
-          const existing = userMap.get(r.userId);
-          if (!existing) {
-            userMap.set(r.userId, {
+          const key = `${r.userId}_${pName}`;
+          if (!userMap.has(key)) {
+            userMap.set(key, {
               enrollmentId: r.entitlementId || r.userId,
               ...r,
               planName: pName
             });
           } else {
+            const existing = userMap.get(key);
             if (Number(r.amountPaid) > 0 && !existing.amountPaid) existing.amountPaid = Number(r.amountPaid);
             if (r.paymentOrderId && r.paymentOrderId !== 'ADMIN_MANUAL' && existing.paymentOrderId === 'ADMIN_MANUAL') {
               existing.paymentOrderId = r.paymentOrderId;
             }
-            if (pName && pName !== 'Full Access') existing.planName = pName;
           }
         });
 
-        if (userMap.size > 0) return Array.from(userMap.values());
+        return Array.from(userMap.values());
       } catch (err) {
         console.error('[LmsDB] getTestSeriesEnrolledStudents MySQL error:', err);
       }
