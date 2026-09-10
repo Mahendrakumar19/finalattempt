@@ -104,15 +104,15 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             setSelectedAnswers(res.data.session.savedAnswers);
           }
 
-          const quizDuration = Number(quizObj?.timeLimitMins || quizObj?.durationMinutes || quizObj?.durationMins || 40);
+          const quizDuration = Number(quizObj?.timeLimitMins || quizObj?.durationMinutes || quizObj?.durationMins || 60);
           if (res.data.session?.expiresAt) {
             const exp = new Date(res.data.session.expiresAt).getTime();
             const now = Date.now();
             const secsLeft = Math.floor((exp - now) / 1000);
-            if (secsLeft > 5) {
+            if (secsLeft > 0) {
               setTimeLeft(secsLeft);
             } else {
-              setTimeLeft(quizDuration * 60);
+              setTimeLeft(0);
             }
           } else {
             setTimeLeft(quizDuration * 60);

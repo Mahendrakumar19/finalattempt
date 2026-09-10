@@ -774,8 +774,11 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
       }
     }
 
-    // Create or retrieve persistent session (Set Code & Seed)
-    const session = await lmsDB.createOrGetQuizSession(req.user!.userId, quizId, quiz.timeLimitMins || 60);
+    // Resolve duration strictly configured in Admin CMS for this quiz (defaulting to 60 mins if unconfigured)
+    const resolvedDuration = Number(quiz.timeLimitMins || quiz.durationMinutes || quiz.durationMins || 60);
+
+    // Create or retrieve persistent session with exact admin configured duration
+    const session = await lmsDB.createOrGetQuizSession(req.user!.userId, quizId, resolvedDuration);
 
     const targetLang = getTargetLang(req);
     const questions = await lmsDB.getQuestionsByQuizId(quizId);
