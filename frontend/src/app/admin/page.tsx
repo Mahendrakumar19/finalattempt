@@ -1140,7 +1140,7 @@ export default function AdminPortal() {
                 }`}
                 title="Switch Portal to Hindi (हिन्दी)"
               >
-                🇮🇳 HI
+                HI
               </button>
             </div>
 

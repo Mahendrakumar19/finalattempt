@@ -23,10 +23,12 @@ export default function BlogHindi() {
     // Automatically switch language context to Hindi for /blog-hindi without reloading
     if (locale !== 'hi') {
       setLocale('hi', true);
+      return;
     }
 
     const loadBlogs = async () => {
       try {
+        db.clearCache('blogs_cache');
         const bg = await db.getBlogs();
         // Filter out items targeted strictly for English only
         const filtered = (bg || []).filter((b: BlogItem) => {
