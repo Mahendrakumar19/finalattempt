@@ -315,18 +315,28 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   }
 
   if (error) {
+    const isAlreadySubmitted = error.toLowerCase().includes('already submitted') || error.toLowerCase().includes('retaking');
     return (
       <div className="min-h-screen cbt-exam-wrapper flex items-center justify-center p-6 bg-slate-950 text-white">
         <div className="p-8 border border-slate-800 bg-slate-900 rounded-3xl max-w-md w-full text-center space-y-5 shadow-2xl">
-          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto text-amber-400">
-            <ShieldAlert className="w-7 h-7" />
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto ${isAlreadySubmitted ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-amber-500/10 border border-amber-500/20 text-amber-400'}`}>
+            {isAlreadySubmitted ? <CheckCircle2 className="w-7 h-7" /> : <ShieldAlert className="w-7 h-7" />}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Exam System Warning</h2>
+            <h2 className="text-xl font-bold text-white">
+              {isAlreadySubmitted ? 'Test Completed (Attempt Submitted)' : 'Exam System Warning'}
+            </h2>
             <p className="text-sm text-slate-400 mt-2 leading-relaxed">{error}</p>
           </div>
           <div className="pt-2 space-y-2.5">
-            {error.toLowerCase().includes('purchase') || error.toLowerCase().includes('denied') ? (
+            {isAlreadySubmitted ? (
+              <button
+                onClick={loadLeaderboard}
+                className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all"
+              >
+                View Leaderboard & Leader Ranks
+              </button>
+            ) : error.toLowerCase().includes('purchase') || error.toLowerCase().includes('denied') ? (
               <button
                 onClick={() => router.push('/test-series')}
                 className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold text-sm rounded-xl shadow-lg transition-all"
@@ -611,6 +621,17 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 >
                   {cbtDark ? <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" /> : <Moon className="w-3.5 h-3.5 text-slate-700 shrink-0" />}
                   <span className="hidden sm:inline">{cbtDark ? 'Light' : 'Dark'}</span>
+                </button>
+
+                {/* Always-Visible Mobile Submit Test Button (Outside Palette) */}
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmSubmitOpen(true)}
+                  className="md:hidden px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider rounded transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                  title="Submit Examination"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>Submit</span>
                 </button>
 
                 {/* Mobile Question Palette Drawer Trigger */}
@@ -1103,6 +1124,15 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 className="flex-1 sm:flex-none px-5 sm:px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-black text-xs rounded-xl shadow cursor-pointer uppercase text-center"
               >
                 Save & Next
+              </button>
+
+              {/* Mobile Always-Visible Submit Test Button */}
+              <button
+                onClick={() => setIsConfirmSubmitOpen(true)}
+                className="md:hidden flex-1 sm:flex-none px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow cursor-pointer uppercase text-center flex items-center justify-center gap-1 shrink-0"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>Submit Test</span>
               </button>
             </div>
           </div>

@@ -7,6 +7,7 @@ import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 import { AdapterFactory } from '../services/documentEngine/adapters/AdapterFactory';
 import { QnaExtractor } from '../services/documentEngine/extraction/QnaExtractor';
 import { EntitlementService } from '../services/entitlementService';
+import { prisma } from '../prisma';
 
 const router = Router();
 
@@ -760,6 +761,30 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
       }
     }
 
+    // Strict Single Attempt Rule: Retaking tests is disabled for students
+    if (req.user!.role !== 'admin') {
+      try {
+        const existingAttempt = await prisma.lms_quiz_attempts.findFirst({
+          where: {
+            userId: req.user!.userId,
+            quizId: quizId
+          }
+        });
+        if (existingAttempt) {
+          res.status(403).json({
+            success: false,
+            code: 'ALREADY_SUBMITTED',
+            error: 'You have already submitted this test paper. Retaking tests is not allowed to maintain exam ranking integrity.',
+            attemptId: existingAttempt.id,
+            score: existingAttempt.score,
+            maxScore: existingAttempt.maxScore,
+            submittedAt: existingAttempt.submittedAt
+          });
+          return;
+        }
+      } catch (_) {}
+    }
+
     // Check if test paper is scheduled for a future release date/time
     if (req.user!.role !== 'admin' && quiz.scheduledReleaseAt) {
       const releaseTime = new Date(quiz.scheduledReleaseAt).getTime();
@@ -868,6 +893,26 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
     if (!quiz) {
       res.status(404).json({ success: false, error: 'Quiz not found.' });
       return;
+    }
+
+    // Strict Single Attempt Rule: Reject duplicate submission for non-admin students
+    if (req.user!.role !== 'admin') {
+      try {
+        const existingAttempt = await prisma.lms_quiz_attempts.findFirst({
+          where: {
+            userId: req.user!.userId,
+            quizId: quizId
+          }
+        });
+        if (existingAttempt) {
+          res.status(403).json({
+            success: false,
+            code: 'ALREADY_SUBMITTED',
+            error: 'You have already submitted this test. Retaking or re-submitting tests is not allowed.'
+          });
+          return;
+        }
+      } catch (_) {}
     }
 
     // Entitlement verification on submit

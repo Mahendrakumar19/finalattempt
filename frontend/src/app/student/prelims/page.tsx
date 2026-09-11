@@ -463,7 +463,7 @@ export default function StudentPrelimsPage() {
                             className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md cursor-pointer"
                           >
                             <Play className="w-3.5 h-3.5 fill-slate-950" />
-                            {userAttempt ? t('prelims.retake') : t('prelims.startTest')}
+                            {userAttempt ? 'View Submission' : t('prelims.startTest')}
                           </Link>
                         ) : (
                           <Link
