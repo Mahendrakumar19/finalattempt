@@ -1002,13 +1002,10 @@ if (useRealDB) {
     });
     mysqlPool = tempPool;
 
-    // Handle connection pool errors (prevent crash on ECONNRESET / MySQL drops)
+    // Handle connection pool errors gracefully (log warnings without permanently breaking the connection pool)
     (tempPool as any).on('error', (err: any) => {
-      console.warn('[MySQL Pool Error] Connection pool encountered error:', err.code || err.message);
-      if (err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.fatal) {
-        console.warn('[MySQL Pool] Degrading to local store fallback permanently for this process run due to connection error.');
-        mysqlPool = null;
-      }
+      console.warn('[MySQL Pool Warning] Connection pool error event:', err.code || err.message);
+      // mysql2 pool automatically handles connection re-establishment on subsequent queries
     });
 
     // Test connection synchronously during pool startup (with a short timeout fallback check)
