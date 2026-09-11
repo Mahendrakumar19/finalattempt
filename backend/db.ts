@@ -4593,8 +4593,8 @@ class LmsDB {
           SELECT e.id as enrollmentId, e.userId, e.paymentOrderId, e.paymentStatus, e.amountPaid, e.enrolledAt,
                  u.fullName, u.email, u.mobile, u.targetExam,
                  'Full Access' as planName,
-                 (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds}))) as totalAttempts,
-                 (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds})) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
+                 (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND a.status = 'SUBMITTED' AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds}))) as totalAttempts,
+                 (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND a.status = 'SUBMITTED' AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds})) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
           FROM lms_enrollments e
           JOIN users u ON u.id = e.userId
           WHERE e.courseId IN (${formattedIds}) OR e.courseId IN (SELECT id FROM lms_quizzes WHERE courseId IN (${formattedIds}))
@@ -4617,8 +4617,8 @@ class LmsDB {
                  u_ent.entitlement_type as entitlementType,
                  q_ent.title as quizTitle,
                  (SELECT oi.item_title FROM order_items oi WHERE oi.order_id = u_ent.source_order_id LIMIT 1) as orderItemTitle,
-                 (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds}))) as totalAttempts,
-                 (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds})) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
+                 (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND a.status = 'SUBMITTED' AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds}))) as totalAttempts,
+                 (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = u_ent.user_id AND a.status = 'SUBMITTED' AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds})) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
           FROM user_entitlements u_ent
           JOIN users u ON u.id = u_ent.user_id
           LEFT JOIN lms_quizzes q_ent ON q_ent.id = u_ent.quiz_id
@@ -4644,8 +4644,8 @@ class LmsDB {
                  o.paid_at as enrolledAt,
                  u.fullName, u.email, u.mobile, u.targetExam,
                  (SELECT oi.item_title FROM order_items oi WHERE oi.order_id = o.id LIMIT 1) as orderItemTitle,
-                 (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = o.user_id AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds}))) as totalAttempts,
-                 (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = o.user_id AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds})) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
+                 (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = o.user_id AND a.status = 'SUBMITTED' AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds}))) as totalAttempts,
+                 (SELECT a.score FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = o.user_id AND a.status = 'SUBMITTED' AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds})) ORDER BY a.submittedAt DESC LIMIT 1) as latestScore
           FROM orders o
           JOIN users u ON u.id = o.user_id
           WHERE o.status = 'PAID' AND (

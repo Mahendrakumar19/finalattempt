@@ -761,13 +761,14 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
       }
     }
 
-    // Strict Single Attempt Rule: Retaking tests is disabled for students
+    // Strict Single Attempt Rule: Retaking tests is disabled for students once submitted
     if (req.user!.role !== 'admin') {
       try {
         const existingAttempt = await prisma.lms_quiz_attempts.findFirst({
           where: {
             userId: req.user!.userId,
-            quizId: quizId
+            quizId: quizId,
+            status: 'SUBMITTED'
           }
         });
         if (existingAttempt) {
@@ -910,8 +911,16 @@ router.get('/:quizId/my-result', authenticate, requireStudent, async (req: AuthR
     const attempt = await prisma.lms_quiz_attempts.findFirst({
       where: {
         userId: req.user!.userId,
+        quizId: quizId,
+        status: 'SUBMITTED'
+      },
+      orderBy: { submittedAt: 'desc' }
+    }) || await prisma.lms_quiz_attempts.findFirst({
+      where: {
+        userId: req.user!.userId,
         quizId: quizId
-      }
+      },
+      orderBy: { startedAt: 'desc' }
     });
 
     if (!attempt) {
@@ -1012,7 +1021,8 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
         const existingAttempt = await prisma.lms_quiz_attempts.findFirst({
           where: {
             userId: req.user!.userId,
-            quizId: quizId
+            quizId: quizId,
+            status: 'SUBMITTED'
           }
         });
         if (existingAttempt) {

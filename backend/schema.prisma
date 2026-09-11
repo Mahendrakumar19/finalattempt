@@ -353,11 +353,17 @@ model lms_quiz_attempts {
   id            String      @id @db.VarChar(36)
   userId        String      @db.VarChar(36)
   quizId        String      @db.VarChar(100)
+  setCode       String?     @default("SET-A") @db.VarChar(20)
+  seed          String?     @db.VarChar(100)
+  status        String?     @default("SUBMITTED") @db.VarChar(50)
+  isActivated   Boolean?    @default(false)
   answers       String?     @db.LongText
   score         Float?      @db.Float
   maxScore      Float?      @db.Float
   passed        Boolean?
   timeTakenSecs Int?
+  startedAt     DateTime?   @db.DateTime(0)
+  expiresAt     DateTime?   @db.DateTime(0)
   submittedAt   DateTime?   @default(now()) @db.DateTime(0)
   users         users       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quiz_attempts_ibfk_1")
   lms_quizzes   lms_quizzes @relation(fields: [quizId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lms_quiz_attempts_ibfk_2")
