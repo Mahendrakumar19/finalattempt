@@ -858,6 +858,40 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
   }
 });
 
+// Begin / Activate CBT Quiz Session (Resets timer to NOW on initial START EXAM click)
+router.post('/:quizId/begin', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  try {
+    const quizId = Array.isArray(req.params.quizId) ? req.params.quizId[0] : req.params.quizId;
+    if (!quizId || typeof quizId !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid Quiz ID parameter.' });
+      return;
+    }
+
+    const quiz = await lmsDB.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, error: 'Quiz not found.' });
+      return;
+    }
+
+    const resolvedDuration = Number(quiz.timeLimitMins || quiz.durationMinutes || quiz.durationMins || 60);
+    const session = await lmsDB.activateQuizSession(req.user!.userId, quizId, resolvedDuration);
+
+    const expTime = new Date(session.expiresAt).getTime();
+    const secsLeft = Math.max(0, Math.floor((expTime - Date.now()) / 1000));
+
+    res.json({
+      success: true,
+      data: {
+        session,
+        secsLeft,
+        durationMins: resolvedDuration
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Get Detailed Attempt Result with Solutions & Explanations
 router.get('/:quizId/my-result', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {

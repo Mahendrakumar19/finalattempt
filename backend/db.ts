@@ -5696,8 +5696,15 @@ class LmsDB {
 
   async createOrGetQuizSession(userId: string, quizId: string, durationMins: number): Promise<any> {
     const { v4: uuid } = await import('uuid');
-    const resolvedDuration = Number(durationMins) > 0 ? Number(durationMins) : 40;
+    const resolvedDuration = Number(durationMins) > 0 ? Number(durationMins) : 60;
     
+    // Auto-migrate isActivated column on lms_quiz_attempts
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('ALTER TABLE lms_quiz_attempts ADD COLUMN isActivated TINYINT(1) DEFAULT 0');
+      } catch (_) {}
+    }
+
     // Check if an IN_PROGRESS session already exists
     if (mysqlPool) {
       try {
@@ -5718,6 +5725,7 @@ class LmsDB {
               startedAt: sess.startedAt,
               expiresAt: sess.expiresAt,
               status: sess.status,
+              isActivated: Boolean(sess.isActivated),
               answers: typeof sess.answers === 'string' ? JSON.parse(sess.answers || '{}') : (sess.answers || {})
             };
           } else {
@@ -5745,13 +5753,14 @@ class LmsDB {
       startedAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
       status: 'IN_PROGRESS',
+      isActivated: false,
       answers: {}
     };
 
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_quiz_attempts (id, userId, quizId, setCode, seed, status, startedAt, expiresAt, answers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO lms_quiz_attempts (id, userId, quizId, setCode, seed, status, startedAt, expiresAt, answers, isActivated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
           [session.id, session.userId, session.quizId, session.setCode, session.seed, session.status, now, expiresAt, '{}']
         );
       } catch (err: any) {
@@ -5764,13 +5773,60 @@ class LmsDB {
               [session.userId, 'Student User', `${session.userId}@finalattempt.com`, '9876543210', '$2b$10$34jXxZaMx7fRqxmuqE1b9u7b5y1g8nbm890xKxqvKOgwSdZE/MPrm']
             );
             await mysqlPool.query(
-              'INSERT INTO lms_quiz_attempts (id, userId, quizId, setCode, seed, status, startedAt, expiresAt, answers) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+              'INSERT INTO lms_quiz_attempts (id, userId, quizId, setCode, seed, status, startedAt, expiresAt, answers, isActivated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
               [session.id, session.userId, session.quizId, session.setCode, session.seed, session.status, now, expiresAt, '{}']
             );
           } catch (retryErr) {
             console.error('[LmsDB] createOrGetQuizSession retry error:', retryErr);
           }
         }
+      }
+    }
+
+    return session;
+  }
+
+  async activateQuizSession(userId: string, quizId: string, durationMins: number): Promise<any> {
+    const resolvedDuration = Number(durationMins) > 0 ? Number(durationMins) : 60;
+    
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('ALTER TABLE lms_quiz_attempts ADD COLUMN isActivated TINYINT(1) DEFAULT 0');
+      } catch (_) {}
+    }
+
+    const session = await this.createOrGetQuizSession(userId, quizId, resolvedDuration);
+
+    if (mysqlPool && session?.id) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          'SELECT * FROM lms_quiz_attempts WHERE id = ? LIMIT 1',
+          [session.id]
+        );
+        if (rows && rows.length > 0) {
+          const sess = rows[0];
+          const isActivated = Boolean(sess.isActivated);
+
+          if (!isActivated) {
+            const now = new Date();
+            const expiresAt = new Date(now.getTime() + resolvedDuration * 60 * 1000);
+
+            await mysqlPool.query(
+              'UPDATE lms_quiz_attempts SET startedAt = ?, expiresAt = ?, isActivated = 1 WHERE id = ?',
+              [now, expiresAt, sess.id]
+            );
+
+            session.startedAt = now.toISOString();
+            session.expiresAt = expiresAt.toISOString();
+            session.isActivated = true;
+          } else {
+            session.startedAt = sess.startedAt;
+            session.expiresAt = sess.expiresAt;
+            session.isActivated = true;
+          }
+        }
+      } catch (err) {
+        console.error('[LmsDB] activateQuizSession MySQL error:', err);
       }
     }
 

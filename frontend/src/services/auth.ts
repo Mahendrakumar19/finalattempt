@@ -1,4 +1,4 @@
-import { useAuthStore } from '@/stores/authStore';
+import { useAuthStore, AuthUser } from '@/stores/authStore';
 
 const getBackendUrl = () => {
   if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -10,7 +10,7 @@ const getBackendUrl = () => {
 };
 const BACKEND_URL = getBackendUrl();
 
-interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
@@ -71,18 +71,18 @@ async function apiFetch<T>(
     }
 
     return data;
-  } catch (err) {
+  } catch {
     return { success: false, error: 'Network error. Please check your connection.' };
   }
 }
 
 // ─── Singleton Refresh Guard ──────────────────────────────────────────────────
 // Prevents multiple simultaneous refresh calls (race condition that breaks session rotation)
-let _refreshPromise: Promise<ApiResponse<{ accessToken: string; user: any }>> | null = null;
+let _refreshPromise: Promise<ApiResponse<{ accessToken: string; user: AuthUser }>> | null = null;
 
-function singletonRefresh(): Promise<ApiResponse<{ accessToken: string; user: any }>> {
+function singletonRefresh(): Promise<ApiResponse<{ accessToken: string; user: AuthUser }>> {
   if (_refreshPromise) return _refreshPromise;
-  _refreshPromise = apiFetch<{ accessToken: string; user: any }>('/api/auth/refresh', { method: 'POST' })
+  _refreshPromise = apiFetch<{ accessToken: string; user: AuthUser }>('/api/auth/refresh', { method: 'POST' })
     .finally(() => { _refreshPromise = null; });
   return _refreshPromise;
 }
@@ -95,7 +95,7 @@ export async function registerUser(payload: {
   password: string;
   targetExam?: string;
 }) {
-  return apiFetch<{ accessToken: string; user: any }>('/api/auth/register', {
+  return apiFetch<{ accessToken: string; user: AuthUser }>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify(payload)
   });
@@ -103,7 +103,7 @@ export async function registerUser(payload: {
 
 // ─── Login ───────────────────────────────────────────────────────────────────
 export async function loginUser(email: string, password: string) {
-  return apiFetch<{ accessToken: string; user: any }>('/api/auth/login', {
+  return apiFetch<{ accessToken: string; user: AuthUser }>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password })
   });
@@ -111,7 +111,7 @@ export async function loginUser(email: string, password: string) {
 
 // ─── Send OTP ────────────────────────────────────────────────────────────────
 export async function sendOTP(identifier: string, type: 'email' | 'mobile', purpose: 'login' | 'register' | 'reset' | 'verify') {
-  return apiFetch<any>('/api/auth/send-otp', {
+  return apiFetch<Record<string, unknown>>('/api/auth/send-otp', {
     method: 'POST',
     body: JSON.stringify({ identifier, type, purpose })
   });
@@ -119,7 +119,7 @@ export async function sendOTP(identifier: string, type: 'email' | 'mobile', purp
 
 // ─── Verify OTP ──────────────────────────────────────────────────────────────
 export async function verifyOTP(identifier: string, type: 'email' | 'mobile', otp: string, purpose: 'login' | 'register' | 'reset' | 'verify') {
-  return apiFetch<{ accessToken: string; user: any }>('/api/auth/verify-otp', {
+  return apiFetch<{ accessToken: string; user: AuthUser }>('/api/auth/verify-otp', {
     method: 'POST',
     body: JSON.stringify({ identifier, type, otp, purpose })
   });
@@ -132,17 +132,17 @@ export async function refreshAccessToken() {
 
 // ─── Logout ──────────────────────────────────────────────────────────────────
 export async function logoutUser(accessToken: string) {
-  return apiFetch<any>('/api/auth/logout', { method: 'POST' }, accessToken);
+  return apiFetch<Record<string, unknown>>('/api/auth/logout', { method: 'POST' }, accessToken);
 }
 
 // ─── Get Profile ─────────────────────────────────────────────────────────────
 export async function getProfile(accessToken: string) {
-  return apiFetch<any>('/api/auth/me', {}, accessToken);
+  return apiFetch<AuthUser>('/api/auth/me', {}, accessToken);
 }
 
 // ─── Update Profile ──────────────────────────────────────────────────────────
 export async function updateProfile(accessToken: string, payload: { fullName: string; mobile?: string; targetExam?: string; avatarUrl?: string }) {
-  return apiFetch<any>('/api/auth/profile', {
+  return apiFetch<AuthUser>('/api/auth/profile', {
     method: 'PUT',
     body: JSON.stringify(payload)
   }, accessToken);
@@ -278,6 +278,11 @@ export async function getMyQuizAttempts(accessToken: string) {
 // ─── Quizzes: Get My Quiz Result & Explanations ─────────────────────────────
 export async function getMyQuizResult(quizId: string, accessToken: string) {
   return apiFetch<any>(`/api/quizzes/${quizId}/my-result`, {}, accessToken);
+}
+
+// ─── Quizzes: Begin / Activate Quiz Session ──────────────────────────────────
+export async function beginQuizSession(quizId: string, accessToken: string) {
+  return apiFetch<{ session: any; secsLeft: number; durationMins: number }>(`/api/quizzes/${quizId}/begin`, { method: 'POST' }, accessToken);
 }
 
 // ─── Chats: Get Rooms ────────────────────────────────────────────────────────

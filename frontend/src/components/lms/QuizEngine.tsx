@@ -3,12 +3,86 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ShieldAlert, Award, FileText, Timer, Users, Maximize2, AlertOctagon, CheckSquare, Square, Bookmark, Sun, Moon, Grid, X, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, Award, FileText, Users, Maximize2, AlertOctagon, CheckSquare, Square, Sun, Moon, Grid, X, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
-import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard, getMyQuizResult } from '@/services/auth';
+import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard, getMyQuizResult, beginQuizSession } from '@/services/auth';
+import Image from 'next/image';
 import { sanitizeAndRepairQuestion, renderFormattedQuestionText } from '@/utils/questionFormatter';
 import FormattedExplanation from '@/components/FormattedExplanation';
+
+interface QuizInfo {
+  id?: string;
+  title?: string;
+  timeLimitMins?: number;
+  durationMinutes?: number;
+  durationMins?: number;
+  maxMarks?: number;
+  medium?: string;
+  language?: string;
+  languageMode?: string;
+  language_mode?: string;
+}
+
+interface QuizSession {
+  id?: string;
+  setCode?: string;
+  savedAnswers?: Record<string, string>;
+  isActivated?: boolean;
+  expiresAt?: string;
+}
+
+interface QuizQuestion {
+  id: string;
+  questionText?: string;
+  questionTextHi?: string;
+  optionA?: string;
+  optionAHi?: string;
+  optionB?: string;
+  optionBHi?: string;
+  optionC?: string;
+  optionCHi?: string;
+  optionD?: string;
+  optionDHi?: string;
+  marks?: number | string;
+  negativeMarks?: number | string;
+  explanation?: string;
+  explanationHi?: string;
+}
+
+interface QuizDetail {
+  questionId: string;
+  questionText?: string;
+  questionTextHi?: string;
+  explanation?: string;
+  explanationHi?: string;
+  isCorrect?: boolean;
+  studentAnswer?: string;
+  correctAnswer?: string;
+  options?: Record<string, string>;
+  optionsHi?: Record<string, string>;
+}
+
+interface QuizResults {
+  score?: number | string;
+  maxScore?: number | string;
+  percentage?: number | string;
+  passed?: boolean;
+  details?: QuizDetail[];
+  quiz?: QuizInfo;
+}
+
+interface LeaderboardEntry {
+  userId?: string;
+  userName?: string;
+  fullName?: string;
+  score?: number | string;
+  maxScore?: number | string;
+  totalParticipants?: number | string;
+  timeTakenSecs?: number;
+  avatarUrl?: string;
+  setCode?: string;
+}
 
 interface QuizEngineProps {
   quizId: string;
@@ -16,20 +90,20 @@ interface QuizEngineProps {
 
 export default function QuizEngine({ quizId }: QuizEngineProps) {
   const { accessToken, user } = useAuth();
-  const { t, locale } = useTranslation();
+  const { locale } = useTranslation();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
-  const [quizInfo, setQuizInfo] = useState<any>(null);
-  const [session, setSession] = useState<any>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [quizInfo, setQuizInfo] = useState<QuizInfo | null>(null);
+  const [session, setSession] = useState<QuizSession | null>(null);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({});
   const [visitedQuestions, setVisitedQuestions] = useState<Record<string, boolean>>({});
-  const [activeLang, setActiveLang] = useState<'en' | 'hi'>('en');
+  const [activeLang, setActiveLang] = useState<'en' | 'hi'>(() => (locale === 'hi' ? 'hi' : 'en'));
   const [showMobilePalette, setShowMobilePalette] = useState(false);
   
   // Fullscreen exam flow states
@@ -49,13 +123,15 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   const [quizState, setQuizState] = useState<'intro' | 'active' | 'result' | 'leaderboard'>('intro');
 
   // Result states
-  const [results, setResults] = useState<any>(null);
-  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [results, setResults] = useState<QuizResults | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
 
   // Synchronize language from locale context on load
   useEffect(() => {
-    if (locale === 'hi') setActiveLang('hi');
+    if (locale === 'hi') {
+      queueMicrotask(() => setActiveLang('hi'));
+    }
   }, [locale]);
 
   // Load Quiz Metadata & Questions & Persistent Session (Timer DOES NOT auto-start here)
@@ -105,7 +181,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
           }
 
           const quizDuration = Number(quizObj?.timeLimitMins || quizObj?.durationMinutes || quizObj?.durationMins || 60);
-          if (res.data.session?.expiresAt) {
+          if (res.data.session?.isActivated && res.data.session?.expiresAt) {
             const exp = new Date(res.data.session.expiresAt).getTime();
             const now = Date.now();
             const secsLeft = Math.floor((exp - now) / 1000);
@@ -120,14 +196,14 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
         } else {
           setError(res.error || 'Failed to load quiz details.');
         }
-      } catch (err) {
+      } catch {
         setError('Connection error. Please try again.');
       } finally {
         setLoading(false);
       }
     };
     init();
-  }, [quizId, accessToken]);
+  }, [quizId, accessToken, locale]);
 
   // Listen to browser Fullscreen Change events (document.fullscreenElement)
   useEffect(() => {
@@ -152,7 +228,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
       if (document.fullscreenElement) {
         await document.exitFullscreen().catch(() => {});
       }
-    } catch (_) {}
+    } catch {}
 
     try {
       const res = await submitQuizAnswers(
@@ -168,7 +244,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
       } else {
         setError(res.error || 'Submission failed.');
       }
-    } catch (_) {
+    } catch {
       setError('Failed to submit answers.');
     } finally {
       setLoading(false);
@@ -179,7 +255,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   useEffect(() => {
     if (quizState !== 'active' || timeLeft <= 0) {
       if (timeLeft === 0 && quizState === 'active') {
-        executeFinalSubmit();
+        Promise.resolve().then(() => executeFinalSubmit());
       }
       return;
     }
@@ -196,12 +272,22 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   const enterFullscreenAndStart = async () => {
     setFullscreenError(null);
     try {
+      if (accessToken) {
+        const res = await beginQuizSession(quizId, accessToken);
+        if (res.success && res.data) {
+          if (res.data.session) setSession(res.data.session);
+          if (res.data.secsLeft > 0) setTimeLeft(res.data.secsLeft);
+        }
+      }
+    } catch (e) {
+      console.error('Error activating quiz timer session:', e);
+    }
+
+    try {
       if (document.documentElement && typeof document.documentElement.requestFullscreen === 'function' && !document.fullscreenElement) {
         await document.documentElement.requestFullscreen().catch(() => {});
       }
-    } catch (_) {
-      // Browsers like iOS Safari do not support requestFullscreen on iPhone
-    } finally {
+    } catch {} finally {
       setQuizState('active');
       setIsPaused(false);
       if (questions[0]?.id) {
@@ -213,12 +299,14 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   // Track visited questions whenever user navigates to a question
   useEffect(() => {
     if (quizState === 'active' && questions[currentIndex]?.id) {
-      setVisitedQuestions(prev => ({
-        ...prev,
-        [questions[currentIndex].id]: true
-      }));
+      const qId = questions[currentIndex].id;
+      if (!visitedQuestions[qId]) {
+        queueMicrotask(() => {
+          setVisitedQuestions(prev => (prev[qId] ? prev : { ...prev, [qId]: true }));
+        });
+      }
     }
-  }, [currentIndex, quizState, questions]);
+  }, [currentIndex, quizState, questions, visitedQuestions]);
 
   // Re-enter Fullscreen from warning overlay
   const reEnterFullscreen = async () => {
@@ -226,7 +314,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
       if (document.documentElement && typeof document.documentElement.requestFullscreen === 'function' && !document.fullscreenElement) {
         await document.documentElement.requestFullscreen().catch(() => {});
       }
-    } catch (e) {
+    } catch {
       // Browser blocked gesture or iOS unsupported
     } finally {
       setIsPaused(false);
@@ -392,17 +480,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
   const currentQ = sanitizeAndRepairQuestion(questions[currentIndex], activeLang);
 
-  const getDisplayQuestionText = (q: any) => {
+  const getDisplayQuestionText = (q: QuizQuestion | null | undefined) => {
     if (activeLang === 'hi' && q?.questionTextHi) return q.questionTextHi;
     return q?.questionText || '';
   };
 
-  const getDisplayOptionText = (q: any, optKey: string) => {
+  const getDisplayOptionText = (q: QuizQuestion | null | undefined, optKey: string) => {
     if (activeLang === 'hi') {
-      const hiKey = `${optKey}Hi`;
-      if (q?.[hiKey]) return q[hiKey];
+      const hiKey = `${optKey}Hi` as keyof QuizQuestion;
+      if (q?.[hiKey]) return String(q[hiKey]);
     }
-    return q?.[optKey] || '';
+    const key = optKey as keyof QuizQuestion;
+    return q?.[key] ? String(q[key]) : '';
   };
 
   const attemptedCount = Object.keys(selectedAnswers).length;
@@ -504,7 +593,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 className="text-xs space-y-2 list-disc list-inside font-semibold leading-relaxed"
                 style={{ color: cbtDark ? '#F3F4F6' : '#1E293B' }}
               >
-                <li>The timer will <strong>NOT</strong> start until you click "START EXAM (FULLSCREEN)" below.</li>
+                <li>The timer will <strong>NOT</strong> start until you click &quot;START EXAM (FULLSCREEN)&quot; below.</li>
                 <li>Fullscreen browser mode is mandatory for this examination.</li>
                 <li>Exiting fullscreen or switching browser tabs will trigger a security pause warning.</li>
                 <li>All selected answers are automatically saved to the server during the attempt.</li>
@@ -612,10 +701,13 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             }}
           >
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <img
+              <Image
                 src={cbtDark ? "/lightlogofull.png" : "/darklogofull.png"}
                 alt="Final Attempt"
-                className="h-6 sm:h-8 object-contain shrink-0"
+                width={160}
+                height={32}
+                className="h-6 sm:h-8 w-auto object-contain shrink-0"
+                priority
               />
               <span className="hidden sm:inline-block bg-sky-600 text-white font-black text-[9px] uppercase px-1.5 py-0.5 rounded tracking-wider shrink-0">
                 TestSeries
@@ -1218,9 +1310,9 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
       {/* ── 5. RESULTS SUMMARY SCREEN ── */}
       {quizState === 'result' && (() => {
-        const correctCount  = results?.details?.filter((d: any) => d.isCorrect).length ?? 0;
-        const incorrectCount = results?.details?.filter((d: any) => !d.isCorrect && d.studentAnswer).length ?? 0;
-        const unattemptedCount = results?.details?.filter((d: any) => !d.studentAnswer).length ?? 0;
+        const correctCount  = results?.details?.filter((d: QuizDetail) => d.isCorrect).length ?? 0;
+        const incorrectCount = results?.details?.filter((d: QuizDetail) => !d.isCorrect && d.studentAnswer).length ?? 0;
+        const unattemptedCount = results?.details?.filter((d: QuizDetail) => !d.studentAnswer).length ?? 0;
         const scorePercent = (Number(results?.percentage) || 0);
         const passed = !!results?.passed;
 
@@ -1379,7 +1471,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                     Detailed Solutions
                   </h2>
 
-                  {results?.details?.map((det: any, i: number) => {
+                  {results?.details?.map((det: QuizDetail, i: number) => {
                     const isCorrect    = det.isCorrect;
                     const isSkipped    = !det.studentAnswer;
                     const statusColor  = isCorrect ? successText : isSkipped ? textSec : errorText;
@@ -1581,8 +1673,8 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
         // Identify current user
         const currentUserId = user?.id || '';
-        const myEntry = leaderboard.find((item: any) => item.userId === currentUserId);
-        const myRank  = myEntry ? leaderboard.findIndex((item: any) => item.userId === currentUserId) + 1 : null;
+        const myEntry = leaderboard.find((item: LeaderboardEntry) => item.userId === currentUserId);
+        const myRank  = myEntry ? leaderboard.findIndex((item: LeaderboardEntry) => item.userId === currentUserId) + 1 : null;
         const totalParticipants = leaderboard[0]?.totalParticipants ? Number(leaderboard[0].totalParticipants) : leaderboard.length;
 
         const medalColors: Record<number, { bg: string; text: string; label: string }> = {
@@ -1591,8 +1683,8 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
           3: { bg: '#CD7C2F', text: '#fff', label: '🥉' },
         };
 
-        const getInitials = (name: string) =>
-          name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+        const getInitials = (name?: string) =>
+          (name || 'User').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
         const fmtTime = (secs: number) => {
           const m = Math.floor(secs / 60);
@@ -1687,7 +1779,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                   </div>
 
                   {/* Top 3 rows */}
-                  {displayRows.map((item: any, index: number) => {
+                  {displayRows.map((item: LeaderboardEntry, index: number) => {
                     const rank = index + 1;
                     const medal = medalColors[rank];
                     const maxSc = Number(item.maxScore) || Number(results?.maxScore) || 1;
