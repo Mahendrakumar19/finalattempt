@@ -858,6 +858,83 @@ router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthReque
   }
 });
 
+// Get Detailed Attempt Result with Solutions & Explanations
+router.get('/:quizId/my-result', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
+  try {
+    const quizId = Array.isArray(req.params.quizId) ? req.params.quizId[0] : req.params.quizId;
+    if (!quizId || typeof quizId !== 'string') {
+      res.status(400).json({ success: false, error: 'Invalid Quiz ID parameter.' });
+      return;
+    }
+
+    const quiz = await lmsDB.getQuizById(quizId);
+    if (!quiz) {
+      res.status(404).json({ success: false, error: 'Quiz not found.' });
+      return;
+    }
+
+    const attempt = await prisma.lms_quiz_attempts.findFirst({
+      where: {
+        userId: req.user!.userId,
+        quizId: quizId
+      }
+    });
+
+    if (!attempt) {
+      res.status(404).json({ success: false, error: 'No submitted attempt found for this quiz.' });
+      return;
+    }
+
+    let answers: Record<string, string> = {};
+    if (attempt.answers) {
+      answers = typeof attempt.answers === 'string' ? JSON.parse(attempt.answers) : (attempt.answers as any);
+    }
+
+    const questions = await lmsDB.getQuestionsByQuizId(quizId);
+    let score = Number(attempt.score) || 0;
+    let maxScore = Number(attempt.maxScore) || 0;
+    const details = [];
+
+    for (const q of questions) {
+      const studentAnswer = answers[q.id];
+      const correct = studentAnswer === q.correctAnswer;
+      const questionMarks = Number(q.marks) || 1.0;
+      if (!attempt.maxScore) maxScore += questionMarks;
+
+      details.push({
+        questionId: q.id,
+        questionText: q.questionText,
+        questionTextHi: q.questionTextHi,
+        options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD, E: q.optionE },
+        optionsHi: { A: q.optionAHi, B: q.optionBHi, C: q.optionCHi, D: q.optionDHi, E: q.optionEHi },
+        studentAnswer: studentAnswer || null,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+        explanationHi: q.explanationHi,
+        isCorrect: correct
+      });
+    }
+
+    const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+    const passed = attempt.passed ?? (percentage >= (quiz.passingScore || 40));
+
+    res.json({
+      success: true,
+      data: {
+        attemptId: attempt.id,
+        score,
+        maxScore,
+        percentage,
+        passed,
+        details,
+        quiz
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Auto-Save Answer Mid-Test
 router.post('/:quizId/save-answer', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { ShieldAlert, Award, FileText, Timer, Users, Maximize2, AlertOctagon, CheckSquare, Square, Bookmark, Sun, Moon, Grid, X, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
-import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard } from '@/services/auth';
+import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard, getMyQuizResult } from '@/services/auth';
 import { sanitizeAndRepairQuestion, renderFormattedQuestionText } from '@/utils/questionFormatter';
 import FormattedExplanation from '@/components/FormattedExplanation';
 
@@ -290,10 +290,34 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
       const res = await getQuizLeaderboard(quizId, accessToken);
       if (res.success && res.data) {
         setLeaderboard(res.data);
+        setError('');
         setQuizState('leaderboard');
       }
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMyResult = async () => {
+    if (!accessToken) return;
+    setLoading(true);
+    try {
+      const res = await getMyQuizResult(quizId, accessToken);
+      if (res.success && res.data) {
+        setResults(res.data);
+        if (res.data.quiz) {
+          setQuizInfo(res.data.quiz);
+        }
+        setError('');
+        setQuizState('result');
+      } else {
+        loadLeaderboard();
+      }
+    } catch (err) {
+      console.error('Error loading attempt result:', err);
+      loadLeaderboard();
     } finally {
       setLoading(false);
     }
@@ -330,12 +354,22 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
           </div>
           <div className="pt-2 space-y-2.5">
             {isAlreadySubmitted ? (
-              <button
-                onClick={loadLeaderboard}
-                className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all"
-              >
-                View Leaderboard & Leader Ranks
-              </button>
+              <>
+                <button
+                  onClick={loadMyResult}
+                  className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 shrink-0" />
+                  <span>View Explanation & Results</span>
+                </button>
+                <button
+                  onClick={loadLeaderboard}
+                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Award className="w-4 h-4 shrink-0" />
+                  <span>View Leaderboard & Leader Ranks</span>
+                </button>
+              </>
             ) : error.toLowerCase().includes('purchase') || error.toLowerCase().includes('denied') ? (
               <button
                 onClick={() => router.push('/test-series')}
