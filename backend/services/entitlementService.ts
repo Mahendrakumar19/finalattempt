@@ -240,19 +240,32 @@ export class EntitlementService {
     }
   }
 
-  /**
-   * Get all active entitlements for a user across all test series or a specific series.
-   */
   static async getUserEntitlements(userId: string, seriesId?: string) {
-    const userEntitlementsDelegate = (prisma as any).user_entitlements;
-    if (!userEntitlementsDelegate) return [];
-    return userEntitlementsDelegate.findMany({
-      where: {
-        user_id: userId,
-        ...(seriesId ? { series_id: seriesId } : {}),
-        status: 'ACTIVE'
-      },
-      orderBy: { granted_at: 'desc' }
-    });
+    try {
+      const userEntitlementsDelegate = (prisma as any).user_entitlements;
+      if (!userEntitlementsDelegate) return [];
+      return await userEntitlementsDelegate.findMany({
+        where: {
+          user_id: userId,
+          ...(seriesId ? { series_id: seriesId } : {}),
+          status: 'ACTIVE'
+        },
+        orderBy: { granted_at: 'desc' }
+      });
+    } catch (err: any) {
+      console.warn('[EntitlementService] findMany fallback query due to:', err?.message);
+      try {
+        const query = seriesId
+          ? `SELECT * FROM user_entitlements WHERE user_id = ? AND series_id = ? AND status = 'ACTIVE' AND entitlement_type != '' ORDER BY granted_at DESC`
+          : `SELECT * FROM user_entitlements WHERE user_id = ? AND status = 'ACTIVE' AND entitlement_type != '' ORDER BY granted_at DESC`;
+        const raw: any[] = seriesId
+          ? await prisma.$queryRawUnsafe(query, userId, seriesId)
+          : await prisma.$queryRawUnsafe(query, userId);
+        return (raw || []).filter(e => e.entitlement_type);
+      } catch (fallbackErr) {
+        console.error('[EntitlementService] Fallback query failed:', fallbackErr);
+        return [];
+      }
+    }
   }
 }
