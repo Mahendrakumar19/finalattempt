@@ -4264,34 +4264,47 @@ class LmsDB {
         if (updates.faculty !== undefined) { fields.push('faculty = ?'); vals.push(typeof updates.faculty === 'string' ? updates.faculty : JSON.stringify(updates.faculty)); }
         if (updates.demoLectures !== undefined) { fields.push('demoLectures = ?'); vals.push(typeof updates.demoLectures === 'string' ? updates.demoLectures : JSON.stringify(updates.demoLectures)); }
 
-        if (fields.length === 0) return true;
-        vals.push(id);
-        await mysqlPool.query(`UPDATE lms_courses SET ${fields.join(', ')} WHERE id = ?`, vals).catch(async (e) => {
-          // If optional columns aren't in MySQL schema, fallback to basic updates
-          const safeFields: string[] = [];
-          const safeVals: any[] = [];
-          if (updates.title !== undefined) { safeFields.push('title = ?'); safeVals.push(updates.title); }
-          if (updates.description !== undefined) { safeFields.push('description = ?'); safeVals.push(updates.description); }
-          if (updates.thumbnailUrl !== undefined) { safeFields.push('thumbnailUrl = ?'); safeVals.push(updates.thumbnailUrl); }
-          if (updates.bannerUrl !== undefined) { safeFields.push('bannerUrl = ?'); safeVals.push(updates.bannerUrl); }
-          if (updates.exam !== undefined) { safeFields.push('exam = ?'); safeVals.push(updates.exam); }
-          if (updates.category !== undefined) { safeFields.push('category = ?'); safeVals.push(updates.category); }
-          if (updates.fee !== undefined) { safeFields.push('fee = ?'); safeVals.push(updates.fee); }
-          if (updates.duration !== undefined) { safeFields.push('duration = ?'); safeVals.push(updates.duration); }
-          if (updates.schedule !== undefined) { safeFields.push('schedule = ?'); safeVals.push(updates.schedule); }
-          if (updates.isPublished !== undefined) { safeFields.push('isPublished = ?'); safeVals.push(updates.isPublished ? 1 : 0); }
-          if (safeFields.length > 0) {
-            safeVals.push(id);
-            await mysqlPool.query(`UPDATE lms_courses SET ${safeFields.join(', ')} WHERE id = ?`, safeVals);
+        if (fields.length > 0) {
+          vals.push(id, id);
+          await mysqlPool.query(`UPDATE lms_courses SET ${fields.join(', ')} WHERE id = ? OR slug = ?`, vals).catch(async (e) => {
+            const safeFields: string[] = [];
+            const safeVals: any[] = [];
+            if (updates.title !== undefined) { safeFields.push('title = ?'); safeVals.push(updates.title); }
+            if (updates.description !== undefined) { safeFields.push('description = ?'); safeVals.push(updates.description); }
+            if (updates.thumbnailUrl !== undefined) { safeFields.push('thumbnailUrl = ?'); safeVals.push(updates.thumbnailUrl); }
+            if (updates.bannerUrl !== undefined) { safeFields.push('bannerUrl = ?'); safeVals.push(updates.bannerUrl); }
+            if (updates.exam !== undefined) { safeFields.push('exam = ?'); safeVals.push(updates.exam); }
+            if (updates.category !== undefined) { safeFields.push('category = ?'); safeVals.push(updates.category); }
+            if (updates.fee !== undefined) { safeFields.push('fee = ?'); safeVals.push(updates.fee); }
+            if (updates.duration !== undefined) { safeFields.push('duration = ?'); safeVals.push(updates.duration); }
+            if (updates.schedule !== undefined) { safeFields.push('schedule = ?'); safeVals.push(updates.schedule); }
+            if (updates.isPublished !== undefined) { safeFields.push('isPublished = ?'); safeVals.push(updates.isPublished ? 1 : 0); }
+            if (safeFields.length > 0) {
+              safeVals.push(id, id);
+              await mysqlPool.query(`UPDATE lms_courses SET ${safeFields.join(', ')} WHERE id = ? OR slug = ?`, safeVals);
+            }
+          });
+        }
+
+        // Also update TestSeries table if present
+        if (updates.isPublished !== undefined || updates.title !== undefined || updates.description !== undefined) {
+          const tsFields: string[] = [];
+          const tsVals: any[] = [];
+          if (updates.isPublished !== undefined) { tsFields.push('isPublished = ?'); tsVals.push(updates.isPublished ? 1 : 0); }
+          if (updates.title !== undefined) { tsFields.push('title = ?'); tsVals.push(updates.title); }
+          if (updates.description !== undefined) { tsFields.push('description = ?'); tsVals.push(updates.description); }
+          if (tsFields.length > 0) {
+            tsVals.push(id, id);
+            await mysqlPool.query(`UPDATE TestSeries SET ${tsFields.join(', ')} WHERE id = ? OR slug = ?`, tsVals).catch(() => null);
           }
-        });
+        }
         return true;
       } catch (err) {
         console.error('[LmsDB] updateCourse MySQL error:', err);
         throw err;
       }
     }
-    const idx = db.localStore.courses.findIndex(c => c.id === id);
+    const idx = db.localStore.courses.findIndex(c => c.id === id || c.slug === id);
     if (idx >= 0) {
       db.localStore.courses[idx] = { ...db.localStore.courses[idx], ...updates };
       db.saveLocalData();
