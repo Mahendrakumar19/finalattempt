@@ -1281,8 +1281,9 @@ class BackendDB {
         );
         const [rows]: any = await mysqlPool.query('SELECT visitorsCount FROM settings WHERE id = 1');
         if (rows && rows.length > 0) return Math.max(2000, Number(rows[0].visitorsCount || 2000));
-      } catch (err) {
+      } catch (err: any) {
         console.error('[BackendDB] MySQL visitor count error, using local fallback:', err);
+        handlePoolDegrade(err);
       }
     }
     const current = Math.max(2000, Number(this.localStore.settings.visitorsCount || 0));
