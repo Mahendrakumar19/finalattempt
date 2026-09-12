@@ -4678,51 +4678,65 @@ class LmsDB {
         amountPaid: Number(r.amountPaid || 0)
       });
 
-      const userMap = new Map<string, any>();
-      lmsRows.forEach((r: any) => {
-        const norm = normalizeRow(r);
-        const key = `${norm.userId}_Full Access`;
-        userMap.set(key, { ...norm, planName: norm.paymentOrderId === 'ADMIN_MANUAL' ? 'Admin Manual' : 'Full Access' });
+      // Group and deduplicate all records strictly by student userId
+      const allRecords: any[] = [];
+      lmsRows.forEach(r => allRecords.push(normalizeRow(r)));
+      orderRows.forEach(r => allRecords.push(normalizeRow(r)));
+      entRows.forEach(r => allRecords.push(normalizeRow(r)));
+
+      const userRecordsGroup = new Map<string, any[]>();
+      allRecords.forEach(r => {
+        const uId = r.userId;
+        if (!uId) return;
+        if (!userRecordsGroup.has(uId)) userRecordsGroup.set(uId, []);
+        userRecordsGroup.get(uId)!.push(r);
       });
 
-      orderRows.forEach((r: any) => {
-        const norm = normalizeRow(r);
-        const pName = formatPlanName(norm);
-        const key = `${norm.userId}_${pName}`;
-        if (!userMap.has(key)) {
-          userMap.set(key, {
-            enrollmentId: norm.orderId || norm.userId,
-            ...norm,
-            planName: pName
-          });
-        } else {
-          const existing = userMap.get(key);
-          if (norm.amountPaid > 0) existing.amountPaid = norm.amountPaid;
-          if (norm.paymentOrderId && norm.paymentOrderId !== 'ADMIN_MANUAL') existing.paymentOrderId = norm.paymentOrderId;
-        }
-      });
+      const finalStudentsList: any[] = [];
 
-      entRows.forEach((r: any) => {
-        const norm = normalizeRow(r);
-        const pName = formatPlanName(norm);
-        const key = `${norm.userId}_${pName}`;
-        if (!userMap.has(key)) {
-          userMap.set(key, {
-            enrollmentId: norm.entitlementId || norm.userId,
-            ...norm,
-            planName: pName
-          });
-        } else {
-          const existing = userMap.get(key);
-          if (norm.amountPaid > 0 && !existing.amountPaid) existing.amountPaid = norm.amountPaid;
-          if (norm.paymentOrderId && norm.paymentOrderId !== 'ADMIN_MANUAL' && existing.paymentOrderId === 'ADMIN_MANUAL') {
-            existing.paymentOrderId = norm.paymentOrderId;
+      userRecordsGroup.forEach((records, uId) => {
+        let bestRecord = records[0];
+        let bestScore = -1;
+
+        records.forEach(r => {
+          let score = 0;
+          const pName = formatPlanName(r);
+          const pUpper = (pName || '').toUpperCase();
+
+          if (pUpper.includes('COMPLETE')) score += 100;
+          else if (pUpper.includes('FULL')) score += 90;
+          else if (pUpper.includes('HALF')) score += 80;
+          else if (pUpper.includes('MINI')) score += 70;
+          else if (pUpper.includes('SINGLE') || pUpper.includes('TEST')) score += 50;
+
+          if (r.amountPaid > 0) score += 30;
+          if (r.paymentOrderId && String(r.paymentOrderId).startsWith('ORD-')) score += 20;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestRecord = r;
           }
-        }
+        });
+
+        const totalAttempts = Math.max(...records.map(r => Number(r.totalAttempts || 0)));
+        const amountPaid = Math.max(...records.map(r => Number(r.amountPaid || 0)));
+
+        const dates = records.map(r => new Date(r.enrolledAt).getTime()).filter(d => !isNaN(d) && d > 0);
+        const earliestEnrolledAt = dates.length > 0 ? new Date(Math.min(...dates)) : bestRecord.enrolledAt;
+
+        const resolvedPlanName = formatPlanName(bestRecord);
+
+        finalStudentsList.push({
+          ...bestRecord,
+          planName: resolvedPlanName,
+          amountPaid,
+          totalAttempts,
+          enrolledAt: earliestEnrolledAt
+        });
       });
 
-      const result = Array.from(userMap.values());
-      if (result.length > 0) return result;
+      finalStudentsList.sort((a, b) => new Date(b.enrolledAt).getTime() - new Date(a.enrolledAt).getTime());
+      if (finalStudentsList.length > 0) return finalStudentsList;
     } catch (err: any) {
       console.error('[LmsDB] getTestSeriesEnrolledStudents Prisma query error:', err.message);
     }
