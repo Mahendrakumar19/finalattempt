@@ -136,10 +136,14 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
   // Load Quiz Metadata & Questions & Persistent Session (Timer DOES NOT auto-start here)
   useEffect(() => {
-    if (!accessToken) return;
+    let effectiveToken = accessToken;
+    if (!effectiveToken && typeof window !== 'undefined') {
+      effectiveToken = localStorage.getItem('access_token') || localStorage.getItem('token');
+    }
+    if (!effectiveToken) return;
     const init = async () => {
       try {
-        const res = await startQuiz(quizId, accessToken);
+        const res = await startQuiz(quizId, effectiveToken!);
         if (res.success && res.data) {
           const quizObj = res.data.quiz;
           setQuizInfo(quizObj);

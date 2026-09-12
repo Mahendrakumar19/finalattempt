@@ -10,12 +10,13 @@ function TestAttemptContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const quizIdParam = searchParams.get('quiz');
-  const { user, accessToken } = useAuth();
+  const { user, accessToken, isLoading } = useAuth();
   
   const quizId = quizIdParam;
   const error = !quizId ? 'A specific quiz paper parameter (?quiz=id) is required to enter CBT exam mode.' : null;
 
   useEffect(() => {
+    if (isLoading) return; // Wait until auth state rehydration completes
     if (typeof window !== 'undefined') {
       const token = accessToken || localStorage.getItem('access_token') || localStorage.getItem('token');
       if (!user && !token) {
@@ -23,7 +24,7 @@ function TestAttemptContent() {
         window.location.href = `/auth/login/student?redirect=${encodeURIComponent(currentUrl)}`;
       }
     }
-  }, [user, accessToken]);
+  }, [user, accessToken, isLoading]);
 
   if (error || !quizId) {
     return (

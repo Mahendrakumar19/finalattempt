@@ -15,7 +15,16 @@ const REFRESH_INTERVAL_MS = 14 * 60 * 1000;
 function isTokenExpired(token: string | null): boolean {
   if (!token || token === 'guest-token' || token === 'null' || token === 'undefined') return true;
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
+    const parts = token.split('.');
+    if (parts.length < 2) return true;
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(jsonPayload);
     const exp: number | undefined = payload.exp;
     if (!exp) return false; // no expiry claim — treat as valid
     return Date.now() / 1000 > exp - 60; // 60-second buffer
@@ -57,22 +66,25 @@ export function useAuth() {
     setLoading(true);
 
     const init = async () => {
+      const storedToken = useAuthStore.getState().accessToken;
+      const localTokenValid = storedToken && !isTokenExpired(storedToken);
+
       const res = await refreshAccessToken();
       if (!mounted) return;
 
       if (res.success && res.data) {
         setAuth(res.data.user, res.data.accessToken);
+      } else if (localTokenValid) {
+        // Refresh token failed/missing on server, but local token is still valid
+        setLoading(false);
       } else if (res.error === 'Network error. Please check your connection.') {
-        // Backend is temporarily unreachable — preserve the existing session.
-        // The apiFetch auto-retry will handle individual call failures.
-        const storedToken = useAuthStore.getState().accessToken;
         if (storedToken) {
           setLoading(false);
         } else {
           clearAuth();
         }
       } else {
-        // Auth error (e.g. refresh token expired/revoked) — user must log in.
+        // Auth error and no valid local token — user must log in.
         clearAuth();
       }
     };
