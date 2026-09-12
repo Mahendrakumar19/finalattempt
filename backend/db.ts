@@ -4167,6 +4167,7 @@ class LmsDB {
         const r = rows[0];
         return {
           ...r,
+          isPublished: Boolean(r.isPublished),
           syllabus: typeof r.syllabus === 'string' ? JSON.parse(r.syllabus) : r.syllabus,
           features: typeof r.features === 'string' ? JSON.parse(r.features) : r.features,
           faq:      typeof r.faq      === 'string' ? JSON.parse(r.faq)      : r.faq,
