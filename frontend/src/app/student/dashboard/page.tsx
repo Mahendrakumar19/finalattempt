@@ -4,11 +4,11 @@ import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
-  BookOpen, TrendingUp, FileText, HelpCircle,
-  Users, Bell, Award, CheckCircle, Play, LogOut,
-  ChevronRight, Sparkles, Search, MessageSquare,
-  LayoutDashboard, Settings, Target, Zap, Lock,
-  Sun, Moon, Menu, X, Upload
+  BookOpen, TrendingUp, FileText,
+  Award, CheckCircle, Play,
+  ChevronRight,
+  Target, Zap, Lock,
+  Sun, Moon
 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -35,16 +35,31 @@ interface Enrollment {
   completionPercentage?: number;
 }
 
+interface QuizEntry {
+  id: string;
+  title: string;
+  description?: string;
+  instructions?: string;
+  timeLimitMins?: number;
+  [key: string]: unknown;
+}
+
+interface CourseQuizItem {
+  quiz: QuizEntry;
+  courseTitle: string;
+  courseId: string;
+  slug?: string;
+}
+
 function StudentDashboardContent() {
-  const { user, accessToken, logout, isLoading, requireAuth } = useAuth();
+  const { user, accessToken, isLoading, requireAuth } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<DashTab>('Dashboard');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loadingEnrollments, setLoadingEnrollments] = useState(true);
-  const [allQuizzes, setAllQuizzes] = useState<{ quiz: any; courseTitle: string; courseId: string; slug?: string }[]>([]);
+  const [allQuizzes, setAllQuizzes] = useState<CourseQuizItem[]>([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
 
   // Sync searchParams ?tab=... to activeTab
@@ -54,10 +69,10 @@ function StudentDashboardContent() {
       const decodedTab = tabParam.replace(/\+/g, ' ');
       const validTabs: DashTab[] = ['Dashboard', 'My Courses', 'Performance', 'Tests', 'Notes', 'Mentor Connect', 'Certificates'];
       if (validTabs.includes(decodedTab as DashTab)) {
-        setActiveTab(decodedTab as DashTab);
+        queueMicrotask(() => setActiveTab(decodedTab as DashTab));
       }
     } else {
-      setActiveTab('Dashboard');
+      queueMicrotask(() => setActiveTab('Dashboard'));
     }
   }, [searchParams]);
 
@@ -74,17 +89,17 @@ function StudentDashboardContent() {
       setLoadingEnrollments(true);
       setLoadingQuizzes(true);
 
-      let fetchedCourseQuizzes: any[] = [];
+      let fetchedCourseQuizzes: CourseQuizItem[] = [];
       const res = await getMyEnrollments(accessToken);
       setLoadingEnrollments(false);
 
       if (res.success && res.data) {
-        setEnrollments(res.data);
+        setEnrollments(res.data as Enrollment[]);
         const quizResults = await Promise.all(
-          res.data.map(async (e: Enrollment) => {
+          (res.data as Enrollment[]).map(async (e: Enrollment) => {
             const qRes = await getCourseQuizzes(e.courseId, accessToken);
             if (qRes.success && qRes.data && qRes.data.length > 0) {
-              return qRes.data.map((quiz: any) => ({ quiz, courseTitle: e.title, courseId: e.courseId }));
+              return (qRes.data as QuizEntry[]).map((quiz: QuizEntry) => ({ quiz, courseTitle: e.title, courseId: e.courseId }));
             }
             return [];
           })
@@ -100,7 +115,7 @@ function StudentDashboardContent() {
             testSeriesList.map(async (ts) => {
               const qList = await db.getTestSeriesQuizzes(ts.id);
               if (qList && qList.length > 0) {
-                return qList.map((quiz: any) => ({
+                return (qList as QuizEntry[]).map((quiz: QuizEntry) => ({
                   quiz,
                   courseTitle: ts.title,
                   courseId: ts.id,
@@ -132,18 +147,6 @@ function StudentDashboardContent() {
       </div>
     );
   }
-
-
-  const sidebarLinks: { name: string; icon: any; href?: string; tab?: DashTab }[] = [
-    { name: t('student.dashboard'),         icon: LayoutDashboard, tab: 'Dashboard' },
-    { name: t('student.myCourses'),         icon: BookOpen,        tab: 'My Courses' },
-    { name: t('student.prelims'),           icon: FileText,        href: '/student/prelims' },
-    { name: t('student.mains'),             icon: Target,          href: '/student/mains' },
-    { name: t('student.uploadMainsCopy'),   icon: Upload,          href: '/student/upload-mains' },
-    { name: t('student.resources'),         icon: BookOpen,        href: '/downloads' },
-    { name: t('student.mentorConnect'),     icon: MessageSquare,   tab: 'Mentor Connect' },
-    { name: t('student.performance'),       icon: TrendingUp,      tab: 'Performance' },
-  ];
 
   const stats = [
     { label: t('student.coursesEnrolled'), value: enrollments.length || 0, icon: BookOpen, color: 'text-blue-600 dark:text-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-200 dark:border-blue-500/20' },
@@ -199,70 +202,78 @@ function StudentDashboardContent() {
                 ))}
               </div>
 
-              {/* Enrolled Courses */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.myEnrolledCourses')}</h2>
-                  <button onClick={() => setActiveTab('My Courses')} className="text-blue-600 dark:text-blue-400 text-xs hover:text-blue-500 dark:hover:text-blue-300 font-medium transition-colors">{t('student.viewAll')}</button>
-                </div>
+              {/* Helper filtering: Separate video courses from test series */}
+              {(() => {
+                const isTestSeriesItem = (e: Enrollment) => {
+                  if (e.testSeriesSlug) return true;
+                  if (e.courseId?.startsWith('ts-') || e.courseId?.startsWith('bpsc-test-series') || e.courseId?.startsWith('bpsc-prelims-pyq') || e.courseId?.includes('test-series')) return true;
+                  const cat = (e.category || '').toLowerCase();
+                  const title = (e.title || '').toLowerCase();
+                  return cat.includes('test series') || title.includes('test series') || title.includes('testing test') || title.includes('test series');
+                };
 
-                {loadingEnrollments ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[1, 2].map(i => (
-                      <div key={i} className="h-28 rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse" />
-                    ))}
-                  </div>
-                ) : enrollments.length === 0 ? (
-                  <div className="p-8 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-center">
-                    <BookOpen className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
-                    <h3 className="text-slate-700 dark:text-slate-300 font-semibold text-sm mb-1">{t('student.noCoursesYet')}</h3>
-                    <p className="text-slate-500 text-xs mb-4">{t('student.noCoursesDesc')}</p>
-                    <Link href="/courses" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all">
-                      <BookOpen className="w-3.5 h-3.5" />
-                      {t('student.exploreCourses')}
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {enrollments.map(e => {
-                      const targetHref = e.testSeriesSlug || e.courseId?.startsWith('ts-')
-                        ? `/test-series/program/${e.testSeriesSlug || e.courseId}`
-                        : `/student/course/${e.courseId}`;
-                      return (
-                        <Link
-                          key={e.courseId}
-                          href={targetHref}
-                          className="course-card-premium group p-4 rounded-3xl"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0">
-                              <BookOpen className="w-5 h-5 text-white" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <h3 className="text-slate-900 dark:text-white text-sm font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">{e.title}</h3>
-                              <p className="text-slate-500 text-xs mt-0.5">{e.category} · {e.duration || 'Ongoing'}</p>
-                              {/* Progress bar (Real DB metrics) */}
-                              <div className="mt-2.5">
-                                <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                                  <span>Progress</span>
-                                  <span>{e.completionPercentage || 0}%</span>
-                                </div>
-                                <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
-                                    style={{ width: `${e.completionPercentage || 0}%` }}
-                                  />
+                const lectureCourses = enrollments.filter(e => !isTestSeriesItem(e));
+
+                return (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.myEnrolledCourses')}</h2>
+                      <button onClick={() => setActiveTab('My Courses')} className="text-blue-600 dark:text-blue-400 text-xs hover:text-blue-500 dark:hover:text-blue-300 font-medium transition-colors">{t('student.viewAll')}</button>
+                    </div>
+
+                    {loadingEnrollments ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[1, 2].map(i => (
+                          <div key={i} className="h-28 rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse" />
+                        ))}
+                      </div>
+                    ) : lectureCourses.length === 0 ? (
+                      <div className="p-8 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-center">
+                        <BookOpen className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
+                        <h3 className="text-slate-700 dark:text-slate-300 font-semibold text-sm mb-1">{t('student.noCoursesYet')}</h3>
+                        <p className="text-slate-500 text-xs mb-4">{t('student.noCoursesDesc')}</p>
+                        <Link href="/courses" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all">
+                          <BookOpen className="w-3.5 h-3.5" />
+                          {t('student.exploreCourses')}
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {lectureCourses.map(e => (
+                          <Link
+                            key={e.courseId}
+                            href={`/student/course/${e.courseId}`}
+                            className="course-card-premium group p-4 rounded-3xl"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0">
+                                <BookOpen className="w-5 h-5 text-white" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h3 className="text-slate-900 dark:text-white text-sm font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">{e.title}</h3>
+                                <p className="text-slate-500 text-xs mt-0.5">{e.category} · {e.duration || 'Ongoing'}</p>
+                                <div className="mt-2.5">
+                                  <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                    <span>Progress</span>
+                                    <span>{e.completionPercentage || 0}%</span>
+                                  </div>
+                                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
+                                      style={{ width: `${e.completionPercentage || 0}%` }}
+                                    />
+                                  </div>
                                 </div>
                               </div>
+                              <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
                             </div>
-                            <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
-                          </div>
-                        </Link>
-                      );
-                    })}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* Quick Actions */}
               <div>
@@ -293,30 +304,45 @@ function StudentDashboardContent() {
           {/* ── My Courses Tab ── */}
           {activeTab === 'My Courses' && (
             <div className="space-y-4">
-              {loadingEnrollments ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="h-24 rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse" />
-                  ))}
-                </div>
-              ) : enrollments.length === 0 ? (
-                <div className="p-12 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-center">
-                  <Lock className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
-                  <h3 className="text-slate-800 dark:text-slate-200 font-bold text-base mb-2">{t('student.noEnrolledCourses')}</h3>
-                  <p className="text-slate-500 text-sm mb-6">{t('student.noEnrolledDesc')}</p>
-                  <Link href="/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold rounded-xl hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg shadow-blue-900/30">
-                    <BookOpen className="w-4 h-4" />
-                    {t('student.browseBPSCPrograms')}
-                  </Link>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {enrollments.map(e => {
-                    const targetHref = e.testSeriesSlug || e.courseId?.startsWith('ts-')
-                      ? `/test-series/program/${e.testSeriesSlug || e.courseId}`
-                      : `/student/course/${e.courseId}`;
-                    return (
-                      <Link key={e.courseId} href={targetHref} className="course-card-premium group p-5 rounded-3xl">
+              {(() => {
+                const isTestSeriesItem = (e: Enrollment) => {
+                  if (e.testSeriesSlug) return true;
+                  if (e.courseId?.startsWith('ts-') || e.courseId?.startsWith('bpsc-test-series') || e.courseId?.startsWith('bpsc-prelims-pyq') || e.courseId?.includes('test-series')) return true;
+                  const cat = (e.category || '').toLowerCase();
+                  const title = (e.title || '').toLowerCase();
+                  return cat.includes('test series') || title.includes('test series') || title.includes('testing test') || title.includes('test series');
+                };
+
+                const lectureCourses = enrollments.filter(e => !isTestSeriesItem(e));
+
+                if (loadingEnrollments) {
+                  return (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="h-24 rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse" />
+                      ))}
+                    </div>
+                  );
+                }
+
+                if (lectureCourses.length === 0) {
+                  return (
+                    <div className="p-12 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-center">
+                      <Lock className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+                      <h3 className="text-slate-800 dark:text-slate-200 font-bold text-base mb-2">{t('student.noEnrolledCourses')}</h3>
+                      <p className="text-slate-500 text-sm mb-6">{t('student.noEnrolledDesc')}</p>
+                      <Link href="/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold rounded-xl hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg shadow-blue-900/30">
+                        <BookOpen className="w-4 h-4" />
+                        {t('student.browseBPSCPrograms')}
+                      </Link>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {lectureCourses.map(e => (
+                      <Link key={e.courseId} href={`/student/course/${e.courseId}`} className="course-card-premium group p-5 rounded-3xl">
                         <div className="flex items-start gap-4">
                           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg">
                             <BookOpen className="w-6 h-6 text-white" />
@@ -344,10 +370,10 @@ function StudentDashboardContent() {
                           </div>
                         </div>
                       </Link>
-                    );
-                  })}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
