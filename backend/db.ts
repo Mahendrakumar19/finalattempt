@@ -1656,6 +1656,7 @@ class BackendDB {
         for (const s of seriesRows) {
           const parsed = {
             ...s,
+            isPublished: Boolean(s.isPublished),
             highlights: typeof s.highlights === 'string' ? JSON.parse(s.highlights) : s.highlights || [],
             syllabus: typeof s.syllabus === 'string' ? JSON.parse(s.syllabus) : s.syllabus || [],
             faq: typeof s.faq === 'string' ? JSON.parse(s.faq) : s.faq || []
@@ -1674,12 +1675,24 @@ class BackendDB {
             ? (rawLogo.startsWith('http://') || rawLogo.startsWith('https://') || rawLogo.startsWith('/') ? rawLogo : `/uploads/${rawLogo}`)
             : null;
 
+          const matchedSeries = seriesRows.filter((s: any) => 
+            s.examId === ex.id || 
+            (s.exam && (s.exam.toLowerCase() === ex.name?.toLowerCase() || s.exam.toLowerCase() === ex.code?.toLowerCase() || s.exam.toLowerCase() === ex.slug?.toLowerCase())) ||
+            (s.examId && (s.examId.toLowerCase() === ex.name?.toLowerCase() || s.examId.toLowerCase() === ex.code?.toLowerCase() || s.examId.toLowerCase() === ex.slug?.toLowerCase()))
+          ).map((s: any) => ({
+            ...s,
+            isPublished: Boolean(s.isPublished),
+            highlights: typeof s.highlights === 'string' ? JSON.parse(s.highlights) : s.highlights || [],
+            syllabus: typeof s.syllabus === 'string' ? JSON.parse(s.syllabus) : s.syllabus || [],
+            faq: typeof s.faq === 'string' ? JSON.parse(s.faq) : s.faq || []
+          }));
+
           exams.push({
             ...ex,
             logoUrl: resolvedLogoUrl,
             hasStages: !!ex.hasStages,
             stages: stagesMap.get(ex.id) || [],
-            testSeries: seriesMap.get(ex.id) || []
+            testSeries: matchedSeries
           });
         }
 
@@ -4121,8 +4134,8 @@ class LmsDB {
           FROM lms_courses c
         `;
         const query = includeUnpublished
-          ? `${baseSelect} WHERE c.isActive = 1 ORDER BY c.enrolledCount DESC`
-          : `${baseSelect} WHERE c.isActive = 1 AND c.isPublished = 1 ORDER BY c.enrolledCount DESC`;
+          ? `${baseSelect} WHERE c.isActive = 1 AND (c.category IS NULL OR c.category != 'Test Series') AND c.id NOT LIKE 'ts-%' AND c.slug NOT LIKE '%test-series%' ORDER BY c.enrolledCount DESC`
+          : `${baseSelect} WHERE c.isActive = 1 AND c.isPublished = 1 AND (c.category IS NULL OR c.category != 'Test Series') AND c.id NOT LIKE 'ts-%' AND c.slug NOT LIKE '%test-series%' ORDER BY c.enrolledCount DESC`;
         const [rows]: any = await mysqlPool.query(query);
         return rows.map((r: any) => ({
           ...r,
@@ -4139,11 +4152,11 @@ class LmsDB {
       } catch (err) { 
         console.error('[LmsDB] getCourses MySQL error, serving local fallback:', err); 
         handlePoolDegrade(err);
-        const courses = db.localStore.courses || [];
+        const courses = (db.localStore.courses || []).filter(c => c.category !== 'Test Series' && !c.id?.startsWith('ts-') && !c.slug?.includes('test-series'));
         return includeUnpublished ? courses : courses.filter(c => c.isPublished !== false);
       }
     }
-    const courses = db.localStore.courses || [];
+    const courses = (db.localStore.courses || []).filter(c => c.category !== 'Test Series' && !c.id?.startsWith('ts-') && !c.slug?.includes('test-series'));
     return includeUnpublished ? courses : courses.filter(c => c.isPublished !== false);
   }
 

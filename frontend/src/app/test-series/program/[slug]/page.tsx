@@ -1108,7 +1108,7 @@ export default function TestSeriesDetailPage() {
             {quizzes.map((quiz, idx) => {
               const info = getQuizAccessInfo(quiz);
               const isSelected = selectedQuizIds.includes(quiz.id);
-              const isScheduledFuture = quiz.scheduledReleaseAt ? (new Date(quiz.scheduledReleaseAt).getTime() > Date.now()) : false;
+              const isScheduledFuture = quiz.scheduledReleaseAt ? (new Date(quiz.scheduledReleaseAt).getTime() > new Date().getTime()) : false;
 
               return (
                 <div
@@ -1215,7 +1215,7 @@ export default function TestSeriesDetailPage() {
           </div>
         </div>
 
-        {/* ── SECTION 3: SYLLABUS & FAQS ACCORDION ───────────────────────── */}
+        {/* -- SECTION 3: SYLLABUS & FAQS ACCORDION -- */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-6 border-t border-[var(--card-border)]">
           <div className="lg:col-span-8 space-y-8">
             {/* Highlights Box */}

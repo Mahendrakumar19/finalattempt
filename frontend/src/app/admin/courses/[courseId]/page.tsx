@@ -4,7 +4,7 @@ import { use, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   ChevronLeft, Plus, Trash2, Edit3, FileText, Play, FolderOpen, Save, 
-  Check, User, Video, HelpCircle, BookOpen, Layers, Award, Sparkles, X, AlignLeft
+  Check, BookOpen, X
 } from 'lucide-react';
 import MediaPicker from '@/components/MediaPicker';
 
@@ -86,8 +86,34 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:500
 
 export default function CourseEditorPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = use(params);
-  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'faculty' | 'demo' | 'faq' | 'quizzes' | 'assignments'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'faculty' | 'demo' | 'faq' | 'quizzes' | 'assignments'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTab = urlParams.get('tab') as any;
+        const savedTab = localStorage.getItem(`course_editor_tab_${courseId}`) as any;
+        const validTab = urlTab || savedTab;
+        if (validTab && ['overview', 'syllabus', 'faculty', 'demo', 'faq', 'quizzes', 'assignments'].includes(validTab)) {
+          return validTab;
+        }
+      } catch (_) {}
+    }
+    return 'overview';
+  });
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && activeTab) {
+      try {
+        localStorage.setItem(`course_editor_tab_${courseId}`, activeTab);
+        const url = new URL(window.location.href);
+        if (url.searchParams.get('tab') !== activeTab) {
+          url.searchParams.set('tab', activeTab);
+          window.history.replaceState(null, '', url.pathname + url.search);
+        }
+      } catch (_) {}
+    }
+  }, [activeTab, courseId]);
 
   // Course metadata state
   const [courseData, setCourseData] = useState<any>({
@@ -110,34 +136,6 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     syllabus: [] as SyllabusSubject[]
   });
   const [savingSettings, setSavingSettings] = useState(false);
-
-  // Restore working tab on refresh and sync changes to URL & localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlTab = urlParams.get('tab') as any;
-        const savedTab = localStorage.getItem(`course_editor_tab_${courseId}`) as any;
-        const validTab = urlTab || savedTab;
-        if (validTab && ['overview', 'syllabus', 'faculty', 'demo', 'faq', 'quizzes', 'assignments'].includes(validTab)) {
-          setActiveTab(validTab);
-        }
-      } catch (_) {}
-    }
-  }, [courseId]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && activeTab) {
-      try {
-        localStorage.setItem(`course_editor_tab_${courseId}`, activeTab);
-        const url = new URL(window.location.href);
-        if (url.searchParams.get('tab') !== activeTab) {
-          url.searchParams.set('tab', activeTab);
-          window.history.replaceState(null, '', url.pathname + url.search);
-        }
-      } catch (_) {}
-    }
-  }, [activeTab, courseId]);
 
   // Curriculum State
   const [sections, setSections] = useState<Section[]>([]);
@@ -180,10 +178,9 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   // Media picker target helper
   const [mediaPickerConfig, setMediaPickerConfig] = useState<{ isOpen: boolean; target: 'lesson' | 'faculty' | 'demo' | 'course_thumbnail' }>({ isOpen: false, target: 'lesson' });
 
-  const fetchCourseDetails = useCallback(async () => {
-    setLoading(true);
+  const fetchCourseDetails = useCallback(async (isInitial = false) => {
+    if (!isInitial) setLoading(true);
     try {
-      // 1. Get Course & Curriculum
       const curRes = await fetch(`${BACKEND_URL}/api/lms/courses/${courseId}/sections`);
       const curData = await curRes.json();
       if (curData.success && curData.data) {
@@ -210,20 +207,17 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
         setSections(curData.data.sections || []);
       }
 
-      // 2. Get Quizzes
       const quizRes = await fetch(`${BACKEND_URL}/api/lms/courses/${courseId}/quizzes`);
       const quizData = await quizRes.json();
       if (quizData.success) {
         setQuizzes(quizData.data || []);
       }
 
-      // 3. Get Assignments
       const assignRes = await fetch(`${BACKEND_URL}/api/lms/courses/${courseId}/assignments`);
       const assignData = await assignRes.json();
       if (assignData.success) {
         setAssignments(assignData.data || []);
       }
-
     } catch (err) {
       console.error(err);
     } finally {
@@ -232,7 +226,11 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   }, [courseId]);
 
   useEffect(() => {
-    fetchCourseDetails();
+    let active = true;
+    if (active) {
+      fetchCourseDetails(true);
+    }
+    return () => { active = false; };
   }, [fetchCourseDetails]);
 
   // Save whole Course Data parameters & tab contents to Backend DB
@@ -247,7 +245,6 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
       });
       if (res.ok) {
         alert('Course content updated successfully!');
-        fetchCourseDetails();
       } else {
         alert('Failed updating course. Check server logs.');
       }
