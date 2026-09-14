@@ -1797,28 +1797,24 @@ class BackendDB {
 
         // Sync corresponding lms_courses record for foreign key integrity in orders/user_entitlements
         try {
-          const { prisma } = await import('./prisma');
-          await prisma.lms_courses.upsert({
-            where: { id },
-            update: {
-              title: item.title,
-              slug,
-              fee: Number(item.price) || 0,
-              discountedFee: item.discountedPrice ? Number(item.discountedPrice) : null,
-              category: item.category || 'Test Series',
-              isPublished: item.isPublished !== false
-            },
-            create: {
-              id,
-              title: item.title,
-              slug,
-              category: item.category || 'Test Series',
-              fee: Number(item.price) || 0,
-              discountedFee: item.discountedPrice ? Number(item.discountedPrice) : null,
-              isPublished: item.isPublished !== false,
-              isActive: true
-            }
-          });
+          if (mysqlPool) {
+            await mysqlPool.query(
+              `INSERT INTO lms_courses (id, title, slug, category, fee, discountedFee, isPublished, isActive, createdAt, updatedAt)
+               VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW(), NOW())
+               ON DUPLICATE KEY UPDATE
+                 title = VALUES(title),
+                 slug = VALUES(slug),
+                 category = VALUES(category),
+                 fee = VALUES(fee),
+                 discountedFee = VALUES(discountedFee),
+                 isPublished = VALUES(isPublished),
+                 updatedAt = NOW()`,
+              [
+                id, item.title, slug, item.category || 'Test Series', Number(item.price) || 0,
+                item.discountedPrice ? Number(item.discountedPrice) : null, item.isPublished !== false ? 1 : 0
+              ]
+            ).catch(() => null);
+          }
         } catch (e: any) {
           console.warn('[BackendDB] lms_courses upsert warning:', e.message);
         }

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { db, TestSeriesItem, ExamData } from '@/services/db';
 import MediaPicker from '@/components/MediaPicker';
-import { sanitizeAndRepairQuestion, renderFormattedQuestionText } from '@/utils/questionFormatter';
+import { sanitizeAndRepairQuestion, renderFormattedQuestionText, stripHtmlTags } from '@/utils/questionFormatter';
 import { formatDateFormatted } from '@/components/TestSeriesComparisonTable';
 
 /** Strips any leading "(a) " / "(A) " / "(क) " option prefix from stored option text */
@@ -1526,7 +1526,7 @@ export default function TestSeriesAdmin({
                                     <div className="flex items-center gap-1">
                                       <button
                                         type="button"
-                                        onClick={() => setEditingQuestion({ ...q })}
+                                        onClick={() => setEditingQuestion(sanitizeAndRepairQuestion({ ...q }))}
                                         className="p-1.5 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors shrink-0 cursor-pointer"
                                         title="Edit question"
                                       >
@@ -2512,7 +2512,7 @@ export default function TestSeriesAdmin({
                 <textarea
                   rows={4}
                   required
-                  value={editingQuestion.questionText || ''}
+                  value={stripHtmlTags(editingQuestion.questionText || '')}
                   onChange={e => setEditingQuestion({ ...editingQuestion, questionText: e.target.value })}
                   className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-xs leading-relaxed"
                 />

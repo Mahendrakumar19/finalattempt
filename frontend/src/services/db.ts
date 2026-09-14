@@ -1303,8 +1303,24 @@ class FinalAttemptDB {
 
     if (data && data.success && Array.isArray(data.data) && data.data.length > 0) {
       data.data.forEach((e: ExamData) => addExamIfUnique(e));
+      // Only cache to localStorage if server returned active testSeries items
+      const hasAnyTestSeries = mergedList.some(e => e.testSeries && e.testSeries.length > 0);
+      if (hasAnyTestSeries) {
+        this.setLocalExamsStore(mergedList);
+      } else {
+        // If server data has empty testSeries (e.g. temporary API load delay), fall back to merge with local cached items
+        localExams.forEach((le: ExamData) => {
+          const matchIdx = mergedList.findIndex(e => getExamIdentityKeys(e).some(k => getExamIdentityKeys(le).includes(k)));
+          if (matchIdx >= 0 && le.testSeries && le.testSeries.length > 0) {
+            if (!mergedList[matchIdx].testSeries || mergedList[matchIdx].testSeries!.length === 0) {
+              mergedList[matchIdx].testSeries = le.testSeries;
+            }
+          } else if (matchIdx < 0) {
+            addExamIfUnique(le);
+          }
+        });
+      }
       exams = mergedList;
-      this.setLocalExamsStore(exams);
     } else {
       localExams.forEach((e: ExamData) => addExamIfUnique(e));
       exams = mergedList;

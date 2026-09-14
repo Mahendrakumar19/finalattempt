@@ -240,6 +240,27 @@ export function parseMarkdownTables(input: string): string {
 }
 
 /**
+ * Strips HTML markup tags and returns plain readable text for textareas/inputs.
+ */
+export function stripHtmlTags(input: string): string {
+  if (!input || typeof input !== 'string') return '';
+  if (!input.includes('<')) return input;
+  return input
+    .replace(/<th[^>]*>(.*?)<\/th>/gi, '$1 | ')
+    .replace(/<td[^>]*>(.*?)<\/td>/gi, '$1 | ')
+    .replace(/<\/tr>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\n\s*\n+/g, '\n')
+    .trim();
+}
+
+/**
  * Universal helper that formats question text (Match Lists, Markdown Tables, side-by-side lists)
  * and returns whether HTML rendering (dangerouslySetInnerHTML) is needed.
  */
@@ -247,6 +268,7 @@ export function renderFormattedQuestionText(input: string): { isHtml: boolean; f
   if (!input) return { isHtml: false, formatted: '' };
 
   let formatted = input;
+  // If text already starts with a match-list HTML container (e.g. from prior save), clean/parse correctly
   formatted = formatMatchListsInText(formatted);
   formatted = parseMarkdownTables(formatted);
 
@@ -263,7 +285,7 @@ export function renderFormattedQuestionText(input: string): { isHtml: boolean; f
  * Sanitizes and repairs questions where List-I / List-II or option codes (a) (b) (c) (d)
  * were jumbled into option fields or left inside questionText during import.
  */
-export function sanitizeAndRepairQuestion(q: any, activeLang: 'en' | 'hi' = 'en'): any {
+export function sanitizeAndRepairQuestion(q: any, _activeLang?: 'en' | 'hi'): any {
   if (!q) return q;
 
   // Guard: If question already possesses valid structured options (optionA..optionD) and is not a corrupted legacy record, return as-is
@@ -315,7 +337,7 @@ export function sanitizeAndRepairQuestion(q: any, activeLang: 'en' | 'hi' = 'en'
       extractedOptA = match[3].trim();
       extractedOptB = match[6].trim();
       extractedOptC = match[9].trim();
-      let restD = match[12].trim();
+      const restD = match[12].trim();
 
       const optEMatch = /(?:\(([eE5ङ])\)|[eE5ङ][\)\.\:\t]+)\s*([\s\S]+?)$/i.exec(restD);
       if (optEMatch) {
@@ -330,12 +352,15 @@ export function sanitizeAndRepairQuestion(q: any, activeLang: 'en' | 'hi' = 'en'
   };
 
   // Search across option fields (especially optD, optC) and questionText for embedded choices
-  tryExtractOptions(optD) ||
-  tryExtractOptions(optC) ||
-  tryExtractOptions(optB) ||
-  tryExtractOptions(optA) ||
-  tryExtractOptions(rawQText) ||
-  tryExtractOptions(rawQTextHi);
+  if (
+    !tryExtractOptions(optD) &&
+    !tryExtractOptions(optC) &&
+    !tryExtractOptions(optB) &&
+    !tryExtractOptions(optA) &&
+    !tryExtractOptions(rawQText)
+  ) {
+    tryExtractOptions(rawQTextHi);
+  }
 
   // Check if option fields contain stolen table rows (pipes '|' or list items)
   const isStolenOptionsTable = (optA.includes('|') || optB.includes('|') || optC.includes('|') || optD.includes('|')) ||

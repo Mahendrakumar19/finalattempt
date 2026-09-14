@@ -227,9 +227,11 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
 
   useEffect(() => {
     let active = true;
-    if (active) {
-      fetchCourseDetails(true);
-    }
+    queueMicrotask(() => {
+      if (active) {
+        fetchCourseDetails(true);
+      }
+    });
     return () => { active = false; };
   }, [fetchCourseDetails]);
 
