@@ -49,6 +49,33 @@ interface SyllabusSubject {
   topics: string[];
 }
 
+interface CourseData {
+  id?: string;
+  title: string;
+  exam: string;
+  category: string;
+  description: string;
+  overview: string;
+  thumbnailUrl: string;
+  fee: string | number;
+  originalPrice?: string | number;
+  discount?: string;
+  duration: string;
+  schedule: string;
+  isPublished: boolean;
+  features: string[];
+  faculty: FacultyMember[];
+  demoLectures: DemoLecture[];
+  faq: FaqItem[];
+  syllabus: SyllabusSubject[];
+  [key: string]: unknown;
+}
+
+interface SyllabusSubject {
+  subject: string;
+  topics: string[];
+}
+
 interface Quiz {
   id: string;
   title: string;
@@ -90,13 +117,15 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     if (typeof window !== 'undefined') {
       try {
         const urlParams = new URLSearchParams(window.location.search);
-        const urlTab = urlParams.get('tab') as any;
-        const savedTab = localStorage.getItem(`course_editor_tab_${courseId}`) as any;
+        const urlTab = urlParams.get('tab');
+        const savedTab = localStorage.getItem(`course_editor_tab_${courseId}`);
         const validTab = urlTab || savedTab;
         if (validTab && ['overview', 'syllabus', 'faculty', 'demo', 'faq', 'quizzes', 'assignments'].includes(validTab)) {
-          return validTab;
+          return validTab as 'overview' | 'syllabus' | 'faculty' | 'demo' | 'faq' | 'quizzes' | 'assignments';
         }
-      } catch (_) {}
+      } catch {
+        // Ignore storage or URL parsing errors
+      }
     }
     return 'overview';
   });
@@ -111,12 +140,14 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
           url.searchParams.set('tab', activeTab);
           window.history.replaceState(null, '', url.pathname + url.search);
         }
-      } catch (_) {}
+      } catch {
+        // Ignore storage errors
+      }
     }
   }, [activeTab, courseId]);
 
   // Course metadata state
-  const [courseData, setCourseData] = useState<any>({
+  const [courseData, setCourseData] = useState<CourseData>({
     title: '',
     exam: 'BPSC',
     category: 'Prelims',

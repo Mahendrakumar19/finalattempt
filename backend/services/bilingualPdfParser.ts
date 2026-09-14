@@ -835,25 +835,45 @@ export class BilingualPdfParser {
     const cleanText = BilingualPdfParser.stripSeparators(sectionText);
 
     // Dedicated Solution/Explanation Segmenter
-    // Matches headers: "1. सही उत्तर: (a)", "13. Ans: B", "14. Solution: Option (d)", "Q51. B", "1. (a)", "Q1. A"
-    const aBoundaryRegex = /(?:^|\n)[ \t]*(?:S|Sol|Solution|Ans|Answer|Q|Question)?[\.\:\)\-–—\s]*(\d{1,4})[\.\:\)\-–—\s]+(?:सही\s*उत्तर|Ans|Answer|Solution|Option)?[\:\s]*[\(\[]?([A-Ea-eक-ङ])[\)\]]?(?=\s|$)/gi;
+    // Matches headers like "1. सही उत्तर: (a)", "74. सही उत्तर चूना पत्थर...", "Q74 Explanation & Answer Key", "13. Ans: B"
+    const aBoundaryRegex = /(?:^|\n)[ \t]*(?:S|Sol|Solution|Ans|Answer|Q|Question|Q\.|प्र\.|प्रश्न)?[\.\:\)\-–—\s]*(\d{1,4})[\.\:\)\-–—\s]+/gi;
     const boundaries: { qNum: number; letter: string; index: number }[] = [];
     let m: RegExpExecArray | null;
 
     while ((m = aBoundaryRegex.exec(cleanText)) !== null) {
       const qNum = parseInt(m[1], 10);
-      const rawLetter = m[2].toUpperCase();
-      let letter = rawLetter;
-      if (rawLetter === 'क') letter = 'A';
-      else if (rawLetter === 'ख') letter = 'B';
-      else if (rawLetter === 'ग') letter = 'C';
-      else if (rawLetter === 'घ') letter = 'D';
-      else if (rawLetter === 'ङ') letter = 'E';
+      if (qNum < 1 || qNum > 1000) continue;
 
-      if (['A', 'B', 'C', 'D', 'E'].includes(letter) && !boundaries.some(b => b.qNum === qNum)) {
+      const restLine = cleanText.substring(m.index + m[0].length, cleanText.indexOf('\n', m.index + m[0].length) === -1 ? cleanText.length : cleanText.indexOf('\n', m.index + m[0].length));
+
+      // Extract option letter if present (e.g. (a), (b), Option C, [d], Ans: B, सही उत्तर (a))
+      const letterMatch = /(?:Ans|Answer|Solution|Option|उत्तर|सही\s*उत्तर)?[\:\s]*[\(\[]?([A-Ea-eक-ङ])[\)\]]?(?=\s|$|\.|\,)/i.exec(restLine) ||
+                          /[\(\[]([A-Ea-eक-ङ])[\)\]]/i.exec(restLine);
+
+      let letter = '';
+      if (letterMatch) {
+        const rawLetter = letterMatch[1].toUpperCase();
+        if (rawLetter === 'क') letter = 'A';
+        else if (rawLetter === 'ख') letter = 'B';
+        else if (rawLetter === 'ग') letter = 'C';
+        else if (rawLetter === 'घ') letter = 'D';
+        else if (rawLetter === 'ङ') letter = 'E';
+        else if (['A', 'B', 'C', 'D', 'E'].includes(rawLetter)) letter = rawLetter;
+      }
+
+      // Add boundary if not already registered, or if prior entry was empty header
+      const existingIdx = boundaries.findIndex(b => b.qNum === qNum);
+      if (existingIdx === -1) {
         boundaries.push({ qNum, letter, index: m.index });
+      } else {
+        if (!boundaries[existingIdx].letter && letter) {
+          boundaries[existingIdx].letter = letter;
+        }
       }
     }
+
+    // Sort boundaries by index
+    boundaries.sort((a, b) => a.index - b.index);
 
     for (let i = 0; i < boundaries.length; i++) {
       const { qNum, letter } = boundaries[i];
@@ -861,12 +881,20 @@ export class BilingualPdfParser {
       const end = i < boundaries.length - 1 ? boundaries[i + 1].index : cleanText.length;
       const block = cleanText.substring(start, end).trim();
 
-      const explanation = block.replace(/^[ \t]*(?:S|Sol|Solution|Ans|Answer|Q|Question)?[\.\:\)\-–—\s]*\d{1,4}[\.\:\)\-–—\s]+(?:सही\s*उत्तर|Ans|Answer|Solution|Option)?[\:\s]*[\(\[]?[A-Ea-eक-ङ][\)\]]?\s*/i, '').trim();
+      const explanation = block
+        .replace(/^[ \t]*(?:S|Sol|Solution|Ans|Answer|Q|Question|Q\.|प्र\.|प्रश्न)?[\.\:\)\-–—\s]*\d{1,4}[\.\:\)\-–—\s]*/i, '')
+        .replace(/^(?:Explanation\s*&\s*Answer\s*Key|Correct\s*Answer\s*:\s*Option\s*[A-E]?|Full\s*Solution\s*\/\s*Explanation\s*Text)\s*/gi, '')
+        .trim();
 
-      aMap.set(qNum, {
-        correctAnswer: letter as 'A' | 'B' | 'C' | 'D' | 'E',
-        explanation
-      });
+      const isNoExpPlaceholder = /No\s*detailed\s*explanation\s*text\s*provided/i.test(explanation);
+
+      const existing = aMap.get(qNum);
+      if (!existing || (isNoExpPlaceholder && existing.explanation) || (!isNoExpPlaceholder && explanation.length > (existing.explanation || '').length)) {
+        aMap.set(qNum, {
+          correctAnswer: (letter || existing?.correctAnswer || 'A') as 'A' | 'B' | 'C' | 'D' | 'E',
+          explanation: (isNoExpPlaceholder && existing?.explanation) ? existing.explanation : explanation
+        });
+      }
     }
 
     return aMap;

@@ -285,7 +285,7 @@ export function renderFormattedQuestionText(input: string): { isHtml: boolean; f
  * Sanitizes and repairs questions where List-I / List-II or option codes (a) (b) (c) (d)
  * were jumbled into option fields or left inside questionText during import.
  */
-export function sanitizeAndRepairQuestion(q: any, _activeLang?: 'en' | 'hi'): any {
+export function sanitizeAndRepairQuestion<T extends Record<string, any>>(q: T | null | undefined, activeLang: 'en' | 'hi' = 'en'): T | null | undefined {
   if (!q) return q;
 
   // Guard: If question already possesses valid structured options (optionA..optionD) and is not a corrupted legacy record, return as-is
@@ -293,9 +293,9 @@ export function sanitizeAndRepairQuestion(q: any, _activeLang?: 'en' | 'hi'): an
   const isCanonicalOrStructured = q.isCanonical || q.matchingData || q.orderingItems || q.assertionReason || hasValidStructuredOptions;
 
   if (isCanonicalOrStructured && hasValidStructuredOptions) {
-    const rawEn = q.questionText || '';
-    const rawHi = q.questionTextHi || '';
-    const textEn = rawEn || rawHi;
+    const rawEn = (q as Record<string, any>).questionText || '';
+    const rawHi = (q as Record<string, any>).questionTextHi || '';
+    const textEn = activeLang === 'hi' ? (rawHi || rawEn) : (rawEn || rawHi);
     const textHi = rawHi || rawEn;
 
     let formattedQText = formatMatchListsInText(textEn);

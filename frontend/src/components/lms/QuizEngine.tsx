@@ -920,7 +920,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                   const optKey = `option${opt}`;
                   const optionText = getDisplayOptionText(currentQ, optKey);
                   if (!optionText) return null;
-                  const isSelected = selectedAnswers[currentQ?.id] === opt;
+                  const isSelected = currentQ?.id ? selectedAnswers[currentQ.id] === opt : false;
 
                   return (
                     <label
@@ -1220,7 +1220,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                   color: cbtDark ? '#F1F5F9' : '#111827',
                 }}
               >
-                {markedForReview[currentQ?.id] ? 'Unmark Review' : 'Mark for Review & Next'}
+                {currentQ?.id && markedForReview[currentQ.id] ? 'Unmark Review' : 'Mark for Review & Next'}
               </button>
               <button
                 onClick={clearResponse}
