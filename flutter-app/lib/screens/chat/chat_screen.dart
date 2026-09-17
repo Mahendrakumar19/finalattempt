@@ -256,48 +256,81 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
 
             // Bottom Input Bar
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              decoration: BoxDecoration(
-                color: cardBg,
-                border: Border(top: BorderSide(color: borderCol)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: borderCol),
-                      ),
-                      child: TextField(
-                        controller: _inputController,
-                        enabled: !chatState.isBlocked,
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _handleSend(),
-                        style: TextStyle(fontSize: 13, color: textPrimary),
-                        decoration: InputDecoration(
-                          hintText: chatState.isBlocked ? 'Sending disabled' : 'Type your doubt or query...',
-                          hintStyle: TextStyle(fontSize: 12, color: AppTheme.textMutedOf(context)),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 10),
+            SafeArea(
+              top: false,
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 84),
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? const Color(0xFF0F172A).withValues(alpha: 0.95)
+                      : Colors.white.withValues(alpha: 0.95),
+                  border: Border(
+                    top: BorderSide(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.10)
+                          : borderCol.withValues(alpha: 0.60),
+                    ),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF1E293B).withValues(alpha: 0.80)
+                              : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.12)
+                                : Colors.black.withValues(alpha: 0.06),
+                          ),
+                        ),
+                        child: TextField(
+                          controller: _inputController,
+                          enabled: !chatState.isBlocked,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _handleSend(),
+                          style: TextStyle(fontSize: 14, color: textPrimary),
+                          decoration: InputDecoration(
+                            hintText: chatState.isBlocked ? 'Sending disabled' : 'Type your doubt or query...',
+                            hintStyle: TextStyle(fontSize: 13, color: AppTheme.textMutedOf(context)),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filled(
-                    onPressed: chatState.isBlocked ? null : _handleSend,
-                    icon: const Icon(Icons.send_rounded, size: 18),
-                    style: IconButton.styleFrom(
-                      backgroundColor: primaryCol,
-                      foregroundColor: isDark ? Colors.black : Colors.white,
-                      padding: const EdgeInsets.all(12),
+                    const SizedBox(width: 10),
+                    InkWell(
+                      onTap: chatState.isBlocked ? null : _handleSend,
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: primaryCol,
+                          boxShadow: [
+                            BoxShadow(
+                              color: primaryCol.withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.send_rounded,
+                          size: 20,
+                          color: isDark ? Colors.black : Colors.white,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

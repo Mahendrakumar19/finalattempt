@@ -60,6 +60,74 @@ class AppTheme {
   static Color borderOf(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark ? borderDark : borderLight;
 
+  // iOS Glass & Container Helper System
+  static BoxDecoration glassDecoration(
+    BuildContext context, {
+    double radius = 24,
+    bool isSelected = false,
+    Color? customBorderColor,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BoxDecoration(
+      gradient: LinearGradient(
+        colors: isDark
+            ? [
+                Colors.white.withValues(alpha: isSelected ? 0.25 : 0.10),
+                Colors.white.withValues(alpha: isSelected ? 0.12 : 0.04),
+              ]
+            : [
+                Colors.white.withValues(alpha: isSelected ? 0.95 : 0.65),
+                Colors.white.withValues(alpha: isSelected ? 0.60 : 0.35),
+              ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(
+        color: customBorderColor ??
+            (isDark
+                ? Colors.white.withValues(alpha: isSelected ? 0.40 : 0.18)
+                : Colors.white.withValues(alpha: isSelected ? 0.85 : 0.60)),
+        width: isSelected ? 1.2 : 1.0,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFF2563EB).withValues(alpha: isDark ? 0.20 : 0.10),
+          blurRadius: 16,
+          spreadRadius: -2,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    );
+  }
+
+  static BoxDecoration iOSCardDecoration(
+    BuildContext context, {
+    double radius = 20,
+    bool showBorder = true,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return BoxDecoration(
+      color: cardBgOf(context),
+      borderRadius: BorderRadius.circular(radius),
+      border: showBorder
+          ? Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : borderLight.withValues(alpha: 0.80),
+              width: 1,
+            )
+          : null,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.04),
+          blurRadius: 12,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    );
+  }
+
   // Global Pure White & Royal Blue Light Theme (Black Font Color)
   static ThemeData get lightTheme {
     return ThemeData(

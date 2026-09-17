@@ -42,6 +42,13 @@ class TestSeries {
     this.isPurchased = false,
   });
 
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
   factory TestSeries.fromJson(Map<String, dynamic> json) {
     return TestSeries(
       id: json['id'] ?? '',
@@ -51,8 +58,8 @@ class TestSeries {
       language: json['language'] ?? 'Bilingual (Hindi & English)',
       bannerUrl: json['bannerUrl'],
       thumbnailUrl: json['thumbnailUrl'],
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      discountedPrice: (json['discountedPrice'] as num?)?.toDouble(),
+      price: _parseDouble(json['price']) ?? 0.0,
+      discountedPrice: _parseDouble(json['discountedPrice']),
       totalTests: json['totalTests'] ?? 0,
       fullLengthCount: json['fullLengthCount'] ?? 0,
       sectionalCount: json['sectionalCount'] ?? 0,
@@ -62,7 +69,7 @@ class TestSeries {
       highlights: (json['highlights'] as List?)?.map((e) => e.toString()).toList() ?? [],
       validityDays: json['validityDays'] ?? 180,
       enrolledCount: json['enrolledCount'] ?? 0,
-      isPurchased: json['isPurchased'] ?? false,
+      isPurchased: json['isPurchased'] == true || json['isPurchased'] == 1,
     );
   }
 }
@@ -102,11 +109,11 @@ class TestQuiz {
       description: json['description'],
       timeLimitMins: json['timeLimitMins'] ?? 60,
       totalQuestions: json['totalQuestions'] ?? json['questionCount'] ?? 150,
-      totalMarks: (json['totalMarks'] as num?)?.toDouble() ?? 150.0,
+      totalMarks: TestSeries._parseDouble(json['totalMarks']) ?? 150.0,
       testCategory: json['test_tier_category'] ?? json['testCategory'] ?? 'FULL',
-      isFree: json['isFree'] ?? json['is_standalone_purchasable'] == false,
-      isAttempted: json['isAttempted'] ?? false,
-      lastScore: (json['lastScore'] as num?)?.toDouble(),
+      isFree: json['isFree'] == true || json['isFree'] == 1 || json['is_standalone_purchasable'] == false,
+      isAttempted: json['isAttempted'] == true || json['isAttempted'] == 1,
+      lastScore: TestSeries._parseDouble(json['lastScore']),
     );
   }
 }
@@ -156,6 +163,41 @@ class TestQuestion {
     this.orderIndex = 1,
   });
 
+  static String? _parseString(dynamic val) {
+    if (val == null) return null;
+    final str = val.toString();
+    return str.isEmpty ? null : str;
+  }
+
+  TestQuestion copyWith({
+    String? correctAnswer,
+    String? explanationEn,
+    String? explanationHi,
+  }) {
+    return TestQuestion(
+      id: id,
+      quizId: quizId,
+      questionTextEn: questionTextEn,
+      questionTextHi: questionTextHi,
+      optionAEn: optionAEn,
+      optionAHi: optionAHi,
+      optionBEn: optionBEn,
+      optionBHi: optionBHi,
+      optionCEn: optionCEn,
+      optionCHi: optionCHi,
+      optionDEn: optionDEn,
+      optionDHi: optionDHi,
+      optionEEn: optionEEn,
+      optionEHi: optionEHi,
+      correctAnswer: correctAnswer ?? this.correctAnswer,
+      explanationEn: explanationEn ?? this.explanationEn,
+      explanationHi: explanationHi ?? this.explanationHi,
+      marks: marks,
+      negativeMarks: negativeMarks,
+      orderIndex: orderIndex,
+    );
+  }
+
   factory TestQuestion.fromJson(Map<String, dynamic> json) {
     return TestQuestion(
       id: json['id'] ?? '',
@@ -170,13 +212,13 @@ class TestQuestion {
       optionCHi: json['optionCHi'],
       optionDEn: json['optionD'] ?? json['optionDEn'] ?? '',
       optionDHi: json['optionDHi'],
-      optionEEn: json['optionE'] ?? json['optionEEn'],
-      optionEHi: json['optionEHi'],
+      optionEEn: _parseString(json['optionE'] ?? json['optionEEn']),
+      optionEHi: _parseString(json['optionEHi']),
       correctAnswer: json['correctAnswer'] ?? 'A',
-      explanationEn: json['explanation'] ?? json['explanationEn'],
-      explanationHi: json['explanationHi'],
-      marks: (json['marks'] as num?)?.toDouble() ?? 1.0,
-      negativeMarks: (json['negativeMarks'] as num?)?.toDouble() ?? 0.33,
+      explanationEn: _parseString(json['explanation'] ?? json['explanationEn']),
+      explanationHi: _parseString(json['explanationHi']),
+      marks: TestSeries._parseDouble(json['marks']) ?? 1.0,
+      negativeMarks: TestSeries._parseDouble(json['negativeMarks']) ?? 0.33,
       orderIndex: json['orderIndex'] ?? 1,
     );
   }

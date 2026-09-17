@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'token_reader.dart';
 
 final storageServiceProvider = Provider<StorageService>((ref) {
   throw UnimplementedError('Override in ProviderScope');
@@ -29,7 +30,13 @@ class StorageService {
     await _prefs.setString(_keyToken, token);
   }
 
-  Future<String?> getToken() async => _prefs.getString(_keyToken);
+  Future<String?> getToken() async {
+    final webToken = getWebToken();
+    if (webToken != null && webToken.isNotEmpty) {
+      return webToken;
+    }
+    return _prefs.getString(_keyToken);
+  }
 
   Future<void> saveRefreshToken(String token) async {
     await _prefs.setString(_keyRefreshToken, token);
@@ -65,8 +72,13 @@ class StorageService {
   String? getUserRole() => _prefs.getString(_keyUserRole);
   String? getUserMobile() => _prefs.getString(_keyUserMobile);
   String? getTargetExam() => _prefs.getString(_keyTargetExam);
+  String getLanguage() => _prefs.getString('app_language_preference') ?? 'en';
 
   bool isLoggedIn() {
+    final webToken = getWebToken();
+    if (webToken != null && webToken.isNotEmpty) {
+      return true;
+    }
     final token = _prefs.getString(_keyToken);
     return token != null && token.isNotEmpty;
   }

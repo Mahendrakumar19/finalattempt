@@ -24,17 +24,17 @@ class _GlobalSearchModalState extends State<GlobalSearchModal> {
   String _activeFilter = 'All';
 
   final List<String> _filters = const ['All', 'Mock Tests', 'Current Affairs', 'PYQs', 'Courses'];
-  final List<String> _recentSearches = const ['BPSC 70th Prelims', 'UPSC CSAT Mocks', 'Bihar Special Current Affairs', 'SSC CGL Tier 1', 'STET Exam Paper'];
+  final List<String> _recentSearches = const ['70th BPSC Prelims', 'BPSC Mains GS Paper', 'Bihar Special Current Affairs', '69th BPSC PYQs'];
 
   final List<Map<String, String>> _allMockItems = const [
     {
       'title': '70th BPSC Prelims Full Mock Test 01',
       'category': 'Mock Tests',
       'sub': '150 Qs • 120 Mins • Bilingual',
-      'route': '/test-series/test-series-bpsc-70th',
+      'route': '/test-series',
     },
     {
-      'title': 'Daily Current Affairs — Today\'s Edition',
+      'title': 'Daily Current Affairs — Today\'s Bihar Digest',
       'category': 'Current Affairs',
       'sub': 'Exam Relevant Daily Digest with Notes',
       'route': '/current-affairs',
@@ -46,16 +46,10 @@ class _GlobalSearchModalState extends State<GlobalSearchModal> {
       'route': '/pyq',
     },
     {
-      'title': 'UPSC IAS Prelims GS Paper I Foundation',
+      'title': 'BPSC GS Foundation Course & Video Lectures',
       'category': 'Courses',
-      'sub': 'SuperCoaching Live Video Lectures',
+      'sub': 'Targeted Complete Exam Prep',
       'route': '/courses',
-    },
-    {
-      'title': 'SSC CGL General Awareness & Reasoning Drills',
-      'category': 'Mock Tests',
-      'sub': '100 Qs • Speed Practice Test',
-      'route': '/test-series/test-series-ssc-cgl-2024',
     },
   ];
 
@@ -207,9 +201,9 @@ class _GlobalSearchModalState extends State<GlobalSearchModal> {
                 children: [
                   // Recent Searches Pills (shown when query is empty)
                   if (_query.isEmpty) ...[
-                    const Text(
+                    Text(
                       'Popular Searches',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDarkPrimary),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary),
                     ),
                     const SizedBox(height: 10),
                     Wrap(
@@ -255,7 +249,7 @@ class _GlobalSearchModalState extends State<GlobalSearchModal> {
                     children: [
                       Text(
                         _query.isEmpty ? 'Recommended Results' : 'Search Results (${results.length})',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textDarkPrimary),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary),
                       ),
                     ],
                   ),

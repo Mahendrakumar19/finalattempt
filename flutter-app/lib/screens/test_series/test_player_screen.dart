@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/test_series_provider.dart';
 import '../../models/test_series_model.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'test_result_screen.dart';
 
 class TestPlayerScreen extends ConsumerWidget {
@@ -21,6 +23,58 @@ class TestPlayerScreen extends ConsumerWidget {
         summary: playerState.resultSummary!,
         questions: playerState.questions,
         userAnswers: playerState.userAnswers,
+      );
+    }
+
+    final questionsAsync = ref.watch(quizQuestionsProvider(quizId));
+
+    if (questionsAsync.hasError) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Access Error')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  questionsAsync.error.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () {
+                    if (Navigator.of(context).canPop()) {
+                      Navigator.of(context).pop();
+                    } else {
+                      context.go('/');
+                    }
+                  },
+                  child: const Text('Go Back'),
+                )
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (playerState.questions.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Loading Test...')),
+        body: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Fetching questions from server...'),
+            ],
+          ),
+        ),
       );
     }
 
@@ -125,13 +179,17 @@ class TestPlayerScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Q${playerState.currentIndex + 1}. $questionText',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        height: 1.4,
-                      ),
+                    Html(
+                      data: '<strong>Q${playerState.currentIndex + 1}.</strong> $questionText',
+                      style: {
+                        "body": Style(
+                          fontSize: FontSize(16.0),
+                          fontWeight: FontWeight.w600,
+                          lineHeight: LineHeight(1.4),
+                          margin: Margins.zero,
+                          padding: HtmlPaddings.zero,
+                        ),
+                      },
                     ),
                     const SizedBox(height: 20),
                     _buildOptionTile(context, notifier, playerState, 'A', currentQ.optionAEn, currentQ.optionAHi),
@@ -264,13 +322,17 @@ class TestPlayerScreen extends ConsumerWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: isSelected ? Colors.blue.shade900 : Colors.black87,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  ),
+                child: Html(
+                  data: text,
+                  style: {
+                    "body": Style(
+                      fontSize: FontSize(14.0),
+                      color: isSelected ? Colors.blue.shade900 : Colors.black87,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      margin: Margins.zero,
+                      padding: HtmlPaddings.zero,
+                    ),
+                  },
                 ),
               ),
             ],

@@ -201,7 +201,7 @@ class HomeScreen extends ConsumerWidget {
                         // 6. PYQ Practice Banner
                         _buildPYQSection(context, ref, loc, pyqsAsync),
 
-                        const SizedBox(height: 36),
+                        const SizedBox(height: 110),
                       ],
                     ),
                   ),
@@ -216,6 +216,7 @@ class HomeScreen extends ConsumerWidget {
 
   // 2. Actionable Dynamic Featured Test Pass Card
   Widget _buildContinueOrDiscoveryCard(BuildContext context, WidgetRef ref, AppLocalizations loc, AsyncValue<List<TestSeries>> testSeriesAsync) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return testSeriesAsync.when(
       loading: () => const Padding(
         padding: EdgeInsets.symmetric(horizontal: 16),
@@ -229,19 +230,25 @@ class HomeScreen extends ConsumerWidget {
 
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [AppTheme.primaryBlue, Color(0xFF1D4ED8)],
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [const Color(0xFF1E3A8A), const Color(0xFF1D4ED8)]
+                  : [const Color(0xFF1E3A8A), const Color(0xFF2563EB)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: isDark ? 0.20 : 0.40),
+              width: 1.2,
+            ),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.18),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
               ),
             ],
           ),

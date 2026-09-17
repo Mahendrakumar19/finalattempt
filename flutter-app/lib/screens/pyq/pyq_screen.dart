@@ -128,7 +128,7 @@ class _PYQScreenState extends ConsumerState<PYQScreen> {
                       grouped.putIfAbsent(examName, () => []).add(p);
                     }
                     return ListView(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                       children: grouped.entries.map((entry) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -145,7 +145,7 @@ class _PYQScreenState extends ConsumerState<PYQScreen> {
                     );
                   },
                   loading: () => ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                     itemCount: 6,
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (_, __) => const LoadingShimmer(height: 90),

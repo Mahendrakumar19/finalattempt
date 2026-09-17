@@ -19,13 +19,14 @@ class AuthService {
         'password': password,
       });
 
-      if (data != null && (data['token'] != null || data['success'] == true)) {
-        final token = data['token'] ?? 'demo_token_${DateTime.now().millisecondsSinceEpoch}';
+      if (data != null && data['success'] == true) {
+        final responseData = data['data'] ?? {};
+        final token = responseData['accessToken'] ?? data['token'] ?? 'demo_token_${DateTime.now().millisecondsSinceEpoch}';
         await _storage.saveToken(token);
-        if (data['refreshToken'] != null) {
-          await _storage.saveRefreshToken(data['refreshToken']);
+        if (responseData['refreshToken'] != null) {
+          await _storage.saveRefreshToken(responseData['refreshToken']);
         }
-        final user = data['user'] ?? {
+        final user = responseData['user'] ?? data['user'] ?? {
           'id': 'usr_demo_1',
           'fullName': email.contains('@') ? email.split('@').first : email,
           'email': email,
@@ -79,18 +80,22 @@ class AuthService {
         'targetExam': targetExam,
       });
 
-      if (data != null && (data['token'] != null || data['success'] == true)) {
-        final token = data['token'] ?? 'demo_token_${DateTime.now().millisecondsSinceEpoch}';
+      if (data != null && data['success'] == true) {
+        final responseData = data['data'] ?? {};
+        final token = responseData['accessToken'] ?? data['token'] ?? 'demo_token_${DateTime.now().millisecondsSinceEpoch}';
         await _storage.saveToken(token);
-        final user = data['user'] ?? {
-          'id': 'usr_reg_${DateTime.now().millisecondsSinceEpoch}',
+        if (responseData['refreshToken'] != null) {
+          await _storage.saveRefreshToken(responseData['refreshToken']);
+        }
+        final user = responseData['user'] ?? data['user'] ?? {
+          'id': 'usr_demo_1',
           'fullName': fullName,
           'email': email,
           'role': 'student',
         };
         await _storage.saveUserSession(
-          userId: user['id']?.toString() ?? '',
-          name: user['fullName'] ?? fullName,
+          userId: user['id']?.toString() ?? 'usr_demo_1',
+          name: (user['fullName'] ?? user['name'] ?? fullName).toString(),
           email: user['email'] ?? email,
           role: user['role'] ?? 'student',
         );

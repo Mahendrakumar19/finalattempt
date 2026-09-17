@@ -5,7 +5,6 @@ import '../../providers/test_series_provider.dart';
 import '../../models/test_series_model.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/localization/app_localizations.dart';
-import '../../widgets/swipeable_package_card.dart';
 import '../../widgets/top_header_actions.dart';
 
 class TestSeriesCatalogScreen extends ConsumerStatefulWidget {
@@ -18,7 +17,6 @@ class TestSeriesCatalogScreen extends ConsumerStatefulWidget {
 class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'All';
-  bool _isSwipeView = false;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -66,21 +64,9 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            tooltip: _isSwipeView ? 'Switch to List View' : 'Switch to Swipe Cards View',
-            icon: Icon(
-              _isSwipeView ? Icons.view_list_rounded : Icons.swipe_rounded,
-              color: AppTheme.primaryOf(context),
-            ),
-            onPressed: () {
-              setState(() {
-                _isSwipeView = !_isSwipeView;
-              });
-            },
-          ),
-          const TopHeaderActions(),
-          const SizedBox(width: 8),
+        actions: const [
+          TopHeaderActions(),
+          SizedBox(width: 8),
         ],
       ),
       body: Stack(
@@ -157,7 +143,7 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
                         child: Row(
-                          children: ['All', 'BPSC', 'UPSC', 'Bihar Daroga', 'STET', 'SSC', 'Banking'].map((cat) {
+                          children: ['All', 'PRELIMS', 'MAINS', 'FOUNDATION', 'BPSC'].map((cat) {
                             final isSelected = _selectedCategory == cat;
                             final primaryCol = AppTheme.primaryOf(context);
                             final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -227,48 +213,8 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
                         return _buildEmptyState(context);
                       }
 
-                      if (_isSwipeView) {
-                        final swipeItems = filtered.map((s) => SwipeablePackageItem(
-                          id: s.id,
-                          title: s.title,
-                          category: s.examCategory,
-                          totalTests: s.totalTests,
-                          freeTests: s.freeTestsCount,
-                          rating: 4.8,
-                          originalPrice: s.price > 0 ? s.price.toInt() : 499,
-                          discountPrice: s.discountedPrice != null ? s.discountedPrice!.toInt() : (s.price > 0 ? s.price.toInt() : 0),
-                          highlights: [
-                            '${s.fullLengthCount} Full-length mock tests included',
-                            'Language: ${s.language}',
-                            'All India Rank & Performance Analytics',
-                          ],
-                          badgeText: s.isPurchased ? 'UNLOCKED' : 'PASS PRO',
-                          themeColor: AppTheme.primaryBlue,
-                        )).toList();
-
-                        return SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          child: SwipeablePackageDeck(
-                            items: swipeItems,
-                            onSwiped: (item, isLiked) {
-                              final action = isLiked ? 'Pass Saved' : 'Pass Skipped';
-                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('$action: ${item.title}'),
-                                  duration: const Duration(seconds: 1),
-                                  behavior: SnackBarBehavior.floating,
-                                  margin: const EdgeInsets.all(16),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      }
-
                       return ListView.builder(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {
@@ -320,22 +266,27 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.lightBlueBackground,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      series.examCategory.toUpperCase(),
-                      style: const TextStyle(
-                        color: AppColors.primaryBlue,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.lightBlueBackground,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        series.examCategory.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.primaryBlue,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   if (series.isPurchased)
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -399,13 +350,18 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildMetric(context, Icons.assignment_outlined, '${series.totalTests}', 'Total Tests'),
+                    Expanded(
+                      child: _buildMetric(context, Icons.assignment_outlined, '${series.totalTests}', 'Total Tests'),
+                    ),
                     _buildVerticalDivider(borderCol),
-                    _buildMetric(context, Icons.quiz_outlined, '${series.fullLengthCount}', 'Full Length'),
+                    Expanded(
+                      child: _buildMetric(context, Icons.quiz_outlined, '${series.fullLengthCount}', 'Full Length'),
+                    ),
                     _buildVerticalDivider(borderCol),
-                    _buildMetric(context, Icons.translate, series.language.contains('Bilingual') ? 'Hindi & Eng' : series.language, 'Language'),
+                    Expanded(
+                      child: _buildMetric(context, Icons.translate, series.language.contains('Bilingual') ? 'Hindi & Eng' : series.language, 'Language'),
+                    ),
                   ],
                 ),
               ),
@@ -414,49 +370,52 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (hasDiscount)
-                        Text(
-                          '₹${series.price.toInt()}',
-                          style: const TextStyle(
-                            decoration: TextDecoration.lineThrough,
-                            color: AppColors.textMuted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (hasDiscount)
                           Text(
-                            hasDiscount ? '₹${series.discountedPrice!.toInt()}' : '₹${series.price.toInt()}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: textPrimary,
+                            '₹${series.price.toInt()}',
+                            style: const TextStyle(
+                              decoration: TextDecoration.lineThrough,
+                              color: AppColors.textMuted,
+                              fontSize: 12,
                             ),
                           ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            'Validity',
-                            style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ],
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              hasDiscount ? '₹${series.discountedPrice!.toInt()}' : '₹${series.price.toInt()}',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: textPrimary,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Text(
+                              'Validity',
+                              style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   ElevatedButton(
                     onPressed: () {
                       context.push('/test-series/${series.id}');
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: series.isPurchased ? const Color(0xFF15803D) : AppColors.primaryBlue,
+                      backgroundColor: AppColors.primaryBlue,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     child: Text(
                       series.isPurchased ? 'View Tests →' : 'View Series →',
@@ -474,19 +433,23 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
 
   Widget _buildMetric(BuildContext context, IconData icon, String value, String label) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: AppColors.primaryBlue),
-
-            const SizedBox(width: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimaryOf(context),
+            Icon(icon, size: 13, color: AppColors.primaryBlue),
+            const SizedBox(width: 3),
+            Flexible(
+              child: Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimaryOf(context),
+                ),
               ),
             ),
           ],
@@ -494,9 +457,10 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
         const SizedBox(height: 2),
         Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
         ),
-
       ],
     );
   }

@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../providers/test_series_provider.dart';
 import '../../models/test_series_model.dart';
 import '../../core/theme/app_theme.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import '../../core/services/api_service.dart';
 
 class TestSeriesDetailScreen extends ConsumerStatefulWidget {
   final String seriesId;
@@ -16,6 +18,89 @@ class TestSeriesDetailScreen extends ConsumerStatefulWidget {
 
 class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen> {
   String _selectedFilterTab = 'ALL';
+  late Razorpay _razorpay;
+  bool _isProcessingPayment = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _razorpay = Razorpay();
+    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  }
+
+  @override
+  void dispose() {
+    _razorpay.clear();
+    super.dispose();
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      await apiService.post('/payments/verify', data: {
+        'razorpay_payment_id': response.paymentId,
+        'razorpay_order_id': response.orderId,
+        'razorpay_signature': response.signature,
+        'courseId': widget.seriesId,
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment Successful! Access granted.')));
+        ref.invalidate(testSeriesDetailProvider(widget.seriesId));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verification failed: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingPayment = false);
+    }
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (mounted) {
+      setState(() => _isProcessingPayment = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment Failed: ${response.message}')));
+    }
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (mounted) setState(() => _isProcessingPayment = false);
+  }
+
+  Future<void> _startPayment() async {
+    if (_isProcessingPayment) return;
+    setState(() => _isProcessingPayment = true);
+    
+    try {
+      final apiService = ref.read(apiServiceProvider);
+      final res = await apiService.post('/payments/create-order', data: {
+        'courseId': widget.seriesId,
+        'currency': 'INR',
+      });
+      
+      final data = res['data'];
+      final options = {
+        'key': data['key'],
+        'amount': data['amount'],
+        'name': 'Final Attempt',
+        'order_id': data['order_id'],
+        'description': 'Test Series Access',
+        'prefill': {
+          'contact': '',
+          'email': ''
+        }
+      };
+      
+      _razorpay.open(options);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isProcessingPayment = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not initiate checkout: $e')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -137,7 +222,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
           child: filteredQuizzes.isEmpty
               ? _buildEmptyQuizState(context)
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                   physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                   itemCount: filteredQuizzes.length,
                   itemBuilder: (context, index) {
@@ -262,12 +347,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                                           context.push('/test/${quiz.id}/attempt');
                                         }
                                       : () {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Unlock this Test Series Pass to attempt this test.'),
-                                              duration: Duration(seconds: 2),
-                                            ),
-                                          );
+                                          _startPayment();
                                         },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: canAttempt ? AppColors.primaryBlue : const Color(0xFF94A3B8),
@@ -346,8 +426,8 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     final textPrimary = AppTheme.textPrimaryOf(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -519,6 +599,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     final textPrimary = AppTheme.textPrimaryOf(context);
 
     return Container(
+      margin: const EdgeInsets.only(bottom: 84),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: cardBg,
@@ -550,26 +631,21 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                 ),
               ],
             ),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Razorpay checkout integration ready. Complete purchase to unlock all tests.'),
-                    duration: Duration(seconds: 3),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
+              ElevatedButton(
+                onPressed: _isProcessingPayment ? null : () => _startPayment(),
+                style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
                 backgroundColor: AppColors.primaryBlue,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text(
-                'Unlock Pass Now',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-              ),
+              child: _isProcessingPayment
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : const Text(
+                      'Unlock Pass Now',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
             ),
           ],
         ),

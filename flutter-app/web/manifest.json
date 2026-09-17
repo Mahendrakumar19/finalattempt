@@ -1,6 +1,6 @@
 {
-    "name": "final_attempt_app",
-    "short_name": "final_attempt_app",
+    "name": "Final Attempt App",
+    "short_name": "Final Attempt App",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

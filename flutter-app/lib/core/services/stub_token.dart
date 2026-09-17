@@ -1,0 +1,3 @@
+String? getWebToken() {
+  return null;
+}

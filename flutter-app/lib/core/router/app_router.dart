@@ -19,11 +19,14 @@ import '../../screens/auth/register_screen.dart';
 import '../../screens/student/dashboard_screen.dart';
 import '../../screens/student/profile_screen.dart';
 import '../../screens/chat/chat_screen.dart';
+import '../../screens/explore/explore_screen.dart';
 import '../../widgets/app_shell.dart';
 
 import '../../screens/test_series/test_series_catalog_screen.dart';
 import '../../screens/test_series/test_series_detail_screen.dart';
 import '../../screens/test_series/test_player_screen.dart';
+
+import '../../screens/syllabus_strategy/syllabus_strategy_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -70,6 +73,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (_, state) => CourseDetailScreen(courseId: state.pathParameters['id']!),
           ),
           GoRoute(path: '/pyq', builder: (_, __) => const PYQScreen()),
+          GoRoute(path: '/syllabus-strategy', builder: (_, __) => const SyllabusStrategyScreen()),
           GoRoute(path: '/current-affairs', builder: (_, __) => const CurrentAffairsScreen()),
           GoRoute(
             path: '/current-affairs/article/:slug',
@@ -86,6 +90,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/student/dashboard', builder: (_, __) => const StudentDashboardScreen()),
           GoRoute(path: '/student/profile', builder: (_, __) => const StudentProfileScreen()),
           GoRoute(path: '/chat', builder: (_, __) => const ChatScreen()),
+          GoRoute(path: '/explore', builder: (_, __) => const ExploreScreen()),
         ],
       ),
       GoRoute(

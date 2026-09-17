@@ -31,7 +31,7 @@ final testSeriesDetailProvider = FutureProvider.family.autoDispose<TestSeries, S
 // Quizzes under a test series provider - Strictly dynamic live API fetch
 final testSeriesQuizzesProvider = FutureProvider.family.autoDispose<List<TestQuiz>, String>((ref, seriesId) async {
   final apiService = ref.watch(apiServiceProvider);
-  final response = await apiService.get('/test-series/$seriesId/quizzes');
+  final response = await apiService.get('/lms/courses/$seriesId/quizzes');
   final data = response is Map ? (response['data'] ?? response) : response;
   if (data is List) {
     return data.map((item) => TestQuiz.fromJson(item)).toList();
@@ -66,6 +66,7 @@ class TestPlayerState {
   });
 
   TestPlayerState copyWith({
+    List<TestQuestion>? questions,
     int? currentIndex,
     Map<String, String>? userAnswers,
     Map<String, bool>? markedForReview,
@@ -77,7 +78,7 @@ class TestPlayerState {
   }) {
     return TestPlayerState(
       quiz: quiz,
-      questions: questions,
+      questions: questions ?? this.questions,
       currentIndex: currentIndex ?? this.currentIndex,
 
       userAnswers: userAnswers ?? this.userAnswers,
@@ -92,9 +93,10 @@ class TestPlayerState {
 }
 
 class TestPlayerNotifier extends StateNotifier<TestPlayerState> {
+  final dynamic apiService;
   Timer? _timer;
 
-  TestPlayerNotifier(TestQuiz quiz, List<TestQuestion> questions)
+  TestPlayerNotifier(this.apiService, TestQuiz quiz, List<TestQuestion> questions)
       : super(TestPlayerState(
           quiz: quiz,
           questions: questions,
@@ -206,48 +208,90 @@ class TestPlayerNotifier extends StateNotifier<TestPlayerState> {
     }
   }
 
-  void submitTest() {
+  Future<void> submitTest() async {
     _timer?.cancel();
 
-    double score = 0.0;
-    int correctCount = 0;
-    int incorrectCount = 0;
-    int unattemptedCount = 0;
+    try {
+      final response = await apiService.post(
+        '/quizzes/${state.quiz.id}/submit',
+        data: {'answers': state.userAnswers},
+      );
 
-    for (var q in state.questions) {
-      final userAns = state.userAnswers[q.id];
-      if (userAns == null) {
-        unattemptedCount++;
-      } else if (userAns == q.correctAnswer) {
-        correctCount++;
-        score += q.marks;
-      } else {
-        incorrectCount++;
-        score -= q.negativeMarks;
-      }
+      final data = response is Map ? (response['data'] ?? response) : response;
+      if (data == null) throw Exception("No data returned from submit.");
+
+      final summary = TestResultSummary(
+        quizId: state.quiz.id,
+        quizTitle: state.quiz.title,
+        score: double.tryParse(data['score']?.toString() ?? '0') ?? 0.0,
+        maxScore: double.tryParse(data['maxScore']?.toString() ?? '0') ?? state.quiz.totalMarks,
+        totalQuestions: data['totalQuestions'] ?? state.questions.length,
+        correctCount: _countStatus(data['details'], true),
+        incorrectCount: _countStatus(data['details'], false),
+        unattemptedCount: _countUnattempted(data['details'], state.questions.length),
+        accuracyPercentage: _calculateAccuracy(data['details']),
+        timeTakenSeconds: (state.quiz.timeLimitMins * 60) - state.remainingSeconds,
+      );
+
+      // Update state.questions with correct answers and explanations from the backend
+      final detailsList = data['details'] as List? ?? [];
+      final updatedQuestions = state.questions.map((q) {
+        final detail = detailsList.firstWhere(
+          (d) => d['questionId'] == q.id,
+          orElse: () => null,
+        );
+        if (detail == null) return q;
+        return q.copyWith(
+          correctAnswer: detail['correctAnswer'],
+          explanationEn: detail['explanation'],
+          explanationHi: detail['explanationHi'],
+        );
+      }).toList();
+
+      state = state.copyWith(
+        isSubmitted: true,
+        resultSummary: summary,
+        questions: updatedQuestions,
+      );
+    } catch (err) {
+      // Handle error gracefully or rely on UI to catch it
+      print('Failed to submit test: $err');
+      // For fallback, we just mark it submitted with 0s if offline submission completely failed
+      state = state.copyWith(
+        isSubmitted: true,
+        resultSummary: TestResultSummary(
+          quizId: state.quiz.id,
+          quizTitle: state.quiz.title,
+          score: 0.0,
+          maxScore: state.quiz.totalMarks,
+          totalQuestions: state.questions.length,
+          correctCount: 0,
+          incorrectCount: 0,
+          unattemptedCount: state.questions.length,
+          accuracyPercentage: 0.0,
+          timeTakenSeconds: (state.quiz.timeLimitMins * 60) - state.remainingSeconds,
+        ),
+      );
     }
+  }
 
-    final totalAtt = correctCount + incorrectCount;
-    final accuracy = totalAtt > 0 ? (correctCount / totalAtt) * 100 : 0.0;
-    final timeSpent = (state.quiz.timeLimitMins * 60) - state.remainingSeconds;
+  int _countStatus(dynamic details, bool isCorrectStatus) {
+    if (details is! List) return 0;
+    return details.where((d) => d['isCorrect'] == isCorrectStatus && d['studentAnswer'] != null).length;
+  }
 
-    final summary = TestResultSummary(
-      quizId: state.quiz.id,
-      quizTitle: state.quiz.title,
-      score: score < 0 ? 0.0 : double.parse(score.toStringAsFixed(2)),
-      maxScore: state.quiz.totalMarks,
-      totalQuestions: state.questions.length,
-      correctCount: correctCount,
-      incorrectCount: incorrectCount,
-      unattemptedCount: unattemptedCount,
-      accuracyPercentage: double.parse(accuracy.toStringAsFixed(1)),
-      timeTakenSeconds: timeSpent,
-    );
+  int _countUnattempted(dynamic details, int total) {
+    if (details is! List) return total;
+    return details.where((d) => d['studentAnswer'] == null).length;
+  }
 
-    state = state.copyWith(
-      isSubmitted: true,
-      resultSummary: summary,
-    );
+  double _calculateAccuracy(dynamic details) {
+    if (details is! List) return 0.0;
+    final totalAtt = details.where((d) => d['studentAnswer'] != null).length;
+    if (totalAtt == 0) return 0.0;
+    final correctCount = _countStatus(details, true);
+    final acc = (correctCount / totalAtt) * 100;
+    return double.parse(acc.toStringAsFixed(1));
   }
 
   @override
@@ -260,9 +304,12 @@ class TestPlayerNotifier extends StateNotifier<TestPlayerState> {
 // Dynamic Live Questions & Test Attempt Provider
 final quizQuestionsProvider = FutureProvider.family.autoDispose<List<TestQuestion>, String>((ref, quizId) async {
   final apiService = ref.watch(apiServiceProvider);
-  final response = await apiService.get('/quizzes/$quizId/questions');
+  final response = await apiService.get('/quizzes/$quizId/start');
   final data = response is Map ? (response['data'] ?? response) : response;
-  if (data is List) {
+  if (data is Map && data.containsKey('questions')) {
+    final questionsList = data['questions'] as List;
+    return questionsList.map((q) => TestQuestion.fromJson(q)).toList();
+  } else if (data is List) {
     return data.map((q) => TestQuestion.fromJson(q)).toList();
   }
   return [];
@@ -270,7 +317,7 @@ final quizQuestionsProvider = FutureProvider.family.autoDispose<List<TestQuestio
 
 final testPlayerProvider = StateNotifierProvider.family.autoDispose<TestPlayerNotifier, TestPlayerState, String>((ref, quizId) {
   final questionsAsync = ref.watch(quizQuestionsProvider(quizId));
-  final questions = questionsAsync.value ?? [];
+  final questions = questionsAsync.valueOrNull ?? [];
 
   final quiz = TestQuiz(
     id: quizId,
@@ -281,5 +328,6 @@ final testPlayerProvider = StateNotifierProvider.family.autoDispose<TestPlayerNo
     totalMarks: questions.length.toDouble(),
   );
 
-  return TestPlayerNotifier(quiz, questions);
+  final apiService = ref.watch(apiServiceProvider);
+  return TestPlayerNotifier(apiService, quiz, questions);
 });
