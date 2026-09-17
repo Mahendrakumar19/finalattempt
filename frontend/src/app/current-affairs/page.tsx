@@ -81,7 +81,7 @@ function SidebarSection({ icon, title }: { icon: React.ReactNode; title: string 
 export default function CurrentAffairsLanding() {
   const { t } = useTranslation();
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
-  const [activeTopic, setActiveTopic] = useState<'all' | 'national' | 'international' | 'bihar' | 'arunachal'>('all');
+  const [activeTopic, setActiveTopic] = useState<'all' | 'editorials' | 'hindi' | 'national' | 'international' | 'bihar' | 'arunachal'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [showDateDropdown, setShowDateDropdown] = useState<boolean>(false);

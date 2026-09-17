@@ -70,6 +70,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
       final isBlocked = results[0] as bool;
       final room = results[1] as SupportRoomModel?;
 
+      if (!mounted) return;
       state = state.copyWith(
         isBlocked: isBlocked,
         room: room,
@@ -78,14 +79,17 @@ class ChatNotifier extends StateNotifier<ChatState> {
       if (room != null) {
         // 2. Fetch history
         final history = await _chatService.getMessages(room.id);
+        if (!mounted) return;
         state = state.copyWith(messages: history, isLoading: false);
 
         // 3. Connect Socket.IO client
         _connectSocket(room.id);
       } else {
+        if (!mounted) return;
         state = state.copyWith(isLoading: false);
       }
     } catch (e) {
+      if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to connect to mentorship chat.',
@@ -108,20 +112,24 @@ class ChatNotifier extends StateNotifier<ChatState> {
     );
 
     _socket?.onConnect((_) {
+      if (!mounted) return;
       state = state.copyWith(isConnected: true);
       _socket?.emit('join_room', roomId);
     });
 
     _socket?.onDisconnect((_) {
+      if (!mounted) return;
       state = state.copyWith(isConnected: false);
     });
 
     _socket?.onConnectError((err) {
+      if (!mounted) return;
       state = state.copyWith(isConnected: false);
     });
 
     // Listen for incoming real-time messages from Admin or Mentor
     _socket?.on('new_message', (data) {
+      if (!mounted) return;
       if (data is Map<String, dynamic>) {
         final incoming = ChatMessageModel.fromJson(data);
         final currentMessages = List<ChatMessageModel>.from(state.messages);
@@ -143,6 +151,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     // Message edited event
     _socket?.on('message_edited', (data) {
+      if (!mounted) return;
       if (data is Map<String, dynamic>) {
         final msgId = data['messageId']?.toString();
         final newText = data['newMessageText']?.toString();
@@ -169,6 +178,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     // Message deleted event
     _socket?.on('message_deleted', (data) {
+      if (!mounted) return;
       if (data is Map<String, dynamic>) {
         final msgId = data['messageId']?.toString();
         if (msgId != null) {
@@ -180,6 +190,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     // User blocked status update
     _socket?.on('user_blocked_status', (data) {
+      if (!mounted) return;
       if (data is Map<String, dynamic>) {
         final targetUser = data['userId']?.toString();
         final isBlocked = data['isBlocked'] == true;
