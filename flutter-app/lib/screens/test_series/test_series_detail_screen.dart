@@ -7,6 +7,8 @@ import '../../core/theme/app_theme.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../core/services/api_service.dart';
 
+import 'package:flutter/foundation.dart';
+
 class TestSeriesDetailScreen extends ConsumerStatefulWidget {
   final String seriesId;
 
@@ -18,21 +20,25 @@ class TestSeriesDetailScreen extends ConsumerStatefulWidget {
 
 class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen> {
   String _selectedFilterTab = 'ALL';
-  late Razorpay _razorpay;
+  Razorpay? _razorpay;
   bool _isProcessingPayment = false;
 
   @override
   void initState() {
     super.initState();
-    _razorpay = Razorpay();
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    if (!kIsWeb) {
+      _razorpay = Razorpay();
+      _razorpay?.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+      _razorpay?.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+      _razorpay?.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    }
   }
 
   @override
   void dispose() {
-    _razorpay.clear();
+    if (!kIsWeb) {
+      _razorpay?.clear();
+    }
     super.dispose();
   }
 
@@ -93,7 +99,13 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
         }
       };
       
-      _razorpay.open(options);
+      if (_razorpay != null) {
+        _razorpay!.open(options);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment gateway is supported only on mobile devices.')));
+        }
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessingPayment = false);

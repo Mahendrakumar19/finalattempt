@@ -77,7 +77,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/current-affairs', builder: (_, __) => const CurrentAffairsScreen()),
           GoRoute(
             path: '/current-affairs/article/:slug',
-            builder: (_, state) => CAArticleScreen(slug: state.pathParameters['slug']!),
+            builder: (_, state) => CAArticleScreen(
+              slug: state.pathParameters['slug']!,
+              lang: state.uri.queryParameters['lang'] ?? 'en',
+            ),
           ),
           GoRoute(path: '/blog', builder: (_, __) => const BlogScreen()),
           GoRoute(

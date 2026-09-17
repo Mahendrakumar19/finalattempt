@@ -633,11 +633,27 @@ class FinalAttemptDB {
     const locale = this.getLocale();
     const cacheKey = `current_affairs_cache_${locale}`;
     const cached = this.getCachedData<unknown[]>(cacheKey, 60000);
-    if (cached) return cached;
+    if (cached && cached.length > 0) return cached;
 
     const data = await this.apiFetch('/api/current-affairs');
-    const result = data || currentAffairsData;
-    this.setCachedData(cacheKey, result);
+    let result = data || currentAffairsData;
+    if ((!result || result.length === 0) && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`finalattempt_${cacheKey}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) result = parsed;
+        }
+      } catch (_) {}
+    }
+    if (result && result.length > 0) {
+      this.setCachedData(cacheKey, result);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(`finalattempt_${cacheKey}`, JSON.stringify(result));
+        } catch (_) {}
+      }
+    }
     return result;
   }
 
@@ -1012,16 +1028,32 @@ class FinalAttemptDB {
     const cacheKey = `ca_editions_${includeDrafts}_${locale}`;
     if (!includeDrafts) {
       const cached = this.getCachedData<DynamicCurrentAffairEdition[]>(cacheKey, 30000);
-      if (cached && Array.isArray(cached)) return cached;
+      if (cached && Array.isArray(cached) && cached.length > 0) return cached;
     }
 
     const data = await this.apiFetch(`/api/dynamic-current-affairs/editions?includeDrafts=${includeDrafts}${includeDrafts ? `&_t=${Date.now()}` : ''}`);
-    const result: DynamicCurrentAffairEdition[] = Array.isArray(data)
+    let result: DynamicCurrentAffairEdition[] = Array.isArray(data)
       ? data
       : (data && data.success && Array.isArray(data.data) ? data.data : []);
 
+    // Fall back to local storage if API response was null or empty (prevents data vanishing on refresh)
+    if (result.length === 0 && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`finalattempt_${cacheKey}`);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) result = parsed;
+        }
+      } catch (_) {}
+    }
+
     if (!includeDrafts && result.length > 0) {
       this.setCachedData(cacheKey, result);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(`finalattempt_${cacheKey}`, JSON.stringify(result));
+        } catch (_) {}
+      }
     }
     return result;
   }

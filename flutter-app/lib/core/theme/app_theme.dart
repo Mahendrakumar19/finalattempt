@@ -49,10 +49,10 @@ class AppTheme {
       Theme.of(context).brightness == Brightness.dark ? textLightPrimary : textDarkPrimary;
 
   static Color textSecondaryOf(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? textLightSecondary : textDarkSecondary;
+      Theme.of(context).brightness == Brightness.dark ? textLightPrimary : textDarkSecondary;
 
   static Color textMutedOf(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF94A3B8) : textMuted;
+      Theme.of(context).brightness == Brightness.dark ? textLightPrimary : textMuted;
 
   static Color primaryOf(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark ? const Color(0xFF60A5FA) : primaryBlue;
@@ -248,9 +248,9 @@ class AppTheme {
         headlineMedium: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: textLightPrimary),
         titleLarge: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: textLightPrimary),
         bodyLarge: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w400, color: textLightPrimary),
-        bodyMedium: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w400, color: textLightSecondary),
-        bodySmall: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w400, color: const Color(0xFF94A3B8)),
-        labelLarge: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF60A5FA), letterSpacing: 0.8),
+        bodyMedium: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w400, color: textLightPrimary),
+        bodySmall: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w400, color: textLightPrimary),
+        labelLarge: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: textLightPrimary, letterSpacing: 0.8),
       ),
       cardTheme: CardThemeData(
         color: const Color(0xFF1E293B),

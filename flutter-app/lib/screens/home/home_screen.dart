@@ -28,7 +28,7 @@ class HomeScreen extends ConsumerWidget {
     final loc = ref.watch(appLocalizationsProvider);
     final authState = ref.watch(authStateProvider);
     final testSeriesAsync = ref.watch(testSeriesListProvider);
-    final caAsync = ref.watch(caEditionsProvider);
+    final caAsync = ref.watch(caEditionsProvider(loc.langCode));
     final pyqsAsync = ref.watch(pyqListProvider);
 
     final userName = (authState.userName != null && authState.userName!.isNotEmpty)
@@ -74,7 +74,7 @@ class HomeScreen extends ConsumerWidget {
             child: RefreshIndicator(
               onRefresh: () async {
                 ref.invalidate(testSeriesListProvider);
-                ref.invalidate(caEditionsProvider);
+                ref.invalidate(caEditionsProvider(loc.langCode));
                 ref.invalidate(pyqListProvider);
               },
               child: CustomScrollView(
@@ -409,7 +409,7 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   const Text('Unable to load current affairs', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w600)),
                   TextButton(
-                    onPressed: () => ref.refresh(caEditionsProvider),
+                    onPressed: () => ref.refresh(caEditionsProvider(loc.langCode)),
                     child: const Text('Retry', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red)),
                   ),
                 ],
@@ -672,7 +672,9 @@ class _TestSeriesHomeCard extends StatelessWidget {
                       style: TextStyle(fontSize: 11, color: AppTheme.textMutedOf(context)),
                     ),
                     Text(
-                      series.price > 0 ? '₹${series.price.toInt()}' : 'Free',
+                      (series.discountedPrice ?? series.price) > 0 
+                          ? '₹${(series.discountedPrice ?? series.price).toInt()}' 
+                          : 'Free',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: primaryColor),
                     ),
                   ],

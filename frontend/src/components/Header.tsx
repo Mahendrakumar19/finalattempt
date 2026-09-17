@@ -430,14 +430,12 @@ export default function Header() {
             <button
               id="header-lang-switcher"
               onClick={() => setLocale(locale === 'en' ? 'hi' : 'en')}
-              className="hover:text-white transition-colors flex items-center gap-1 text-sm font-bold cursor-pointer shrink-0 border border-slate-700/60 rounded-lg px-2 py-0.5 hover:border-amber-500/50"
-              aria-label={locale === 'en' ? 'Switch to Hindi' : 'Switch to English'}
-              title={locale === 'en' ? 'हिंदी में देखें' : 'View in English'}
+              className="hover:text-white transition-all flex items-center gap-1.5 text-xs font-black cursor-pointer shrink-0 border border-amber-500/60 bg-amber-500/10 rounded-full px-3 py-1 hover:bg-amber-500/20 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
+              aria-label={locale === 'en' ? 'Switch to Hindi Medium' : 'Switch to English Medium'}
+              title={locale === 'en' ? 'हिंदी माध्यम में बदलें' : 'Switch to English Medium'}
             >
-              <Globe className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-amber-400">{locale === 'en' ? 'EN' : 'हि'}</span>
-              <span className="text-slate-600">|</span>
-              <span className="text-slate-400">{locale === 'en' ? 'हिंदी' : 'EN'}</span>
+              <Globe className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              <span className="text-amber-400 font-extrabold">{locale === 'en' ? 'हिन्दी माध्यम' : 'English Medium'}</span>
             </button>
             <span className="text-slate-700">|</span>
             <button

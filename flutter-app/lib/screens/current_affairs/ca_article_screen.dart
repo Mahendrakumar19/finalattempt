@@ -6,13 +6,28 @@ import '../../providers/current_affairs_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../widgets/loading_shimmer.dart';
 
-class CAArticleScreen extends ConsumerWidget {
+class CAArticleScreen extends ConsumerStatefulWidget {
   final String slug;
-  const CAArticleScreen({super.key, required this.slug});
+  final String lang;
+
+  const CAArticleScreen({super.key, required this.slug, this.lang = 'en'});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final articleAsync = ref.watch(caArticleProvider(slug));
+  ConsumerState<CAArticleScreen> createState() => _CAArticleScreenState();
+}
+
+class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
+  late String _activeLang;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeLang = widget.lang;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final articleAsync = ref.watch(caArticleProvider((slug: widget.slug, lang: _activeLang)));
     final bg = AppTheme.bgOf(context);
     final cardBg = AppTheme.cardBgOf(context);
     final borderCol = AppTheme.borderOf(context);
@@ -32,6 +47,24 @@ class CAArticleScreen extends ConsumerWidget {
           'Article',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: textPrimary),
         ),
+        actions: [
+          // Language Switcher (ENG / हिंदी)
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildLangBtn('en', 'ENG'),
+                _buildLangBtn('hi', 'हिंदी'),
+              ],
+            ),
+          ),
+        ],
       ),
       body: articleAsync.when(
         data: (article) {
@@ -106,7 +139,7 @@ class CAArticleScreen extends ConsumerWidget {
                     border: Border.all(color: borderCol),
                   ),
                   child: Text(article.summary,
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.6),
+                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryOf(context), height: 1.6),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -136,7 +169,7 @@ class CAArticleScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: borderCol),
                       ),
-                      child: Text('#$t', style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                      child: Text('#$t', style: TextStyle(fontSize: 10, color: AppTheme.textSecondaryOf(context), fontWeight: FontWeight.w600)),
                     )).toList(),
                   ),
                 ],
@@ -147,6 +180,28 @@ class CAArticleScreen extends ConsumerWidget {
         },
         loading: () => const LoadingShimmer(height: 500),
         error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppColors.error))),
+      ),
+    );
+  }
+
+  Widget _buildLangBtn(String code, String label) {
+    final isSel = _activeLang == code;
+    return GestureDetector(
+      onTap: () => setState(() => _activeLang = code),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isSel ? AppColors.primaryBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: isSel ? Colors.white : AppColors.primaryBlue,
+          ),
+        ),
       ),
     );
   }
@@ -161,6 +216,7 @@ class _Section extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textPrimary = AppTheme.textPrimaryOf(context);
+    final textSecondary = AppTheme.textSecondaryOf(context);
     final cardBg = AppTheme.cardBgOf(context);
     final borderCol = AppTheme.borderOf(context);
 
@@ -181,7 +237,7 @@ class _Section extends StatelessWidget {
             data: content,
             style: {
               'body': Style(
-                color: AppColors.textSecondary,
+                color: textSecondary,
                 fontSize: FontSize(13),
                 lineHeight: const LineHeight(1.6),
                 margin: Margins.zero,
@@ -189,7 +245,7 @@ class _Section extends StatelessWidget {
               ),
               'strong': Style(color: textPrimary, fontWeight: FontWeight.w700),
               'ul': Style(margin: Margins.only(left: 8)),
-              'li': Style(color: AppColors.textSecondary, fontSize: FontSize(13)),
+              'li': Style(color: textSecondary, fontSize: FontSize(13)),
             },
           ),
         ),

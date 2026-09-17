@@ -277,7 +277,10 @@ export default function CurrentAffairsLanding() {
             const titleText = (art.title || '').toLowerCase();
             const tagsText = (art.tags || []).join(' ').toLowerCase();
 
-            const matchesTopic = activeTopic === 'all' || cat === activeTopic || (activeTopic === 'arunachal' && cat === 'arunachal');
+            const matchesTopic = activeTopic === 'all' 
+              || cat === activeTopic 
+              || (activeTopic === 'editorials' && (cat === 'editorial' || cat === 'editorials' || cat === 'mains'))
+              || (activeTopic === 'arunachal' && cat === 'arunachal');
             const matchesQuery = !query || titleText.includes(query) || cat.includes(query) || tagsText.includes(query);
 
             if (matchesTopic && matchesQuery) {
@@ -571,9 +574,11 @@ export default function CurrentAffairsLanding() {
                 </h2>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {[
                   { key: 'all',           label: t('currentAffairs.allTopics') || 'All Topics',           color: 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10' },
+                  { key: 'editorials',    label: '✍️ Editorials & Mains Analysis',                      color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' },
+                  { key: 'hindi',         label: '🇮🇳 हिन्दी दैनिक समसामयिकी',                            color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
                   { key: 'national',      label: t('currentAffairs.national') || 'National',             color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
                   { key: 'international', label: t('currentAffairs.international') || 'International',         color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20' },
                   { key: 'bihar',         label: t('currentAffairs.biharSpecial') || 'Bihar Special',         color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },

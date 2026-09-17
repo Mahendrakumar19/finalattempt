@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Bold, Italic, Underline, Heading1, Heading2, Heading3,
-  List, ListOrdered, Quote, Link as LinkIcon, Sparkles, Paintbrush,
+  List, ListOrdered, Indent, Outdent, Quote, Link as LinkIcon, Sparkles, Paintbrush,
   Table, Image as ImageIcon, Box, CheckCircle, Maximize2, Minimize2, X, Scaling,
   FileText, Paperclip, FolderOpen, AlignLeft, AlignCenter, AlignRight, Layout, Move, Eye, ChevronDown
 } from 'lucide-react';
@@ -454,6 +454,22 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       </button>
       <button
         type="button"
+        onClick={() => execCmd('indent')}
+        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200 bg-white"
+        title="Indent / Sub-bullet (Tab)"
+      >
+        <Indent className="h-3.5 w-3.5 text-indigo-600" />
+      </button>
+      <button
+        type="button"
+        onClick={() => execCmd('outdent')}
+        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200 bg-white"
+        title="Outdent / Decrease Indent (Shift+Tab)"
+      >
+        <Outdent className="h-3.5 w-3.5 text-indigo-600" />
+      </button>
+      <button
+        type="button"
         onClick={() => execCmd('formatBlock', 'BLOCKQUOTE')}
         className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
         title="Blockquote"
@@ -718,6 +734,16 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
           contentEditable
           onInput={handleInput}
           onClick={handleEditorClick}
+          onKeyDown={(e) => {
+            if (e.key === 'Tab') {
+              e.preventDefault();
+              if (e.shiftKey) {
+                execCmd('outdent');
+              } else {
+                execCmd('indent');
+              }
+            }
+          }}
           className="min-h-[220px] max-h-[350px] overflow-y-auto bg-white p-4 outline-none text-slate-800 text-xs leading-relaxed prose max-w-none focus:outline-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 [&_th]:p-2.5 [&_th]:text-left [&_th]:font-bold [&_td]:p-2.5 [&_td]:border [&_td]:border-slate-200 [&_tr:nth-child(even)]:bg-slate-50/50"
         />
       </div>
