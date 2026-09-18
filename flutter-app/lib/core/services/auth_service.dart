@@ -21,8 +21,10 @@ class AuthService {
 
       if (data != null && data['success'] == true) {
         final responseData = data['data'] ?? {};
-        final token = responseData['accessToken'] ?? data['token'] ?? 'demo_token_${DateTime.now().millisecondsSinceEpoch}';
-        await _storage.saveToken(token);
+        final token = responseData['accessToken'] ?? data['token'];
+        if (token != null && token.toString().isNotEmpty) {
+          await _storage.saveToken(token.toString());
+        }
         if (responseData['refreshToken'] != null) {
           await _storage.saveRefreshToken(responseData['refreshToken']);
         }
@@ -40,28 +42,17 @@ class AuthService {
         );
         return {'success': true, 'user': user};
       }
+      
+      if (data != null && data['error'] != null) {
+        return {'success': false, 'error': data['error'].toString()};
+      }
     } catch (e) {
-      // Fallback local session if backend server is unreachable
-      if (email.isNotEmpty && password.length >= 6) {
-        final displayName = email.contains('@') ? email.split('@').first : email;
-        final demoUser = {
-          'id': 'usr_${DateTime.now().millisecondsSinceEpoch}',
-          'fullName': displayName.isNotEmpty ? displayName : 'Aspirant',
-          'email': email,
-          'role': 'student',
-        };
-        await _storage.saveToken('demo_token_${DateTime.now().millisecondsSinceEpoch}');
-        await _storage.saveUserSession(
-          userId: demoUser['id']!,
-          name: demoUser['fullName']!,
-          email: demoUser['email']!,
-          role: demoUser['role']!,
-        );
-        return {'success': true, 'user': demoUser};
+      if (e is String && e.isNotEmpty) {
+        return {'success': false, 'error': e};
       }
     }
 
-    return {'success': false, 'error': 'Login failed. Please enter valid email/mobile and password (min 6 chars).'};
+    return {'success': false, 'error': 'Login failed. Please check your credentials.'};
   }
 
   Future<Map<String, dynamic>> register({
@@ -82,8 +73,10 @@ class AuthService {
 
       if (data != null && data['success'] == true) {
         final responseData = data['data'] ?? {};
-        final token = responseData['accessToken'] ?? data['token'] ?? 'demo_token_${DateTime.now().millisecondsSinceEpoch}';
-        await _storage.saveToken(token);
+        final token = responseData['accessToken'] ?? data['token'];
+        if (token != null && token.toString().isNotEmpty) {
+          await _storage.saveToken(token.toString());
+        }
         if (responseData['refreshToken'] != null) {
           await _storage.saveRefreshToken(responseData['refreshToken']);
         }
@@ -101,22 +94,14 @@ class AuthService {
         );
         return {'success': true, 'user': user};
       }
+      
+      if (data != null && data['error'] != null) {
+        return {'success': false, 'error': data['error'].toString()};
+      }
     } catch (e) {
-      // Fallback local session for registration
-      final demoUser = {
-        'id': 'usr_${DateTime.now().millisecondsSinceEpoch}',
-        'fullName': fullName,
-        'email': email,
-        'role': 'student',
-      };
-      await _storage.saveToken('demo_token_${DateTime.now().millisecondsSinceEpoch}');
-      await _storage.saveUserSession(
-        userId: demoUser['id']!,
-        name: demoUser['fullName']!,
-        email: demoUser['email']!,
-        role: demoUser['role']!,
-      );
-      return {'success': true, 'user': demoUser};
+      if (e is String && e.isNotEmpty) {
+        return {'success': false, 'error': e};
+      }
     }
 
     return {'success': false, 'error': 'Registration failed. Please try again.'};

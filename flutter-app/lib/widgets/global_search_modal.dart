@@ -279,29 +279,32 @@ class _GlobalSearchModalState extends State<GlobalSearchModal> {
                       separatorBuilder: (_, __) => Divider(height: 1, color: borderCol),
                       itemBuilder: (context, i) {
                         final res = results[i];
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            context.push(res['route']!);
-                          },
-                          leading: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(10),
+                        return Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              context.push(res['route']!);
+                            },
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.arrow_outward_rounded, color: AppTheme.primaryBlue, size: 18),
                             ),
-                            child: const Icon(Icons.arrow_outward_rounded, color: AppTheme.primaryBlue, size: 18),
+                            title: Text(
+                              res['title']!,
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimary),
+                            ),
+                            subtitle: Text(
+                              '${res['category']} • ${res['sub']}',
+                              style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                            ),
+                            trailing: const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted, size: 20),
                           ),
-                          title: Text(
-                            res['title']!,
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimary),
-                          ),
-                          subtitle: Text(
-                            '${res['category']} • ${res['sub']}',
-                            style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-                          ),
-                          trailing: const Icon(Icons.chevron_right_rounded, color: AppTheme.textMuted, size: 20),
                         );
                       },
                     ),
