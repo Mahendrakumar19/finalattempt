@@ -2,8 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'storage_service.dart';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
 const String kBaseUrl = 'https://finalattemptias.com/api';
 
 final apiServiceProvider = Provider<ApiService>((ref) {
@@ -33,13 +31,6 @@ class ApiService {
         final token = await _storage.getToken();
         if (token != null && token.isNotEmpty) {
           options.headers['Authorization'] = 'Bearer $token';
-        } else if (options.path.contains('/start')) {
-          // If trying to start an exam without a token, fail early
-          return handler.reject(DioException(
-            requestOptions: options,
-            type: DioExceptionType.cancel,
-            error: 'Session expired or invalid. Please logout and login again.',
-          ));
         }
         return handler.next(options);
       },
@@ -81,6 +72,9 @@ class ApiService {
   }
 
   String _handleError(DioException e) {
+    if (e.response?.statusCode == 401) {
+      return 'Session expired. Please log in again.';
+    }
     if (e.response?.data is Map && e.response!.data['error'] != null) {
       return e.response!.data['error'].toString();
     }

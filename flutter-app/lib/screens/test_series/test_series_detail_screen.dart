@@ -356,7 +356,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                                 ElevatedButton(
                                   onPressed: canAttempt
                                       ? () {
-                                          context.push('/test/${quiz.id}/attempt');
+                                          context.push('/test/${quiz.id}/instructions');
                                         }
                                       : () {
                                           _startPayment();

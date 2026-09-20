@@ -83,17 +83,24 @@ class StudentDashboardScreen extends ConsumerWidget {
                   color: const Color(0xFF10B981),
                   onTap: () => context.go('/current-affairs'),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 _ActionTile(
-                  icon: Icons.library_books_rounded,
-                  label: 'PYQ Papers',
-                  color: AppTheme.warning,
-                  onTap: () => context.go('/pyq'),
+                  icon: Icons.upload_file_rounded,
+                  label: 'Upload Mains Copy',
+                  color: const Color(0xFFF43F5E),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Mains Answer Copy Evaluation portal ready! Select your test program to upload answer sheet.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 _ActionTile(
                   icon: Icons.article_rounded,
-                  label: 'Blog',
+                  label: 'Blog & Notes',
                   color: const Color(0xFF8B5CF6),
                   onTap: () => context.go('/blog'),
                 ),

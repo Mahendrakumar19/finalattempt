@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,8 @@ import '../../core/localization/app_localizations.dart';
 import '../../widgets/loading_shimmer.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/top_header_actions.dart';
+import '../../providers/content_providers.dart';
+import '../../models/site_settings_model.dart';
 import '../../models/test_series_model.dart';
 import '../../models/current_affair_model.dart';
 
@@ -214,92 +217,19 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // 2. Actionable Dynamic Featured Test Pass Card
+  // 2. Actionable Dynamic Image Banner Carousel Slider (matching website main site hero slider)
   Widget _buildContinueOrDiscoveryCard(BuildContext context, WidgetRef ref, AppLocalizations loc, AsyncValue<List<TestSeries>> testSeriesAsync) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final settingsAsync = ref.watch(settingsProvider);
+    final settings = settingsAsync.value;
+
     return testSeriesAsync.when(
       loading: () => const Padding(
         padding: EdgeInsets.symmetric(horizontal: 16),
-        child: LoadingShimmer(height: 140),
+        child: LoadingShimmer(height: 180),
       ),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, __) => _HeroImageCarouselSlider(settings: settings, testSeriesList: const []),
       data: (list) {
-        if (list.isEmpty) return const SizedBox.shrink();
-
-        final featured = list.first;
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isDark
-                  ? [const Color(0xFF1E3A8A), const Color(0xFF1D4ED8)]
-                  : [const Color(0xFF1E3A8A), const Color(0xFF2563EB)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: isDark ? 0.20 : 0.40),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF2563EB).withValues(alpha: 0.25),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${loc.tr('featured_test')} • ${featured.examCategory.toUpperCase()}',
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5),
-                    ),
-                  ),
-                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                featured.title,
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white, height: 1.25),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${featured.totalTests} Tests • ${featured.freeTestsCount} Free Mocks • ${featured.language}',
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  context.push('/test-series/${featured.id}');
-                },
-                icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                label: Text(loc.tr('start_practice')),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppTheme.primaryBlue,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-        );
+        return _HeroImageCarouselSlider(settings: settings, testSeriesList: list);
       },
     );
   }
@@ -707,4 +637,393 @@ class _SectionTitle extends StatelessWidget {
       ],
     );
   }
+}
+
+class _HeroImageCarouselSlider extends StatefulWidget {
+  final SiteSettingsModel? settings;
+  final List<TestSeries> testSeriesList;
+
+  const _HeroImageCarouselSlider({
+    this.settings,
+    required this.testSeriesList,
+  });
+
+  @override
+  State<_HeroImageCarouselSlider> createState() => _HeroImageCarouselSliderState();
+}
+
+class _HeroImageCarouselSliderState extends State<_HeroImageCarouselSlider> {
+  late final PageController _pageController;
+  int _currentIndex = 0;
+  Timer? _timer;
+
+  List<String> _resolveImageUrls() {
+    final rawUrls = widget.settings?.heroImageUrl;
+    if (rawUrls != null && rawUrls.trim().isNotEmpty) {
+      final split = rawUrls.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+      if (split.isNotEmpty) {
+        return split.map((url) {
+          if (url.startsWith('http://') || url.startsWith('https://')) return url;
+          if (url.startsWith('/')) return 'https://finalattemptias.com$url';
+          return 'https://finalattemptias.com/$url';
+        }).toList();
+      }
+    }
+    return [];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: 0);
+    _timer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (!mounted) return;
+      if (_pageController.hasClients) {
+        final urls = _resolveImageUrls();
+        final itemCount = urls.isNotEmpty ? urls.length : 4;
+        final nextPage = (_currentIndex + 1) % itemCount;
+        _pageController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.fastOutSlowIn,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final imageUrls = _resolveImageUrls();
+    final testSeriesList = widget.testSeriesList;
+    final featuredSeries = testSeriesList.isNotEmpty ? testSeriesList.first : null;
+
+    if (imageUrls.isNotEmpty) {
+      // IMAGE SLIDER MODE (matching main website hero image carousel slider)
+      return Column(
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 3840 / 1326, // Exact banner aspect ratio from website
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: imageUrls.length,
+                  onPageChanged: (index) {
+                    setState(() => _currentIndex = index);
+                  },
+                  itemBuilder: (context, index) {
+                    final imgUrl = imageUrls[index];
+                    return InkWell(
+                      onTap: () {
+                        if (featuredSeries != null) {
+                          context.push('/test-series/${featuredSeries.id}');
+                        } else {
+                          context.push('/test-series');
+                        }
+                      },
+                      child: Image.network(
+                        imgUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        gaplessPlayback: true,
+                        filterQuality: FilterQuality.medium,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildFallbackCard(context, index, isDark, featuredSeries);
+                        },
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                            child: const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Indicator Dots
+          if (imageUrls.length > 1)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                imageUrls.length,
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: _currentIndex == index ? 22 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: _currentIndex == index
+                        ? AppTheme.primaryOf(context)
+                        : AppTheme.textMutedOf(context).withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+
+    // FALLBACK CAROUSEL BANNER CARDS
+    final fallbackSlides = [
+      _SlideData(
+        tag: 'FEATURED TEST • PRELIMS',
+        title: featuredSeries?.title ?? 'BPSC Prelims PYQ Test Series 2026',
+        subtitle: featuredSeries != null
+            ? '${featuredSeries.totalTests} Tests • ${featuredSeries.freeTestsCount} Free Mocks • ${featuredSeries.language}'
+            : '40 Tests • 1 Free Mock • Bilingual',
+        buttonText: 'Start Practice Test',
+        buttonIcon: Icons.play_arrow_rounded,
+        gradient: isDark
+            ? [const Color(0xFF1E3A8A), const Color(0xFF1D4ED8)]
+            : [const Color(0xFF1E3A8A), const Color(0xFF2563EB)],
+        onTap: () {
+          if (featuredSeries != null) {
+            context.push('/test-series/${featuredSeries.id}');
+          } else {
+            context.push('/test-series');
+          }
+        },
+      ),
+      _SlideData(
+        tag: 'ADMISSIONS OPEN • BATCH 2026',
+        title: '71st BPSC Foundation & Prelims Master Batch',
+        subtitle: 'Live Classes • Daily Mains Copy Evaluation • Bilingual Study Notes',
+        buttonText: 'Explore Course',
+        buttonIcon: Icons.school_rounded,
+        gradient: isDark
+            ? [const Color(0xFF0F172A), const Color(0xFF334155)]
+            : [const Color(0xFF0F172A), const Color(0xFF1E293B)],
+        onTap: () => context.push('/courses'),
+      ),
+      _SlideData(
+        tag: 'DAILY UPDATE • BILINGUAL',
+        title: 'Daily Current Affairs & Editorial Analysis',
+        subtitle: 'National, International & Bihar Special Mains Analysis with MCQs',
+        buttonText: 'Read Today\'s CA',
+        buttonIcon: Icons.newspaper_rounded,
+        gradient: isDark
+            ? [const Color(0xFF065F46), const Color(0xFF047857)]
+            : [const Color(0xFF047857), const Color(0xFF10B981)],
+        onTap: () => context.push('/current-affairs'),
+      ),
+      _SlideData(
+        tag: 'FREE DOWNLOADS • PYQ BANK',
+        title: 'Official 10+ Years PYQs & NCERT Study Notes',
+        subtitle: 'Download Prelims & Mains Past Year Question Papers with Answer Keys',
+        buttonText: 'Practice PYQs',
+        buttonIcon: Icons.library_books_rounded,
+        gradient: isDark
+            ? [const Color(0xFF78350F), const Color(0xFFB45309)]
+            : [const Color(0xFFB45309), const Color(0xFFF59E0B)],
+        onTap: () => context.push('/pyq'),
+      ),
+    ];
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 185,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: fallbackSlides.length,
+            onPageChanged: (index) {
+              setState(() => _currentIndex = index);
+            },
+            itemBuilder: (context, index) {
+              final slide = fallbackSlides[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: slide.gradient,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: isDark ? 0.20 : 0.40),
+                      width: 1.2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: slide.gradient.last.withValues(alpha: 0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              slide.tag,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            slide.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              height: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            slide.subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: slide.onTap,
+                        icon: Icon(slide.buttonIcon, size: 18),
+                        label: Text(slide.buttonText),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: slide.gradient.first,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Indicator Dots
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            fallbackSlides.length,
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: _currentIndex == index ? 22 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: _currentIndex == index
+                    ? AppTheme.primaryOf(context)
+                    : AppTheme.textMutedOf(context).withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFallbackCard(BuildContext context, int index, bool isDark, TestSeries? featuredSeries) {
+    return Container(
+      color: isDark ? const Color(0xFF1E293B) : const Color(0xFF2563EB),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            featuredSeries?.title ?? 'Final Attempt - IAS & BPSC Prep',
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Explore test series, daily current affairs, and mentorship.',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SlideData {
+  final String tag;
+  final String title;
+  final String subtitle;
+  final String buttonText;
+  final IconData buttonIcon;
+  final List<Color> gradient;
+  final VoidCallback onTap;
+
+  _SlideData({
+    required this.tag,
+    required this.title,
+    required this.subtitle,
+    required this.buttonText,
+    required this.buttonIcon,
+    required this.gradient,
+    required this.onTap,
+  });
 }

@@ -61,20 +61,31 @@ class BlogDetailScreen extends ConsumerWidget {
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundColor: AppTheme.amber.withValues(alpha: 0.2),
-                            child: const Icon(Icons.person_rounded, size: 16, color: AppTheme.amber),
-                          ),
+                          if (blog.displayAuthorImage.isNotEmpty)
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundImage: CachedNetworkImageProvider(
+                                blog.displayAuthorImage.startsWith('http')
+                                    ? blog.displayAuthorImage
+                                    : 'https://finalattemptias.com/${blog.displayAuthorImage.replaceAll(RegExp(r'^/'), '')}',
+                              ),
+                            )
+                          else
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.2),
+                              child: const Icon(Icons.person_rounded, size: 16, color: AppColors.primaryBlue),
+                            ),
                           const SizedBox(width: 8),
-                          Text(blog.displayAuthor,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.textSecondary),
+                          Text(
+                            blog.displayAuthor,
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryOf(context)),
                           ),
                           if (blog.readTime != null) ...[
-                            const Text(' · ', style: TextStyle(color: AppTheme.textMuted)),
-                            const Icon(Icons.schedule_rounded, size: 12, color: AppTheme.textMuted),
+                            Text(' · ', style: TextStyle(color: AppTheme.textMutedOf(context))),
+                            Icon(Icons.schedule_rounded, size: 12, color: AppTheme.textMutedOf(context)),
                             const SizedBox(width: 3),
-                            Text(blog.readTime!, style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                            Text(blog.readTime!, style: TextStyle(fontSize: 11, color: AppTheme.textMutedOf(context))),
                           ],
                         ],
                       ),

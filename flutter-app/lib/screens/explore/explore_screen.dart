@@ -96,8 +96,8 @@ class ExploreScreen extends ConsumerWidget {
 
               const SizedBox(height: 24),
 
-              // Group 1: Exam Preparation
-              _buildSectionTitle('ACADEMICS & PREPARATION', textMuted),
+              // Group 1: Exam Preparation & Downloads Hub
+              _buildSectionTitle('ACADEMICS & DOWNLOADS HUB', textMuted),
               const SizedBox(height: 10),
               Container(
                 decoration: AppTheme.iOSCardDecoration(context, radius: 20),
@@ -122,8 +122,8 @@ class ExploreScreen extends ConsumerWidget {
                     _ExploreListTile(
                       icon: Icons.newspaper_rounded,
                       iconColor: const Color(0xFF10B981),
-                      title: 'Daily Current Affairs',
-                      subtitle: 'Bilingual news analysis & quiz snippets',
+                      title: 'Daily Current Affairs & Editorials',
+                      subtitle: 'Bilingual news analysis, editorials & quiz snippets',
                       onTap: () => context.push('/current-affairs'),
                     ),
                     _buildDivider(context),
@@ -131,7 +131,15 @@ class ExploreScreen extends ConsumerWidget {
                       icon: Icons.library_books_rounded,
                       iconColor: const Color(0xFFF59E0B),
                       title: 'Official PYQ Papers',
-                      subtitle: 'Previous year question papers with key',
+                      subtitle: 'Previous year question papers with key & solution',
+                      onTap: () => context.push('/pyq'),
+                    ),
+                    _buildDivider(context),
+                    _ExploreListTile(
+                      icon: Icons.auto_stories_rounded,
+                      iconColor: const Color(0xFF8B5CF6),
+                      title: 'NCERT & Study Materials',
+                      subtitle: 'Free Class 6-12 NCERTs & revision notes',
                       onTap: () => context.push('/pyq'),
                     ),
                     _buildDivider(context),

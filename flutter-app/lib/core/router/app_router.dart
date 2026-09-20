@@ -24,6 +24,7 @@ import '../../widgets/app_shell.dart';
 
 import '../../screens/test_series/test_series_catalog_screen.dart';
 import '../../screens/test_series/test_series_detail_screen.dart';
+import '../../screens/test_series/test_instructions_screen.dart';
 import '../../screens/test_series/test_player_screen.dart';
 
 import '../../screens/syllabus_strategy/syllabus_strategy_screen.dart';
@@ -95,6 +96,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/chat', builder: (_, __) => const ChatScreen()),
           GoRoute(path: '/explore', builder: (_, __) => const ExploreScreen()),
         ],
+      ),
+      GoRoute(
+        path: '/test/:id/instructions',
+        builder: (_, state) => TestInstructionsScreen(quizId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/test/:id/attempt',

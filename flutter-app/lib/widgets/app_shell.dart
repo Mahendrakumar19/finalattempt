@@ -1,5 +1,4 @@
 import 'dart:ui' as ui;
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -150,55 +149,56 @@ class _LiquidGlassDock extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: borderRadius,
         boxShadow: [
-          // Ambient Separation Shadow (Liquid Glass Kit Depth Layer 1)
+          // Ambient soft ambient blur shadow
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.42 : 0.16),
-            blurRadius: 32,
-            spreadRadius: -2,
-            offset: const Offset(0, 12),
-          ),
-          // Refraction Edge Glow Shadow (Liquid Glass Kit Depth Layer 2)
-          BoxShadow(
-            color: Colors.white.withValues(alpha: isDark ? 0.28 : 0.90),
-            blurRadius: 5,
+            color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.12),
+            blurRadius: 28,
             spreadRadius: 0,
-            offset: const Offset(-1, -1),
+            offset: const Offset(0, 10),
+          ),
+          // Top specular rim light beam reflection
+          BoxShadow(
+            color: Colors.white.withValues(alpha: isDark ? 0.65 : 0.95),
+            blurRadius: 4,
+            spreadRadius: 0,
+            offset: const Offset(0, -1),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
         child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30), // Liquid Glass Blur
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             curve: Curves.fastOutSlowIn,
             decoration: BoxDecoration(
               borderRadius: borderRadius,
-              // Angled Specular Refraction Gradient (Almost Transparent Translucent Glass)
+              // Pure liquid glass tint in Light & Dark Mode (matching user reference screenshot)
+              color: isDark
+                  ? const Color(0xFF111827).withValues(alpha: 0.72)
+                  : const Color(0xFFF8FAFC).withValues(alpha: 0.78),
               gradient: LinearGradient(
-                begin: const Alignment(-0.7, -1.0),
-                end: const Alignment(0.7, 1.0),
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
                 colors: isDark
                     ? [
-                        Colors.white.withValues(alpha: 0.12), // Subtle specular top light
-                        Colors.white.withValues(alpha: 0.04), // Clear body
-                        Colors.black.withValues(alpha: 0.15), // Deep refraction center
-                        Colors.white.withValues(alpha: 0.03), // Subtle bottom catch
+                        Colors.white.withValues(alpha: 0.28), // Top light glare sheen
+                        Colors.white.withValues(alpha: 0.05),
+                        Colors.white.withValues(alpha: 0.12), // Bottom rim reflection
                       ]
                     : [
-                        Colors.white.withValues(alpha: 0.38), // Translucent specular top
-                        Colors.white.withValues(alpha: 0.15), // Clear body
-                        Colors.white.withValues(alpha: 0.10), // Refraction mid
-                        Colors.white.withValues(alpha: 0.28), // Translucent bottom sheen
+                        Colors.white.withValues(alpha: 0.85), // Top specular white sheen
+                        Colors.white.withValues(alpha: 0.40),
+                        Colors.white.withValues(alpha: 0.70), // Bottom shiny reflection
                       ],
-                stops: const [0.0, 0.15, 0.82, 1.0],
+                stops: const [0.0, 0.45, 1.0],
               ),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.22)
-                    : Colors.white.withValues(alpha: 0.75), // Crisp specular border outline
-                width: 0.80,
+                    ? Colors.white.withValues(alpha: 0.35)
+                    : Colors.white.withValues(alpha: 0.90),
+                width: 1.2,
               ),
             ),
             child: DefaultTextStyle(
@@ -217,7 +217,7 @@ class _LiquidGlassDock extends StatelessWidget {
         final itemWidth = constraints.maxWidth / 5;
         return Stack(
           children: [
-            // Translucent Angled Specular Lens Highlight Pill
+            // Liquid Glass Selection Capsule (Matches user reference image pill)
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.fastLinearToSlowEaseIn,
@@ -230,31 +230,20 @@ class _LiquidGlassDock extends StatelessWidget {
                 curve: Curves.fastLinearToSlowEaseIn,
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: const Alignment(-0.5, -1.0),
-                    end: const Alignment(0.5, 1.0),
-                    colors: isDark
-                        ? [
-                            Colors.white.withValues(alpha: 0.16),
-                            Colors.white.withValues(alpha: 0.06),
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: 0.65),
-                            Colors.white.withValues(alpha: 0.40),
-                          ],
-                  ),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.22)
+                      : Colors.black.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(isCompact ? 22 : 25),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.32)
-                        : Colors.white.withValues(alpha: 0.85),
-                    width: 0.75,
+                        ? Colors.white.withValues(alpha: 0.40)
+                        : Colors.white.withValues(alpha: 0.60),
+                    width: 1.0,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.10 : 0.04),
-                      blurRadius: 6,
-                      spreadRadius: 0,
+                      color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.08),
+                      blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
@@ -341,10 +330,10 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    // High contrast text & icon colors for sharp readability
-    final activeColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF090D16);
-    final unselectedCol = isDark ? const Color(0xFFE2E8F0) : const Color(0xFF334155);
-    final textColor = isSelected ? activeColor : unselectedCol;
+    // Unified high-contrast text & icon colors tailored for light and dark crystal backgrounds
+    final activeColor = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF0F172A);
+    final unselectedColor = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
+    final textColor = isSelected ? activeColor : unselectedColor;
 
     return SizedBox(
       width: width,
@@ -354,7 +343,9 @@ class _NavItem extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(28),
           splashColor: Colors.transparent,
-          highlightColor: Colors.white.withValues(alpha: 0.15),
+          highlightColor: isDark 
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.black.withValues(alpha: 0.06),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

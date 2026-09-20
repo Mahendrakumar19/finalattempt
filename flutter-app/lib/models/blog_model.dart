@@ -10,6 +10,7 @@ class BlogModel {
   final String? coverImageUrl;
   final String? author;
   final String? authorName;
+  final String? authorImage;
   final String? blurb;
   final String? excerpt;
   final String? status;
@@ -26,6 +27,7 @@ class BlogModel {
     this.coverImageUrl,
     this.author,
     this.authorName,
+    this.authorImage,
     this.blurb,
     this.excerpt,
     this.status,
@@ -33,7 +35,8 @@ class BlogModel {
 
   String get displayImage => imageUrl ?? coverImageUrl ?? '';
   String get displayAuthor => authorName ?? author ?? 'Final Attempt Team';
-  String get preview => blurb ?? excerpt ?? content.replaceAll(RegExp(r'<[^>]*>'), '').substring(0, content.length.clamp(0, 150));
+  String get displayAuthorImage => authorImage ?? '';
+  String get preview => blurb ?? excerpt ?? (content.replaceAll(RegExp(r'<[^>]*>'), '').substring(0, content.length.clamp(0, 150)));
 
   factory BlogModel.fromJson(Map<String, dynamic> json) {
     return BlogModel(
@@ -48,6 +51,7 @@ class BlogModel {
       coverImageUrl: json['cover_image_url'] ?? json['coverImageUrl'],
       author: json['author'],
       authorName: json['author_name'] ?? json['authorName'],
+      authorImage: json['author_image'] ?? json['authorImage'],
       blurb: json['blurb'],
       excerpt: json['excerpt'],
       status: json['status'],

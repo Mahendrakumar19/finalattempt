@@ -495,11 +495,6 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
   String _formatDateKey(DateTime d) {
     return "${d.year}-${String.fromCharCodes([d.month]).length == 1 && d.month < 10 ? '0' : ''}${d.month}-${d.day < 10 ? '0' : ''}${d.day}";
   }
-
-  String _formatMonthYear(DateTime d) {
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    return "${months[d.month - 1]} ${d.year}";
-  }
 }
 
 class _ArticleCard extends StatelessWidget {
