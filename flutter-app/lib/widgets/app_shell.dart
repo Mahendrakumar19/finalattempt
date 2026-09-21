@@ -149,56 +149,32 @@ class _LiquidGlassDock extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: borderRadius,
         boxShadow: [
-          // Ambient soft ambient blur shadow
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.12),
-            blurRadius: 28,
-            spreadRadius: 0,
-            offset: const Offset(0, 10),
-          ),
-          // Top specular rim light beam reflection
-          BoxShadow(
-            color: Colors.white.withValues(alpha: isDark ? 0.65 : 0.95),
-            blurRadius: 4,
-            spreadRadius: 0,
-            offset: const Offset(0, -1),
+            color: isDark 
+                ? Colors.black.withValues(alpha: 0.15) // Reduced from 0.20
+                : Colors.black.withValues(alpha: 0.12), // Reduced from 0.18
+            blurRadius: 22,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
         child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30), // Liquid Glass Blur
+          filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20), // Moderate blur
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
-            curve: Curves.fastOutSlowIn,
+            curve: Curves.easeOutCubic,
             decoration: BoxDecoration(
               borderRadius: borderRadius,
-              // Pure liquid glass tint in Light & Dark Mode (matching user reference screenshot)
               color: isDark
-                  ? const Color(0xFF111827).withValues(alpha: 0.72)
-                  : const Color(0xFFF8FAFC).withValues(alpha: 0.78),
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: isDark
-                    ? [
-                        Colors.white.withValues(alpha: 0.28), // Top light glare sheen
-                        Colors.white.withValues(alpha: 0.05),
-                        Colors.white.withValues(alpha: 0.12), // Bottom rim reflection
-                      ]
-                    : [
-                        Colors.white.withValues(alpha: 0.85), // Top specular white sheen
-                        Colors.white.withValues(alpha: 0.40),
-                        Colors.white.withValues(alpha: 0.70), // Bottom shiny reflection
-                      ],
-                stops: const [0.0, 0.45, 1.0],
-              ),
+                  ? const Color(0xFF111827).withValues(alpha: 0.60) // Reduced from 0.71
+                  : const Color(0xFFF8FAFC).withValues(alpha: 0.65), // Reduced from 0.75
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.35)
-                    : Colors.white.withValues(alpha: 0.90),
-                width: 1.2,
+                    ? Colors.white.withValues(alpha: 0.12) // Reduced from 0.15
+                    : Colors.black.withValues(alpha: 0.08), // Reduced from 0.10
+                width: 1.0,
               ),
             ),
             child: DefaultTextStyle(
@@ -218,35 +194,32 @@ class _LiquidGlassDock extends StatelessWidget {
         return Stack(
           children: [
             // Liquid Glass Selection Capsule (Matches user reference image pill)
-            AnimatedPositioned(
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(end: selectedIdx.toDouble()),
               duration: const Duration(milliseconds: 300),
-              curve: Curves.fastLinearToSlowEaseIn,
-              left: selectedIdx * itemWidth,
-              top: isCompact ? 3 : 4,
-              bottom: isCompact ? 3 : 4,
-              width: itemWidth,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.fastLinearToSlowEaseIn,
+              curve: Curves.easeOutCubic,
+              builder: (context, animatedIdx, child) {
+                return Positioned(
+                  left: animatedIdx * itemWidth,
+                  top: isCompact ? 3 : 4,
+                  bottom: isCompact ? 3 : 4,
+                  width: itemWidth,
+                  child: child!,
+                );
+              },
+              child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.22)
-                      : Colors.black.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(isCompact ? 22 : 25),
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(isCompact ? 22.0 : 25.0),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.40)
-                        : Colors.white.withValues(alpha: 0.60),
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : Colors.black.withValues(alpha: 0.04),
                     width: 1.0,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.08),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -344,15 +317,15 @@ class _NavItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(28),
           splashColor: Colors.transparent,
           highlightColor: isDark 
-              ? Colors.white.withValues(alpha: 0.12)
-              : Colors.black.withValues(alpha: 0.06),
+              ? Colors.white.withValues(alpha: 0.11)
+              : Colors.black.withValues(alpha: 0.05),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               AnimatedScale(
                 duration: const Duration(milliseconds: 250),
-                curve: Curves.fastOutSlowIn,
-                scale: isCompact ? 0.95 : (isSelected ? 1.08 : 1.0),
+                curve: Curves.easeOutCubic,
+                scale: isCompact ? 0.95 : (isSelected ? 1.06 : 1.0),
                 child: Icon(
                   isSelected ? activeIcon : icon,
                   size: isCompact ? 19.5 : 21,
@@ -362,11 +335,11 @@ class _NavItem extends StatelessWidget {
               const SizedBox(height: 1),
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 250),
-                curve: Curves.fastOutSlowIn,
+                curve: Curves.easeOutCubic,
                 style: DefaultTextStyle.of(context).style.copyWith(
                   color: textColor,
                   fontSize: isCompact ? 10.5 : 11.5,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500, // Reduced from w700 / w500
                   letterSpacing: -0.15,
                 ),
                 child: Text(label, maxLines: 1, overflow: TextOverflow.visible),

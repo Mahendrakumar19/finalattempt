@@ -289,7 +289,7 @@ class HomeScreen extends ConsumerWidget {
               );
             }
             return SizedBox(
-              height: 165,
+              height: 280,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
@@ -574,6 +574,34 @@ class _TestSeriesHomeCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (series.thumbnailUrl != null || series.bannerUrl != null) ...[
+                      Builder(
+                        builder: (context) {
+                          String imgUrl = series.thumbnailUrl ?? series.bannerUrl!;
+                          if (imgUrl.isNotEmpty) {
+                            if (!imgUrl.startsWith('http')) {
+                              imgUrl = imgUrl.startsWith('/') ? 'https://finalattemptias.com$imgUrl' : 'https://finalattemptias.com/$imgUrl';
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: AspectRatio(
+                                  aspectRatio: 16 / 9,
+                                  child: Image.network(
+                                    imgUrl,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ],
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(

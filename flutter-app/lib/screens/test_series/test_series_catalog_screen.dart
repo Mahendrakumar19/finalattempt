@@ -328,7 +328,36 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
                     ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
+
+              if (series.thumbnailUrl != null || series.bannerUrl != null) ...[
+                Builder(
+                  builder: (context) {
+                    String imgUrl = series.thumbnailUrl ?? series.bannerUrl!;
+                    if (imgUrl.isNotEmpty) {
+                      if (!imgUrl.startsWith('http')) {
+                        imgUrl = imgUrl.startsWith('/') ? 'https://finalattemptias.com$imgUrl' : 'https://finalattemptias.com/$imgUrl';
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: AspectRatio(
+                            aspectRatio: 16 / 7,
+                            child: Image.network(
+                              imgUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
 
               Text(
                 series.title,

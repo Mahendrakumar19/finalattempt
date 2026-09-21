@@ -171,14 +171,14 @@ class TopHeaderActions extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.language_rounded, color: AppTheme.primaryBlue, size: 14),
+                Icon(Icons.language_rounded, color: AppTheme.primaryOf(context), size: 14),
                 const SizedBox(width: 4),
                 Text(
                   currentLang == 'hi' ? 'हिंदी' : 'EN',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.primaryBlue,
+                    color: AppTheme.primaryOf(context),
                     letterSpacing: 0.3,
                   ),
                 ),

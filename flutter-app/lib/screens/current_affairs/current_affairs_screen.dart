@@ -140,14 +140,14 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
                         padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_month_rounded, size: 20, color: AppColors.primaryBlue),
+                            Icon(Icons.calendar_month_rounded, size: 20, color: AppColors.primaryOf(context)),
                             const SizedBox(width: 8),
 
                             // Month Dropdown Menu
                             DropdownButtonHideUnderline(
                               child: DropdownButton<int>(
                                 value: _focusedMonth.month,
-                                icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.primaryBlue),
+                                icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.primaryOf(context)),
                                 dropdownColor: cardBg,
                                 borderRadius: BorderRadius.circular(14),
                                 style: TextStyle(
@@ -183,7 +183,7 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
                             DropdownButtonHideUnderline(
                               child: DropdownButton<int>(
                                 value: _focusedMonth.year,
-                                icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.primaryBlue),
+                                icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: AppColors.primaryOf(context)),
                                 dropdownColor: cardBg,
                                 borderRadius: BorderRadius.circular(14),
                                 style: TextStyle(
@@ -226,13 +226,13 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
                                     color: AppColors.primaryBlue.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Row(
+                                  child: Row(
                                     children: [
-                                      Icon(Icons.close, size: 12, color: AppColors.primaryBlue),
-                                      SizedBox(width: 4),
+                                      Icon(Icons.close, size: 12, color: AppColors.primaryOf(context)),
+                                      const SizedBox(width: 4),
                                       Text(
                                         'Reset Date',
-                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primaryOf(context)),
                                       ),
                                     ],
                                   ),
@@ -244,7 +244,7 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
                               icon: Icon(
                                 _isCalendarExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                                 size: 22,
-                                color: AppColors.primaryBlue,
+                                color: AppColors.primaryOf(context),
                               ),
                               tooltip: _isCalendarExpanded ? 'Collapse Calendar' : 'Expand Calendar',
                               onPressed: () {
@@ -259,7 +259,7 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
                       if (_isCalendarExpanded) ...[
                         const Divider(height: 1),
                         Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                           child: _buildCalendarGrid(context, editionsByDate),
                         ),
                       ],
@@ -414,9 +414,9 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
           itemCount: (firstDayOfWeek - 1) + daysInMonth,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 7,
-            mainAxisSpacing: 6,
-            crossAxisSpacing: 6,
-            childAspectRatio: 1.1,
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 4,
+            childAspectRatio: 1.45,
           ),
           itemBuilder: (context, idx) {
             if (idx < firstDayOfWeek - 1) {
@@ -442,18 +442,18 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
                 duration: const Duration(milliseconds: 200),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppColors.primaryBlue
+                      ? AppColors.primaryOf(context)
                       : hasEdition
-                          ? AppColors.primaryBlue.withValues(alpha: 0.15)
+                          ? AppColors.primaryOf(context).withValues(alpha: 0.15)
                           : Theme.of(context).brightness == Brightness.dark
                               ? const Color(0xFF1E293B)
                               : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
                     color: isSelected
-                        ? AppColors.primaryBlue
+                        ? AppColors.primaryOf(context)
                         : hasEdition
-                            ? AppColors.primaryBlue.withValues(alpha: 0.4)
+                            ? AppColors.primaryOf(context).withValues(alpha: 0.4)
                             : AppTheme.borderOf(context),
                   ),
                 ),
@@ -468,7 +468,7 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
                         color: isSelected
                             ? Colors.white
                             : hasEdition
-                                ? AppColors.primaryBlue
+                                ? AppColors.primaryOf(context)
                                 : AppTheme.textPrimaryOf(context),
                       ),
                     ),
@@ -477,9 +477,9 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
                         margin: const EdgeInsets.only(top: 2),
                         width: 4,
                         height: 4,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: AppColors.primaryBlue,
+                          color: AppColors.primaryOf(context),
                         ),
                       ),
                   ],
@@ -493,7 +493,7 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
   }
 
   String _formatDateKey(DateTime d) {
-    return "${d.year}-${String.fromCharCodes([d.month]).length == 1 && d.month < 10 ? '0' : ''}${d.month}-${d.day < 10 ? '0' : ''}${d.day}";
+    return "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
   }
 }
 
@@ -566,6 +566,21 @@ class _ArticleCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (article.coverImageUrl != null && article.coverImageUrl!.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Image.network(
+                      article.coverImageUrl!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 10),
               Text(
                 article.title,

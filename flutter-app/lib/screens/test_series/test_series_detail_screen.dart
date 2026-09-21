@@ -444,6 +444,34 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Banner / Header Card
+          if (series.bannerUrl != null || series.thumbnailUrl != null) ...[
+            Builder(
+              builder: (context) {
+                String imgUrl = series.bannerUrl ?? series.thumbnailUrl!;
+                if (imgUrl.isNotEmpty) {
+                  if (!imgUrl.startsWith('http')) {
+                    imgUrl = imgUrl.startsWith('/') ? 'https://finalattemptias.com$imgUrl' : 'https://finalattemptias.com/$imgUrl';
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: AspectRatio(
+                        aspectRatio: 16 / 7,
+                        child: Image.network(
+                          imgUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
