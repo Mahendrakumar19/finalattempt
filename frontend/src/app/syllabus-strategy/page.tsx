@@ -291,6 +291,28 @@ export default function SyllabusStrategyPage() {
       {/* ── MAIN CONTENT CONTAINER (2-COLUMN DRISHTI LAYOUT) ─────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
+        {/* ── FEATURED STRATEGY BANNER: UPPSC 10-YEAR PYQ ANALYSIS ─────────────────────── */}
+        <div className="mb-6 bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950 border border-amber-500/30 rounded-2xl p-5 text-white flex flex-wrap items-center justify-between gap-4 shadow-md">
+          <div className="space-y-1 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-400 bg-amber-500/20 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-mono">
+              <Target className="w-3 h-3 text-amber-400" /> Featured Strategy Guide
+            </div>
+            <h3 className="text-base sm:text-lg font-black font-heading text-white tracking-tight">
+              UPPSC Prelims 2026: Complete 10-Year PYQ Analysis & Strategy
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Exhaustive 10-year subject weightages (2016–2025), Tier 1-3 priority matrix, Gold Standard booklist & study time allocation.
+            </p>
+          </div>
+          <Link
+            href="/syllabus-strategy/uppsc-pyq-analysis"
+            className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-1.5 shrink-0 transition-all shadow-md cursor-pointer"
+          >
+            <span>Read Full Analysis</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+
         {/* Search Bar */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="relative w-full sm:w-80">

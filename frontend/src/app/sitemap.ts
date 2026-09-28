@@ -29,6 +29,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/pyq`,                          lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/daily-quiz`,                   lastModified: now, changeFrequency: 'daily',   priority: 0.8 },
     { url: `${baseUrl}/syllabus-strategy`,            lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+    { url: `${baseUrl}/syllabus-strategy/uppsc-pyq-analysis`, lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
     { url: `${baseUrl}/privacy-policy`,               lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
     { url: `${baseUrl}/terms`,                        lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
     { url: `${baseUrl}/refund-policy`,                lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },

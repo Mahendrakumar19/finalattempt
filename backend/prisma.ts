@@ -1,3 +1,4 @@
+
 import { PrismaClient } from '@prisma/client';
 
 export const prisma = new PrismaClient({
@@ -130,4 +131,5 @@ export const prisma = new PrismaClient({
     console.warn('[Prisma] Warning verifying entitlement tables:', err?.message || err);
   }
 })();
+
 
