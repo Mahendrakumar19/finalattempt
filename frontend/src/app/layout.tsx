@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Inter, Cinzel, Noto_Sans_Devanagari } from "next/fon
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import FloatingWhatsAppButton from "@/components/FloatingWhatsAppButton";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { LocaleProvider } from "@/context/LocaleContext";
 import LanguageSelectionModal from "@/components/LanguageSelectionModal";
@@ -166,6 +167,7 @@ export default function RootLayout({
             <Header />
             <main className="flex-grow">{children}</main>
             <Footer />
+            <FloatingWhatsAppButton />
           </ThemeProvider>
         </LocaleProvider>
       </body>

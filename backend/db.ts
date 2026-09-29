@@ -1081,7 +1081,9 @@ class BackendDB {
     otps: [],
     dynamicCurrentAffairEditions: [],
     youtubeVideos: [],
-    youtubeSyncLogs: []
+    youtubeSyncLogs: [],
+    chatRooms: [],
+    chatMessages: []
   };
 
   constructor() {
@@ -1136,6 +1138,8 @@ class BackendDB {
     }
     if (!this.localStore.sessions) this.localStore.sessions = [];
     if (!this.localStore.otps) this.localStore.otps = [];
+    if (!this.localStore.chatRooms) this.localStore.chatRooms = [];
+    if (!this.localStore.chatMessages) this.localStore.chatMessages = [];
     if (!this.localStore.lmsQuizzes) this.localStore.lmsQuizzes = [];
     if (!this.localStore.lmsQuestions) this.localStore.lmsQuestions = [];
     if (!this.localStore.lmsAttempts) this.localStore.lmsAttempts = [];
@@ -1164,6 +1168,8 @@ class BackendDB {
       this.localStore.lmsQuestions = lmsLocalQuestions;
       this.localStore.lmsAttempts = lmsLocalAttempts;
       this.localStore.lmsEnrollments = lmsLocalEnrollments;
+      if (!this.localStore.chatRooms) this.localStore.chatRooms = [];
+      if (!this.localStore.chatMessages) this.localStore.chatMessages = [];
 
       const dataStr = JSON.stringify(this.localStore, null, 2);
       fs.writeFileSync(JSON_DB_PATH, dataStr, 'utf-8');
@@ -3743,15 +3749,14 @@ async function initializeAuthTables(pool: mysql.Pool) {
         roomId        VARCHAR(255) NOT NULL,
         senderId      VARCHAR(255) NOT NULL,
         messageText   TEXT NOT NULL,
-        createdAt     DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (roomId) REFERENCES lms_chat_rooms(id) ON DELETE CASCADE,
-        FOREIGN KEY (senderId) REFERENCES users(id) ON DELETE CASCADE
+        createdAt     DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
     try { await pool.query("ALTER TABLE lms_chat_messages MODIFY COLUMN id VARCHAR(255), MODIFY COLUMN roomId VARCHAR(255), MODIFY COLUMN senderId VARCHAR(255)"); } catch (e) {}
-
-    console.log('Auth & LMS tables initialized.');
+    // Drop foreign key constraints if they were created previously so messages from guest/synthetic IDs never fail
+    try { await pool.query("ALTER TABLE lms_chat_messages DROP FOREIGN KEY lms_chat_messages_ibfk_2"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_chat_messages DROP FOREIGN KEY lms_chat_messages_ibfk_1"); } catch (e) {}
 
     console.log('Auth & LMS tables initialized.');
   } catch (err) {
@@ -4980,6 +4985,7 @@ class LmsDB {
   }
 
   async getChatMessagesByRoomId(roomId: string, limit = 100): Promise<any[]> {
+    let dbRows: any[] = [];
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query(
@@ -4991,11 +4997,25 @@ class LmsDB {
            LIMIT ?`,
           [roomId, limit]
         );
-        if (rows && rows.length > 0) return rows;
+        if (rows && rows.length > 0) {
+          dbRows = rows;
+        }
       } catch (err) { console.error('[LmsDB] getChatMessagesByRoomId MySQL error:', err); }
     }
+
     if (!db.localStore.chatMessages) db.localStore.chatMessages = [];
-    return db.localStore.chatMessages.filter(m => m.roomId === roomId).slice(-limit);
+    const localMsgs = db.localStore.chatMessages.filter(m => m.roomId === roomId);
+
+    if (dbRows.length > 0) {
+      // Merge any local msgs that haven't yet reached MySQL
+      const dbIds = new Set(dbRows.map((r: any) => String(r.id)));
+      const extraLocal = localMsgs.filter(m => !dbIds.has(String(m.id)));
+      const combined = [...dbRows, ...extraLocal];
+      combined.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+      return combined.slice(-limit);
+    }
+
+    return localMsgs.slice(-limit);
   }
 
   async saveChatMessage(roomId: string, senderId: string, messageText: string, senderName?: string, senderRole?: string): Promise<any> {
