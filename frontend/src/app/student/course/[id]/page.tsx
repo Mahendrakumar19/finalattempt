@@ -4,7 +4,8 @@ import { use, useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   BookOpen, Play, CheckCircle, ChevronLeft, ChevronDown, ChevronRight,
-  Lock, Video, Clock, Sparkles, Trophy, MessageSquare, HelpCircle, FileText
+  Lock, Video, Clock, Sparkles, Trophy, MessageSquare, HelpCircle, FileText,
+  Radio, Calendar, Download, AlertCircle, Share2, Layers
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -16,6 +17,11 @@ interface Lesson {
   duration: string;
   isFree: boolean;
   isLocked: boolean;
+  liveClassType?: string;
+  liveScheduledAt?: string;
+  liveMeetingUrl?: string | null;
+  liveStatus?: 'scheduled' | 'live' | 'ended' | string;
+  recordingUrl?: string | null;
 }
 
 interface Section {
@@ -52,8 +58,8 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<'curriculum' | 'quizzes' | 'assignments'>('curriculum');
+  // Tab state (PW-style: Live Classes, Recorded Lectures, Notes, Quizzes, Assignments)
+  const [activeTab, setActiveTab] = useState<'live' | 'curriculum' | 'recordings' | 'quizzes' | 'assignments'>('curriculum');
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
 
@@ -190,8 +196,21 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
       }
     }
     
-    const isVideo = lesson.type !== 'pdf' && lesson.type !== 'resource';
-    if (isVideo && lesson.videoUrl) {
+    const isLive = lesson.type === 'live';
+    const isVideo = lesson.type !== 'pdf' && lesson.type !== 'resource' && !isLive;
+
+    if (isLive) {
+      // If Zoom or Meet external link, allow launching or modal stream
+      if (lesson.liveClassType === 'zoom' || lesson.liveClassType === 'meet') {
+        const meetingUrl = lesson.liveMeetingUrl || lesson.videoUrl;
+        if (meetingUrl) {
+          window.open(meetingUrl, '_blank');
+          return;
+        }
+      }
+      // If YouTube live or direct video/stream embed
+      setPlayingLesson(lesson);
+    } else if (isVideo && (lesson.videoUrl || lesson.recordingUrl)) {
       setPlayingLesson(lesson);
     } else if (lesson.videoUrl) {
       // PDF or resource link opens directly in new window
@@ -199,8 +218,13 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
     }
   };
 
+  const allLessons = sections.flatMap(s => s.lessons.map(l => ({ ...l, sectionTitle: s.title })));
+  const liveLessons = allLessons.filter(l => l.type === 'live');
+  const recordedLessons = allLessons.filter(l => l.type !== 'live' && l.type !== 'pdf' && l.type !== 'resource');
+  const notesLessons = allLessons.filter(l => l.type === 'pdf' || l.type === 'resource');
   const totalLessons = sections.reduce((sum, s) => sum + s.lessons.length, 0);
   const freeLessons = sections.reduce((sum, s) => sum + s.lessons.filter(l => l.isFree).length, 0);
+  const liveActiveCount = liveLessons.filter(l => l.liveStatus === 'live').length;
 
   if (authLoading || loading) {
     return (
@@ -249,8 +273,20 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06]">
               <div>
-                <p className="text-xs text-blue-400 font-bold uppercase tracking-wider">Now Playing</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-blue-400 font-bold uppercase tracking-wider">
+                    {playingLesson.type === 'live' ? '🔴 Live Session' : 'Now Playing'}
+                  </p>
+                  {playingLesson.type === 'live' && (
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500 text-white animate-pulse">
+                      {playingLesson.liveStatus === 'live' ? 'BROADCASTING NOW' : playingLesson.liveStatus === 'ended' ? 'RECORDING AVAILABLE' : 'SCHEDULED LIVE'}
+                    </span>
+                  )}
+                </div>
                 <h3 className="text-white font-extrabold text-base mt-0.5">{playingLesson.title}</h3>
+                {playingLesson.liveScheduledAt && (
+                  <p className="text-xs text-rose-300 font-medium mt-0.5">🗓 Scheduled For: {playingLesson.liveScheduledAt}</p>
+                )}
               </div>
               <button
                 onClick={() => setPlayingLesson(null)}
@@ -259,10 +295,53 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                 Close ✕
               </button>
             </div>
-            {/* Video */}
-            <div className="aspect-video bg-black">
-              {playingLesson.videoUrl ? (() => {
-                const youtubeEmbed = getYoutubeEmbedUrl(playingLesson.videoUrl);
+            {/* Video or Live Stream Container */}
+            <div className="aspect-video bg-black relative flex flex-col justify-center items-center">
+              {(() => {
+                // If Zoom or Google Meet with no embed, provide direct launcher screen
+                if (playingLesson.type === 'live' && (playingLesson.liveClassType === 'zoom' || playingLesson.liveClassType === 'meet') && !playingLesson.recordingUrl) {
+                  const meetingLink = playingLesson.liveMeetingUrl || playingLesson.videoUrl;
+                  return (
+                    <div className="p-8 text-center space-y-4 max-w-md">
+                      <div className="w-16 h-16 rounded-3xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto text-2xl">
+                        🔴
+                      </div>
+                      <h4 className="text-white font-extrabold text-lg">Interactive Live Classroom</h4>
+                      <p className="text-slate-400 text-xs leading-relaxed">
+                        This interactive session is conducted via {playingLesson.liveClassType === 'zoom' ? 'Zoom Meeting' : 'Google Meet'}.
+                        {playingLesson.liveScheduledAt ? ` Class is scheduled for ${playingLesson.liveScheduledAt}.` : ''}
+                      </p>
+                      {meetingLink ? (
+                        <a
+                          href={meetingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition-all hover:scale-105"
+                        >
+                          Join Interactive Classroom 🚀
+                        </a>
+                      ) : (
+                        <p className="text-rose-400 text-xs font-bold">Class link will be active 15 minutes before the session.</p>
+                      )}
+                    </div>
+                  );
+                }
+
+                // If class ended and recording exists, or normal video
+                const streamUrl = (playingLesson.liveStatus === 'ended' && playingLesson.recordingUrl) 
+                  ? playingLesson.recordingUrl 
+                  : (playingLesson.videoUrl || playingLesson.liveMeetingUrl || playingLesson.recordingUrl);
+
+                if (!streamUrl) {
+                  return (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 p-6 text-center">
+                      <p className="text-sm font-bold text-slate-300">Live Stream Not Started Yet</p>
+                      <p className="text-xs text-slate-500 mt-1">Please check back at {playingLesson.liveScheduledAt || 'the scheduled class time'}.</p>
+                    </div>
+                  );
+                }
+
+                const youtubeEmbed = getYoutubeEmbedUrl(streamUrl);
                 if (youtubeEmbed) {
                   return (
                     <iframe
@@ -274,27 +353,31 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                     />
                   );
                 }
+
                 return (
                   <video
                     ref={videoRef}
-                    src={playingLesson.videoUrl}
+                    src={streamUrl}
                     controls
                     autoPlay
                     className="w-full h-full"
                   />
                 );
-              })() : (
-                <div className="w-full h-full flex items-center justify-center text-slate-600">
-                  <p className="text-sm">No video URL configured for this lesson.</p>
-                </div>
-              )}
+              })()}
             </div>
             {/* Footer */}
             <div className="px-6 py-4 border-t border-white/[0.06] flex items-center gap-2 text-xs text-slate-500">
               <Clock className="w-3.5 h-3.5" />
               <span>{playingLesson.duration || 'Duration not set'}</span>
-              <span className="ml-auto px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20 uppercase tracking-wider text-[10px]">
-                {playingLesson.type?.toUpperCase() || 'VIDEO'}
+              {playingLesson.recordingUrl && playingLesson.liveStatus === 'ended' && (
+                <span className="ml-2 text-emerald-400 font-bold text-[10px]">● Full Class Recording Available</span>
+              )}
+              <span className={`ml-auto px-3 py-1 rounded-full font-bold border uppercase tracking-wider text-[10px] ${
+                playingLesson.type === 'live' 
+                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
+                  : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+              }`}>
+                {playingLesson.type === 'live' ? 'LIVE CLASS' : (playingLesson.type?.toUpperCase() || 'VIDEO')}
               </span>
             </div>
           </div>
@@ -361,28 +444,265 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
             </div>
           </div>
 
-          {/* Student Tabs Switcher */}
-          <div className="flex gap-1 p-1 bg-slate-900 border border-white/[0.08] rounded-2xl w-fit">
+          {/* PhysicsWallah-Style Tabs Switcher */}
+          <div className="flex gap-1.5 p-1.5 bg-slate-900 border border-white/[0.08] rounded-2xl w-full sm:w-fit overflow-x-auto">
             {[
-              { id: 'curriculum', label: 'Curriculum & Materials' },
-              { id: 'quizzes', label: `Quizzes (${quizzes.length})` },
-              { id: 'assignments', label: `Assignments (${assignments.length})` }
+              { 
+                id: 'live', 
+                label: '🔴 Live Classes', 
+                count: liveLessons.length,
+                isPulse: liveActiveCount > 0
+              },
+              { 
+                id: 'recordings', 
+                label: '📼 Recorded Lectures', 
+                count: recordedLessons.length 
+              },
+              { 
+                id: 'curriculum', 
+                label: '📚 All Chapters', 
+                count: sections.length 
+              },
+              { 
+                id: 'quizzes', 
+                label: '📝 Mock Tests', 
+                count: quizzes.length 
+              },
+              { 
+                id: 'assignments', 
+                label: '📥 Assignments', 
+                count: assignments.length 
+              }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-5 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   activeTab === tab.id 
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30' 
-                    : 'text-slate-400 hover:text-white'
+                    ? tab.id === 'live' && tab.isPulse
+                      ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40'
+                      : 'bg-blue-600 text-white shadow-md shadow-blue-900/30' 
+                    : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
                 }`}
               >
-                {tab.label}
+                <span>{tab.label}</span>
+                {tab.count > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                    activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+                {tab.isPulse && (
+                  <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping inline-block" />
+                )}
               </button>
             ))}
           </div>
 
-          {/* ── Curriculum Tab ── */}
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* ── 1. LIVE CLASSES TAB (PhysicsWallah Classroom Style) ── */}
+          {/* ────────────────────────────────────────────────────────── */}
+          {activeTab === 'live' && (
+            <div className="space-y-6">
+              {/* Live Status Hero Header */}
+              <div className="bg-gradient-to-r from-rose-950/80 via-slate-900 to-slate-900 border border-rose-500/30 rounded-3xl p-6 relative overflow-hidden">
+                <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-rose-500/10 to-transparent pointer-events-none" />
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+                  <div className="space-y-1">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-black uppercase tracking-wider border border-rose-500/30">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                      Live Interactive Studio
+                    </div>
+                    <h3 className="text-white font-extrabold text-lg sm:text-xl">Today&apos;s Live Broadcasts & Schedule</h3>
+                    <p className="text-slate-400 text-xs">
+                      Join real-time faculty doubt clearing and lecture sessions directly.
+                    </p>
+                  </div>
+                  {liveActiveCount > 0 && (
+                    <div className="px-4 py-2 rounded-2xl bg-rose-600 text-white font-black text-xs shadow-lg shadow-rose-900/40 animate-bounce">
+                      🔴 {liveActiveCount} SESSION LIVE NOW
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Live Classes List */}
+              {liveLessons.length === 0 ? (
+                <div className="bg-slate-900 border border-white/10 rounded-3xl p-12 text-center text-slate-500 space-y-3">
+                  <Radio className="w-12 h-12 text-slate-700 mx-auto" />
+                  <p className="font-bold text-slate-300">No Live Classes Scheduled Right Now</p>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    Faculty schedules live sessions weekly. Check your batch schedule or browse recorded lectures below.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {liveLessons.map((les) => {
+                    const isBroadcasting = les.liveStatus === 'live';
+                    const isEnded = les.liveStatus === 'ended';
+
+                    return (
+                      <div
+                        key={les.id}
+                        className={`p-6 rounded-3xl border transition-all ${
+                          isBroadcasting
+                            ? 'bg-gradient-to-r from-rose-950/40 to-slate-900 border-rose-500/50 shadow-xl shadow-rose-950/30'
+                            : isEnded
+                              ? 'bg-slate-900/80 border-white/[0.06]'
+                              : 'bg-slate-900 border-white/10 hover:border-rose-500/30'
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                isBroadcasting
+                                  ? 'bg-rose-500 text-white animate-pulse'
+                                  : isEnded
+                                    ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              }`}>
+                                {isBroadcasting ? '● LIVE BROADCASTING NOW' : isEnded ? 'CLASS ENDED' : 'UPCOMING SESSION'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-white/[0.04] text-slate-400 text-[9px] font-bold uppercase">
+                                {les.liveClassType || 'STUDIO'}
+                              </span>
+                              {les.isFree && (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-bold">
+                                  FREE PREVIEW
+                                </span>
+                              )}
+                            </div>
+
+                            <h4 className="text-white font-extrabold text-base sm:text-lg">{les.title}</h4>
+
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 font-medium">
+                              <span className="flex items-center gap-1.5 text-slate-300">
+                                <Calendar className="w-3.5 h-3.5 text-rose-400" />
+                                {les.liveScheduledAt || 'Schedule announced in batch'}
+                              </span>
+                              <span>&bull;</span>
+                              <span className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                {les.duration || '60 mins'}
+                              </span>
+                              <span>&bull;</span>
+                              <span className="text-slate-400 text-[11px]">
+                                Chapter: {(les as any).sectionTitle}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0 w-full sm:w-auto flex sm:flex-col items-center gap-2">
+                            {isBroadcasting ? (
+                              <button
+                                onClick={() => handleLessonClick(les)}
+                                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-black shadow-lg shadow-rose-600/30 transition-all hover:scale-105 cursor-pointer flex items-center justify-center gap-2"
+                              >
+                                <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                                Join Live Class 🚀
+                              </button>
+                            ) : isEnded ? (
+                              <button
+                                onClick={() => handleLessonClick(les)}
+                                className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-blue-600/90 hover:bg-blue-600 text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                              >
+                                <Play className="w-3.5 h-3.5 fill-current" />
+                                Watch Recording
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleLessonClick(les)}
+                                className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                              >
+                                Class Details &bull; Preview
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* ── 2. RECORDED LECTURES TAB (PhysicsWallah Video Library) ── */}
+          {/* ────────────────────────────────────────────────────────── */}
+          {activeTab === 'recordings' && (
+            <div className="space-y-6">
+              <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h3 className="text-white font-extrabold text-base">Recorded Video Lectures Library</h3>
+                  <p className="text-slate-500 text-xs mt-1">
+                    Watch anytime with high-speed playback, auto-progress, and downloadable study notes.
+                  </p>
+                </div>
+                <div className="px-3.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-400 font-black text-xs border border-blue-500/20">
+                  {recordedLessons.length} Recorded Videos Available
+                </div>
+              </div>
+
+              {recordedLessons.length === 0 ? (
+                <div className="bg-slate-900 border border-white/10 rounded-3xl p-12 text-center text-slate-500">
+                  <Play className="w-12 h-12 text-slate-700 mx-auto mb-3" />
+                  <p className="font-bold">No recorded lectures uploaded yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {recordedLessons.map((les, lIdx) => (
+                    <div
+                      key={les.id}
+                      onClick={() => handleLessonClick(les)}
+                      className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 ${
+                        les.isLocked
+                          ? 'bg-slate-950/40 border-white/[0.04] opacity-60'
+                          : 'bg-slate-900 border-white/10 hover:border-blue-500/40 hover:bg-slate-900/90 hover:shadow-xl'
+                      }`}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">
+                            LECTURE {lIdx + 1}
+                          </span>
+                          {les.isFree && !les.isLocked && (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold border border-emerald-500/20">
+                              Free Demo
+                            </span>
+                          )}
+                          {les.isLocked && (
+                            <span className="flex items-center gap-1 text-[10px] text-slate-500 font-bold">
+                              <Lock className="w-3 h-3" /> Locked
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="text-white font-bold text-sm leading-snug line-clamp-2">{les.title}</h4>
+                        <p className="text-slate-500 text-[11px]">{(les as any).sectionTitle}</p>
+                      </div>
+
+                      <div className="pt-3 border-t border-white/[0.04] flex items-center justify-between text-xs">
+                        <span className="text-slate-400 font-medium flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-slate-500" />
+                          {les.duration || 'Video'}
+                        </span>
+                        <span className="text-blue-400 font-bold text-[11px] flex items-center gap-1 hover:underline">
+                          Play Lecture <ChevronRight className="w-3.5 h-3.5" />
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ────────────────────────────────────────────────────────── */}
+          {/* ── 3. CURRICULUM TAB (Full Outline) ── */}
+          {/* ────────────────────────────────────────────────────────── */}
           {activeTab === 'curriculum' && (
             <div className="bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
               <div className="px-6 py-5 border-b border-white/[0.06]">
@@ -440,10 +760,14 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                                         lesson.isLocked
                                           ? 'bg-slate-800 text-slate-600'
-                                          : isVideo ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'
+                                          : lesson.type === 'live'
+                                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                            : isVideo ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'
                                       }`}>
                                         {lesson.isLocked ? (
                                           <Lock className="w-4 h-4" />
+                                        ) : lesson.type === 'live' ? (
+                                          <span className="text-xs">🔴</span>
                                         ) : isVideo ? (
                                           <Play className="w-4 h-4 fill-current" />
                                         ) : (
@@ -451,21 +775,40 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                         )}
                                       </div>
                                       <div>
-                                        <p className={`text-xs sm:text-sm font-semibold ${lesson.isLocked ? 'text-slate-600' : 'text-slate-200'}`}>
-                                          {lesson.title}
-                                        </p>
+                                        <div className="flex items-center gap-2">
+                                          <p className={`text-xs sm:text-sm font-semibold ${lesson.isLocked ? 'text-slate-600' : 'text-slate-200'}`}>
+                                            {lesson.title}
+                                          </p>
+                                          {lesson.type === 'live' && (
+                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                              lesson.liveStatus === 'live'
+                                                ? 'bg-rose-500 text-white animate-pulse'
+                                                : lesson.liveStatus === 'ended'
+                                                  ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                                                  : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                            }`}>
+                                              {lesson.liveStatus === 'live' ? 'LIVE NOW' : lesson.liveStatus === 'ended' ? 'RECORDING' : 'UPCOMING LIVE'}
+                                            </span>
+                                          )}
+                                        </div>
                                         <p className="text-[11px] text-slate-500 mt-0.5 uppercase font-bold tracking-wider">
-                                          {lesson.duration || '—'} &bull; {lesson.type || 'video'}
+                                          {lesson.duration || '—'} &bull; {lesson.type === 'live' ? 'Interactive Live Class' : (lesson.type || 'video')}
+                                          {lesson.liveScheduledAt && ` &bull; 🗓 ${lesson.liveScheduledAt}`}
                                         </p>
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                      {lesson.type === 'live' && lesson.liveStatus === 'live' && !lesson.isLocked && (
+                                        <span className="px-3 py-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-extrabold shadow-sm transition-all">
+                                          Join Live Class 🚀
+                                        </span>
+                                      )}
                                       {lesson.isFree && !lesson.isLocked && (
                                         <span className="text-[9px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 uppercase tracking-wide">
                                           Free preview
                                         </span>
                                       )}
-                                      {!lesson.isLocked && lesson.videoUrl && (
+                                      {!lesson.isLocked && (lesson.videoUrl || lesson.liveMeetingUrl || lesson.recordingUrl) && (
                                         <ChevronRight className="w-4 h-4 text-slate-600" />
                                       )}
                                     </div>

@@ -41,8 +41,20 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
             </div>
           )}
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider">
-            {course.category || 'BPSC'} Program
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider">
+              {course.category || 'BPSC'} Program
+            </div>
+            {((course as any).courseFormat === 'live' || course.title?.toLowerCase().includes('live') || course.description?.toLowerCase().includes('live')) ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping" />
+                Live Interactive Batch
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
+                📼 Complete Recorded Course
+              </div>
+            )}
           </div>
           <h1 className="text-3xl sm:text-4xl font-heading font-extrabold text-brand-primary leading-tight">
             {course.title}
@@ -58,7 +70,11 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
             </div>
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Format</span>
-              <p className="text-sm font-extrabold text-slate-900">Hybrid (Patna + Online)</p>
+              <p className="text-sm font-extrabold text-slate-900">
+                {((course as any).courseFormat === 'live' || course.title?.toLowerCase().includes('live'))
+                  ? '🔴 Live + Recorded Backups' 
+                  : (course.schedule || 'Self-Paced Recorded')}
+              </p>
             </div>
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Fee Structure</span>

@@ -3639,6 +3639,15 @@ async function initializeAuthTables(pool: mysql.Pool) {
       )
     `);
 
+    try {
+      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveClassType VARCHAR(50) DEFAULT 'youtube'");
+      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveScheduledAt VARCHAR(100)");
+      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveMeetingUrl TEXT");
+      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveStatus VARCHAR(50) DEFAULT 'scheduled'");
+      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS recordingUrl TEXT");
+      await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS courseFormat VARCHAR(50) DEFAULT 'hybrid'");
+    } catch (_) {}
+
     // LMS Enrollments
     await pool.query(`
       CREATE TABLE IF NOT EXISTS lms_enrollments (
@@ -4424,20 +4433,54 @@ class LmsDB {
     return db.localStore.lessons.filter(l => l.sectionId === sectionId);
   }
 
-  async createLesson(data: { id: string; sectionId: string; courseId: string; title: string; type: string; videoUrl: string; duration: string; durationSeconds: number; orderIndex: number; isFree: number; isPublished: number }): Promise<any> {
+  async createLesson(data: {
+    id: string;
+    sectionId: string;
+    courseId: string;
+    title: string;
+    type: string;
+    videoUrl: string;
+    duration: string;
+    durationSeconds: number;
+    orderIndex: number;
+    isFree: number;
+    isPublished: number;
+    liveClassType?: string;
+    liveScheduledAt?: string;
+    liveMeetingUrl?: string;
+    liveStatus?: string;
+    recordingUrl?: string;
+  }): Promise<any> {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO lms_lessons (id, sectionId, courseId, title, type, videoUrl, duration, durationSeconds, orderIndex, isFree, isPublished)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO lms_lessons (id, sectionId, courseId, title, type, videoUrl, duration, durationSeconds, orderIndex, isFree, isPublished, liveClassType, liveScheduledAt, liveMeetingUrl, liveStatus, recordingUrl)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             data.id, data.sectionId, data.courseId, data.title, data.type,
             data.videoUrl, data.duration, data.durationSeconds, data.orderIndex,
-            data.isFree, data.isPublished
+            data.isFree, data.isPublished,
+            data.liveClassType || (data.type === 'live' ? 'youtube' : null),
+            data.liveScheduledAt || null,
+            data.liveMeetingUrl || null,
+            data.liveStatus || (data.type === 'live' ? 'scheduled' : null),
+            data.recordingUrl || null
           ]
         );
         return data;
       } catch (err) {
+        // Fallback insert without extra columns if legacy schema
+        try {
+          await mysqlPool.query(
+            `INSERT INTO lms_lessons (id, sectionId, courseId, title, type, videoUrl, duration, durationSeconds, orderIndex, isFree, isPublished)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              data.id, data.sectionId, data.courseId, data.title, data.type,
+              data.videoUrl, data.duration, data.durationSeconds, data.orderIndex,
+              data.isFree, data.isPublished
+            ]
+          );
+        } catch (_) {}
         console.error('[LmsDB] createLesson MySQL error, falling back to local storage:', err);
       }
     }
@@ -4463,14 +4506,38 @@ class LmsDB {
     return true;
   }
 
-  async updateLesson(id: string, data: { title: string; videoUrl: string; duration: string }): Promise<boolean> {
+  async updateLesson(id: string, data: {
+    title?: string;
+    videoUrl?: string;
+    duration?: string;
+    type?: string;
+    liveClassType?: string;
+    liveScheduledAt?: string;
+    liveMeetingUrl?: string;
+    liveStatus?: string;
+    recordingUrl?: string;
+    isFree?: number | boolean;
+  }): Promise<boolean> {
     if (mysqlPool) {
       try {
-        await mysqlPool.query(
-          'UPDATE lms_lessons SET title = ?, videoUrl = ?, duration = ? WHERE id = ?',
-          [data.title, data.videoUrl, data.duration, id]
-        );
-        return true;
+        const fields: string[] = [];
+        const vals: any[] = [];
+        if (data.title !== undefined) { fields.push('title = ?'); vals.push(data.title); }
+        if (data.videoUrl !== undefined) { fields.push('videoUrl = ?'); vals.push(data.videoUrl); }
+        if (data.duration !== undefined) { fields.push('duration = ?'); vals.push(data.duration); }
+        if (data.type !== undefined) { fields.push('type = ?'); vals.push(data.type); }
+        if (data.liveClassType !== undefined) { fields.push('liveClassType = ?'); vals.push(data.liveClassType); }
+        if (data.liveScheduledAt !== undefined) { fields.push('liveScheduledAt = ?'); vals.push(data.liveScheduledAt); }
+        if (data.liveMeetingUrl !== undefined) { fields.push('liveMeetingUrl = ?'); vals.push(data.liveMeetingUrl); }
+        if (data.liveStatus !== undefined) { fields.push('liveStatus = ?'); vals.push(data.liveStatus); }
+        if (data.recordingUrl !== undefined) { fields.push('recordingUrl = ?'); vals.push(data.recordingUrl); }
+        if (data.isFree !== undefined) { fields.push('isFree = ?'); vals.push(data.isFree ? 1 : 0); }
+
+        if (fields.length > 0) {
+          vals.push(id);
+          await mysqlPool.query(`UPDATE lms_lessons SET ${fields.join(', ')} WHERE id = ?`, vals);
+          return true;
+        }
       } catch (err) {
         console.error('[LmsDB] updateLesson MySQL error, falling back to local storage:', err);
       }

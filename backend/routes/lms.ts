@@ -111,8 +111,10 @@ router.get('/courses/:id/sections', async (req: Request, res: Response) => {
           ...section,
           lessons: lessons.map((lesson: any) => ({
             ...lesson,
-            // Hide video URL if not enrolled and not a free lesson
+            // Hide video URL and live meeting credentials if not enrolled and not a free lesson
             videoUrl: (enrolled || lesson.isFree) ? lesson.videoUrl : null,
+            liveMeetingUrl: (enrolled || lesson.isFree) ? lesson.liveMeetingUrl : null,
+            recordingUrl: (enrolled || lesson.isFree) ? lesson.recordingUrl : null,
             isLocked: !enrolled && !lesson.isFree
           }))
         };
@@ -382,7 +384,7 @@ router.post('/sections/:sectionId/lessons', async (req: Request, res: Response) 
     res.status(400).json({ success: false, error: 'Invalid sectionId parameter.' });
     return;
   }
-  const { courseId, title, type, videoUrl, duration } = req.body;
+  const { courseId, title, type, videoUrl, duration, liveClassType, liveScheduledAt, liveMeetingUrl, liveStatus, recordingUrl, isFree } = req.body;
   try {
     const id = `les-${sectionId}-${Date.now()}`;
     const lesson = await lmsDB.createLesson({
@@ -395,8 +397,13 @@ router.post('/sections/:sectionId/lessons', async (req: Request, res: Response) 
       duration: duration || '10 mins',
       durationSeconds: 600,
       orderIndex: 1,
-      isFree: 0,
-      isPublished: 1
+      isFree: isFree ? 1 : 0,
+      isPublished: 1,
+      liveClassType,
+      liveScheduledAt,
+      liveMeetingUrl,
+      liveStatus,
+      recordingUrl
     });
     res.status(201).json({ success: true, data: lesson });
   } catch (err: any) {

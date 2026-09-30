@@ -11,6 +11,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 
 type CategoryType = 'All' | 'Prelims' | 'Mains' | 'Interview';
 type ExamType = 'All' | 'BPSC' | 'Arunachal PCS';
+type FormatType = 'All' | 'Live' | 'Recorded';
 
 function CoursesContent() {
   const { t } = useTranslation();
@@ -18,9 +19,11 @@ function CoursesContent() {
   const searchParams = useSearchParams();
   const initialCat = (searchParams.get('category') as CategoryType) || 'All';
   const initialExam = (searchParams.get('exam') as ExamType) || 'All';
+  const initialFormat = (searchParams.get('format') as FormatType) || 'All';
 
   const [selectedExam, setSelectedExam] = useState<ExamType>(initialExam);
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>(initialCat);
+  const [selectedFormat, setSelectedFormat] = useState<FormatType>(initialFormat);
   const [searchQuery, setSearchQuery] = useState('');
   const [coursesList, setCoursesList] = useState<any[]>([]);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
@@ -33,8 +36,10 @@ function CoursesContent() {
   useEffect(() => {
     const cat = searchParams.get('category') as CategoryType;
     const ex = searchParams.get('exam') as ExamType;
+    const fmt = searchParams.get('format') as FormatType;
     if (cat) setSelectedCategory(cat);
     if (ex) setSelectedExam(ex);
+    if (fmt) setSelectedFormat(fmt);
   }, [searchParams]);
 
   useEffect(() => {
@@ -53,6 +58,11 @@ function CoursesContent() {
 
   const exams: ExamType[] = ['All', 'BPSC', 'Arunachal PCS'];
   const categories: CategoryType[] = ['All', 'Prelims', 'Mains', 'Interview'];
+  const formats: { id: FormatType; label: string }[] = [
+    { id: 'All', label: 'All Formats' },
+    { id: 'Live', label: '🔴 Live Batches' },
+    { id: 'Recorded', label: '📼 Recorded Courses' }
+  ];
 
   const filteredCourses = coursesList.filter(course => {
     const matchesExam = selectedExam === 'All' || 
@@ -61,9 +71,19 @@ function CoursesContent() {
       (selectedExam === 'BPSC' && (!course.exam || course.title.includes('BPSC')));
 
     const matchesCategory = selectedCategory === 'All' || course.category === selectedCategory;
+
+    const isLiveCourse = course.courseFormat === 'live' ||
+      course.title?.toLowerCase().includes('live') ||
+      course.description?.toLowerCase().includes('live') ||
+      course.schedule?.toLowerCase().includes('live');
+
+    const matchesFormat = selectedFormat === 'All' ||
+      (selectedFormat === 'Live' && isLiveCourse) ||
+      (selectedFormat === 'Recorded' && !isLiveCourse);
+
     const matchesSearch = (course.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (course.description || '').toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesExam && matchesCategory && matchesSearch;
+    return matchesExam && matchesCategory && matchesFormat && matchesSearch;
   });
 
   return (
@@ -136,6 +156,28 @@ function CoursesContent() {
                 <ChevronDown className="w-4 h-4 text-slate-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             </div>
+
+            {/* Mode / Format Dropdown */}
+            <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900/60 px-3.5 py-2 rounded-2xl border border-[var(--card-border)] w-full sm:w-auto shadow-xs">
+              <label htmlFor="format-select" className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 shrink-0">
+                Format:
+              </label>
+              <div className="relative flex-1 sm:flex-none">
+                <select
+                  id="format-select"
+                  value={selectedFormat}
+                  onChange={(e) => setSelectedFormat(e.target.value as FormatType)}
+                  className="w-full sm:w-40 appearance-none bg-transparent pr-7 pl-1 text-xs font-extrabold text-[var(--text-color)] outline-none cursor-pointer"
+                >
+                  {formats.map((fmt) => (
+                    <option key={fmt.id} value={fmt.id} className="bg-[var(--card-bg)] text-[var(--text-color)] font-extrabold py-1">
+                      {fmt.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -184,9 +226,21 @@ function CoursesContent() {
                           }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
-                        <span className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-slate-900/80 text-amber-400 text-[9px] font-extrabold tracking-wider uppercase border border-amber-500/30 backdrop-blur-xs">
-                          {course.category || 'BATCH'}
-                        </span>
+                        <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                          {(course.courseFormat === 'live' || course.title?.toLowerCase().includes('live') || course.description?.toLowerCase().includes('live')) ? (
+                            <span className="px-2 py-0.5 rounded-full bg-rose-600/90 text-white text-[9px] font-extrabold tracking-wider uppercase border border-rose-400/30 backdrop-blur-xs flex items-center gap-1 shadow-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                              LIVE
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full bg-blue-600/90 text-white text-[9px] font-extrabold tracking-wider uppercase border border-blue-400/30 backdrop-blur-xs shadow-sm">
+                              RECORDED
+                            </span>
+                          )}
+                          <span className="px-2.5 py-0.5 rounded-full bg-slate-900/80 text-amber-400 text-[9px] font-extrabold tracking-wider uppercase border border-amber-500/30 backdrop-blur-xs">
+                            {course.category || 'BATCH'}
+                          </span>
+                        </div>
                       </div>
                     )}
 
@@ -197,9 +251,21 @@ function CoursesContent() {
                             <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shadow-xs">
                               <BookOpen className="w-4 h-4" />
                             </div>
-                            <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-extrabold tracking-wider uppercase border border-slate-200/60 dark:border-white/10">
-                              {course.category || 'BATCH'}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {(course.courseFormat === 'live' || course.title?.toLowerCase().includes('live') || course.description?.toLowerCase().includes('live')) ? (
+                                <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-wider border border-rose-500/20 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                                  LIVE
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase tracking-wider border border-blue-500/20">
+                                  RECORDED
+                                </span>
+                              )}
+                              <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-extrabold tracking-wider uppercase border border-slate-200/60 dark:border-white/10">
+                                {course.category || 'BATCH'}
+                              </span>
+                            </div>
                           </div>
                         )}
 

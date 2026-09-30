@@ -15,6 +15,11 @@ interface Lesson {
   videoUrl?: string;
   duration: string;
   isFree?: boolean;
+  liveClassType?: 'youtube' | 'zoom' | 'meet' | 'custom' | string;
+  liveScheduledAt?: string;
+  liveMeetingUrl?: string;
+  liveStatus?: 'scheduled' | 'live' | 'ended' | string;
+  recordingUrl?: string;
 }
 
 interface Section {
@@ -189,7 +194,20 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   const [assignmentForm, setAssignmentForm] = useState<Partial<Assignment>>({ title: '', description: '', dueDate: '', maxMarks: 100, submissionType: 'pdf' });
 
   const [showLessonModal, setShowLessonModal] = useState(false);
-  const [lessonForm, setLessonForm] = useState({ id: '', sectionId: '', title: '', type: 'video', videoUrl: '', duration: '15 mins' });
+  const [lessonForm, setLessonForm] = useState({
+    id: '',
+    sectionId: '',
+    title: '',
+    type: 'video',
+    videoUrl: '',
+    duration: '15 mins',
+    liveClassType: 'youtube',
+    liveScheduledAt: '',
+    liveMeetingUrl: '',
+    liveStatus: 'scheduled',
+    recordingUrl: '',
+    isFree: false
+  });
 
   // Site Course Content Edit Modals
   const [showFacultyModal, setShowFacultyModal] = useState(false);
@@ -435,7 +453,20 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
 
   // ── Lesson CRUD ──
   const handleAddLesson = (sectionId: string) => {
-    setLessonForm({ id: '', sectionId, title: '', type: 'video', videoUrl: '', duration: '15 mins' });
+    setLessonForm({
+      id: '',
+      sectionId,
+      title: '',
+      type: 'video',
+      videoUrl: '',
+      duration: '15 mins',
+      liveClassType: 'youtube',
+      liveScheduledAt: '',
+      liveMeetingUrl: '',
+      liveStatus: 'scheduled',
+      recordingUrl: '',
+      isFree: false
+    });
     setShowLessonModal(true);
   };
 
@@ -455,7 +486,13 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
           title: lessonForm.title,
           type: lessonForm.type,
           videoUrl: lessonForm.videoUrl,
-          duration: lessonForm.duration
+          duration: lessonForm.duration,
+          liveClassType: lessonForm.liveClassType,
+          liveScheduledAt: lessonForm.liveScheduledAt,
+          liveMeetingUrl: lessonForm.liveMeetingUrl,
+          liveStatus: lessonForm.liveStatus,
+          recordingUrl: lessonForm.recordingUrl,
+          isFree: lessonForm.isFree
         })
       });
       if (res.ok) {
@@ -1032,13 +1069,31 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                               <div key={les.id} className="py-3 flex justify-between items-center">
                                 <div className="flex items-center gap-3">
                                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                                    isVideo ? 'bg-amber-500/10 text-amber-600' : 'bg-blue-500/10 text-blue-600'
+                                    les.type === 'live'
+                                      ? 'bg-rose-500/10 text-rose-600 animate-pulse'
+                                      : isVideo ? 'bg-amber-500/10 text-amber-600' : 'bg-blue-500/10 text-blue-600'
                                   }`}>
-                                    {isVideo ? <Play className="w-3.5 h-3.5 fill-current" /> : <FileText className="w-3.5 h-3.5" />}
+                                    {les.type === 'live' ? (
+                                      <span className="text-xs">🔴</span>
+                                    ) : isVideo ? (
+                                      <Play className="w-3.5 h-3.5 fill-current" />
+                                    ) : (
+                                      <FileText className="w-3.5 h-3.5" />
+                                    )}
                                   </div>
                                   <div>
-                                    <p className="text-xs font-semibold text-slate-800">{les.title}</p>
-                                    <p className="text-[10px] text-slate-400 mt-0.5">{les.duration} &bull; <span className="uppercase text-[9px] font-bold text-slate-450">{les.type || 'video'}</span></p>
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-xs font-semibold text-slate-800">{les.title}</p>
+                                      {les.type === 'live' && (
+                                        <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-rose-100 text-rose-700 border border-rose-200">
+                                          {les.liveStatus === 'live' ? 'LIVE NOW' : les.liveStatus === 'ended' ? 'ENDED' : 'SCHEDULED LIVE'}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mt-0.5">
+                                      {les.duration} &bull; <span className="uppercase text-[9px] font-bold text-slate-450">{les.type || 'video'}</span>
+                                      {les.liveScheduledAt && ` &bull; 🗓 ${les.liveScheduledAt}`}
+                                    </p>
                                   </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -1050,7 +1105,13 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                                         title: les.title,
                                         type: les.type || 'video',
                                         videoUrl: les.videoUrl || '',
-                                        duration: les.duration || '15 mins'
+                                        duration: les.duration || '15 mins',
+                                        liveClassType: les.liveClassType || 'youtube',
+                                        liveScheduledAt: les.liveScheduledAt || '',
+                                        liveMeetingUrl: les.liveMeetingUrl || '',
+                                        liveStatus: les.liveStatus || 'scheduled',
+                                        recordingUrl: les.recordingUrl || '',
+                                        isFree: !!les.isFree
                                       });
                                       setShowLessonModal(true);
                                     }}
@@ -1966,11 +2027,12 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                 <select 
                   value={lessonForm.type} 
                   onChange={(e) => setLessonForm({ ...lessonForm, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white text-slate-900"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white text-slate-900 font-bold"
                 >
-                  <option value="video">Video Lecture</option>
-                  <option value="pdf">PDF Document / Notes</option>
-                  <option value="resource">Study Resource / Link</option>
+                  <option value="video">📼 Recorded Video Lecture</option>
+                  <option value="live">🔴 Live Class / Interactive Session</option>
+                  <option value="pdf">📄 PDF Document / Notes</option>
+                  <option value="resource">🔗 Study Resource / Link</option>
                 </select>
               </div>
               <div className="space-y-1.5">
@@ -1979,17 +2041,106 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                   type="text" required value={lessonForm.duration} 
                   onChange={(e) => setLessonForm({ ...lessonForm, duration: e.target.value })}
                   className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs outline-none text-slate-900 bg-white"
+                  placeholder="e.g. 60 mins or 1h 30m"
                 />
               </div>
             </div>
+
+            {/* If Content Type is LIVE CLASS */}
+            {lessonForm.type === 'live' && (
+              <div className="p-4 bg-rose-50/70 border border-rose-200 rounded-2xl space-y-3.5">
+                <div className="flex items-center justify-between pb-1 border-b border-rose-100">
+                  <span className="text-[10px] font-extrabold uppercase text-rose-700 tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" /> Live Class Settings
+                  </span>
+                  <select
+                    value={lessonForm.liveStatus || 'scheduled'}
+                    onChange={(e) => setLessonForm({ ...lessonForm, liveStatus: e.target.value })}
+                    className="px-2.5 py-1 bg-white border border-rose-300 rounded-lg text-[10px] font-bold text-rose-700 outline-none"
+                  >
+                    <option value="scheduled">🗓 Scheduled (Upcoming)</option>
+                    <option value="live">🔴 LIVE NOW (Broadcasting)</option>
+                    <option value="ended">✅ Ended (Archived)</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-600 uppercase">Live Platform</label>
+                    <select
+                      value={lessonForm.liveClassType || 'youtube'}
+                      onChange={(e) => setLessonForm({ ...lessonForm, liveClassType: e.target.value })}
+                      className="w-full px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-slate-800 outline-none"
+                    >
+                      <option value="youtube">YouTube Live (Unlisted)</option>
+                      <option value="zoom">Zoom Meeting</option>
+                      <option value="meet">Google Meet</option>
+                      <option value="custom">Custom HLS Stream / RTMP</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-bold text-slate-600 uppercase">Live Scheduled Time</label>
+                    <input
+                      type="text"
+                      value={lessonForm.liveScheduledAt || ''}
+                      onChange={(e) => setLessonForm({ ...lessonForm, liveScheduledAt: e.target.value })}
+                      placeholder="e.g. 05 Oct 2026, 6:00 PM"
+                      className="w-full px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-slate-800 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-bold text-slate-600 uppercase">
+                    {lessonForm.liveClassType === 'zoom' ? 'Zoom Join Link' : lessonForm.liveClassType === 'meet' ? 'Google Meet Link' : 'Live Stream / Embed Link'}
+                  </label>
+                  <input
+                    type="text"
+                    value={lessonForm.liveMeetingUrl || ''}
+                    onChange={(e) => setLessonForm({ ...lessonForm, liveMeetingUrl: e.target.value })}
+                    placeholder="https://zoom.us/j/... or https://youtube.com/live/..."
+                    className="w-full px-3 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-mono text-slate-800 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1 pt-1 border-t border-rose-100">
+                  <label className="text-[9px] font-bold text-slate-600 uppercase">
+                    Backup Recording URL (Available after session ends)
+                  </label>
+                  <input
+                    type="text"
+                    value={lessonForm.recordingUrl || ''}
+                    onChange={(e) => setLessonForm({ ...lessonForm, recordingUrl: e.target.value })}
+                    placeholder="Paste recording URL for students who missed live session"
+                    className="w-full px-3 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-mono text-slate-800 outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-1.5">
-              <label className="text-[9px] font-bold text-slate-400 uppercase">File Link / Video or Document URL</label>
+              <label className="text-[9px] font-bold text-slate-400 uppercase">
+                {lessonForm.type === 'live' ? 'Primary Video Stream URL (or YouTube Link)' : 'File Link / Video or Document URL'}
+              </label>
               <input 
                 type="text" required value={lessonForm.videoUrl} 
                 onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
                 placeholder="https://... or paste Youtube link"
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs outline-none text-slate-900 bg-white"
               />
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="isFreeLesson"
+                checked={!!lessonForm.isFree}
+                onChange={(e) => setLessonForm({ ...lessonForm, isFree: e.target.checked })}
+                className="rounded text-amber-500 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+              />
+              <label htmlFor="isFreeLesson" className="text-xs font-bold text-slate-700 cursor-pointer">
+                Free Demo / Preview (Accessible without purchasing course)
+              </label>
             </div>
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 flex items-center justify-between">
               <div>

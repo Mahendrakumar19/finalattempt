@@ -389,10 +389,19 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
                         section.lessons.map((lesson: any) => (
                           <div key={lesson.id} className="bg-white px-4 py-3 rounded-2xl border border-slate-150 flex justify-between items-center shadow-2xs">
                             <div className="flex items-center gap-2">
-                              <Video className="w-3.5 h-3.5 text-slate-400" />
+                              {lesson.type === 'live' ? (
+                                <span className="text-xs">🔴</span>
+                              ) : (
+                                <Video className="w-3.5 h-3.5 text-slate-400" />
+                              )}
                               <div>
                                 <div className="flex items-center gap-1.5">
                                   <p className="text-[11px] font-bold text-slate-800">{lesson.title}</p>
+                                  {lesson.type === 'live' && (
+                                    <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200">
+                                      {lesson.liveStatus === 'live' ? 'LIVE NOW' : 'LIVE'}
+                                    </span>
+                                  )}
                                   {editMode && (
                                     <button 
                                       onClick={() => handleEditLesson(lesson.id, lesson.title, lesson.videoUrl, lesson.duration)}
@@ -402,7 +411,10 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
                                     </button>
                                   )}
                                 </div>
-                                <p className="text-[9px] text-slate-400 uppercase font-semibold">{lesson.duration || '10 mins'}</p>
+                                <p className="text-[9px] text-slate-400 uppercase font-semibold">
+                                  {lesson.duration || '10 mins'}
+                                  {lesson.liveScheduledAt && ` • 🗓 ${lesson.liveScheduledAt}`}
+                                </p>
                               </div>
                             </div>
 
