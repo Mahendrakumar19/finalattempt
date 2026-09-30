@@ -470,6 +470,31 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     setShowLessonModal(true);
   };
 
+  const handleAddLiveClass = (sectionId: string) => {
+    setLessonForm({
+      id: '',
+      sectionId,
+      title: 'Live Interactive Session',
+      type: 'live',
+      videoUrl: '',
+      duration: '60 mins',
+      liveClassType: 'youtube',
+      liveScheduledAt: new Date(Date.now() + 86400000).toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      liveMeetingUrl: '',
+      liveStatus: 'scheduled',
+      recordingUrl: '',
+      isFree: false
+    });
+    setShowLessonModal(true);
+  };
+
   const handleSaveLesson = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -1050,9 +1075,16 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                           </button>
                           <button 
                             onClick={() => handleAddLesson(sec.id)}
-                            className="px-3 py-1 bg-slate-900 text-white rounded-lg text-[10px] font-bold hover:bg-slate-800 flex items-center gap-1"
+                            className="px-3 py-1.5 bg-slate-900 text-white rounded-lg text-[10px] font-bold hover:bg-slate-800 flex items-center gap-1 transition-all"
                           >
                             <Plus className="w-3 h-3" /> Add Lecture
+                          </button>
+                          <button 
+                            onClick={() => handleAddLiveClass(sec.id)}
+                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
+                            Schedule Live Class
                           </button>
                         </div>
                       </div>
@@ -2010,155 +2042,195 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
 
       {/* ── Lesson Modal ── */}
       {showLessonModal && (
-        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <form onSubmit={handleSaveLesson} className="w-full max-w-md bg-white rounded-3xl border border-slate-200 p-6 space-y-4 shadow-xl">
-            <h3 className="font-bold text-sm text-slate-900">{lessonForm.id ? 'Edit Course Lesson / Lecture' : 'Add Course Lesson / Lecture'}</h3>
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-bold text-slate-400 uppercase">Lesson Title</label>
-              <input 
-                type="text" required value={lessonForm.title} 
-                onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs outline-none text-slate-900 bg-white"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-bold text-slate-400 uppercase">Content Type</label>
-                <select 
-                  value={lessonForm.type} 
-                  onChange={(e) => setLessonForm({ ...lessonForm, type: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white text-slate-900 font-bold"
-                >
-                  <option value="video">📼 Recorded Video Lecture</option>
-                  <option value="live">🔴 Live Class / Interactive Session</option>
-                  <option value="pdf">📄 PDF Document / Notes</option>
-                  <option value="resource">🔗 Study Resource / Link</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-bold text-slate-400 uppercase">Duration / Size</label>
-                <input 
-                  type="text" required value={lessonForm.duration} 
-                  onChange={(e) => setLessonForm({ ...lessonForm, duration: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs outline-none text-slate-900 bg-white"
-                  placeholder="e.g. 60 mins or 1h 30m"
-                />
-              </div>
-            </div>
-
-            {/* If Content Type is LIVE CLASS */}
-            {lessonForm.type === 'live' && (
-              <div className="p-4 bg-rose-50/70 border border-rose-200 rounded-2xl space-y-3.5">
-                <div className="flex items-center justify-between pb-1 border-b border-rose-100">
-                  <span className="text-[10px] font-extrabold uppercase text-rose-700 tracking-wider flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" /> Live Class Settings
-                  </span>
-                  <select
-                    value={lessonForm.liveStatus || 'scheduled'}
-                    onChange={(e) => setLessonForm({ ...lessonForm, liveStatus: e.target.value })}
-                    className="px-2.5 py-1 bg-white border border-rose-300 rounded-lg text-[10px] font-bold text-rose-700 outline-none"
-                  >
-                    <option value="scheduled">🗓 Scheduled (Upcoming)</option>
-                    <option value="live">🔴 LIVE NOW (Broadcasting)</option>
-                    <option value="ended">✅ Ended (Archived)</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-slate-600 uppercase">Live Platform</label>
-                    <select
-                      value={lessonForm.liveClassType || 'youtube'}
-                      onChange={(e) => setLessonForm({ ...lessonForm, liveClassType: e.target.value })}
-                      className="w-full px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-slate-800 outline-none"
-                    >
-                      <option value="youtube">YouTube Live (Unlisted)</option>
-                      <option value="zoom">Zoom Meeting</option>
-                      <option value="meet">Google Meet</option>
-                      <option value="custom">Custom HLS Stream / RTMP</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] font-bold text-slate-600 uppercase">Live Scheduled Time</label>
-                    <input
-                      type="text"
-                      value={lessonForm.liveScheduledAt || ''}
-                      onChange={(e) => setLessonForm({ ...lessonForm, liveScheduledAt: e.target.value })}
-                      placeholder="e.g. 05 Oct 2026, 6:00 PM"
-                      className="w-full px-2.5 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-slate-800 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] font-bold text-slate-600 uppercase">
-                    {lessonForm.liveClassType === 'zoom' ? 'Zoom Join Link' : lessonForm.liveClassType === 'meet' ? 'Google Meet Link' : 'Live Stream / Embed Link'}
-                  </label>
-                  <input
-                    type="text"
-                    value={lessonForm.liveMeetingUrl || ''}
-                    onChange={(e) => setLessonForm({ ...lessonForm, liveMeetingUrl: e.target.value })}
-                    placeholder="https://zoom.us/j/... or https://youtube.com/live/..."
-                    className="w-full px-3 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-mono text-slate-800 outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1 pt-1 border-t border-rose-100">
-                  <label className="text-[9px] font-bold text-slate-600 uppercase">
-                    Backup Recording URL (Available after session ends)
-                  </label>
-                  <input
-                    type="text"
-                    value={lessonForm.recordingUrl || ''}
-                    onChange={(e) => setLessonForm({ ...lessonForm, recordingUrl: e.target.value })}
-                    placeholder="Paste recording URL for students who missed live session"
-                    className="w-full px-3 py-1.5 bg-white border border-rose-200 rounded-xl text-xs font-mono text-slate-800 outline-none"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-bold text-slate-400 uppercase">
-                {lessonForm.type === 'live' ? 'Primary Video Stream URL (or YouTube Link)' : 'File Link / Video or Document URL'}
-              </label>
-              <input 
-                type="text" required value={lessonForm.videoUrl} 
-                onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
-                placeholder="https://... or paste Youtube link"
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs outline-none text-slate-900 bg-white"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <input
-                type="checkbox"
-                id="isFreeLesson"
-                checked={!!lessonForm.isFree}
-                onChange={(e) => setLessonForm({ ...lessonForm, isFree: e.target.checked })}
-                className="rounded text-amber-500 focus:ring-amber-500 w-4 h-4 cursor-pointer"
-              />
-              <label htmlFor="isFreeLesson" className="text-xs font-bold text-slate-700 cursor-pointer">
-                Free Demo / Preview (Accessible without purchasing course)
-              </label>
-            </div>
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 flex items-center justify-between">
-              <div>
-                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Local Media Storage</span>
-                <span className="text-[10px] text-slate-400">Choose lectures or reading materials from Media Library</span>
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <form 
+            onSubmit={handleSaveLesson} 
+            className="w-full max-w-2xl bg-white rounded-3xl border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200"
+          >
+            {/* Sticky Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-slate-50/80">
+              <div className="flex items-center gap-2.5">
+                <span className={`w-3 h-3 rounded-full ${lessonForm.type === 'live' ? 'bg-rose-500 animate-pulse' : 'bg-amber-500'}`} />
+                <h3 className="font-extrabold text-sm sm:text-base text-slate-900">
+                  {lessonForm.id 
+                    ? (lessonForm.type === 'live' ? 'Edit Live Class Session' : 'Edit Course Lesson / Lecture') 
+                    : (lessonForm.type === 'live' ? 'Schedule Live Class / Interactive Session' : 'Add Course Lesson / Lecture')}
+                </h3>
               </div>
               <button
                 type="button"
-                onClick={() => setMediaPickerConfig({ isOpen: true, target: 'lesson' })}
-                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 transition-colors"
+                onClick={() => setShowLessonModal(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-xl transition-all cursor-pointer"
               >
-                <FolderOpen className="w-3.5 h-3.5" />
-                Select File
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setShowLessonModal(false)} className="px-4 py-2 border rounded-xl text-xs font-semibold text-slate-700">Cancel</button>
-              <button type="submit" className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold">Save Lesson</button>
+
+            {/* Scrollable Body */}
+            <div className="p-6 space-y-5 overflow-y-auto flex-1 overscroll-contain">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Lesson / Session Title</label>
+                <input 
+                  type="text" required value={lessonForm.title} 
+                  onChange={(e) => setLessonForm({ ...lessonForm, title: e.target.value })}
+                  placeholder="e.g. Modern Indian History - Freedom Movement (Part 1)"
+                  className="w-full px-4 py-2.5 border border-slate-200 focus:border-slate-400 rounded-xl text-xs sm:text-sm font-semibold outline-none text-slate-900 bg-white transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Content Type</label>
+                  <select 
+                    value={lessonForm.type} 
+                    onChange={(e) => setLessonForm({ ...lessonForm, type: e.target.value })}
+                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none bg-white text-slate-900 font-bold cursor-pointer"
+                  >
+                    <option value="video">📼 Recorded Video Lecture</option>
+                    <option value="live">🔴 Live Class / Interactive Session</option>
+                    <option value="pdf">📄 PDF Document / Notes</option>
+                    <option value="resource">🔗 Study Resource / Link</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Duration / Session Length</label>
+                  <input 
+                    type="text" required value={lessonForm.duration} 
+                    onChange={(e) => setLessonForm({ ...lessonForm, duration: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none text-slate-900 bg-white"
+                    placeholder="e.g. 60 mins or 1h 30m"
+                  />
+                </div>
+              </div>
+
+              {/* If Content Type is LIVE CLASS */}
+              {lessonForm.type === 'live' && (
+                <div className="p-5 bg-rose-50/80 border border-rose-200 rounded-2xl space-y-4 shadow-xs">
+                  <div className="flex items-center justify-between pb-2 border-b border-rose-100">
+                    <span className="text-[11px] font-black uppercase text-rose-700 tracking-wider flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping inline-block" /> Live Class Settings & Schedule
+                    </span>
+                    <select
+                      value={lessonForm.liveStatus || 'scheduled'}
+                      onChange={(e) => setLessonForm({ ...lessonForm, liveStatus: e.target.value })}
+                      className="px-3 py-1.5 bg-white border border-rose-300 rounded-xl text-xs font-bold text-rose-700 outline-none shadow-xs cursor-pointer"
+                    >
+                      <option value="scheduled">🗓 Scheduled (Upcoming)</option>
+                      <option value="live">🔴 LIVE NOW (Broadcasting)</option>
+                      <option value="ended">✅ Ended (Archived / Recording Available)</option>
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-700 uppercase">Live Broadcast Platform</label>
+                      <select
+                        value={lessonForm.liveClassType || 'youtube'}
+                        onChange={(e) => setLessonForm({ ...lessonForm, liveClassType: e.target.value })}
+                        className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-slate-800 outline-none cursor-pointer"
+                      >
+                        <option value="youtube">YouTube Live (Unlisted / Public)</option>
+                        <option value="zoom">Zoom Meeting (Direct Launch)</option>
+                        <option value="meet">Google Meet (Direct Launch)</option>
+                        <option value="custom">Custom HLS Stream / RTMP Embed</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-700 uppercase">Live Scheduled Time</label>
+                      <input
+                        type="text"
+                        value={lessonForm.liveScheduledAt || ''}
+                        onChange={(e) => setLessonForm({ ...lessonForm, liveScheduledAt: e.target.value })}
+                        placeholder="e.g. 05 Oct 2026, 6:00 PM"
+                        className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-slate-800 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase">
+                      {lessonForm.liveClassType === 'zoom' ? 'Zoom Join Link' : lessonForm.liveClassType === 'meet' ? 'Google Meet Link' : 'Live Stream / Embed Link'}
+                    </label>
+                    <input
+                      type="text"
+                      value={lessonForm.liveMeetingUrl || ''}
+                      onChange={(e) => setLessonForm({ ...lessonForm, liveMeetingUrl: e.target.value })}
+                      placeholder="https://zoom.us/j/... or https://youtube.com/live/..."
+                      className="w-full px-3.5 py-2 bg-white border border-rose-200 rounded-xl text-xs font-mono text-slate-800 outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 pt-2 border-t border-rose-100">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase">
+                      Backup Recording URL (Automatically displayed after session ends)
+                    </label>
+                    <input
+                      type="text"
+                      value={lessonForm.recordingUrl || ''}
+                      onChange={(e) => setLessonForm({ ...lessonForm, recordingUrl: e.target.value })}
+                      placeholder="Paste recorded session URL for students who missed the live class"
+                      className="w-full px-3.5 py-2 bg-white border border-rose-200 rounded-xl text-xs font-mono text-slate-800 outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  {lessonForm.type === 'live' ? 'Primary Video Stream URL (or YouTube Link)' : 'File Link / Video or Document URL'}
+                </label>
+                <input 
+                  type="text" required value={lessonForm.videoUrl} 
+                  onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
+                  placeholder="https://... or paste Youtube link"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none text-slate-900 bg-white"
+                />
+              </div>
+
+              <div className="flex items-center gap-2.5 pt-1">
+                <input
+                  type="checkbox"
+                  id="isFreeLesson"
+                  checked={!!lessonForm.isFree}
+                  onChange={(e) => setLessonForm({ ...lessonForm, isFree: e.target.checked })}
+                  className="rounded text-amber-500 focus:ring-amber-500 w-4 h-4 cursor-pointer"
+                />
+                <label htmlFor="isFreeLesson" className="text-xs font-bold text-slate-700 cursor-pointer">
+                  Free Demo / Preview (Accessible to all students without purchasing course)
+                </label>
+              </div>
+
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between gap-3">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider block">Media Storage & Cloud Assets</span>
+                  <span className="text-[11px] text-slate-400">Choose lectures or study materials directly from your Media Library</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMediaPickerConfig({ isOpen: true, target: 'lesson' })}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-1.5 transition-colors shrink-0 shadow-xs"
+                >
+                  <FolderOpen className="w-3.5 h-3.5" />
+                  Select File
+                </button>
+              </div>
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end items-center gap-3 shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setShowLessonModal(false)} 
+                className="px-5 py-2.5 border border-slate-200 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-700 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all cursor-pointer"
+              >
+                Save Lesson
+              </button>
             </div>
           </form>
         </div>

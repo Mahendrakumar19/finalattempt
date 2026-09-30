@@ -10,6 +10,7 @@ import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard, get
 import Image from 'next/image';
 import { sanitizeAndRepairQuestion, renderFormattedQuestionText } from '@/utils/questionFormatter';
 import FormattedExplanation from '@/components/FormattedExplanation';
+import { ProctoringMonitor } from '@/components/lms/ProctoringMonitor';
 
 interface QuizInfo {
   id?: string;
@@ -598,10 +599,11 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 style={{ color: cbtDark ? '#F3F4F6' : '#1E293B' }}
               >
                 <li>The timer will <strong>NOT</strong> start until you click &quot;START EXAM (FULLSCREEN)&quot; below.</li>
-                <li>Fullscreen browser mode is mandatory for this examination.</li>
-                <li>Exiting fullscreen or switching browser tabs will trigger a security pause warning.</li>
-                <li>All selected answers are automatically saved to the server during the attempt.</li>
-                <li>The test will automatically submit when the allowed timer expires.</li>
+                <li>Fullscreen browser mode and <strong>Camera Access</strong> are mandatory for this examination.</li>
+                <li><strong>AI Webcam Proctoring:</strong> The camera must remain on throughout the exam. If your face or person is not detected, a security warning flag will be issued.</li>
+                <li><strong>3-Strike Auto-Termination:</strong> If flagged <strong>3 times</strong> (including tab switches, window blurs, or person not detected), the test will <strong>close and submit automatically</strong>.</li>
+                <li>All selected answers are continuously auto-saved to the server during the attempt.</li>
+                <li>The test will also automatically submit when the allotted timer expires.</li>
               </ul>
             </div>
 
@@ -2007,6 +2009,22 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── 5. AI WEBCAM PROCTORING & INTEGRITY SYSTEM (Active during test) ── */}
+      {quizState === 'active' && (
+        <ProctoringMonitor
+          isActive={quizState === 'active'}
+          maxViolations={3}
+          isDark={cbtDark}
+          onViolationAdded={(violation, totalCount) => {
+            console.warn(`[Proctoring] Flag #${totalCount}: ${violation.title}`, violation);
+          }}
+          onAutoSubmitTriggered={(reason) => {
+            console.warn(`[Proctoring Auto-Submit Triggered]:`, reason);
+            executeFinalSubmit();
+          }}
+        />
       )}
     </div>
   );

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   BookOpen, Play, CheckCircle, ChevronLeft, ChevronDown, ChevronRight,
   Lock, Video, Clock, Sparkles, Trophy, MessageSquare, HelpCircle, FileText,
-  Radio, Calendar, Download, AlertCircle, Share2, Layers
+  Radio, Calendar, Download, AlertCircle, Share2, Layers, Bell
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -67,6 +67,22 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
   const [playingLesson, setPlayingLesson] = useState<Lesson | null>(null);
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  const [remindedLessons, setRemindedLessons] = useState<Record<string, boolean>>({});
+
+  const handleSetReminder = (lesson: Lesson) => {
+    setRemindedLessons(prev => ({ ...prev, [lesson.id]: true }));
+
+    // Generate Google Calendar Link if schedule exists
+    const title = encodeURIComponent(`Live Class: ${lesson.title} - ${course?.title || 'Course'}`);
+    const details = encodeURIComponent(`Live Interactive Class for ${course?.title || 'Course'}.\nPlatform: ${lesson.liveClassType || 'Online'}\nJoin Link: ${lesson.liveMeetingUrl || lesson.videoUrl || window.location.href}`);
+    
+    // Construct Google Calendar Event URL (scheduled for tomorrow or general link)
+    const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&details=${details}`;
+    
+    // Open in new tab for student to save directly to calendar/phone
+    window.open(gcalUrl, '_blank');
+  };
 
   const getYoutubeEmbedUrl = (url: string): string | null => {
     if (!url) return null;
@@ -612,12 +628,26 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                 Watch Recording
                               </button>
                             ) : (
-                              <button
-                                onClick={() => handleLessonClick(les)}
-                                className="w-full sm:w-auto px-5 py-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                              >
-                                Class Details &bull; Preview
-                              </button>
+                              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                <button
+                                  type="button"
+                                  onClick={() => handleSetReminder(les)}
+                                  className={`w-full sm:w-auto px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                                    remindedLessons[les.id]
+                                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                      : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30'
+                                  }`}
+                                >
+                                  <Bell className={`w-3.5 h-3.5 ${remindedLessons[les.id] ? 'fill-current' : ''}`} />
+                                  <span>{remindedLessons[les.id] ? 'Reminder Added' : 'Remind Me'}</span>
+                                </button>
+                                <button
+                                  onClick={() => handleLessonClick(les)}
+                                  className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                                >
+                                  Class Details
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
