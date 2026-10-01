@@ -72,15 +72,29 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
 
         {/* User Badge */}
         <div className="p-4 border-b border-slate-200 dark:border-white/[0.06]">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06]">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0">
-              {user?.fullName?.charAt(0)?.toUpperCase() || 'S'}
+          <Link
+            href="/student/profile"
+            onClick={() => setIsSidebarOpen(false)}
+            className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] border border-slate-200 dark:border-white/[0.06] transition-all cursor-pointer group"
+          >
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden border border-slate-200 dark:border-white/10 shadow-xs relative">
+              {user?.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.fullName || 'User'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{user?.fullName?.charAt(0)?.toUpperCase() || 'S'}</span>
+              )}
             </div>
-            <div className="min-w-0">
-              <p className="text-slate-900 dark:text-white text-xs font-semibold truncate">{user?.fullName || 'Student'}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-slate-900 dark:text-white text-xs font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                {user?.fullName || 'Student'}
+              </p>
               <p className="text-slate-500 dark:text-slate-400 text-[10px] truncate">{user?.email || ''}</p>
             </div>
-          </div>
+          </Link>
         </div>
 
         {/* Navigation Items */}
@@ -141,8 +155,16 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
             <img src="/lightlogofull.png" alt="Final Attempt" className="w-full h-full object-contain logo-dark" />
           </Link>
 
-          <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
-            {user?.fullName?.charAt(0)?.toUpperCase() || 'S'}
+          <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center overflow-hidden border border-slate-200 dark:border-white/10 shadow-xs">
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.fullName || 'User'}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span>{user?.fullName?.charAt(0)?.toUpperCase() || 'S'}</span>
+            )}
           </div>
         </header>
 
