@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Menu, X, ChevronDown, ArrowRight, Sun, Moon,
   BookOpen, FileText, Video, Download, Newspaper,
@@ -15,7 +15,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/context/ThemeContext';
 import { useTranslation, useLocale } from '@/context/LocaleContext';
-import { db, CustomPage } from '@/services/db';
+import { db, CustomPage, SiteSettings } from '@/services/db';
 
 /* ─── helpers ───────────────────────────────────── */
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -78,10 +78,37 @@ const IC = {
 ═══════════════════════════════════════════════════ */
 export default function Header() {
   const pathname  = usePathname();
+  const router    = useRouter();
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
   const { locale, setLocale } = useLocale();
+
+  const handleToggleLanguage = useCallback(() => {
+    const nextLocale = locale === 'en' ? 'hi' : 'en';
+    setLocale(nextLocale, true);
+
+    // If currently on blog or current affairs, seamlessly navigate to the matching language destination page
+    if (nextLocale === 'hi') {
+      if (pathname === '/blog') {
+        router.push('/blog-hindi');
+        return;
+      }
+      if (pathname === '/current-affairs') {
+        router.push('/current-affairs-hindi');
+        return;
+      }
+    } else {
+      if (pathname === '/blog-hindi') {
+        router.push('/blog');
+        return;
+      }
+      if (pathname === '/current-affairs-hindi') {
+        router.push('/current-affairs');
+        return;
+      }
+    }
+  }, [locale, setLocale, pathname, router]);
 
   const [mounted,        setMounted]        = useState(false);
   const [mobileOpen,     setMobileOpen]     = useState(false);
@@ -91,7 +118,7 @@ export default function Header() {
 
   /* backend data */
   const [customPages,   setCustomPages]   = useState<CustomPage[]>([]);
-  const [siteSettings,  setSiteSettings]  = useState<Record<string, any>>({});
+  const [siteSettings,  setSiteSettings]  = useState<SiteSettings | null>(null);
 
   const megaRef  = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -104,7 +131,7 @@ export default function Header() {
     ]).then(([pages, settings]) => {
       if (isSubscribed) {
         setCustomPages(pages || []);
-        setSiteSettings(settings || {});
+        setSiteSettings(settings || null);
         setMounted(true);
       }
     });
@@ -117,11 +144,12 @@ export default function Header() {
     };
   }, []);
 
-  /* close mega on route change */
-  useEffect(() => {
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
     setActiveMega(null);
     setMobileOpen(false);
-  }, [pathname]);
+  }
 
   /* ── portal guard (computed but NOT used as early return — hooks must all run first) ── */
   const isPortal = pathname.startsWith('/student') || pathname.startsWith('/faculty') ||
@@ -387,7 +415,7 @@ export default function Header() {
               <span className="font-semibold text-amber-500">📞</span>
               <span>+91 97099 92093</span>
             </a>
-            {headerTopCustom.map((p: any) => (
+            {headerTopCustom.map((p: CustomPage) => (
               <span key={p.id} className="flex items-center gap-4">
                 <span className="hidden sm:inline text-slate-700">|</span>
                 <Link href={`/page/${p.slug}`} className="hover:text-amber-400 font-bold transition-colors">
@@ -429,7 +457,7 @@ export default function Header() {
             {/* Language Switcher */}
             <button
               id="header-lang-switcher"
-              onClick={() => setLocale(locale === 'en' ? 'hi' : 'en')}
+              onClick={handleToggleLanguage}
               className="hover:text-white transition-all flex items-center gap-1.5 text-xs font-black cursor-pointer shrink-0 border border-amber-500/60 bg-amber-500/10 rounded-full px-3 py-1 hover:bg-amber-500/20 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.25)]"
               aria-label={locale === 'en' ? 'Switch to Hindi Medium' : 'Switch to English Medium'}
               title={locale === 'en' ? 'हिंदी माध्यम में बदलें' : 'Switch to English Medium'}
@@ -793,7 +821,7 @@ export default function Header() {
 
           <div className="grid grid-cols-2 gap-2 pt-1">
             <button
-              onClick={() => setLocale(locale === 'en' ? 'hi' : 'en')}
+              onClick={handleToggleLanguage}
               className="flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs font-black text-amber-600 dark:text-amber-400 cursor-pointer"
             >
               <Globe className="w-3.5 h-3.5" />

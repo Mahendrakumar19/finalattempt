@@ -1,7 +1,15 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Camera, AlertTriangle, ShieldCheck, ShieldAlert, XCircle, Eye, EyeOff } from 'lucide-react';
+import { AlertTriangle, ShieldAlert, XCircle, Eye, EyeOff } from 'lucide-react';
+
+interface FaceDetectorInstance {
+  detect: (image: HTMLVideoElement | HTMLCanvasElement) => Promise<Array<unknown>>;
+}
+
+interface WindowWithFaceDetector extends Window {
+  FaceDetector?: new (options?: { fastMode?: boolean; maxDetectedFaces?: number }) => FaceDetectorInstance;
+}
 
 export interface ProctoringViolation {
   id: string;
@@ -35,18 +43,23 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
   // Status & camera states
   const [cameraPermission, setCameraPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
   const [isFaceDetected, setIsFaceDetected] = useState<boolean>(true);
-  const [consecutiveMissingCount, setConsecutiveMissingCount] = useState<number>(0);
+  const consecutiveMissingCountRef = useRef<number>(0);
   const [violations, setViolations] = useState<ProctoringViolation[]>([]);
   const [activeWarning, setActiveWarning] = useState<ProctoringViolation | null>(null);
   const [isAutoSubmitting, setIsAutoSubmitting] = useState<boolean>(false);
   const [countdownToDismiss, setCountdownToDismiss] = useState<number>(0);
 
-  // Keep a stable ref to violation count to avoid stale closures in listeners
+  // Keep stable refs to avoid stale closures in listeners/intervals
   const violationCountRef = useRef<number>(0);
-  violationCountRef.current = violations.length;
-
   const isAutoSubmittingRef = useRef<boolean>(false);
-  isAutoSubmittingRef.current = isAutoSubmitting;
+
+  useEffect(() => {
+    violationCountRef.current = violations.length;
+  }, [violations.length]);
+
+  useEffect(() => {
+    isAutoSubmittingRef.current = isAutoSubmitting;
+  }, [isAutoSubmitting]);
 
   const triggerViolation = useCallback(
     (
@@ -191,13 +204,16 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
   useEffect(() => {
     if (!isActive || isAutoSubmitting || cameraPermission !== 'granted') return;
 
-    let faceDetectorInstance: any = null;
-    if (typeof window !== 'undefined' && 'FaceDetector' in window) {
-      try {
-        const FaceDetectorClass = (window as any).FaceDetector;
-        faceDetectorInstance = new FaceDetectorClass({ fastMode: true, maxDetectedFaces: 2 });
-      } catch {
-        faceDetectorInstance = null;
+    let faceDetectorInstance: FaceDetectorInstance | null = null;
+    if (typeof window !== 'undefined') {
+      const win = window as WindowWithFaceDetector;
+      if (win.FaceDetector) {
+        try {
+          const FaceDetectorClass = win.FaceDetector;
+          faceDetectorInstance = new FaceDetectorClass({ fastMode: true, maxDetectedFaces: 2 });
+        } catch {
+          faceDetectorInstance = null;
+        }
       }
     }
 
@@ -274,21 +290,18 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
 
       if (detectedPerson) {
         setIsFaceDetected(true);
-        setConsecutiveMissingCount(0);
+        consecutiveMissingCountRef.current = 0;
       } else {
         setIsFaceDetected(false);
-        setConsecutiveMissingCount((prev) => {
-          const next = prev + 1;
-          // If person is not detected for 2 consecutive cycles (~4-5 seconds), trigger official strike
-          if (next === 2) {
-            triggerViolation(
-              'PERSON_NOT_DETECTED',
-              'Person is not detected',
-              'Your face is not visible on the proctoring camera. Please keep your face centered and clearly visible.'
-            );
-          }
-          return next;
-        });
+        consecutiveMissingCountRef.current += 1;
+        // If person is not detected for 2 consecutive cycles (~4-5 seconds), trigger official strike
+        if (consecutiveMissingCountRef.current === 2) {
+          triggerViolation(
+            'PERSON_NOT_DETECTED',
+            'Person is not detected',
+            'Your face is not visible on the proctoring camera. Please keep your face centered and clearly visible.'
+          );
+        }
       }
     }, 2200);
 

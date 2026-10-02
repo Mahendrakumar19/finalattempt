@@ -183,6 +183,13 @@ export interface DynamicCurrentAffairArticle {
   importance: 'HIGH' | 'MEDIUM' | 'LOW';
   content?: string;
   
+  // Multi-language & separate destination controls
+  publish_target?: 'english' | 'hindi' | 'both';
+  language?: 'en' | 'hi' | 'bilingual';
+  title_hi?: string;
+  summary_hi?: string;
+  content_hi?: string;
+  
   // Editorial template fields
   whyInNews?: string;
   context?: string;
@@ -209,6 +216,9 @@ export interface DynamicCurrentAffairEdition {
   id: string;
   publishDate: string; // YYYY-MM-DD
   summary?: string;
+  title_hi?: string;
+  summary_hi?: string;
+  publish_target?: 'english' | 'hindi' | 'both';
   articles?: DynamicCurrentAffairArticle[];
   createdAt?: string;
   updatedAt?: string;
@@ -644,14 +654,14 @@ class FinalAttemptDB {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) result = parsed;
         }
-      } catch (_) {}
+      } catch {}
     }
     if (result && result.length > 0) {
       this.setCachedData(cacheKey, result);
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem(`finalattempt_${cacheKey}`, JSON.stringify(result));
-        } catch (_) {}
+        } catch {}
       }
     }
     return result;
@@ -1044,7 +1054,7 @@ class FinalAttemptDB {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) result = parsed;
         }
-      } catch (_) {}
+      } catch {}
     }
 
     if (!includeDrafts && result.length > 0) {
@@ -1052,7 +1062,7 @@ class FinalAttemptDB {
       if (typeof window !== 'undefined') {
         try {
           localStorage.setItem(`finalattempt_${cacheKey}`, JSON.stringify(result));
-        } catch (_) {}
+        } catch {}
       }
     }
     return result;

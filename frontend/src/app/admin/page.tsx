@@ -334,8 +334,9 @@ export default function AdminPortal() {
 
   // Form states for CRUD operations
   const [caForm, setCaForm] = useState<CurrentAffairArticle>({ id: '', title: '', category: 'GS Paper II', publishDate: '', summary: '', content: '', relevance: '', context: '', analysis: '', wayForward: '', practiceQuestion: '' });
-  const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '', imageUrl: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '' });
+  const [blogForm, setBlogForm] = useState<BlogItem>({ id: '', title: '', publishDate: '', readTime: '', category: '', content: '', imageUrl: '', seoTitle: '', seoKeywords: '', seoDescription: '', blurb: '', title_hi: '', blurb_hi: '', content_hi: '', publish_target: 'both', language: 'en' });
   const [blogTargetFilter, setBlogTargetFilter] = useState<'all' | 'english' | 'hindi' | 'both'>('all');
+  const [caEditionTargetFilter, setCaEditionTargetFilter] = useState<'all' | 'english' | 'hindi' | 'both'>('all');
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '', category: 'Prelims', subcategory: '' });
   const [resourceUploading, setResourceUploading] = useState(false);
   const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'BPSC Course', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
@@ -604,6 +605,11 @@ export default function AdminPortal() {
       readingTime: '5 min read',
       importance: 'MEDIUM',
       content: '',
+      publish_target: (editingEdition.publish_target || 'both') as 'english' | 'hindi' | 'both',
+      language: 'en',
+      title_hi: '',
+      summary_hi: '',
+      content_hi: '',
       whyInNews: '',
       context: '',
       background: '',
@@ -2298,15 +2304,20 @@ export default function AdminPortal() {
                     setBlogForm({
                       id: '',
                       title: '',
+                      title_hi: '',
                       publishDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
                       readTime: '5 min read',
                       category: 'Strategy',
                       content: '',
+                      content_hi: '',
                       imageUrl: '',
                       seoTitle: '',
                       seoKeywords: '',
                       seoDescription: '',
-                      blurb: ''
+                      blurb: '',
+                      blurb_hi: '',
+                      publish_target: 'both',
+                      language: 'en'
                     });
                     setActiveModal({ type: 'add' });
                   }}
@@ -2838,15 +2849,40 @@ export default function AdminPortal() {
 
             {caSubTab === 'daily' ? (
               <div className="space-y-6 animate-in fade-in duration-200">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Current Affairs</h3>
-                    <p className="text-[10px] text-slate-500 font-medium">Manage current affairs updates for students.</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Manage daily, weekly, monthly and yearly current affairs updates for English and Hindi students.</p>
                   </div>
+                  
+                  {/* Language & Target Destination Filter Pills */}
+                  <div className="flex flex-wrap items-center gap-2 bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl border border-slate-200 dark:border-white/10">
+                    <span className="text-[10px] font-black uppercase text-slate-400 px-2">Target Filter:</span>
+                    {[
+                      { id: 'all', label: 'All Editions' },
+                      { id: 'english', label: 'English Only' },
+                      { id: 'hindi', label: 'Hindi Only (हिन्दी)' },
+                      { id: 'both', label: '🌐 Both/Bilingual' }
+                    ].map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setCaEditionTargetFilter(tab.id as 'all' | 'english' | 'hindi' | 'both')}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                          caEditionTargetFilter === tab.id
+                            ? 'bg-amber-500 text-slate-950 shadow-sm'
+                            : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => {
-                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Daily Edition', articles: [] });
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Daily Edition', publish_target: 'both', articles: [] });
                         setIsEditionModalOpen(true);
                       }}
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
@@ -2856,7 +2892,7 @@ export default function AdminPortal() {
                     </button>
                     <button
                       onClick={() => {
-                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Weekly Edition', articles: [] });
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Weekly Edition', publish_target: 'both', articles: [] });
                         setIsEditionModalOpen(true);
                       }}
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
@@ -2866,7 +2902,7 @@ export default function AdminPortal() {
                     </button>
                     <button
                       onClick={() => {
-                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Monthly Edition', articles: [] });
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Monthly Edition', publish_target: 'both', articles: [] });
                         setIsEditionModalOpen(true);
                       }}
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
@@ -2876,7 +2912,7 @@ export default function AdminPortal() {
                     </button>
                     <button
                       onClick={() => {
-                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Yearly Edition', articles: [] });
+                        setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Yearly Edition', publish_target: 'both', articles: [] });
                         setIsEditionModalOpen(true);
                       }}
                       className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-2xl text-xs shadow-sm cursor-pointer"
@@ -2888,7 +2924,11 @@ export default function AdminPortal() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {dynamicEditionsList.map((ed) => {
+                  {dynamicEditionsList.filter(ed => {
+                    const target = ed.publish_target || 'both';
+                    if (caEditionTargetFilter === 'all') return true;
+                    return target === caEditionTargetFilter;
+                  }).map((ed) => {
                     const natCount = ed.articles?.filter(a => a.category === 'NATIONAL').length || 0;
                     const intCount = ed.articles?.filter(a => a.category === 'INTERNATIONAL').length || 0;
                     const bihCount = ed.articles?.filter(a => a.category === 'BIHAR').length || 0;
@@ -3409,8 +3449,86 @@ export default function AdminPortal() {
                       </div>
                     </div>
 
+                    {/* Multi-Language & Publishing Target Settings */}
+                    <div className="p-4 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          🌐 Destination & Medium Controls
+                        </span>
+                        <span className="text-[10px] text-slate-500">Route to English, Hindi, or Both pages</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Destination Page *</label>
+                          <select
+                            value={blogForm.publish_target || 'both'}
+                            onChange={(e) => setBlogForm({ ...blogForm, publish_target: e.target.value as 'both' | 'english' | 'hindi' })}
+                            className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-amber-500/40 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none cursor-pointer"
+                          >
+                            <option value="both">🌐 Both Pages (/blog and /blog-hindi)</option>
+                            <option value="english">English Page Only (/blog)</option>
+                            <option value="hindi">Hindi Page Only (/blog-hindi)</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Language Track</label>
+                          <select
+                            value={blogForm.language || 'en'}
+                            onChange={(e) => setBlogForm({ ...blogForm, language: e.target.value })}
+                            className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none cursor-pointer"
+                          >
+                            <option value="en">English Primary</option>
+                            <option value="hi">Hindi Primary (हिन्दी)</option>
+                            <option value="bilingual">Bilingual (Dedicated EN & HI Content)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Hindi Dedicated Fields (Shown for Hindi or Both) */}
+                      {(blogForm.publish_target === 'hindi' || blogForm.publish_target === 'both' || blogForm.language === 'bilingual' || blogForm.language === 'hi') && (
+                        <div className="space-y-3 pt-2 border-t border-amber-500/20">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                              🇮🇳 Hindi Title (हिन्दी शीर्षक)
+                            </label>
+                            <input
+                              type="text"
+                              value={blogForm.title_hi || ''}
+                              onChange={(e) => setBlogForm({ ...blogForm, title_hi: e.target.value })}
+                              placeholder="उदा. 71वीं BPSC प्रारम्भिक परीक्षा विशेष रणनीति..."
+                              className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-amber-500/30 rounded-2xl text-slate-900 dark:text-white text-xs outline-none font-bold"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                              🇮🇳 Hindi Short Summary (हिन्दी संक्षिप्त विवरण)
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={blogForm.blurb_hi || ''}
+                              onChange={(e) => setBlogForm({ ...blogForm, blurb_hi: e.target.value })}
+                              placeholder="हिन्दी ब्लॉग कार्ड पर प्रदर्शित होने वाला संक्षिप्त विवरण..."
+                              className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-amber-500/30 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                              🇮🇳 Hindi Body Content (हिन्दी विस्तृत लेख)
+                            </label>
+                            <RichTextEditor
+                              value={blogForm.content_hi || ''}
+                              onChange={(html) => setBlogForm({ ...blogForm, content_hi: html })}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Short Summary (Blurb)</label>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">English Short Summary (Blurb)</label>
                       <textarea
                         rows={2}
                         value={blogForm.blurb || ''}
@@ -3421,7 +3539,7 @@ export default function AdminPortal() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Full Article Content (Rich Editor)</label>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">English Article Content (Rich Editor)</label>
                       <RichTextEditor
                         value={blogForm.content || ''}
                         onChange={(html) => setBlogForm({ ...blogForm, content: html })}
@@ -3466,7 +3584,7 @@ export default function AdminPortal() {
 
                   <form onSubmit={handleSaveDynamicEdition} className="flex flex-col flex-1 min-h-0 space-y-4">
                     <div className="flex-1 overflow-y-auto space-y-5 pr-2">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Date <span className="text-red-500">*</span></label>
                           <input
@@ -3476,15 +3594,57 @@ export default function AdminPortal() {
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] text-slate-400 font-bold uppercase">Edition Summary Brief</label>
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Destination Page</label>
+                          <select
+                            value={editingEdition.publish_target || 'both'}
+                            onChange={(e) => setEditingEdition({ ...editingEdition, publish_target: e.target.value as 'both' | 'english' | 'hindi' })}
+                            className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-amber-500/40 rounded-2xl text-slate-900 dark:text-white text-xs font-bold focus:border-amber-500 outline-none cursor-pointer"
+                          >
+                            <option value="both">🌐 Both English & Hindi Hubs</option>
+                            <option value="english">English Page Only (/current-affairs)</option>
+                            <option value="hindi">Hindi Page Only (/current-affairs-hindi)</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Edition Summary (English)</label>
                           <input
                             type="text" value={editingEdition.summary || ''}
                             onChange={(e) => setEditingEdition({ ...editingEdition, summary: e.target.value })}
-                            placeholder="Quick summary mapping the day's highlights..."
+                            placeholder="Daily highlights overview..."
                             className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs focus:border-amber-500 outline-none"
                           />
                         </div>
                       </div>
+
+                      {/* Hindi Edition Summary Header if Hindi or Both */}
+                      {(editingEdition.publish_target === 'hindi' || editingEdition.publish_target === 'both' || !editingEdition.publish_target) && (
+                        <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                              🇮🇳 Hindi Edition Headline (हिन्दी शीर्षक)
+                            </label>
+                            <input
+                              type="text"
+                              value={editingEdition.title_hi || ''}
+                              onChange={(e) => setEditingEdition({ ...editingEdition, title_hi: e.target.value })}
+                              placeholder="उदा. दैनिक समसामयिकी सार संग्रह..."
+                              className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-amber-500/30 rounded-xl text-slate-900 dark:text-white text-xs font-bold outline-none"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                              🇮🇳 Hindi Edition Summary (हिन्दी संक्षिप्त सार)
+                            </label>
+                            <input
+                              type="text"
+                              value={editingEdition.summary_hi || ''}
+                              onChange={(e) => setEditingEdition({ ...editingEdition, summary_hi: e.target.value })}
+                              placeholder="उदा. आज के प्रमुख राष्ट्रीय एवं बिहार सामयिकी बिंदु..."
+                              className="w-full px-3 py-1.5 bg-white dark:bg-slate-800 border border-amber-500/30 rounded-xl text-slate-900 dark:text-white text-xs outline-none"
+                            />
+                          </div>
+                        </div>
+                      )}
 
                       {/* ARTICLE LIST CONTAINER */}
                       <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-4">
@@ -3642,9 +3802,87 @@ export default function AdminPortal() {
                       </div>
                     </div>
 
+                    {/* Multi-Language & Publishing Target Settings */}
+                    <div className="p-4 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                          🌐 Article Language Track & Destination
+                        </span>
+                        <span className="text-[10px] text-slate-500">Route to English, Hindi, or Both</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Destination</label>
+                          <select
+                            value={editingArticle.publish_target || 'both'}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, publish_target: e.target.value as 'both' | 'english' | 'hindi' })}
+                            className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-amber-500/40 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none cursor-pointer"
+                          >
+                            <option value="both">🌐 Both English & Hindi Hubs</option>
+                            <option value="english">English Page Only (/current-affairs)</option>
+                            <option value="hindi">Hindi Page Only (/current-affairs-hindi)</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] text-slate-400 font-bold uppercase">Language Track</label>
+                          <select
+                            value={editingArticle.language || 'en'}
+                            onChange={(e) => setEditingArticle({ ...editingArticle, language: e.target.value as 'en' | 'hi' | 'bilingual' })}
+                            className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none cursor-pointer"
+                          >
+                            <option value="en">English Primary</option>
+                            <option value="hi">Hindi Primary (हिन्दी)</option>
+                            <option value="bilingual">Bilingual (Authored English & Hindi)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Hindi Dedicated Fields for Current Affairs Article */}
+                      {(editingArticle.publish_target === 'hindi' || editingArticle.publish_target === 'both' || editingArticle.language === 'bilingual' || editingArticle.language === 'hi') && (
+                        <div className="space-y-3 pt-2 border-t border-amber-500/20">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                              🇮🇳 Hindi Headline (हिन्दी शीर्षक)
+                            </label>
+                            <input
+                              type="text"
+                              value={editingArticle.title_hi || ''}
+                              onChange={(e) => setEditingArticle({ ...editingArticle, title_hi: e.target.value })}
+                              placeholder="उदा. सर्वोच्च न्यायालय द्वारा अनुच्छेद 200 पर निर्देश..."
+                              className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-amber-500/30 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                              🇮🇳 Hindi Summary / Key Points (हिन्दी संक्षिप्त सार)
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={editingArticle.summary_hi || ''}
+                              onChange={(e) => setEditingArticle({ ...editingArticle, summary_hi: e.target.value })}
+                              placeholder="उदा. राज्यपालों द्वारा विधेयकों पर निर्णय लेने हेतु संवैधानिक सीमाएं..."
+                              className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-amber-500/30 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                              🇮🇳 Hindi Full Content (हिन्दी विस्तृत लेख)
+                            </label>
+                            <RichTextEditor
+                              value={editingArticle.content_hi || ''}
+                              onChange={(html) => setEditingArticle({ ...editingArticle, content_hi: html })}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     {/* Executive Summary */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">Executive Summary (Short Blurb) <span className="text-red-500">*</span></label>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">English Executive Summary (Short Blurb) <span className="text-red-500">*</span></label>
                       <textarea
                         rows={2} required value={editingArticle.summary}
                         onChange={(e) => setEditingArticle({ ...editingArticle, summary: e.target.value })}
@@ -3654,7 +3892,7 @@ export default function AdminPortal() {
 
                     {/* EDITORIAL CONTENT FIELD */}
                     <div className="border-t pt-4 space-y-4">
-                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Article Content</h4>
+                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">English Article Content</h4>
 
                       <div className="space-y-1.5">
                         <RichTextEditor

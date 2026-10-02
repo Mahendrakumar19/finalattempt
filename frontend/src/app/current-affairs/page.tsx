@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
-  Clock, Layers, BookOpen, Award, ArrowRight, ChevronRight, ChevronLeft,
-  Flame, Globe, MapPin, Newspaper, RefreshCw, TrendingUp,
-  Calendar, Zap, BookMarked, FileText, Search, X, Filter, ChevronDown
+  Layers, ArrowRight, ChevronRight, ChevronLeft,
+  Flame, Globe, RefreshCw, TrendingUp,
+  Calendar, Zap, Search, X, Filter, ChevronDown, Newspaper
 } from 'lucide-react';
 import { db, DynamicCurrentAffairEdition } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
@@ -89,12 +89,6 @@ export default function CurrentAffairsLanding() {
 
   const dateDropdownRef = useRef<HTMLDivElement>(null);
 
-  // ── Date Navigator state ─────────────────────────────────────
-  const [navYear,  setNavYear]  = useState<string>('');
-  const [navMonth, setNavMonth] = useState<string>('');
-  const [navWeek,  setNavWeek]  = useState<string>('');
-  const [navDay,   setNavDay]   = useState<string>('');
-
   useEffect(() => {
     db.getDynamicCurrentAffairsEditions(false)
       .then(list => setEditions(list || []))
@@ -120,6 +114,22 @@ export default function CurrentAffairsLanding() {
       });
     }
     return Array.from(datesSet).sort((a, b) => b.localeCompare(a));
+  }, [editions]);
+
+  const availableYears = useMemo(() => {
+    const yrs = new Set<string>();
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= 2020; y--) {
+      yrs.add(String(y));
+    }
+    if (Array.isArray(editions)) {
+      editions.forEach(ed => {
+        if (ed.publishDate && ed.publishDate.includes('-')) {
+          yrs.add(ed.publishDate.split('-')[0]);
+        }
+      });
+    }
+    return Array.from(yrs).sort((a, b) => b.localeCompare(a));
   }, [editions]);
 
   const heroCalendarDays = useMemo(() => {
@@ -148,7 +158,6 @@ export default function CurrentAffairsLanding() {
     return days;
   }, [bannerCalDate, publishedDatesList, selectedDate]);
 
-  // ── Derived hrefs ──────────────────────────────────────────
   const latestDailyHref = useMemo(() => {
     if (!Array.isArray(editions) || editions.length === 0) return '/current-affairs/daily';
     const latest = [...editions].sort((a, b) => (b.publishDate || '').localeCompare(a.publishDate || ''))[0];
@@ -192,87 +201,25 @@ export default function CurrentAffairsLanding() {
     return `/current-affairs/yearly/${bestYear}`;
   }, [editions]);
 
-  // ── Date Navigator computed options ──────────────────────────
-  const availableYears = useMemo(() => {
-    const yrs = new Set<string>();
-    const currentYear = new Date().getFullYear();
-
-    // Include range of past years up to current year (2020 to currentYear)
-    for (let y = currentYear; y >= 2020; y--) {
-      yrs.add(String(y));
-    }
-
-    if (Array.isArray(editions)) {
-      editions.forEach(ed => {
-        if (ed.publishDate && ed.publishDate.includes('-')) {
-          yrs.add(ed.publishDate.split('-')[0]);
-        }
-      });
-    }
-    return Array.from(yrs).sort((a, b) => b.localeCompare(a));
-  }, [editions]);
-
-  const availableMonths = useMemo(() => {
-    if (!navYear || !Array.isArray(editions)) return [];
-    const months = new Set<string>();
-    editions.filter(ed => ed.publishDate && ed.publishDate.startsWith(navYear))
-      .forEach(ed => {
-        const parts = ed.publishDate.split('-');
-        if (parts[1]) months.add(parts[1]);
-      });
-    return Array.from(months).sort();
-  }, [editions, navYear]);
-
-  const availableWeeks = useMemo(() => {
-    if (!navYear || !Array.isArray(editions)) return [];
-    const weeks = new Set<string>();
-    editions
-      .filter(ed => ed.publishDate && ed.publishDate.startsWith(navYear) && (!navMonth || ed.publishDate.split('-')[1] === navMonth))
-      .forEach(ed => {
-        const { week } = getISOWeek(ed.publishDate);
-        if (week > 0) weeks.add(String(week).padStart(2, '0'));
-      });
-    return Array.from(weeks).sort();
-  }, [editions, navYear, navMonth]);
-
-  const availableDays = useMemo(() => {
-    if (!navYear || !Array.isArray(editions)) return [];
-    return [...editions]
-      .filter(ed => {
-        if (!ed.publishDate || !ed.publishDate.startsWith(navYear)) return false;
-        if (navMonth && ed.publishDate.split('-')[1] !== navMonth) return false;
-        if (navWeek) {
-          const { week } = getISOWeek(ed.publishDate);
-          if (String(week).padStart(2, '0') !== navWeek) return false;
-        }
-        return true;
-      })
-      .map(ed => ed.publishDate)
-      .sort((a, b) => b.localeCompare(a));
-  }, [editions, navYear, navMonth, navWeek]);
-
-  // Build the navigation href from selected dropdowns
-  const navHref = useMemo(() => {
-    if (navDay) return `/current-affairs/daily?date=${navDay}`;
-    if (navWeek && navYear) return `/current-affairs/weekly/week-${parseInt(navWeek, 10)}-${navYear}`;
-    if (navMonth && navYear) return `/current-affairs/monthly/${MONTH_NAMES[parseInt(navMonth, 10) - 1]}-${navYear}`;
-    if (navYear) return `/current-affairs/yearly/${navYear}`;
-    return null;
-  }, [navDay, navWeek, navMonth, navYear]);
-
-  // ── Recent / Filtered articles from editions ─────────────────────────
   const recentArticles = useMemo(() => {
     const all: Array<{ title: string; date: string; category: string; slug: string; editionId: string }> = [];
     const query = searchQuery.trim().toLowerCase();
 
     if (Array.isArray(editions)) {
       [...editions]
+        .filter(ed => {
+          const edTarget = ed.publish_target || 'both';
+          return edTarget === 'both' || edTarget === 'english';
+        })
         .sort((a, b) => (b.publishDate || '').localeCompare(a.publishDate || ''))
         .forEach(ed => {
           if (selectedDate && ed.publishDate !== selectedDate) {
             return;
           }
           (ed.articles || []).forEach(art => {
+            const artTarget = art.publish_target || 'both';
+            if (artTarget === 'hindi') return; // Exclude Hindi-only articles from English page
+
             const cat = art.category?.toLowerCase() || '';
             const titleText = (art.title || '').toLowerCase();
             const tagsText = (art.tags || []).join(' ').toLowerCase();
@@ -500,6 +447,16 @@ export default function CurrentAffairsLanding() {
                 )}
               </div>
 
+              {/* Switch to Hindi Portal Button */}
+              <Link
+                href="/current-affairs-hindi"
+                className="flex items-center justify-center gap-1.5 px-3.5 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold rounded-2xl transition-all hover:scale-[1.02] shadow-sm"
+              >
+                <Globe className="w-3.5 h-3.5 text-amber-400" />
+                <span>हिन्दी समसामयिकी</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+
               {/* CTA */}
               <Link
                 href={latestDailyHref}
@@ -575,18 +532,20 @@ export default function CurrentAffairsLanding() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                {[
-                  { key: 'all',           label: t('currentAffairs.allTopics') || 'All Topics',           color: 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10' },
-                  { key: 'editorials',    label: '✍️ Editorials & Mains Analysis',                      color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' },
-                  { key: 'hindi',         label: '🇮🇳 हिन्दी दैनिक समसामयिकी',                            color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-                  { key: 'national',      label: t('currentAffairs.national') || 'National',             color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
-                  { key: 'international', label: t('currentAffairs.international') || 'International',         color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20' },
-                  { key: 'bihar',         label: t('currentAffairs.biharSpecial') || 'Bihar Special',         color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-                  { key: 'arunachal',     label: t('currentAffairs.arunachalSpecial') || 'Arunachal Special',     color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
-                ].map(item => (
+                {(
+                  [
+                    { key: 'all',           label: t('currentAffairs.allTopics') || 'All Topics',           color: 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10' },
+                    { key: 'editorials',    label: '✍️ Editorials & Mains Analysis',                      color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' },
+                    { key: 'hindi',         label: '🇮🇳 हिन्दी दैनिक समसामयिकी',                            color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
+                    { key: 'national',      label: t('currentAffairs.national') || 'National',             color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
+                    { key: 'international', label: t('currentAffairs.international') || 'International',         color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20' },
+                    { key: 'bihar',         label: t('currentAffairs.biharSpecial') || 'Bihar Special',         color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
+                    { key: 'arunachal',     label: t('currentAffairs.arunachalSpecial') || 'Arunachal Special',     color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
+                  ] as const
+                ).map(item => (
                   <button
                     key={item.key}
-                    onClick={() => setActiveTopic(item.key as any)}
+                    onClick={() => setActiveTopic(item.key)}
                     className={`px-4 py-2 rounded-full border text-xs font-extrabold tracking-wide transition-all duration-150 cursor-pointer ${item.color} ${activeTopic === item.key ? 'ring-2 ring-offset-1 ring-amber-400/50 dark:ring-offset-slate-900' : 'opacity-80 hover:opacity-100'}`}
                   >
                     {item.label}
