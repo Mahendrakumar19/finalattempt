@@ -24,8 +24,8 @@ export default function EnrollmentCard({ courseId, fee, originalPrice, discount 
 
   useEffect(() => {
     if (!isAuthenticated || !accessToken) {
-      setLoading(false);
-      return;
+      const timer = setTimeout(() => setLoading(false), 0);
+      return () => clearTimeout(timer);
     }
 
     const check = async () => {
@@ -87,7 +87,7 @@ export default function EnrollmentCard({ courseId, fee, originalPrice, discount 
         description: 'BPSC Course Enrollment Payment',
         image: 'https://finalattemptias.com/favicon.png',
         order_id: orderData.id,
-        handler: async (response: any) => {
+        handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
           try {
             setBuying(true);
             const verificationPayload = {
@@ -104,8 +104,8 @@ export default function EnrollmentCard({ courseId, fee, originalPrice, discount 
             } else {
               setError(verificationRes.error || 'Payment validation failed.');
             }
-          } catch (err: any) {
-            setError(err.message || 'Signature verification process failed.');
+          } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Signature verification process failed.');
           } finally {
             setBuying(false);
           }
@@ -125,11 +125,11 @@ export default function EnrollmentCard({ courseId, fee, originalPrice, discount 
         }
       };
 
-      const razorpayInstance = new (window as any).Razorpay(options);
+      const razorpayInstance = new (window as unknown as { Razorpay: new (options: unknown) => { open: () => void } }).Razorpay(options);
       razorpayInstance.open();
 
-    } catch (err: any) {
-      setError(err.message || 'Payment flow crashed.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Payment flow crashed.');
       setBuying(false);
     }
   };

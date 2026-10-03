@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Menu, X, ChevronDown, ArrowRight, Sun, Moon,
@@ -59,7 +60,7 @@ const IC = {
   rapid:         <Zap className="w-4 h-4 text-amber-500" />,
   valmains:      <Lightbulb className="w-4 h-4 text-purple-500" />,
   toppers:       <FileCheck className="w-4 h-4 text-teal-500" />,
-  fa:            <img src="/favicon.png" alt="FA" className="w-4 h-4 rounded-full object-cover" />,
+  fa:            <Image src="/favicon.png" alt="FA" width={16} height={16} className="w-4 h-4 rounded-full object-cover" />,
   compass:       <Compass className="w-4 h-4 text-indigo-500" />,
   blog:          <Newspaper className="w-4 h-4 text-rose-500" />,
   video:         <Video className="w-4 h-4 text-red-500" />,
@@ -433,7 +434,7 @@ export default function Header() {
                   className="hover:text-white transition-colors flex items-center gap-1.5 font-bold"
                 >
                   {user?.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-amber-500" />
+                    <Image src={user.avatarUrl} alt="Avatar" width={20} height={20} unoptimized className="w-5 h-5 rounded-full object-cover border border-amber-500" />
                   ) : (
                     <span className="w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-amber-500 border border-slate-700">👤</span>
                   )}
@@ -487,8 +488,8 @@ export default function Header() {
             {/* Logo */}
             <Link href="/" className="flex items-center shrink-0" onClick={() => setActiveMega(null)}>
               <div className="relative w-44 h-11">
-                <img src="/darklogofull.png"  alt="Final Attempt" className="w-full h-full object-contain logo-light" />
-                <img src="/lightlogofull.png" alt="Final Attempt" className="w-full h-full object-contain logo-dark"  />
+                <Image src="/darklogofull.png"  alt="Final Attempt" fill sizes="176px" priority className="object-contain logo-light" />
+                <Image src="/lightlogofull.png" alt="Final Attempt" fill sizes="176px" priority className="object-contain logo-dark"  />
               </div>
             </Link>
 
@@ -689,8 +690,8 @@ export default function Header() {
         {/* Drawer header */}
         <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--card-border)' }}>
           <div className="relative w-36 h-9">
-            <img src="/darklogofull.png"  alt="Final Attempt" className="w-full h-full object-contain logo-light" />
-            <img src="/lightlogofull.png" alt="Final Attempt" className="w-full h-full object-contain logo-dark"  />
+            <Image src="/darklogofull.png"  alt="Final Attempt" fill sizes="144px" className="object-contain logo-light" />
+            <Image src="/lightlogofull.png" alt="Final Attempt" fill sizes="144px" className="object-contain logo-dark"  />
           </div>
           <button onClick={() => setMobileOpen(false)} className="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
             <X className="w-5 h-5" />

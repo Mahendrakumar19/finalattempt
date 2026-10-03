@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Search, FileText, Download, BookOpen, Eye, Home, ChevronRight, X } from 'lucide-react';
 
 interface Exam {
@@ -95,16 +96,22 @@ export default function PyqPage() {
   }, [BACKEND_URL, selectedExamId, selectedYear, searchQuery]);
 
   useEffect(() => {
-    fetchExams();
+    const timer = setTimeout(() => {
+      fetchExams();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchExams]);
 
   useEffect(() => {
-    fetchPYQs();
+    const timer = setTimeout(() => {
+      fetchPYQs();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchPYQs]);
 
-  const getMediaUrl = (mediaObj?: any) => {
+  const getMediaUrl = (mediaObj?: { storagePath?: string; url?: string; path?: string } | string) => {
     if (!mediaObj) return '';
-    const pathStr = mediaObj.storagePath || mediaObj.url || mediaObj.path || (typeof mediaObj === 'string' ? mediaObj : '');
+    const pathStr = typeof mediaObj === 'string' ? mediaObj : (mediaObj.storagePath || mediaObj.url || mediaObj.path || '');
     if (!pathStr) return '';
     if (pathStr.startsWith('http://') || pathStr.startsWith('https://')) return pathStr;
     if (pathStr.startsWith('/api/')) return `${BACKEND_URL}${pathStr}`;
@@ -239,7 +246,7 @@ export default function PyqPage() {
                 <div className="flex items-center justify-between">
                   <div className="w-14 h-14 rounded-2xl bg-white text-amber-600 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-black text-sm shadow-xs overflow-hidden p-1.5 shrink-0 group-hover:scale-105 transition-transform">
                     {getExamLogo(exam) ? (
-                      <img src={getExamLogo(exam)!} alt={exam.name} className="w-full h-full object-contain" />
+                      <Image src={getExamLogo(exam)!} alt={exam.name} width={56} height={56} unoptimized className="w-full h-full object-contain" />
                     ) : (
                       <span className="font-extrabold text-amber-600 text-xs">{exam.code || exam.name}</span>
                     )}
@@ -322,7 +329,7 @@ export default function PyqPage() {
                     return (
                       <div className="w-12 h-12 rounded-xl bg-white text-slate-950 flex items-center justify-center font-black text-xs shrink-0 shadow-md border border-slate-200 dark:border-slate-700 overflow-hidden p-1">
                         {currentExamObj && getExamLogo(currentExamObj) ? (
-                          <img src={getExamLogo(currentExamObj)!} alt={activeExamModal.name} className="w-full h-full object-contain" />
+                          <Image src={getExamLogo(currentExamObj)!} alt={activeExamModal.name} width={48} height={48} unoptimized className="w-full h-full object-contain" />
                         ) : (
                           <BookOpen className="w-5 h-5 text-amber-500" />
                         )}

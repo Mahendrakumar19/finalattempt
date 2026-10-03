@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { 
   Play, 
   Check, 
@@ -11,9 +12,7 @@ import {
   Save, 
   BookOpen, 
   Video, 
-  FileText,
-  ToggleLeft,
-  ToggleRight
+  FileText
 } from 'lucide-react';
 import { Course } from '@/services/db';
 
@@ -23,8 +22,31 @@ interface FacultyMember {
   role: string;
   experience: string;
   avatar: string;
+  avatarUrl?: string;
   bio: string;
   demoLectures: { title: string; duration: string; url: string }[];
+}
+
+interface Section {
+  id: string;
+  title: string;
+  lessons?: Lesson[];
+}
+
+interface Lesson {
+  id: string;
+  title: string;
+  type: 'video' | 'live';
+  videoUrl: string;
+  duration: string;
+  liveStatus?: string;
+  liveScheduledAt?: string;
+}
+
+interface CourseExtended extends Omit<Course, 'syllabus' | 'faculty' | 'demoLectures'> {
+  syllabus?: (string | { subject?: string; topics?: string[] })[] | string[];
+  faculty?: FacultyMember[];
+  demoLectures?: { title: string; duration: string; url: string; teacher?: string }[];
 }
 
 interface CourseTabsProps {
@@ -47,8 +69,8 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
 
 
   // Dynamic lists from backend
-  const [sections, setSections] = useState<any[]>([]);
-  const [loadingCurriculum, setLoadingCurriculum] = useState(false);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [, setLoadingCurriculum] = useState(false);
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
@@ -71,7 +93,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
   };
 
   // Fetch sections and lessons for this course
-  const fetchCurriculum = async () => {
+  const fetchCurriculum = useCallback(async () => {
     setLoadingCurriculum(true);
     try {
       // Fetch public sections (fallback offline or direct)
@@ -92,11 +114,14 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
     } finally {
       setLoadingCurriculum(false);
     }
-  };
+  }, [BACKEND_URL, course.id]);
 
   useEffect(() => {
-    fetchCurriculum();
-  }, [course.id]);
+    const timer = setTimeout(() => {
+      fetchCurriculum();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchCurriculum]);
 
   const handleAddSection = async () => {
     const title = window.prompt('Enter Section/Chapter Title:');
@@ -299,9 +324,9 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
 
             <div className="space-y-6 max-w-3xl">
               {sections.length === 0 ? (
-                Array.isArray(course.syllabus) && course.syllabus.length > 0 ? (
+                Array.isArray((course as CourseExtended).syllabus) && ((course as CourseExtended).syllabus?.length ?? 0) > 0 ? (
                   <div className="space-y-4">
-                    {(course.syllabus as any[]).map((subj: any, idx: number) => (
+                    {((course as CourseExtended).syllabus || []).map((subj, idx: number) => (
                       <div key={idx} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 space-y-2">
                         <div className="flex items-center gap-2">
                           <span className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
@@ -346,7 +371,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
                   </div>
                 )
               ) : (
-                sections.map((section: any, sIdx: number) => (
+                sections.map((section: Section, sIdx: number) => (
                   <div key={section.id} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
                     <div className="flex justify-between items-start">
                       <div className="flex gap-3 items-center">
@@ -386,7 +411,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
                       {(!section.lessons || section.lessons.length === 0) ? (
                         <p className="text-[10px] text-slate-400 italic">No lectures inside this chapter yet.</p>
                       ) : (
-                        section.lessons.map((lesson: any) => (
+                        section.lessons.map((lesson: Lesson) => (
                           <div key={lesson.id} className="bg-white px-4 py-3 rounded-2xl border border-slate-150 flex justify-between items-center shadow-2xs">
                             <div className="flex items-center gap-2">
                               {lesson.type === 'live' ? (
@@ -452,10 +477,10 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
           <div className="space-y-6">
             <h3 className="font-heading font-extrabold text-lg text-brand-primary">Faculty & Mentorship Board</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
-              {((course as any).faculty && (course as any).faculty.length > 0 ? (course as any).faculty : faculty).map((member: any, idx: number) => (
+              {((((course as CourseExtended).faculty && ((course as CourseExtended).faculty?.length ?? 0) > 0) ? (course as CourseExtended).faculty : faculty) || [])?.map((member, idx: number) => (
                 <div key={member.id || idx} className="flex gap-4 items-start p-4 rounded-xl border border-slate-100 shadow-2xs bg-white">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200">
-                    <img src={member.avatar || member.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'} alt={member.name} className="w-full h-full object-cover" />
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200 relative">
+                    <Image src={member.avatar || member.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'} alt={member.name} fill unoptimized className="w-full h-full object-cover" />
                   </div>
                   <div className="space-y-1.5">
                     <div>
@@ -475,7 +500,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
           <div className="space-y-6">
             <h3 className="font-heading font-extrabold text-lg text-brand-primary">Free Demo Lectures</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
-              {(course.demoLectures && course.demoLectures.length > 0 ? course.demoLectures : (faculty || []).flatMap((f) => Array.isArray(f.demoLectures) ? f.demoLectures.map((lec) => ({ ...lec, teacher: f.name })) : [])).map((lec: any, idx: number) => (
+              {((((course as CourseExtended).demoLectures && ((course as CourseExtended).demoLectures?.length ?? 0) > 0) ? (course as CourseExtended).demoLectures : (faculty || []).flatMap((f) => Array.isArray(f.demoLectures) ? f.demoLectures.map((lec) => ({ ...lec, teacher: f.name })) : [])) || [])?.map((lec, idx: number) => (
                 <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center hover:bg-white hover:border-blue-100 transition-all">
                   <div className="space-y-1">
                     <h5 className="font-bold text-xs text-slate-900">{lec.title}</h5>
