@@ -2418,7 +2418,7 @@ class BackendDB {
 
   public async createOrUpdateDynamicCurrentAffairEdition(edition: DynamicCurrentAffairEdition): Promise<boolean> {
     const timestamp = new Date().toISOString();
-    const edId = edition.id || `edition-${Date.now()}`;
+    let edId = edition.id;
     const edDate = edition.publishDate; // YYYY-MM-DD
     
     if (mysqlPool) {
@@ -2431,11 +2431,21 @@ class BackendDB {
           await conn.query('SET SESSION innodb_lock_wait_timeout = 15');
           await conn.beginTransaction();
           
-          // 1. Insert or update edition
-          await conn.query(
-            'INSERT INTO current_affair_editions (id, publishDate, summary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE summary = ?, updatedAt = ?',
-            [edId, edDate, edition.summary ?? null, timestamp, timestamp, edition.summary ?? null, timestamp]
-          );
+          // 1. Resolve exact edition ID to ensure foreign key constraint integrity
+          const [existingEd]: any = await conn.query('SELECT id FROM current_affair_editions WHERE publishDate = ? OR id = ?', [edDate, edId || '']);
+          if (existingEd && existingEd.length > 0) {
+            edId = existingEd[0].id;
+            await conn.query(
+              'UPDATE current_affair_editions SET summary = ?, updatedAt = ? WHERE id = ?',
+              [edition.summary ?? null, timestamp, edId]
+            );
+          } else {
+            edId = edId || `edition-${Date.now()}`;
+            await conn.query(
+              'INSERT INTO current_affair_editions (id, publishDate, summary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)',
+              [edId, edDate, edition.summary ?? null, timestamp, timestamp]
+            );
+          }
           
           if (edition.articles) {
             for (const art of edition.articles) {
