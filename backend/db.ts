@@ -436,46 +436,52 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS announcements JSON'); } catch (_) {}
     
     // 2. Leads
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS leads (
-        id VARCHAR(255) PRIMARY KEY,
-        fullName VARCHAR(255) NOT NULL,
-        mobile VARCHAR(50) NOT NULL,
-        email VARCHAR(255),
-        targetExam VARCHAR(255) NOT NULL,
-        status VARCHAR(50) NOT NULL,
-        createdAt VARCHAR(255) NOT NULL
-      )
-    `);
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS leads (
+          id VARCHAR(255) PRIMARY KEY,
+          fullName VARCHAR(255) NOT NULL,
+          mobile VARCHAR(50) NOT NULL,
+          email VARCHAR(255),
+          targetExam VARCHAR(255) NOT NULL,
+          status VARCHAR(50) NOT NULL,
+          createdAt VARCHAR(255) NOT NULL
+        )
+      `);
+    } catch (_) {}
     
     // 3. Faculty
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS faculty (
-        id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        role VARCHAR(255) NOT NULL,
-        experience VARCHAR(255) NOT NULL,
-        avatar TEXT,
-        bio TEXT,
-        demoLectures TEXT
-      )
-    `);
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS faculty (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          role VARCHAR(255) NOT NULL,
+          experience VARCHAR(255) NOT NULL,
+          avatar TEXT,
+          bio TEXT,
+          demoLectures TEXT
+        )
+      `);
+    } catch (_) {}
     
     // 4. Results
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS results (
-        id VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        rank VARCHAR(100) NOT NULL,
-        exam VARCHAR(100) NOT NULL,
-        course VARCHAR(255) NOT NULL,
-        service VARCHAR(255) NOT NULL,
-        district VARCHAR(100) NOT NULL,
-        photo TEXT,
-        year INT NOT NULL,
-        story TEXT
-      )
-    `);
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS results (
+          id VARCHAR(255) PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          rank VARCHAR(100) NOT NULL,
+          exam VARCHAR(100) NOT NULL,
+          course VARCHAR(255) NOT NULL,
+          service VARCHAR(255) NOT NULL,
+          district VARCHAR(100) NOT NULL,
+          photo TEXT,
+          year INT NOT NULL,
+          story TEXT
+        )
+      `);
+    } catch (_) {}
 
     // 4b. Book Orders (FA Publications Sales)
     await pool.query(`
