@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   BookOpen, Play, CheckCircle, ChevronLeft, ChevronDown, ChevronRight,
   Lock, Video, Clock, Sparkles, Trophy, MessageSquare, HelpCircle, FileText,
-  Radio, Calendar, Download, AlertCircle, Share2, Layers, Bell
+  Radio, Calendar, Bell
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -22,6 +22,7 @@ interface Lesson {
   liveMeetingUrl?: string | null;
   liveStatus?: 'scheduled' | 'live' | 'ended' | string;
   recordingUrl?: string | null;
+  sectionTitle?: string;
 }
 
 interface Section {
@@ -38,6 +39,25 @@ interface CourseDetail {
   category: string;
   duration: string;
   thumbnailUrl?: string;
+}
+
+interface QuizItem {
+  id: string;
+  title: string;
+  description?: string;
+  questionsCount?: number;
+  timeLimitMinutes?: number;
+  timeLimitMins?: number;
+  passingScore?: number;
+}
+
+interface AssignmentItem {
+  id: string;
+  title: string;
+  description?: string;
+  dueDate?: string;
+  totalMarks?: number;
+  maxMarks?: number;
 }
 
 interface CourseDetailPageProps {
@@ -60,8 +80,8 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
 
   // Tab state (PW-style: Live Classes, Recorded Lectures, Notes, Quizzes, Assignments)
   const [activeTab, setActiveTab] = useState<'live' | 'curriculum' | 'recordings' | 'quizzes' | 'assignments'>('curriculum');
-  const [quizzes, setQuizzes] = useState<any[]>([]);
-  const [assignments, setAssignments] = useState<any[]>([]);
+  const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
+  const [assignments, setAssignments] = useState<AssignmentItem[]>([]);
 
   // Video player state
   const [playingLesson, setPlayingLesson] = useState<Lesson | null>(null);
@@ -106,7 +126,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           const ts = await db.getTestSeriesById(courseId);
           const slug = ts?.slug || courseId;
           window.location.replace(`/test-series/program/${slug}`);
-        } catch (_) {
+        } catch {
           window.location.replace(`/test-series/program/${courseId}`);
         }
       }
@@ -154,7 +174,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
             const progRes = await fetch(`${BACKEND_URL}/api/lms/progress/${courseId}`, { headers });
             const progData = await progRes.json();
             if (progData.success && Array.isArray(progData.data)) {
-              const completedList = progData.data.filter((p: any) => p.completed);
+              const completedList = progData.data.filter((p: { completed: boolean }) => p.completed);
               setCompletedCount(completedList.length);
             }
           } catch (pErr) {
@@ -176,7 +196,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           setAssignments(assignData.data || []);
         }
 
-      } catch (err) {
+      } catch {
         setError('Network error. Please try again.');
       } finally {
         setLoading(false);
@@ -234,10 +254,9 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
     }
   };
 
-  const allLessons = sections.flatMap(s => s.lessons.map(l => ({ ...l, sectionTitle: s.title })));
+  const allLessons: Lesson[] = sections.flatMap(s => s.lessons.map(l => ({ ...l, sectionTitle: s.title })));
   const liveLessons = allLessons.filter(l => l.type === 'live');
   const recordedLessons = allLessons.filter(l => l.type !== 'live' && l.type !== 'pdf' && l.type !== 'resource');
-  const notesLessons = allLessons.filter(l => l.type === 'pdf' || l.type === 'resource');
   const totalLessons = sections.reduce((sum, s) => sum + s.lessons.length, 0);
   const freeLessons = sections.reduce((sum, s) => sum + s.lessons.filter(l => l.isFree).length, 0);
   const liveActiveCount = liveLessons.filter(l => l.liveStatus === 'live').length;
@@ -492,7 +511,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
             ].map(tab => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id as 'live' | 'curriculum' | 'recordings' | 'quizzes' | 'assignments')}
                 className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   activeTab === tab.id 
                     ? tab.id === 'live' && tab.isPulse
@@ -605,7 +624,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                               </span>
                               <span>&bull;</span>
                               <span className="text-slate-400 text-[11px]">
-                                Chapter: {(les as any).sectionTitle}
+                                Chapter: {les.sectionTitle}
                               </span>
                             </div>
                           </div>
@@ -711,7 +730,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                         </div>
 
                         <h4 className="text-white font-bold text-sm leading-snug line-clamp-2">{les.title}</h4>
-                        <p className="text-slate-500 text-[11px]">{(les as any).sectionTitle}</p>
+                        <p className="text-slate-500 text-[11px]">{les.sectionTitle}</p>
                       </div>
 
                       <div className="pt-3 border-t border-white/[0.04] flex items-center justify-between text-xs">
