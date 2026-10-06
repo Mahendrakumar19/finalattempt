@@ -164,9 +164,11 @@ export default function Home() {
     return `http://127.0.0.1:5000/${url.replace(/^\//, '')}`;
   };
 
-  const heroImages = heroSettings.heroImageUrl
-    ? heroSettings.heroImageUrl.split(',').map(img => resolveUrl(img.trim())).filter(Boolean)
-    : [];
+  const heroImages = useMemo(() => {
+    return heroSettings.heroImageUrl
+      ? heroSettings.heroImageUrl.split(',').map(img => resolveUrl(img.trim())).filter(Boolean)
+      : [];
+  }, [heroSettings.heroImageUrl]);
 
   useEffect(() => {
     if (heroImages.length <= 1) return;
@@ -191,10 +193,9 @@ export default function Home() {
   const pillarsGridRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    let VanillaTilt: any;
     import('vanilla-tilt')
       .then((mod) => {
-        VanillaTilt = mod.default || mod;
+        const VanillaTilt = mod.default || mod;
         tiltRefs.current.forEach((el) => {
           if (el) {
             VanillaTilt.init(el, {
@@ -213,8 +214,8 @@ export default function Home() {
     const currentRefs = tiltRefs.current;
     return () => {
       currentRefs.forEach((el) => {
-        if (el && (el as any).vanillaTilt) {
-          (el as any).vanillaTilt.destroy();
+        if (el && (el as HTMLDivElement & { vanillaTilt?: { destroy: () => void } }).vanillaTilt) {
+          (el as HTMLDivElement & { vanillaTilt?: { destroy: () => void } }).vanillaTilt?.destroy();
         }
       });
     };
@@ -507,89 +508,118 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {liveCourses.slice(0, 4).map((course) => (
-                <div
-                  key={course.id}
-                  className={`flip-card-container cursor-pointer hover-lift ${flippedCards[course.id] ? 'is-flipped' : ''}`}
-                  onClick={() => toggleFlip(course.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      toggleFlip(course.id);
-                    }
-                  }}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Course: ${course.title}. Click to view syllabus.`}
-                >
-                  <div className="flip-card-inner">
-                    {/* Front Side */}
-                    <div className="flip-card-front course-card-premium rounded-3xl">
-                      <div className="flip-card-front-content flex flex-col justify-between h-full p-5">
-                        <div>
-                          <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E3A8A] flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110">
-                            {course.id === 'bpsc-foundation' || course.id === '1' ? <GraduationCap className="w-5 h-5" /> : null}
-                            {course.id === 'prelims-test-series' || course.id === '2' ? <Layers className="w-5 h-5" /> : null}
-                            {course.id === 'mains-answer-writing' || course.id === '3' ? <FileText className="w-5 h-5" /> : null}
-                            {course.id !== 'bpsc-foundation' && course.id !== '1' && course.id !== 'prelims-test-series' && course.id !== '2' && course.id !== 'mains-answer-writing' && course.id !== '3' ? <BookOpen className="w-5 h-5" /> : null}
+            {(!liveCourses || liveCourses.length === 0) ? (
+              <div className="bg-gradient-to-br from-amber-500/5 via-slate-50 to-blue-500/5 dark:from-slate-900 dark:via-slate-900/60 dark:to-slate-900 rounded-3xl border border-dashed border-amber-500/30 p-8 sm:p-12 text-center space-y-4 shadow-xs">
+                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center mx-auto shadow-inner">
+                  <GraduationCap className="w-7 h-7" />
+                </div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+                  Coming Soon
+                </div>
+                <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 dark:text-white">
+                  {locale === 'hi' ? 'नए बैच और कोर्सेज जल्द आ रहे हैं' : 'New Foundation & Mentorship Batches Coming Soon'}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto font-medium leading-relaxed">
+                  {locale === 'hi'
+                    ? 'हम आगामी 71st BPSC और UPSC के लिए नए इंटीग्रेटेड मेंटरशिप प्रोग्राम तैयार कर रहे हैं। कोर्स लॉन्च होते ही यहाँ प्रदर्शित होंगे।'
+                    : 'We are curating comprehensive guided mentorship programs, test series & prelims-to-mains batches. Stay tuned as new admissions open shortly.'}
+                </p>
+                <div className="pt-2">
+                  <Link
+                    href="/courses"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-all shadow-md"
+                  >
+                    <span>{locale === 'hi' ? 'कोर्सेज हब देखें' : 'Visit Courses Hub'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {liveCourses.slice(0, 4).map((course) => (
+                  <div
+                    key={course.id}
+                    className={`flip-card-container cursor-pointer hover-lift ${flippedCards[course.id] ? 'is-flipped' : ''}`}
+                    onClick={() => toggleFlip(course.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        toggleFlip(course.id);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
+                    aria-label={`Course: ${course.title}. Click to view syllabus.`}
+                  >
+                    <div className="flip-card-inner">
+                      {/* Front Side */}
+                      <div className="flip-card-front course-card-premium rounded-3xl">
+                        <div className="flip-card-front-content flex flex-col justify-between h-full p-5">
+                          <div>
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1E3A8A] flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110">
+                              {course.id === 'bpsc-foundation' || course.id === '1' ? <GraduationCap className="w-5 h-5" /> : null}
+                              {course.id === 'prelims-test-series' || course.id === '2' ? <Layers className="w-5 h-5" /> : null}
+                              {course.id === 'mains-answer-writing' || course.id === '3' ? <FileText className="w-5 h-5" /> : null}
+                              {course.id !== 'bpsc-foundation' && course.id !== '1' && course.id !== 'prelims-test-series' && course.id !== '2' && course.id !== 'mains-answer-writing' && course.id !== '3' ? <BookOpen className="w-5 h-5" /> : null}
+                            </div>
+                            <h3 className="font-heading font-extrabold text-base text-slate-900 mb-1 leading-snug">{course.title}</h3>
+                            <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed">{course.description}</p>
                           </div>
-                          <h3 className="font-heading font-extrabold text-base text-slate-900 mb-1 leading-snug">{course.title}</h3>
-                          <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed">{course.description}</p>
-                        </div>
-                        <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-xs font-bold">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase">{course.duration}</span>
-                          <span className="text-[9px] text-blue-600 font-extrabold uppercase">Tap / Hover</span>
+                          <div className="pt-2 border-t border-slate-100 flex justify-between items-center text-xs font-bold">
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">{course.duration}</span>
+                            <span className="text-[9px] text-blue-600 font-extrabold uppercase">Tap / Hover</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Back Side */}
-                    <div className="flip-card-back rounded-3xl">
-                      <div className="flip-card-back-content flex flex-col justify-between h-full bg-slate-50/50 dark:bg-slate-900/30 p-4 sm:p-5">
-                        <div className="space-y-3 overflow-y-auto flex-1 pr-1">
-                          <h4 className="font-heading font-extrabold text-xs text-blue-600 uppercase tracking-wider">
-                            Syllabus Overview
-                          </h4>
+                      {/* Back Side */}
+                      <div className="flip-card-back rounded-3xl">
+                        <div className="flip-card-back-content flex flex-col justify-between h-full bg-slate-50/50 dark:bg-slate-900/30 p-4 sm:p-5">
+                          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+                            <h4 className="font-heading font-extrabold text-xs text-blue-600 uppercase tracking-wider">
+                              Syllabus Overview
+                            </h4>
 
-                          {course.syllabus && course.syllabus.length > 0 ? (
-                            <ul className="text-xs text-slate-600 dark:text-slate-300 list-disc list-inside space-y-1">
-                              {course.syllabus.map((item: string, idx: number) => (
-                                <li key={idx} className="line-clamp-2">{item}</li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-xs text-slate-600 dark:text-slate-300 italic">Personalized batch guidance, mock modules, and comprehensive daily strategy evaluation sessions.</p>
-                          )}
-                        </div>
+                            {course.syllabus && course.syllabus.length > 0 ? (
+                              <ul className="text-xs text-slate-600 dark:text-slate-300 list-disc list-inside space-y-1">
+                                {course.syllabus.map((item: string, idx: number) => (
+                                  <li key={idx} className="line-clamp-2">{item}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className="text-xs text-slate-600 dark:text-slate-300 italic">Personalized batch guidance, mock modules, and comprehensive daily strategy evaluation sessions.</p>
+                            )}
+                          </div>
 
-                        <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleFlip(course.id);
-                            }}
-                            className="text-[9px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase cursor-pointer"
-                          >
-                            Flip Back
-                          </button>
+                          <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFlip(course.id);
+                              }}
+                              className="text-[9px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase cursor-pointer"
+                            >
+                              Flip Back
+                            </button>
 
-                          <Link
-                            href={`/courses/${course.id}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold rounded-xl transition-colors inline-flex items-center gap-1"
-                          >
-                            <span>Details</span>
-                            <SlidersHorizontal className="w-3 h-3" />
-                          </Link>
+                            <Link
+                              href={`/courses/${course.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold rounded-xl transition-colors inline-flex items-center gap-1"
+                            >
+                              <span>Details</span>
+                              <SlidersHorizontal className="w-3 h-3" />
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right Column: Announcements & Why Choose Us */}
@@ -1109,6 +1139,11 @@ export default function Home() {
                     <img
                       src={resolveUrl(blog.imageUrl || blog.cover_image_url || blog.photo || blog.displayImage) || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800'}
                       alt={blog.title}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800';
+                      }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-3 left-3">

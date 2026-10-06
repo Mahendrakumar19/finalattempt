@@ -17,7 +17,6 @@ interface Exam {
   slug: string;
   description?: string;
   isActive?: boolean;
-  logo?: { storagePath: string } | null;
 }
 
 interface SyllabusItem {
@@ -45,19 +44,26 @@ interface StrategyBlock {
   attachment?: { storagePath: string; originalName: string } | null;
 }
 
-export default function SyllabusStrategyPage() {
-  const { setLocale } = useLocale();
+export default function SyllabusStrategyHindiPage() {
+  const { locale, setLocale } = useLocale();
+
+  useEffect(() => {
+    if (locale !== 'hi') {
+      setLocale('hi', true);
+    }
+  }, [locale, setLocale]);
+
   const [activeTab, setActiveTab] = useState<'syllabus' | 'strategy'>(() => {
     if (typeof window !== 'undefined' && window.location.hash === '#strategy') {
       return 'strategy';
     }
     return 'syllabus';
   });
+
   const [exams, setExams] = useState<Exam[]>([]);
   const [syllabusList, setSyllabusList] = useState<SyllabusItem[]>([]);
   const [strategyBlocks, setStrategyBlocks] = useState<StrategyBlock[]>([]);
 
-  // Active selections
   const [selectedExamId, setSelectedExamId] = useState<string>('ALL');
   const [selectedStage, setSelectedStage] = useState<string>('ALL');
   const [selectedSyllabusId, setSelectedSyllabusId] = useState<string | null>(null);
@@ -71,7 +77,9 @@ export default function SyllabusStrategyPage() {
     let ignore = false;
     const fetchData = async () => {
       try {
-        const examsRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
+        const examsRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`, {
+          headers: { 'Accept-Language': 'hi' }
+        });
         const examsData = await examsRes.json();
         if (!ignore && examsData.success && Array.isArray(examsData.data)) {
           const activeExams = examsData.data.filter((e: Exam) => e.isActive);
@@ -88,7 +96,9 @@ export default function SyllabusStrategyPage() {
           }
         }
 
-        const syllabusRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/syllabus`);
+        const syllabusRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/syllabus`, {
+          headers: { 'Accept-Language': 'hi' }
+        });
         const syllabusData = await syllabusRes.json();
         if (!ignore && syllabusData.success && Array.isArray(syllabusData.data)) {
           setSyllabusList(syllabusData.data);
@@ -97,7 +107,9 @@ export default function SyllabusStrategyPage() {
           }
         }
 
-        const strategyRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/strategy`);
+        const strategyRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/strategy`, {
+          headers: { 'Accept-Language': 'hi' }
+        });
         const strategyData = await strategyRes.json();
         if (!ignore && strategyData.success && Array.isArray(strategyData.data)) {
           setStrategyBlocks(strategyData.data);
@@ -121,7 +133,6 @@ export default function SyllabusStrategyPage() {
     }
   };
 
-  // Filtered syllabus items
   const filteredSyllabus = syllabusList.filter(s => {
     if (selectedExamId !== 'ALL' && s.examId !== selectedExamId) return false;
     if (selectedStage !== 'ALL' && s.stage !== selectedStage) return false;
@@ -133,10 +144,8 @@ export default function SyllabusStrategyPage() {
     return true;
   });
 
-  // Selected Exam Object
   const selectedExam = exams.find(e => e.id === selectedExamId);
 
-  // Filtered strategy items
   const filteredStrategy = strategyBlocks.filter((st: StrategyBlock) => {
     if (selectedExamId !== 'ALL') {
       if (st.examId) {
@@ -146,7 +155,6 @@ export default function SyllabusStrategyPage() {
         const exName = (selectedExam.name || '').toLowerCase().trim();
         const stText = (st.title + ' ' + st.category + ' ' + st.content).toLowerCase();
         
-        // If the strategy guide mentions a specific exam and not the selected one, filter out
         if (exCode && !stText.includes(exCode) && exName && !stText.includes(exName)) {
           return false;
         }
@@ -160,14 +168,13 @@ export default function SyllabusStrategyPage() {
     return true;
   });
 
-  // Currently active selected document/strategy (strictly bound to filtered results)
   const activeSyllabus = filteredSyllabus.find(s => s.id === selectedSyllabusId) || filteredSyllabus[0] || null;
   const activeStrategy = filteredStrategy.find(st => st.id === selectedStrategyId) || filteredStrategy[0] || null;
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
 
-      {/* ── DRISHTI IAS STYLE TOP NAVIGATION HEADER ───────────────────────────────────── */}
+      {/* TOP NAVIGATION HEADER */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -176,22 +183,24 @@ export default function SyllabusStrategyPage() {
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <Link href="/" className="hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-1">
                 <Home className="w-3.5 h-3.5" />
-                <span>Home</span>
+                <span>मुख्य पृष्ठ</span>
               </Link>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
-              <span className="text-amber-600 dark:text-amber-400 font-bold">Civil Services Hub</span>
+              <span className="text-amber-600 dark:text-amber-400 font-bold">सिविल सेवा पोर्टल (हिन्दी)</span>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
-              <span className="text-slate-900 dark:text-slate-200 capitalize font-medium">{activeTab} Roadmap</span>
+              <span className="text-slate-900 dark:text-slate-200 capitalize font-medium">
+                {activeTab === 'syllabus' ? 'पाठ्यक्रम' : 'रणनीति'}
+              </span>
             </div>
 
             <div className="flex items-center gap-3">
               {/* Language Switcher Pill */}
               <Link
-                href="/syllabus-strategy-hindi"
-                onClick={() => setLocale('hi', true)}
-                className="px-3.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold rounded-xl text-xs flex items-center gap-1.5 border border-amber-500/30 transition-all cursor-pointer"
+                href="/syllabus-strategy"
+                onClick={() => setLocale('en', true)}
+                className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl text-xs flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
               >
-                <span>🇮🇳 Hindi Syllabus & Strategy (हिन्दी पोर्टल)</span>
+                <span>English Syllabus & Strategy</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
 
@@ -206,7 +215,7 @@ export default function SyllabusStrategyPage() {
                   }`}
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>Syllabus Papers</span>
+                  <span>आधिकारिक पाठ्यक्रम</span>
                 </button>
                 <button
                   onClick={() => handleTabChange('strategy')}
@@ -217,17 +226,17 @@ export default function SyllabusStrategyPage() {
                   }`}
                 >
                   <Target className="w-3.5 h-3.5" />
-                  <span>Preparation Strategy</span>
+                  <span>तैयारी की रणनीति</span>
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Exam Filter Tabs Bar (Drishti IAS Stage Bar) */}
+          {/* Exam Filter Tabs Bar */}
           <div className="py-3 flex flex-wrap items-center gap-3 border-t border-slate-100 dark:border-slate-800/60 text-xs">
             <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
               <span className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px] shrink-0 mr-1 flex items-center gap-1">
-                <Layers className="w-3 h-3 text-amber-500" /> Exam:
+                <Layers className="w-3 h-3 text-amber-500" /> परीक्षा:
               </span>
 
               <button
@@ -242,7 +251,7 @@ export default function SyllabusStrategyPage() {
                     : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
                 }`}
               >
-                All Exams
+                सभी परीक्षाएं
               </button>
 
               {exams.map(exam => (
@@ -264,17 +273,17 @@ export default function SyllabusStrategyPage() {
               ))}
             </div>
 
-            {/* Stage Filter Buttons (PRELIMS, MAINS, INTERVIEW) */}
+            {/* Stage Filter Buttons */}
             {activeTab === 'syllabus' && (
               <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 sm:ml-auto border-l sm:border-l border-slate-200 dark:border-slate-800 pl-3">
                 <span className="text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px] shrink-0 mr-1 flex items-center gap-1">
-                  <Target className="w-3 h-3 text-amber-500" /> Stage:
+                  <Target className="w-3 h-3 text-amber-500" /> चरण:
                 </span>
                 {[
-                  { id: 'ALL', label: 'All Stages' },
-                  { id: 'PRELIMS', label: 'Prelims' },
-                  { id: 'MAINS', label: 'Mains' },
-                  { id: 'INTERVIEW', label: 'Interview' }
+                  { id: 'ALL', label: 'सभी चरण' },
+                  { id: 'PRELIMS', label: 'प्रारम्भिक परीक्षा (Prelims)' },
+                  { id: 'MAINS', label: 'मुख्य परीक्षा (Mains)' },
+                  { id: 'INTERVIEW', label: 'साक्षात्कार (Interview)' }
                 ].map(stg => (
                   <button
                     key={stg.id}
@@ -302,27 +311,27 @@ export default function SyllabusStrategyPage() {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT CONTAINER (2-COLUMN DRISHTI LAYOUT) ─────────────────────────── */}
+      {/* MAIN CONTENT CONTAINER */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {/* ── FEATURED STRATEGY BANNER: UPPSC 10-YEAR PYQ ANALYSIS ─────────────────────── */}
+        {/* FEATURED BANNER */}
         <div className="mb-6 bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950 border border-amber-500/30 rounded-2xl p-5 text-white flex flex-wrap items-center justify-between gap-4 shadow-md">
           <div className="space-y-1 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase text-amber-400 bg-amber-500/20 border border-amber-500/30 px-2.5 py-0.5 rounded-full font-mono">
-              <Target className="w-3 h-3 text-amber-400" /> Featured Strategy Guide
+              <Target className="w-3 h-3 text-amber-400" /> विशेष हिंदी रणनीति मार्गदर्शिका
             </div>
             <h3 className="text-base sm:text-lg font-black font-heading text-white tracking-tight">
-              UPPSC Prelims 2026: Complete 10-Year PYQ Analysis & Strategy
+              BPSC एवं UPPSC प्रारम्भिक परीक्षा: संपूर्ण 10-वर्षीय PYQ विश्लेषण तथा रणनीति
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Exhaustive 10-year subject weightages (2016–2025), Tier 1-3 priority matrix, Gold Standard booklist & study time allocation.
+              विषयवार अंक भार, प्राथमिक रणनीति मैट्रिक्स, पुस्तक सूची तथा अध्ययन समय विभाजन।
             </p>
           </div>
           <Link
             href="/syllabus-strategy/uppsc-pyq-analysis"
             className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-1.5 shrink-0 transition-all shadow-md cursor-pointer"
           >
-            <span>Read Full Analysis</span>
+            <span>विस्तृत विश्लेषण पढ़ें</span>
             <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
@@ -333,7 +342,7 @@ export default function SyllabusStrategyPage() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search syllabus or topic..."
+              placeholder="पाठ्यक्रम या विषय खोजें..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium text-slate-900 dark:text-white"
@@ -344,22 +353,22 @@ export default function SyllabusStrategyPage() {
         {/* 2-Column Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-          {/* ── LEFT SIDEBAR: LIST OF PAPERS / TOPICS (4 cols) ────────────────────── */}
+          {/* LEFT SIDEBAR: LIST OF PAPERS / TOPICS */}
           <div className="lg:col-span-4 space-y-3 lg:sticky lg:top-36 max-h-[calc(100vh-160px)] overflow-y-auto pr-1">
             <h3 className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-2 px-1">
               <ListFilter className="w-3.5 h-3.5" />
-              <span>{activeTab === 'syllabus' ? 'Official Syllabus Papers' : 'Strategy Guides'}</span>
+              <span>{activeTab === 'syllabus' ? 'आधिकारिक हिंदी पाठ्यक्रम पत्र' : 'हिंदी मार्गदर्शन एवं रणनीति'}</span>
             </h3>
 
             {activeTab === 'syllabus' ? (
               filteredSyllabus.length === 0 ? (
                 <p className="text-xs text-slate-500 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-                  No syllabus documents match your filters.
+                  कोई पाठ्यक्रम दस्तावेज़ आपके फ़िल्टर से मेल नहीं खाता।
                 </p>
               ) : (
                 filteredSyllabus.map(s => {
                   const isSelected = activeSyllabus?.id === s.id;
-                  const name = s.fileMedia?.originalName || s.description || `${s.exam?.code || 'BPSC'} Syllabus`;
+                  const name = s.fileMedia?.originalName || s.description || `${s.exam?.code || 'BPSC'} पाठ्यक्रम्`;
 
                   return (
                     <div
@@ -393,9 +402,9 @@ export default function SyllabusStrategyPage() {
                       </h4>
 
                       <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400 pt-1">
-                        <span>Updated: {s.lastUpdated}</span>
+                        <span>अंतिम अद्यतन: {s.lastUpdated}</span>
                         <span className="text-amber-600 dark:text-amber-400 font-extrabold flex items-center gap-0.5">
-                          Read <ChevronRight className="w-3 h-3" />
+                          पढ़ें <ChevronRight className="w-3 h-3" />
                         </span>
                       </div>
                     </div>
@@ -405,7 +414,7 @@ export default function SyllabusStrategyPage() {
             ) : (
               filteredStrategy.length === 0 ? (
                 <p className="text-xs text-slate-500 p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-                  No strategy items found.
+                  कोई रणनीति लेख नहीं मिला।
                 </p>
               ) : (
                 filteredStrategy.map(st => {
@@ -439,27 +448,24 @@ export default function SyllabusStrategyPage() {
             )}
           </div>
 
-          {/* ── RIGHT MAIN DISPLAY: FULL READ ARTICLE (8 cols) ───────── */}
+          {/* RIGHT MAIN DISPLAY */}
           <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-lg space-y-8 min-h-[650px]">
 
             {activeTab === 'syllabus' && activeSyllabus ? (
               <div className="space-y-8">
 
-                {/* Header Banner inside Reading View */}
                 <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-6 space-y-4">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400 font-mono">
-                      Last Updated: {activeSyllabus.lastUpdated}
+                      अंतिम अद्यतन: {activeSyllabus.lastUpdated}
                     </span>
                   </div>
 
                   <h2 className="text-2xl sm:text-3xl font-heading font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-                    {activeSyllabus.fileMedia?.originalName || activeSyllabus.description || `${activeSyllabus.exam?.name} Official Syllabus`}
+                    {activeSyllabus.fileMedia?.originalName || activeSyllabus.description || `${activeSyllabus.exam?.name} आधिकारिक पाठ्यक्रम`}
                   </h2>
 
-                  {/* Drishti IAS Style Action Buttons Bar */}
                   <div className="pt-2 flex flex-wrap items-center gap-3">
-                    {/* Open in New Tab Button */}
                     <a
                       href={`${BACKEND_URL}/${activeSyllabus.fileMedia.storagePath}`}
                       target="_blank"
@@ -467,60 +473,42 @@ export default function SyllabusStrategyPage() {
                       className="py-3 px-5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs flex items-center gap-2 shadow-md hover:scale-[1.02] transition-all cursor-pointer"
                     >
                       <ArrowUpRight className="w-4 h-4" />
-                      <span>Open PDF </span>
+                      <span>PDF नए टैब में खोलें</span>
                     </a>
 
-                    {/* Direct Download PDF Button */}
                     <a
                       href={`${BACKEND_URL}/${activeSyllabus.fileMedia.storagePath}`}
                       download
                       className="py-3 px-5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-extrabold rounded-2xl text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
-                      <span>Download PDF</span>
+                      <span>PDF डाउनलोड करें</span>
                     </a>
                   </div>
                 </div>
 
-                {/* Structured Text Syllabus Content */}
                 {activeSyllabus.description ? (
                   <div className="space-y-4">
                     <h3 className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
                       <CheckCircle2 className="w-4 h-4" />
-                      <span>Official Detailed Topic Breakdown</span>
+                      <span>आधिकारिक विस्तृत विषयवार विवरण</span>
                     </h3>
 
                     <style>{`
-                      /* Base Text Colors */
-                      .syllabus-content-area h1,
-                      .syllabus-content-area h2,
-                      .syllabus-content-area h3,
-                      .syllabus-content-area h4,
-                      .syllabus-content-area strong,
-                      .syllabus-content-area b {
+                      .syllabus-content-area h1, .syllabus-content-area h2, .syllabus-content-area h3,
+                      .syllabus-content-area h4, .syllabus-content-area strong, .syllabus-content-area b {
                         color: #0f172a !important;
                       }
-                      .dark .syllabus-content-area h1,
-                      .dark .syllabus-content-area h2,
-                      .dark .syllabus-content-area h3,
-                      .dark .syllabus-content-area h4,
-                      .dark .syllabus-content-area strong,
-                      .dark .syllabus-content-area b {
+                      .dark .syllabus-content-area h1, .dark .syllabus-content-area h2, .dark .syllabus-content-area h3,
+                      .dark .syllabus-content-area h4, .dark .syllabus-content-area strong, .dark .syllabus-content-area b {
                         color: #ffffff !important;
                       }
-
-                      .syllabus-content-area p,
-                      .syllabus-content-area li,
-                      .syllabus-content-area span {
+                      .syllabus-content-area p, .syllabus-content-area li, .syllabus-content-area span {
                         color: #1e293b !important;
                       }
-                      .dark .syllabus-content-area p,
-                      .dark .syllabus-content-area li,
-                      .dark .syllabus-content-area span {
+                      .dark .syllabus-content-area p, .dark .syllabus-content-area li, .dark .syllabus-content-area span {
                         color: #cbd5e1 !important;
                       }
-
-                      /* Table Layout & Container */
                       .syllabus-content-area table {
                         width: 100% !important;
                         border-collapse: collapse !important;
@@ -530,91 +518,33 @@ export default function SyllabusStrategyPage() {
                         border-radius: 0.75rem !important;
                         overflow: hidden !important;
                       }
-
-                      /* Light Mode Table Header */
                       .syllabus-content-area th {
                         background-color: #f1f5f9 !important;
-                        background: #f1f5f9 !important;
                         color: #0f172a !important;
                         font-weight: 800 !important;
                         padding: 0.75rem 1rem !important;
                         border: 1px solid #cbd5e1 !important;
                         text-align: left !important;
                       }
-
-                      .syllabus-content-area th * {
-                        background: transparent !important;
-                        color: #0f172a !important;
-                        box-shadow: none !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                        border: none !important;
-                      }
-
-                      /* Light Mode Table Data Cells */
                       .syllabus-content-area td {
                         background-color: #ffffff !important;
-                        background: #ffffff !important;
                         color: #0f172a !important;
                         padding: 0.75rem 1rem !important;
                         border: 1px solid #e2e8f0 !important;
                       }
-
-                      .syllabus-content-area td * {
-                        background: transparent !important;
-                        color: #0f172a !important;
-                        box-shadow: none !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                        border: none !important;
-                      }
-
-                      .syllabus-content-area tr:nth-child(even) td {
-                        background-color: #f8fafc !important;
-                        background: #f8fafc !important;
-                      }
-
-                      /* Dark Mode Table Styling */
                       .dark .syllabus-content-area table {
                         background-color: #0f172a !important;
                         border-color: #334155 !important;
                       }
-
                       .dark .syllabus-content-area th {
                         background-color: #1e293b !important;
-                        background: #1e293b !important;
                         color: #fbbf24 !important;
                         border-color: #334155 !important;
                       }
-
-                      .dark .syllabus-content-area th * {
-                        background: transparent !important;
-                        color: #fbbf24 !important;
-                        box-shadow: none !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                        border: none !important;
-                      }
-
                       .dark .syllabus-content-area td {
                         background-color: #0f172a !important;
-                        background: #0f172a !important;
                         color: #f1f5f9 !important;
                         border-color: #334155 !important;
-                      }
-
-                      .dark .syllabus-content-area td * {
-                        background: transparent !important;
-                        color: #f1f5f9 !important;
-                        box-shadow: none !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                        border: none !important;
-                      }
-
-                      .dark .syllabus-content-area tr:nth-child(even) td {
-                        background-color: #1e293b !important;
-                        background: #1e293b !important;
                       }
                     `}</style>
 
@@ -647,7 +577,7 @@ export default function SyllabusStrategyPage() {
                         className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-2 shadow-md cursor-pointer"
                       >
                         <ArrowUpRight className="w-4 h-4" />
-                        <span>Open Attachment PDF in New Tab</span>
+                        <span>संलग्न PDF नए टैब में खोलें</span>
                       </a>
                     )}
                   </div>
@@ -658,6 +588,8 @@ export default function SyllabusStrategyPage() {
                     <img
                       src={`${BACKEND_URL}/${activeStrategy.featuredImage.storagePath}`}
                       alt={activeStrategy.title}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-auto object-contain"
                     />
                   </div>
@@ -670,7 +602,7 @@ export default function SyllabusStrategyPage() {
 
                 {activeStrategy.videoUrl && (
                   <div className="space-y-3 pt-6 border-t border-slate-200 dark:border-slate-800">
-                    <h3 className="text-xs font-black uppercase text-amber-500">📹 Strategy Video Guidance</h3>
+                    <h3 className="text-xs font-black uppercase text-amber-500">📹 वीडियो मार्गदर्शन एवं रणनीति</h3>
                     <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-md">
                       <iframe
                         src={
@@ -690,7 +622,7 @@ export default function SyllabusStrategyPage() {
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-slate-400 space-y-2">
                 <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600" />
-                <p className="text-sm font-bold">Select a document from the left list to read full details.</p>
+                <p className="text-sm font-bold">बाईं ओर की सूची से पूरा विवरण देखने के लिए एक दस्तावेज़ चुनें।</p>
               </div>
             )}
 

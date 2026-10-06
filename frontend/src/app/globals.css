@@ -661,6 +661,7 @@ html.dark .btn-outline:hover {
   padding: 1.5px;
   background: linear-gradient(135deg, transparent, transparent);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
@@ -1411,8 +1412,109 @@ html.dark {
   border-color: var(--exam-border);
 }
 
+/* ═══════════════════════════════════════════════════════════
+   OFFICIAL ARTICLE / CURRENT AFFAIRS PRINT & PDF WATERMARK SYSTEM
+   Watermark is fixed and repeats across all printed / PDF pages
+   ═══════════════════════════════════════════════════════════ */
+@media print {
+  @page {
+    margin: 14mm 12mm 14mm 12mm;
+    size: auto;
+  }
 
+  /* Universal repeating official logo watermark on every page (high clarity, clean angle) */
+  body::before {
+    content: "";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 170mm;
+    height: 85mm;
+    transform: translate(-50%, -50%) rotate(-28deg);
+    background-image: url('/darklogofull.png');
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+    opacity: 0.13 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    pointer-events: none;
+    z-index: 999999;
+  }
 
+  /* Secondary subtle footer watermark */
+  body::after {
+    content: "www.finalattemptias.com • UPSC & BPSC Mentorship";
+    position: fixed;
+    bottom: 8mm;
+    right: 12mm;
+    font-size: 8pt;
+    font-weight: 700;
+    color: rgba(71, 85, 105, 0.8) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    pointer-events: none;
+    z-index: 999999;
+  }
 
+  /* Reveal print-only elements */
+  .print-only {
+    display: block !important;
+  }
 
+  /* Hide navigation, footers, interactive buttons, sidebars in PDF/Print */
+  header,
+  nav,
+  footer,
+  aside,
+  .no-print,
+  button,
+  .flip-card-back,
+  [role="dialog"] {
+    display: none !important;
+  }
 
+  /* Ensure body and article container print crisply with clean background */
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    line-height: 1.6 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  article,
+  main,
+  .print-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  /* Keep article titles and headings together with text */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    break-after: avoid;
+    color: #0f172a !important;
+  }
+
+  p, blockquote, li, img {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Clean contrast for printable elements */
+  .prose, .article-prose-container {
+    color: #1e293b !important;
+  }
+
+  .prose a, .article-prose-container a {
+    text-decoration: underline !important;
+    color: #b45309 !important;
+  }
+}

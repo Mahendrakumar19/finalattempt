@@ -88,28 +88,7 @@ export default function Header() {
   const handleToggleLanguage = useCallback(() => {
     const nextLocale = locale === 'en' ? 'hi' : 'en';
     setLocale(nextLocale, true);
-
-    // If currently on blog or current affairs, seamlessly navigate to the matching language destination page
-    if (nextLocale === 'hi') {
-      if (pathname === '/blog') {
-        router.push('/blog-hindi');
-        return;
-      }
-      if (pathname === '/current-affairs') {
-        router.push('/current-affairs-hindi');
-        return;
-      }
-    } else {
-      if (pathname === '/blog-hindi') {
-        router.push('/blog');
-        return;
-      }
-      if (pathname === '/current-affairs-hindi') {
-        router.push('/current-affairs');
-        return;
-      }
-    }
-  }, [locale, setLocale, pathname, router]);
+  }, [locale, setLocale]);
 
   const [mounted,        setMounted]        = useState(false);
   const [mobileOpen,     setMobileOpen]     = useState(false);

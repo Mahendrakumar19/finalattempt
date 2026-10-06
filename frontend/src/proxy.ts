@@ -1,12 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { LOCALE_COOKIE, DEFAULT_LOCALE, toLocale } from '@/i18n/index';
-
-// Routes that require authentication
-const PROTECTED_PREFIXES = ['/student', '/faculty/dashboard'];
-
-// Routes only accessible when NOT authenticated
-const AUTH_ROUTES = ['/auth/login', '/auth/register'];
+import { LOCALE_COOKIE, toLocale } from '@/i18n/index';
 
 export function proxy(request: NextRequest) {
   // Read locale from cookie and forward as x-locale request header.

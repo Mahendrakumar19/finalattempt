@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  Bold, Italic, Underline, Heading1, Heading2, Heading3,
+  Bold, Italic, Underline,
   List, ListOrdered, Indent, Outdent, Quote, Link as LinkIcon, Sparkles, Paintbrush,
-  Table, Image as ImageIcon, Box, CheckCircle, Maximize2, Minimize2, X, Scaling,
-  FileText, Paperclip, FolderOpen, AlignLeft, AlignCenter, AlignRight, Layout, Move, Eye, ChevronDown
+  Table, Image as ImageIcon, Maximize2, Minimize2, X, Scaling,
+  Paperclip, Layout, ChevronDown
 } from 'lucide-react';
 import MediaPicker from '@/components/MediaPicker';
 
@@ -15,15 +15,21 @@ interface RichTextEditorProps {
   label?: string;
 }
 
+interface MediaItem {
+  title?: string;
+  originalName?: string;
+  size: number;
+  extension?: string;
+  url?: string;
+}
+
 export default function RichTextEditor({ value, onChange, label = 'Rich Text Editor' }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const modalEditorRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [selectedTableWidth, setSelectedTableWidth] = useState('100%');
 
   // Selected element for text-wrapping operations
-  const [selectedImageNode, setSelectedImageNode] = useState<HTMLElement | null>(null);
   const [showWrapTextMenu, setShowWrapTextMenu] = useState(false);
 
   // Pending image placement modal state
@@ -46,7 +52,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
     if (isFullscreen && modalEditorRef.current) {
       modalEditorRef.current.innerHTML = editorRef.current ? editorRef.current.innerHTML : value;
     }
-  }, [isFullscreen]);
+  }, [isFullscreen, value]);
 
   // If the value gets cleared, empty the editor
   useEffect(() => {
@@ -65,19 +71,6 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       if (isFullscreen && editorRef.current) {
         editorRef.current.innerHTML = html;
       }
-    }
-  };
-
-  const handleEditorClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.nodeName === 'IMG') {
-      setSelectedImageNode(target);
-    } else if (target.closest('.image-wrap-container')) {
-      setSelectedImageNode(target.closest('.image-wrap-container') as HTMLElement);
-    } else if (target.closest('img')) {
-      setSelectedImageNode(target.closest('img') as HTMLElement);
-    } else {
-      setSelectedImageNode(null);
     }
   };
 
@@ -122,7 +115,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
     setShowMediaPicker(true);
   };
 
-  const handleMediaSelect = (fileUrl: string, item: any) => {
+  const handleMediaSelect = (fileUrl: string, item: MediaItem) => {
     setShowMediaPicker(false);
     if (mediaPickerMode === 'IMAGE') {
       // Open visual text wrap placement modal
@@ -130,7 +123,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
     } else {
       // Document / PDF / Attachment card
       const docName = item.originalName || item.title || 'Download Document';
-      const fileSize = (item.size / 1024).toFixed(1);
+      const fileSize = ((item.size || 0) / 1024).toFixed(1);
       const ext = (item.extension || 'FILE').toUpperCase();
       const docHtml = `
         <div style="background:#f8fafc; border:1.5px solid #cbd5e1; border-radius:14px; padding:12px 16px; margin:1rem 0; display:flex; align-items:center; justify-content:space-between; gap:12px;">
@@ -193,30 +186,28 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
     const targetRef = isFullscreen ? modalEditorRef : editorRef;
     if (!targetRef.current) return;
 
-    let targetNode: HTMLElement | null = selectedImageNode;
+    let targetNode: HTMLElement | null = null;
 
-    if (!targetNode) {
-      const sel = window.getSelection();
-      if (sel && sel.anchorNode) {
-        let node: Node | null = sel.anchorNode;
-        while (node && node !== targetRef.current) {
-          if (node.nodeName === 'IMG') {
-            targetNode = node as HTMLElement;
-            break;
-          }
-          if (node.nodeType === 1 && (node as HTMLElement).classList?.contains('image-wrap-container')) {
-            targetNode = node as HTMLElement;
-            break;
-          }
-          node = node.parentNode;
+    const sel = window.getSelection();
+    if (sel && sel.anchorNode) {
+      let node: Node | null = sel.anchorNode;
+      while (node && node !== targetRef.current) {
+        if (node.nodeName === 'IMG') {
+          targetNode = node as HTMLElement;
+          break;
         }
+        if (node.nodeType === 1 && (node as HTMLElement).classList?.contains('image-wrap-container')) {
+          targetNode = node as HTMLElement;
+          break;
+        }
+        node = node.parentNode;
       }
     }
 
-    if (!targetNode) {
+    if (!targetNode && targetRef.current) {
       const imgs = targetRef.current.querySelectorAll('img');
-      if (imgs.length === 1) {
-        targetNode = imgs[0];
+      if (imgs.length > 0) {
+        targetNode = imgs[imgs.length - 1] as HTMLElement;
       }
     }
 
@@ -240,14 +231,14 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       }
     }
 
-    const imgEl = wrapper.querySelector('img') || (targetNode.nodeName === 'IMG' ? targetNode : null);
+    const foundImg = wrapper.querySelector('img') || (targetNode.nodeName === 'IMG' ? targetNode : null);
 
-    if (imgEl) {
-      (imgEl as HTMLElement).style.maxWidth = '100%';
-      (imgEl as HTMLElement).style.height = 'auto';
-      (imgEl as HTMLElement).style.borderRadius = '12px';
-      (imgEl as HTMLElement).style.border = '1px solid #cbd5e1';
-      (imgEl as HTMLElement).style.boxShadow = '0 4px 12px rgba(0,0,0,0.06)';
+    if (foundImg && foundImg instanceof HTMLElement) {
+      foundImg.style.maxWidth = '100%';
+      foundImg.style.height = 'auto';
+      foundImg.style.borderRadius = '12px';
+      foundImg.style.border = '1px solid #cbd5e1';
+      foundImg.style.boxShadow = '0 4px 12px rgba(0,0,0,0.06)';
     }
 
     switch (wrapMode) {
@@ -265,7 +256,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
         break;
       case 'FULL_WIDTH':
         wrapper.style.cssText = 'margin: 1.5rem 0; float: none; clear: both; width: 100%; display: block; text-align: center;';
-        if (imgEl) (imgEl as HTMLElement).style.width = '100%';
+        if (foundImg && foundImg instanceof HTMLElement) foundImg.style.width = '100%';
         break;
       case 'BEHIND_TEXT':
         wrapper.style.cssText = 'margin: 0.5rem 0 1rem 1.5rem; float: right; max-width: 48%; position: relative; z-index: 0; opacity: 0.55;';
@@ -308,7 +299,6 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
   };
 
   const setTableWidth = (width: string) => {
-    setSelectedTableWidth(width);
     const targetRef = isFullscreen ? modalEditorRef : editorRef;
     if (!targetRef.current) return;
     const sel = window.getSelection();
@@ -380,7 +370,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
     { name: 'Gray', value: '#808080' }
   ];
 
-  const ToolbarControls = () => (
+  const renderToolbarControls = () => (
     <div className="flex flex-wrap items-center gap-1 border-b border-slate-100 bg-slate-50/80 p-2 text-slate-800 relative select-none">
       <button
         type="button"
@@ -728,12 +718,11 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
     <>
       {/* Inline Compact View */}
       <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500/40">
-        <ToolbarControls />
+        {renderToolbarControls()}
         <div
           ref={editorRef}
           contentEditable
           onInput={handleInput}
-          onClick={handleEditorClick}
           onKeyDown={(e) => {
             if (e.key === 'Tab') {
               e.preventDefault();
@@ -778,7 +767,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
             </div>
 
             {/* Modal Toolbar */}
-            <ToolbarControls />
+            {renderToolbarControls()}
 
             {/* Expanded Editor Content Area */}
             <div className="flex-grow p-8 bg-slate-50/50 dark:bg-slate-950/30 overflow-y-auto">
@@ -787,7 +776,6 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
                   ref={modalEditorRef}
                   contentEditable
                   onInput={handleInput}
-                  onClick={handleEditorClick}
                   className="min-h-[550px] outline-none text-slate-900 dark:text-white text-sm sm:text-base leading-relaxed prose dark:prose-invert max-w-none focus:outline-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 [&_th]:dark:bg-slate-800 [&_th]:p-3 [&_th]:text-left [&_th]:font-bold [&_td]:p-3 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-white/10 [&_tr:nth-child(even)]:bg-slate-50/50 [&_tr:nth-child(even)]:dark:bg-slate-800/30"
                 />
               </div>
@@ -810,6 +798,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
             </div>
 
             <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200 dark:border-white/5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={pendingImage.url} alt="Preview" className="w-20 h-20 object-cover rounded-xl border border-slate-300 dark:border-white/10 shrink-0" />
               <div className="text-xs">
                 <p className="font-bold text-slate-900 dark:text-white line-clamp-1">{pendingImage.title || 'Selected Image'}</p>

@@ -257,11 +257,13 @@ export default function CurrentAffairsLanding() {
 
   return (
     <div className="min-h-screen bg-[var(--bg-color)]">
-
       {/* ── Hero Banner ───────────────────────────────────────── */}
       <div
         className="relative z-20 border-b border-slate-200 dark:border-white/[0.07]"
-        style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1E40AF 100%)' }}
+        style={{
+          background:
+            "linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1E40AF 100%)",
+        }}
       >
         {/* Ambient glow */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -278,11 +280,13 @@ export default function CurrentAffairsLanding() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                 </span>
-                <span className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-[0.2em]">Updated Daily</span>
+                <span className="text-[10px] font-extrabold text-emerald-400 uppercase tracking-[0.2em]">
+                  Updated Daily
+                </span>
               </div>
 
               <h1 className="text-2xl sm:text-3xl font-heading font-black text-white leading-tight">
-                {t('currentAffairs.title')}
+                {t("currentAffairs.title")}
               </h1>
 
               {/* 🔍 TOPIC SEARCH INPUT BAR */}
@@ -298,7 +302,7 @@ export default function CurrentAffairsLanding() {
                 {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => setSearchQuery("")}
                     className="absolute right-3 top-[18px] -translate-y-1/2 text-slate-300 hover:text-white"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -313,31 +317,43 @@ export default function CurrentAffairsLanding() {
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => setShowDateDropdown(prev => !prev)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowDateDropdown(prev => !prev); } }}
+                  onClick={() => setShowDateDropdown((prev) => !prev)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setShowDateDropdown((prev) => !prev);
+                    }
+                  }}
                   className="bg-white/10 hover:bg-white/15 border border-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 flex items-center gap-2.5 transition-all cursor-pointer shadow-md select-none group"
                 >
                   <Calendar className="w-4 h-4 text-amber-400 shrink-0 group-hover:scale-110 transition-transform" />
                   <div className="flex items-center gap-2">
                     <div className="text-left">
                       <p className="text-[9px] font-extrabold text-blue-300 uppercase tracking-wider leading-none">
-                        {selectedDate ? 'Filter Date' : 'Today'}
+                        {selectedDate ? "Filter Date" : "Today"}
                       </p>
                       <p className="text-xs font-black text-white whitespace-nowrap mt-0.5">
-                        {selectedDate ? formatDisplayDate(selectedDate) : todayStr}
+                        {selectedDate
+                          ? formatDisplayDate(selectedDate)
+                          : todayStr}
                       </p>
                     </div>
                     {selectedDate ? (
                       <span
                         role="button"
-                        onClick={(e) => { e.stopPropagation(); setSelectedDate(''); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDate("");
+                        }}
                         className="text-amber-400 hover:text-white p-1 rounded-full transition-colors ml-1 cursor-pointer"
                         title="Reset Date Filter"
                       >
                         <X className="w-3.5 h-3.5" />
                       </span>
                     ) : (
-                      <ChevronDown className={`w-3.5 h-3.5 text-amber-400/80 group-hover:text-amber-400 transition-transform ml-1 ${showDateDropdown ? 'rotate-180' : ''}`} />
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 text-amber-400/80 group-hover:text-amber-400 transition-transform ml-1 ${showDateDropdown ? "rotate-180" : ""}`}
+                      />
                     )}
                   </div>
                 </div>
@@ -350,7 +366,15 @@ export default function CurrentAffairsLanding() {
                       <div className="flex items-center gap-1 min-w-0">
                         <button
                           type="button"
-                          onClick={() => setBannerCalDate(new Date(bannerCalDate.getFullYear(), bannerCalDate.getMonth() - 1, 1))}
+                          onClick={() =>
+                            setBannerCalDate(
+                              new Date(
+                                bannerCalDate.getFullYear(),
+                                bannerCalDate.getMonth() - 1,
+                                1,
+                              ),
+                            )
+                          }
                           className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer shrink-0"
                           title="Previous Month"
                         >
@@ -360,7 +384,15 @@ export default function CurrentAffairsLanding() {
                         {/* Month Selector */}
                         <select
                           value={String(bannerCalDate.getMonth())}
-                          onChange={(e) => setBannerCalDate(new Date(bannerCalDate.getFullYear(), parseInt(e.target.value, 10), 1))}
+                          onChange={(e) =>
+                            setBannerCalDate(
+                              new Date(
+                                bannerCalDate.getFullYear(),
+                                parseInt(e.target.value, 10),
+                                1,
+                              ),
+                            )
+                          }
                           className="bg-slate-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 font-black text-xs rounded-lg px-1 py-0.5 border border-slate-200 dark:border-white/10 outline-none cursor-pointer"
                         >
                           {MONTH_DISPLAY.map((mName, idx) => (
@@ -373,10 +405,18 @@ export default function CurrentAffairsLanding() {
                         {/* Year Selector */}
                         <select
                           value={String(bannerCalDate.getFullYear())}
-                          onChange={(e) => setBannerCalDate(new Date(parseInt(e.target.value, 10), bannerCalDate.getMonth(), 1))}
+                          onChange={(e) =>
+                            setBannerCalDate(
+                              new Date(
+                                parseInt(e.target.value, 10),
+                                bannerCalDate.getMonth(),
+                                1,
+                              ),
+                            )
+                          }
                           className="bg-slate-100 dark:bg-slate-800 text-amber-600 dark:text-amber-400 font-black text-xs rounded-lg px-1 py-0.5 border border-slate-200 dark:border-white/10 outline-none cursor-pointer"
                         >
-                          {availableYears.map(yr => (
+                          {availableYears.map((yr) => (
                             <option key={yr} value={yr}>
                               {yr}
                             </option>
@@ -385,7 +425,15 @@ export default function CurrentAffairsLanding() {
 
                         <button
                           type="button"
-                          onClick={() => setBannerCalDate(new Date(bannerCalDate.getFullYear(), bannerCalDate.getMonth() + 1, 1))}
+                          onClick={() =>
+                            setBannerCalDate(
+                              new Date(
+                                bannerCalDate.getFullYear(),
+                                bannerCalDate.getMonth() + 1,
+                                1,
+                              ),
+                            )
+                          }
                           className="p-1 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white cursor-pointer shrink-0"
                           title="Next Month"
                         >
@@ -396,7 +444,10 @@ export default function CurrentAffairsLanding() {
                       {selectedDate && (
                         <button
                           type="button"
-                          onClick={() => { setSelectedDate(''); setShowDateDropdown(false); }}
+                          onClick={() => {
+                            setSelectedDate("");
+                            setShowDateDropdown(false);
+                          }}
                           className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center gap-0.5 cursor-pointer shrink-0 ml-1"
                         >
                           <X className="w-3 h-3" /> Reset
@@ -406,7 +457,13 @@ export default function CurrentAffairsLanding() {
 
                     {/* Weekday headers */}
                     <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-extrabold text-slate-400 dark:text-blue-300">
-                      <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                      <span>Su</span>
+                      <span>Mo</span>
+                      <span>Tu</span>
+                      <span>We</span>
+                      <span>Th</span>
+                      <span>Fr</span>
+                      <span>Sa</span>
                     </div>
 
                     {/* Calendar grid */}
@@ -416,11 +473,14 @@ export default function CurrentAffairsLanding() {
                         const isSel = item.isSelected;
                         const hasEd = item.hasEdition;
 
-                        let dayClass = 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border-transparent';
+                        let dayClass =
+                          "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white border-transparent";
                         if (isSel) {
-                          dayClass = 'bg-amber-500 text-slate-950 font-black shadow-md ring-2 ring-amber-400/50 border-amber-400';
+                          dayClass =
+                            "bg-amber-500 text-slate-950 font-black shadow-md ring-2 ring-amber-400/50 border-amber-400";
                         } else if (hasEd) {
-                          dayClass = 'bg-amber-500/15 dark:bg-blue-500/20 text-amber-800 dark:text-blue-300 font-extrabold border-amber-500/30 dark:border-blue-500/40 hover:bg-amber-500/25 dark:hover:bg-blue-500/30';
+                          dayClass =
+                            "bg-amber-500/15 dark:bg-blue-500/20 text-amber-800 dark:text-blue-300 font-extrabold border-amber-500/30 dark:border-blue-500/40 hover:bg-amber-500/25 dark:hover:bg-blue-500/30";
                         }
 
                         return (
@@ -453,7 +513,7 @@ export default function CurrentAffairsLanding() {
                 className="flex items-center justify-center gap-1.5 px-3.5 py-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold rounded-2xl transition-all hover:scale-[1.02] shadow-sm"
               >
                 <Globe className="w-3.5 h-3.5 text-amber-400" />
-                <span>हिन्दी समसामयिकी</span>
+                <span>हिंदी करंट अफेयर्स</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
 
@@ -463,7 +523,7 @@ export default function CurrentAffairsLanding() {
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-2xl transition-all hover:scale-[1.02] shadow-md shadow-amber-500/20"
               >
                 <Zap className="w-3.5 h-3.5" />
-                <span>{t('nav.todaysCA')}</span>
+                <span>{t("nav.todaysCA")}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -474,47 +534,94 @@ export default function CurrentAffairsLanding() {
       {/* ── Body: Sidebar + Main ──────────────────────────────── */}
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-10 py-8">
         <div className="flex gap-8">
-
           {/* ════ LEFT SIDEBAR ════ */}
           <aside className="hidden lg:block w-60 xl:w-64 shrink-0">
             <div className="sticky top-20 space-y-1">
-
               {/* Card wrapper */}
               <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-3 space-y-4 shadow-xs">
-
                 {/* DAILY UPDATES */}
                 <div className="space-y-0.5">
-                  <SidebarSection icon={<Flame className="w-3.5 h-3.5" />} title={t('currentAffairs.dailyUpdates') || 'Daily Updates'} />
-                  <SidebarItem label={t('currentAffairs.newsToday') || 'News Today'} href="/current-affairs/daily" />
+                  <SidebarSection
+                    icon={<Flame className="w-3.5 h-3.5" />}
+                    title={t("currentAffairs.dailyUpdates") || "Daily Updates"}
+                  />
+                  <SidebarItem
+                    label={t("currentAffairs.newsToday") || "News Today"}
+                    href="/current-affairs/daily"
+                  />
                 </div>
 
                 <div className="h-px bg-slate-100 dark:bg-white/[0.06]" />
 
                 {/* WEEKLY & MONTHLY */}
                 <div className="space-y-0.5">
-                  <SidebarSection icon={<Layers className="w-3.5 h-3.5" />} title={t('currentAffairs.weeklyMonthly') || 'Weekly & Monthly'} />
-                  <SidebarItem label={t('currentAffairs.weekly') || 'Weekly'} href="/current-affairs/weekly" />
-                  <SidebarItem label={t('currentAffairs.monthlyMagazine') || 'Monthly Magazine'} href="/current-affairs/monthly" />
+                  <SidebarSection
+                    icon={<Layers className="w-3.5 h-3.5" />}
+                    title={
+                      t("currentAffairs.weeklyMonthly") || "Weekly & Monthly"
+                    }
+                  />
+                  <SidebarItem
+                    label={t("currentAffairs.weekly") || "Weekly"}
+                    href="/current-affairs/weekly"
+                  />
+                  <SidebarItem
+                    label={
+                      t("currentAffairs.monthlyMagazine") || "Monthly Magazine"
+                    }
+                    href="/current-affairs/monthly"
+                  />
                 </div>
 
                 <div className="h-px bg-slate-100 dark:bg-white/[0.06]" />
 
                 {/* PERIODIC REVIEWS */}
                 <div className="space-y-0.5">
-                  <SidebarSection icon={<RefreshCw className="w-3.5 h-3.5" />} title={t('currentAffairs.periodicReviews') || 'Periodic Reviews'} />
-                  <SidebarItem label={t('currentAffairs.yearly') || 'Yearly'} href="/current-affairs/yearly" />
-                  <SidebarItem label={t('currentAffairs.bihar') || 'Bihar'} href="/current-affairs/daily?topic=bihar" />
-                  <SidebarItem label={t('currentAffairs.arunachal') || 'Arunachal'} href="/current-affairs/daily?topic=arunachal" />
+                  <SidebarSection
+                    icon={<RefreshCw className="w-3.5 h-3.5" />}
+                    title={
+                      t("currentAffairs.periodicReviews") || "Periodic Reviews"
+                    }
+                  />
+                  <SidebarItem
+                    label={t("currentAffairs.yearly") || "Yearly"}
+                    href="/current-affairs/yearly"
+                  />
+                  <SidebarItem
+                    label={t("currentAffairs.bihar") || "Bihar"}
+                    href="/current-affairs/daily?topic=bihar"
+                  />
+                  <SidebarItem
+                    label={t("currentAffairs.arunachal") || "Arunachal"}
+                    href="/current-affairs/daily?topic=arunachal"
+                  />
                 </div>
 
                 <div className="h-px bg-slate-100 dark:bg-white/[0.06]" />
 
                 {/* TOPICS */}
                 <div className="space-y-0.5">
-                  <SidebarSection icon={<TrendingUp className="w-3.5 h-3.5" />} title={t('currentAffairs.topics') || 'Topics'} />
-                  <SidebarItem label={t('currentAffairs.nationalAffairs') || 'National Affairs'} href="/current-affairs/daily?topic=national" />
-                  <SidebarItem label={t('currentAffairs.internationalAffairs') || 'International Affairs'} href="/current-affairs/daily?topic=international" />
-                  <SidebarItem label={t('currentAffairs.biharState') || 'Bihar & State'} href="/current-affairs/daily?topic=bihar" />
+                  <SidebarSection
+                    icon={<TrendingUp className="w-3.5 h-3.5" />}
+                    title={t("currentAffairs.topics") || "Topics"}
+                  />
+                  <SidebarItem
+                    label={
+                      t("currentAffairs.nationalAffairs") || "National Affairs"
+                    }
+                    href="/current-affairs/daily?topic=national"
+                  />
+                  <SidebarItem
+                    label={
+                      t("currentAffairs.internationalAffairs") ||
+                      "International Affairs"
+                    }
+                    href="/current-affairs/daily?topic=international"
+                  />
+                  <SidebarItem
+                    label={t("currentAffairs.biharState") || "Bihar & State"}
+                    href="/current-affairs/daily?topic=bihar"
+                  />
                 </div>
               </div>
             </div>
@@ -522,31 +629,70 @@ export default function CurrentAffairsLanding() {
 
           {/* ════ MAIN CONTENT ════ */}
           <main className="flex-1 min-w-0 space-y-10">
-
             {/* Topic Filter Chips & Recent Articles */}
             <div className="space-y-4 pt-4 border-t border-[var(--card-border)]">
               <div className="flex items-center justify-between">
                 <h2 className="text-base font-heading font-black text-[var(--text-color)]">
-                  {t('currentAffairs.articlesByRegionTopic') || 'Articles by Region & Topic'}
+                  {t("currentAffairs.articlesByRegionTopic") ||
+                    "Articles by Region & Topic"}
                 </h2>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 {(
                   [
-                    { key: 'all',           label: t('currentAffairs.allTopics') || 'All Topics',           color: 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10' },
-                    { key: 'editorials',    label: '✍️ Editorials & Mains Analysis',                      color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' },
-                    { key: 'hindi',         label: '🇮🇳 हिन्दी दैनिक समसामयिकी',                            color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-                    { key: 'national',      label: t('currentAffairs.national') || 'National',             color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
-                    { key: 'international', label: t('currentAffairs.international') || 'International',         color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20' },
-                    { key: 'bihar',         label: t('currentAffairs.biharSpecial') || 'Bihar Special',         color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },
-                    { key: 'arunachal',     label: t('currentAffairs.arunachalSpecial') || 'Arunachal Special',     color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' },
+                    {
+                      key: "all",
+                      label: t("currentAffairs.allTopics") || "All Topics",
+                      color:
+                        "bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10",
+                    },
+                    {
+                      key: "editorials",
+                      label: "✍️ Editorials & Mains Analysis",
+                      color:
+                        "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+                    },
+                    {
+                      key: "hindi",
+                      label: "🇮🇳 हिन्दी दैनिक समसामयिकी",
+                      color:
+                        "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                    },
+                    {
+                      key: "national",
+                      label: t("currentAffairs.national") || "National",
+                      color:
+                        "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+                    },
+                    {
+                      key: "international",
+                      label:
+                        t("currentAffairs.international") || "International",
+                      color:
+                        "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+                    },
+                    {
+                      key: "bihar",
+                      label:
+                        t("currentAffairs.biharSpecial") || "Bihar Special",
+                      color:
+                        "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                    },
+                    {
+                      key: "arunachal",
+                      label:
+                        t("currentAffairs.arunachalSpecial") ||
+                        "Arunachal Special",
+                      color:
+                        "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+                    },
                   ] as const
-                ).map(item => (
+                ).map((item) => (
                   <button
                     key={item.key}
                     onClick={() => setActiveTopic(item.key)}
-                    className={`px-4 py-2 rounded-full border text-xs font-extrabold tracking-wide transition-all duration-150 cursor-pointer ${item.color} ${activeTopic === item.key ? 'ring-2 ring-offset-1 ring-amber-400/50 dark:ring-offset-slate-900' : 'opacity-80 hover:opacity-100'}`}
+                    className={`px-4 py-2 rounded-full border text-xs font-extrabold tracking-wide transition-all duration-150 cursor-pointer ${item.color} ${activeTopic === item.key ? "ring-2 ring-offset-1 ring-amber-400/50 dark:ring-offset-slate-900" : "opacity-80 hover:opacity-100"}`}
                   >
                     {item.label}
                   </button>
@@ -557,12 +703,17 @@ export default function CurrentAffairsLanding() {
               {(searchQuery || selectedDate) && (
                 <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
                   <span className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
-                    <Filter className="w-3 h-3 text-amber-500" /> Active Filters:
+                    <Filter className="w-3 h-3 text-amber-500" /> Active
+                    Filters:
                   </span>
                   {searchQuery && (
                     <span className="px-3 py-1 bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 rounded-xl font-bold flex items-center gap-1.5">
                       <span>Search: &ldquo;{searchQuery}&rdquo;</span>
-                      <button type="button" onClick={() => setSearchQuery('')} className="hover:text-red-500 cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={() => setSearchQuery("")}
+                        className="hover:text-red-500 cursor-pointer"
+                      >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </span>
@@ -570,14 +721,21 @@ export default function CurrentAffairsLanding() {
                   {selectedDate && (
                     <span className="px-3 py-1 bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 rounded-xl font-bold flex items-center gap-1.5">
                       <span>Date: {formatDisplayDate(selectedDate)}</span>
-                      <button type="button" onClick={() => setSelectedDate('')} className="hover:text-red-500 cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDate("")}
+                        className="hover:text-red-500 cursor-pointer"
+                      >
                         <X className="w-3.5 h-3.5" />
                       </button>
                     </span>
                   )}
                   <button
                     type="button"
-                    onClick={() => { setSearchQuery(''); setSelectedDate(''); }}
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedDate("");
+                    }}
                     className="text-[10px] font-black text-slate-400 hover:text-amber-500 hover:underline ml-1 cursor-pointer"
                   >
                     Clear All Filters
@@ -593,10 +751,14 @@ export default function CurrentAffairsLanding() {
                       href={`/current-affairs/daily/${art.date}/${art.category.toLowerCase()}/${art.slug}`}
                       className="group bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl overflow-hidden hover:border-amber-500/30 hover:-translate-y-1 transition-all duration-200 shadow-xs"
                     >
-                      <div className={`h-1 w-full ${art.category === 'BIHAR' ? 'bg-amber-500' : art.category === 'ARUNACHAL' ? 'bg-emerald-500' : art.category === 'INTERNATIONAL' ? 'bg-violet-500' : 'bg-blue-500'}`} />
+                      <div
+                        className={`h-1 w-full ${art.category === "BIHAR" ? "bg-amber-500" : art.category === "ARUNACHAL" ? "bg-emerald-500" : art.category === "INTERNATIONAL" ? "bg-violet-500" : "bg-blue-500"}`}
+                      />
                       <div className="p-4 space-y-2.5">
                         <div className="flex items-center justify-between gap-2">
-                          <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${catStyle[art.category] || catStyle.NATIONAL}`}>
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider border ${catStyle[art.category] || catStyle.NATIONAL}`}
+                          >
                             {art.category}
                           </span>
                           <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
@@ -608,7 +770,8 @@ export default function CurrentAffairsLanding() {
                           {art.title}
                         </h3>
                         <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                          {t('currentAffairs.readMore')} <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                          {t("currentAffairs.readMore")}{" "}
+                          <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                         </span>
                       </div>
                     </Link>
@@ -617,28 +780,60 @@ export default function CurrentAffairsLanding() {
               ) : (
                 <div className="text-center py-10 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl">
                   <Newspaper className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500 font-semibold">{t('currentAffairs.noArticles')}</p>
+                  <p className="text-sm text-slate-500 font-semibold">
+                    {t("currentAffairs.noArticles")}
+                  </p>
                 </div>
               )}
             </div>
 
             {/* Mobile sidebar quick-nav (shown only on mobile) */}
             <section className="lg:hidden space-y-3">
-              <h2 className="text-base font-heading font-black text-[var(--text-color)]">Quick Navigation</h2>
+              <h2 className="text-base font-heading font-black text-[var(--text-color)]">
+                Quick Navigation
+              </h2>
               <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-4 space-y-2">
                 {[
-                  { label: 'News Today',           href: '/current-affairs/daily',                    badge: { label: 'Popular', variant: 'popular' as const } },
-                  { label: 'Weekly Focus',          href: latestWeekHref,                              badge: { label: 'Popular', variant: 'popular' as const } },
-                  { label: 'Monthly Magazine',      href: latestMonthHref,                             badge: { label: 'Premium', variant: 'premium' as const } },
-                  { label: 'Bihar Special Edition', href: '/current-affairs/daily?topic=bihar',        badge: { label: 'New', variant: 'new' as const } },
-                  { label: 'Yearly Compilations',   href: latestYearHref,                              undefined },
-                  { label: 'Video Updates',         href: '/current-affairs/videos',                   undefined },
-                ].map(item => (
-                  <SidebarItem key={item.label} label={item.label} href={item.href} badge={item.badge} />
+                  {
+                    label: "News Today",
+                    href: "/current-affairs/daily",
+                    badge: { label: "Popular", variant: "popular" as const },
+                  },
+                  {
+                    label: "Weekly Focus",
+                    href: latestWeekHref,
+                    badge: { label: "Popular", variant: "popular" as const },
+                  },
+                  {
+                    label: "Monthly Magazine",
+                    href: latestMonthHref,
+                    badge: { label: "Premium", variant: "premium" as const },
+                  },
+                  {
+                    label: "Bihar Special Edition",
+                    href: "/current-affairs/daily?topic=bihar",
+                    badge: { label: "New", variant: "new" as const },
+                  },
+                  {
+                    label: "Yearly Compilations",
+                    href: latestYearHref,
+                    undefined,
+                  },
+                  {
+                    label: "Video Updates",
+                    href: "/current-affairs/videos",
+                    undefined,
+                  },
+                ].map((item) => (
+                  <SidebarItem
+                    key={item.label}
+                    label={item.label}
+                    href={item.href}
+                    badge={item.badge}
+                  />
                 ))}
               </div>
             </section>
-
           </main>
         </div>
       </div>

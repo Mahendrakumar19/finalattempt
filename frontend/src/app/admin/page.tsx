@@ -529,6 +529,8 @@ export default function AdminPortal() {
       });
     } else if (field === 'blogImage') {
       setBlogForm(prev => ({ ...prev, imageUrl: url }));
+    } else if (field === 'blogAuthorImage') {
+      setBlogForm(prev => ({ ...prev, author_image: url }));
     }
     setMediaPickerConfig({ isOpen: false, field: '' });
   };
@@ -638,10 +640,27 @@ export default function AdminPortal() {
     const articles = [...(editingEdition.articles || [])];
     const artIdx = articles.findIndex(a => a.id === editingArticle.id && editingArticle.id !== '');
 
-    const slugifiedTitle = editingArticle.title.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    const generateUnicodeSlug = (text: string) => {
+      return (text || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s-]/gu, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    };
+
+    const slugifiedTitle = generateUnicodeSlug(editingArticle.title) || generateUnicodeSlug(editingArticle.title_hi || '') || `article-${Date.now()}`;
     const publishedDate = editingEdition.publishDate || new Date().toISOString().split('T')[0];
     const category = editingArticle.category || 'NATIONAL';
-    const finalSlug = editingArticle.slug || `${publishedDate}-${category.toLowerCase()}-${slugifiedTitle}`;
+
+    // If user provided a custom slug, clean it; otherwise use the clean title-only slug (no date or category prefix)
+    let userSlug = (editingArticle.slug || '').trim();
+    // Strip legacy prefixed dates/categories like "2026-08-11-national-"
+    if (userSlug.startsWith(`${publishedDate}-`)) {
+      userSlug = userSlug.replace(new RegExp(`^${publishedDate}-[a-z0-9]+-`), '');
+    }
+    const finalSlug = userSlug ? generateUnicodeSlug(userSlug) : slugifiedTitle;
 
     const parseCsv = (val: string | string[] | undefined) => {
       if (Array.isArray(val)) return val;
@@ -819,16 +838,33 @@ export default function AdminPortal() {
     e.preventDefault();
 
     const stripHtml = (html: string) => (html || '').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-    const slugifiedTitle = (blogForm.title || '').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    const finalSlug = (blogForm.slug || '').trim() || slugifiedTitle || `blog-${Date.now()}`;
+    
+    // Unicode-aware slugification that supports Hindi, Devanagari, English and numbers
+    const generateUnicodeSlug = (text: string) => {
+      return (text || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s-]/gu, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    };
 
-    const autoSeoTitle = (blogForm.seoTitle || '').trim() || `${blogForm.title || 'Blog Post'} | Final Attempt`;
-    const autoSeoDesc = (blogForm.seoDescription || '').trim() || (blogForm.blurb || stripHtml(blogForm.content || '')).slice(0, 155);
-    const autoSeoKeywords = (blogForm.seoKeywords || '').trim() || `${blogForm.title || ''}, ${blogForm.category || 'Strategy'}, BPSC Prelims, BPSC Mains, UPSC CSE, Final Attempt`;
+    const slugifiedTitle = generateUnicodeSlug(blogForm.title) || generateUnicodeSlug(blogForm.title_hi || '') || generateUnicodeSlug(blogForm.category || '');
+    const userSlug = (blogForm.slug || '').trim();
+    // Do not retain legacy generic blog-XXXX slugs if title is available
+    const isGenericSlug = userSlug.startsWith('blog-') && /\d+$/.test(userSlug);
+    const finalSlug = (userSlug && !isGenericSlug) ? generateUnicodeSlug(userSlug) : (slugifiedTitle || `article-${Date.now()}`);
+
+    const autoSeoTitle = (blogForm.seoTitle || '').trim() || `${blogForm.title || blogForm.title_hi || 'Blog Post'} | Final Attempt IAS`;
+    const autoSeoDesc = (blogForm.seoDescription || '').trim() || (blogForm.blurb || blogForm.blurb_hi || stripHtml(blogForm.content || blogForm.content_hi || '')).slice(0, 155);
+    const autoSeoKeywords = (blogForm.seoKeywords || '').trim() || `${blogForm.title || ''}, ${blogForm.category || 'Strategy'}, BPSC Prelims, BPSC Mains, Civil Services, Final Attempt IAS`;
 
     const preparedBlog = {
       ...blogForm,
       slug: finalSlug,
+      author_name: (blogForm.author_name || (blogForm as any).author || 'Final Attempt Team').trim(),
+      author_image: (blogForm.author_image || (blogForm as any).authorImage || '').trim(),
       seoTitle: autoSeoTitle,
       seoDescription: autoSeoDesc,
       seoKeywords: autoSeoKeywords,
@@ -2293,11 +2329,30 @@ export default function AdminPortal() {
                   href="/blog"
                   target="_blank"
                   rel="noreferrer"
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
+                  title="View English Blogs Page"
                 >
-                  <ExternalLink className="w-4 h-4" />
+                  <ExternalLink className="w-3.5 h-3.5" />
                   <span>Preview /blog ↗</span>
                 </a>
+                <a
+                  href="/blog-hindi"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-black rounded-2xl text-xs cursor-pointer shadow-sm transition-all border border-orange-500/30"
+                  title="View Hindi Blogs Page"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Preview /blog-hindi ↗</span>
+                </a>
+                <Link
+                  href="/blog/editor"
+                  target="_blank"
+                  className="flex items-center gap-1.5 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-950 font-black rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
+                  title="Open Dedicated Full-Screen Blog Editor"
+                >
+                  <span>Advanced Editor ↗</span>
+                </Link>
                 <button
                   type="button"
                   onClick={() => {
@@ -3429,23 +3484,66 @@ export default function AdminPortal() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Cover Image URL</label>
+                        <label className="text-[10px] text-amber-500 font-bold uppercase">URL Slug (Auto-generated from title if blank)</label>
+                        <input
+                          type="text"
+                          value={blogForm.slug || ''}
+                          onChange={(e) => setBlogForm({ ...blogForm, slug: e.target.value })}
+                          placeholder="e.g. 71st-bpsc-prelims-strategy"
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-amber-500/40 rounded-2xl text-slate-900 dark:text-white text-xs outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Publisher / Author Name</label>
+                        <input
+                          type="text"
+                          value={blogForm.author_name || (blogForm as any).author || ''}
+                          onChange={(e) => setBlogForm({ ...blogForm, author_name: e.target.value, author: e.target.value } as any)}
+                          placeholder="e.g. Final Attempt Team or Author Name"
+                          className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Publisher Photo / Avatar URL</label>
                         <div className="flex gap-2">
                           <input
                             type="text"
-                            value={blogForm.imageUrl || ''}
-                            onChange={(e) => setBlogForm({ ...blogForm, imageUrl: e.target.value })}
-                            placeholder="https://..."
-                            className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
+                            value={blogForm.author_image || (blogForm as any).authorImage || ''}
+                            onChange={(e) => setBlogForm({ ...blogForm, author_image: e.target.value, authorImage: e.target.value } as any)}
+                            placeholder="https://... or select photo"
+                            className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none font-mono text-[11px]"
                           />
                           <button
                             type="button"
-                            onClick={() => setMediaPickerConfig({ isOpen: true, field: 'blogImage' })}
+                            onClick={() => setMediaPickerConfig({ isOpen: true, field: 'blogAuthorImage' })}
                             className="px-3 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold shrink-0 cursor-pointer"
                           >
                             🖼️ Media
                           </button>
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Cover Image URL</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={blogForm.imageUrl || ''}
+                          onChange={(e) => setBlogForm({ ...blogForm, imageUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none font-mono text-[11px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setMediaPickerConfig({ isOpen: true, field: 'blogImage' })}
+                          className="px-3 py-2.5 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold shrink-0 cursor-pointer"
+                        >
+                          🖼️ Media
+                        </button>
                       </div>
                     </div>
 
@@ -3464,11 +3562,11 @@ export default function AdminPortal() {
                           <select
                             value={blogForm.publish_target || 'both'}
                             onChange={(e) => setBlogForm({ ...blogForm, publish_target: e.target.value as 'both' | 'english' | 'hindi' })}
-                            className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border border-amber-500/40 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none cursor-pointer"
+                            className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border-2 border-amber-500 rounded-2xl text-slate-900 dark:text-white text-xs font-black outline-none cursor-pointer shadow-xs"
                           >
-                            <option value="both">🌐 Both Pages (/blog and /blog-hindi)</option>
-                            <option value="english">English Page Only (/blog)</option>
-                            <option value="hindi">Hindi Page Only (/blog-hindi)</option>
+                            <option value="both">🌐 Both Pages — /blog AND /blog-hindi</option>
+                            <option value="hindi">🇮🇳 Hindi Page Only — /blog-hindi</option>
+                            <option value="english">🇬🇧 English Page Only — /blog</option>
                           </select>
                         </div>
                         <div className="space-y-1.5">
@@ -3483,6 +3581,27 @@ export default function AdminPortal() {
                             <option value="bilingual">Bilingual (Dedicated EN & HI Content)</option>
                           </select>
                         </div>
+                      </div>
+
+                      {/* Prominent Visual Destination Badge */}
+                      <div className="p-3 bg-white dark:bg-slate-850 rounded-xl border border-amber-500/30 flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-600 dark:text-slate-300">Live Destination Preview:</span>
+                        {(blogForm.publish_target === 'hindi') ? (
+                          <span className="px-3 py-1 rounded-lg bg-orange-500/15 text-orange-600 dark:text-orange-400 font-black flex items-center gap-1.5 border border-orange-500/30">
+                            <span>🇮🇳 Appears ONLY on:</span>
+                            <code className="font-mono underline">/blog-hindi</code>
+                          </span>
+                        ) : (blogForm.publish_target === 'english') ? (
+                          <span className="px-3 py-1 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 font-black flex items-center gap-1.5 border border-blue-500/30">
+                            <span>🇬🇧 Appears ONLY on:</span>
+                            <code className="font-mono underline">/blog</code>
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1.5 border border-emerald-500/30">
+                            <span>🌐 Appears on BOTH:</span>
+                            <code className="font-mono">/blog</code> &amp; <code className="font-mono">/blog-hindi</code>
+                          </span>
+                        )}
                       </div>
 
                       {/* Hindi Dedicated Fields (Shown for Hindi or Both) */}

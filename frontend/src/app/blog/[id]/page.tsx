@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { 
   Calendar, Clock, User, ArrowLeft, Share2, 
-  Check, ArrowRight, Tag, BookOpen 
+  Check, ArrowRight, BookOpen, Download
 } from 'lucide-react';
-import { db, BlogItem, fallbackBlogs } from '@/services/db';
+import { db, BlogItem } from '@/services/db';
+import PdfLetterhead, { triggerPdfDownload } from '@/components/PdfLetterhead';
 
 import { useTranslation } from '@/context/LocaleContext';
 
@@ -68,7 +69,9 @@ export default function BlogDetailPage() {
             url: window.location.href,
           });
           return;
-        } catch (e) {}
+        } catch {
+          // ignore or fall back
+        }
       }
       navigator.clipboard.writeText(window.location.href);
       setCopied(true);
@@ -109,7 +112,7 @@ export default function BlogDetailPage() {
   const latest10Blogs = recentBlogs.slice(0, 10);
 
   const displayRelated = recentBlogs
-    .filter((b: any) => String(b.id) !== String(blog?.id) && b.slug !== blog?.slug)
+    .filter((b: BlogItem) => String(b.id) !== String(blog?.id) && b.slug !== blog?.slug)
     .slice(0, 3);
 
   return (
@@ -142,7 +145,7 @@ export default function BlogDetailPage() {
               </div>
 
               <ul className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1 scrollbar-thin">
-                {latest10Blogs.map((item: any, index: number) => {
+                {latest10Blogs.map((item: BlogItem, index: number) => {
                   const isCurrent = String(item.id) === String(blog.id) || item.slug === blog.slug;
                   return (
                     <li key={item.id}>
@@ -177,6 +180,12 @@ export default function BlogDetailPage() {
 
           {/* Main Article Body Column */}
           <main className="lg:col-span-8 space-y-6 order-1 lg:order-2">
+            {/* 0. UNIFIED SHARED PRINT / PDF LETTERHEAD */}
+            <PdfLetterhead
+              type="BLOG"
+              date={blog.publishDate}
+            />
+
             {/* Hero Header Card Container */}
             <header className="bg-white dark:bg-slate-900/80 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-white/10 shadow-sm space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-white/10 pb-4">
@@ -194,15 +203,28 @@ export default function BlogDetailPage() {
                   </span>
                 </div>
 
-                {/* Single Unified Share Button */}
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-500 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5 text-amber-500" />}
-                  <span>{copied ? 'Link Copied!' : 'SHARE'}</span>
-                </button>
+                {/* Unified Share and Download PDF Buttons */}
+                <div className="flex items-center gap-2 no-print">
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800/80 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-500 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    title="Share this article"
+                  >
+                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5 text-amber-500" />}
+                    <span>{copied ? 'Link Copied!' : 'SHARE'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={triggerPdfDownload}
+                    className="px-3.5 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500 hover:text-slate-950 text-xs font-black text-amber-700 dark:text-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                    title="Download Watermarked PDF"
+                  >
+                    <Download className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                    <span>DOWNLOAD PDF</span>
+                  </button>
+                </div>
               </div>
 
               <h1 className="text-2xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white leading-tight tracking-tight pt-1">
@@ -211,9 +233,10 @@ export default function BlogDetailPage() {
 
               {/* Author Info Badge */}
               <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-white/10">
-                {blog.author_image || (blog as any).authorImage ? (
+                {blog.author_image || (blog as { authorImage?: string }).authorImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={resolveUrl(blog.author_image || (blog as any).authorImage)}
+                    src={resolveUrl(blog.author_image || (blog as { authorImage?: string }).authorImage)}
                     alt={blog.author_name || blog.author || 'Author'}
                     className="w-10 h-10 rounded-full object-cover border-2 border-amber-500 shadow-sm shrink-0"
                   />
@@ -234,6 +257,7 @@ export default function BlogDetailPage() {
             {/* Full-Bleed Clean Cover Image */}
             {(blog.imageUrl || blog.cover_image_url) && (
               <div className="w-full rounded-3xl overflow-hidden shadow-md border border-slate-200/80 dark:border-white/10">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={resolveUrl(blog.imageUrl || blog.cover_image_url)}
                   alt={blog.title}
@@ -281,7 +305,7 @@ export default function BlogDetailPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {displayRelated.map((post: any) => (
+              {displayRelated.map((post: BlogItem) => (
                 <Link
                   key={post.id}
                   href={`/blog/${post.slug || post.id}`}
@@ -289,6 +313,7 @@ export default function BlogDetailPage() {
                 >
                   <div className="space-y-4">
                     <div className="relative aspect-video w-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={resolveUrl(post.imageUrl || post.cover_image_url) || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800'}
                         alt={post.title}

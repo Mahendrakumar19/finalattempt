@@ -2413,9 +2413,14 @@ class BackendDB {
 
   public async getDynamicCurrentAffairArticle(slug: string, includeDrafts: boolean = false): Promise<DynamicCurrentAffairArticle | null> {
     const editions = await this.getDynamicCurrentAffairsEditions(includeDrafts);
+    const normalizedInputSlug = slug ? slug.replace(/^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9]+-/, '') : '';
     for (const ed of editions) {
       if (ed.articles) {
-        const found = ed.articles.find(a => a.slug === slug);
+        const found = ed.articles.find(a => 
+          a.slug === slug || 
+          a.id === slug ||
+          (normalizedInputSlug && a.slug === normalizedInputSlug)
+        );
         if (found) return found;
       }
     }
@@ -2456,7 +2461,14 @@ class BackendDB {
           if (edition.articles) {
             for (const art of edition.articles) {
               const artId = art.id || `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-              const artSlug = art.slug || `${edDate}-${art.category.toLowerCase()}-${art.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+              const cleanTitleSlug = (art.title || '')
+                .trim()
+                .toLowerCase()
+                .replace(/[^\p{L}\p{N}\s-]/gu, '')
+                .replace(/[\s_]+/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-+|-+$/g, '') || `article-${Date.now()}`;
+              const artSlug = (art.slug && !art.slug.startsWith(`${edDate}-`)) ? art.slug : cleanTitleSlug;
               
               // 2. SEO
               let seoId = null;
@@ -2476,14 +2488,14 @@ class BackendDB {
                   editionId, seoId, content, createdAt, updatedAt
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
-                  title = ?, summary = ?, category = ?, publishStatus = ?, publishedDate = ?, readingTime = ?, importance = ?,
+                  slug = ?, title = ?, summary = ?, category = ?, publishStatus = ?, publishedDate = ?, readingTime = ?, importance = ?,
                   whyInNews = ?, context = ?, background = ?, keyHighlights = ?, importantFacts = ?, examRelevance = ?, previousContext = ?, wayForward = ?, keyTakeaways = ?,
                   seoId = ?, content = ?, updatedAt = ?`,
                 [
                   artId, artSlug, art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
                   art.whyInNews ?? null, art.context ?? null, art.background ?? null, art.keyHighlights ?? null, art.importantFacts ?? null, art.examRelevance ?? null, art.previousContext ?? null, art.wayForward ?? null, art.keyTakeaways ?? null,
                   edId, seoId, art.content ?? null, timestamp, timestamp,
-                  art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
+                  artSlug, art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
                   art.whyInNews ?? null, art.context ?? null, art.background ?? null, art.keyHighlights ?? null, art.importantFacts ?? null, art.examRelevance ?? null, art.previousContext ?? null, art.wayForward ?? null, art.keyTakeaways ?? null,
                   seoId, art.content ?? null, timestamp
                 ]
@@ -2561,7 +2573,14 @@ class BackendDB {
     
     const newArticles = (edition.articles || []).map(art => {
       const artId = art.id || `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-      const artSlug = art.slug || `${edDate}-${art.category.toLowerCase()}-${art.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+      const cleanTitleSlug = (art.title || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}\s-]/gu, '')
+        .replace(/[\s_]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-+|-+$/g, '') || `article-${Date.now()}`;
+      const artSlug = (art.slug && !art.slug.startsWith(`${edDate}-`)) ? art.slug : cleanTitleSlug;
       return {
         ...art,
         id: artId,

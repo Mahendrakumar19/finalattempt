@@ -9,7 +9,7 @@ import { useLocale } from '@/context/LocaleContext';
 export default function Blog() {
   const { locale, setLocale } = useLocale();
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   const resolveUrl = (url?: string) => {
     if (!url) return '';
@@ -28,11 +28,11 @@ export default function Blog() {
       try {
         const bg = await db.getBlogs();
         // Filter out items targeted strictly for Hindi only
-        const filtered = (bg || []).filter((b: any) => {
+        const filtered = (bg || []).filter((b: BlogItem & { publishTarget?: string }) => {
           const target = b.publish_target || b.publishTarget || 'both';
           return target === 'both' || target === 'english';
         });
-        const sorted = [...filtered].sort((a: any, b: any) => {
+        const sorted = [...filtered].sort((a: BlogItem, b: BlogItem) => {
           const timeA = new Date(a.publishDate || a.createdAt || 0).getTime() || 0;
           const timeB = new Date(b.publishDate || b.createdAt || 0).getTime() || 0;
           return timeB - timeA;
@@ -79,18 +79,24 @@ export default function Blog() {
 
         {/* Blogs Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {blogsList.map((post) => (
+          {blogsList.map((post: BlogItem & { cover_image_url?: string; authorImage?: string; author?: string }) => (
             <Link 
               key={post.id} 
               href={`/blog/${post.slug || post.id}`}
               className="bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200/80 dark:border-white/10 p-6 flex flex-col justify-between hover:shadow-xl hover:border-amber-500/50 transition-all duration-300 group"
             >
               <div className="space-y-4">
-                {(post.imageUrl || (post as any).cover_image_url) && (
+                {(post.imageUrl || post.cover_image_url) && (
                   <div className="w-full aspect-[16/9] rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-white/5 flex items-center justify-center relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={resolveUrl(post.imageUrl || (post as any).cover_image_url)}
+                      src={resolveUrl(post.imageUrl || post.cover_image_url)}
                       alt={post.title}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
@@ -112,10 +118,20 @@ export default function Blog() {
 
               <div className="pt-4 border-t border-slate-100 dark:border-white/5 mt-6 flex justify-between items-center text-xs font-bold">
                 <div className="flex items-center gap-2 min-w-0">
-                  {post.author_image || (post as any).authorImage ? (
-                    <img src={resolveUrl(post.author_image || (post as any).authorImage)} alt={post.author_name || 'Author'} className="w-6 h-6 rounded-full object-cover border border-amber-500/40 shrink-0" />
+                  {post.author_image || post.authorImage ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={resolveUrl(post.author_image || post.authorImage)}
+                      alt={post.author_name || 'Author'}
+                      loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                      className="w-6 h-6 rounded-full object-cover border border-amber-500/40 shrink-0"
+                    />
                   ) : null}
-                  <span className="text-slate-400 font-semibold text-[11px] truncate max-w-[130px]">{post.author_name || (post as any).author || 'Final Attempt Team'}</span>
+                  <span className="text-slate-400 font-semibold text-[11px] truncate max-w-[130px]">{post.author_name || post.author || 'Final Attempt Team'}</span>
                 </div>
                 <span className="text-amber-500 group-hover:translate-x-1 transition-transform flex items-center gap-1 shrink-0">
                   <span>Read Post</span>

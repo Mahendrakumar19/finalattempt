@@ -36,10 +36,11 @@ async function handleProxy(request: NextRequest, context: { params: Promise<{ pa
       statusText: backendRes.statusText,
       headers: resHeaders
     });
-  } catch (err: any) {
-    console.error('[Next.js API Catch-All Proxy Error]:', err);
+  } catch (err: unknown) {
+    const error = err as Error;
+    console.error('[Next.js API Catch-All Proxy Error]:', error);
     return NextResponse.json(
-      { success: false, error: 'Backend server communication error', details: err.message },
+      { success: false, error: 'Backend server communication error', details: error.message },
       { status: 502 }
     );
   }

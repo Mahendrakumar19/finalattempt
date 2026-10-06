@@ -7,9 +7,11 @@ import { useLocale } from '@/context/LocaleContext';
 import {
   Calendar as CalendarIcon, ArrowLeft, Clock,
   ChevronRight, ChevronLeft, FileText,
-  ListOrdered, ChevronDown, ChevronUp, Tag, X, Menu
+  ListOrdered, ChevronDown, ChevronUp, Tag, X, Menu,
+  Share2, Download, Check
 } from 'lucide-react';
 import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle } from '@/services/db';
+import PdfLetterhead, { triggerPdfDownload } from '@/components/PdfLetterhead';
 
 interface NewsTodayLayoutProps {
   currentDateStr?: string;
@@ -31,7 +33,6 @@ const MONTH_NAMES = [
 export default function NewsTodayLayout({
   currentDateStr,
   currentArticleSlug,
-  categorySlug
 }: NewsTodayLayoutProps) {
   const router = useRouter();
   const { locale } = useLocale();
@@ -45,6 +46,37 @@ export default function NewsTodayLayout({
   const [tocExpanded, setTocExpanded] = useState(true);
   const [calendarExpanded, setCalendarExpanded] = useState(true);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    if (typeof window !== 'undefined') {
+      const shareUrl = window.location.href;
+      const shareTitle = activeArticle?.title || 'Current Affairs - Final Attempt IAS';
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: shareTitle,
+            text: shareTitle,
+            url: shareUrl,
+          });
+          return;
+        } catch {
+          // ignore or fall back
+        }
+      }
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } catch {
+        // clipboard fallback
+      }
+    }
+  };
+
+  const handleDownloadPdf = () => {
+    triggerPdfDownload();
+  };
 
   // Calendar Date State
   const [calendarDate, setCalendarDate] = useState<Date>(() => {
@@ -89,8 +121,13 @@ export default function NewsTodayLayout({
         if (resolvedEdition) {
           setCurrentEdition(resolvedEdition);
           if (resolvedEdition.articles && resolvedEdition.articles.length > 0) {
+            const cleanCurrentSlug = currentArticleSlug ? currentArticleSlug.replace(/^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9]+-/, '') : '';
             let matched = currentArticleSlug
-              ? resolvedEdition.articles.find(a => a.slug === currentArticleSlug || a.id === currentArticleSlug)
+              ? resolvedEdition.articles.find(a => 
+                  a.slug === currentArticleSlug || 
+                  a.id === currentArticleSlug ||
+                  (cleanCurrentSlug && a.slug === cleanCurrentSlug)
+                )
               : resolvedEdition.articles[0];
 
             if (!matched) matched = resolvedEdition.articles[0];
@@ -117,17 +154,14 @@ export default function NewsTodayLayout({
       }
     }
     loadData();
-  }, [currentDateStr, currentArticleSlug, locale]);
 
-  // Keep calendarDate in sync with currentDateStr URL changes
-  useEffect(() => {
     if (currentDateStr) {
       const parts = currentDateStr.split('-');
       if (parts.length === 3) {
         setCalendarDate(new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
       }
     }
-  }, [currentDateStr]);
+  }, [currentDateStr, currentArticleSlug, locale]);
 
   // Set of dates that have published editions (YYYY-MM-DD)
   const publishedDatesSet = useMemo(() => {
@@ -263,7 +297,7 @@ export default function NewsTodayLayout({
       console.error('Error parsing headings for dynamic TOC:', err);
       return { processedHtml: activeArticle.content, tocItems: [] };
     }
-  }, [activeArticle?.content]);
+  }, [activeArticle]);
 
   // Selected date formatted dynamically (No hardcoded fallback)
   const activeDateFormatted = useMemo(() => {
@@ -293,8 +327,8 @@ export default function NewsTodayLayout({
     }
   };
 
-  // Reusable Left Sidebar Component
-  const SidebarContent = () => (
+  // Reusable Left Sidebar Content Renderer
+  const renderSidebarContent = () => (
     <div className="space-y-6">
       
       {/* 1. DYNAMIC CALENDAR WIDGET */}
@@ -554,7 +588,7 @@ export default function NewsTodayLayout({
 
           {/* ════ LEFT SIDEBAR (DESKTOP) ════ */}
           <aside className="hidden lg:block lg:col-span-4 xl:col-span-4 lg:sticky lg:top-24 space-y-6">
-            <SidebarContent />
+            {renderSidebarContent()}
           </aside>
 
           {/* ════ MAIN ARTICLE CONTENT ════ */}
@@ -597,29 +631,60 @@ export default function NewsTodayLayout({
               </div>
             ) : (
               <>
+                {/* 0. UNIFIED SHARED PRINT / PDF LETTERHEAD */}
+                <PdfLetterhead
+                  type="CURRENT_AFFAIRS"
+                  date={activeDateFormatted || currentDateStr}
+                />
+
                 {/* 1. ARTICLE HEADER BANNER */}
                 <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 sm:p-8 space-y-4 shadow-xs">
-                  <div className="flex flex-wrap gap-2 items-center text-xs">
-                    {activeArticle?.category && (
-                      <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-500/20">
-                        {activeArticle.category}
-                      </span>
-                    )}
-                    {activeDateFormatted && (
-                      <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-white/5">
-                        <CalendarIcon className="w-3.5 h-3.5 text-amber-500" />
-                        <span>{activeDateFormatted}</span>
-                      </span>
-                    )}
-                    {activeArticle?.readingTime && (
-                      <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-white/5">
-                        <Clock className="w-3.5 h-3.5 text-amber-500" />
-                        <span>{activeArticle.readingTime}</span>
-                      </span>
-                    )}
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-white/5 pb-3">
+                    <div className="flex flex-wrap gap-2 items-center text-xs">
+                      {activeArticle?.category && (
+                        <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-500/20">
+                          {activeArticle.category}
+                        </span>
+                      )}
+                      {activeDateFormatted && (
+                        <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-white/5">
+                          <CalendarIcon className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{activeDateFormatted}</span>
+                        </span>
+                      )}
+                      {activeArticle?.readingTime && (
+                        <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5 border border-slate-200 dark:border-white/5">
+                          <Clock className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{activeArticle.readingTime}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Share and Download PDF Buttons */}
+                    <div className="flex items-center gap-2 no-print">
+                      <button
+                        type="button"
+                        onClick={handleShare}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-500 text-xs font-bold text-slate-700 dark:text-slate-300 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        title="Share this article"
+                      >
+                        {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Share2 className="w-3.5 h-3.5 text-amber-500" />}
+                        <span>{copied ? 'Link Copied!' : 'SHARE'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDownloadPdf}
+                        className="px-3 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500 hover:text-slate-950 text-xs font-black text-amber-700 dark:text-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        title="Download Watermarked PDF"
+                      >
+                        <Download className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                        <span>DOWNLOAD PDF</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <h1 className="text-2xl sm:text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight tracking-tight">
+                  <h1 className="text-2xl sm:text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight tracking-tight pt-1">
                     {activeArticle?.title || (loading ? 'Loading Article...' : 'Current Affairs Article')}
                   </h1>
                 </div>
@@ -704,7 +769,7 @@ export default function NewsTodayLayout({
               </button>
             </div>
 
-            <SidebarContent />
+            {renderSidebarContent()}
           </div>
         </div>
       )}

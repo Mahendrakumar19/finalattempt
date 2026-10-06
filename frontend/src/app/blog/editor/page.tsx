@@ -441,14 +441,24 @@ function BlogEditorForm() {
     }
   }, [postId, BACKEND_URL])
 
+  const generateUnicodeSlug = (text: string) => {
+    return (text || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s-]/gu, '')
+      .replace(/[\s_]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
     
-    if (name === 'title' && !formData.slug) {
+    if (name === 'title' && (!formData.slug || formData.slug.startsWith('blog-'))) {
       setFormData(prev => ({ 
         ...prev, 
-        slug: value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') 
+        slug: generateUnicodeSlug(value) 
       }))
     }
   }
@@ -511,17 +521,21 @@ function BlogEditorForm() {
     setError(null)
 
     const stripHtml = (html: string) => (html || '').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-    const slugifiedTitle = (formData.title || '').toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    const finalSlug = (formData.slug || '').trim() || slugifiedTitle || `blog-${Date.now()}`;
+    const slugifiedTitle = generateUnicodeSlug(formData.title) || generateUnicodeSlug(formData.title_hi) || generateUnicodeSlug(formData.category);
+    const userSlug = (formData.slug || '').trim();
+    const isGenericSlug = userSlug.startsWith('blog-') && /\d+$/.test(userSlug);
+    const finalSlug = (userSlug && !isGenericSlug) ? generateUnicodeSlug(userSlug) : (slugifiedTitle || `article-${Date.now()}`);
 
-    const autoSeoTitle = (formData.seoTitle || '').trim() || `${formData.title || 'Blog Post'} | Final Attempt`;
-    const autoSeoDesc = (formData.seoDescription || '').trim() || (formData.blurb || stripHtml(formData.content || '')).slice(0, 155);
-    const autoSeoKeywords = (formData.seoKeywords || '').trim() || `${formData.title || ''}, ${formData.category || 'Strategy'}, BPSC Prelims, BPSC Mains, UPSC CSE, Final Attempt`;
+    const autoSeoTitle = (formData.seoTitle || '').trim() || `${formData.title || formData.title_hi || 'Blog Post'} | Final Attempt IAS`;
+    const autoSeoDesc = (formData.seoDescription || '').trim() || (formData.blurb || formData.blurb_hi || stripHtml(formData.content || formData.content_hi || '')).slice(0, 155);
+    const autoSeoKeywords = (formData.seoKeywords || '').trim() || `${formData.title || ''}, ${formData.category || 'Strategy'}, BPSC Prelims, BPSC Mains, Civil Services, Final Attempt IAS`;
 
     const finalData = {
       ...formData,
       id: formData.id || `blog-${Date.now()}`,
       slug: finalSlug,
+      author_name: (formData.author_name || 'Final Attempt Team').trim(),
+      author_image: (formData.author_image || '').trim(),
       status: isPublishing ? 'published' : formData.status,
       seoTitle: autoSeoTitle,
       seoDescription: autoSeoDesc,
@@ -728,12 +742,30 @@ function BlogEditorForm() {
                 name="publish_target" 
                 value={formData.publish_target || 'both'} 
                 onChange={handleChange}
-                className="w-full rounded-xl border border-primary/50 bg-background/50 px-4 py-3 text-sm text-foreground focus:border-primary outline-none transition-all font-bold cursor-pointer" 
+                className="w-full rounded-xl border-2 border-primary bg-background/50 px-4 py-3 text-sm text-foreground focus:border-primary outline-none transition-all font-black cursor-pointer shadow-xs" 
               >
-                <option value="both">🌐 Both English & Hindi Pages (Default)</option>
-                <option value="english">English Page Only (/blog in English)</option>
-                <option value="hindi">Hindi Page Only (/blog in Hindi - हिन्दी)</option>
+                <option value="both">🌐 Both English & Hindi Pages (/blog & /blog-hindi)</option>
+                <option value="hindi">🇮🇳 Hindi Page Only (/blog-hindi)</option>
+                <option value="english">🇬🇧 English Page Only (/blog)</option>
               </select>
+
+              {/* Prominent Visual Destination Badge */}
+              <div className="p-3 bg-muted/40 rounded-xl border border-primary/30 flex items-center justify-between text-xs mt-2">
+                <span className="font-bold text-muted-foreground text-[11px]">Upload Destination:</span>
+                {(formData.publish_target === 'hindi') ? (
+                  <span className="px-2.5 py-1 rounded-lg bg-orange-500/15 text-orange-600 dark:text-orange-400 font-black text-[11px] border border-orange-500/30">
+                    🇮🇳 ONLY on /blog-hindi
+                  </span>
+                ) : (formData.publish_target === 'english') ? (
+                  <span className="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 font-black text-[11px] border border-blue-500/30">
+                    🇬🇧 ONLY on /blog
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-[11px] border border-emerald-500/30">
+                    🌐 BOTH /blog &amp; /blog-hindi
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">

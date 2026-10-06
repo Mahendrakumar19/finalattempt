@@ -8,7 +8,6 @@ import {
   Calendar, Zap, Search, X
 } from 'lucide-react';
 import { db, DynamicCurrentAffairEdition } from '@/services/db';
-import { useLocale } from '@/context/LocaleContext';
 
 function formatDisplayDateHindi(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -64,18 +63,10 @@ function SidebarSection({ icon, title }: { icon: React.ReactNode; title: string 
 }
 
 export default function CurrentAffairsHindiLanding() {
-  const { locale, setLocale } = useLocale();
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
   type TopicKey = 'all' | 'editorials' | 'national' | 'international' | 'bihar' | 'arunachal';
   const [activeTopic, setActiveTopic] = useState<TopicKey>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-
-  // Sync locale to Hindi on page entry
-  useEffect(() => {
-    if (locale !== 'hi') {
-      setLocale('hi', true);
-    }
-  }, [locale, setLocale]);
 
   useEffect(() => {
     db.getDynamicCurrentAffairsEditions(false)
@@ -220,10 +211,9 @@ export default function CurrentAffairsHindiLanding() {
                 </div>
               </div>
 
-              {/* Seamless Switch back to English Portal Button */}
+              {/* Switch to English Portal Button */}
               <Link
                 href="/current-affairs"
-                onClick={() => setLocale('en', true)}
                 className="flex items-center justify-center gap-1.5 px-3.5 py-3 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold rounded-2xl transition-all hover:scale-[1.02] shadow-sm"
               >
                 <Globe className="w-3.5 h-3.5 text-blue-300" />

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { Search, SlidersHorizontal, BookOpen, Clock, Calendar, ChevronDown } from 'lucide-react';
+import { Search, SlidersHorizontal, BookOpen, Clock, Calendar, ChevronDown, GraduationCap } from 'lucide-react';
 import { db } from '@/services/db';
 import { courseData } from '@/services/seedData';
 import { useTranslation } from '@/context/LocaleContext';
@@ -14,7 +14,7 @@ type ExamType = 'All' | 'BPSC' | 'Arunachal PCS';
 type FormatType = 'All' | 'Live' | 'Recorded';
 
 function CoursesContent() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialCat = (searchParams.get('category') as CategoryType) || 'All';
@@ -420,8 +420,30 @@ function CoursesContent() {
           })}
         </div>
       ) : (
-        <div className="text-center py-16 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-white/10">
-          <p className="text-slate-500 text-sm font-semibold">{t('courses.noCourses')}</p>
+        <div className="bg-gradient-to-br from-amber-500/5 via-slate-50 to-blue-500/5 dark:from-slate-900 dark:via-slate-900/60 dark:to-slate-900 rounded-3xl border border-dashed border-amber-500/30 p-10 sm:p-16 text-center space-y-5 shadow-xs max-w-3xl mx-auto my-8">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center mx-auto shadow-inner">
+            <GraduationCap className="w-8 h-8" />
+          </div>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[11px] font-black uppercase tracking-widest">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+            Coming Soon • Upcoming Batches
+          </div>
+          <h3 className="text-2xl sm:text-3xl font-heading font-black text-slate-900 dark:text-white">
+            {locale === 'hi' ? 'नए कोर्सेज और टेस्ट सीरीज़ जल्द शुरू हो रहे हैं' : 'New Batches & Mentorship Modules Coming Soon'}
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-lg mx-auto font-medium leading-relaxed">
+            {locale === 'hi'
+              ? 'प्रशासनिक सेवा (UPSC & BPSC) के नए इंटीग्रेटेड फाउंडेशन व मेन्स राइटिंग बैच तैयार किए जा रहे हैं। बैच शेड्यूल जल्द ही यहाँ एक्टिवेट होगा।'
+              : 'Our faculty team is preparing the upcoming batch schedules, prelims test modules, and comprehensive mentorship cohorts. New courses will appear here dynamically as admissions open.'}
+          </p>
+          <div className="pt-2 flex flex-wrap justify-center gap-3">
+            <Link
+              href="/"
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-all shadow-md inline-flex items-center gap-1.5"
+            >
+              <span>Back to Homepage</span>
+            </Link>
+          </div>
         </div>
       )}
     </div>

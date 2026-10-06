@@ -90,6 +90,28 @@ export default function BlogHindi() {
               <div key={i} className="h-64 bg-slate-100 dark:bg-slate-900/60 rounded-3xl animate-pulse" />
             ))}
           </div>
+        ) : blogsList.length === 0 ? (
+          <div className="bg-gradient-to-br from-orange-500/5 via-slate-50 to-amber-500/5 dark:from-slate-900 dark:via-slate-900/60 dark:to-slate-900 rounded-3xl border border-dashed border-orange-500/30 p-12 text-center space-y-4 max-w-2xl mx-auto shadow-xs">
+            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 text-orange-500 border border-orange-500/20 flex items-center justify-center mx-auto text-2xl">
+              🇮🇳
+            </div>
+            <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 dark:text-white">
+              कोई हिंदी लेख उपलब्ध नहीं है
+            </h3>
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+              वर्तमान में इस पृष्ठ के लिए कोई विशेष हिंदी लेख प्रकाशित नहीं हुआ है। एडमिन पैनल से <strong>&quot;Publish Destination: Hindi Page Only (/blog-hindi)&quot;</strong> या <strong>&quot;Both Pages&quot;</strong> चुनकर लेख प्रकाशित करें।
+            </p>
+            <div className="pt-2 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/blog"
+                onClick={() => setLocale('en', true)}
+                className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-all shadow-md inline-flex items-center gap-1.5"
+              >
+                <span>अंग्रेजी लेख देखें (View English Blogs)</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {blogsList.map((post) => {

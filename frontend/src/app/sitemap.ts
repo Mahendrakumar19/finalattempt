@@ -1,5 +1,18 @@
 import { MetadataRoute } from 'next';
 
+interface SitemapEntity {
+  id?: string;
+  slug?: string;
+  publishDate?: string;
+  updatedAt?: string;
+  createdAt?: string;
+  isPublished?: boolean;
+  subjects?: string[];
+  articles?: SitemapEntity[];
+  stages?: SitemapEntity[];
+  testSeries?: SitemapEntity[];
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://finalattemptias.com';
   const now = new Date();
@@ -25,10 +38,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/downloads/fa-publication`,     lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/resources`,                    lastModified: now, changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${baseUrl}/blog`,                         lastModified: now, changeFrequency: 'daily',   priority: 0.85 },
+    { url: `${baseUrl}/blog-hindi`,                   lastModified: now, changeFrequency: 'daily',   priority: 0.85 },
     { url: `${baseUrl}/faculty`,                      lastModified: now, changeFrequency: 'monthly', priority: 0.65 },
     { url: `${baseUrl}/pyq`,                          lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/daily-quiz`,                   lastModified: now, changeFrequency: 'daily',   priority: 0.8 },
     { url: `${baseUrl}/syllabus-strategy`,            lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
+    { url: `${baseUrl}/syllabus-strategy-hindi`,      lastModified: now, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${baseUrl}/syllabus-strategy/uppsc-pyq-analysis`, lastModified: now, changeFrequency: 'monthly', priority: 0.85 },
     { url: `${baseUrl}/privacy-policy`,               lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
     { url: `${baseUrl}/terms`,                        lastModified: now, changeFrequency: 'yearly',  priority: 0.3 },
@@ -47,7 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (blogsRes.ok) {
       const blogs = await blogsRes.json();
       if (Array.isArray(blogs)) {
-        blogs.forEach((b: any) => {
+        blogs.forEach((b: SitemapEntity) => {
           dynamicPaths.push({
             url: `${baseUrl}/blog/${b.slug || b.id}`,
             lastModified: new Date(b.publishDate || b.updatedAt || now),
@@ -57,7 +72,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         });
       }
     }
-  } catch (_) {}
+  } catch {
+    // Silent fallback
+  }
 
   try {
     // Dynamic current affairs articles
@@ -65,7 +82,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (caRes.ok) {
       const editions = await caRes.json();
       if (Array.isArray(editions)) {
-        editions.forEach((ed: any) => {
+        editions.forEach((ed: SitemapEntity) => {
           // Edition date page
           if (ed.publishDate) {
             dynamicPaths.push({
@@ -77,7 +94,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           }
           // Individual article pages
           if (Array.isArray(ed.articles)) {
-            ed.articles.forEach((art: any) => {
+            ed.articles.forEach((art: SitemapEntity) => {
               if (art.slug && ed.publishDate) {
                 const category = (art.subjects?.[0] || 'general').toLowerCase().replace(/\s+/g, '-');
                 dynamicPaths.push({
@@ -92,7 +109,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         });
       }
     }
-  } catch (_) {}
+  } catch {
+    // Silent fallback
+  }
 
   try {
     // Dynamic courses mapping
@@ -101,7 +120,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const coursesData = await coursesRes.json();
       const courses = Array.isArray(coursesData) ? coursesData : (coursesData?.data || []);
       if (Array.isArray(courses)) {
-        courses.forEach((c: any) => {
+        courses.forEach((c: SitemapEntity) => {
           if (c.isPublished !== false) {
             dynamicPaths.push({
               url: `${baseUrl}/courses/${c.id}`,
@@ -113,7 +132,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         });
       }
     }
-  } catch (_) {}
+  } catch {
+    // Silent fallback
+  }
 
   try {
     // Dynamic test series mapping (exams, stages, programs)
@@ -122,7 +143,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const resJson = await testSeriesRes.json();
       const exams = Array.isArray(resJson) ? resJson : (resJson?.data || []);
       if (Array.isArray(exams)) {
-        exams.forEach((ex: any) => {
+        exams.forEach((ex: SitemapEntity) => {
           if (ex.slug) {
             dynamicPaths.push({
               url: `${baseUrl}/test-series/${ex.slug}`,
@@ -132,7 +153,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             });
           }
           if (Array.isArray(ex.stages)) {
-            ex.stages.forEach((stg: any) => {
+            ex.stages.forEach((stg: SitemapEntity) => {
               if (ex.slug && stg.slug) {
                 dynamicPaths.push({
                   url: `${baseUrl}/test-series/${ex.slug}/${stg.slug}`,
@@ -144,7 +165,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             });
           }
           if (Array.isArray(ex.testSeries)) {
-            ex.testSeries.forEach((series: any) => {
+            ex.testSeries.forEach((series: SitemapEntity) => {
               if (series.slug) {
                 dynamicPaths.push({
                   url: `${baseUrl}/test-series/program/${series.slug}`,
@@ -158,7 +179,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         });
       }
     }
-  } catch (_) {}
+  } catch {
+    // Silent fallback
+  }
 
   try {
     // Dynamic custom pages and location SEO landing pages (/p/[slug])
@@ -167,7 +190,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const pageData = await customPagesRes.json();
       const pages = Array.isArray(pageData) ? pageData : (pageData?.data || []);
       if (Array.isArray(pages)) {
-        pages.forEach((p: any) => {
+        pages.forEach((p: SitemapEntity) => {
           if (p.slug) {
             dynamicPaths.push({
               url: `${baseUrl}/p/${p.slug}`,
@@ -179,7 +202,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         });
       }
     }
-  } catch (_) {}
+  } catch {
+    // Silent fallback
+  }
 
   return [...staticPaths, ...dynamicPaths];
 }
