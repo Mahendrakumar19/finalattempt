@@ -149,38 +149,95 @@ class _LiquidGlassDock extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: borderRadius,
         boxShadow: [
+          // 1. Soft atmospheric shadow (grounding the floating glass)
           BoxShadow(
             color: isDark 
-                ? Colors.black.withValues(alpha: 0.15) // Reduced from 0.20
-                : Colors.black.withValues(alpha: 0.12), // Reduced from 0.18
-            blurRadius: 22,
-            offset: const Offset(0, 8),
+                ? Colors.black.withValues(alpha: 0.35)
+                : const Color(0xFF0F172A).withValues(alpha: 0.08),
+            blurRadius: 30,
+            spreadRadius: -4,
+            offset: const Offset(0, 10),
+          ),
+          // 2. Liquid-glass chromatic dispersion rim glow (dispersion: 0.32 from samasante docs)
+          BoxShadow(
+            color: isDark
+                ? const Color(0xFF60A5FA).withValues(alpha: 0.12)
+                : const Color(0xFF93C5FD).withValues(alpha: 0.20),
+            blurRadius: 12,
+            spreadRadius: -2,
+            offset: const Offset(0, 2),
+          ),
+          // 3. Crisp Top specular highlight (sheen: 0.32, angle: 45deg)
+          BoxShadow(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.22)
+                : Colors.white.withValues(alpha: 0.95),
+            blurRadius: 2,
+            spreadRadius: 0,
+            offset: const Offset(0, -1),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
         child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20), // Moderate blur
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutCubic,
-            decoration: BoxDecoration(
-              borderRadius: borderRadius,
-              color: isDark
-                  ? const Color(0xFF111827).withValues(alpha: 0.60) // Reduced from 0.71
-                  : const Color(0xFFF8FAFC).withValues(alpha: 0.65), // Reduced from 0.75
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.12) // Reduced from 0.15
-                    : Colors.black.withValues(alpha: 0.08), // Reduced from 0.10
-                width: 1.0,
+          // samasante optics: frost blur (frost: 6-12px) - crystal clear, not foggy!
+          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Stack(
+            children: [
+              // Liquid Glass Container Layer
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: borderRadius,
+                  // Pure Liquid Glass with 95% light-passthrough transparency
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [
+                            Colors.white.withValues(alpha: 0.12), // Specular light entry (angle 45deg)
+                            Colors.white.withValues(alpha: 0.02), // Ultra-clear transparent body
+                            const Color(0xFF0F172A).withValues(alpha: 0.18), // Deep refractive base
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.55), // Crisp luminous sheen
+                            Colors.white.withValues(alpha: 0.12), // Crystal clear liquid center
+                            const Color(0xFFE2E8F0).withValues(alpha: 0.25), // Water droplet shadow
+                          ],
+                    stops: const [0.0, 0.50, 1.0],
+                  ),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.20)
+                        : Colors.white.withValues(alpha: 0.85),
+                    width: 1.0,
+                  ),
+                ),
+                child: DefaultTextStyle(
+                  style: systemTextStyle,
+                  child: _buildDockContent(context),
+                ),
               ),
-            ),
-            child: DefaultTextStyle(
-              style: systemTextStyle,
-              child: _buildDockContent(context),
-            ),
+
+              // Specular Inset Rim Light Layer (matching liquid-glass edgeShadow: inset 0 1px 0 rgba(255,255,255,0.55), inset 0 0 0 1px rgba(255,255,255,0.12))
+              IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: borderRadius,
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(alpha: isDark ? 0.35 : 0.80), // Top 1px specular bevel
+                        Colors.transparent,
+                        Colors.white.withValues(alpha: isDark ? 0.06 : 0.25), // Bottom subtle light bounce
+                      ],
+                      stops: const [0.0, 0.15, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -193,7 +250,7 @@ class _LiquidGlassDock extends StatelessWidget {
         final itemWidth = constraints.maxWidth / 5;
         return Stack(
           children: [
-            // Liquid Glass Selection Capsule (Matches user reference image pill)
+            // Liquid-Glass Optical Lens Pill (bends & magnifies the selected tab)
             TweenAnimationBuilder<double>(
               tween: Tween<double>(end: selectedIdx.toDouble()),
               duration: const Duration(milliseconds: 300),
@@ -210,14 +267,34 @@ class _LiquidGlassDock extends StatelessWidget {
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(isCompact ? 22.0 : 25.0),
+                  // samasante Lens Pill: Water droplet convex refraction
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [
+                            Colors.white.withValues(alpha: 0.22),
+                            Colors.white.withValues(alpha: 0.04),
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.80),
+                            Colors.white.withValues(alpha: 0.25),
+                          ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark
+                          ? const Color(0xFF60A5FA).withValues(alpha: 0.08)
+                          : const Color(0xFF93C5FD).withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.black.withValues(alpha: 0.04),
+                        ? Colors.white.withValues(alpha: 0.35)
+                        : Colors.white.withValues(alpha: 0.95),
                     width: 1.0,
                   ),
                 ),

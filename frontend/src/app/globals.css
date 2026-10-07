@@ -1422,7 +1422,7 @@ html.dark {
     size: auto;
   }
 
-  /* Universal repeating official logo watermark on every page (high clarity, clean angle) */
+  /* Universal repeating official logo watermark on every page */
   body::before {
     content: "";
     position: fixed;
@@ -1435,22 +1435,7 @@ html.dark {
     background-repeat: no-repeat;
     background-position: center center;
     background-size: contain;
-    opacity: 0.13 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    pointer-events: none;
-    z-index: 999999;
-  }
-
-  /* Secondary subtle footer watermark */
-  body::after {
-    content: "www.finalattemptias.com • UPSC & BPSC Mentorship";
-    position: fixed;
-    bottom: 8mm;
-    right: 12mm;
-    font-size: 8pt;
-    font-weight: 700;
-    color: rgba(71, 85, 105, 0.8) !important;
+    opacity: 0.12 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     pointer-events: none;
