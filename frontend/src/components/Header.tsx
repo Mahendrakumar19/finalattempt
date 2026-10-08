@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   Menu, X, ChevronDown, ArrowRight, Sun, Moon,
   BookOpen, FileText, Video, Download, Newspaper,
@@ -78,8 +78,7 @@ const IC = {
    HEADER COMPONENT
 ═══════════════════════════════════════════════════ */
 export default function Header() {
-  const pathname  = usePathname();
-  const router    = useRouter();
+  const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
@@ -490,6 +489,7 @@ export default function Header() {
                   >
                     <Link
                       href={entry.href}
+                      onClick={() => setActiveMega(null)}
                       className={`flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-base font-bold transition-all duration-150 whitespace-nowrap ${
                         isActive
                           ? 'text-amber-600 dark:text-amber-400'
@@ -688,22 +688,35 @@ export default function Header() {
               <div key={entry.id}>
                 {entry.mega ? (
                   <>
-                    <button
-                      onClick={() => setMobileExpanded(isExpanded ? null : entry.id)}
+                    <div
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                         isActive
                           ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
                           : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <Link
+                        href={entry.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 flex-1 min-w-0"
+                      >
                         <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400">
                           {entry.icon}
                         </span>
-                        <span>{entry.label}</span>
-                      </div>
-                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                    </button>
+                        <span className="truncate">{entry.label}</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMobileExpanded(isExpanded ? null : entry.id);
+                        }}
+                        className="p-1 text-slate-400 hover:text-amber-500 transition-colors cursor-pointer"
+                        aria-label="Expand submenu"
+                      >
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180 text-amber-500' : ''}`} />
+                      </button>
+                    </div>
 
                     {isExpanded && (
                       <div className="ml-4 mt-1 mb-2 space-y-3 border-l-2 border-amber-200 dark:border-amber-500/30 pl-3">
