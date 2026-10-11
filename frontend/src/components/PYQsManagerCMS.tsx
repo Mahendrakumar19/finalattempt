@@ -143,15 +143,15 @@ export default function PYQsManagerCMS() {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       
       {/* Form panel */}
-      <form onSubmit={handleSave} className="lg:col-span-4 bg-white border p-6 rounded-3xl space-y-4 shadow-xs">
-        <h4 className="font-heading font-black text-sm text-slate-900">{form.id ? 'Edit PYQ Booklet' : 'Add PYQ Booklet'}</h4>
+      <form onSubmit={handleSave} className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl space-y-4 shadow-xs">
+        <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">{form.id ? 'Edit PYQ Booklet' : 'Add PYQ Booklet'}</h4>
 
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-slate-400 uppercase">Target Exam</label>
           <select
             value={form.examId}
             onChange={(e) => setForm({ ...form, examId: e.target.value })}
-            className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none font-bold"
+            className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl outline-none font-bold"
             required
           >
             <option value="">Select Exam</option>
@@ -168,7 +168,7 @@ export default function PYQsManagerCMS() {
               type="number"
               value={form.year}
               onChange={(e) => setForm({ ...form, year: parseInt(e.target.value, 10) })}
-              className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none"
+              className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl outline-none"
               required
             />
           </div>
@@ -177,7 +177,7 @@ export default function PYQsManagerCMS() {
             <select
               value={form.stage}
               onChange={(e) => setForm({ ...form, stage: e.target.value })}
-              className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none font-bold"
+              className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl outline-none font-bold"
             >
               <option value="PRELIMS">Prelims</option>
               <option value="MAINS">Mains</option>
@@ -193,7 +193,7 @@ export default function PYQsManagerCMS() {
             placeholder="e.g. BPSC Prelims GS Booklets"
             value={form.paperName}
             onChange={(e) => setForm({ ...form, paperName: e.target.value })}
-            className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none"
+            className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl outline-none"
             required
           />
         </div>
@@ -205,7 +205,7 @@ export default function PYQsManagerCMS() {
               type="text"
               placeholder="Question Paper Media ID"
               value={form.questionPaperMediaId}
-              className="w-full px-3 py-2 text-xs border bg-slate-100 rounded-xl outline-none"
+              className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl outline-none"
               readOnly
             />
             <button
@@ -225,7 +225,7 @@ export default function PYQsManagerCMS() {
               type="text"
               placeholder="Answer Key Media ID"
               value={form.answerKeyMediaId}
-              className="w-full px-3 py-2 text-xs border bg-slate-100 rounded-xl outline-none"
+              className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl outline-none"
               readOnly
             />
             <button
@@ -245,7 +245,7 @@ export default function PYQsManagerCMS() {
               type="text"
               placeholder="Solution Media ID"
               value={form.solutionMediaId}
-              className="w-full px-3 py-2 text-xs border bg-slate-100 rounded-xl outline-none"
+              className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded-xl outline-none"
               readOnly
             />
             <button
@@ -271,10 +271,10 @@ export default function PYQsManagerCMS() {
       </form>
 
       {/* List panel */}
-      <div className="lg:col-span-8 bg-white border rounded-3xl overflow-hidden shadow-xs">
+      <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
+            <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 font-bold text-slate-600 dark:text-slate-300">
               <th className="p-4">Exam</th>
               <th className="p-4">Year</th>
               <th className="p-4">Stage</th>
@@ -284,21 +284,21 @@ export default function PYQsManagerCMS() {
           </thead>
           <tbody>
             {pyqs.map((pq) => (
-              <tr key={pq.id} className="border-b border-slate-100 hover:bg-slate-50/50">
+              <tr key={pq.id} className="border-b border-slate-100 dark:border-slate-800/60 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 text-slate-800 dark:text-slate-200">
                 <td className="p-4 font-bold">{pq.exam.name}</td>
                 <td className="p-4 font-bold font-mono">{pq.year}</td>
                 <td className="p-4">
-                  <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 border border-amber-200 text-amber-800">
+                  <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300">
                     {pq.stage}
                   </span>
                 </td>
                 <td className="p-4 font-medium">{pq.paperName}</td>
                 <td className="p-4 flex gap-2">
-                  <button onClick={() => setForm({ id: pq.id, examId: pq.examId, year: pq.year, stage: pq.stage, paperName: pq.paperName, questionPaperMediaId: pq.questionPaperMediaId || '', answerKeyMediaId: pq.answerKeyMediaId || '', solutionMediaId: pq.solutionMediaId || '', description: pq.description || '', sortOrder: pq.sortOrder })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
-                    <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                  <button onClick={() => setForm({ id: pq.id, examId: pq.examId, year: pq.year, stage: pq.stage, paperName: pq.paperName, questionPaperMediaId: pq.questionPaperMediaId || '', answerKeyMediaId: pq.answerKeyMediaId || '', solutionMediaId: pq.solutionMediaId || '', description: pq.description || '', sortOrder: pq.sortOrder })} className="p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-300 transition-colors">
+                    <Edit2 className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                   </button>
-                  <button onClick={() => handleDelete(pq.id)} className="p-1 bg-slate-50 rounded hover:bg-red-50">
-                    <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                  <button onClick={() => handleDelete(pq.id)} className="p-1.5 bg-slate-50 dark:bg-slate-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/50 text-red-500 transition-colors">
+                    <Trash2 className="w-3.5 h-3.5 text-red-500 dark:text-red-400" />
                   </button>
                 </td>
               </tr>

@@ -170,6 +170,7 @@ const FALLBACK_DAILY_QUESTIONS = [
 const FALLBACK_DAILY_QUIZZES = [
   {
     id: 'daily-quiz-today',
+    slug: 'daily-current-affairs-bihar-gs-practice-set-14',
     title: 'Daily Current Affairs & Bihar GS Practice (Set 14)',
     description: '10 high-yield practice questions covering National & International Current Affairs, Bihar Budget & Economic Survey, and Indian Polity.',
     publishDate: new Date().toISOString().split('T')[0],
@@ -183,6 +184,7 @@ const FALLBACK_DAILY_QUIZZES = [
   },
   {
     id: 'daily-quiz-prev-1',
+    slug: 'daily-practice-polity-constitutional-landmarks-set-13',
     title: 'Daily Practice: Polity & Constitutional Landmarks (Set 13)',
     description: '10 Questions on Fundamental Rights, DPSP, Executive Powers, and Supreme Court Landmark Rulings.',
     publishDate: new Date(Date.now() - 86400000).toISOString().split('T')[0],
@@ -196,6 +198,7 @@ const FALLBACK_DAILY_QUIZZES = [
   },
   {
     id: 'daily-quiz-prev-2',
+    slug: 'daily-practice-bihar-history-freedom-struggle-set-12',
     title: 'Daily Practice: Bihar History & Freedom Struggle (Set 12)',
     description: '10 Questions on Champaran Satyagraha, 1857 Revolt in Bihar, and Quit India Movement leadership.',
     publishDate: new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0],
@@ -209,6 +212,7 @@ const FALLBACK_DAILY_QUIZZES = [
   },
   {
     id: 'daily-quiz-prev-3',
+    slug: 'daily-practice-environment-geography-mapping-set-11',
     title: 'Daily Practice: Environment & Geography Mapping (Set 11)',
     description: '10 High-yield questions on Wetlands, Tiger Reserves, River Basins, and Physical Geography.',
     publishDate: new Date(Date.now() - 3 * 86400000).toISOString().split('T')[0],
@@ -255,17 +259,37 @@ router.get('/daily/list', optionalAuth, async (req: AuthRequest, res: Response) 
   }
 });
 
+// Get Public Daily Quiz Metadata by ID or Slug (for SEO, Social Previews, and direct URL resolution)
+router.get('/daily/:quizId', optionalAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const quizIdOrSlug = req.params.quizId as string;
+    const targetLang = getTargetLang(req);
+    let quiz = await lmsDB.getDailyQuizById(quizIdOrSlug) || FALLBACK_DAILY_QUIZZES.find(q => q.id === quizIdOrSlug || q.slug === quizIdOrSlug);
+    if (!quiz) {
+      res.status(404).json({ success: false, error: 'Daily Quiz not found.' });
+      return;
+    }
+    if (targetLang === 'hi') {
+      quiz = await ContentLocalizer.localizeEntity('daily_quiz', quiz, ['title', 'description'], targetLang);
+    }
+    res.json({ success: true, data: quiz });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Start Public/Daily Quiz (Get Questions without Answers for security)
 router.get('/daily/:quizId/start', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
-    const quizId = req.params.quizId as string;
+    const quizIdOrSlug = req.params.quizId as string;
     const targetLang = getTargetLang(req);
-    let quiz = await lmsDB.getDailyQuizById(quizId) || FALLBACK_DAILY_QUIZZES.find(q => q.id === quizId) || { ...FALLBACK_DAILY_QUIZZES[0], id: quizId };
+    let quiz = await lmsDB.getDailyQuizById(quizIdOrSlug) || FALLBACK_DAILY_QUIZZES.find(q => q.id === quizIdOrSlug || q.slug === quizIdOrSlug) || { ...FALLBACK_DAILY_QUIZZES[0], id: quizIdOrSlug };
     if (targetLang === 'hi') {
       quiz = await ContentLocalizer.localizeEntity('daily_quiz', quiz, ['title', 'description'], targetLang);
     }
 
-    let questions = await lmsDB.getDailyQuizQuestions(quizId);
+    const resolvedId = quiz.id || quizIdOrSlug;
+    let questions = await lmsDB.getDailyQuizQuestions(resolvedId);
     if (!questions || questions.length === 0) {
       questions = FALLBACK_DAILY_QUESTIONS;
     }
@@ -293,15 +317,16 @@ router.get('/daily/:quizId/start', optionalAuth, async (req: AuthRequest, res: R
 router.post('/daily/:quizId/submit', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { answers, timeTakenSecs } = req.body;
-    const quizId = req.params.quizId as string;
+    const quizIdOrSlug = req.params.quizId as string;
 
     if (!answers) {
       res.status(400).json({ success: false, error: 'Answers payload is required.' });
       return;
     }
 
-    let quiz = await lmsDB.getDailyQuizById(quizId) || FALLBACK_DAILY_QUIZZES.find(q => q.id === quizId) || FALLBACK_DAILY_QUIZZES[0];
-    let questions = await lmsDB.getDailyQuizQuestions(quizId);
+    let quiz = await lmsDB.getDailyQuizById(quizIdOrSlug) || FALLBACK_DAILY_QUIZZES.find(q => q.id === quizIdOrSlug || q.slug === quizIdOrSlug) || FALLBACK_DAILY_QUIZZES[0];
+    const resolvedId = quiz.id || quizIdOrSlug;
+    let questions = await lmsDB.getDailyQuizQuestions(resolvedId);
     if (!questions || questions.length === 0) questions = FALLBACK_DAILY_QUESTIONS;
 
     let score = 0;
@@ -334,10 +359,19 @@ router.post('/daily/:quizId/submit', optionalAuth, async (req: AuthRequest, res:
       details.push({
         questionId: q.id,
         questionText: q.questionText,
-        options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
+        options: {
+          A: q.optionA,
+          B: q.optionB,
+          C: q.optionC,
+          D: q.optionD,
+          ...(q.optionE ? { E: q.optionE } : {})
+        },
         studentAnswer: studentAnswer || null,
         correctAnswer: q.correctAnswer,
         explanation: q.explanation,
+        questionImageUrl: q.questionImageUrl || null,
+        questionTextHi: q.questionTextHi || null,
+        explanationHi: q.explanationHi || null,
         isCorrect: correct
       });
     }
@@ -351,7 +385,7 @@ router.post('/daily/:quizId/submit', optionalAuth, async (req: AuthRequest, res:
       try {
         const attempt = await lmsDB.submitQuizAttempt(
           req.user.userId,
-          quizId,
+          resolvedId,
           answers,
           score,
           maxScore,
@@ -402,12 +436,31 @@ router.delete('/admin/daily/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Admin Save Daily Quiz Question
+// Admin Save Daily Quiz Question (Single or Array)
 router.post('/admin/daily/:quizId/questions', async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
+    if (Array.isArray(req.body)) {
+      const saved = await lmsDB.saveDailyQuizQuestionsBulk(quizId, req.body);
+      return res.json({ success: true, count: saved.length, data: saved });
+    }
     const question = await lmsDB.saveDailyQuizQuestion(quizId, req.body);
     res.json({ success: true, data: question });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Bulk Import Daily Quiz Questions
+router.post('/admin/daily/:quizId/questions/bulk', async (req: AuthRequest, res: Response) => {
+  try {
+    const quizId = req.params.quizId as string;
+    const questions = req.body.questions || req.body;
+    if (!Array.isArray(questions)) {
+      return res.status(400).json({ success: false, error: 'Expected an array of questions' });
+    }
+    const saved = await lmsDB.saveDailyQuizQuestionsBulk(quizId, questions);
+    res.json({ success: true, count: saved.length, data: saved });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

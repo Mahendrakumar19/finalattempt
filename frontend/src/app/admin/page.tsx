@@ -27,7 +27,9 @@ import {
   Sparkles,
   Flame,
   Truck,
-  X
+  X,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useLocale } from '@/context/LocaleContext';
@@ -266,6 +268,18 @@ export default function AdminPortal() {
   const [adminPassword, setAdminPassword] = useState('');
   const [authError, setAuthError] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const toggleSidebarCollapse = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('admin_sidebar_collapsed', String(next));
+      }
+      return next;
+    });
+  };
+
   const { theme, toggleTheme } = useTheme();
   const { locale, setLocale } = useLocale();
 
@@ -276,6 +290,11 @@ export default function AdminPortal() {
       const superFlag = localStorage.getItem('is_super_admin') === 'true';
       if (token) setAdminToken(token);
       if (superFlag) setIsSuperAdmin(true);
+
+      const savedCollapsed = localStorage.getItem('admin_sidebar_collapsed');
+      if (savedCollapsed === 'true') {
+        setIsSidebarCollapsed(true);
+      }
 
       // Restore working tab on refresh
       try {
@@ -980,23 +999,44 @@ export default function AdminPortal() {
   return (
     <div className="min-h-screen text-[var(--text-color)] font-body flex flex-col lg:flex-row bg-[var(--bg-color)] transition-colors duration-200">
       {/* SIDEBAR PANEL */}
-      <aside className={`w-full lg:w-64 lg:h-screen lg:sticky lg:top-0 border-b lg:border-b-0 lg:border-r flex flex-col justify-between shrink-0 bg-[var(--card-bg)] border-[var(--card-border)] z-40 transition-all duration-300 ${isSidebarOpen ? 'block' : 'hidden lg:flex'}`}>
-        <div className="p-6 space-y-6 overflow-y-auto max-h-screen">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <div className="relative w-40 h-10 shrink-0">
+      <aside className={`w-full ${isSidebarCollapsed ? 'lg:w-20' : 'lg:w-64'} lg:h-screen lg:sticky lg:top-0 border-b lg:border-b-0 lg:border-r flex flex-col justify-between shrink-0 bg-[var(--card-bg)] border-[var(--card-border)] z-40 transition-all duration-300 ${isSidebarOpen ? 'block' : 'hidden lg:flex'}`}>
+        <div className={`${isSidebarCollapsed ? 'p-3' : 'p-6'} space-y-6 overflow-y-auto max-h-screen`}>
+          <div className={`flex items-center ${isSidebarCollapsed ? 'flex-col gap-3 justify-center' : 'justify-between'}`}>
+            {!isSidebarCollapsed ? (
+              <div className="flex flex-col gap-1 overflow-hidden">
+                <div className="relative w-36 h-10 shrink-0">
+                  <img
+                    src="/darklogofull.png"
+                    alt="Final Attempt"
+                    className="w-full h-full object-contain logo-light"
+                  />
+                  <img
+                    src="/lightlogofull.png"
+                    alt="Final Attempt"
+                    className="w-full h-full object-contain logo-dark"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="w-9 h-9 flex items-center justify-center shrink-0" title="Final Attempt Admin">
                 <img
-                  src="/darklogofull.png"
+                  src="/favicon.png"
                   alt="Final Attempt"
-                  className="w-full h-full object-contain logo-light"
-                />
-                <img
-                  src="/lightlogofull.png"
-                  alt="Final Attempt"
-                  className="w-full h-full object-contain logo-dark"
+                  className="w-full h-full object-contain rounded-full shadow-xs"
                 />
               </div>
-            </div>
+            )}
+
+            {/* Desktop Collapse / Expand Toggle Button on Sidebar Header */}
+            <button
+              onClick={toggleSidebarCollapse}
+              className="hidden lg:flex p-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-amber-500 hover:text-slate-950 transition-all text-slate-600 dark:text-slate-300 cursor-pointer shadow-2xs items-center justify-center"
+              title={isSidebarCollapsed ? 'Expand Sidebar (Show Labels)' : 'Collapse Sidebar to Icons Only'}
+              aria-label={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+            >
+              {isSidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            </button>
+
             {/* Mobile Close Button */}
             <button
               onClick={() => setIsSidebarOpen(false)}
@@ -1036,26 +1076,32 @@ export default function AdminPortal() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as AdminTab)}
-                className={`flex items-center gap-3 px-4 py-3 text-xs font-bold transition-all text-left rounded-2xl border ${activeTab === tab.id
+                title={tab.id}
+                className={`flex items-center text-xs font-bold transition-all rounded-2xl border ${
+                  isSidebarCollapsed ? 'justify-center p-3 w-full' : 'gap-3 px-4 py-3 text-left w-full'
+                } ${activeTab === tab.id
                   ? 'text-white border-amber-600 shadow-md'
                   : 'text-slate-600 hover:bg-amber-500/10 hover:text-amber-800 border-transparent'
                   }`}
                 style={activeTab === tab.id ? { background: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)', borderColor: '#D97706' } : {}}
               >
-                <tab.icon className="w-4 h-4" />
-                <span>{tab.id}</span>
+                <tab.icon className="w-4 h-4 shrink-0" />
+                {!isSidebarCollapsed && <span className="truncate">{tab.id}</span>}
               </button>
             ))}
           </nav>
         </div>
 
-        <div className="p-6 border-t" style={{ borderColor: 'rgba(245,158,11,0.15)' }}>
+        <div className={`border-t ${isSidebarCollapsed ? 'p-3' : 'p-6'}`} style={{ borderColor: 'rgba(245,158,11,0.15)' }}>
           <button
             onClick={handleAdminLogout}
-            className="text-xs font-bold text-slate-500 hover:text-amber-600 flex items-center gap-2 text-left"
+            title="Logout"
+            className={`text-xs font-bold text-slate-500 hover:text-amber-600 flex items-center transition-all cursor-pointer ${
+              isSidebarCollapsed ? 'justify-center w-full p-2' : 'gap-2 text-left'
+            }`}
           >
-            <LogOut className="w-4 h-4 text-amber-600" />
-            <span>Logout</span>
+            <LogOut className="w-4 h-4 text-amber-600 shrink-0" />
+            {!isSidebarCollapsed && <span>Logout</span>}
           </button>
         </div>
       </aside>
@@ -1068,7 +1114,7 @@ export default function AdminPortal() {
             {/* Mobile Sidebar Open Toggle */}
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl bg-[var(--card-bg)] border border-[var(--card-border)] text-slate-700 dark:text-slate-300"
+              className="lg:hidden p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"
               aria-label="Open Sidebar"
             >
               <Menu className="w-5 h-5" />
@@ -2983,13 +3029,15 @@ export default function AdminPortal() {
                     const target = ed.publish_target || 'both';
                     if (caEditionTargetFilter === 'all') return true;
                     return target === caEditionTargetFilter;
-                  }).map((ed) => {
+                  }).map((ed, idx) => {
                     const natCount = ed.articles?.filter(a => a.category === 'NATIONAL').length || 0;
                     const intCount = ed.articles?.filter(a => a.category === 'INTERNATIONAL').length || 0;
                     const bihCount = ed.articles?.filter(a => a.category === 'BIHAR').length || 0;
 
+                    const uniqueKey = ed.id || ed.publishDate || `edition-${idx}`;
+
                     return (
-                      <div key={ed.id} className="p-5 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/[0.06] rounded-3xl shadow-sm flex flex-col justify-between space-y-4">
+                      <div key={uniqueKey} className="p-5 bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-white/[0.06] rounded-3xl shadow-sm flex flex-col justify-between space-y-4">
                         <div className="space-y-2">
                           <div className="flex justify-between items-center text-[10px] font-bold text-slate-400">
                             <span>DATE: {ed.publishDate}</span>

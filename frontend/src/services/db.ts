@@ -105,6 +105,7 @@ export interface BlogItem {
 
 export interface DailyQuizItem {
   id: string;
+  slug?: string;
   title: string;
   description?: string;
   publishDate: string;
@@ -845,14 +846,24 @@ class FinalAttemptDB {
     return this.getLocalDailyQuizStore() as unknown as T[];
   }
 
+  public async getDailyQuizByIdOrSlug<T = any>(idOrSlug: string): Promise<T | null> {
+    const res = (await this.apiFetch(`/api/quizzes/daily/${idOrSlug}`)) || (await this.apiFetch(`/api/lms/quizzes/daily/${idOrSlug}`));
+    if (res && res.data) {
+      return res.data as T;
+    }
+    const store = this.getLocalDailyQuizStore();
+    const found = store.find((q: DailyQuizItem) => q.id === idOrSlug || q.slug === idOrSlug);
+    return (found || null) as unknown as T;
+  }
+
   public async startDailyQuiz<T = any>(quizId: string): Promise<T> {
     const res = (await this.apiFetch(`/api/quizzes/daily/${quizId}/start`)) || (await this.apiFetch(`/api/lms/quizzes/daily/${quizId}/start`));
     if (res && res.data && res.data.questions) {
       return res.data as T;
     }
     const store = this.getLocalDailyQuizStore();
-    const quiz = store.find((q: DailyQuizItem) => q.id === quizId) || { ...store[0], id: quizId };
-    const questions = this.getLocalDailyQuestionStore(quizId);
+    const quiz = store.find((q: DailyQuizItem) => q.id === quizId || q.slug === quizId) || { ...store[0], id: quizId };
+    const questions = this.getLocalDailyQuestionStore(quiz.id || quizId);
     return { quiz, questions } as unknown as T;
   }
 
@@ -899,10 +910,17 @@ class FinalAttemptDB {
       details.push({
         questionId: q.id,
         questionText: q.questionText,
-        options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD },
+        options: {
+          A: q.optionA,
+          B: q.optionB,
+          C: q.optionC,
+          D: q.optionD,
+          ...(q.optionE ? { E: q.optionE } : {})
+        },
         studentAnswer: studentAnswer || null,
         correctAnswer: q.correctAnswer,
         explanation: q.explanation,
+        questionImageUrl: (q as any).questionImageUrl || (q as any).imageUrl || null,
         isCorrect: correct
       });
     }
@@ -993,6 +1011,25 @@ class FinalAttemptDB {
     }));
 
     return (res?.data || question) as T;
+  }
+
+  public async saveDailyQuizQuestionsBulk<T = any>(quizId: string, questions: any[]): Promise<T> {
+    const qStore = this.getLocalDailyQuestionStore(quizId);
+    const idMap = new Map(questions.map((q: any) => [q.id, q]));
+    const nextQStore = qStore.filter((q: DailyQuizQuestion) => !idMap.has(q.id)).concat(questions);
+    this.setLocalDailyQuestionStore(quizId, nextQStore);
+
+    const res = (await this.apiFetch(`/api/quizzes/admin/daily/${quizId}/questions/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questions })
+    })) || (await this.apiFetch(`/api/lms/quizzes/admin/daily/${quizId}/questions/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questions })
+    }));
+
+    return (res?.data || questions) as T;
   }
 
   public async deleteDailyQuizQuestion(quizId: string, qId: string): Promise<boolean> {

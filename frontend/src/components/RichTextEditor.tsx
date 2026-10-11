@@ -371,11 +371,11 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
   ];
 
   const renderToolbarControls = () => (
-    <div className="flex flex-wrap items-center gap-1 border-b border-slate-100 bg-slate-50/80 p-2 text-slate-800 relative select-none">
+    <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 dark:border-slate-800 bg-slate-100/90 dark:bg-slate-950/80 p-2 text-slate-700 dark:text-slate-200 relative select-none">
       <button
         type="button"
         onClick={() => execCmd('bold')}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors cursor-pointer"
+        className="rounded p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-950 dark:hover:text-white transition-colors cursor-pointer"
         title="Bold"
       >
         <Bold className="h-3.5 w-3.5" />
@@ -383,7 +383,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       <button
         type="button"
         onClick={() => execCmd('italic')}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors cursor-pointer"
+        className="rounded p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-950 dark:hover:text-white transition-colors cursor-pointer"
         title="Italic"
       >
         <Italic className="h-3.5 w-3.5" />
@@ -391,18 +391,18 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       <button
         type="button"
         onClick={() => execCmd('underline')}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-colors cursor-pointer"
+        className="rounded p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-950 dark:hover:text-white transition-colors cursor-pointer"
         title="Underline"
       >
         <Underline className="h-3.5 w-3.5" />
       </button>
 
-      <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+      <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1" />
 
       <button
         type="button"
         onClick={() => execCmd('formatBlock', 'H1')}
-        className="rounded px-2 py-1 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer text-xs font-black border border-slate-300 bg-white"
+        className="rounded px-2 py-1 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer text-xs font-black border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xs"
         title="Heading 1"
       >
         H1
@@ -410,7 +410,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       <button
         type="button"
         onClick={() => execCmd('formatBlock', 'H2')}
-        className="rounded px-2 py-1 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer text-xs font-black border border-slate-300 bg-white"
+        className="rounded px-2 py-1 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer text-xs font-black border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xs"
         title="Heading 2"
       >
         H2
@@ -418,18 +418,18 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       <button
         type="button"
         onClick={() => execCmd('formatBlock', 'H3')}
-        className="rounded px-2 py-1 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer text-xs font-black border border-slate-300 bg-white"
+        className="rounded px-2 py-1 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer text-xs font-black border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xs"
         title="Heading 3"
       >
         H3
       </button>
 
-      <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+      <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1" />
 
       <button
         type="button"
         onClick={() => execCmd('insertUnorderedList')}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+        className="rounded p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         title="Bullet List"
       >
         <List className="h-3.5 w-3.5" />
@@ -437,7 +437,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       <button
         type="button"
         onClick={() => execCmd('insertOrderedList')}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+        className="rounded p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         title="Numbered List"
       >
         <ListOrdered className="h-3.5 w-3.5" />
@@ -445,34 +445,34 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       <button
         type="button"
         onClick={() => execCmd('indent')}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200 bg-white"
+        className="rounded p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xs"
         title="Indent / Sub-bullet (Tab)"
       >
-        <Indent className="h-3.5 w-3.5 text-indigo-600" />
+        <Indent className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
       </button>
       <button
         type="button"
         onClick={() => execCmd('outdent')}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer border border-slate-200 bg-white"
+        className="rounded p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-2xs"
         title="Outdent / Decrease Indent (Shift+Tab)"
       >
-        <Outdent className="h-3.5 w-3.5 text-indigo-600" />
+        <Outdent className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
       </button>
       <button
         type="button"
         onClick={() => execCmd('formatBlock', 'BLOCKQUOTE')}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+        className="rounded p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         title="Blockquote"
       >
         <Quote className="h-3.5 w-3.5" />
       </button>
 
-      <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+      <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1" />
 
       <button
         type="button"
         onClick={insertLink}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+        className="rounded p-1.5 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         title="Insert Hyperlink"
       >
         <LinkIcon className="h-3.5 w-3.5" />
@@ -480,10 +480,10 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       <button
         type="button"
         onClick={openImagePicker}
-        className="rounded p-1.5 text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
+        className="rounded p-1.5 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
         title="Insert Image from Media Library"
       >
-        <ImageIcon className="h-3.5 w-3.5 text-blue-600" />
+        <ImageIcon className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
         <span>+ Image</span>
       </button>
 
@@ -492,24 +492,24 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
         <button
           type="button"
           onClick={() => setShowWrapTextMenu(!showWrapTextMenu)}
-          className="rounded p-1.5 text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 transition-colors cursor-pointer flex items-center gap-1 font-extrabold text-[10px]"
+          className="rounded p-1.5 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer flex items-center gap-1 font-extrabold text-[10px]"
           title="Wrap text around image (Square, In Line, Top/Bottom, Behind, In Front)"
         >
-          <Layout className="h-3.5 w-3.5 text-indigo-600" />
+          <Layout className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" />
           <span>Wrap Text</span>
-          <ChevronDown className="h-3 w-3 text-indigo-500" />
+          <ChevronDown className="h-3 w-3 text-indigo-500 dark:text-indigo-400" />
         </button>
 
         {showWrapTextMenu && (
-          <div className="absolute left-0 mt-1.5 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-50 p-2 space-y-1 animate-in fade-in duration-150">
-            <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-100 dark:border-white/10">
+          <div className="absolute left-0 mt-1.5 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 p-2 space-y-1 animate-in fade-in duration-150">
+            <div className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
               Wrap Text & Layout Options
             </div>
 
             <button
               type="button"
               onClick={() => applyWrapStyle('SQUARE_RIGHT')}
-              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2 transition-colors cursor-pointer"
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2 transition-colors cursor-pointer"
             >
               <span>🔲 Square / Wrap Right (Float Right)</span>
             </button>
@@ -517,7 +517,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
             <button
               type="button"
               onClick={() => applyWrapStyle('SQUARE_LEFT')}
-              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2 transition-colors cursor-pointer"
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-2 transition-colors cursor-pointer"
             >
               <span>🔳 Square / Wrap Left (Float Left)</span>
             </button>
@@ -525,7 +525,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
             <button
               type="button"
               onClick={() => applyWrapStyle('INLINE')}
-              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
             >
               <span>📄 In Line with Text</span>
             </button>
@@ -533,7 +533,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
             <button
               type="button"
               onClick={() => applyWrapStyle('TOP_BOTTOM')}
-              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
             >
               <span>⬆️⬇️ Top and Bottom (Center)</span>
             </button>
@@ -541,7 +541,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
             <button
               type="button"
               onClick={() => applyWrapStyle('FULL_WIDTH')}
-              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
             >
               <span>↔️ Full Width (100%)</span>
             </button>
@@ -549,7 +549,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
             <button
               type="button"
               onClick={() => applyWrapStyle('BEHIND_TEXT')}
-              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
             >
               <span>👻 Behind Text</span>
             </button>
@@ -557,7 +557,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
             <button
               type="button"
               onClick={() => applyWrapStyle('IN_FRONT')}
-              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
+              className="w-full text-left px-2.5 py-2 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 transition-colors cursor-pointer"
             >
               <span>🔝 In Front of Text</span>
             </button>
@@ -568,50 +568,50 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       <button
         type="button"
         onClick={openDocumentPicker}
-        className="rounded p-1.5 text-emerald-600 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
+        className="rounded p-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
         title="Attach Document / PDF Download Card"
       >
-        <Paperclip className="h-3.5 w-3.5 text-emerald-600" />
+        <Paperclip className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
         <span>+ File/PDF</span>
       </button>
       <button
         type="button"
         onClick={insertTable}
-        className="rounded p-1.5 text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
+        className="rounded p-1.5 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
         title="Insert Table"
       >
-        <Table className="h-3.5 w-3.5 text-amber-600" />
+        <Table className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
         <span>+ Table</span>
       </button>
 
       {/* Table Width Resizer Selector */}
-      <div className="flex items-center gap-1 rounded bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 text-[10px]">
-        <Scaling className="h-3 w-3 text-amber-600" />
-        <span className="font-bold text-amber-700 uppercase">Width:</span>
+      <div className="flex items-center gap-1 rounded bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 dark:border-amber-500/30 px-2 py-0.5 text-[10px]">
+        <Scaling className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+        <span className="font-bold text-amber-700 dark:text-amber-400 uppercase">Width:</span>
         <select
           onChange={(e) => setTableWidth(e.target.value)}
-          className="bg-transparent text-[10px] text-amber-900 outline-none cursor-pointer border-none font-extrabold"
+          className="bg-transparent text-[10px] text-amber-900 dark:text-amber-300 outline-none cursor-pointer border-none font-extrabold"
           title="Click inside a table to adjust width"
           defaultValue="100%"
         >
-          <option value="100%">Full Width (100%)</option>
-          <option value="90%">90% Width</option>
-          <option value="80%">80% Width</option>
-          <option value="70%">70% Width</option>
-          <option value="50%">50% Half Width</option>
-          <option value="600px">Fixed 600px</option>
-          <option value="800px">Fixed 800px</option>
+          <option value="100%" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Full Width (100%)</option>
+          <option value="90%" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">90% Width</option>
+          <option value="80%" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">80% Width</option>
+          <option value="70%" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">70% Width</option>
+          <option value="50%" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">50% Half Width</option>
+          <option value="600px" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Fixed 600px</option>
+          <option value="800px" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Fixed 800px</option>
         </select>
       </div>
 
-      <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+      <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1" />
 
       {/* Container Component Insertion Controls */}
       <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => insertCalloutBox('summary')}
-          className="px-2 py-1 bg-slate-900 text-amber-400 font-extrabold text-[10px] rounded hover:bg-slate-800 transition-colors cursor-pointer border border-slate-700 shadow-2xs"
+          className="px-2 py-1 bg-slate-900 dark:bg-slate-800 text-amber-400 font-extrabold text-[10px] rounded hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer border border-slate-700 dark:border-slate-600 shadow-2xs"
           title="Insert Summary Container"
         >
           + Summary Card
@@ -619,7 +619,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
         <button
           type="button"
           onClick={() => insertCalloutBox('key_feature')}
-          className="px-2 py-1 bg-amber-500 text-slate-950 font-extrabold text-[10px] rounded hover:bg-amber-600 transition-colors cursor-pointer border border-amber-600 shadow-2xs"
+          className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-[10px] rounded transition-colors cursor-pointer border border-amber-600 shadow-2xs"
           title="Insert Highlight Container"
         >
           + Key Features
@@ -627,19 +627,19 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
         <button
           type="button"
           onClick={() => insertCalloutBox('info')}
-          className="px-2 py-1 bg-blue-50 text-blue-700 font-extrabold text-[10px] rounded hover:bg-blue-100 transition-colors cursor-pointer border border-blue-200 shadow-2xs"
+          className="px-2 py-1 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-extrabold text-[10px] rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors cursor-pointer border border-blue-200 dark:border-blue-800 shadow-2xs"
           title="Insert Info Callout"
         >
           + Note Box
         </button>
       </div>
 
-      <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+      <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1" />
 
       <button
         type="button"
         onClick={clearFormatting}
-        className="rounded p-1.5 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer flex items-center gap-1 text-[10px] font-bold"
+        className="rounded p-1.5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer flex items-center gap-1 text-[10px] font-bold"
         title="Strip all styles and tags while keeping your text"
       >
         <Sparkles className="h-3.5 w-3.5 text-amber-500" />
@@ -649,25 +649,25 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       <button
         type="button"
         onClick={clearAllContent}
-        className="rounded px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors cursor-pointer text-[10px] font-extrabold"
+        className="rounded px-2 py-1 bg-red-50 dark:bg-red-950/50 hover:bg-red-100 dark:hover:bg-red-900/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/60 transition-colors cursor-pointer text-[10px] font-extrabold"
         title="Empty entire editor content"
       >
         Clear All
       </button>
 
-      <div className="h-4 w-[1px] bg-slate-300 mx-1" />
+      <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-700 mx-1" />
 
       {/* Font Family Selector */}
-      <div className="flex items-center gap-1 rounded bg-white border border-slate-300 px-2 py-0.5">
-        <span className="text-[10px] font-bold text-slate-400 uppercase">Font:</span>
+      <div className="flex items-center gap-1 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-0.5">
+        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">Font:</span>
         <select
           onChange={(e) => execCmd('fontName', e.target.value)}
-          className="bg-transparent text-[10px] text-slate-700 outline-none cursor-pointer border-none font-bold"
+          className="bg-transparent text-[10px] text-slate-700 dark:text-slate-200 outline-none cursor-pointer border-none font-bold"
           title="Font Style"
           defaultValue="var(--font-body), sans-serif"
         >
           {fonts.map((f) => (
-            <option key={f.value} value={f.value} className="text-slate-800 bg-white">
+            <option key={f.value} value={f.value} className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900">
               {f.name}
             </option>
           ))}
@@ -675,16 +675,16 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
       </div>
 
       {/* Text Color Picker */}
-      <div className="flex items-center gap-1 rounded bg-white border border-slate-300 px-2 py-0.5">
-        <Paintbrush className="h-3 w-3 text-slate-400" />
+      <div className="flex items-center gap-1 rounded bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-0.5">
+        <Paintbrush className="h-3 w-3 text-slate-500 dark:text-slate-400" />
         <select
           onChange={(e) => execCmd('foreColor', e.target.value)}
-          className="bg-transparent text-[10px] text-slate-700 outline-none cursor-pointer border-none font-bold"
+          className="bg-transparent text-[10px] text-slate-700 dark:text-slate-200 outline-none cursor-pointer border-none font-bold"
           title="Text Color"
           defaultValue="inherit"
         >
           {colors.map((c) => (
-            <option key={c.value} value={c.value} className="text-slate-800 bg-white" style={{ color: c.value === 'inherit' ? 'currentColor' : c.value }}>
+            <option key={c.value} value={c.value} className="text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-900" style={{ color: c.value === 'inherit' ? 'currentColor' : c.value }}>
               {c.name}
             </option>
           ))}
@@ -717,7 +717,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
   return (
     <>
       {/* Inline Compact View */}
-      <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500/40">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs focus-within:ring-2 focus-within:ring-amber-500/20 focus-within:border-amber-500/40">
         {renderToolbarControls()}
         <div
           ref={editorRef}
@@ -733,7 +733,7 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
               }
             }
           }}
-          className="min-h-[220px] max-h-[350px] overflow-y-auto bg-white p-4 outline-none text-slate-800 text-xs leading-relaxed prose max-w-none focus:outline-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 [&_th]:p-2.5 [&_th]:text-left [&_th]:font-bold [&_td]:p-2.5 [&_td]:border [&_td]:border-slate-200 [&_tr:nth-child(even)]:bg-slate-50/50"
+          className="min-h-[220px] max-h-[350px] overflow-y-auto bg-white dark:bg-slate-900 p-4 outline-none text-slate-900 dark:text-slate-100 text-xs leading-relaxed prose dark:prose-invert max-w-none focus:outline-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 dark:[&_th]:bg-slate-800 [&_th]:p-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-slate-900 dark:[&_th]:text-slate-100 [&_td]:p-2.5 [&_td]:border [&_td]:border-slate-200 dark:[&_td]:border-slate-800 [&_tr:nth-child(even)]:bg-slate-50/50 dark:[&_tr:nth-child(even)]:bg-slate-800/30"
         />
       </div>
 

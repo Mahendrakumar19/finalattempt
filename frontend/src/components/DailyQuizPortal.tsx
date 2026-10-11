@@ -15,12 +15,21 @@ import {
 interface Question {
   id: string;
   questionText: string;
+  questionTextHi?: string;
   optionA: string;
+  optionAHi?: string;
   optionB: string;
+  optionBHi?: string;
   optionC: string;
+  optionCHi?: string;
   optionD: string;
+  optionDHi?: string;
   optionE?: string;
+  optionEHi?: string;
+  questionImageUrl?: string;
+  imageUrl?: string;
   marks?: number;
+  negativeMarks?: number;
 }
 
 interface QuestionDetail extends Question {
@@ -29,13 +38,17 @@ interface QuestionDetail extends Question {
   studentAnswer: string | null;
   correctAnswer: string;
   explanation: string;
+  explanationHi?: string;
   isCorrect: boolean;
 }
 
 interface QuizMeta {
   id: string;
+  slug?: string;
   title: string;
+  title_hi?: string;
   description: string;
+  description_hi?: string;
   publishDate: string;
   timeLimitMins: number;
   totalQuestions: number;
@@ -69,7 +82,7 @@ interface LeaderboardEntry {
   attemptDate: string;
 }
 
-export default function DailyQuizPortal() {
+export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string } = {}) {
   const { t } = useTranslation();
 
   // Page mode: 'landing' | 'playing' | 'result' | 'leaderboard'
@@ -137,31 +150,8 @@ export default function DailyQuizPortal() {
     }
   }, []);
 
-  // Mount effect
-  useEffect(() => {
-    let isMounted = true;
-    Promise.all([
-      db.getTodayDailyQuiz(),
-      db.getPreviousDailyQuizzes()
-    ]).then(([today, prev]) => {
-      if (isMounted) {
-        setTodayQuiz(today);
-        setPreviousQuizzes(prev || []);
-      }
-    }).catch((err) => {
-      if (isMounted) {
-        console.error('Failed loading daily quiz metadata:', err);
-        setErrorMsg('Unable to load today\'s daily quiz. Please check your network connection.');
-      }
-    }).finally(() => {
-      if (isMounted) setLoadingMeta(false);
-    });
-
-    return () => { isMounted = false; };
-  }, []);
-
   // Start a Quiz
-  const handleStartQuiz = async (quizMeta: QuizMeta) => {
+  const handleStartQuiz = useCallback(async (quizMeta: QuizMeta) => {
     setActiveQuiz(quizMeta);
     setLoadingQuestions(true);
     setErrorMsg(null);
@@ -188,7 +178,48 @@ export default function DailyQuizPortal() {
     } finally {
       setLoadingQuestions(false);
     }
-  };
+  }, []);
+
+  // Mount effect & Initial Slug handling
+  useEffect(() => {
+    let isMounted = true;
+    
+    const init = async () => {
+      try {
+        const [today, prev] = await Promise.all([
+          db.getTodayDailyQuiz(),
+          db.getPreviousDailyQuizzes()
+        ]);
+        if (!isMounted) return;
+        setTodayQuiz(today);
+        setPreviousQuizzes(prev || []);
+
+        // If direct initialSlug provided in URL (e.g. /daily-quiz/[slug])
+        if (initialSlug) {
+          const matched = (prev || []).find((q: QuizMeta) => q.slug === initialSlug || q.id === initialSlug) ||
+                          (today && (today.slug === initialSlug || today.id === initialSlug) ? today : null);
+          if (matched) {
+            handleStartQuiz(matched);
+          } else {
+            const fetched = await db.getDailyQuizByIdOrSlug(initialSlug);
+            if (fetched && isMounted) {
+              handleStartQuiz(fetched);
+            }
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error('Failed loading daily quiz metadata:', err);
+          setErrorMsg('Unable to load today\'s daily quiz. Please check your network connection.');
+        }
+      } finally {
+        if (isMounted) setLoadingMeta(false);
+      }
+    };
+
+    init();
+    return () => { isMounted = false; };
+  }, [initialSlug, handleStartQuiz]);
 
   // Option select handler
   const handleSelectOption = useCallback((questionId: string, optionKey: string) => {
@@ -198,6 +229,17 @@ export default function DailyQuizPortal() {
       [questionId]: optionKey
     }));
   }, [viewMode]);
+
+  // Clear current response
+  const clearCurrentResponse = () => {
+    const q = questions[currentQuestionIndex];
+    if (!q) return;
+    setUserAnswers(prev => {
+      const next = { ...prev };
+      delete next[q.id];
+      return next;
+    });
+  };
 
   // Toggle mark for review
   const handleToggleReview = (questionId: string) => {
@@ -289,6 +331,7 @@ export default function DailyQuizPortal() {
       else if (['2', 'b', 'B'].includes(e.key)) handleSelectOption(currentQ.id, 'B');
       else if (['3', 'c', 'C'].includes(e.key)) handleSelectOption(currentQ.id, 'C');
       else if (['4', 'd', 'D'].includes(e.key)) handleSelectOption(currentQ.id, 'D');
+      else if (['5', 'e', 'E'].includes(e.key) && currentQ.optionE) handleSelectOption(currentQ.id, 'E');
       else if (e.key === 'ArrowRight' && currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(prev => prev + 1);
       } else if (e.key === 'ArrowLeft' && currentQuestionIndex > 0) {
@@ -311,7 +354,7 @@ export default function DailyQuizPortal() {
   const filteredPreviousQuizzes = useMemo(() => {
     return previousQuizzes.filter(q => {
       const matchesSearch = q.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            q.description.toLowerCase().includes(searchQuery.toLowerCase());
+                            (q.description && q.description.toLowerCase().includes(searchQuery.toLowerCase()));
       const matchesDiff = selectedDifficulty === 'ALL' || q.difficulty === selectedDifficulty;
       return matchesSearch && matchesDiff;
     });
@@ -352,11 +395,6 @@ export default function DailyQuizPortal() {
               <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-amber-600/5 rounded-full blur-2xl pointer-events-none" />
 
               <div className="relative z-10 space-y-4 max-w-3xl">
-                {/* <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider">
-                  <Flame className="w-4 h-4 text-amber-500 animate-pulse" />
-                  <span>{t('dailyQuiz.tagline', 'Daily Practice Quiz')} • BPSC & State PCS</span>
-                </div> */}
-
                 <h1 className="text-3xl sm:text-5xl font-heading font-black text-[var(--text-color)] leading-tight tracking-tight">
                   {t('dailyQuiz.title', 'Daily Current Affairs & GS Practice Hub')}
                 </h1>
@@ -423,9 +461,6 @@ export default function DailyQuizPortal() {
                   <Sparkles className="w-5 h-5 text-amber-500" />
                   <span>{t('dailyQuiz.todaysQuiz', "Today's Featured Practice Quiz")}</span>
                 </h2>
-                {/* <span className="text-xs font-bold text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20">
-                  Updated Daily @ 08:00 AM
-                </span> */}
               </div>
 
               {loadingMeta ? (
@@ -472,7 +507,6 @@ export default function DailyQuizPortal() {
                   </div>
                 </div>
               ) : (
-                /* Intentional Empty State for Today Quiz */
                 <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-10 text-center space-y-4 shadow-sm">
                   <AlertCircle className="w-12 h-12 text-amber-500 mx-auto" />
                   <h3 className="text-lg font-heading font-bold text-[var(--text-color)]">{t('dailyQuiz.noQuizzes', 'No Daily Quiz Published Yet Today')}</h3>
@@ -528,7 +562,6 @@ export default function DailyQuizPortal() {
                   ))}
                 </div>
               ) : filteredPreviousQuizzes.length === 0 ? (
-                /* Intentional Empty State for Previous Quizzes */
                 <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-12 text-center space-y-3">
                   <Search className="w-10 h-10 text-slate-400 mx-auto" />
                   <h3 className="text-base font-heading font-bold text-[var(--text-color)]">{t('dailyQuiz.noQuizzes', 'No Previous Quizzes Available')}</h3>
@@ -592,7 +625,7 @@ export default function DailyQuizPortal() {
                   {t('dailyQuiz.leaderboard', 'Compare Your Daily Score on the State Leaderboard')}
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Track your speed and accuracy against thousands of Serious Civil Services aspirants across Bihar & Arunachal.
+                  Track your speed and accuracy against thousands of Serious Civil Services aspirants across Bihar & Uttar Pradesh.
                 </p>
               </div>
 
@@ -618,7 +651,7 @@ export default function DailyQuizPortal() {
           </div>
         )}
 
-        {/* ── MODE 2: QUIZ PLAYER (CONCENTRATION MODE) ──────────────────────── */}
+        {/* ── MODE 2: QUIZ PLAYER (SIMPLIFIED & CLEAN CONCENTRATION MODE) ── */}
         {viewMode === 'playing' && activeQuiz && (
           <div className="space-y-6 max-w-4xl mx-auto">
             
@@ -665,7 +698,7 @@ export default function DailyQuizPortal() {
               />
             </div>
 
-            {/* Question Palette Drawer Grid (Iconic + Border Distinct States) */}
+            {/* Question Palette Strip */}
             <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4 shadow-sm space-y-3">
               <div className="flex items-center justify-between text-xs font-bold text-slate-500">
                 <span>{t('dailyQuiz.questionPalette', 'Question Palette')} ({answeredCount}/{questions.length} {t('prelims.attempted', 'Answered')})</span>
@@ -716,47 +749,84 @@ export default function DailyQuizPortal() {
                 
                 {/* Question Header */}
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-xs font-black text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 uppercase tracking-wider">
-                    {t('dailyQuiz.questions', 'Question')} {currentQuestionIndex + 1}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-amber-600 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 uppercase tracking-wider">
+                      {t('dailyQuiz.questions', 'Question')} {currentQuestionIndex + 1}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
+                      +{questions[currentQuestionIndex].marks || 1.0} / -{questions[currentQuestionIndex].negativeMarks || 0.33}
+                    </span>
+                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleToggleReview(questions[currentQuestionIndex].id)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      reviewMarked[questions[currentQuestionIndex].id]
-                        ? 'bg-purple-500 text-white shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-[var(--text-color)]'
-                    }`}
-                  >
-                    <Bookmark className="w-3.5 h-3.5" />
-                    <span>{reviewMarked[questions[currentQuestionIndex].id] ? t('dailyQuiz.markForReview', 'Marked for Review') : t('dailyQuiz.markForReview', 'Mark for Review')}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {userAnswers[questions[currentQuestionIndex].id] && (
+                      <button
+                        type="button"
+                        onClick={clearCurrentResponse}
+                        className="text-xs font-bold text-slate-400 hover:text-red-500 transition-colors px-2 py-1"
+                      >
+                        Clear Response
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleToggleReview(questions[currentQuestionIndex].id)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        reviewMarked[questions[currentQuestionIndex].id]
+                          ? 'bg-purple-500 text-white shadow-xs'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-[var(--text-color)]'
+                      }`}
+                    >
+                      <Bookmark className="w-3.5 h-3.5" />
+                      <span>{reviewMarked[questions[currentQuestionIndex].id] ? t('dailyQuiz.markForReview', 'Marked for Review') : t('dailyQuiz.markForReview', 'Mark for Review')}</span>
+                    </button>
+                  </div>
                 </div>
 
+                {/* Optional Attached Diagram / Image */}
+                {(questions[currentQuestionIndex].questionImageUrl || questions[currentQuestionIndex].imageUrl) && (
+                  <div className="max-w-md rounded-2xl overflow-hidden border border-[var(--card-border)] bg-black/10">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={questions[currentQuestionIndex].questionImageUrl || questions[currentQuestionIndex].imageUrl}
+                      alt="Question Diagram"
+                      className="w-full h-auto object-cover max-h-64"
+                    />
+                  </div>
+                )}
+
                 {/* Question Text */}
-                {(() => {
-                  const raw = questions[currentQuestionIndex].questionText || '';
-                  const { isHtml, formatted } = renderFormattedQuestionText(raw);
-                  if (isHtml) {
-                    return <div className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />;
-                  }
-                  return (
-                    <h3 className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed">
-                      {raw}
-                    </h3>
-                  );
-                })()}
+                <div className="space-y-2">
+                  {(() => {
+                    const raw = questions[currentQuestionIndex].questionText || '';
+                    const { isHtml, formatted } = renderFormattedQuestionText(raw);
+                    if (isHtml) {
+                      return <div className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />;
+                    }
+                    return (
+                      <h3 className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed">
+                        {raw}
+                      </h3>
+                    );
+                  })()}
+
+                  {questions[currentQuestionIndex].questionTextHi && (
+                    <p className="text-base text-amber-600 dark:text-amber-400 font-medium leading-relaxed pt-1">
+                      {questions[currentQuestionIndex].questionTextHi}
+                    </p>
+                  )}
+                </div>
 
                 {/* Option Cards Grid */}
                 <div className="space-y-3 pt-2">
                   {[
-                    { key: 'A', text: questions[currentQuestionIndex].optionA },
-                    { key: 'B', text: questions[currentQuestionIndex].optionB },
-                    { key: 'C', text: questions[currentQuestionIndex].optionC },
-                    { key: 'D', text: questions[currentQuestionIndex].optionD },
-                    { key: 'E', text: questions[currentQuestionIndex].optionE }
-                  ].filter(o => o.text).map((opt) => {
+                    { key: 'A', text: questions[currentQuestionIndex].optionA, textHi: questions[currentQuestionIndex].optionAHi },
+                    { key: 'B', text: questions[currentQuestionIndex].optionB, textHi: questions[currentQuestionIndex].optionBHi },
+                    { key: 'C', text: questions[currentQuestionIndex].optionC, textHi: questions[currentQuestionIndex].optionCHi },
+                    { key: 'D', text: questions[currentQuestionIndex].optionD, textHi: questions[currentQuestionIndex].optionDHi },
+                    { key: 'E', text: questions[currentQuestionIndex].optionE, textHi: questions[currentQuestionIndex].optionEHi }
+                  ].filter(o => o.text || o.textHi).map((opt) => {
                     const selected = userAnswers[questions[currentQuestionIndex].id] === opt.key;
 
                     let optClass = 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-500/50 hover:bg-amber-500/5 text-slate-800 dark:text-slate-200';
@@ -772,11 +842,16 @@ export default function DailyQuizPortal() {
                       >
                         <div className="flex items-center gap-3">
                           <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-heading font-black text-xs shrink-0 transition-colors ${
-                            selected ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:bg-slate-800/80'
+                            selected ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-800/80'
                           }`}>
                             {opt.key}
                           </span>
-                          <span className="text-sm font-medium leading-normal">{opt.text}</span>
+                          <div>
+                            <span className="text-sm font-medium leading-normal block">{opt.text}</span>
+                            {opt.textHi && opt.textHi !== opt.text && (
+                              <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">{opt.textHi}</span>
+                            )}
+                          </div>
                         </div>
 
                         {selected && (
@@ -961,7 +1036,7 @@ export default function DailyQuizPortal() {
                 <div className="space-y-6">
                   {resultData.details.map((detail, idx) => (
                     <div
-                      key={detail.questionId}
+                      key={detail.questionId || idx}
                       className={`bg-[var(--card-bg)] border rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm ${
                         detail.isCorrect ? 'border-emerald-500/40' : detail.studentAnswer ? 'border-red-500/40' : 'border-slate-300 dark:border-slate-700'
                       }`}
@@ -988,18 +1063,39 @@ export default function DailyQuizPortal() {
                         </span>
                       </div>
 
-                      {(() => {
-                        const raw = detail.questionText || '';
-                        const { isHtml, formatted } = renderFormattedQuestionText(raw);
-                        if (isHtml) {
-                          return <div className="text-base font-heading font-bold text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />;
-                        }
-                        return (
-                          <h4 className="text-base font-heading font-bold text-[var(--text-color)] leading-relaxed">
-                            {raw}
-                          </h4>
-                        );
-                      })()}
+                      {/* Optional Diagram if attached */}
+                      {(detail.questionImageUrl || detail.imageUrl) && (
+                        <div className="max-w-md rounded-2xl overflow-hidden border border-[var(--card-border)] bg-black/10">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={detail.questionImageUrl || detail.imageUrl}
+                            alt="Question Diagram"
+                            className="w-full h-auto object-cover max-h-64"
+                          />
+                        </div>
+                      )}
+
+                      {/* Question Text */}
+                      <div className="space-y-1">
+                        {(() => {
+                          const raw = detail.questionText || '';
+                          const { isHtml, formatted } = renderFormattedQuestionText(raw);
+                          if (isHtml) {
+                            return <div className="text-base font-heading font-bold text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />;
+                          }
+                          return (
+                            <h4 className="text-base font-heading font-bold text-[var(--text-color)] leading-relaxed">
+                              {raw}
+                            </h4>
+                          );
+                        })()}
+
+                        {detail.questionTextHi && (
+                          <p className="text-sm text-amber-600 dark:text-amber-400 font-medium leading-relaxed">
+                            {detail.questionTextHi}
+                          </p>
+                        )}
+                      </div>
 
                       {/* Options with clear Correct / Incorrect Identification */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -1036,12 +1132,17 @@ export default function DailyQuizPortal() {
                       </div>
 
                       {/* Explanation Section */}
-                      {detail.explanation && (
+                      {(detail.explanation || detail.explanationHi) && (
                         <div className="p-4 sm:p-5 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
                           <span className="font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider block text-xs">
                             📖 {t('dailyQuiz.explanation', 'Exam Rationale & Explanation')}
                           </span>
-                          <FormattedExplanation content={detail.explanation} />
+                          {detail.explanation && <FormattedExplanation content={detail.explanation} />}
+                          {detail.explanationHi && (
+                            <div className="text-xs text-amber-700 dark:text-amber-300 font-medium pt-1">
+                              {detail.explanationHi}
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -1112,7 +1213,6 @@ export default function DailyQuizPortal() {
                   ))}
                 </div>
               ) : leaderboard.length === 0 ? (
-                /* Intentional Empty State for Leaderboard */
                 <div className="p-12 text-center space-y-3 border border-[var(--card-border)] rounded-2xl">
                   <Trophy className="w-10 h-10 text-slate-400 mx-auto" />
                   <h3 className="font-heading font-bold text-sm text-[var(--text-color)]">{t('dailyQuiz.noAttempts', 'No Leaderboard Entries Yet Today')}</h3>
@@ -1148,14 +1248,15 @@ export default function DailyQuizPortal() {
                           >
                             <td className="p-4">{rankBadge}</td>
                             <td className="p-4 font-bold flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-black text-xs">
-                                {(item.userName || item.name || 'Aspirant').charAt(0).toUpperCase()}
-                              </div>
-                              <span>{item.userName || item.name || 'Aspirant'}</span>
-                              {isSelf && <span className="text-[9px] bg-amber-500 text-slate-950 px-2 py-0.5 rounded-md font-black uppercase">(You)</span>}
+                              <span>{item.name || item.userName || 'Civil Services Aspirant'}</span>
+                              {isSelf && <span className="text-[10px] bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded font-black">YOU</span>}
                             </td>
-                            <td className="p-4 font-black text-amber-500">{item.score || 0} Pts</td>
-                            <td className="p-4 font-mono text-slate-400">{formatTime(item.timeTakenSecs || 0)}</td>
+                            <td className="p-4 font-extrabold text-amber-600 dark:text-amber-400">
+                              {item.score}
+                            </td>
+                            <td className="p-4 text-slate-400 font-mono">
+                              {formatTime(item.timeTakenSecs)}
+                            </td>
                           </tr>
                         );
                       })}
@@ -1191,13 +1292,13 @@ export default function DailyQuizPortal() {
             {/* Header Badge & Title */}
             <div className="text-center space-y-2 pt-2">
               <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs font-black uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" /> Demo Practice Test Completed
+                <Sparkles className="w-3.5 h-3.5" /> Practice Quiz Completed
               </span>
               <h2 className="text-2xl sm:text-3xl font-heading font-black tracking-tight leading-tight">
                 Unlock Full BPSC Test Series
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 max-w-sm mx-auto leading-relaxed">
-                Supercharge your BPSC Prelims preparation with 40+ Full Mocks, Micro Topic-Wise Practice & State Leaderboard!
+                Supercharge your preparation with 40+ Full Mocks, Micro Topic-Wise Practice & State Leaderboard!
               </p>
             </div>
 

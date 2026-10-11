@@ -606,7 +606,11 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       )
     `);
     try {
-      await pool.query('ALTER TABLE current_affair_articles ADD COLUMN IF NOT EXISTS content TEXT');
+      await pool.query('ALTER TABLE current_affair_editions ADD COLUMN IF NOT EXISTS title_hi TEXT, ADD COLUMN IF NOT EXISTS summary_hi TEXT, ADD COLUMN IF NOT EXISTS publish_target VARCHAR(50) DEFAULT "both"');
+    } catch (_) {}
+
+    try {
+      await pool.query('ALTER TABLE current_affair_articles ADD COLUMN IF NOT EXISTS content TEXT, ADD COLUMN IF NOT EXISTS title_hi TEXT, ADD COLUMN IF NOT EXISTS summary_hi TEXT, ADD COLUMN IF NOT EXISTS content_hi LONGTEXT, ADD COLUMN IF NOT EXISTS publish_target VARCHAR(50) DEFAULT "both", ADD COLUMN IF NOT EXISTS language VARCHAR(50) DEFAULT "en"');
     } catch (_) {}
 
     await pool.query(`
@@ -2369,6 +2373,10 @@ class BackendDB {
             for (const artRow of (allArticlesRows as any[])) {
               const articleData: DynamicCurrentAffairArticle = {
                 ...artRow,
+                title: artRow.title || artRow.title_hi || '',
+                summary: artRow.summary || artRow.summary_hi || '',
+                title_hi: artRow.title_hi || artRow.title || '',
+                summary_hi: artRow.summary_hi || artRow.summary || '',
                 seo: artRow.seoId ? (seoMap.get(artRow.seoId) || {}) : {},
                 media: medMap.get(artRow.id) || [],
                 subjects: subMap.get(artRow.id) || [],
@@ -2391,7 +2399,7 @@ class BackendDB {
       }
     } else {
       // Local Store Fallback
-      const storeEditions = this.localStore.dynamicCurrentAffairEditions || [];
+      const storeEditions = (this.localStore.dynamicCurrentAffairEditions || []).filter(ed => ed && (ed.id || ed.publishDate));
       if (includeDrafts) {
         resultEditions = storeEditions;
       } else {
@@ -2443,25 +2451,39 @@ class BackendDB {
           await conn.beginTransaction();
           
           // 1. Resolve exact edition ID to ensure foreign key constraint integrity
+          const edSummary = edition.summary || edition.summary_hi || null;
+          const edTitleHi = edition.title_hi || edition.title || null;
+          const edSummaryHi = edition.summary_hi || edition.summary || null;
+          const edPublishTarget = edition.publish_target || 'both';
+
           const [existingEd]: any = await conn.query('SELECT id FROM current_affair_editions WHERE publishDate = ? OR id = ?', [edDate, edId || '']);
           if (existingEd && existingEd.length > 0) {
             edId = existingEd[0].id;
             await conn.query(
-              'UPDATE current_affair_editions SET summary = ?, updatedAt = ? WHERE id = ?',
-              [edition.summary ?? null, timestamp, edId]
+              'UPDATE current_affair_editions SET summary = ?, title_hi = ?, summary_hi = ?, publish_target = ?, updatedAt = ? WHERE id = ?',
+              [edSummary, edTitleHi, edSummaryHi, edPublishTarget, timestamp, edId]
             );
           } else {
             edId = edId || `edition-${Date.now()}`;
             await conn.query(
-              'INSERT INTO current_affair_editions (id, publishDate, summary, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)',
-              [edId, edDate, edition.summary ?? null, timestamp, timestamp]
+              'INSERT INTO current_affair_editions (id, publishDate, summary, title_hi, summary_hi, publish_target, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+              [edId, edDate, edSummary, edTitleHi, edSummaryHi, edPublishTarget, timestamp, timestamp]
             );
           }
           
           if (edition.articles) {
             for (const art of edition.articles) {
               const artId = art.id || `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-              const cleanTitleSlug = (art.title || '')
+              const finalTitle = (art.title || art.title_hi || 'Current Affairs Article').trim();
+              const finalSummary = (art.summary || art.summary_hi || '').trim();
+              const finalContent = art.content || art.content_hi || null;
+              const finalTitleHi = (art.title_hi || art.title || finalTitle).trim();
+              const finalSummaryHi = (art.summary_hi || art.summary || finalSummary).trim();
+              const finalContentHi = art.content_hi || art.content || null;
+              const finalPublishTarget = art.publish_target || edPublishTarget || 'both';
+              const finalLanguage = art.language || (art.title_hi && !art.title ? 'hi' : 'en');
+
+              const cleanTitleSlug = (finalTitle || '')
                 .trim()
                 .toLowerCase()
                 .replace(/[^\p{L}\p{N}\s-]/gu, '')
@@ -2485,19 +2507,19 @@ class BackendDB {
                 `INSERT INTO current_affair_articles (
                   id, slug, title, summary, category, publishStatus, publishedDate, readingTime, importance,
                   whyInNews, context, background, keyHighlights, importantFacts, examRelevance, previousContext, wayForward, keyTakeaways,
-                  editionId, seoId, content, createdAt, updatedAt
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  editionId, seoId, content, title_hi, summary_hi, content_hi, publish_target, language, createdAt, updatedAt
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                   slug = ?, title = ?, summary = ?, category = ?, publishStatus = ?, publishedDate = ?, readingTime = ?, importance = ?,
                   whyInNews = ?, context = ?, background = ?, keyHighlights = ?, importantFacts = ?, examRelevance = ?, previousContext = ?, wayForward = ?, keyTakeaways = ?,
-                  seoId = ?, content = ?, updatedAt = ?`,
+                  seoId = ?, content = ?, title_hi = ?, summary_hi = ?, content_hi = ?, publish_target = ?, language = ?, updatedAt = ?`,
                 [
-                  artId, artSlug, art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
+                  artId, artSlug, finalTitle, finalSummary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
                   art.whyInNews ?? null, art.context ?? null, art.background ?? null, art.keyHighlights ?? null, art.importantFacts ?? null, art.examRelevance ?? null, art.previousContext ?? null, art.wayForward ?? null, art.keyTakeaways ?? null,
-                  edId, seoId, art.content ?? null, timestamp, timestamp,
-                  artSlug, art.title, art.summary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
+                  edId, seoId, finalContent, finalTitleHi, finalSummaryHi, finalContentHi, finalPublishTarget, finalLanguage, timestamp, timestamp,
+                  artSlug, finalTitle, finalSummary, art.category, art.publishStatus, art.publishedDate || edDate, art.readingTime, art.importance,
                   art.whyInNews ?? null, art.context ?? null, art.background ?? null, art.keyHighlights ?? null, art.importantFacts ?? null, art.examRelevance ?? null, art.previousContext ?? null, art.wayForward ?? null, art.keyTakeaways ?? null,
-                  seoId, art.content ?? null, timestamp
+                  seoId, finalContent, finalTitleHi, finalSummaryHi, finalContentHi, finalPublishTarget, finalLanguage, timestamp
                 ]
               );
               
@@ -2573,7 +2595,16 @@ class BackendDB {
     
     const newArticles = (edition.articles || []).map(art => {
       const artId = art.id || `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
-      const cleanTitleSlug = (art.title || '')
+      const finalTitle = (art.title || art.title_hi || 'Current Affairs Article').trim();
+      const finalSummary = (art.summary || art.summary_hi || '').trim();
+      const finalContent = art.content || art.content_hi || null;
+      const finalTitleHi = (art.title_hi || art.title || finalTitle).trim();
+      const finalSummaryHi = (art.summary_hi || art.summary || finalSummary).trim();
+      const finalContentHi = art.content_hi || art.content || null;
+      const finalPublishTarget = art.publish_target || edition.publish_target || 'both';
+      const finalLanguage = art.language || (art.title_hi && !art.title ? 'hi' : 'en');
+
+      const cleanTitleSlug = (finalTitle || '')
         .trim()
         .toLowerCase()
         .replace(/[^\p{L}\p{N}\s-]/gu, '')
@@ -2585,6 +2616,14 @@ class BackendDB {
         ...art,
         id: artId,
         slug: artSlug,
+        title: finalTitle,
+        summary: finalSummary,
+        content: finalContent,
+        title_hi: finalTitleHi,
+        summary_hi: finalSummaryHi,
+        content_hi: finalContentHi,
+        publish_target: finalPublishTarget,
+        language: finalLanguage,
         editionId: edId,
         createdAt: art.createdAt || timestamp,
         updatedAt: timestamp
@@ -2595,6 +2634,10 @@ class BackendDB {
       ...edition,
       id: edId,
       publishDate: edDate,
+      summary: edition.summary || edition.summary_hi || null,
+      title_hi: edition.title_hi || edition.title || null,
+      summary_hi: edition.summary_hi || edition.summary || null,
+      publish_target: edition.publish_target || 'both',
       articles: newArticles,
       createdAt: edition.createdAt || timestamp,
       updatedAt: timestamp
@@ -5337,8 +5380,10 @@ class LmsDB {
   async createQuiz(data: any): Promise<any> {
     const { v4: uuid } = await import('uuid');
     const id = data.id || `quiz-${Date.now()}`;
+    const slug = data.slug || (data.title ? data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : null);
     const quiz = {
       id,
+      slug,
       courseId: data.courseId,
       lessonId: data.lessonId || null,
       title: data.title,
@@ -5444,21 +5489,21 @@ class LmsDB {
     return true;
   }
 
-  async getQuizById(id: string): Promise<any | null> {
+  async getQuizById(idOrSlug: string): Promise<any | null> {
     if (mysqlPool) {
       try {
-        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quizzes WHERE id = ? LIMIT 1', [id]);
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quizzes WHERE id = ? OR slug = ? LIMIT 1', [idOrSlug, idOrSlug]);
         if (rows && rows.length > 0) return rows[0];
       } catch (err) { console.error('[LmsDB] getQuizById MySQL error:', err); }
     }
-    const foundLocal = lmsLocalQuizzes.find(q => q.id === id);
+    const foundLocal = lmsLocalQuizzes.find(q => q.id === idOrSlug || q.slug === idOrSlug);
     if (foundLocal) return foundLocal;
 
     // Search inside testSeries localStore if stored locally
     const allTS = (db.localStore as any)?.testSeries || [];
     for (const ts of allTS) {
       if (ts.quizzes && Array.isArray(ts.quizzes)) {
-        const match = ts.quizzes.find((q: any) => q.id === id);
+        const match = ts.quizzes.find((q: any) => q.id === idOrSlug || q.slug === idOrSlug);
         if (match) return match;
       }
     }
@@ -6236,6 +6281,7 @@ class LmsDB {
           CREATE TABLE IF NOT EXISTS daily_quizzes (
             id VARCHAR(100) PRIMARY KEY,
             title VARCHAR(255) NOT NULL,
+            slug VARCHAR(255),
             description TEXT,
             publishDate VARCHAR(20) NOT NULL,
             timeLimitMins INT DEFAULT 10,
@@ -6253,7 +6299,7 @@ class LmsDB {
         `);
 
         try {
-          await mysqlPool.query('ALTER TABLE daily_quizzes ADD COLUMN IF NOT EXISTS title_hi TEXT, ADD COLUMN IF NOT EXISTS description_hi TEXT');
+          await mysqlPool.query('ALTER TABLE daily_quizzes ADD COLUMN IF NOT EXISTS slug VARCHAR(255), ADD COLUMN IF NOT EXISTS title_hi TEXT, ADD COLUMN IF NOT EXISTS description_hi TEXT');
         } catch (_) {}
 
         await mysqlPool.query(`
@@ -6265,13 +6311,16 @@ class LmsDB {
             optionB TEXT NOT NULL,
             optionC TEXT NOT NULL,
             optionD TEXT NOT NULL,
-            correctAnswer ENUM('A','B','C','D') NOT NULL,
+            optionE TEXT,
+            correctAnswer VARCHAR(10) NOT NULL,
             explanation TEXT,
             questionTextHi TEXT,
             optionAHi TEXT,
             optionBHi TEXT,
             optionCHi TEXT,
             optionDHi TEXT,
+            optionEHi TEXT,
+            questionImageUrl TEXT,
             explanationHi TEXT,
             marks FLOAT DEFAULT 1.0,
             negativeMarks FLOAT DEFAULT 0.33,
@@ -6281,7 +6330,10 @@ class LmsDB {
         `);
 
         try {
-          await mysqlPool.query('ALTER TABLE daily_quiz_questions ADD COLUMN questionTextHi TEXT, ADD COLUMN optionAHi TEXT, ADD COLUMN optionBHi TEXT, ADD COLUMN optionCHi TEXT, ADD COLUMN optionDHi TEXT, ADD COLUMN explanationHi TEXT');
+          await mysqlPool.query('ALTER TABLE daily_quiz_questions MODIFY COLUMN correctAnswer VARCHAR(10) NOT NULL');
+        } catch (_) {}
+        try {
+          await mysqlPool.query('ALTER TABLE daily_quiz_questions ADD COLUMN optionE TEXT, ADD COLUMN optionEHi TEXT, ADD COLUMN questionImageUrl TEXT, ADD COLUMN questionTextHi TEXT, ADD COLUMN optionAHi TEXT, ADD COLUMN optionBHi TEXT, ADD COLUMN optionCHi TEXT, ADD COLUMN optionDHi TEXT, ADD COLUMN explanationHi TEXT');
         } catch (_) {}
       } catch (err) {
         console.error('[LmsDB] initDailyQuizTables MySQL error:', err);
@@ -6309,16 +6361,20 @@ class LmsDB {
     return store;
   }
 
-  public async getDailyQuizById(id: string): Promise<any | null> {
+  public async getDailyQuizById(idOrSlug: string): Promise<any | null> {
     const list = await this.getAllDailyQuizzes();
-    return list.find((q: any) => q.id === id) || null;
+    return list.find((q: any) => q.id === idOrSlug || q.slug === idOrSlug) || null;
   }
 
   public async saveDailyQuiz(quiz: any): Promise<any> {
     await this.initDailyQuizTables();
     const id = quiz.id || `dq-${Date.now()}`;
+    const generatedSlug = (quiz.slug && quiz.slug.trim()) 
+      ? quiz.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+      : ((quiz.title || 'daily-quiz').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + (quiz.publishDate || new Date().toISOString().split('T')[0]));
     const record = {
       id,
+      slug: generatedSlug,
       title: quiz.title || 'Daily Practice Quiz',
       description: quiz.description || '',
       publishDate: quiz.publishDate || new Date().toISOString().split('T')[0],
@@ -6336,9 +6392,10 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO daily_quizzes (id, title, description, publishDate, timeLimitMins, totalQuestions, difficulty, category, attemptsCount, passingScore, isFree, title_hi, description_hi)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO daily_quizzes (id, slug, title, description, publishDate, timeLimitMins, totalQuestions, difficulty, category, attemptsCount, passingScore, isFree, title_hi, description_hi)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
+             slug = VALUES(slug),
              title = VALUES(title),
              description = VALUES(description),
              publishDate = VALUES(publishDate),
@@ -6351,7 +6408,7 @@ class LmsDB {
              isFree = VALUES(isFree),
              title_hi = VALUES(title_hi),
              description_hi = VALUES(description_hi)`,
-          [record.id, record.title, record.description, record.publishDate, record.timeLimitMins, record.totalQuestions, record.difficulty, record.category, record.attemptsCount, record.passingScore, record.isFree, record.title_hi, record.description_hi]
+          [record.id, record.slug, record.title, record.description, record.publishDate, record.timeLimitMins, record.totalQuestions, record.difficulty, record.category, record.attemptsCount, record.passingScore, record.isFree, record.title_hi, record.description_hi]
         );
       } catch (err) {
         console.error('[LmsDB] saveDailyQuiz MySQL error:', err);
@@ -6408,7 +6465,7 @@ class LmsDB {
 
   public async saveDailyQuizQuestion(quizId: string, q: any): Promise<any> {
     await this.initDailyQuizTables();
-    const id = q.id || `q-${Date.now()}`;
+    const id = q.id || `q-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const question = {
       id,
       quizId,
@@ -6417,13 +6474,16 @@ class LmsDB {
       optionB: q.optionB || '',
       optionC: q.optionC || '',
       optionD: q.optionD || '',
-      correctAnswer: q.correctAnswer || null,
+      optionE: q.optionE || null,
+      correctAnswer: q.correctAnswer || 'A',
       explanation: q.explanation || '',
       questionTextHi: q.questionTextHi || null,
       optionAHi: q.optionAHi || null,
       optionBHi: q.optionBHi || null,
       optionCHi: q.optionCHi || null,
       optionDHi: q.optionDHi || null,
+      optionEHi: q.optionEHi || null,
+      questionImageUrl: q.questionImageUrl || q.imageUrl || null,
       explanationHi: q.explanationHi || null,
       marks: Number(q.marks || 1.0),
       negativeMarks: Number(q.negativeMarks || 0.33)
@@ -6432,14 +6492,15 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO daily_quiz_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, correctAnswer, explanation, questionTextHi, optionAHi, optionBHi, optionCHi, optionDHi, explanationHi, marks, negativeMarks)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO daily_quiz_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, optionE, correctAnswer, explanation, questionTextHi, optionAHi, optionBHi, optionCHi, optionDHi, optionEHi, questionImageUrl, explanationHi, marks, negativeMarks)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
              questionText = VALUES(questionText),
              optionA = VALUES(optionA),
              optionB = VALUES(optionB),
              optionC = VALUES(optionC),
              optionD = VALUES(optionD),
+             optionE = VALUES(optionE),
              correctAnswer = VALUES(correctAnswer),
              explanation = VALUES(explanation),
              questionTextHi = VALUES(questionTextHi),
@@ -6447,10 +6508,17 @@ class LmsDB {
              optionBHi = VALUES(optionBHi),
              optionCHi = VALUES(optionCHi),
              optionDHi = VALUES(optionDHi),
+             optionEHi = VALUES(optionEHi),
+             questionImageUrl = VALUES(questionImageUrl),
              explanationHi = VALUES(explanationHi),
              marks = VALUES(marks),
              negativeMarks = VALUES(negativeMarks)`,
-          [question.id, question.quizId, question.questionText, question.optionA, question.optionB, question.optionC, question.optionD, question.correctAnswer, question.explanation, question.questionTextHi, question.optionAHi, question.optionBHi, question.optionCHi, question.optionDHi, question.explanationHi, question.marks, question.negativeMarks]
+          [
+            question.id, question.quizId, question.questionText, question.optionA, question.optionB,
+            question.optionC, question.optionD, question.optionE, question.correctAnswer, question.explanation,
+            question.questionTextHi, question.optionAHi, question.optionBHi, question.optionCHi, question.optionDHi,
+            question.optionEHi, question.questionImageUrl, question.explanationHi, question.marks, question.negativeMarks
+          ]
         );
       } catch (err) {
         console.error('[LmsDB] saveDailyQuizQuestion MySQL error:', err);
@@ -6470,6 +6538,26 @@ class LmsDB {
     }
     db.saveLocalData();
     return question;
+  }
+
+  public async saveDailyQuizQuestionsBulk(quizId: string, questions: any[]): Promise<any[]> {
+    await this.initDailyQuizTables();
+    const savedList: any[] = [];
+    for (const q of questions) {
+      const saved = await this.saveDailyQuizQuestion(quizId, q);
+      savedList.push(saved);
+    }
+
+    // Update totalQuestions count on the quiz if needed
+    try {
+      const allQs = await this.getDailyQuizQuestions(quizId);
+      const quiz = await this.getDailyQuizById(quizId);
+      if (quiz && allQs.length > 0) {
+        await this.saveDailyQuiz({ ...quiz, totalQuestions: allQs.length });
+      }
+    } catch (_) {}
+
+    return savedList;
   }
 
   public async deleteDailyQuizQuestion(quizId: string, qId: string): Promise<boolean> {
