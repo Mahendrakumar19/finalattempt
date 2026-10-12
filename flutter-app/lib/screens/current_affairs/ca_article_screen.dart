@@ -367,6 +367,20 @@ class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
         ),
         actions: [
+          // Index / Table of Contents Icon button in AppBar
+          articleAsync.maybeWhen(
+            data: (article) {
+              if (article == null) return const SizedBox.shrink();
+              final sections = _buildSections(article);
+              return IconButton(
+                tooltip: 'Table of Contents (Index)',
+                icon: const Icon(Icons.list_alt_rounded, size: 22),
+                color: AppColors.primaryOf(context),
+                onPressed: () => _showTableOfContentsModal(context, article, sections),
+              );
+            },
+            orElse: () => const SizedBox.shrink(),
+          ),
           // Language Switcher (ENG / हिंदी)
           Container(
             margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),

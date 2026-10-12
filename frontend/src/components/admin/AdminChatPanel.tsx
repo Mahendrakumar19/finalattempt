@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
   Send, MessageSquare, ShieldAlert, User, RefreshCw,
-  Search, Trash2, Edit2, Ban, Check, X
+  Search, Trash2, Edit2, Ban, Check, X,
+  Paperclip, FileText, Download, Loader2
 } from 'lucide-react';
 import { getAdminChatRooms, getChatMessages } from '@/services/auth';
 
@@ -22,9 +23,11 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
   const [error, setError] = useState('');
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const [editingMsg, setEditingMsg] = useState<{ id: string; text: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const getBackendUrl = () => {
     if (process.env.NEXT_PUBLIC_BACKEND_URL) {
@@ -207,6 +210,70 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
 
     socketRef.current.emit('send_message', payload);
     setInputMessage('');
+  };
+
+  const isImageFile = (url?: string, name?: string) => {
+    const target = (url || name || '').toLowerCase();
+    return target.endsWith('.png') || target.endsWith('.jpg') || target.endsWith('.jpeg') || target.endsWith('.webp') || target.endsWith('.gif') || target.endsWith('.svg');
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !socketRef.current || !activeRoom) return;
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch(`${BACKEND_URL}/api/upload`, {
+        method: 'POST',
+        headers: adminToken ? { 'Authorization': `Bearer ${adminToken}` } : undefined,
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || 'Failed to upload attachment');
+        return;
+      }
+
+      const fileUrl = data.url || data.cdnUrl;
+      const fileName = file.name;
+      const text = inputMessage.trim() || fileName;
+
+      const payload = {
+        roomId: activeRoom.id,
+        senderId: 'admin-master-user',
+        senderName: 'Admin Support',
+        senderRole: 'admin',
+        messageText: text,
+        fileUrl,
+        fileName,
+      };
+
+      const optimisticMsg = {
+        id: `admin-temp-${Date.now()}`,
+        roomId: activeRoom.id,
+        senderId: 'admin-master-user',
+        fullName: 'Admin Support',
+        role: 'admin',
+        messageText: text,
+        fileUrl,
+        fileName,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, optimisticMsg]);
+
+      socketRef.current.emit('send_message', payload);
+      setInputMessage('');
+    } catch (err: any) {
+      console.error('Admin file upload failed:', err);
+      alert('Network error while uploading attachment');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   // Edit Message
@@ -504,7 +571,36 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
                                   ? 'bg-amber-500 text-slate-950 font-bold rounded-tr-none shadow-sm'
                                   : 'bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] rounded-tl-none shadow-xs'
                               }`}>
-                                {msg.messageText}
+                                {msg.messageText && msg.messageText !== msg.fileName && (
+                                  <p className={msg.fileUrl ? "mb-2" : ""}>{msg.messageText}</p>
+                                )}
+                                {msg.fileUrl && (
+                                  isImageFile(msg.fileUrl, msg.fileName) ? (
+                                    <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="block mt-1 overflow-hidden rounded-xl border border-black/10 dark:border-white/10 hover:opacity-95 transition-opacity max-w-xs">
+                                      <img src={msg.fileUrl} alt={msg.fileName || 'Attachment'} className="max-h-56 w-auto rounded-xl object-contain bg-black/5" />
+                                    </a>
+                                  ) : (
+                                    <a
+                                      href={msg.fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      download={msg.fileName || 'document'}
+                                      className={`mt-1.5 flex items-center gap-2.5 p-2 rounded-xl border no-underline transition-all ${
+                                        isAdmin
+                                          ? 'bg-black/10 hover:bg-black/15 text-slate-950 border-black/10'
+                                          : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-[var(--text-color)] border-[var(--card-border)]'
+                                      }`}
+                                    >
+                                      <FileText className="w-4 h-4 shrink-0 opacity-80" />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="truncate font-bold text-xs">{msg.fileName || 'Attachment'}</p>
+                                        <span className="text-[10px] opacity-75">Click to view / download</span>
+                                      </div>
+                                      <Download className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                                    </a>
+                                  )
+                                )}
+                                {!msg.fileUrl && (!msg.messageText || msg.messageText === msg.fileName) && msg.messageText}
                               </div>
 
                               {/* Hover Edit/Delete Action Controls */}
@@ -539,17 +635,35 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
               </div>
 
               {/* Reply Input Bar */}
-              <form onSubmit={handleSendMessage} className="p-3 border-t border-[var(--card-border)] bg-[var(--card-bg)] flex gap-2 shrink-0">
+              <form onSubmit={handleSendMessage} className="p-3 border-t border-[var(--card-border)] bg-[var(--card-bg)] flex items-center gap-2 shrink-0">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+                />
+                <button
+                  type="button"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--bg-color)] hover:bg-amber-500/10 text-slate-400 hover:text-amber-500 transition-all shrink-0 flex items-center justify-center cursor-pointer disabled:opacity-50"
+                  title="Attach file, photo or document"
+                >
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin text-amber-500" /> : <Paperclip className="w-4 h-4" />}
+                </button>
                 <input
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder={`Reply to ${activeRoom.studentName || 'student'}...`}
+                  disabled={uploading}
+                  placeholder={uploading ? "Uploading attachment..." : `Reply to ${activeRoom.studentName || 'student'}...`}
                   className="flex-1 bg-[var(--bg-color)] border border-[var(--card-border)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-color)] placeholder:text-slate-400 outline-none focus:border-amber-500/50"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs transition-all shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer"
+                  disabled={uploading || (!inputMessage.trim())}
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold rounded-xl text-xs transition-all shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
                   <span>Send</span>

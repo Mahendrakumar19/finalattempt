@@ -71,6 +71,18 @@ class ApiService {
     }
   }
 
+  Future<dynamic> uploadFile(String path, List<int> bytes, String filename) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(bytes, filename: filename),
+      });
+      final res = await _dio.post(path, data: formData);
+      return res.data;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   String _handleError(DioException e) {
     if (e.response?.statusCode == 401) {
       return 'Session expired. Please log in again.';

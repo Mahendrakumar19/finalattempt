@@ -76,7 +76,7 @@ class StudentDashboardScreen extends ConsumerWidget {
                 const SizedBox(width: 12),
                 _StatCard(icon: Icons.check_circle_rounded, label: 'Progress', value: '$totalProgress%', color: AppTheme.success),
                 const SizedBox(width: 12),
-                _StatCard(icon: Icons.emoji_events_rounded, label: 'Quizzes', value: '—', color: AppTheme.warning),
+                const _StatCard(icon: Icons.emoji_events_rounded, label: 'Quizzes', value: '—', color: AppTheme.warning),
               ],
             ),
 

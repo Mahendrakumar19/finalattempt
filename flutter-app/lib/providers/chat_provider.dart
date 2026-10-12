@@ -201,9 +201,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
     });
   }
 
-  void sendMessage(String text) {
+  void sendMessage(String text, {String? fileUrl, String? fileName}) {
     final room = state.room;
-    if (room == null || text.trim().isEmpty || state.isBlocked) return;
+    if (room == null || (text.trim().isEmpty && fileUrl == null) || state.isBlocked) return;
 
     final senderId = _authState.userId ?? 'guest-user';
     final senderName = _authState.userName ?? _authState.userEmail ?? 'Student';
@@ -216,6 +216,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
       'senderName': senderName,
       'senderRole': senderRole,
       'messageText': messageText,
+      if (fileUrl != null) 'fileUrl': fileUrl,
+      if (fileName != null) 'fileName': fileName,
     };
 
     // Optimistic UI update
@@ -227,11 +229,24 @@ class ChatNotifier extends StateNotifier<ChatState> {
       role: senderRole,
       messageText: messageText,
       createdAt: DateTime.now().toIso8601String(),
+      fileUrl: fileUrl,
+      fileName: fileName,
     );
 
     state = state.copyWith(messages: [...state.messages, optimisticMsg]);
 
     _socket?.emit('send_message', payload);
+  }
+
+  Future<bool> sendFile(List<int> bytes, String fileName, {String? caption}) async {
+    try {
+      final fileUrl = await _chatService.uploadAttachment(bytes, fileName);
+      if (fileUrl != null) {
+        sendMessage(caption ?? fileName, fileUrl: fileUrl, fileName: fileName);
+        return true;
+      }
+    } catch (_) {}
+    return false;
   }
 
   Future<void> editMessage(String messageId, String newText) async {

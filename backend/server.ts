@@ -973,8 +973,8 @@ io.on('connection', (socket) => {
   });
 
   // Real-time message exchange and database persistence
-  socket.on('send_message', async (data: { roomId: string; senderId: string; messageText: string; senderName?: string; senderRole?: string }) => {
-    const { roomId, senderId, messageText, senderName, senderRole } = data;
+  socket.on('send_message', async (data: { roomId: string; senderId: string; messageText: string; senderName?: string; senderRole?: string; fileUrl?: string; fileName?: string }) => {
+    const { roomId, senderId, messageText, senderName, senderRole, fileUrl, fileName } = data;
     try {
       // Check if student sender is blocked
       const isBlocked = await lmsDB.isUserBlocked(senderId);
@@ -984,7 +984,7 @@ io.on('connection', (socket) => {
       }
 
       // Save message to database and retrieve full payload (joins details)
-      const savedMsg = await lmsDB.saveChatMessage(roomId, senderId, messageText, senderName, senderRole);
+      const savedMsg = await lmsDB.saveChatMessage(roomId, senderId, messageText, senderName, senderRole, fileUrl, fileName);
       if (!savedMsg) return;
       // Dispatch in real-time to everyone in the room
       io.to(roomId).emit('new_message', savedMsg);

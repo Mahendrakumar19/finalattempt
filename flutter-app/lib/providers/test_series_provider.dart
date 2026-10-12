@@ -253,9 +253,7 @@ class TestPlayerNotifier extends StateNotifier<TestPlayerState> {
         resultSummary: summary,
         questions: updatedQuestions,
       );
-    } catch (err) {
-      // Handle error gracefully or rely on UI to catch it
-      print('Failed to submit test: $err');
+    } catch (_) {
       // For fallback, we just mark it submitted with 0s if offline submission completely failed
       state = state.copyWith(
         isSubmitted: true,

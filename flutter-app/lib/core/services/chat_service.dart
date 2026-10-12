@@ -16,6 +16,8 @@ class ChatMessageModel {
   final String messageText;
   final String createdAt;
   final bool isEdited;
+  final String? fileUrl;
+  final String? fileName;
 
   ChatMessageModel({
     required this.id,
@@ -26,6 +28,8 @@ class ChatMessageModel {
     required this.messageText,
     required this.createdAt,
     this.isEdited = false,
+    this.fileUrl,
+    this.fileName,
   });
 
   factory ChatMessageModel.fromJson(Map<String, dynamic> json) {
@@ -38,6 +42,8 @@ class ChatMessageModel {
       messageText: json['messageText'] ?? '',
       createdAt: json['createdAt'] ?? DateTime.now().toIso8601String(),
       isEdited: json['isEdited'] == true,
+      fileUrl: json['fileUrl']?.toString(),
+      fileName: json['fileName']?.toString(),
     );
   }
 
@@ -51,6 +57,8 @@ class ChatMessageModel {
       'messageText': messageText,
       'createdAt': createdAt,
       'isEdited': isEdited,
+      'fileUrl': fileUrl,
+      'fileName': fileName,
     };
   }
 }
@@ -148,5 +156,16 @@ class ChatService {
     } catch (_) {
       return false;
     }
+  }
+
+  /// Upload file attachment for chat (image/document/pdf)
+  Future<String?> uploadAttachment(List<int> bytes, String filename) async {
+    try {
+      final res = await _api.uploadFile('/upload', bytes, filename);
+      if (res is Map && res['success'] == true) {
+        return res['url']?.toString() ?? res['cdnUrl']?.toString();
+      }
+    } catch (_) {}
+    return null;
   }
 }

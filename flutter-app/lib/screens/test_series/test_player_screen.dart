@@ -388,7 +388,7 @@ class TestPlayerScreen extends ConsumerWidget {
                                 fontSize: FontSize(15.5),
                                 fontWeight: FontWeight.w600,
                                 color: textPrimary,
-                                lineHeight: LineHeight(1.5),
+                                lineHeight: const LineHeight(1.5),
                                 margin: Margins.zero,
                                 padding: HtmlPaddings.zero,
                               ),
@@ -400,7 +400,7 @@ class TestPlayerScreen extends ConsumerWidget {
                     const SizedBox(height: 20),
 
                     // Section Heading
-                    Text(
+                    const Text(
                       'Select Choice:',
                       style: TextStyle(
                         fontSize: 13,

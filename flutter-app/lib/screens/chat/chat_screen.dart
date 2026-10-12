@@ -1,6 +1,11 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher_string.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/chat_provider.dart';
 import '../../core/services/chat_service.dart';
@@ -18,6 +23,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   String? _editingMsgId;
+  bool _isUploading = false;
 
   @override
   void dispose() {
@@ -33,6 +39,67 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
       );
+    }
+  }
+
+  Future<void> _pickAndSendFile() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'doc', 'docx', 'txt', 'zip'],
+        withData: true,
+      );
+
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.first;
+      final fileName = file.name;
+      List<int>? bytes = file.bytes;
+
+      if (bytes == null && file.path != null && !kIsWeb) {
+        bytes = await File(file.path!).readAsBytes();
+      }
+
+      if (bytes == null || bytes.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not read file data')),
+          );
+        }
+        return;
+      }
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      final success = await ref.read(chatProvider.notifier).sendFile(
+        bytes,
+        fileName,
+        caption: _inputController.text.trim().isNotEmpty ? _inputController.text.trim() : null,
+      );
+
+      if (mounted) {
+        if (success) {
+          _inputController.clear();
+          Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to upload file. Please try again.')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error selecting file: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
     }
   }
 
@@ -275,6 +342,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
                 child: Row(
                   children: [
+                    InkWell(
+                      onTap: (_isUploading || chatState.isBlocked) ? null : _pickAndSendFile,
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDark
+                              ? const Color(0xFF1E293B).withValues(alpha: 0.80)
+                              : const Color(0xFFF1F5F9),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.12)
+                                : Colors.black.withValues(alpha: 0.06),
+                          ),
+                        ),
+                        child: _isUploading
+                            ? const Padding(
+                                padding: EdgeInsets.all(11),
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Icon(
+                                Icons.attach_file_rounded,
+                                size: 20,
+                                color: primaryCol,
+                              ),
+                      ),
+                    ),
                     Expanded(
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -291,12 +388,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ),
                         child: TextField(
                           controller: _inputController,
-                          enabled: !chatState.isBlocked,
+                          enabled: !chatState.isBlocked && !_isUploading,
                           textInputAction: TextInputAction.send,
                           onSubmitted: (_) => _handleSend(),
                           style: TextStyle(fontSize: 14, color: textPrimary),
                           decoration: InputDecoration(
-                            hintText: chatState.isBlocked ? 'Sending disabled' : 'Type your doubt or query...',
+                            hintText: chatState.isBlocked
+                                ? 'Sending disabled'
+                                : _isUploading
+                                    ? 'Uploading attachment...'
+                                    : 'Type your doubt or query...',
                             hintStyle: TextStyle(fontSize: 13, color: AppTheme.textMutedOf(context)),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(vertical: 11),
@@ -306,7 +407,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                     const SizedBox(width: 10),
                     InkWell(
-                      onTap: chatState.isBlocked ? null : _handleSend,
+                      onTap: (chatState.isBlocked || _isUploading) ? null : _handleSend,
                       borderRadius: BorderRadius.circular(24),
                       child: Container(
                         width: 44,
@@ -353,11 +454,25 @@ class _ChatMessageBubble extends StatelessWidget {
     required this.onDelete,
   });
 
+  bool _isImageFile(String? url, String? name) {
+    final target = (url ?? name ?? '').toLowerCase();
+    return target.endsWith('.png') ||
+        target.endsWith('.jpg') ||
+        target.endsWith('.jpeg') ||
+        target.endsWith('.webp') ||
+        target.endsWith('.gif');
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryCol = AppTheme.primaryOf(context);
     final borderCol = AppTheme.borderOf(context);
+    final textPrimary = AppTheme.textPrimaryOf(context);
+
+    final hasFile = msg.fileUrl != null && msg.fileUrl!.isNotEmpty;
+    final isImage = hasFile && _isImageFile(msg.fileUrl, msg.fileName);
+    final showText = msg.messageText.isNotEmpty && msg.messageText != msg.fileName;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -434,16 +549,129 @@ class _ChatMessageBubble extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          msg.messageText,
-                          style: TextStyle(
-                            fontSize: 13,
-                            height: 1.3,
-                            color: isSelf
-                                ? (isDark ? Colors.black : Colors.white)
-                                : AppTheme.textPrimaryOf(context),
+                        if (showText)
+                          Padding(
+                            padding: EdgeInsets.only(bottom: hasFile ? 8 : 0),
+                            child: Text(
+                              msg.messageText,
+                              style: TextStyle(
+                                fontSize: 13,
+                                height: 1.3,
+                                color: isSelf
+                                    ? (isDark ? Colors.black : Colors.white)
+                                    : AppTheme.textPrimaryOf(context),
+                              ),
+                            ),
                           ),
-                        ),
+                        if (hasFile && isImage)
+                          GestureDetector(
+                            onTap: () async {
+                              if (await canLaunchUrlString(msg.fileUrl!)) {
+                                await launchUrlString(msg.fileUrl!, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: CachedNetworkImage(
+                                imageUrl: msg.fileUrl!,
+                                height: 200,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  height: 120,
+                                  color: Colors.black12,
+                                  child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                                ),
+                                errorWidget: (context, url, err) => Container(
+                                  padding: const EdgeInsets.all(12),
+                                  color: Colors.black12,
+                                  child: const Icon(Icons.broken_image_rounded),
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (hasFile && !isImage)
+                          InkWell(
+                            onTap: () async {
+                              if (await canLaunchUrlString(msg.fileUrl!)) {
+                                await launchUrlString(msg.fileUrl!, mode: LaunchMode.externalApplication);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isSelf
+                                    ? (isDark ? Colors.black.withValues(alpha: 0.15) : Colors.white.withValues(alpha: 0.20))
+                                    : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSelf
+                                      ? (isDark ? Colors.black26 : Colors.white24)
+                                      : borderCol,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.insert_drive_file_rounded,
+                                    size: 22,
+                                    color: isSelf
+                                        ? (isDark ? Colors.black87 : Colors.white)
+                                        : primaryCol,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          msg.fileName ?? 'Attachment',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: isSelf
+                                                ? (isDark ? Colors.black : Colors.white)
+                                                : textPrimary,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Tap to open file',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: isSelf
+                                                ? (isDark ? Colors.black54 : Colors.white70)
+                                                : AppTheme.textMutedOf(context),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.download_rounded,
+                                    size: 16,
+                                    color: isSelf
+                                        ? (isDark ? Colors.black87 : Colors.white)
+                                        : primaryCol,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (!showText && !hasFile)
+                          Text(
+                            msg.messageText,
+                            style: TextStyle(
+                              fontSize: 13,
+                              height: 1.3,
+                              color: isSelf
+                                  ? (isDark ? Colors.black : Colors.white)
+                                  : AppTheme.textPrimaryOf(context),
+                            ),
+                          ),
                         if (msg.isEdited)
                           Padding(
                             padding: const EdgeInsets.only(top: 2),

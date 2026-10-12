@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
   Send, MessageSquare, ShieldAlert, Sparkles, Hash, Volume2,
-  ShieldCheck, UserCheck, Edit2, Trash2, Ban, Check, X, AlertTriangle
+  ShieldCheck, UserCheck, Edit2, Trash2, Ban, Check, X, AlertTriangle,
+  Paperclip, FileText, Download, Loader2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
@@ -35,9 +36,11 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
   const [error, setError] = useState('');
   const [isBlocked, setIsBlocked] = useState(false);
   const [editingMsg, setEditingMsg] = useState<{ id: string; text: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const socketRef = useRef<Socket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const getBackendUrl = () => {
     if (process.env.NEXT_PUBLIC_BACKEND_URL) {
@@ -207,6 +210,73 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
 
     socketRef.current.emit('send_message', payload);
     setInputMessage('');
+  };
+
+  const isImageFile = (url?: string, name?: string) => {
+    const target = (url || name || '').toLowerCase();
+    return target.endsWith('.png') || target.endsWith('.jpg') || target.endsWith('.jpeg') || target.endsWith('.webp') || target.endsWith('.gif') || target.endsWith('.svg');
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !socketRef.current || !activeRoom || isBlocked) return;
+
+    try {
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch(`${BACKEND_URL}/api/upload`, {
+        method: 'POST',
+        headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : undefined,
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        alert(data.error || 'Failed to upload attachment');
+        return;
+      }
+
+      const fileUrl = data.url || data.cdnUrl;
+      const fileName = file.name;
+      const senderId = user?.id || 'guest-student-user';
+      const senderName = user?.fullName || user?.email || 'Student';
+      const senderRole = user?.role || 'student';
+      const text = inputMessage.trim() || fileName;
+
+      const payload = {
+        roomId: activeRoom.id,
+        senderId,
+        senderName,
+        senderRole,
+        messageText: text,
+        fileUrl,
+        fileName,
+      };
+
+      const optimisticMsg = {
+        id: `temp-${Date.now()}`,
+        roomId: activeRoom.id,
+        senderId,
+        fullName: senderName,
+        role: senderRole,
+        messageText: text,
+        fileUrl,
+        fileName,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages(prev => [...prev, optimisticMsg]);
+
+      socketRef.current.emit('send_message', payload);
+      setInputMessage('');
+    } catch (err: any) {
+      console.error('File upload failed:', err);
+      alert('Network error while uploading attachment');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   // Student Edit Own Message
@@ -417,7 +487,36 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
                             ? 'bg-blue-600 text-white rounded-tr-none shadow-md shadow-blue-900/10'
                             : 'bg-[var(--card-bg)] border border-[var(--card-border)] text-[var(--text-color)] rounded-tl-none'
                         }`}>
-                          {msg.messageText}
+                          {msg.messageText && msg.messageText !== msg.fileName && (
+                            <p className={msg.fileUrl ? "mb-2" : ""}>{msg.messageText}</p>
+                          )}
+                          {msg.fileUrl && (
+                            isImageFile(msg.fileUrl, msg.fileName) ? (
+                              <a href={msg.fileUrl} target="_blank" rel="noopener noreferrer" className="block mt-1 overflow-hidden rounded-xl border border-white/20 hover:opacity-95 transition-opacity max-w-xs">
+                                <img src={msg.fileUrl} alt={msg.fileName || 'Attachment'} className="max-h-56 w-auto rounded-xl object-contain bg-black/10" />
+                              </a>
+                            ) : (
+                              <a
+                                href={msg.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download={msg.fileName || 'document'}
+                                className={`mt-1.5 flex items-center gap-2.5 p-2.5 rounded-xl border no-underline transition-all ${
+                                  isSelf
+                                    ? 'bg-white/15 hover:bg-white/20 text-white border-white/20'
+                                    : 'bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-[var(--text-color)] border-[var(--card-border)]'
+                                }`}
+                              >
+                                <FileText className="w-5 h-5 shrink-0 opacity-80" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="truncate font-bold text-xs">{msg.fileName || 'Attachment'}</p>
+                                  <span className="text-[10px] opacity-75">Click to view / download</span>
+                                </div>
+                                <Download className="w-4 h-4 shrink-0 opacity-80" />
+                              </a>
+                            )
+                          )}
+                          {!msg.fileUrl && (!msg.messageText || msg.messageText === msg.fileName) && msg.messageText}
                         </div>
 
                         {/* Hover Actions for Student's Own Messages */}
@@ -454,18 +553,34 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
         </div>
 
         {/* Input Bar */}
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-[var(--card-border)] bg-[var(--card-bg)] flex gap-2">
+        <form onSubmit={handleSendMessage} className="p-4 border-t border-[var(--card-border)] bg-[var(--card-bg)] flex items-center gap-2">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
+            accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt"
+          />
+          <button
+            type="button"
+            disabled={isBlocked || uploading}
+            onClick={() => fileInputRef.current?.click()}
+            className="p-3 rounded-xl border border-[var(--card-border)] bg-[var(--bg-color)] hover:bg-blue-500/10 text-slate-400 hover:text-blue-500 transition-all shrink-0 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Attach file, photo or PDF"
+          >
+            {uploading ? <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> : <Paperclip className="w-4 h-4" />}
+          </button>
           <input
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            disabled={isBlocked}
-            placeholder={isBlocked ? "Blocked" : t('common.search')}
+            disabled={isBlocked || uploading}
+            placeholder={isBlocked ? "Blocked" : uploading ? "Uploading attachment..." : "Type your doubt or question..."}
             className="flex-1 bg-[var(--bg-color)] border border-[var(--card-border)] rounded-xl px-4 py-3 text-xs text-[var(--text-color)] placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
-            disabled={isBlocked}
+            disabled={isBlocked || uploading || (!inputMessage.trim())}
             className="p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl transition-all shadow-md shrink-0 flex items-center justify-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" />

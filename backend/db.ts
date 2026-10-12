@@ -3836,11 +3836,14 @@ async function initializeAuthTables(pool: mysql.Pool) {
         roomId        VARCHAR(255) NOT NULL,
         senderId      VARCHAR(255) NOT NULL,
         messageText   TEXT NOT NULL,
+        fileUrl       TEXT,
+        fileName      VARCHAR(255),
         createdAt     DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
     try { await pool.query("ALTER TABLE lms_chat_messages MODIFY COLUMN id VARCHAR(255), MODIFY COLUMN roomId VARCHAR(255), MODIFY COLUMN senderId VARCHAR(255)"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_chat_messages ADD COLUMN fileUrl TEXT, ADD COLUMN fileName VARCHAR(255)"); } catch (e) {}
     // Drop foreign key constraints if they were created previously so messages from guest/synthetic IDs never fail
     try { await pool.query("ALTER TABLE lms_chat_messages DROP FOREIGN KEY lms_chat_messages_ibfk_2"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_chat_messages DROP FOREIGN KEY lms_chat_messages_ibfk_1"); } catch (e) {}
@@ -5163,7 +5166,7 @@ class LmsDB {
     return localMsgs.slice(-limit);
   }
 
-  async saveChatMessage(roomId: string, senderId: string, messageText: string, senderName?: string, senderRole?: string): Promise<any> {
+  async saveChatMessage(roomId: string, senderId: string, messageText: string, senderName?: string, senderRole?: string, fileUrl?: string, fileName?: string): Promise<any> {
     const { v4: uuid } = await import('uuid');
     const msgId = uuid();
     const msg = {
@@ -5171,6 +5174,8 @@ class LmsDB {
       roomId,
       senderId,
       messageText,
+      fileUrl: fileUrl || null,
+      fileName: fileName || null,
       createdAt: new Date().toISOString(),
       fullName: senderName || 'Student',
       role: senderRole || 'student',
@@ -5211,10 +5216,17 @@ class LmsDB {
         );
 
         // INSERT IGNORE: skip FK constraint failures gracefully
-        await mysqlPool.query(
-          'INSERT IGNORE INTO lms_chat_messages (id, roomId, senderId, messageText) VALUES (?, ?, ?, ?)',
-          [msg.id, msg.roomId, msg.senderId, msg.messageText]
-        );
+        try {
+          await mysqlPool.query(
+            'INSERT IGNORE INTO lms_chat_messages (id, roomId, senderId, messageText, fileUrl, fileName) VALUES (?, ?, ?, ?, ?, ?)',
+            [msg.id, msg.roomId, msg.senderId, msg.messageText, msg.fileUrl, msg.fileName]
+          );
+        } catch {
+          await mysqlPool.query(
+            'INSERT IGNORE INTO lms_chat_messages (id, roomId, senderId, messageText) VALUES (?, ?, ?, ?)',
+            [msg.id, msg.roomId, msg.senderId, msg.messageText]
+          );
+        }
         
         // Try to fetch sender details from DB (may not exist for unregistered senderIds)
         try {

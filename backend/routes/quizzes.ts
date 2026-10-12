@@ -794,8 +794,36 @@ router.get('/:quizId', authenticate, requireStudent, async (req: AuthRequest, re
 router.get('/:quizId/start', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
-    const quiz = await lmsDB.getQuizById(quizId);
+    let quiz = await lmsDB.getQuizById(quizId);
     if (!quiz) {
+      const dailyQuiz = await lmsDB.getDailyQuizById(quizId) || FALLBACK_DAILY_QUIZZES.find(q => q.id === quizId || q.slug === quizId);
+      if (dailyQuiz) {
+        let questions = await lmsDB.getDailyQuizQuestions(dailyQuiz.id || quizId);
+        if (!questions || questions.length === 0) questions = FALLBACK_DAILY_QUESTIONS;
+        const cleanQuestions = questions.map((q: any) => {
+          const { correctAnswer, explanation, ...publicFields } = q;
+          return publicFields;
+        });
+        const totalMaxMarks = questions.reduce((sum: number, q: any) => sum + (Number(q.marks) || 1.0), 0);
+        return res.json({
+          success: true,
+          data: {
+            quiz: {
+              ...dailyQuiz,
+              totalMaxMarks,
+              maxMarks: totalMaxMarks
+            },
+            session: {
+              id: `daily-sess-${Date.now()}`,
+              setCode: 'SET-A',
+              startedAt: new Date().toISOString(),
+              expiresAt: new Date(Date.now() + (dailyQuiz.timeLimitMins || 10) * 60000).toISOString(),
+              savedAnswers: {}
+            },
+            questions: cleanQuestions
+          }
+        });
+      }
       res.status(404).json({ success: false, error: 'Quiz not found.' });
       return;
     }
@@ -1062,8 +1090,70 @@ router.post('/:quizId/submit', authenticate, requireStudent, async (req: AuthReq
   }
 
   try {
-    const quiz = await lmsDB.getQuizById(quizId);
+    let quiz = await lmsDB.getQuizById(quizId);
     if (!quiz) {
+      const dailyQuiz = await lmsDB.getDailyQuizById(quizId) || FALLBACK_DAILY_QUIZZES.find(q => q.id === quizId || q.slug === quizId);
+      if (dailyQuiz) {
+        let questions = await lmsDB.getDailyQuizQuestions(dailyQuiz.id || quizId);
+        if (!questions || questions.length === 0) questions = FALLBACK_DAILY_QUESTIONS;
+
+        let score = 0;
+        let maxScore = 0;
+        let correctCount = 0;
+        let incorrectCount = 0;
+        let unansweredCount = 0;
+        const details = [];
+
+        for (const q of questions) {
+          const studentAnswer = answers[q.id];
+          const correct = studentAnswer === q.correctAnswer;
+          const questionMarks = Number(q.marks) || 1.0;
+          const negativeVal = Number(q.negativeMarks) || 0.33;
+
+          maxScore += questionMarks;
+          if (studentAnswer) {
+            if (correct) {
+              score += questionMarks;
+              correctCount++;
+            } else {
+              score -= negativeVal;
+              incorrectCount++;
+            }
+          } else {
+            unansweredCount++;
+          }
+
+          details.push({
+            questionId: q.id,
+            questionText: q.questionText,
+            options: { A: q.optionA, B: q.optionB, C: q.optionC, D: q.optionD, ...(q.optionE ? { E: q.optionE } : {}) },
+            studentAnswer: studentAnswer || null,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation,
+            isCorrect: correct
+          });
+        }
+        if (score < 0) score = 0;
+        const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+        const passed = percentage >= (dailyQuiz.passingScore || 40);
+
+        return res.json({
+          success: true,
+          data: {
+            attemptId: attemptId || `att-${Date.now()}`,
+            score,
+            maxScore,
+            percentage,
+            passed,
+            correctCount,
+            incorrectCount,
+            unansweredCount,
+            timeTakenSecs: timeTakenSecs || 0,
+            details,
+            quiz: dailyQuiz
+          }
+        });
+      }
       res.status(404).json({ success: false, error: 'Quiz not found.' });
       return;
     }

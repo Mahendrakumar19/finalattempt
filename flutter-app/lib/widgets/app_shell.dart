@@ -40,11 +40,9 @@ class _AppShellState extends ConsumerState<AppShell> {
       selectedIdx = 0;
     }
 
-    final hideBottomNav = matchedLoc != '/' && 
-                          !matchedLoc.startsWith('/test-series') && 
-                          !matchedLoc.startsWith('/explore') &&
-                          !matchedLoc.startsWith('/chat') &&
-                          !matchedLoc.startsWith('/current-affairs');
+    final isSubOrDetailScreen = matchedLoc.startsWith('/current-affairs/article') || (matchedLoc.startsWith('/test-series/') && matchedLoc != '/test-series');
+
+    final hideBottomNav = isSubOrDetailScreen || (matchedLoc != '/' && !matchedLoc.startsWith('/test-series') && !matchedLoc.startsWith('/explore') && !matchedLoc.startsWith('/chat') && !matchedLoc.startsWith('/current-affairs'));
 
     if (hideBottomNav) {
       return Scaffold(

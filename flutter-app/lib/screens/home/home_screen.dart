@@ -194,6 +194,11 @@ class HomeScreen extends ConsumerWidget {
                         // 4. Test Series Section (Horizontally Scrollable)
                         _buildTestSeriesSection(context, ref, loc, testSeriesAsync),
 
+                        const SizedBox(height: 24),
+
+                        // 4b. Daily Quiz & Practice Hub Banner
+                        _buildDailyQuizSection(context, ref, loc),
+
                         const SizedBox(height: 28),
 
                         // 5. Current Affairs Latest Edition Card
@@ -304,6 +309,152 @@ class HomeScreen extends ConsumerWidget {
           },
         ),
       ],
+    );
+  }
+
+  // 4b. Daily Quiz Practice Hub Card
+  Widget _buildDailyQuizSection(BuildContext context, WidgetRef ref, AppLocalizations loc) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = AppTheme.primaryOf(context);
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderCol = AppTheme.borderOf(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderCol),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.bolt_rounded, size: 14, color: Color(0xFF10B981)),
+                      SizedBox(width: 4),
+                      Text(
+                        'DAILY LIVE QUIZ',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF10B981),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'FREE PRACTICE',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: primaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Daily Current Affairs & Bihar GS Practice',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimaryOf(context),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '10 High-yield exam questions covering state economy, polity, history & international affairs.',
+              style: TextStyle(
+                fontSize: 12,
+                color: AppTheme.textMutedOf(context),
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.timer_outlined, size: 14, color: AppTheme.textMutedOf(context)),
+                        const SizedBox(width: 4),
+                        Text(
+                          '10 Mins',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMutedOf(context)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 14),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.help_outline_rounded, size: 14, color: AppTheme.textMutedOf(context)),
+                        const SizedBox(width: 4),
+                        Text(
+                          '10 Questions',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMutedOf(context)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    context.push('/test/daily-quiz-today/instructions');
+                  },
+                  icon: const Icon(Icons.play_arrow_rounded, size: 16),
+                  label: const Text('Start Quiz'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: isDark ? Colors.black : Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 

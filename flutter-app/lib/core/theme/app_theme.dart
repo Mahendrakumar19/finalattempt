@@ -1,7 +1,63 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
+  // Safe cross-platform Outfit font style helper (prevents Flutter Web AssetManifest.bin.json 404 crashes)
+  static TextStyle fontOutfit({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+    double? height,
+  }) {
+    if (kIsWeb) {
+      return TextStyle(
+        fontFamily: 'Outfit',
+        fontFamilyFallback: const ['system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'sans-serif'],
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: letterSpacing,
+        height: height,
+      );
+    }
+    return GoogleFonts.outfit(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: letterSpacing,
+      height: height,
+    );
+  }
+
+  static TextTheme _buildTextTheme(ThemeData base, Color primaryColor, Color secondaryColor, Color mutedColor) {
+    if (kIsWeb) {
+      return base.textTheme.apply(fontFamily: 'Outfit').copyWith(
+        displayLarge: fontOutfit(fontSize: 32, fontWeight: FontWeight.w900, color: primaryColor),
+        displayMedium: fontOutfit(fontSize: 26, fontWeight: FontWeight.w800, color: primaryColor),
+        headlineLarge: fontOutfit(fontSize: 22, fontWeight: FontWeight.w800, color: primaryColor),
+        headlineMedium: fontOutfit(fontSize: 18, fontWeight: FontWeight.w700, color: primaryColor),
+        titleLarge: fontOutfit(fontSize: 16, fontWeight: FontWeight.w700, color: primaryColor),
+        bodyLarge: fontOutfit(fontSize: 14, fontWeight: FontWeight.w400, color: primaryColor),
+        bodyMedium: fontOutfit(fontSize: 13, fontWeight: FontWeight.w400, color: secondaryColor),
+        bodySmall: fontOutfit(fontSize: 11, fontWeight: FontWeight.w400, color: mutedColor),
+        labelLarge: fontOutfit(fontSize: 12, fontWeight: FontWeight.w700, color: primaryColor, letterSpacing: 0.8),
+      );
+    }
+    return GoogleFonts.outfitTextTheme(base.textTheme).copyWith(
+      displayLarge: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.w900, color: primaryColor),
+      displayMedium: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.w800, color: primaryColor),
+      headlineLarge: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800, color: primaryColor),
+      headlineMedium: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: primaryColor),
+      titleLarge: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: primaryColor),
+      bodyLarge: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w400, color: primaryColor),
+      bodyMedium: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w400, color: secondaryColor),
+      bodySmall: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w400, color: mutedColor),
+      labelLarge: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: primaryColor, letterSpacing: 0.8),
+    );
+  }
+
   // Pure White & Royal Blue Brand Palette
   static const Color primaryBlue = Color(0xFF1E3A8A); // Deep Royal Blue
   static const Color secondaryBlue = Color(0xFF2563EB); // Vibrant Accent Blue
@@ -142,17 +198,7 @@ class AppTheme {
         onPrimary: pureWhite,
         error: error,
       ),
-      textTheme: GoogleFonts.outfitTextTheme(ThemeData.light().textTheme).copyWith(
-        displayLarge: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.w900, color: textDarkPrimary),
-        displayMedium: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.w800, color: textDarkPrimary),
-        headlineLarge: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800, color: textDarkPrimary),
-        headlineMedium: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: textDarkPrimary),
-        titleLarge: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: textDarkPrimary),
-        bodyLarge: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w400, color: textDarkPrimary),
-        bodyMedium: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w400, color: textDarkSecondary),
-        bodySmall: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w400, color: textMuted),
-        labelLarge: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: primaryBlue, letterSpacing: 0.8),
-      ),
+      textTheme: _buildTextTheme(ThemeData.light(), textDarkPrimary, textDarkSecondary, textMuted),
       cardTheme: CardThemeData(
         color: pureWhite,
         elevation: 2,
@@ -168,7 +214,7 @@ class AppTheme {
         foregroundColor: primaryBlue,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w800, color: primaryBlue),
+        titleTextStyle: fontOutfit(fontSize: 18, fontWeight: FontWeight.w800, color: primaryBlue),
         toolbarHeight: 64,
         surfaceTintColor: Colors.transparent,
         iconTheme: const IconThemeData(color: primaryBlue),
@@ -177,7 +223,7 @@ class AppTheme {
         backgroundColor: pureWhite,
         indicatorColor: primaryBlue.withValues(alpha: 0.1),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          return GoogleFonts.outfit(
+          return fontOutfit(
             fontSize: 11,
             fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
             color: states.contains(WidgetState.selected) ? primaryBlue : textMuted,
@@ -200,8 +246,8 @@ class AppTheme {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: borderLight)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: primaryBlue, width: 2)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: error)),
-        hintStyle: GoogleFonts.outfit(fontSize: 13, color: textMuted),
-        labelStyle: GoogleFonts.outfit(fontSize: 13, color: textDarkSecondary),
+        hintStyle: fontOutfit(fontSize: 13, color: textMuted),
+        labelStyle: fontOutfit(fontSize: 13, color: textDarkSecondary),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -212,13 +258,13 @@ class AppTheme {
           shadowColor: primaryBlue.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800),
+          textStyle: fontOutfit(fontSize: 14, fontWeight: FontWeight.w800),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: lightBlueBg,
         selectedColor: primaryBlue.withValues(alpha: 0.15),
-        labelStyle: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w600, color: primaryBlue),
+        labelStyle: fontOutfit(fontSize: 11, fontWeight: FontWeight.w600, color: primaryBlue),
         side: const BorderSide(color: borderLight),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -241,17 +287,7 @@ class AppTheme {
         onPrimary: pureWhite,
         error: error,
       ),
-      textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme).copyWith(
-        displayLarge: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.w900, color: textLightPrimary),
-        displayMedium: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.w800, color: textLightPrimary),
-        headlineLarge: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800, color: textLightPrimary),
-        headlineMedium: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: textLightPrimary),
-        titleLarge: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: textLightPrimary),
-        bodyLarge: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w400, color: textLightPrimary),
-        bodyMedium: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w400, color: textLightPrimary),
-        bodySmall: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w400, color: textLightPrimary),
-        labelLarge: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: textLightPrimary, letterSpacing: 0.8),
-      ),
+      textTheme: _buildTextTheme(ThemeData.dark(), textLightPrimary, textLightPrimary, textLightPrimary),
       cardTheme: CardThemeData(
         color: const Color(0xFF1E293B),
         elevation: 2,
@@ -267,7 +303,7 @@ class AppTheme {
         foregroundColor: pureWhite,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w800, color: pureWhite),
+        titleTextStyle: fontOutfit(fontSize: 18, fontWeight: FontWeight.w800, color: pureWhite),
         toolbarHeight: 64,
         surfaceTintColor: Colors.transparent,
         iconTheme: const IconThemeData(color: pureWhite),
@@ -276,7 +312,7 @@ class AppTheme {
         backgroundColor: const Color(0xFF1E293B),
         indicatorColor: const Color(0xFF60A5FA).withValues(alpha: 0.2),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          return GoogleFonts.outfit(
+          return fontOutfit(
             fontSize: 11,
             fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
             color: states.contains(WidgetState.selected) ? const Color(0xFF60A5FA) : const Color(0xFF94A3B8),
@@ -299,8 +335,8 @@ class AppTheme {
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: borderDark)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF60A5FA), width: 2)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: error)),
-        hintStyle: GoogleFonts.outfit(fontSize: 13, color: const Color(0xFF94A3B8)),
-        labelStyle: GoogleFonts.outfit(fontSize: 13, color: textLightSecondary),
+        hintStyle: fontOutfit(fontSize: 13, color: const Color(0xFF94A3B8)),
+        labelStyle: fontOutfit(fontSize: 13, color: textLightSecondary),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -311,13 +347,13 @@ class AppTheme {
           shadowColor: const Color(0xFF2563EB).withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w800),
+          textStyle: fontOutfit(fontSize: 14, fontWeight: FontWeight.w800),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: const Color(0xFF1E293B),
         selectedColor: const Color(0xFF60A5FA).withValues(alpha: 0.25),
-        labelStyle: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w600, color: pureWhite),
+        labelStyle: fontOutfit(fontSize: 11, fontWeight: FontWeight.w600, color: pureWhite),
         side: const BorderSide(color: borderDark),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
