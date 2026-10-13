@@ -64,8 +64,23 @@ export default function NCERTBooksManagerCMS() {
   }, [BACKEND_URL]);
 
   useEffect(() => {
-    fetchBooks();
-  }, [fetchBooks]);
+    let ignore = false;
+    const load = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/ncert-books?limit=500`);
+        const data = await res.json();
+        if (!ignore && data.success && Array.isArray(data.data)) {
+          setBooks(data.data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [BACKEND_URL]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,7 +134,7 @@ export default function NCERTBooksManagerCMS() {
     }
   };
 
-  const selectMedia = (_url: string, item: any) => {
+  const selectMedia = (_url: string, item: { id: string }) => {
     setForm(prev => ({ ...prev, fileMediaId: item.id }));
     setShowPicker(false);
   };
@@ -229,7 +244,7 @@ export default function NCERTBooksManagerCMS() {
                       : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/10 hover:border-slate-400'
                     }`}
                 >
-                  {lang === 'Hindi' ? '🇮🇳 हिंदी' : 'English'}
+                  {lang === 'Hindi' ? 'हिंदी' : 'English'}
                 </button>
               ))}
             </div>

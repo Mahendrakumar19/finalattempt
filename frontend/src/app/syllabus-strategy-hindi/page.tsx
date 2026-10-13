@@ -28,6 +28,8 @@ interface SyllabusItem {
   lastUpdated: string;
   description?: string;
   fileMedia: { storagePath: string; originalName: string; size: number };
+  publish_target?: string;
+  language?: string;
 }
 
 interface StrategyBlock {
@@ -42,6 +44,8 @@ interface StrategyBlock {
   ctaUrl?: string | null;
   featuredImage?: { storagePath: string } | null;
   attachment?: { storagePath: string; originalName: string } | null;
+  publish_target?: string;
+  language?: string;
 }
 
 export default function SyllabusStrategyHindiPage() {
@@ -133,7 +137,10 @@ export default function SyllabusStrategyHindiPage() {
     }
   };
 
+  // Filtered syllabus items (Hindi page excludes English-only items)
   const filteredSyllabus = syllabusList.filter(s => {
+    const target = s.publish_target || 'both';
+    if (target === 'english') return false;
     if (selectedExamId !== 'ALL' && s.examId !== selectedExamId) return false;
     if (selectedStage !== 'ALL' && s.stage !== selectedStage) return false;
     if (searchQuery.trim()) {
@@ -146,7 +153,10 @@ export default function SyllabusStrategyHindiPage() {
 
   const selectedExam = exams.find(e => e.id === selectedExamId);
 
+  // Filtered strategy items (Hindi page excludes English-only items)
   const filteredStrategy = strategyBlocks.filter((st: StrategyBlock) => {
+    const target = st.publish_target || 'both';
+    if (target === 'english') return false;
     if (selectedExamId !== 'ALL') {
       if (st.examId) {
         if (st.examId !== selectedExamId) return false;

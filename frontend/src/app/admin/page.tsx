@@ -882,8 +882,8 @@ export default function AdminPortal() {
     const preparedBlog = {
       ...blogForm,
       slug: finalSlug,
-      author_name: (blogForm.author_name || (blogForm as any).author || 'Final Attempt Team').trim(),
-      author_image: (blogForm.author_image || (blogForm as any).authorImage || '').trim(),
+      author_name: (blogForm.author_name || blogForm.author || 'Final Attempt Team').trim(),
+      author_image: (blogForm.author_image || blogForm.authorImage || '').trim(),
       seoTitle: autoSeoTitle,
       seoDescription: autoSeoDesc,
       seoKeywords: autoSeoKeywords,
@@ -2349,6 +2349,37 @@ export default function AdminPortal() {
         {/* TAB: EXAMS & SYLLABUS */}
         {activeTab === 'Exams & Syllabus' && (
           <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-xs">
+              <div>
+                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Official Curriculum & Papers</span>
+                <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Exams & Syllabus CMS</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Manage state exam syllabi, papers, stages, and select whether each item publishes to the English portal, Hindi portal, or both.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <a
+                  href="/syllabus-strategy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold rounded-2xl text-xs cursor-pointer shadow-xs transition-all"
+                  title="View English Syllabus Hub"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Preview /syllabus-strategy ↗</span>
+                </a>
+                <a
+                  href="/syllabus-strategy-hindi"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-black rounded-2xl text-xs cursor-pointer shadow-xs transition-all border border-orange-500/30"
+                  title="View Hindi Syllabus Hub"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Preview /syllabus-strategy-hindi ↗</span>
+                </a>
+              </div>
+            </div>
             <SyllabusStrategyCMS defaultTab="exams" />
           </div>
         )}
@@ -2356,6 +2387,37 @@ export default function AdminPortal() {
         {/* TAB: STRATEGY CMS */}
         {((activeTab as string) === 'Strategy & Values' || (activeTab as string) === 'Strategy CMS') && (
           <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-xs">
+              <div>
+                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Preparation & Strategy Guidance</span>
+                <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Preparation & Strategy CMS</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Manage roadmap guides, booklists, and preparation strategies with independent English, Hindi, or shared publishing destinations.
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <a
+                  href="/syllabus-strategy#strategy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-extrabold rounded-2xl text-xs cursor-pointer shadow-xs transition-all"
+                  title="View English Strategy Hub"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Preview English Strategy ↗</span>
+                </a>
+                <a
+                  href="/syllabus-strategy-hindi#strategy"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 px-3.5 py-2.5 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400 font-black rounded-2xl text-xs cursor-pointer shadow-xs transition-all border border-orange-500/30"
+                  title="View Hindi Strategy Hub"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Preview Hindi Strategy ↗</span>
+                </a>
+              </div>
+            </div>
             <SyllabusStrategyCMS defaultTab="strategy" />
           </div>
         )}
@@ -2499,7 +2561,7 @@ export default function AdminPortal() {
                             <tr key={blog.id || idx} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
                               <td className="p-4 max-w-sm">
                                 <div className="font-extrabold text-slate-900 dark:text-white line-clamp-1">{blog.title}</div>
-                                {blog.title_hi && <div className="text-[10px] text-amber-500 font-bold line-clamp-1 mt-0.5">🇮🇳 {blog.title_hi}</div>}
+                                {blog.title_hi && <div className="text-[10px] text-amber-500 font-bold line-clamp-1 mt-0.5"><span className="text-[9px] uppercase px-1 py-0.2 rounded bg-amber-500/10 border border-amber-500/20 mr-1">Hindi</span>{blog.title_hi}</div>}
                                 {blog.blurb && <div className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{blog.blurb}</div>}
                               </td>
                               <td className="p-4">
@@ -3548,8 +3610,8 @@ export default function AdminPortal() {
                         <label className="text-[10px] text-slate-400 font-bold uppercase">Publisher / Author Name</label>
                         <input
                           type="text"
-                          value={blogForm.author_name || (blogForm as any).author || ''}
-                          onChange={(e) => setBlogForm({ ...blogForm, author_name: e.target.value, author: e.target.value } as any)}
+                          value={blogForm.author_name || blogForm.author || ''}
+                          onChange={(e) => setBlogForm({ ...blogForm, author_name: e.target.value, author: e.target.value })}
                           placeholder="e.g. Final Attempt Team or Author Name"
                           className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
                         />
@@ -3559,8 +3621,8 @@ export default function AdminPortal() {
                         <div className="flex gap-2">
                           <input
                             type="text"
-                            value={blogForm.author_image || (blogForm as any).authorImage || ''}
-                            onChange={(e) => setBlogForm({ ...blogForm, author_image: e.target.value, authorImage: e.target.value } as any)}
+                            value={blogForm.author_image || blogForm.authorImage || ''}
+                            onChange={(e) => setBlogForm({ ...blogForm, author_image: e.target.value, authorImage: e.target.value })}
                             placeholder="https://... or select photo"
                             className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs outline-none font-mono text-[11px]"
                           />
@@ -3612,9 +3674,9 @@ export default function AdminPortal() {
                             onChange={(e) => setBlogForm({ ...blogForm, publish_target: e.target.value as 'both' | 'english' | 'hindi' })}
                             className="w-full px-4 py-2.5 bg-white dark:bg-slate-800 border-2 border-amber-500 rounded-2xl text-slate-900 dark:text-white text-xs font-black outline-none cursor-pointer shadow-xs"
                           >
-                            <option value="both">🌐 Both Pages — /blog AND /blog-hindi</option>
-                            <option value="hindi">🇮🇳 Hindi Page Only — /blog-hindi</option>
-                            <option value="english">🇬🇧 English Page Only — /blog</option>
+                            <option value="both">Both Pages — /blog AND /blog-hindi</option>
+                            <option value="hindi">Hindi Page Only — /blog-hindi</option>
+                            <option value="english">English Page Only — /blog</option>
                           </select>
                         </div>
                         <div className="space-y-1.5">
@@ -3636,17 +3698,17 @@ export default function AdminPortal() {
                         <span className="font-bold text-slate-600 dark:text-slate-300">Live Destination Preview:</span>
                         {(blogForm.publish_target === 'hindi') ? (
                           <span className="px-3 py-1 rounded-lg bg-orange-500/15 text-orange-600 dark:text-orange-400 font-black flex items-center gap-1.5 border border-orange-500/30">
-                            <span>🇮🇳 Appears ONLY on:</span>
+                            <span>Appears ONLY on:</span>
                             <code className="font-mono underline">/blog-hindi</code>
                           </span>
                         ) : (blogForm.publish_target === 'english') ? (
                           <span className="px-3 py-1 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 font-black flex items-center gap-1.5 border border-blue-500/30">
-                            <span>🇬🇧 Appears ONLY on:</span>
+                            <span>Appears ONLY on:</span>
                             <code className="font-mono underline">/blog</code>
                           </span>
                         ) : (
                           <span className="px-3 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black flex items-center gap-1.5 border border-emerald-500/30">
-                            <span>🌐 Appears on BOTH:</span>
+                            <span>Appears on BOTH:</span>
                             <code className="font-mono">/blog</code> &amp; <code className="font-mono">/blog-hindi</code>
                           </span>
                         )}
@@ -3657,7 +3719,7 @@ export default function AdminPortal() {
                         <div className="space-y-3 pt-2 border-t border-amber-500/20">
                           <div className="space-y-1.5">
                             <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              🇮🇳 Hindi Title (हिन्दी शीर्षक)
+                              Hindi Title (हिन्दी शीर्षक)
                             </label>
                             <input
                               type="text"
@@ -3670,7 +3732,7 @@ export default function AdminPortal() {
 
                           <div className="space-y-1.5">
                             <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              🇮🇳 Hindi Short Summary (हिन्दी संक्षिप्त विवरण)
+                              Hindi Short Summary (हिन्दी संक्षिप्त विवरण)
                             </label>
                             <textarea
                               rows={2}
@@ -3683,7 +3745,7 @@ export default function AdminPortal() {
 
                           <div className="space-y-1.5">
                             <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              🇮🇳 Hindi Body Content (हिन्दी विस्तृत लेख)
+                              Hindi Body Content (हिन्दी विस्तृत लेख)
                             </label>
                             <RichTextEditor
                               value={blogForm.content_hi || ''}
@@ -3788,7 +3850,7 @@ export default function AdminPortal() {
                         <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1">
                             <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              🇮🇳 Hindi Edition Headline (हिन्दी शीर्षक)
+                              Hindi Edition Headline (हिन्दी शीर्षक)
                             </label>
                             <input
                               type="text"
@@ -3800,7 +3862,7 @@ export default function AdminPortal() {
                           </div>
                           <div className="space-y-1">
                             <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              🇮🇳 Hindi Edition Summary (हिन्दी संक्षिप्त सार)
+                              Hindi Edition Summary (हिन्दी संक्षिप्त सार)
                             </label>
                             <input
                               type="text"
@@ -4010,7 +4072,7 @@ export default function AdminPortal() {
                         <div className="space-y-3 pt-2 border-t border-amber-500/20">
                           <div className="space-y-1.5">
                             <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              🇮🇳 Hindi Headline (हिन्दी शीर्षक)
+                              Hindi Headline (हिन्दी शीर्षक)
                             </label>
                             <input
                               type="text"
@@ -4023,7 +4085,7 @@ export default function AdminPortal() {
 
                           <div className="space-y-1.5">
                             <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              🇮🇳 Hindi Summary / Key Points (हिन्दी संक्षिप्त सार)
+                              Hindi Summary / Key Points (हिन्दी संक्षिप्त सार)
                             </label>
                             <textarea
                               rows={2}
@@ -4036,7 +4098,7 @@ export default function AdminPortal() {
 
                           <div className="space-y-1.5">
                             <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              🇮🇳 Hindi Full Content (हिन्दी विस्तृत लेख)
+                              Hindi Full Content (हिन्दी विस्तृत लेख)
                             </label>
                             <RichTextEditor
                               value={editingArticle.content_hi || ''}

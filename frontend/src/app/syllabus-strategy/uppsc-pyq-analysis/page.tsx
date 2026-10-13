@@ -2,14 +2,10 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import {
   BarChart3,
-  TrendingUp,
   Award,
   BookOpen,
   CheckCircle2,
-  AlertTriangle,
   Flame,
-  Globe,
-  Compass,
   ArrowRight,
   ShieldAlert,
   Sparkles,
@@ -19,7 +15,6 @@ import {
   FileText,
   Clock,
   Zap,
-  HelpCircle,
 } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -514,7 +509,7 @@ export default function UppscPyqAnalysisPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-600 dark:text-slate-400">
                 <div className="space-y-2">
-                  <p className="font-bold text-slate-900 dark:text-white text-sm">🇮🇳 Indian Geography (13-15 Qs)</p>
+                  <p className="font-bold text-slate-900 dark:text-white text-sm">Indian Geography (13-15 Qs)</p>
                   <p className="leading-relaxed">
                     River systems, mineral distribution, agricultural zones, soil types, climate patterns. UP-specific questions on dams, forest cover by district, wildlife sanctuaries appear regularly. Requires both textual knowledge (NCERT) and map practice.
                   </p>

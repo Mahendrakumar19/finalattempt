@@ -114,13 +114,25 @@ router.delete('/exam/:id', async (req: Request, res: Response) => {
 router.get('/syllabus', async (req: Request, res: Response) => {
   try {
     const targetLang = getTargetLang(req);
-    const list = await prisma.syllabus.findMany({
+    const isAdmin = Boolean(req.headers.authorization?.includes('admin') || req.query.includeDrafts === 'true');
+    let list = await prisma.syllabus.findMany({
       orderBy: { sortOrder: 'asc' },
       include: {
         exam: true,
         fileMedia: true
       }
     });
+
+    if (!isAdmin && Array.isArray(list)) {
+      list = list.filter((s: any) => {
+        const target = s.publish_target || 'both';
+        if (target === 'both') return true;
+        if (target === 'english' && targetLang === 'en') return true;
+        if (target === 'hindi' && targetLang === 'hi') return true;
+        return false;
+      });
+    }
+
     const localized = await ContentLocalizer.localizeEntityList(
       'syllabus',
       list,
@@ -136,7 +148,7 @@ router.get('/syllabus', async (req: Request, res: Response) => {
 
 router.post('/syllabus', async (req: Request, res: Response) => {
   try {
-    const { examId, stage, version, mediaId, lastUpdated, description, isPublished, sortOrder } = req.body;
+    const { examId, stage, version, mediaId, lastUpdated, description, isPublished, sortOrder, publish_target, language } = req.body;
     const item = await prisma.syllabus.create({
       data: {
         examId,
@@ -146,7 +158,9 @@ router.post('/syllabus', async (req: Request, res: Response) => {
         lastUpdated: lastUpdated || new Date().toLocaleDateString('en-IN'),
         description,
         isPublished: isPublished !== false,
-        sortOrder: parseInt(sortOrder || '0', 10)
+        sortOrder: parseInt(sortOrder || '0', 10),
+        publish_target: publish_target || 'both',
+        language: language || 'en'
       },
       include: {
         exam: true,
@@ -166,7 +180,7 @@ router.put('/syllabus/:id', async (req: Request, res: Response) => {
       res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
       return;
     }
-    const { examId, stage, version, mediaId, lastUpdated, description, isPublished, sortOrder } = req.body;
+    const { examId, stage, version, mediaId, lastUpdated, description, isPublished, sortOrder, publish_target, language } = req.body;
     const item = await prisma.syllabus.update({
       where: { id },
       data: {
@@ -177,7 +191,9 @@ router.put('/syllabus/:id', async (req: Request, res: Response) => {
         lastUpdated: lastUpdated || new Date().toLocaleDateString('en-IN'),
         description,
         isPublished: isPublished !== false,
-        sortOrder: parseInt(sortOrder || '0', 10)
+        sortOrder: parseInt(sortOrder || '0', 10),
+        publish_target: publish_target || 'both',
+        language: language || 'en'
       },
       include: {
         exam: true,
@@ -208,13 +224,25 @@ router.delete('/syllabus/:id', async (req: Request, res: Response) => {
 router.get('/strategy', async (req: Request, res: Response) => {
   try {
     const targetLang = getTargetLang(req);
-    const list = await prisma.strategyBlock.findMany({
+    const isAdmin = Boolean(req.headers.authorization?.includes('admin') || req.query.includeDrafts === 'true');
+    let list = await prisma.strategyBlock.findMany({
       orderBy: { sortOrder: 'asc' },
       include: {
         featuredImage: true,
         attachment: true
       }
     });
+
+    if (!isAdmin && Array.isArray(list)) {
+      list = list.filter((st: any) => {
+        const target = st.publish_target || 'both';
+        if (target === 'both') return true;
+        if (target === 'english' && targetLang === 'en') return true;
+        if (target === 'hindi' && targetLang === 'hi') return true;
+        return false;
+      });
+    }
+
     const localized = await ContentLocalizer.localizeEntityList(
       'strategy_block',
       list,
@@ -230,7 +258,7 @@ router.get('/strategy', async (req: Request, res: Response) => {
 
 router.post('/strategy', async (req: Request, res: Response) => {
   try {
-    const { title, slug, content, category, featuredImageMediaId, attachmentMediaId, videoUrl, ctaText, ctaUrl, sortOrder, isPublished } = req.body;
+    const { title, slug, content, category, featuredImageMediaId, attachmentMediaId, videoUrl, ctaText, ctaUrl, sortOrder, isPublished, publish_target, language } = req.body;
     const block = await prisma.strategyBlock.create({
       data: {
         title,
@@ -243,7 +271,9 @@ router.post('/strategy', async (req: Request, res: Response) => {
         ctaText: ctaText || null,
         ctaUrl: ctaUrl || null,
         sortOrder: parseInt(sortOrder || '0', 10),
-        isPublished: isPublished !== false
+        isPublished: isPublished !== false,
+        publish_target: publish_target || 'both',
+        language: language || 'en'
       },
       include: {
         featuredImage: true,
@@ -263,7 +293,7 @@ router.put('/strategy/:id', async (req: Request, res: Response) => {
       res.status(400).json({ success: false, error: 'Invalid ID parameter.' });
       return;
     }
-    const { title, slug, content, category, featuredImageMediaId, attachmentMediaId, videoUrl, ctaText, ctaUrl, sortOrder, isPublished } = req.body;
+    const { title, slug, content, category, featuredImageMediaId, attachmentMediaId, videoUrl, ctaText, ctaUrl, sortOrder, isPublished, publish_target, language } = req.body;
     const block = await prisma.strategyBlock.update({
       where: { id },
       data: {
@@ -277,7 +307,9 @@ router.put('/strategy/:id', async (req: Request, res: Response) => {
         ctaText: ctaText || null,
         ctaUrl: ctaUrl || null,
         sortOrder: parseInt(sortOrder || '0', 10),
-        isPublished: isPublished !== false
+        isPublished: isPublished !== false,
+        publish_target: publish_target || 'both',
+        language: language || 'en'
       },
       include: {
         featuredImage: true,

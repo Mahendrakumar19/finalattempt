@@ -1,7 +1,8 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Globe, FileText, Settings, Upload, Image as ImageIcon, Check } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Edit2, Trash2 } from 'lucide-react';
 import MediaPicker from './MediaPicker';
 import RichTextEditor from './RichTextEditor';
 
@@ -37,6 +38,8 @@ interface SyllabusItem {
   description?: string;
   lastUpdated: string;
   sortOrder: number;
+  publish_target?: 'both' | 'english' | 'hindi' | string;
+  language?: string;
 }
 
 interface StrategyBlock {
@@ -53,6 +56,8 @@ interface StrategyBlock {
   ctaText?: string | null;
   ctaUrl?: string | null;
   sortOrder: number;
+  publish_target?: 'both' | 'english' | 'hindi' | string;
+  language?: string;
 }
 
 interface CompanyValue {
@@ -62,23 +67,25 @@ interface CompanyValue {
   content: string;
 }
 
-export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultTab?: 'exams' | 'syllabus' | 'strategy' | 'values' }) {
-  const [activeSubTab, setActiveSubTab] = useState<'exams' | 'syllabus' | 'strategy' | 'values'>(defaultTab);
+type SubTabType = 'exams' | 'syllabus' | 'strategy' | 'values';
 
-  // Restore activeSubTab on mount and sync to URL & localStorage
-  useEffect(() => {
+export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultTab?: SubTabType }) {
+  const [activeSubTab, setActiveSubTab] = useState<SubTabType>(() => {
     if (typeof window !== 'undefined') {
       try {
         const urlParams = new URLSearchParams(window.location.search);
-        const urlSub = urlParams.get('subtab') as any;
-        const savedSub = localStorage.getItem('syllabus_cms_subtab') as any;
+        const urlSub = urlParams.get('subtab') as SubTabType | null;
+        const savedSub = localStorage.getItem('syllabus_cms_subtab') as SubTabType | null;
         const validSub = urlSub || savedSub || defaultTab;
         if (validSub && ['exams', 'syllabus', 'strategy', 'values'].includes(validSub)) {
-          setActiveSubTab(validSub);
+          return validSub;
         }
-      } catch (_) {}
+      } catch {
+        // fallback
+      }
     }
-  }, [defaultTab]);
+    return defaultTab;
+  });
 
   useEffect(() => {
     if (typeof window !== 'undefined' && activeSubTab) {
@@ -89,7 +96,9 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
           url.searchParams.set('subtab', activeSubTab);
           window.history.replaceState(null, '', url.pathname + url.search);
         }
-      } catch (_) {}
+      } catch {
+        // ignore
+      }
     }
   }, [activeSubTab]);
 
@@ -105,8 +114,25 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
 
   // Form states
   const [examForm, setExamForm] = useState({ id: '', name: '', code: '', slug: '', description: '', displayOrder: 0, logoMediaId: '', logoUrl: '' });
-  const [syllabusForm, setSyllabusForm] = useState({ id: '', examId: '', title: '', slug: '', stage: 'PRELIMS', version: '1.0', mediaId: '', featuredImageMediaId: '', attachmentMediaId: '', videoUrl: '', ctaText: '', ctaUrl: '', description: '', sortOrder: 0 });
-  const [strategyForm, setStrategyForm] = useState({ id: '', title: '', slug: '', content: '', category: 'Beginner Strategy', featuredImageMediaId: '', attachmentMediaId: '', videoUrl: '', ctaText: '', ctaUrl: '', sortOrder: 0 });
+  const [syllabusForm, setSyllabusForm] = useState<{
+    id: string;
+    examId: string;
+    title: string;
+    slug: string;
+    stage: 'PRELIMS' | 'MAINS' | 'INTERVIEW';
+    version: string;
+    mediaId: string;
+    featuredImageMediaId: string;
+    attachmentMediaId: string;
+    videoUrl: string;
+    ctaText: string;
+    ctaUrl: string;
+    description: string;
+    sortOrder: number;
+    publish_target: string;
+    language: string;
+  }>({ id: '', examId: '', title: '', slug: '', stage: 'PRELIMS', version: '1.0', mediaId: '', featuredImageMediaId: '', attachmentMediaId: '', videoUrl: '', ctaText: '', ctaUrl: '', description: '', sortOrder: 0, publish_target: 'both', language: 'en' });
+  const [strategyForm, setStrategyForm] = useState({ id: '', title: '', slug: '', content: '', category: 'Beginner Strategy', featuredImageMediaId: '', attachmentMediaId: '', videoUrl: '', ctaText: '', ctaUrl: '', sortOrder: 0, publish_target: 'both', language: 'en' });
   
   const [editingValueType, setEditingValueType] = useState<string | null>(null);
   const [valueContent, setValueContent] = useState('');
@@ -114,11 +140,7 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  useEffect(() => {
-    fetchData();
-  }, [activeSubTab]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const exRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
       const exData = await exRes.json();
@@ -143,7 +165,41 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
     } catch (err) {
       console.error(err);
     }
-  };
+  }, [BACKEND_URL]);
+
+  useEffect(() => {
+    let ignore = false;
+    const load = async () => {
+      try {
+        const exRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
+        const exData = await exRes.json();
+        if (!ignore && exData.success) {
+          const sorted = (exData.data || []).sort((a: Exam, b: Exam) =>
+            (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
+          );
+          setExams(sorted);
+        }
+
+        const syRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/syllabus`);
+        const syData = await syRes.json();
+        if (!ignore && syData.success) setSyllabusList(syData.data);
+
+        const stRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/strategy`);
+        const stData = await stRes.json();
+        if (!ignore && stData.success) setStrategyBlocks(stData.data);
+
+        const valRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/company-values`);
+        const valData = await valRes.json();
+        if (!ignore && valData.success) setCompanyValues(valData.data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    load();
+    return () => {
+      ignore = true;
+    };
+  }, [BACKEND_URL, activeSubTab]);
 
   const handleSaveExam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,7 +240,7 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
       });
       const data = await res.json();
       if (data.success) {
-        setSyllabusForm({ id: '', examId: '', title: '', slug: '', stage: 'PRELIMS', version: '1.0', mediaId: '', featuredImageMediaId: '', attachmentMediaId: '', videoUrl: '', ctaText: '', ctaUrl: '', description: '', sortOrder: 0 });
+        setSyllabusForm({ id: '', examId: '', title: '', slug: '', stage: 'PRELIMS', version: '1.0', mediaId: '', featuredImageMediaId: '', attachmentMediaId: '', videoUrl: '', ctaText: '', ctaUrl: '', description: '', sortOrder: 0, publish_target: 'both', language: 'en' });
         fetchData();
         alert('Syllabus saved successfully!');
       }
@@ -206,7 +262,7 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
       });
       const data = await res.json();
       if (data.success) {
-        setStrategyForm({ id: '', title: '', slug: '', content: '', category: 'Beginner Strategy', featuredImageMediaId: '', attachmentMediaId: '', videoUrl: '', ctaText: '', ctaUrl: '', sortOrder: 0 });
+        setStrategyForm({ id: '', title: '', slug: '', content: '', category: 'Beginner Strategy', featuredImageMediaId: '', attachmentMediaId: '', videoUrl: '', ctaText: '', ctaUrl: '', sortOrder: 0, publish_target: 'both', language: 'en' });
         fetchData();
         alert('Strategy saved successfully!');
       }
@@ -249,7 +305,7 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
     }
   };
 
-  const selectMedia = (url: string, item: any) => {
+  const selectMedia = (_url: string, item: { id: string }) => {
     if (pickerTarget === 'examLogo') {
       setExamForm(prev => ({ ...prev, logoMediaId: item.id }));
     } else if (pickerTarget === 'syllabusPdf') {
@@ -271,14 +327,14 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
       
       {/* Sub Navigation */}
       <div className="flex bg-slate-50 dark:bg-slate-900/60 p-1 border rounded-2xl w-fit text-xs font-bold text-slate-500">
-        {[
+        {([
           { id: 'exams', label: '🏛️ Exams Directory' },
           { id: 'syllabus', label: '📄 Syllabus Files' },
           { id: 'strategy', label: '🎯 Strategy CMS' }
-        ].map((t) => (
+        ] as const).map((t) => (
           <button
             key={t.id}
-            onClick={() => setActiveSubTab(t.id as any)}
+            onClick={() => setActiveSubTab(t.id)}
             className={`px-5 py-2.5 rounded-xl cursor-pointer transition-all ${activeSubTab === t.id ? 'bg-amber-500 text-slate-950 shadow-xs' : 'hover:text-slate-800'}`}
           >
             {t.label}
@@ -414,7 +470,7 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
                           <img src={ex.logoUrl} alt={ex.name} className="w-full h-full object-contain" />
                         </div>
                       ) : ex.logo ? (
-                        <img src={`${BACKEND_URL}/${ex.logo.storagePath}`} className="w-8 h-8 object-contain" />
+                        <img src={`${BACKEND_URL}/${ex.logo.storagePath}`} alt={ex.name} className="w-8 h-8 object-contain" />
                       ) : (
                         <span>-</span>
                       )}
@@ -485,10 +541,10 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
                 <label className="text-[10px] font-bold text-slate-400 uppercase">Stage</label>
                 <select
                   value={syllabusForm.stage}
-                  onChange={(e) => setSyllabusForm({ ...syllabusForm, stage: e.target.value as any })}
+                  onChange={(e) => setSyllabusForm({ ...syllabusForm, stage: e.target.value as 'PRELIMS' | 'MAINS' | 'INTERVIEW' })}
                   className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none font-bold"
                 >
-                  {['PRELIMS', 'MAINS', 'INTERVIEW'].map((s) => (
+                  {(['PRELIMS', 'MAINS', 'INTERVIEW'] as const).map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
@@ -502,6 +558,29 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
                   onChange={(e) => setSyllabusForm({ ...syllabusForm, version: e.target.value })}
                   className="w-full px-3 py-2 text-xs border bg-slate-50 rounded-xl outline-none"
                 />
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
+              <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">Publish Destination Page</label>
+              <select
+                value={syllabusForm.publish_target || 'both'}
+                onChange={(e) => setSyllabusForm({ ...syllabusForm, publish_target: e.target.value })}
+                className="w-full px-3 py-2 text-xs border border-amber-500/40 bg-white rounded-xl outline-none font-bold cursor-pointer"
+              >
+                <option value="both">Both Portals (/syllabus-strategy & /syllabus-strategy-hindi)</option>
+                <option value="hindi">Hindi Portal Only (/syllabus-strategy-hindi)</option>
+                <option value="english">English Portal Only (/syllabus-strategy)</option>
+              </select>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                <span>Destination:</span>
+                {syllabusForm.publish_target === 'hindi' ? (
+                  <span className="font-bold text-orange-600">Hindi Portal (/syllabus-strategy-hindi)</span>
+                ) : syllabusForm.publish_target === 'english' ? (
+                  <span className="font-bold text-blue-600">English Portal (/syllabus-strategy)</span>
+                ) : (
+                  <span className="font-bold text-emerald-600">Both English & Hindi Portals</span>
+                )}
               </div>
             </div>
 
@@ -619,31 +698,50 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
                   <th className="p-4">Exam</th>
                   <th className="p-4">Title / File</th>
                   <th className="p-4">Stage</th>
+                  <th className="p-4">Destination</th>
                   <th className="p-4">Version</th>
                   <th className="p-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {syllabusList.map((sy) => (
-                  <tr key={sy.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td className="p-4 font-bold">{sy.exam.name}</td>
-                    <td className="p-4 font-mono text-slate-700">{sy.title || sy.fileMedia?.originalName || 'Syllabus PDF'}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                        sy.stage === 'PRELIMS' ? 'bg-blue-100 text-blue-700' : sy.stage === 'MAINS' ? 'bg-violet-100 text-violet-700' : 'bg-amber-100 text-amber-700'
-                      }`}>{sy.stage}</span>
-                    </td>
-                    <td className="p-4 font-mono text-slate-500">{sy.version}</td>
-                    <td className="p-4 flex gap-2">
-                      <button onClick={() => setSyllabusForm({ id: sy.id, examId: sy.examId, title: sy.title || '', slug: sy.slug || '', stage: sy.stage, version: sy.version, mediaId: sy.mediaId, featuredImageMediaId: sy.featuredImageMediaId || '', attachmentMediaId: sy.attachmentMediaId || '', videoUrl: sy.videoUrl || '', ctaText: sy.ctaText || '', ctaUrl: sy.ctaUrl || '', description: sy.description || '', sortOrder: sy.sortOrder })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
-                        <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                      </button>
-                      <button onClick={() => handleDeleteItem('syllabus', sy.id)} className="p-1 bg-slate-50 rounded hover:bg-red-50">
-                        <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {syllabusList.map((sy) => {
+                  const target = sy.publish_target || 'both';
+                  return (
+                    <tr key={sy.id} className="border-b border-slate-100 hover:bg-slate-50/50">
+                      <td className="p-4 font-bold">{sy.exam.name}</td>
+                      <td className="p-4 font-mono text-slate-700">{sy.title || sy.fileMedia?.originalName || 'Syllabus PDF'}</td>
+                      <td className="p-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                          sy.stage === 'PRELIMS' ? 'bg-blue-100 text-blue-700' : sy.stage === 'MAINS' ? 'bg-violet-100 text-violet-700' : 'bg-amber-100 text-amber-700'
+                        }`}>{sy.stage}</span>
+                      </td>
+                      <td className="p-4">
+                        {target === 'hindi' ? (
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-orange-100 text-orange-700 border border-orange-200">
+                            Hindi Only
+                          </span>
+                        ) : target === 'english' ? (
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-blue-100 text-blue-700 border border-blue-200">
+                            English Only
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            Both Portals
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 font-mono text-slate-500">{sy.version}</td>
+                      <td className="p-4 flex gap-2">
+                        <button onClick={() => setSyllabusForm({ id: sy.id, examId: sy.examId, title: sy.title || '', slug: sy.slug || '', stage: sy.stage, version: sy.version, mediaId: sy.mediaId, featuredImageMediaId: sy.featuredImageMediaId || '', attachmentMediaId: sy.attachmentMediaId || '', videoUrl: sy.videoUrl || '', ctaText: sy.ctaText || '', ctaUrl: sy.ctaUrl || '', description: sy.description || '', sortOrder: sy.sortOrder, publish_target: sy.publish_target || 'both', language: sy.language || 'en' })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
+                          <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                        </button>
+                        <button onClick={() => handleDeleteItem('syllabus', sy.id)} className="p-1 bg-slate-50 rounded hover:bg-red-50">
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -691,6 +789,29 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
+            </div>
+
+            <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
+              <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">Publish Destination Page</label>
+              <select
+                value={strategyForm.publish_target || 'both'}
+                onChange={(e) => setStrategyForm({ ...strategyForm, publish_target: e.target.value })}
+                className="w-full px-3 py-2 text-xs border border-amber-500/40 bg-white rounded-xl outline-none font-bold cursor-pointer"
+              >
+                <option value="both">Both Portals (/syllabus-strategy & /syllabus-strategy-hindi)</option>
+                <option value="hindi">Hindi Portal Only (/syllabus-strategy-hindi)</option>
+                <option value="english">English Portal Only (/syllabus-strategy)</option>
+              </select>
+              <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                <span>Destination:</span>
+                {strategyForm.publish_target === 'hindi' ? (
+                  <span className="font-bold text-orange-600">Hindi Portal (/syllabus-strategy-hindi)</span>
+                ) : strategyForm.publish_target === 'english' ? (
+                  <span className="font-bold text-blue-600">English Portal (/syllabus-strategy)</span>
+                ) : (
+                  <span className="font-bold text-emerald-600">Both English & Hindi Portals</span>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1">
@@ -784,24 +905,43 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
                 <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
                   <th className="p-4">Title</th>
                   <th className="p-4">Category</th>
+                  <th className="p-4">Destination</th>
                   <th className="p-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {strategyBlocks.map((st) => (
-                  <tr key={st.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td className="p-4 font-bold">{st.title}</td>
-                    <td className="p-4 text-slate-500 font-bold">{st.category}</td>
-                    <td className="p-4 flex gap-2">
-                      <button onClick={() => setStrategyForm({ id: st.id, title: st.title, slug: st.slug, content: st.content, category: st.category, featuredImageMediaId: st.featuredImageMediaId || '', attachmentMediaId: st.attachmentMediaId || '', videoUrl: st.videoUrl || '', ctaText: st.ctaText || '', ctaUrl: st.ctaUrl || '', sortOrder: st.sortOrder })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
-                        <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                      </button>
-                      <button onClick={() => handleDeleteItem('strategy', st.id)} className="p-1 bg-slate-50 rounded hover:bg-red-50">
-                        <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {strategyBlocks.map((st) => {
+                  const target = st.publish_target || 'both';
+                  return (
+                    <tr key={st.id} className="border-b border-slate-100 hover:bg-slate-50/50">
+                      <td className="p-4 font-bold">{st.title}</td>
+                      <td className="p-4 text-slate-500 font-bold">{st.category}</td>
+                      <td className="p-4">
+                        {target === 'hindi' ? (
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-orange-100 text-orange-700 border border-orange-200">
+                            Hindi Only
+                          </span>
+                        ) : target === 'english' ? (
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-blue-100 text-blue-700 border border-blue-200">
+                            English Only
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            Both Portals
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4 flex gap-2">
+                        <button onClick={() => setStrategyForm({ id: st.id, title: st.title, slug: st.slug, content: st.content, category: st.category, featuredImageMediaId: st.featuredImageMediaId || '', attachmentMediaId: st.attachmentMediaId || '', videoUrl: st.videoUrl || '', ctaText: st.ctaText || '', ctaUrl: st.ctaUrl || '', sortOrder: st.sortOrder, publish_target: st.publish_target || 'both', language: st.language || 'en' })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
+                          <Edit2 className="w-3.5 h-3.5 text-slate-500" />
+                        </button>
+                        <button onClick={() => handleDeleteItem('strategy', st.id)} className="p-1 bg-slate-50 rounded hover:bg-red-50">
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

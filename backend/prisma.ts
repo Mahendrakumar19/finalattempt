@@ -126,7 +126,34 @@ export const prisma = new PrismaClient({
       }
     } catch (_) {}
 
-    console.log('[Prisma] ✅ Entitlement system tables & columns verified in MySQL database.');
+    // Auto-ensure publish_target & language columns exist on Syllabus and StrategyBlock tables
+    try {
+      const syllabusCols: any[] = await prisma.$queryRawUnsafe(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Syllabus'`
+      );
+      const sylColNames = new Set(syllabusCols.map(c => (c.COLUMN_NAME || c.column_name || '').toLowerCase()));
+      if (!sylColNames.has('publish_target')) {
+        await prisma.$executeRawUnsafe(`ALTER TABLE \`Syllabus\` ADD COLUMN \`publish_target\` VARCHAR(50) DEFAULT 'both';`);
+      }
+      if (!sylColNames.has('language')) {
+        await prisma.$executeRawUnsafe(`ALTER TABLE \`Syllabus\` ADD COLUMN \`language\` VARCHAR(20) DEFAULT 'en';`);
+      }
+    } catch (_) {}
+
+    try {
+      const strategyCols: any[] = await prisma.$queryRawUnsafe(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'StrategyBlock'`
+      );
+      const stratColNames = new Set(strategyCols.map(c => (c.COLUMN_NAME || c.column_name || '').toLowerCase()));
+      if (!stratColNames.has('publish_target')) {
+        await prisma.$executeRawUnsafe(`ALTER TABLE \`StrategyBlock\` ADD COLUMN \`publish_target\` VARCHAR(50) DEFAULT 'both';`);
+      }
+      if (!stratColNames.has('language')) {
+        await prisma.$executeRawUnsafe(`ALTER TABLE \`StrategyBlock\` ADD COLUMN \`language\` VARCHAR(20) DEFAULT 'en';`);
+      }
+    } catch (_) {}
+
+    console.log('[Prisma] ✅ Entitlement & syllabus/strategy publish_target columns verified in MySQL database.');
   } catch (err: any) {
     console.warn('[Prisma] Warning verifying entitlement tables:', err?.message || err);
   }

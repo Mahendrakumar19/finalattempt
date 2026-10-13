@@ -655,7 +655,7 @@ export default function CurrentAffairsLanding() {
                     },
                     {
                       key: "hindi",
-                      label: "🇮🇳 हिन्दी दैनिक समसामयिकी",
+                      label: "हिन्दी दैनिक समसामयिकी",
                       color:
                         "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
                     },

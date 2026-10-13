@@ -744,9 +744,9 @@ function BlogEditorForm() {
                 onChange={handleChange}
                 className="w-full rounded-xl border-2 border-primary bg-background/50 px-4 py-3 text-sm text-foreground focus:border-primary outline-none transition-all font-black cursor-pointer shadow-xs" 
               >
-                <option value="both">🌐 Both English & Hindi Pages (/blog & /blog-hindi)</option>
-                <option value="hindi">🇮🇳 Hindi Page Only (/blog-hindi)</option>
-                <option value="english">🇬🇧 English Page Only (/blog)</option>
+                <option value="both">Both English & Hindi Pages (/blog & /blog-hindi)</option>
+                <option value="hindi">Hindi Page Only (/blog-hindi)</option>
+                <option value="english">English Page Only (/blog)</option>
               </select>
 
               {/* Prominent Visual Destination Badge */}
@@ -754,15 +754,15 @@ function BlogEditorForm() {
                 <span className="font-bold text-muted-foreground text-[11px]">Upload Destination:</span>
                 {(formData.publish_target === 'hindi') ? (
                   <span className="px-2.5 py-1 rounded-lg bg-orange-500/15 text-orange-600 dark:text-orange-400 font-black text-[11px] border border-orange-500/30">
-                    🇮🇳 ONLY on /blog-hindi
+                    ONLY on /blog-hindi
                   </span>
                 ) : (formData.publish_target === 'english') ? (
                   <span className="px-2.5 py-1 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-400 font-black text-[11px] border border-blue-500/30">
-                    🇬🇧 ONLY on /blog
+                    ONLY on /blog
                   </span>
                 ) : (
                   <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-[11px] border border-emerald-500/30">
-                    🌐 BOTH /blog &amp; /blog-hindi
+                    BOTH /blog &amp; /blog-hindi
                   </span>
                 )}
               </div>

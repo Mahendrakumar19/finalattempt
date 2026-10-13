@@ -8,6 +8,7 @@ import {
   Calendar, Zap, Search, X
 } from 'lucide-react';
 import { db, DynamicCurrentAffairEdition } from '@/services/db';
+import { useLocale } from '@/context/LocaleContext';
 
 function formatDisplayDateHindi(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -63,16 +64,20 @@ function SidebarSection({ icon, title }: { icon: React.ReactNode; title: string 
 }
 
 export default function CurrentAffairsHindiLanding() {
+  const { locale, setLocale } = useLocale();
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
   type TopicKey = 'all' | 'editorials' | 'national' | 'international' | 'bihar' | 'arunachal';
   const [activeTopic, setActiveTopic] = useState<TopicKey>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
+    if (locale !== 'hi') {
+      setLocale('hi', true);
+    }
     db.getDynamicCurrentAffairsEditions(false)
       .then(list => setEditions(list || []))
       .catch(err => console.error('Error loading current affairs editions:', err));
-  }, []);
+  }, [locale, setLocale]);
 
   // Derived filtered articles specifically for Hindi Portal
   const recentArticles = useMemo(() => {

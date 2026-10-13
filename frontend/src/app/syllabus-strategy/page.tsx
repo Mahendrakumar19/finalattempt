@@ -29,6 +29,8 @@ interface SyllabusItem {
   lastUpdated: string;
   description?: string;
   fileMedia: { storagePath: string; originalName: string; size: number };
+  publish_target?: string;
+  language?: string;
 }
 
 interface StrategyBlock {
@@ -43,6 +45,8 @@ interface StrategyBlock {
   ctaUrl?: string | null;
   featuredImage?: { storagePath: string } | null;
   attachment?: { storagePath: string; originalName: string } | null;
+  publish_target?: string;
+  language?: string;
 }
 
 export default function SyllabusStrategyPage() {
@@ -71,7 +75,9 @@ export default function SyllabusStrategyPage() {
     let ignore = false;
     const fetchData = async () => {
       try {
-        const examsRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`);
+        const examsRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/exams`, {
+          headers: { 'Accept-Language': 'en' }
+        });
         const examsData = await examsRes.json();
         if (!ignore && examsData.success && Array.isArray(examsData.data)) {
           const activeExams = examsData.data.filter((e: Exam) => e.isActive);
@@ -88,7 +94,9 @@ export default function SyllabusStrategyPage() {
           }
         }
 
-        const syllabusRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/syllabus`);
+        const syllabusRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/syllabus`, {
+          headers: { 'Accept-Language': 'en' }
+        });
         const syllabusData = await syllabusRes.json();
         if (!ignore && syllabusData.success && Array.isArray(syllabusData.data)) {
           setSyllabusList(syllabusData.data);
@@ -97,7 +105,9 @@ export default function SyllabusStrategyPage() {
           }
         }
 
-        const strategyRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/strategy`);
+        const strategyRes = await fetch(`${BACKEND_URL}/api/syllabus-strategy/strategy`, {
+          headers: { 'Accept-Language': 'en' }
+        });
         const strategyData = await strategyRes.json();
         if (!ignore && strategyData.success && Array.isArray(strategyData.data)) {
           setStrategyBlocks(strategyData.data);
@@ -121,8 +131,10 @@ export default function SyllabusStrategyPage() {
     }
   };
 
-  // Filtered syllabus items
+  // Filtered syllabus items (English page excludes Hindi-only items)
   const filteredSyllabus = syllabusList.filter(s => {
+    const target = s.publish_target || 'both';
+    if (target === 'hindi') return false;
     if (selectedExamId !== 'ALL' && s.examId !== selectedExamId) return false;
     if (selectedStage !== 'ALL' && s.stage !== selectedStage) return false;
     if (searchQuery.trim()) {
@@ -136,8 +148,10 @@ export default function SyllabusStrategyPage() {
   // Selected Exam Object
   const selectedExam = exams.find(e => e.id === selectedExamId);
 
-  // Filtered strategy items
+  // Filtered strategy items (English page excludes Hindi-only items)
   const filteredStrategy = strategyBlocks.filter((st: StrategyBlock) => {
+    const target = st.publish_target || 'both';
+    if (target === 'hindi') return false;
     if (selectedExamId !== 'ALL') {
       if (st.examId) {
         if (st.examId !== selectedExamId) return false;
@@ -189,7 +203,7 @@ export default function SyllabusStrategyPage() {
                 onClick={() => setLocale('hi', true)}
                 className="px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold rounded-xl text-xs flex items-center gap-1.5 border border-amber-500/30 transition-all cursor-pointer"
               >
-                <span>🇮🇳 Hindi Portal (हिन्दी)</span>
+                <span>Hindi Portal (हिन्दी)</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
 

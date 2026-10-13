@@ -72,7 +72,7 @@ export default function Blog() {
             onClick={() => setLocale('hi', true)}
             className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold rounded-xl text-xs flex items-center gap-2 border border-amber-500/30 transition-all"
           >
-            <span>🇮🇳 Switch to Hindi Blogs (हिन्दी पोर्टल)</span>
+            <span>Switch to Hindi Blogs (हिन्दी पोर्टल)</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>

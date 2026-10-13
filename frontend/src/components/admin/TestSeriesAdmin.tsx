@@ -1162,7 +1162,7 @@ export default function TestSeriesAdmin({
                       </h4>
                       {series.title_hi && (
                         <p className="text-[11px] font-bold text-amber-500 leading-snug">
-                          🇮🇳 {series.title_hi}
+                          <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-amber-500/10 border border-amber-500/20 mr-1">Hindi</span>{series.title_hi}
                         </p>
                       )}
                       <p className="text-[10px] font-mono text-slate-400">

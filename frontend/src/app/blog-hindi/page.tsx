@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calendar, ArrowRight } from 'lucide-react';
+import { Calendar, ArrowRight, BookOpen } from 'lucide-react';
 import { db, BlogItem } from '@/services/db';
 import { useLocale } from '@/context/LocaleContext';
 
@@ -92,8 +92,8 @@ export default function BlogHindi() {
           </div>
         ) : blogsList.length === 0 ? (
           <div className="bg-gradient-to-br from-orange-500/5 via-slate-50 to-amber-500/5 dark:from-slate-900 dark:via-slate-900/60 dark:to-slate-900 rounded-3xl border border-dashed border-orange-500/30 p-12 text-center space-y-4 max-w-2xl mx-auto shadow-xs">
-            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 text-orange-500 border border-orange-500/20 flex items-center justify-center mx-auto text-2xl">
-              🇮🇳
+            <div className="w-16 h-16 rounded-2xl bg-orange-500/10 text-orange-500 border border-orange-500/20 flex items-center justify-center mx-auto">
+              <BookOpen className="w-8 h-8 text-orange-500" />
             </div>
             <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 dark:text-white">
               कोई हिंदी लेख उपलब्ध नहीं है
