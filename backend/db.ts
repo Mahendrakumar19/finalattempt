@@ -200,14 +200,24 @@ export interface DynamicCurrentAffairArticle {
   exams?: string[];    // Array of exam names
   tags?: string[];     // Array of tag names
   
+  title_hi?: string;
+  summary_hi?: string;
+  content_hi?: string;
+  language?: string;
+  publish_target?: string;
+  
   createdAt?: string;
   updatedAt?: string;
 }
 
 export interface DynamicCurrentAffairEdition {
   id: string;
+  title?: string;
+  title_hi?: string;
   publishDate: string; // YYYY-MM-DD
   summary?: string;
+  summary_hi?: string;
+  publish_target?: string;
   articles?: DynamicCurrentAffairArticle[];
   createdAt?: string;
   updatedAt?: string;
@@ -471,7 +481,7 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         CREATE TABLE IF NOT EXISTS results (
           id VARCHAR(255) PRIMARY KEY,
           name VARCHAR(255) NOT NULL,
-          rank VARCHAR(100) NOT NULL,
+          \`rank\` VARCHAR(100) NOT NULL,
           exam VARCHAR(100) NOT NULL,
           course VARCHAR(255) NOT NULL,
           service VARCHAR(255) NOT NULL,
@@ -605,13 +615,26 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         FOREIGN KEY (seoId) REFERENCES current_affair_seo(id) ON DELETE SET NULL
       )
     `);
-    try {
-      await pool.query('ALTER TABLE current_affair_editions ADD COLUMN IF NOT EXISTS title_hi TEXT, ADD COLUMN IF NOT EXISTS summary_hi TEXT, ADD COLUMN IF NOT EXISTS publish_target VARCHAR(50) DEFAULT "both"');
-    } catch (_) {}
+    const caEditionCols = [
+      'ALTER TABLE current_affair_editions ADD COLUMN title_hi TEXT',
+      'ALTER TABLE current_affair_editions ADD COLUMN summary_hi TEXT',
+      'ALTER TABLE current_affair_editions ADD COLUMN publish_target VARCHAR(50) DEFAULT "both"'
+    ];
+    for (const sql of caEditionCols) {
+      try { await pool.query(sql); } catch (_) {}
+    }
 
-    try {
-      await pool.query('ALTER TABLE current_affair_articles ADD COLUMN IF NOT EXISTS content TEXT, ADD COLUMN IF NOT EXISTS title_hi TEXT, ADD COLUMN IF NOT EXISTS summary_hi TEXT, ADD COLUMN IF NOT EXISTS content_hi LONGTEXT, ADD COLUMN IF NOT EXISTS publish_target VARCHAR(50) DEFAULT "both", ADD COLUMN IF NOT EXISTS language VARCHAR(50) DEFAULT "en"');
-    } catch (_) {}
+    const caArticleCols = [
+      'ALTER TABLE current_affair_articles ADD COLUMN content TEXT',
+      'ALTER TABLE current_affair_articles ADD COLUMN title_hi TEXT',
+      'ALTER TABLE current_affair_articles ADD COLUMN summary_hi TEXT',
+      'ALTER TABLE current_affair_articles ADD COLUMN content_hi LONGTEXT',
+      'ALTER TABLE current_affair_articles ADD COLUMN publish_target VARCHAR(50) DEFAULT "both"',
+      'ALTER TABLE current_affair_articles ADD COLUMN language VARCHAR(50) DEFAULT "en"'
+    ];
+    for (const sql of caArticleCols) {
+      try { await pool.query(sql); } catch (_) {}
+    }
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS current_affair_subjects (
@@ -1575,7 +1598,7 @@ class BackendDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO results (id, name, rank, exam, course, service, district, photo, year, story) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO results (id, name, `rank`, exam, course, service, district, photo, year, story) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [item.id, item.name, item.rank, item.exam, item.course, item.service, item.district, item.photo, item.year, item.story]
         );
         return item;
@@ -1592,7 +1615,7 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [result]: any = await mysqlPool.query(
-          'UPDATE results SET name = ?, rank = ?, exam = ?, course = ?, service = ?, district = ?, photo = ?, year = ?, story = ? WHERE id = ? OR name = ?',
+          'UPDATE results SET name = ?, `rank` = ?, exam = ?, course = ?, service = ?, district = ?, photo = ?, year = ?, story = ? WHERE id = ? OR name = ?',
           [updated.name, updated.rank, updated.exam, updated.course, updated.service, updated.district, updated.photo, updated.year, updated.story, id, id]
         );
         return result.affectedRows > 0;
@@ -6346,6 +6369,12 @@ class LmsDB {
         } catch (_) {}
         try {
           await mysqlPool.query('ALTER TABLE daily_quiz_questions ADD COLUMN optionE TEXT, ADD COLUMN optionEHi TEXT, ADD COLUMN questionImageUrl TEXT, ADD COLUMN questionTextHi TEXT, ADD COLUMN optionAHi TEXT, ADD COLUMN optionBHi TEXT, ADD COLUMN optionCHi TEXT, ADD COLUMN optionDHi TEXT, ADD COLUMN explanationHi TEXT');
+        } catch (_) {}
+        try {
+          await mysqlPool.query('ALTER TABLE daily_quiz_questions ADD COLUMN marks FLOAT DEFAULT 1.0');
+        } catch (_) {}
+        try {
+          await mysqlPool.query('ALTER TABLE daily_quiz_questions ADD COLUMN negativeMarks FLOAT DEFAULT 0.33');
         } catch (_) {}
       } catch (err) {
         console.error('[LmsDB] initDailyQuizTables MySQL error:', err);

@@ -252,21 +252,14 @@ export default function NewsTodayLayout({
       return { processedHtml: '', tocItems: [] };
     }
 
-    if (typeof window === 'undefined') {
-      return { processedHtml: activeArticle.content, tocItems: [] };
-    }
-
     try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(activeArticle.content, 'text/html');
-      const headings = doc.querySelectorAll('h1, h2, h3, h4');
-
       const items: TocItem[] = [];
       const idCounts: Record<string, number> = {};
 
-      headings.forEach((heading) => {
-        const text = heading.textContent?.trim() || '';
-        if (!text) return;
+      const headingRegex = /<h([1-4])([^>]*)>(.*?)<\/h\1>/gi;
+      const htmlWithIds = activeArticle.content.replace(headingRegex, (match, levelStr, attrs, innerHtml) => {
+        const text = innerHtml.replace(/<[^>]+>/g, '').trim();
+        if (!text) return match;
 
         let baseId = text
           .toLowerCase()
@@ -283,14 +276,15 @@ export default function NewsTodayLayout({
           idCounts[baseId] = 1;
         }
 
-        heading.setAttribute('id', uniqueId);
-
-        const level = parseInt(heading.tagName.replace('H', ''), 10) || 2;
+        const level = parseInt(levelStr, 10) || 2;
         items.push({ id: uniqueId, text, level });
+
+        const cleanAttrs = attrs.replace(/\sid="[^"]*"/gi, '');
+        return `<h${levelStr}${cleanAttrs} id="${uniqueId}">${innerHtml}</h${levelStr}>`;
       });
 
       return {
-        processedHtml: doc.body.innerHTML,
+        processedHtml: htmlWithIds,
         tocItems: items
       };
     } catch (err) {
