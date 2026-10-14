@@ -1060,6 +1060,27 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     } catch (e) {
       console.warn('[LmsDB] Startup auto-migration for daily quiz tables:', e);
     }
+    // 18. Current Affair Compilations Table
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS current_affair_compilations (
+          id VARCHAR(255) PRIMARY KEY,
+          type VARCHAR(50) NOT NULL,
+          periodKey VARCHAR(100) NOT NULL,
+          title VARCHAR(255) NOT NULL,
+          fromDate VARCHAR(20) NOT NULL,
+          toDate VARCHAR(20) NOT NULL,
+          articleIds JSON NOT NULL,
+          articleCount INT NOT NULL,
+          categoryStats JSON NOT NULL,
+          availableMonths JSON,
+          missingMonths JSON,
+          publishStatus VARCHAR(20) NOT NULL DEFAULT 'PUBLISHED',
+          createdAt VARCHAR(50) NOT NULL,
+          updatedAt VARCHAR(50) NOT NULL
+        )
+      `);
+    } catch (_) {}
 
     console.log('MySQL Database tables initialized successfully.');
 
