@@ -989,6 +989,78 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query('ALTER TABLE lms_quizzes DROP FOREIGN KEY lms_quizzes_ibfk_1'); } catch (_) {}
     try { await pool.query('ALTER TABLE lms_quizzes DROP FOREIGN KEY lms_quizzes_courseId_fkey'); } catch (_) {}
 
+    // 17. Daily Quizzes & Questions System (Ensure tables & 5-option columns exist on boot)
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS daily_quizzes (
+          id VARCHAR(100) PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          slug VARCHAR(255),
+          description TEXT,
+          publishDate VARCHAR(20) NOT NULL,
+          timeLimitMins INT DEFAULT 10,
+          totalQuestions INT DEFAULT 10,
+          difficulty VARCHAR(50) DEFAULT 'MEDIUM',
+          category VARCHAR(100) DEFAULT 'Daily Practice',
+          attemptsCount INT DEFAULT 0,
+          passingScore INT DEFAULT 40,
+          isFree TINYINT(1) DEFAULT 1,
+          title_hi TEXT,
+          description_hi TEXT,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS daily_quiz_questions (
+          id VARCHAR(100) PRIMARY KEY,
+          quizId VARCHAR(100) NOT NULL,
+          questionText TEXT NOT NULL,
+          optionA TEXT NOT NULL,
+          optionB TEXT NOT NULL,
+          optionC TEXT NOT NULL,
+          optionD TEXT NOT NULL,
+          optionE TEXT,
+          correctAnswer VARCHAR(10) NOT NULL,
+          explanation TEXT,
+          questionTextHi TEXT,
+          optionAHi TEXT,
+          optionBHi TEXT,
+          optionCHi TEXT,
+          optionDHi TEXT,
+          optionEHi TEXT,
+          questionImageUrl TEXT,
+          explanationHi TEXT,
+          marks FLOAT DEFAULT 1.0,
+          negativeMarks FLOAT DEFAULT 0.33,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (quizId) REFERENCES daily_quizzes(id) ON DELETE CASCADE
+        )
+      `);
+
+      const dqCols = [
+        'ALTER TABLE daily_quizzes ADD COLUMN IF NOT EXISTS slug VARCHAR(255)',
+        'ALTER TABLE daily_quizzes ADD COLUMN IF NOT EXISTS title_hi TEXT',
+        'ALTER TABLE daily_quizzes ADD COLUMN IF NOT EXISTS description_hi TEXT',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN optionE TEXT',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN optionEHi TEXT',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN questionImageUrl TEXT',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN questionTextHi TEXT',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN optionAHi TEXT',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN optionBHi TEXT',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN optionCHi TEXT',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN optionDHi TEXT',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN explanationHi TEXT',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN marks FLOAT DEFAULT 1.0',
+        'ALTER TABLE daily_quiz_questions ADD COLUMN negativeMarks FLOAT DEFAULT 0.33'
+      ];
+      for (const sql of dqCols) {
+        try { await pool.query(sql); } catch (_) {}
+      }
+    } catch (e) {
+      console.warn('[LmsDB] Startup auto-migration for daily quiz tables:', e);
+    }
+
     console.log('MySQL Database tables initialized successfully.');
 
     
@@ -6364,18 +6436,25 @@ class LmsDB {
           )
         `);
 
-        try {
-          await mysqlPool.query('ALTER TABLE daily_quiz_questions MODIFY COLUMN correctAnswer VARCHAR(10) NOT NULL');
-        } catch (_) {}
-        try {
-          await mysqlPool.query('ALTER TABLE daily_quiz_questions ADD COLUMN optionE TEXT, ADD COLUMN optionEHi TEXT, ADD COLUMN questionImageUrl TEXT, ADD COLUMN questionTextHi TEXT, ADD COLUMN optionAHi TEXT, ADD COLUMN optionBHi TEXT, ADD COLUMN optionCHi TEXT, ADD COLUMN optionDHi TEXT, ADD COLUMN explanationHi TEXT');
-        } catch (_) {}
-        try {
-          await mysqlPool.query('ALTER TABLE daily_quiz_questions ADD COLUMN marks FLOAT DEFAULT 1.0');
-        } catch (_) {}
-        try {
-          await mysqlPool.query('ALTER TABLE daily_quiz_questions ADD COLUMN negativeMarks FLOAT DEFAULT 0.33');
-        } catch (_) {}
+        // Ensure all columns exist individually (MySQL fails the whole ALTER if one column fails or syntax varies)
+        const colsToAdd = [
+          'ADD COLUMN optionE TEXT',
+          'ADD COLUMN optionEHi TEXT',
+          'ADD COLUMN questionImageUrl TEXT',
+          'ADD COLUMN questionTextHi TEXT',
+          'ADD COLUMN optionAHi TEXT',
+          'ADD COLUMN optionBHi TEXT',
+          'ADD COLUMN optionCHi TEXT',
+          'ADD COLUMN optionDHi TEXT',
+          'ADD COLUMN explanationHi TEXT',
+          'ADD COLUMN marks FLOAT DEFAULT 1.0',
+          'ADD COLUMN negativeMarks FLOAT DEFAULT 0.33'
+        ];
+        for (const col of colsToAdd) {
+          try {
+            await mysqlPool.query(`ALTER TABLE daily_quiz_questions ${col}`);
+          } catch (_) {}
+        }
       } catch (err) {
         console.error('[LmsDB] initDailyQuizTables MySQL error:', err);
       }
