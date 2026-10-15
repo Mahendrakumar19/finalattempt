@@ -142,7 +142,7 @@ export default function NcertPage() {
         <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
           {/* Language Pill Toggle */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl">
-            {[{ val: 'ALL', label: '🌐 All' }, { val: 'Hindi', label: 'Hindi' }, { val: 'English', label: 'English' }].map(({ val, label }) => (
+            {[{ val: 'ALL', label: 'All' }, { val: 'Hindi', label: 'Hindi' }, { val: 'English', label: 'English' }].map(({ val, label }) => (
               <button
                 key={val}
                 onClick={() => setSelectedLanguage(val)}
@@ -299,7 +299,7 @@ export default function NcertPage() {
                 <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
                   {/* Language Pill Toggle inside modal */}
                   <div className="flex items-center gap-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-1 rounded-xl">
-                    {[{ val: 'ALL', label: '🌐 All' }, { val: 'Hindi', label: 'Hindi' }, { val: 'English', label: 'English' }].map(({ val, label }) => (
+                    {[{ val: 'ALL', label: 'All' }, { val: 'Hindi', label: 'Hindi' }, { val: 'English', label: 'English' }].map(({ val, label }) => (
                       <button
                         key={val}
                         onClick={() => setModalLanguageFilter(val)}

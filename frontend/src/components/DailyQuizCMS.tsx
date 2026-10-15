@@ -629,8 +629,8 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
       {/* ── CMS Top Control Banner ────────────────────────────────────────── */}
       <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-6 sm:p-8 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl text-xs font-black uppercase tracking-wider mb-2">
-            <Flame className="w-4 h-4 text-amber-500" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-600/10 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-black uppercase tracking-wider mb-2">
+            <Flame className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span>Admin Daily Quiz Control Center</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-heading font-black text-[var(--text-color)]">
@@ -647,7 +647,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
             target="_blank"
             className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[var(--text-color)] font-bold rounded-xl text-xs flex items-center gap-2 border border-[var(--card-border)] transition-all cursor-pointer"
           >
-            <Eye className="w-4 h-4 text-amber-500" />
+            <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span>Preview Student Portal</span>
           </Link>
 
@@ -657,7 +657,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
               setQuizModalLangTab('en');
               setIsQuizModalOpen(true);
             }}
-            className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-md transition-all flex items-center gap-2 cursor-pointer"
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black rounded-xl text-xs uppercase tracking-wider shadow-md transition-all flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>Create New Quiz</span>

@@ -649,7 +649,7 @@ export default function CurrentAffairsLanding() {
                     },
                     {
                       key: "editorials",
-                      label: "✍️ Editorials & Mains Analysis",
+                      label: "Editorials & Mains Analysis",
                       color:
                         "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
                     },

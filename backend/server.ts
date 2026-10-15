@@ -236,6 +236,83 @@ app.delete('/api/custom-pages/:id', async (req, res) => {
   }
 });
 
+// ─── PUSH NOTIFICATIONS & ALERTS API ──────────────────────────────────────────
+app.get('/api/notifications', async (req, res) => {
+  try {
+    const audience = req.query.audience as string | undefined;
+    const list = await db.getNotifications(audience);
+    res.json({ success: true, data: list });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/notifications', async (req, res) => {
+  try {
+    const item = await db.createNotification(req.body);
+    res.json({ success: true, data: item });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/notifications/:id', async (req, res) => {
+  try {
+    const ok = await db.deleteNotification(req.params.id);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── OFFERS, PROMO CODES & DISCOUNTS API ──────────────────────────────────────
+app.get('/api/offers', async (req, res) => {
+  try {
+    const activeOnly = req.query.activeOnly === 'true';
+    const list = await db.getOffers(activeOnly);
+    res.json({ success: true, data: list });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/offers', async (req, res) => {
+  try {
+    const item = await db.createOffer(req.body);
+    res.json({ success: true, data: item });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/offers/:id', async (req, res) => {
+  try {
+    const ok = await db.updateOffer(req.params.id, req.body);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete('/api/offers/:id', async (req, res) => {
+  try {
+    const ok = await db.deleteOffer(req.params.id);
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/offers/validate-coupon', async (req, res) => {
+  try {
+    const { code, cartAmount, itemType, itemId } = req.body;
+    const result = await db.validateCouponCode(code, Number(cartAmount || 0), itemType, itemId);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ valid: false, error: err.message });
+  }
+});
+
 // TEST SERIES & EXAM HIERARCHY API ROUTES
 app.get('/api/test-series/hierarchy', async (req, res) => {
   try {

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   BookOpen, Play, CheckCircle, ChevronLeft, ChevronDown, ChevronRight,
   Lock, Video, Clock, Sparkles, Trophy, MessageSquare, HelpCircle, FileText,
-  Radio, Calendar, Bell
+  Radio, Calendar, Bell, CheckSquare, Inbox
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -484,55 +484,64 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
             {[
               { 
                 id: 'live', 
-                label: '🔴 Live Classes', 
+                label: 'Live Classes', 
+                icon: Radio,
                 count: liveLessons.length,
                 isPulse: liveActiveCount > 0
               },
               { 
                 id: 'recordings', 
-                label: '📼 Recorded Lectures', 
+                label: 'Recorded Lectures', 
+                icon: Video,
                 count: recordedLessons.length 
               },
               { 
                 id: 'curriculum', 
-                label: '📚 All Chapters', 
+                label: 'All Chapters', 
+                icon: BookOpen,
                 count: sections.length 
               },
               { 
                 id: 'quizzes', 
-                label: '📝 Mock Tests', 
+                label: 'Mock Tests', 
+                icon: CheckSquare,
                 count: quizzes.length 
               },
               { 
                 id: 'assignments', 
-                label: '📥 Assignments', 
+                label: 'Assignments', 
+                icon: Inbox,
                 count: assignments.length 
               }
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'live' | 'curriculum' | 'recordings' | 'quizzes' | 'assignments')}
-                className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                  activeTab === tab.id 
-                    ? tab.id === 'live' && tab.isPulse
-                      ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40'
-                      : 'bg-blue-600 text-white shadow-md shadow-blue-900/30' 
-                    : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-                }`}
-              >
-                <span>{tab.label}</span>
-                {tab.count > 0 && (
-                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                    activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
-                  }`}>
-                    {tab.count}
-                  </span>
-                )}
-                {tab.isPulse && (
-                  <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping inline-block" />
-                )}
-              </button>
-            ))}
+            ].map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as 'live' | 'curriculum' | 'recordings' | 'quizzes' | 'assignments')}
+                  className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                    activeTab === tab.id 
+                      ? tab.id === 'live' && tab.isPulse
+                        ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40'
+                        : 'bg-blue-600 text-white shadow-md shadow-blue-900/30' 
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                  {tab.count > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                      activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+                  {tab.isPulse && (
+                    <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping inline-block" />
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           {/* ────────────────────────────────────────────────────────── */}

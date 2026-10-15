@@ -2,12 +2,63 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
-import { ArrowLeft, BookOpen, Clock, Calendar, CheckCircle, HelpCircle, Play, DollarSign } from 'lucide-react';
+import { Metadata } from 'next';
+import { ArrowLeft, CheckCircle } from 'lucide-react';
 import { db } from '@/services/db';
 import CourseTabs from './CourseTabs';
 import EnrollmentCard from './EnrollmentCard';
 
-export default async function CourseDetailPage({ params }: { params: Promise<{ id: string }> }) {
+interface ExtendedCourse {
+  courseFormat?: string;
+  originalPrice?: string | number;
+  discount?: string | number;
+}
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  try {
+    const course = await db.getCourseById(id);
+    if (course) {
+      const title = `${course.title} — UPSC & State PCS Course`;
+      const description = course.description || `Enroll in ${course.title} at Final Attempt. Comprehensive coverage, test series, and mentorship for civil services.`;
+      const url = `https://finalattemptias.com/courses/${course.id}`;
+      const image = course.thumbnailUrl || '/og-image.jpg';
+
+      return {
+        title,
+        description,
+        alternates: { canonical: url },
+        openGraph: {
+          title,
+          description,
+          url,
+          siteName: 'Final Attempt',
+          images: [{ url: image, alt: course.title }],
+          type: 'website',
+          locale: 'en_IN',
+        },
+        twitter: {
+          card: 'summary_large_image',
+          title,
+          description,
+          images: [image],
+        },
+      };
+    }
+  } catch (err) {
+    console.error('Failed to generate course metadata:', err);
+  }
+  return {
+    title: 'Course Details | Final Attempt',
+    description: 'Explore comprehensive mentorship and courses for UPSC & State PCS at Final Attempt.',
+  };
+}
+
+export default async function CourseDetailPage({ params }: PageProps) {
   const { id } = await params;
   const course = await db.getCourseById(id);
 
@@ -19,8 +70,34 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
   const allFaculty = await db.getFaculty();
   const courseFaculty = (allFaculty || []).slice(0, 3); // Map mock mentors
 
+  const cleanPrice = String(course.fee || '0').replace(/[^\d]/g, '');
+
+  const courseSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Course',
+    'name': course.title,
+    'description': course.description || `Comprehensive UPSC & State PCS course by Final Attempt.`,
+    'provider': {
+      '@type': 'Organization',
+      'name': 'Final Attempt',
+      'sameAs': 'https://finalattemptias.com'
+    },
+    'offers': {
+      '@type': 'Offer',
+      'category': 'Paid',
+      'price': cleanPrice || '0',
+      'priceCurrency': 'INR',
+      'availability': 'https://schema.org/InStock'
+    }
+  };
+
   return (
     <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+      {/* Schema.org Course Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(courseSchema) }}
+      />
       {/* Back button */}
       <Link href="/courses" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-900 transition-colors">
         <ArrowLeft className="w-4 h-4" />
@@ -32,6 +109,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
         <div className="lg:col-span-8 space-y-6">
           {course.thumbnailUrl && (
             <div className="w-full h-56 sm:h-72 bg-slate-950 rounded-3xl overflow-hidden relative border border-slate-200/80 shadow-md">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={course.thumbnailUrl}
                 alt={course.title}
@@ -45,7 +123,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-800 text-[10px] font-bold uppercase tracking-wider">
               {course.category || 'BPSC'} Program
             </div>
-            {((course as any).courseFormat === 'live' || course.title?.toLowerCase().includes('live') || course.description?.toLowerCase().includes('live')) ? (
+            {((course as ExtendedCourse).courseFormat === 'live' || course.title?.toLowerCase().includes('live') || course.description?.toLowerCase().includes('live')) ? (
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[10px] font-black uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping" />
                 Live Interactive Batch
@@ -71,7 +149,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
             <div className="space-y-1">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Format</span>
               <p className="text-sm font-extrabold text-slate-900">
-                {((course as any).courseFormat === 'live' || course.title?.toLowerCase().includes('live'))
+                {((course as ExtendedCourse).courseFormat === 'live' || course.title?.toLowerCase().includes('live'))
                   ? '🔴 Live + Recorded Backups' 
                   : (course.schedule || 'Self-Paced Recorded')}
               </p>
@@ -95,8 +173,8 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ i
           <EnrollmentCard 
             courseId={String(course.id)} 
             fee={String(course.fee)} 
-            originalPrice={(course as any).originalPrice}
-            discount={(course as any).discount}
+            originalPrice={(course as ExtendedCourse).originalPrice}
+            discount={(course as ExtendedCourse).discount}
           />
 
           <div className="space-y-3.5 pt-4 border-t border-slate-100">

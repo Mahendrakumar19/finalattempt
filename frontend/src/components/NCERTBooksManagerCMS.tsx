@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Save, Upload, FileCheck, FileX } from 'lucide-react';
 import MediaPicker from './MediaPicker';
 import RichTextEditor from './RichTextEditor';
 
@@ -281,8 +281,8 @@ export default function NCERTBooksManagerCMS() {
             />
           </div>
 
-          <button type="submit" className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-md cursor-pointer">
-            {form.id ? '💾 Save Changes' : '🚀 Upload NCERT Book'}
+          <button type="submit" className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-md cursor-pointer flex items-center justify-center gap-2">
+            {form.id ? <><Save className="w-4 h-4" /><span>Save Changes</span></> : <><Upload className="w-4 h-4" /><span>Upload NCERT Book</span></>}
           </button>
         </form>
 
@@ -367,8 +367,18 @@ export default function NCERTBooksManagerCMS() {
                         </span>
                       </td>
                       <td className="p-3 font-bold text-slate-900 dark:text-white">{bk.title || bk.bookName}</td>
-                      <td className="p-3 text-slate-500 font-mono text-[10px]">
-                        {bk.fileMedia ? '📄 PDF Attached' : '❌ No File'}
+                      <td className="p-3 text-[10px]">
+                        {bk.fileMedia ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20">
+                            <FileCheck className="w-3 h-3" />
+                            <span>PDF Attached</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-500 font-medium border border-slate-500/20">
+                            <FileX className="w-3 h-3" />
+                            <span>No File</span>
+                          </span>
+                        )}
                       </td>
                       <td className="p-3 text-right">
                         <div className="flex justify-end gap-2">

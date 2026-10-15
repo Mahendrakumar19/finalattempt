@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, GraduationCap, FileText, Target } from 'lucide-react';
 import MediaPicker from './MediaPicker';
 import RichTextEditor from './RichTextEditor';
 
@@ -326,20 +326,24 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
     <div className="space-y-6">
       
       {/* Sub Navigation */}
-      <div className="flex bg-slate-50 dark:bg-slate-900/60 p-1 border rounded-2xl w-fit text-xs font-bold text-slate-500">
-        {([
-          { id: 'exams', label: '🏛️ Exams Directory' },
-          { id: 'syllabus', label: '📄 Syllabus Files' },
-          { id: 'strategy', label: '🎯 Strategy CMS' }
-        ] as const).map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setActiveSubTab(t.id)}
-            className={`px-5 py-2.5 rounded-xl cursor-pointer transition-all ${activeSubTab === t.id ? 'bg-amber-500 text-slate-950 shadow-xs' : 'hover:text-slate-800'}`}
-          >
-            {t.label}
-          </button>
-        ))}
+      <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1 border border-slate-200 dark:border-white/10 rounded-2xl w-fit text-xs font-bold text-slate-600 dark:text-slate-300">
+        {[
+          { id: 'exams' as const, label: 'Exams Directory', icon: GraduationCap },
+          { id: 'syllabus' as const, label: 'Syllabus Files', icon: FileText },
+          { id: 'strategy' as const, label: 'Strategy CMS', icon: Target }
+        ].map((t) => {
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setActiveSubTab(t.id)}
+              className={`px-5 py-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 ${activeSubTab === t.id ? 'bg-blue-600 text-white shadow-xs' : 'hover:text-slate-900 dark:hover:text-white'}`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Tab Content: EXAMS */}
@@ -392,10 +396,10 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
               />
             </div>
 
-            <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
-              <label className="text-[10px] font-bold text-amber-600 uppercase block">Exam Logo Image Box</label>
+            <div className="space-y-2 p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl">
+              <label className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase block">Exam Logo Image Box</label>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center overflow-hidden p-1 shrink-0 shadow-2xs">
+                <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden p-1 shrink-0 shadow-2xs">
                   {examForm.logoUrl ? (
                     <img src={examForm.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                   ) : (
@@ -561,18 +565,18 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
               </div>
             </div>
 
-            <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
-              <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">Publish Destination Page</label>
+            <div className="p-3 bg-blue-600/5 border border-blue-600/20 rounded-2xl space-y-2">
+              <label className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase">Publish Destination Page</label>
               <select
                 value={syllabusForm.publish_target || 'both'}
                 onChange={(e) => setSyllabusForm({ ...syllabusForm, publish_target: e.target.value })}
-                className="w-full px-3 py-2 text-xs border border-amber-500/40 bg-white rounded-xl outline-none font-bold cursor-pointer"
+                className="w-full px-3 py-2 text-xs border border-blue-600/30 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl outline-none font-bold cursor-pointer"
               >
                 <option value="both">Both Portals (/syllabus-strategy & /syllabus-strategy-hindi)</option>
                 <option value="hindi">Hindi Portal Only (/syllabus-strategy-hindi)</option>
                 <option value="english">English Portal Only (/syllabus-strategy)</option>
               </select>
-              <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+              <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-300 font-medium">
                 <span>Destination:</span>
                 {syllabusForm.publish_target === 'hindi' ? (
                   <span className="font-bold text-orange-600">Hindi Portal (/syllabus-strategy-hindi)</span>
@@ -791,18 +795,18 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
               </select>
             </div>
 
-            <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
-              <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">Publish Destination Page</label>
+            <div className="p-3 bg-blue-600/5 border border-blue-600/20 rounded-2xl space-y-2">
+              <label className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase">Publish Destination Page</label>
               <select
                 value={strategyForm.publish_target || 'both'}
                 onChange={(e) => setStrategyForm({ ...strategyForm, publish_target: e.target.value })}
-                className="w-full px-3 py-2 text-xs border border-amber-500/40 bg-white rounded-xl outline-none font-bold cursor-pointer"
+                className="w-full px-3 py-2 text-xs border border-blue-600/30 bg-white dark:bg-slate-800 text-slate-900 dark:text-white rounded-xl outline-none font-bold cursor-pointer"
               >
                 <option value="both">Both Portals (/syllabus-strategy & /syllabus-strategy-hindi)</option>
                 <option value="hindi">Hindi Portal Only (/syllabus-strategy-hindi)</option>
                 <option value="english">English Portal Only (/syllabus-strategy)</option>
               </select>
-              <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+              <div className="flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-300 font-medium">
                 <span>Destination:</span>
                 {strategyForm.publish_target === 'hindi' ? (
                   <span className="font-bold text-orange-600">Hindi Portal (/syllabus-strategy-hindi)</span>

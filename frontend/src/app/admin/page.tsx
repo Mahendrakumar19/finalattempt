@@ -29,7 +29,16 @@ import {
   Truck,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  GraduationCap,
+  UserCheck,
+  ShieldCheck,
+  PhoneCall,
+  ArrowUpRight,
+  CheckCircle2,
+  Copy,
+  Search,
+  Bell
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
 import { useLocale } from '@/context/LocaleContext';
@@ -47,8 +56,9 @@ import CustomPagesCMS from '@/components/CustomPagesCMS';
 import MainsEvaluationCMS from '@/components/MainsEvaluationCMS';
 import AdminChatPanel from '@/components/admin/AdminChatPanel';
 import BookOrdersCMS from '@/components/admin/BookOrdersCMS';
+import OffersAndNotificationsCMS from '@/components/admin/OffersAndNotificationsCMS';
 
-type AdminTab = 'Dashboard' | 'Student Chats' | 'Book Orders' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Useful Documents' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Daily Quiz' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Student Chats' | 'Book Orders' | 'Books & Publications' | 'Offers & Notifications' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Useful Documents' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Daily Quiz' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
 
 
@@ -222,6 +232,7 @@ export default function AdminPortal() {
   const [isEditionModalOpen, setIsEditionModalOpen] = useState(false);
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
   const [caSubTab, setCaSubTab] = useState<'daily' | 'mains' | 'aggregation'>('daily');
+  const [booksSubTab, setBooksSubTab] = useState<'orders' | 'publications'>('orders');
 
   // Aggregation controls & preview states
   const [weeklyFromDate, setWeeklyFromDate] = useState<string>(() => new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]);
@@ -1047,60 +1058,91 @@ export default function AdminPortal() {
             </button>
           </div>
 
-          <nav className="flex flex-col gap-1.5">
+          <nav className="flex flex-col gap-4">
             {[
-              { id: 'Dashboard', icon: LayoutDashboard },
-              { id: 'Book Orders', icon: Truck },
-              { id: 'Student Chats', icon: MessageSquare },
-              { id: 'Home', icon: Sun },
-              { id: 'About', icon: FileText },
-              { id: 'Contact', icon: MessageSquare },
-              { id: 'PYQ', icon: Layers },
-              { id: 'NCERT', icon: BookOpen },
-              { id: 'Publications', icon: Award },
-              { id: 'Useful Documents', icon: Sparkles },
-              { id: 'Value Addition', icon: FileText },
-              { id: 'Toppers Copies', icon: FolderOpen },
-              { id: 'Blogs', icon: Bookmark },
-              { id: 'Courses', icon: BookOpen },
-              { id: 'Test Series', icon: FileText },
-              { id: 'Daily Quiz', icon: Flame },
-              { id: 'Mains Evaluation', icon: Award },
-              { id: 'Users', icon: Users },
-              { id: 'Leads', icon: MessageSquare },
-              { id: 'Media Library', icon: FolderOpen },
-              { id: 'Exams & Syllabus', icon: Layers },
-              ...(settings.featureFlags?.currentAffairsFilters !== false ? [{ id: 'Current Affairs', icon: FileText }] : []),
-              ...(isSuperAdmin ? [{ id: 'Super Admin Console', icon: Award }] : [])
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as AdminTab)}
-                title={tab.id}
-                className={`flex items-center text-xs font-bold transition-all rounded-2xl border ${
-                  isSidebarCollapsed ? 'justify-center p-3 w-full' : 'gap-3 px-4 py-3 text-left w-full'
-                } ${activeTab === tab.id
-                  ? 'text-white border-amber-600 shadow-md'
-                  : 'text-slate-600 hover:bg-amber-500/10 hover:text-amber-800 border-transparent'
-                  }`}
-                style={activeTab === tab.id ? { background: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)', borderColor: '#D97706' } : {}}
-              >
-                <tab.icon className="w-4 h-4 shrink-0" />
-                {!isSidebarCollapsed && <span className="truncate">{tab.id}</span>}
-              </button>
+              {
+                category: 'Operations & CRM',
+                items: [
+                  { id: 'Dashboard', icon: LayoutDashboard },
+                  { id: 'Books & Publications', icon: BookOpen },
+                  { id: 'Offers & Notifications', icon: Bell },
+                  { id: 'Student Chats', icon: MessageSquare },
+                  { id: 'Leads', icon: MessageSquare },
+                  { id: 'Users', icon: Users },
+                ]
+              },
+              {
+                category: 'LMS & Academics',
+                items: [
+                  { id: 'Courses', icon: BookOpen },
+                  { id: 'Test Series', icon: FileText },
+                  { id: 'Daily Quiz', icon: Flame },
+                  { id: 'Mains Evaluation', icon: Award },
+                  { id: 'Exams & Syllabus', icon: Layers },
+                ]
+              },
+              {
+                category: 'Content & Downloads',
+                items: [
+                  ...(settings.featureFlags?.currentAffairsFilters !== false ? [{ id: 'Current Affairs', icon: FileText }] : []),
+                  { id: 'NCERT', icon: BookOpen },
+                  { id: 'PYQ', icon: Layers },
+                  { id: 'Toppers Copies', icon: FolderOpen },
+                  { id: 'Value Addition', icon: FileText },
+                  { id: 'Useful Documents', icon: Sparkles },
+                  { id: 'Blogs', icon: Bookmark },
+                ]
+              },
+              {
+                category: 'Website & System',
+                items: [
+                  { id: 'Home', icon: Sun },
+                  { id: 'About', icon: FileText },
+                  { id: 'Contact', icon: MessageSquare },
+                  { id: 'Media Library', icon: FolderOpen },
+                  ...(isSuperAdmin ? [{ id: 'Super Admin Console', icon: Award }] : [])
+                ]
+              }
+            ].map((section) => (
+              <div key={section.category} className="space-y-1">
+                {!isSidebarCollapsed && (
+                  <p className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    {section.category}
+                  </p>
+                )}
+                <div className="flex flex-col gap-1">
+                  {section.items.map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as AdminTab)}
+                      title={tab.id}
+                      className={`flex items-center text-xs font-bold transition-all rounded-2xl border ${
+                        isSidebarCollapsed ? 'justify-center p-3 w-full' : 'gap-3 px-4 py-2.5 text-left w-full'
+                      } ${activeTab === tab.id
+                        ? 'text-white border-blue-600 shadow-md'
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-blue-600/10 hover:text-blue-600 dark:hover:text-blue-400 border-transparent'
+                        }`}
+                      style={activeTab === tab.id ? { background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)', borderColor: '#1E3A8A' } : {}}
+                    >
+                      <tab.icon className="w-4 h-4 shrink-0" />
+                      {!isSidebarCollapsed && <span className="truncate">{tab.id}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
             ))}
           </nav>
         </div>
 
-        <div className={`border-t ${isSidebarCollapsed ? 'p-3' : 'p-6'}`} style={{ borderColor: 'rgba(245,158,11,0.15)' }}>
+        <div className={`border-t ${isSidebarCollapsed ? 'p-3' : 'p-6'}`} style={{ borderColor: 'rgba(30,58,138,0.15)' }}>
           <button
             onClick={handleAdminLogout}
             title="Logout"
-            className={`text-xs font-bold text-slate-500 hover:text-amber-600 flex items-center transition-all cursor-pointer ${
+            className={`text-xs font-bold text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 flex items-center transition-all cursor-pointer ${
               isSidebarCollapsed ? 'justify-center w-full p-2' : 'gap-2 text-left'
             }`}
           >
-            <LogOut className="w-4 h-4 text-amber-600 shrink-0" />
+            <LogOut className="w-4 h-4 text-red-500 shrink-0" />
             {!isSidebarCollapsed && <span>Logout</span>}
           </button>
         </div>
@@ -1120,7 +1162,7 @@ export default function AdminPortal() {
               <Menu className="w-5 h-5" />
             </button>
             <div>
-              <span className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">CMS Console</span>
+              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">CMS Console</span>
               <h2 className="text-2xl font-heading font-extrabold text-slate-900 dark:text-white mt-0.5">{activeTab} Editor</h2>
             </div>
           </div>
@@ -1128,7 +1170,7 @@ export default function AdminPortal() {
           <div className="flex items-center gap-4">
             {/* Feature Connected Page Dropdown */}
             <div className="flex items-center gap-2 bg-[var(--card-bg)] border border-[var(--card-border)] px-3 py-1.5 rounded-2xl shadow-xs">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Connected Page(s):</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Connected Page(s):</span>
               <select
                 onChange={(e) => {
                   const targetTab = e.target.value as AdminTab;
@@ -1211,8 +1253,8 @@ export default function AdminPortal() {
                 onClick={() => setLocale('en')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   locale === 'en'
-                    ? 'bg-amber-500 text-slate-950 shadow-xs'
-                    : 'text-slate-500 hover:text-[var(--text-color)]'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-[var(--text-color)]'
                 }`}
                 title="Switch Portal to English"
               >
@@ -1223,8 +1265,8 @@ export default function AdminPortal() {
                 onClick={() => setLocale('hi')}
                 className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
                   locale === 'hi'
-                    ? 'bg-amber-500 text-slate-950 shadow-xs'
-                    : 'text-slate-500 hover:text-[var(--text-color)]'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:text-[var(--text-color)]'
                 }`}
                 title="Switch Portal to Hindi (हिन्दी)"
               >
@@ -1254,14 +1296,56 @@ export default function AdminPortal() {
           </div>
         </div>
 
-        {/* TAB: BOOK ORDERS */}
-        {activeTab === 'Book Orders' && (
-          <BookOrdersCMS />
+        {/* TAB: BOOKS & PUBLICATIONS (CONSOLIDATED) */}
+        {(activeTab === 'Books & Publications' || activeTab === 'Book Orders' || activeTab === 'Publications') && (
+          <div className="space-y-6">
+            {/* Sub-tab Navigation */}
+            <div className="flex bg-slate-100 dark:bg-slate-900/60 p-1 border border-slate-200 dark:border-white/10 rounded-2xl w-fit text-xs font-bold text-slate-600 dark:text-slate-300">
+              <button
+                type="button"
+                onClick={() => setBooksSubTab('orders')}
+                className={`px-5 py-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 ${
+                  booksSubTab === 'orders' ? 'bg-blue-600 text-white shadow-xs' : 'hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <Truck className="w-4 h-4" />
+                <span>Orders & Logistics</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setBooksSubTab('publications')}
+                className={`px-5 py-2.5 rounded-xl cursor-pointer transition-all flex items-center gap-2 ${
+                  booksSubTab === 'publications' ? 'bg-blue-600 text-white shadow-xs' : 'hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Publications & Books Catalog</span>
+              </button>
+            </div>
+
+            {booksSubTab === 'orders' ? (
+              <BookOrdersCMS />
+            ) : (
+              <NcertStyleResourceCMS
+                pageSlug="fa-publication"
+                pageTitle="Final Attempt Publication"
+                portalCategoryLabel="Publications Console"
+                portalDescription="Upload & manage downloadable publications, yearbooks, handbooks & model answers."
+                themeColor="purple"
+                typeOptions={['BPSC', 'Arunachal PCS (APPSC)', 'Arunachal Pradesh Staff Selection Board (APSSB)', 'Books', 'Yearbooks']}
+              />
+            )}
+          </div>
         )}
 
         {/* TAB: STUDENT CHATS */}
         {activeTab === 'Student Chats' && (
           <AdminChatPanel adminToken={adminToken || ''} />
+        )}
+
+        {/* TAB: OFFERS & MOBILE NOTIFICATIONS */}
+        {activeTab === 'Offers & Notifications' && (
+          <OffersAndNotificationsCMS />
         )}
 
         {/* TAB 1: DASHBOARD */}
@@ -1303,20 +1387,92 @@ export default function AdminPortal() {
               </div>
             </div>
 
+            {/* Urgent Operational Action Queue Center */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider">
+                    Operational Action Center (Live Tasks)
+                  </h3>
+                </div>
+                <span className="text-[11px] font-bold text-slate-500">Auto-synced</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* 1. Pending Mains Copies */}
+                <div 
+                  onClick={() => setActiveTab('Mains Evaluation')}
+                  className="group p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-blue-500 hover:shadow-md transition-all cursor-pointer flex items-start justify-between"
+                >
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded-md">
+                      Mains Evaluator
+                    </span>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                      Mains Copies Queue
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Review student answer sheets & publish scores</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </div>
+                </div>
+
+                {/* 2. Unread Student Doubts */}
+                <div 
+                  onClick={() => setActiveTab('Student Chats')}
+                  className="group p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-blue-500 hover:shadow-md transition-all cursor-pointer flex items-start justify-between"
+                >
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 px-2 py-0.5 rounded-md">
+                      Faculty Desk
+                    </span>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                      Student Doubts & Chats
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Direct mentorship replies and query resolution</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </div>
+                </div>
+
+                {/* 3. Book Dispatch */}
+                <div 
+                  onClick={() => setActiveTab('Book Orders')}
+                  className="group p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl hover:border-blue-500 hover:shadow-md transition-all cursor-pointer flex items-start justify-between"
+                >
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                      Store Logistics
+                    </span>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                      Book Orders & Shipments
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Process shipping addresses & tracking IDs</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                    <ArrowUpRight className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { label: 'Registered Users', value: usersList.length.toString(), desc: 'Active student profiles', icon: Users, color: 'text-blue-500' },
-                { label: 'Published Courses', value: coursesList.length.toString(), desc: 'Published programs & batches', icon: BookOpen, color: 'text-amber-500' },
-                { label: 'Total Enquiries', value: leadsList.length.toString(), desc: 'Direct lead records', icon: MessageSquare, color: 'text-emerald-500' },
-                { label: 'Current Articles', value: (blogsList.length > 0 ? blogsList.length : caList.length).toString(), desc: 'Published articles & notes', icon: FileText, color: 'text-purple-500' }
+                { label: 'Registered Users', value: usersList.length.toString(), desc: 'Active student & faculty accounts', icon: Users, color: 'text-blue-600' },
+                { label: 'Published Courses', value: coursesList.length.toString(), desc: 'Active batches & video programs', icon: BookOpen, color: 'text-indigo-600' },
+                { label: 'Direct Leads', value: leadsList.length.toString(), desc: 'Enquiries & admission requests', icon: MessageSquare, color: 'text-emerald-600' },
+                { label: 'Published Articles', value: (blogsList.length > 0 ? blogsList.length : caList.length).toString(), desc: 'Current Affairs & Editorials', icon: FileText, color: 'text-violet-600' }
               ].map((metric, idx) => (
-                <div key={idx} className="p-5 bg-white border border-slate-200 space-y-3 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
+                <div key={idx} className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 space-y-3 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-center">
-                    <span className="text-[9px] text-slate-555 font-bold uppercase tracking-wider">{metric.label}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{metric.label}</span>
                     <metric.icon className={`w-4 h-4 ${metric.color}`} />
                   </div>
-                  <p className="text-2xl font-extrabold text-slate-900">{metric.value}</p>
-                  <p className="text-[10px] text-slate-400 font-semibold">{metric.desc}</p>
+                  <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{metric.value}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{metric.desc}</p>
                 </div>
               ))}
             </div>
@@ -1335,7 +1491,7 @@ export default function AdminPortal() {
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
               <div>
-                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Public Content Manager</span>
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Public Content Manager</span>
                 <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">Home Page Editor</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Manage Hero Slider Images, Announcement Bulletins, Social Links & YouTube Sync.
@@ -1345,7 +1501,7 @@ export default function AdminPortal() {
                 href="/"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
               >
                 <ExternalLink className="w-4 h-4" />
                 <span>Preview Home Page ↗</span>
@@ -1769,7 +1925,7 @@ export default function AdminPortal() {
           <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl shadow-sm">
               <div>
-                <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">Public Content Manager</span>
+                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Public Content Manager</span>
                 <h2 className="text-xl font-heading font-extrabold text-slate-900 dark:text-white">About Us Page CMS Editor</h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                   Manage main titles, sub-headings, mission statements, vision, and core values displayed on `/about`.
@@ -1779,7 +1935,7 @@ export default function AdminPortal() {
                 href="/about"
                 target="_blank"
                 rel="noreferrer"
-                className="flex items-center gap-1.5 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-2xl text-xs cursor-pointer shadow-sm transition-all"
               >
                 <ExternalLink className="w-4 h-4" />
                 <span>Preview /about ↗</span>
@@ -2283,17 +2439,6 @@ export default function AdminPortal() {
           </div>
         )}
 
-        {/* TAB: PUBLICATIONS */}
-        {activeTab === 'Publications' && (
-          <NcertStyleResourceCMS
-            pageSlug="fa-publication"
-            pageTitle="Final Attempt Publication"
-            portalCategoryLabel="Publications Console"
-            portalDescription="Upload & manage downloadable publications, yearbooks, handbooks & model answers."
-            themeColor="purple"
-            typeOptions={['BPSC', 'Arunachal PCS (APPSC)', 'Arunachal Pradesh Staff Selection Board (APSSB)', 'Books', 'Yearbooks']}
-          />
-        )}
 
         {/* TAB: USEFUL DOCUMENTS */}
         {(activeTab === 'Useful Documents' || (activeTab as string) === 'Rapid Revision') && (
@@ -2501,7 +2646,7 @@ export default function AdminPortal() {
                   { id: 'all', label: 'All Articles' },
                   { id: 'english', label: 'English Page Only' },
                   { id: 'hindi', label: 'Hindi Page Only' },
-                  { id: 'both', label: '🌐 Both Pages' }
+                  { id: 'both', label: 'Both Hubs' }
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -2644,36 +2789,99 @@ export default function AdminPortal() {
         {/* TAB 3: LEADS */}
         {activeTab === 'Leads' && (
           <div className="space-y-6">
-            <h3 className="font-extrabold text-sm text-slate-900">Leads & Enquiries</h3>
-            <div className="bg-white border border-slate-200 overflow-hidden rounded-3xl shadow-sm">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
-                    <th className="p-4">Name</th>
-                    <th className="p-4">Mobile</th>
-                    <th className="p-4">Email</th>
-                    <th className="p-4">Exam Program</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4">Created Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leadsList.map((lead) => (
-                    <tr key={lead.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="p-4 font-bold">{lead.fullName}</td>
-                      <td className="p-4 font-mono">{lead.mobile}</td>
-                      <td className="p-4 text-slate-500">{lead.email || '-'}</td>
-                      <td className="p-4">{lead.targetExam}</td>
-                      <td className="p-4">
-                        <span className="px-2 py-0.5 border text-[9px] font-bold uppercase tracking-wider bg-slate-50 text-slate-700 rounded-full border-slate-200">
-                          {lead.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-slate-400">{new Date(lead.createdAt).toLocaleDateString('en-IN')}</td>
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-5 rounded-3xl shadow-xs">
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Leads & Student Enquiries</h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Direct admissions pipeline with 1-click WhatsApp counseling & follow-ups.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    if (leadsList.length === 0) {
+                      alert('No leads to export.');
+                      return;
+                    }
+                    const csvContent = "data:text/csv;charset=utf-8," 
+                      + ["Name,Mobile,Email,Target Exam,Status,Date"]
+                      .concat(leadsList.map(l => `"${l.fullName}","${l.mobile}","${l.email || ''}","${l.targetExam}","${l.status}","${l.createdAt}"`))
+                      .join("\n");
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `finalattempt_leads_${new Date().toISOString().split('T')[0]}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-xs"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Export CSV</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 overflow-hidden rounded-3xl shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-white/10 font-bold text-slate-700 dark:text-slate-300">
+                      <th className="p-4">Name</th>
+                      <th className="p-4">Mobile & Quick Contact</th>
+                      <th className="p-4">Email</th>
+                      <th className="p-4">Target Exam</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4">Created Date</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {leadsList.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-slate-500">
+                          No leads captured yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      leadsList.map((lead) => {
+                        const cleanPhone = (lead.mobile || '').replace(/[^0-9]/g, '');
+                        const waNumber = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+                        const waMessage = encodeURIComponent(`Namaste ${lead.fullName}, thank you for contacting Final Attempt IAS regarding ${lead.targetExam}. How can our counseling team assist you today?`);
+
+                        return (
+                          <tr key={lead.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
+                            <td className="p-4 font-bold text-slate-900 dark:text-white">{lead.fullName}</td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-medium text-slate-800 dark:text-slate-200">{lead.mobile}</span>
+                                {cleanPhone && (
+                                  <a
+                                    href={`https://wa.me/${waNumber}?text=${waMessage}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1 px-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition-colors"
+                                    title="Open WhatsApp chat with prefilled message"
+                                  >
+                                    <span>WhatsApp</span>
+                                    <ArrowUpRight className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            </td>
+                            <td className="p-4 text-slate-500 dark:text-slate-400">{lead.email || '-'}</td>
+                            <td className="p-4 font-medium text-blue-600 dark:text-blue-400">{lead.targetExam}</td>
+                            <td className="p-4">
+                              <span className="px-2.5 py-0.5 border text-[9px] font-bold uppercase tracking-wider bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 rounded-full border-blue-200 dark:border-blue-500/20">
+                                {lead.status}
+                              </span>
+                            </td>
+                            <td className="p-4 text-slate-400 font-medium">{new Date(lead.createdAt).toLocaleDateString('en-IN')}</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -2694,24 +2902,29 @@ export default function AdminPortal() {
             {/* Role Filter Tabs */}
             <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
               {[
-                { id: 'all', label: 'All Registered Accounts', count: usersList.length },
-                { id: 'student', label: '🎓 Students Only', count: usersList.filter(u => u.role === 'student' || !u.role).length },
-                { id: 'faculty', label: '👨‍🏫 Faculty Members', count: usersList.filter(u => u.role === 'faculty').length },
-                { id: 'admin', label: '👑 Administrators', count: usersList.filter(u => u.role === 'admin').length },
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setUserRoleFilter(tab.id as 'all' | 'student' | 'faculty' | 'admin')}
-                  className={`px-4 py-2 text-xs font-bold rounded-2xl transition-all ${
-                    userRoleFilter === tab.id
-                      ? 'bg-slate-900 text-white shadow-sm'
-                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  {tab.label} <span className="opacity-70 ml-1 text-[10px]">({tab.count})</span>
-                </button>
-              ))}
+                { id: 'all', label: 'All Accounts', icon: Users, count: usersList.length },
+                { id: 'student', label: 'Students', icon: GraduationCap, count: usersList.filter(u => u.role === 'student' || !u.role).length },
+                { id: 'faculty', label: 'Faculty', icon: UserCheck, count: usersList.filter(u => u.role === 'faculty').length },
+                { id: 'admin', label: 'Administrators', icon: ShieldCheck, count: usersList.filter(u => u.role === 'admin').length },
+              ].map(tab => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setUserRoleFilter(tab.id as 'all' | 'student' | 'faculty' | 'admin')}
+                    className={`px-4 py-2 text-xs font-bold rounded-2xl transition-all flex items-center gap-1.5 ${
+                      userRoleFilter === tab.id
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>{tab.label}</span>
+                    <span className="opacity-70 text-[10px]">({tab.count})</span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="bg-white border border-slate-200 overflow-hidden rounded-3xl shadow-sm">
@@ -3025,7 +3238,7 @@ export default function AdminPortal() {
                       { id: 'all', label: 'All Editions' },
                       { id: 'english', label: 'English Only' },
                       { id: 'hindi', label: 'Hindi Only (हिन्दी)' },
-                      { id: 'both', label: '🌐 Both/Bilingual' }
+                      { id: 'both', label: 'Both / Bilingual' }
                     ].map((tab) => (
                       <button
                         key={tab.id}
@@ -4322,7 +4535,7 @@ export default function AdminPortal() {
                       disabled={aggregationExecuting}
                       className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      {aggregationExecuting ? <RefreshCw className="w-4 h-4 animate-spin" /> : '🚀 Combine & Save Compilation'}
+                      {aggregationExecuting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-4 h-4" /><span>Combine & Save Compilation</span></>}
                     </button>
                   </div>
                 </div>

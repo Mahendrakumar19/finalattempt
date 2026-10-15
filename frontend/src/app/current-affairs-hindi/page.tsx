@@ -286,7 +286,7 @@ export default function CurrentAffairsHindiLanding() {
                 {(
                   [
                     { key: 'all',           label: 'सभी विषय (All Topics)', color: 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-200 border-slate-200 dark:border-white/10' },
-                    { key: 'editorials',    label: '✍️ संपादकीय व मुख्य परीक्षा नोट्स', color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' },
+                    { key: 'editorials',    label: 'संपादकीय व मुख्य परीक्षा नोट्स', color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20' },
                     { key: 'national',      label: 'राष्ट्रीय (National)', color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20' },
                     { key: 'international', label: 'अंतर्राष्ट्रीय (International)', color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20' },
                     { key: 'bihar',         label: 'बिहार विशेष (Bihar Special)', color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20' },

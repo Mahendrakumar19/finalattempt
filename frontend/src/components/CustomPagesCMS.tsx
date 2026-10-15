@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Globe, FileText, CheckCircle, ExternalLink, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash2, Globe, FileText, CheckCircle, ExternalLink, RefreshCw, Save, Send } from 'lucide-react';
 import RichTextEditor from './RichTextEditor';
 import MediaPicker from './MediaPicker';
 import { db, CustomPage, DownloadItem } from '@/services/db';
@@ -638,9 +638,9 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR', targetSlug 
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-md cursor-pointer"
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-2xl shadow-md cursor-pointer flex items-center gap-2"
                 >
-                  {form.id ? '💾 Save Changes' : '🚀 Publish Page'}
+                  {form.id ? <><Save className="w-4 h-4" /><span>Save Changes</span></> : <><Send className="w-4 h-4" /><span>Publish Page</span></>}
                 </button>
               </div>
             </form>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ShieldAlert, Award, FileText, Users, Maximize2, AlertOctagon, CheckSquare, Square, Sun, Moon, Grid, X, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, Award, FileText, Users, Maximize2, AlertOctagon, CheckSquare, Square, Sun, Moon, Grid, X, Sparkles, ArrowRight, CheckCircle2, Trophy, Target, Timer } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard, getMyQuizResult, beginQuizSession } from '@/services/auth';
@@ -1739,35 +1739,40 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     {
-                      icon: '👥', label: 'Total Participants',
+                      icon: Users, iconColor: 'text-indigo-500', label: 'Total Participants',
                       value: totalParticipants.toLocaleString('en-IN'),
                       sub: 'Students'
                     },
                     {
-                      icon: '📊', label: 'Your Rank',
+                      icon: Trophy, iconColor: 'text-amber-500', label: 'Your Rank',
                       value: myRank ? myRank.toLocaleString('en-IN') : '—',
                       sub: myRank ? `Out of ${totalParticipants.toLocaleString('en-IN')}` : 'Not ranked'
                     },
                     {
-                      icon: '🎯', label: 'Your Score',
+                      icon: Target, iconColor: 'text-emerald-500', label: 'Your Score',
                       value: myEntry ? `${(Number(myEntry.score) || 0).toFixed(2)} / ${myEntry.maxScore || results?.maxScore || '—'}` : (results ? `${(Number(results.score) || 0).toFixed(2)} / ${results.maxScore}` : '—'),
                       sub: myEntry ? `${myEntry.maxScore ? ((Number(myEntry.score) / Number(myEntry.maxScore)) * 100).toFixed(1) : (Number(results?.percentage) || 0).toFixed(1)}%` : `${(Number(results?.percentage) || 0).toFixed(1)}%`
                     },
                     {
-                      icon: '⏱', label: 'Time Taken',
+                      icon: Timer, iconColor: 'text-blue-500', label: 'Time Taken',
                       value: fmtTime(timeTaken),
                       sub: 'HH:MM'
                     },
-                  ].map(card => (
-                    <div key={card.label} className="flex items-start gap-3 p-4 rounded-xl" style={{ backgroundColor: surface, border: `1px solid ${border}` }}>
-                      <span className="text-2xl mt-0.5">{card.icon}</span>
-                      <div>
-                        <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: textSec }}>{card.label}</p>
-                        <p className="text-lg font-black mt-0.5" style={{ color: text }}>{card.value}</p>
-                        <p className="text-[10px] font-semibold" style={{ color: textSec }}>{card.sub}</p>
+                  ].map(card => {
+                    const Icon = card.icon;
+                    return (
+                      <div key={card.label} className="flex items-start gap-3 p-4 rounded-xl" style={{ backgroundColor: surface, border: `1px solid ${border}` }}>
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
+                          <Icon className={`w-4 h-4 ${card.iconColor}`} />
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-widest" style={{ color: textSec }}>{card.label}</p>
+                          <p className="text-lg font-black mt-0.5" style={{ color: text }}>{card.value}</p>
+                          <p className="text-[10px] font-semibold" style={{ color: textSec }}>{card.sub}</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Leaderboard table */}

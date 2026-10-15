@@ -365,6 +365,40 @@ export interface BookOrder {
   updatedAt: string;
 }
 
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  targetAudience: 'ALL' | 'STUDENTS' | 'FACULTY' | 'SPECIFIC_COURSE';
+  courseId?: string;
+  actionUrl?: string;
+  imageUrl?: string;
+  isOfferNotification?: boolean;
+  offerId?: string;
+  isRead?: boolean;
+  createdAt: string;
+  scheduledAt?: string;
+}
+
+export interface OfferPromo {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  discountType: 'PERCENT' | 'FLAT';
+  discountValue: number;
+  bannerUrl?: string;
+  applicableTo: 'ALL' | 'COURSES' | 'TEST_SERIES' | 'BOOKS';
+  targetCourseId?: string;
+  minOrderAmount?: number;
+  maxDiscount?: number;
+  startDate?: string;
+  endDate?: string;
+  isActive: boolean;
+  usageCount: number;
+  createdAt: string;
+}
+
 interface LocalDBStore {
   leads: Lead[];
   progress: { studentId: string; courseId: string; lessonId: string; completed: boolean; updatedAt: string }[];
@@ -393,6 +427,8 @@ interface LocalDBStore {
   lmsAttempts?: any[];
   lmsEnrollments?: any[];
   bookOrders?: BookOrder[];
+  notifications?: AppNotification[];
+  offers?: OfferPromo[];
 }
 
 export let mysqlPool: mysql.Pool | null = null;
@@ -520,6 +556,46 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         notes TEXT,
         createdAt VARCHAR(255) NOT NULL,
         updatedAt VARCHAR(255) NOT NULL
+      )
+    `);
+
+    // 4c. App Push Notifications & Announcements
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS app_notifications (
+        id VARCHAR(255) PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        targetAudience VARCHAR(50) DEFAULT 'ALL',
+        courseId VARCHAR(255),
+        actionUrl TEXT,
+        imageUrl TEXT,
+        isOfferNotification TINYINT(1) DEFAULT 0,
+        offerId VARCHAR(255),
+        isRead TINYINT(1) DEFAULT 0,
+        createdAt VARCHAR(255) NOT NULL,
+        scheduledAt VARCHAR(255)
+      )
+    `);
+
+    // 4d. Offers, Discounts & Coupons System
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS offer_promos (
+        id VARCHAR(255) PRIMARY KEY,
+        code VARCHAR(100) UNIQUE NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        discountType VARCHAR(20) DEFAULT 'PERCENT',
+        discountValue DOUBLE DEFAULT 0,
+        bannerUrl TEXT,
+        applicableTo VARCHAR(50) DEFAULT 'ALL',
+        targetCourseId VARCHAR(255),
+        minOrderAmount DOUBLE DEFAULT 0,
+        maxDiscount DOUBLE DEFAULT 0,
+        startDate VARCHAR(50),
+        endDate VARCHAR(50),
+        isActive TINYINT(1) DEFAULT 1,
+        usageCount INT DEFAULT 0,
+        createdAt VARCHAR(255) NOT NULL
       )
     `);
     
@@ -2157,6 +2233,311 @@ class BackendDB {
       }
     }
     return deletedInMySQL;
+  }
+
+  // ── Push Notifications & Announcements ───────────────────────────────────
+  public async getNotifications(targetAudience?: string): Promise<AppNotification[]> {
+    if (mysqlPool) {
+      try {
+        let sql = 'SELECT * FROM app_notifications';
+        const params: any[] = [];
+        if (targetAudience && targetAudience !== 'ALL') {
+          sql += ' WHERE targetAudience = ? OR targetAudience = "ALL"';
+          params.push(targetAudience);
+        }
+        sql += ' ORDER BY createdAt DESC';
+        const [rows]: any = await mysqlPool.query(sql, params);
+        if (Array.isArray(rows)) {
+          return rows.map((r: any) => ({
+            ...r,
+            isOfferNotification: Boolean(r.isOfferNotification),
+            isRead: Boolean(r.isRead)
+          })) as AppNotification[];
+        }
+      } catch (err) {
+        console.error('[BackendDB] getNotifications MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+
+    let list = this.localStore.notifications || [];
+    if (targetAudience && targetAudience !== 'ALL') {
+      list = list.filter((n: any) => n.targetAudience === targetAudience || n.targetAudience === 'ALL');
+    }
+    return list;
+  }
+
+  public async createNotification(item: Partial<AppNotification>): Promise<AppNotification> {
+    const id = item.id || `notif-${Date.now()}`;
+    const now = new Date().toISOString();
+    const record: AppNotification = {
+      id,
+      title: item.title || 'Announcement',
+      message: item.message || '',
+      targetAudience: item.targetAudience || 'ALL',
+      courseId: item.courseId || undefined,
+      actionUrl: item.actionUrl || '',
+      imageUrl: item.imageUrl || '',
+      isOfferNotification: Boolean(item.isOfferNotification),
+      offerId: item.offerId || undefined,
+      isRead: false,
+      createdAt: now,
+      scheduledAt: item.scheduledAt || now
+    };
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO app_notifications (id, title, message, targetAudience, courseId, actionUrl, imageUrl, isOfferNotification, offerId, isRead, createdAt, scheduledAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            record.id,
+            record.title,
+            record.message,
+            record.targetAudience,
+            record.courseId || null,
+            record.actionUrl || null,
+            record.imageUrl || null,
+            record.isOfferNotification ? 1 : 0,
+            record.offerId || null,
+            0,
+            record.createdAt,
+            record.scheduledAt || record.createdAt
+          ]
+        );
+      } catch (err) {
+        console.error('[BackendDB] createNotification MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+
+    if (!this.localStore.notifications) this.localStore.notifications = [];
+    this.localStore.notifications.unshift(record);
+    this.saveLocalData();
+    return record;
+  }
+
+  public async deleteNotification(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM app_notifications WHERE id = ?', [id]);
+      } catch (err) {
+        console.error('[BackendDB] deleteNotification MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+    if (this.localStore.notifications) {
+      this.localStore.notifications = this.localStore.notifications.filter((n: any) => n.id !== id);
+      this.saveLocalData();
+    }
+    return true;
+  }
+
+  // ── Offers, Discounts & Coupons System ───────────────────────────────────
+  public async getOffers(activeOnly: boolean = false): Promise<OfferPromo[]> {
+    if (mysqlPool) {
+      try {
+        let sql = 'SELECT * FROM offer_promos';
+        if (activeOnly) {
+          sql += ' WHERE isActive = 1';
+        }
+        sql += ' ORDER BY createdAt DESC';
+        const [rows]: any = await mysqlPool.query(sql);
+        if (Array.isArray(rows)) {
+          return rows.map((r: any) => ({
+            ...r,
+            isActive: Boolean(r.isActive)
+          })) as OfferPromo[];
+        }
+      } catch (err) {
+        console.error('[BackendDB] getOffers MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+
+    let list = this.localStore.offers || [];
+    if (activeOnly) {
+      list = list.filter((o: any) => o.isActive);
+    }
+    return list;
+  }
+
+  public async createOffer(item: Partial<OfferPromo>): Promise<OfferPromo> {
+    const id = item.id || `offer-${Date.now()}`;
+    const code = (item.code || `SAVE${Math.floor(Math.random() * 90 + 10)}`).toUpperCase().trim();
+    const now = new Date().toISOString();
+    const record: OfferPromo = {
+      id,
+      code,
+      title: item.title || 'Special Discount',
+      description: item.description || '',
+      discountType: item.discountType || 'PERCENT',
+      discountValue: Number(item.discountValue || 10),
+      bannerUrl: item.bannerUrl || '',
+      applicableTo: item.applicableTo || 'ALL',
+      targetCourseId: item.targetCourseId || undefined,
+      minOrderAmount: Number(item.minOrderAmount || 0),
+      maxDiscount: Number(item.maxDiscount || 0),
+      startDate: item.startDate || now.split('T')[0],
+      endDate: item.endDate || undefined,
+      isActive: item.isActive !== undefined ? Boolean(item.isActive) : true,
+      usageCount: 0,
+      createdAt: now
+    };
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO offer_promos (id, code, title, description, discountType, discountValue, bannerUrl, applicableTo, targetCourseId, minOrderAmount, maxDiscount, startDate, endDate, isActive, usageCount, createdAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             title = VALUES(title),
+             description = VALUES(description),
+             discountType = VALUES(discountType),
+             discountValue = VALUES(discountValue),
+             bannerUrl = VALUES(bannerUrl),
+             applicableTo = VALUES(applicableTo),
+             targetCourseId = VALUES(targetCourseId),
+             minOrderAmount = VALUES(minOrderAmount),
+             maxDiscount = VALUES(maxDiscount),
+             startDate = VALUES(startDate),
+             endDate = VALUES(endDate),
+             isActive = VALUES(isActive)`,
+          [
+            record.id,
+            record.code,
+            record.title,
+            record.description,
+            record.discountType,
+            record.discountValue,
+            record.bannerUrl || null,
+            record.applicableTo,
+            record.targetCourseId || null,
+            record.minOrderAmount,
+            record.maxDiscount,
+            record.startDate || null,
+            record.endDate || null,
+            record.isActive ? 1 : 0,
+            0,
+            record.createdAt
+          ]
+        );
+      } catch (err) {
+        console.error('[BackendDB] createOffer MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+
+    if (!this.localStore.offers) this.localStore.offers = [];
+    const existingIdx = this.localStore.offers.findIndex((o: any) => o.id === record.id || o.code === record.code);
+    if (existingIdx >= 0) {
+      this.localStore.offers[existingIdx] = record;
+    } else {
+      this.localStore.offers.unshift(record);
+    }
+    this.saveLocalData();
+    return record;
+  }
+
+  public async updateOffer(id: string, updates: Partial<OfferPromo>): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        const fields: string[] = [];
+        const params: any[] = [];
+        const allowed = ['code', 'title', 'description', 'discountType', 'discountValue', 'bannerUrl', 'applicableTo', 'targetCourseId', 'minOrderAmount', 'maxDiscount', 'startDate', 'endDate', 'isActive'];
+        for (const key of allowed) {
+          if ((updates as any)[key] !== undefined) {
+            fields.push(`${key} = ?`);
+            params.push((updates as any)[key]);
+          }
+        }
+        if (fields.length > 0) {
+          params.push(id);
+          await mysqlPool.query(`UPDATE offer_promos SET ${fields.join(', ')} WHERE id = ?`, params);
+        }
+      } catch (err) {
+        console.error('[BackendDB] updateOffer MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+
+    if (this.localStore.offers) {
+      const idx = this.localStore.offers.findIndex((o: any) => o.id === id);
+      if (idx >= 0) {
+        this.localStore.offers[idx] = { ...this.localStore.offers[idx], ...updates };
+        this.saveLocalData();
+      }
+    }
+    return true;
+  }
+
+  public async deleteOffer(id: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM offer_promos WHERE id = ?', [id]);
+      } catch (err) {
+        console.error('[BackendDB] deleteOffer MySQL error:', err);
+        handlePoolDegrade(err);
+      }
+    }
+    if (this.localStore.offers) {
+      this.localStore.offers = this.localStore.offers.filter((o: any) => o.id !== id);
+      this.saveLocalData();
+    }
+    return true;
+  }
+
+  public async validateCouponCode(code: string, cartAmount: number, itemType: string = 'COURSES', itemId?: string): Promise<{ valid: boolean; discountAmount: number; finalAmount: number; message: string; offer?: OfferPromo }> {
+    const cleanCode = (code || '').trim().toUpperCase();
+    const offers = await this.getOffers(true);
+    const offer = offers.find(o => o.code === cleanCode && o.isActive);
+
+    if (!offer) {
+      return { valid: false, discountAmount: 0, finalAmount: cartAmount, message: 'Invalid or expired coupon code' };
+    }
+
+    // Check expiration date
+    if (offer.endDate) {
+      const now = new Date().toISOString().split('T')[0];
+      if (now > offer.endDate) {
+        return { valid: false, discountAmount: 0, finalAmount: cartAmount, message: 'This coupon has expired' };
+      }
+    }
+
+    // Check minimum order amount
+    if (offer.minOrderAmount && cartAmount < offer.minOrderAmount) {
+      return { valid: false, discountAmount: 0, finalAmount: cartAmount, message: `Minimum order amount of ₹${offer.minOrderAmount} required` };
+    }
+
+    // Check applicability
+    if (offer.applicableTo !== 'ALL' && offer.applicableTo !== itemType) {
+      return { valid: false, discountAmount: 0, finalAmount: cartAmount, message: `Coupon applicable only on ${offer.applicableTo}` };
+    }
+
+    if (offer.targetCourseId && itemId && offer.targetCourseId !== itemId) {
+      return { valid: false, discountAmount: 0, finalAmount: cartAmount, message: 'Coupon not valid for this specific program' };
+    }
+
+    let discount = 0;
+    if (offer.discountType === 'PERCENT') {
+      discount = Math.round((cartAmount * offer.discountValue) / 100);
+      if (offer.maxDiscount && offer.maxDiscount > 0 && discount > offer.maxDiscount) {
+        discount = offer.maxDiscount;
+      }
+    } else {
+      discount = offer.discountValue;
+    }
+
+    if (discount > cartAmount) discount = cartAmount;
+    const finalAmount = Math.max(0, cartAmount - discount);
+
+    return {
+      valid: true,
+      discountAmount: discount,
+      finalAmount,
+      message: `Coupon applied successfully! You saved ₹${discount}`,
+      offer
+    };
   }
 
   public async saveExamRecord(item: any): Promise<any> {

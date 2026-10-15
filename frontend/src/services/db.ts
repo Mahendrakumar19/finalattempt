@@ -242,6 +242,46 @@ export interface CurrentAffairCompilation {
   updatedAt: string;
 }
 
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  targetAudience: 'ALL' | 'STUDENTS' | 'FACULTY' | 'SPECIFIC_COURSE';
+  courseId?: string;
+  actionUrl?: string;
+  imageUrl?: string;
+  isOfferNotification?: boolean;
+  offerId?: string;
+  offerCode?: string;
+  isRead?: boolean;
+  createdAt: string;
+  sentAt?: string;
+  scheduledAt?: string;
+}
+
+export interface OfferPromo {
+  id: string;
+  code: string;
+  title: string;
+  description?: string;
+  discountType: 'PERCENT' | 'PERCENTAGE' | 'FLAT';
+  discountValue: number;
+  bannerUrl?: string;
+  applicableTo: 'ALL' | 'COURSES' | 'TEST_SERIES' | 'BOOKS';
+  targetCourseId?: string;
+  minOrderAmount?: number;
+  maxDiscount?: number;
+  maxDiscountAmount?: number;
+  startDate?: string;
+  endDate?: string;
+  expiryDate?: string;
+  isActive: boolean;
+  usageCount?: number;
+  usedCount?: number;
+  usageLimit?: number;
+  createdAt?: string;
+}
+
 export interface Lead {
   id: string;
   fullName: string;
@@ -1971,6 +2011,99 @@ class FinalAttemptDB {
     return res;
   }
 
+  public async getNotifications(audience?: string): Promise<AppNotification[]> {
+    try {
+      const url = audience ? `/api/notifications?audience=${encodeURIComponent(audience)}` : '/api/notifications';
+      const res: any = await this.apiFetch(url);
+      if (res && res.success && Array.isArray(res.data)) return res.data;
+      if (Array.isArray(res)) return res;
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  public async createNotification(item: Partial<AppNotification>): Promise<AppNotification | null> {
+    try {
+      const res: any = await this.apiFetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+      return res && res.success ? res.data : res;
+    } catch {
+      return null;
+    }
+  }
+
+  public async deleteNotification(id: string): Promise<boolean> {
+    try {
+      const res: any = await this.apiFetch(`/api/notifications/${id}`, { method: 'DELETE' });
+      return Boolean(res && res.success);
+    } catch {
+      return false;
+    }
+  }
+
+  public async getOffers(activeOnly: boolean = false): Promise<OfferPromo[]> {
+    try {
+      const url = activeOnly ? '/api/offers?activeOnly=true' : '/api/offers';
+      const res: any = await this.apiFetch(url);
+      if (res && res.success && Array.isArray(res.data)) return res.data;
+      if (Array.isArray(res)) return res;
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  public async createOffer(item: Partial<OfferPromo>): Promise<OfferPromo | null> {
+    try {
+      const res: any = await this.apiFetch('/api/offers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item)
+      });
+      return res && res.success ? res.data : res;
+    } catch {
+      return null;
+    }
+  }
+
+  public async updateOffer(id: string, updates: Partial<OfferPromo>): Promise<boolean> {
+    try {
+      const res: any = await this.apiFetch(`/api/offers/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      return Boolean(res && res.success);
+    } catch {
+      return false;
+    }
+  }
+
+  public async deleteOffer(id: string): Promise<boolean> {
+    try {
+      const res: any = await this.apiFetch(`/api/offers/${id}`, { method: 'DELETE' });
+      return Boolean(res && res.success);
+    } catch {
+      return false;
+    }
+  }
+
+  public async validateCouponCode(code: string, cartAmount: number, itemType: string = 'COURSES', itemId?: string): Promise<any> {
+    try {
+      const res: any = await this.apiFetch('/api/offers/validate-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, cartAmount, itemType, itemId })
+      });
+      return res;
+    } catch (e: any) {
+      return { valid: false, message: e.message || 'Validation error' };
+    }
+  }
 }
 
 

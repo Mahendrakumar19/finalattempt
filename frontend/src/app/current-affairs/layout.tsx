@@ -4,7 +4,13 @@ export const metadata: Metadata = {
   title: "Daily Current Affairs for UPSC, BPSC & State PCS | Final Attempt",
   description: "Get daily current affairs for UPSC, BPSC, and State PCS exams in Hindi & English — news analysis, editorial breakdowns, and video lectures updated daily.",
   keywords: ["Daily current affairs UPSC BPSC", "UPSC current affairs Hindi", "BPSC current affairs", "State PCS current affairs", "Daily news analysis"],
-  alternates: { canonical: "https://finalattemptias.com/current-affairs" },
+  alternates: { 
+    canonical: "https://finalattemptias.com/current-affairs",
+    languages: {
+      'en': 'https://finalattemptias.com/current-affairs',
+      'hi': 'https://finalattemptias.com/current-affairs-hindi',
+    },
+  },
   openGraph: {
     title: "Daily Current Affairs for UPSC & BPSC | Final Attempt",
     description: "Daily current affairs in Hindi & English for UPSC, BPSC, APPSC and State PCS aspirants from Final Attempt.",

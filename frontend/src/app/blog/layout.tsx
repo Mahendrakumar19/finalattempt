@@ -4,7 +4,13 @@ export const metadata: Metadata = {
   title: "BPSC Strategy Blogs & Civil Services Insights | Final Attempt",
   description: "Read BPSC preparation strategies, study tips, editorial analysis, and topper insights from Final Attempt mentors in Patna.",
   keywords: ["BPSC strategy blog", "Civil Services preparation guides", "Topper copy analysis", "BPSC current affairs analysis"],
-  alternates: { canonical: "https://finalattemptias.com/blog" },
+  alternates: { 
+    canonical: "https://finalattemptias.com/blog",
+    languages: {
+      'en': 'https://finalattemptias.com/blog',
+      'hi': 'https://finalattemptias.com/blog-hindi',
+    },
+  },
   openGraph: {
     title: "BPSC Strategy Blogs | Final Attempt",
     description: "Expert BPSC preparation blogs, study strategies and topper insights from Final Attempt mentors.",

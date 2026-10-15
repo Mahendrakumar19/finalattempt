@@ -189,58 +189,13 @@ export default function Home() {
     });
   }, [heroImages]);
 
-  const tiltRefs = useRef<(HTMLDivElement | null)[]>([]);
   const pillarsGridRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    import('vanilla-tilt')
-      .then((mod) => {
-        const VanillaTilt = mod.default || mod;
-        tiltRefs.current.forEach((el) => {
-          if (el) {
-            VanillaTilt.init(el, {
-              max: 25,
-              speed: 400,
-              glare: true,
-              'max-glare': 1
-            });
-          }
-        });
-      })
-      .catch(() => {
-        // Fallback gracefully if vanilla-tilt is not installed on the production server
-      });
-
-    const currentRefs = tiltRefs.current;
-    return () => {
-      currentRefs.forEach((el) => {
-        if (el && (el as HTMLDivElement & { vanillaTilt?: { destroy: () => void } }).vanillaTilt) {
-          (el as HTMLDivElement & { vanillaTilt?: { destroy: () => void } }).vanillaTilt?.destroy();
-        }
-      });
-    };
-  }, []);
-
-  // Scroll animation: Grid cards shrink & fade into center when out of view, expand when scrolled into view
+  // Scroll animation: Grid cards are visible by default
   useEffect(() => {
     const el = pillarsGridRef.current;
     if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            el.classList.add('pillars-visible');
-          } else {
-            el.classList.remove('pillars-visible');
-          }
-        });
-      },
-      { threshold: 0.15 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
+    el.classList.add('pillars-visible');
   }, []);
 
   const [dynamicAnnouncements, setDynamicAnnouncements] = useState<AnnouncementItem[]>([]);
@@ -705,244 +660,93 @@ export default function Home() {
 
       {/* 3.4 WHY FINAL ATTEMPT STANDS OUT SECTION (REAL GLASSMORPHISM DESIGN) */}
 
-      {/* 3.4 WHY FINAL ATTEMPT STANDS OUT */}
-      <section className="py-24 bg-[var(--bg-color)] relative overflow-hidden">
+      {/* 3.4 WHY FINAL ATTEMPT STANDS OUT (MINIMALIST HIGH-END EDITORIAL DESIGN) */}
+      <section className="py-28 bg-[var(--bg-color)] relative overflow-hidden">
 
-        {/* Ambient Background */}
-        <div className="absolute top-1/4 left-0 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        {/* Subtle Ambient Radial Gradients */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-gradient-to-r from-amber-500/5 via-blue-500/5 to-transparent blur-[120px] pointer-events-none" />
 
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-14 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16 relative z-10">
 
           {/* Heading */}
-          <div className="text-center max-w-7xl mx-auto space-y-4">
-
-            <h2 className="text-3.5xl sm:text-4xl font-heading font-black text-slate-900 dark:text-white ">
+          <div className="text-center max-w-5xl mx-auto space-y-4">
+            <h2 className="text-3xl sm:text-4xl font-heading font-black text-black dark:text-white">
               {t('home.whyFinalAttempt')}
             </h2>
 
-            <p className="text-m sm:text-base text-slate-600 dark:text-slate-300 max-w-6xl mx-auto font-medium leading-relaxed">
+            <p className="text-sm sm:text-base text-black/85 dark:text-white/90 max-w-4xl mx-auto font-medium leading-relaxed">
               {t('home.whySubtitle')}
               <br />
-              <span className='font-bold'>
+              <span className="font-bold text-black dark:text-amber-400 block mt-2 text-base">
                 {t('home.whyTagline')}
               </span>
             </p>
-
           </div>
 
-          {/* Cards Grid with Scroll-Triggered Center Burst Animation */}
+          {/* Cards Grid */}
           <div
             ref={pillarsGridRef}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 pillars-grid-container"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7"
           >
-
             {[
               {
                 title: t('home.pillar1Title'),
                 desc: t('home.pillar1Desc'),
                 icon: Users,
-                iconColor: 'text-blue-600 dark:text-blue-400',
-                bgColor: 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-100 dark:border-blue-900/40',
-                gradient: 'from-blue-100/60 to-indigo-50/30'
+                iconBg: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
               },
               {
                 title: t('home.pillar2Title'),
                 desc: t('home.pillar2Desc'),
                 icon: GraduationCap,
-                iconColor: 'text-amber-600 dark:text-amber-400',
-                bgColor: 'bg-amber-50/90 dark:bg-amber-950/50 border-amber-100 dark:border-amber-900/40',
-                gradient: 'from-amber-100/60 to-orange-50/30'
+                iconBg: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
               },
               {
                 title: t('home.pillar3Title'),
                 desc: t('home.pillar3Desc'),
                 icon: Target,
-                iconColor: 'text-red-600 dark:text-red-400',
-                bgColor: 'bg-red-50/90 dark:bg-red-950/50 border-red-100 dark:border-red-900/40',
-                gradient: 'from-red-100/60 to-rose-50/30'
+                iconBg: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
               },
               {
                 title: t('home.pillar4Title'),
                 desc: t('home.pillar4Desc'),
                 icon: Edit3,
-                iconColor: 'text-orange-600 dark:text-orange-400',
-                bgColor: 'bg-orange-50/90 dark:bg-orange-950/50 border-orange-100 dark:border-orange-900/40',
-                gradient: 'from-orange-100/60 to-amber-50/30'
+                iconBg: 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20'
               },
               {
                 title: t('home.pillar5Title'),
                 desc: t('home.pillar5Desc'),
                 icon: BarChart2,
-                iconColor: 'text-teal-600 dark:text-teal-400',
-                bgColor: 'bg-teal-50/90 dark:bg-teal-950/50 border-teal-100 dark:border-teal-900/40',
-                gradient: 'from-teal-100/60 to-emerald-50/30'
+                iconBg: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border border-teal-500/20'
               },
               {
                 title: t('home.pillar6Title'),
                 desc: t('home.pillar6Desc'),
                 icon: Rocket,
-                iconColor: 'text-purple-600 dark:text-purple-400',
-                bgColor: 'bg-purple-50/90 dark:bg-purple-950/50 border-purple-100 dark:border-purple-900/40',
-                gradient: 'from-purple-100/60 to-indigo-50/30'
+                iconBg: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20'
               }
             ].map((item, idx) => (
-
               <div
                 key={idx}
-                ref={(el) => {
-                  tiltRefs.current[idx] = el;
-                }}
-                className="
-            real-glass-card
-            group
-            relative
-            min-h-[270px]
-            overflow-hidden
-            rounded-[28px]
-            border border-amber-200/70
-            bg-white/80
-            dark:bg-slate-900/80
-            backdrop-blur-xl
-            shadow-[0_12px_40px_rgba(15,23,42,0.06)]
-            transition-all duration-500
-            hover:-translate-y-2
-            hover:shadow-[0_25px_60px_rgba(15,23,42,0.14)]
-          "
+                className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#0F172A] border border-black/10 dark:border-white/10 shadow-sm flex flex-col justify-start space-y-3"
               >
-
-                {/* Fixed visual background */}
-                <div
-                  className={`
-              absolute
-              inset-0
-              bg-gradient-to-br
-              ${item.gradient}
-              opacity-60
-              dark:opacity-10
-              pointer-events-none
-            `}
-                />
-
-
-
-                {/* Decorative grid */}
-                <div
-                  className="
-              absolute inset-0
-              opacity-[0.035]
-              dark:opacity-[0.04]
-              pointer-events-none
-              bg-[radial-gradient(circle_at_1px_1px,currentColor_1px,transparent_0)]
-              [background-size:18px_18px]
-            "
-                />
-
-                {/* Large watermark icon */}
-                <div
-                  className="
-              absolute
-              -right-5
-              -bottom-8
-              text-[130px]
-              leading-none
-              grayscale
-              opacity-[0.07]
-              pointer-events-none
-              select-none
-              transition-all
-              duration-700
-              group-hover:scale-110
-              group-hover:rotate-6
-              group-hover:opacity-[0.12]
-            "
-                >
-                  <item.icon className="w-full h-full" />
-                </div>
-
-                {/* Content */}
-                <div
-                  className="
-              relative
-              z-10
-              h-full
-              p-7 sm:p-8
-              flex
-              flex-col
-              justify-between
-            "
-                >
-
-                  {/* Icon Badge */}
-                  <div
-                    className="
-                      w-12 h-12
-                      rounded-xl
-                      bg-white
-                      border border-slate-100
-                      shadow-sm
-                      flex items-center justify-center
-                      transition-all duration-500
-                      group-hover:scale-110
-                    "
-                  >
-                    <item.icon className={`w-6 h-6 ${item.iconColor}`} />
+                {/* Header: Icon + Title Side-by-Side */}
+                <div className="flex items-center gap-3.5">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${item.iconBg}`}>
+                    <item.icon className="w-5 h-5" />
                   </div>
 
-                  {/* Text */}
-                  <div className="mt-8 space-y-3">
-
-                    <div className="w-8 h-1 rounded-full bg-amber-500 transition-all duration-500 group-hover:w-14" />
-
-                    <h3
-                      className="
-                  font-heading
-                  font-black
-                  text-xl
-                  text-slate-900
-                  dark:text-white
-                "
-                    >
-                      {item.title}
-                    </h3>
-
-                    <p
-                      className="
-                  text-sm
-                  leading-relaxed
-                  text-slate-600
-                  dark:text-slate-300
-                  max-w-sm
-                "
-                    >
-                      {item.desc}
-                    </p>
-
-                  </div>
-
+                  <h3 className="font-heading font-black text-base sm:text-lg text-black dark:text-white leading-snug">
+                    {item.title}
+                  </h3>
                 </div>
 
-                {/* Hover shine */}
-                <div
-                  className="
-              absolute
-              inset-0
-              pointer-events-none
-              opacity-0
-              group-hover:opacity-100
-              transition-opacity
-              duration-500
-              bg-[linear-gradient(120deg,transparent_20%,rgba(255,255,255,0.35)_50%,transparent_80%)]
-              translate-x-[-100%]
-              group-hover:translate-x-[100%]
-              transition-transform
-            "
-                />
-
+                {/* Description below */}
+                <p className="text-xs sm:text-sm leading-relaxed text-black/80 dark:text-white/80 font-normal">
+                  {item.desc}
+                </p>
               </div>
-
             ))}
-
           </div>
         </div>
       </section>

@@ -150,11 +150,29 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "Organization",
+              "@type": "EducationalOrganization",
               "name": "Final Attempt",
-              "legalName": "Final Attempt",
+              "legalName": "Final Attempt IAS Academy",
               "url": "https://finalattemptias.com",
-              "logo": "https://finalattemptias.com/darklogofull.png"
+              "logo": "https://finalattemptias.com/darklogofull.png",
+              "description": "Premier mentorship and coaching platform for UPSC Civil Services and State PCS examinations.",
+              "address": {
+                "@type": "PostalAddress",
+                "addressLocality": "Patna",
+                "addressRegion": "Bihar",
+                "addressCountry": "IN"
+              },
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "contactType": "Admissions & Student Support",
+                "telephone": "+91-9234567890",
+                "availableLanguage": ["English", "Hindi"]
+              },
+              "sameAs": [
+                "https://t.me/finalattemptias",
+                "https://www.youtube.com/@finalattemptias",
+                "https://www.instagram.com/finalattemptias"
+              ]
             }),
           }}
         />

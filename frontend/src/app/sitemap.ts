@@ -53,13 +53,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const dynamicPaths: MetadataRoute.Sitemap = [];
 
-  // Use internal Next.js proxy (/api/*) instead of localhost — works on any server
-  const apiBase = process.env.NEXT_PUBLIC_SITE_URL || 'https://finalattemptias.com';
+  // When building, use the local backend directly or skip hanging fetches with a 3-second timeout
+  const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+
+  const safeFetch = async (endpoint: string) => {
+    try {
+      const res = await fetch(`${apiBase}${endpoint}`, {
+        signal: AbortSignal.timeout(3000)
+      });
+      return res;
+    } catch {
+      return null;
+    }
+  };
 
   try {
     // Dynamic blog posts
-    const blogsRes = await fetch(`${apiBase}/api/blogs`, { next: { revalidate: 3600 } });
-    if (blogsRes.ok) {
+    const blogsRes = await safeFetch('/api/blogs');
+    if (blogsRes && blogsRes.ok) {
       const blogs = await blogsRes.json();
       if (Array.isArray(blogs)) {
         blogs.forEach((b: SitemapEntity) => {
@@ -78,8 +89,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Dynamic current affairs articles
-    const caRes = await fetch(`${apiBase}/api/dynamic-current-affairs/editions`, { next: { revalidate: 3600 } });
-    if (caRes.ok) {
+    const caRes = await safeFetch('/api/dynamic-current-affairs/editions');
+    if (caRes && caRes.ok) {
       const editions = await caRes.json();
       if (Array.isArray(editions)) {
         editions.forEach((ed: SitemapEntity) => {
@@ -115,8 +126,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Dynamic courses mapping
-    const coursesRes = await fetch(`${apiBase}/api/lms/courses`, { next: { revalidate: 3600 } });
-    if (coursesRes.ok) {
+    const coursesRes = await safeFetch('/api/lms/courses');
+    if (coursesRes && coursesRes.ok) {
       const coursesData = await coursesRes.json();
       const courses = Array.isArray(coursesData) ? coursesData : (coursesData?.data || []);
       if (Array.isArray(courses)) {
@@ -138,8 +149,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Dynamic test series mapping (exams, stages, programs)
-    const testSeriesRes = await fetch(`${apiBase}/api/test-series/hierarchy`, { next: { revalidate: 3600 } });
-    if (testSeriesRes.ok) {
+    const testSeriesRes = await safeFetch('/api/test-series/hierarchy');
+    if (testSeriesRes && testSeriesRes.ok) {
       const resJson = await testSeriesRes.json();
       const exams = Array.isArray(resJson) ? resJson : (resJson?.data || []);
       if (Array.isArray(exams)) {
@@ -185,8 +196,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     // Dynamic custom pages and location SEO landing pages (/p/[slug])
-    const customPagesRes = await fetch(`${apiBase}/api/custom-pages?publishedOnly=true`, { next: { revalidate: 3600 } });
-    if (customPagesRes.ok) {
+    const customPagesRes = await safeFetch('/api/custom-pages?publishedOnly=true');
+    if (customPagesRes && customPagesRes.ok) {
       const pageData = await customPagesRes.json();
       const pages = Array.isArray(pageData) ? pageData : (pageData?.data || []);
       if (Array.isArray(pages)) {
