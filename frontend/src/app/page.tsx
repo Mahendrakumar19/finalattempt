@@ -464,30 +464,42 @@ export default function Home() {
             </div>
 
             {(!liveCourses || liveCourses.length === 0) ? (
-              <div className="bg-gradient-to-br from-amber-500/5 via-slate-50 to-blue-500/5 dark:from-slate-900 dark:via-slate-900/60 dark:to-slate-900 rounded-3xl border border-dashed border-amber-500/30 p-8 sm:p-12 text-center space-y-4 shadow-xs">
-                <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center mx-auto shadow-inner">
-                  <GraduationCap className="w-7 h-7" />
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-widest">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-                  Coming Soon
-                </div>
-                <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 dark:text-white">
-                  {locale === 'hi' ? 'नए बैच और कोर्सेज जल्द आ रहे हैं' : 'New Foundation & Mentorship Batches Coming Soon'}
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto font-medium leading-relaxed">
-                  {locale === 'hi'
-                    ? 'हम आगामी 71st BPSC और UPSC के लिए नए इंटीग्रेटेड मेंटरशिप प्रोग्राम तैयार कर रहे हैं। कोर्स लॉन्च होते ही यहाँ प्रदर्शित होंगे।'
-                    : 'We are curating comprehensive guided mentorship programs, test series & prelims-to-mains batches. Stay tuned as new admissions open shortly.'}
-                </p>
-                <div className="pt-2">
-                  <Link
-                    href="/courses"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-all shadow-md"
-                  >
-                    <span>{locale === 'hi' ? 'कोर्सेज हब देखें' : 'Visit Courses Hub'}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
+              <div className="relative overflow-hidden bg-white dark:bg-[#0F172A] rounded-3xl border border-slate-200/80 dark:border-white/10 p-8 sm:p-10 shadow-sm text-center">
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="inline-flex p-3 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-[#1E3A8A] dark:text-blue-400 border border-blue-100 dark:border-blue-800/40">
+                    <GraduationCap className="w-8 h-8" />
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <span className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
+                      New Batches Launching Soon
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-950 dark:text-white">
+                      {locale === 'hi' ? '71st BPSC & UPSC नए बैच जल्द आ रहे हैं' : '71st BPSC & UPSC Foundation Batches'}
+                    </h3>
+                  </div>
+
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
+                    {locale === 'hi'
+                      ? 'नए इंटीग्रेटेड मेंटरशिप प्रोग्राम, टेस्ट सीरीज और आंसर राइटिंग मॉड्यूल फाइनल किए जा रहे हैं।'
+                      : 'Comprehensive guided mentorship, high-yield Prelims test series & GS Mains answer writing programs opening shortly.'}
+                  </p>
+
+                  <div className="pt-2 flex items-center justify-center gap-3">
+                    <Link
+                      href="/courses"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1E3A8A] hover:bg-blue-800 text-white font-bold text-xs transition-all shadow-sm"
+                    >
+                      <span>Explore Courses</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                    <a
+                      href="#book-session"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold text-xs transition-all"
+                    >
+                      <span>Get Notified</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -670,14 +682,14 @@ export default function Home() {
 
           {/* Heading */}
           <div className="text-center max-w-5xl mx-auto space-y-4">
-            <h2 className="text-3xl sm:text-4xl font-heading font-black text-black dark:text-white">
+            <h2 className="text-3xl sm:text-4xl font-heading font-black text-slate-950 dark:text-white">
               {t('home.whyFinalAttempt')}
             </h2>
 
-            <p className="text-sm sm:text-base text-black/85 dark:text-white/90 max-w-4xl mx-auto font-medium leading-relaxed">
+            <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 max-w-4xl mx-auto font-medium leading-relaxed">
               {t('home.whySubtitle')}
               <br />
-              <span className="font-bold text-black dark:text-amber-400 block mt-2 text-base">
+              <span className="font-bold text-amber-600 dark:text-amber-400 block mt-2 text-base">
                 {t('home.whyTagline')}
               </span>
             </p>
@@ -736,13 +748,13 @@ export default function Home() {
                     <item.icon className="w-5 h-5" />
                   </div>
 
-                  <h3 className="font-heading font-black text-base sm:text-lg text-black dark:text-white leading-snug">
+                  <h3 className="font-heading font-black text-base sm:text-lg text-slate-900 dark:text-white leading-snug">
                     {item.title}
                   </h3>
                 </div>
 
                 {/* Description below */}
-                <p className="text-xs sm:text-sm leading-relaxed text-black/80 dark:text-white/80 font-normal">
+                <p className="text-xs sm:text-sm leading-relaxed text-slate-600 dark:text-slate-300 font-normal">
                   {item.desc}
                 </p>
               </div>
