@@ -174,7 +174,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
             courseId={String(course.id)} 
             fee={String(course.fee)} 
             originalPrice={(course as ExtendedCourse).originalPrice}
-            discount={(course as ExtendedCourse).discount}
+            discount={(course as ExtendedCourse).discount != null ? String((course as ExtendedCourse).discount) : undefined}
           />
 
           <div className="space-y-3.5 pt-4 border-t border-slate-100">
