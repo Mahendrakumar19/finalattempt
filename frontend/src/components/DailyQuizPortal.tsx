@@ -108,7 +108,9 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
       try {
         const storedUser = localStorage.getItem('finalattempt_user');
         return storedUser ? JSON.parse(storedUser) : null;
-      } catch (_) {}
+      } catch {
+        return null;
+      }
     }
     return null;
   });

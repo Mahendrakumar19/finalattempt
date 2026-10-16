@@ -6857,6 +6857,14 @@ class LmsDB {
             await mysqlPool.query(`ALTER TABLE daily_quiz_questions ${col}`);
           } catch (_) {}
         }
+
+        // Seed default daily-quiz-today if not present
+        try {
+          await mysqlPool.query(
+            `INSERT IGNORE INTO daily_quizzes (id, slug, title, description, publishDate, timeLimitMins, totalQuestions, difficulty, category, attemptsCount, passingScore, isFree)
+             VALUES ('daily-quiz-today', 'daily-current-affairs-bihar-gs-practice-set-14', 'Daily Current Affairs & Bihar GS Practice (Set 14)', '10 high-yield practice questions covering National & International Current Affairs, Bihar Budget & Economic Survey, and Indian Polity.', CURDATE(), 10, 10, 'MEDIUM', 'Daily Practice', 142, 40, 1)`
+          );
+        } catch (_) {}
       } catch (err) {
         console.error('[LmsDB] initDailyQuizTables MySQL error:', err);
       }
@@ -7013,6 +7021,18 @@ class LmsDB {
 
     if (mysqlPool) {
       try {
+        // Ensure the parent quiz exists in daily_quizzes to satisfy FOREIGN KEY (quizId) REFERENCES daily_quizzes(id)
+        await mysqlPool.query(
+          `INSERT IGNORE INTO daily_quizzes (id, slug, title, description, publishDate, timeLimitMins, totalQuestions, difficulty, category, attemptsCount, passingScore, isFree)
+           VALUES (?, ?, ?, ?, CURDATE(), 10, 10, 'MEDIUM', 'Daily Practice', 0, 40, 1)`,
+          [
+            quizId,
+            quizId === 'daily-quiz-today' ? 'daily-current-affairs-bihar-gs-practice' : quizId,
+            quizId === 'daily-quiz-today' ? 'Daily Current Affairs & Bihar GS Practice' : `Daily Quiz (${quizId})`,
+            'Daily Practice Quiz'
+          ]
+        );
+
         await mysqlPool.query(
           `INSERT INTO daily_quiz_questions (id, quizId, questionText, optionA, optionB, optionC, optionD, optionE, correctAnswer, explanation, questionTextHi, optionAHi, optionBHi, optionCHi, optionDHi, optionEHi, questionImageUrl, explanationHi, marks, negativeMarks)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
