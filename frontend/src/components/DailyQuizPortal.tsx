@@ -811,7 +811,7 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                     );
                   })()}
 
-                  {questions[currentQuestionIndex].questionTextHi && (
+                  {questions[currentQuestionIndex].questionTextHi && questions[currentQuestionIndex].questionTextHi.trim() !== (questions[currentQuestionIndex].questionText || '').trim() && (
                     <p className="text-base text-amber-600 dark:text-amber-400 font-medium leading-relaxed pt-1">
                       {questions[currentQuestionIndex].questionTextHi}
                     </p>
@@ -829,9 +829,9 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                   ].filter(o => o.text || o.textHi).map((opt) => {
                     const selected = userAnswers[questions[currentQuestionIndex].id] === opt.key;
 
-                    let optClass = 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 hover:border-amber-500/50 hover:bg-amber-500/5 text-slate-800 dark:text-slate-200';
+                    let optClass = 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-500/10 text-slate-950 dark:text-slate-50 font-medium shadow-sm';
                     if (selected) {
-                      optClass = 'bg-amber-500/15 border-amber-500 text-amber-700 dark:text-amber-400 font-bold shadow-xs';
+                      optClass = 'bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-500 text-amber-950 dark:text-amber-200 font-bold shadow-md';
                     }
 
                     return (
@@ -842,14 +842,18 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                       >
                         <div className="flex items-center gap-3">
                           <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-heading font-black text-xs shrink-0 transition-colors ${
-                            selected ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-800/80'
+                            selected ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold'
                           }`}>
                             {opt.key}
                           </span>
                           <div>
-                            <span className="text-sm font-medium leading-normal block">{opt.text}</span>
+                            <span className="text-base sm:text-lg font-bold text-slate-950 dark:text-white leading-normal block">
+                              {opt.text}
+                            </span>
                             {opt.textHi && opt.textHi !== opt.text && (
-                              <span className="text-xs text-slate-500 dark:text-slate-400 block mt-0.5">{opt.textHi}</span>
+                              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
+                                {opt.textHi}
+                              </span>
                             )}
                           </div>
                         </div>
@@ -1090,7 +1094,7 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                           );
                         })()}
 
-                        {detail.questionTextHi && (
+                        {detail.questionTextHi && detail.questionTextHi.trim() !== (detail.questionText || '').trim() && (
                           <p className="text-sm text-amber-600 dark:text-amber-400 font-medium leading-relaxed">
                             {detail.questionTextHi}
                           </p>
@@ -1103,21 +1107,21 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                           const isCorrectOpt = detail.correctAnswer === optKey;
                           const isUserSelect = detail.studentAnswer === optKey;
 
-                          let cardStyle = 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400';
+                          let cardStyle = 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 font-medium';
                           if (isCorrectOpt) {
-                            cardStyle = 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-bold';
+                            cardStyle = 'bg-emerald-500/15 border-2 border-emerald-500 text-emerald-800 dark:text-emerald-200 font-bold';
                           } else if (isUserSelect && !isCorrectOpt) {
-                            cardStyle = 'bg-red-500/15 border-red-500 text-red-700 dark:text-red-300 font-bold';
+                            cardStyle = 'bg-red-500/15 border-2 border-red-500 text-red-800 dark:text-red-200 font-bold';
                           }
 
                           return (
                             <div
                               key={optKey}
-                              className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs transition-all ${cardStyle}`}
+                              className={`p-3.5 rounded-2xl border flex items-center justify-between text-xs sm:text-sm transition-all ${cardStyle}`}
                             >
                               <div className="flex items-center gap-2.5">
                                 <span className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] shrink-0 ${
-                                  isCorrectOpt ? 'bg-emerald-500 text-slate-950' : isUserSelect ? 'bg-red-500 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'
+                                  isCorrectOpt ? 'bg-emerald-500 text-slate-950 font-black' : isUserSelect ? 'bg-red-500 text-white font-black' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold'
                                 }`}>
                                   {optKey}
                                 </span>
@@ -1138,7 +1142,7 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                             📖 {t('dailyQuiz.explanation', 'Exam Rationale & Explanation')}
                           </span>
                           {detail.explanation && <FormattedExplanation content={detail.explanation} />}
-                          {detail.explanationHi && (
+                          {detail.explanationHi && detail.explanationHi.trim() !== (detail.explanation || '').trim() && (
                             <div className="text-xs text-amber-700 dark:text-amber-300 font-medium pt-1">
                               {detail.explanationHi}
                             </div>
