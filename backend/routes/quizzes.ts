@@ -8,6 +8,7 @@ import { AdapterFactory } from '../services/documentEngine/adapters/AdapterFacto
 import { QnaExtractor } from '../services/documentEngine/extraction/QnaExtractor';
 import { EntitlementService } from '../services/entitlementService';
 import { prisma } from '../prisma';
+import { memoryCache } from '../services/cacheService';
 
 const router = Router();
 
@@ -232,12 +233,17 @@ const FALLBACK_DAILY_QUIZZES = [
 router.get('/daily/today', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const targetLang = getTargetLang(req);
-    const list = await lmsDB.getAllDailyQuizzes();
     const todayStr = new Date().toISOString().split('T')[0];
+    const cacheKey = `dq:today:${todayStr}:${targetLang}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached) return res.json({ success: true, data: cached });
+
+    const list = await lmsDB.getAllDailyQuizzes();
     let todayQuiz = list.find((q: any) => q.publishDate === todayStr) || list[0] || FALLBACK_DAILY_QUIZZES[0];
     if (targetLang === 'hi') {
       todayQuiz = await ContentLocalizer.localizeEntity('daily_quiz', todayQuiz, ['title', 'description'], targetLang);
     }
+    memoryCache.set(cacheKey, todayQuiz, 300, 'daily_quizzes');
     res.json({ success: true, data: todayQuiz });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -248,11 +254,16 @@ router.get('/daily/today', optionalAuth, async (req: AuthRequest, res: Response)
 router.get('/daily/list', optionalAuth, async (req: AuthRequest, res: Response) => {
   try {
     const targetLang = getTargetLang(req);
+    const cacheKey = `dq:list:${targetLang}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached) return res.json({ success: true, data: cached });
+
     const list = await lmsDB.getAllDailyQuizzes();
     let data = (list && list.length > 0) ? list : FALLBACK_DAILY_QUIZZES;
     if (targetLang === 'hi') {
       data = await ContentLocalizer.localizeEntityList('daily_quiz', data, ['title', 'description'], targetLang);
     }
+    memoryCache.set(cacheKey, data, 300, 'daily_quizzes');
     res.json({ success: true, data });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -420,6 +431,7 @@ router.post('/daily/:quizId/submit', optionalAuth, async (req: AuthRequest, res:
 router.post('/admin/daily', async (req: AuthRequest, res: Response) => {
   try {
     const quiz = await lmsDB.saveDailyQuiz(req.body);
+    memoryCache.invalidateTag('daily_quizzes');
     res.json({ success: true, data: quiz });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -430,6 +442,7 @@ router.post('/admin/daily', async (req: AuthRequest, res: Response) => {
 router.delete('/admin/daily/:id', async (req: AuthRequest, res: Response) => {
   try {
     const ok = await lmsDB.deleteDailyQuiz(req.params.id as string);
+    memoryCache.invalidateTag('daily_quizzes');
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -440,6 +453,7 @@ router.delete('/admin/daily/:id', async (req: AuthRequest, res: Response) => {
 router.post('/admin/daily/:quizId/questions', async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
+    memoryCache.invalidateTag('daily_quizzes');
     if (Array.isArray(req.body)) {
       const saved = await lmsDB.saveDailyQuizQuestionsBulk(quizId, req.body);
       return res.json({ success: true, count: saved.length, data: saved });
@@ -455,6 +469,7 @@ router.post('/admin/daily/:quizId/questions', async (req: AuthRequest, res: Resp
 router.post('/admin/daily/:quizId/questions/bulk', async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
+    memoryCache.invalidateTag('daily_quizzes');
     const questions = req.body.questions || req.body;
     if (!Array.isArray(questions)) {
       return res.status(400).json({ success: false, error: 'Expected an array of questions' });
@@ -472,6 +487,7 @@ router.delete('/admin/daily/:quizId/questions/:qId', async (req: AuthRequest, re
     const quizId = req.params.quizId as string;
     const qId = req.params.qId as string;
     const ok = await lmsDB.deleteDailyQuizQuestion(quizId, qId);
+    memoryCache.invalidateTag('daily_quizzes');
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

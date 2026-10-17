@@ -30,6 +30,7 @@ import documentImportsRouter from './routes/documentImports';
 import testSeriesPurchaseRouter from './routes/testSeriesPurchase';
 import { verifyEmailConnection } from './services/email';
 import { ContentLocalizer, getTargetLang } from './services/contentLocalizer';
+import { memoryCache } from './services/cacheService';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -179,7 +180,13 @@ app.get('/api/health', (req, res) => {
 // SETTINGS
 app.get('/api/settings', async (req, res) => {
   try {
+    const cacheKey = 'site:settings';
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      return res.json(cached);
+    }
     const settings = await db.getSettings();
+    memoryCache.set(cacheKey, settings, 600, 'settings'); // 10 mins cache
     res.json(settings);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -189,6 +196,7 @@ app.get('/api/settings', async (req, res) => {
 app.put('/api/settings', async (req, res) => {
   try {
     const ok = await db.updateSettings(req.body);
+    memoryCache.invalidateTag('settings'); // Instant invalidation on update
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -199,7 +207,13 @@ app.put('/api/settings', async (req, res) => {
 app.get('/api/custom-pages', async (req, res) => {
   try {
     const publishedOnly = req.query.publishedOnly === 'true';
+    const cacheKey = `custom_pages:list:${publishedOnly}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: cached });
+    }
     const pages = await db.getCustomPages(publishedOnly);
+    memoryCache.set(cacheKey, pages, 600, 'custom_pages');
     res.json({ success: true, data: pages });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -208,10 +222,17 @@ app.get('/api/custom-pages', async (req, res) => {
 
 app.get('/api/custom-pages/:slug', async (req, res) => {
   try {
-    const page = await db.getCustomPageBySlug(req.params.slug);
+    const slug = req.params.slug;
+    const cacheKey = `custom_pages:slug:${slug}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      return res.json({ success: true, data: cached });
+    }
+    const page = await db.getCustomPageBySlug(slug);
     if (!page) {
       return res.status(404).json({ success: false, error: 'Page not found' });
     }
+    memoryCache.set(cacheKey, page, 600, 'custom_pages');
     res.json({ success: true, data: page });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -221,6 +242,7 @@ app.get('/api/custom-pages/:slug', async (req, res) => {
 app.post('/api/custom-pages', async (req, res) => {
   try {
     const saved = await db.saveCustomPage(req.body);
+    memoryCache.invalidateTag('custom_pages');
     res.json({ success: true, data: saved });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -230,6 +252,7 @@ app.post('/api/custom-pages', async (req, res) => {
 app.delete('/api/custom-pages/:id', async (req, res) => {
   try {
     const ok = await db.deleteCustomPage(req.params.id);
+    memoryCache.invalidateTag('custom_pages');
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -562,6 +585,13 @@ app.get('/api/current-affairs', async (req, res) => {
   try {
     const targetLang = getTargetLang(req);
     const includeDrafts = req.query.includeDrafts === 'true';
+    const cacheKey = `ca:all:${targetLang}:${includeDrafts}`;
+
+    if (!includeDrafts) {
+      const cached = memoryCache.get(cacheKey);
+      if (cached) return res.json({ success: true, data: cached });
+    }
+
     const editions = await db.getDynamicCurrentAffairsEditions(includeDrafts);
 
     const localized = await Promise.all(editions.map(async (ed) => {
@@ -577,6 +607,10 @@ app.get('/api/current-affairs', async (req, res) => {
       }
       return ed;
     }));
+
+    if (!includeDrafts) {
+      memoryCache.set(cacheKey, localized, 300, 'current_affairs');
+    }
 
     res.json({ success: true, data: localized });
   } catch (err: any) {
@@ -588,6 +622,13 @@ app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
   try {
     const targetLang = getTargetLang(req);
     const includeDrafts = req.query.includeDrafts === 'true';
+    const cacheKey = `ca:editions:${targetLang}:${includeDrafts}`;
+
+    if (!includeDrafts) {
+      const cached = memoryCache.get(cacheKey);
+      if (cached) return res.json({ success: true, data: cached });
+    }
+
     const editions = await db.getDynamicCurrentAffairsEditions(includeDrafts);
 
     const localized = await Promise.all(editions.map(async (ed) => {
@@ -603,6 +644,10 @@ app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
       }
       return ed;
     }));
+
+    if (!includeDrafts) {
+      memoryCache.set(cacheKey, localized, 300, 'current_affairs');
+    }
 
     res.json({ success: true, data: localized });
   } catch (err: any) {
@@ -685,6 +730,7 @@ app.get('/api/dynamic-current-affairs/search', async (req, res) => {
 app.post('/api/admin/dynamic-current-affairs/edition', async (req, res) => {
   try {
     const ok = await db.createOrUpdateDynamicCurrentAffairEdition(req.body);
+    memoryCache.invalidateTag('current_affairs');
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -694,6 +740,7 @@ app.post('/api/admin/dynamic-current-affairs/edition', async (req, res) => {
 app.delete('/api/admin/dynamic-current-affairs/edition/:id', async (req, res) => {
   try {
     const ok = await db.deleteDynamicCurrentAffairEdition(req.params.id);
+    memoryCache.invalidateTag('current_affairs');
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -703,6 +750,7 @@ app.delete('/api/admin/dynamic-current-affairs/edition/:id', async (req, res) =>
 app.delete('/api/admin/dynamic-current-affairs/article/:id', async (req, res) => {
   try {
     const ok = await db.deleteDynamicCurrentAffairArticle(req.params.id);
+    memoryCache.invalidateTag('current_affairs');
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -814,9 +862,20 @@ app.post('/api/admin/dynamic-current-affairs/combine/yearly', async (req, res) =
 // BLOGS
 app.get('/api/blogs', async (req, res) => {
   try {
-    let list = await db.getBlogs();
     const targetLang = getTargetLang(req);
     const isAdmin = Boolean(req.headers.authorization?.includes('admin') || req.query.includeDrafts === 'true');
+    const cacheKey = `blogs:list:${targetLang}:${isAdmin}`;
+    
+    if (!isAdmin) {
+      const cached = memoryCache.get(cacheKey);
+      if (cached) {
+        res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
+        res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+        return res.json(cached);
+      }
+    }
+
+    let list = await db.getBlogs();
 
     if (!isAdmin && Array.isArray(list)) {
       list = list.filter((b: any) => {
@@ -839,8 +898,11 @@ app.get('/api/blogs', async (req, res) => {
         targetLang,
         ['content']
       );
+      if (!isAdmin) memoryCache.set(cacheKey, localized, 300, 'blogs');
       return res.json(localized);
     }
+
+    if (!isAdmin) memoryCache.set(cacheKey, list, 300, 'blogs');
     res.json(list);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -849,13 +911,21 @@ app.get('/api/blogs', async (req, res) => {
 
 app.get('/api/blogs/:id', async (req, res) => {
   try {
-    const list = await db.getBlogs();
     const idOrSlug = req.params.id;
+    const targetLang = getTargetLang(req);
+    const cacheKey = `blogs:detail:${idOrSlug}:${targetLang}`;
+    const cached = memoryCache.get(cacheKey);
+    if (cached) {
+      res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
+      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
+      return res.json(cached);
+    }
+
+    const list = await db.getBlogs();
     const item = list.find((b: any) => String(b.id) === idOrSlug || b.slug === idOrSlug);
     if (!item) {
       return res.status(404).json({ error: 'Blog post not found' });
     }
-    const targetLang = getTargetLang(req);
     res.setHeader('Vary', 'Accept-Language, x-locale, Cookie');
     res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=600');
 
@@ -867,8 +937,10 @@ app.get('/api/blogs/:id', async (req, res) => {
         targetLang,
         ['content']
       );
+      memoryCache.set(cacheKey, localized, 300, 'blogs');
       return res.json(localized);
     }
+    memoryCache.set(cacheKey, item, 300, 'blogs');
     res.json(item);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -878,6 +950,8 @@ app.get('/api/blogs/:id', async (req, res) => {
 app.post('/api/blogs', async (req, res) => {
   try {
     const item = await db.createBlog(req.body);
+    memoryCache.invalidateTag('blogs');
+    ContentLocalizer.clearCache('blog');
     res.json(item);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -887,6 +961,8 @@ app.post('/api/blogs', async (req, res) => {
 app.put('/api/blogs/:id', async (req, res) => {
   try {
     const ok = await db.updateBlog(req.params.id, req.body);
+    memoryCache.invalidateTag('blogs');
+    ContentLocalizer.clearCache('blog');
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -896,6 +972,8 @@ app.put('/api/blogs/:id', async (req, res) => {
 app.delete('/api/blogs/:id', async (req, res) => {
   try {
     const ok = await db.deleteBlog(req.params.id);
+    memoryCache.invalidateTag('blogs');
+    ContentLocalizer.clearCache('blog');
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

@@ -1158,7 +1158,51 @@ async function initializeMySQLTables(pool: mysql.Pool) {
       `);
     } catch (_) {}
 
-    console.log('MySQL Database tables initialized successfully.');
+    // 19. Ensure Critical High-Traffic Performance Indexes
+    const perfIndexes = [
+      // Blogs: list queries filter by status, publish_target, and sort by publishDate
+      { table: 'blogs', index: 'idx_blogs_perf', sql: 'CREATE INDEX idx_blogs_perf ON blogs (status, publish_target, publishDate)' },
+      { table: 'blogs', index: 'idx_blogs_slug', sql: 'CREATE INDEX idx_blogs_slug ON blogs (slug)' },
+      
+      // Dynamic Current Affairs: list queries filter by publishStatus and sort by publishedDate
+      { table: 'current_affair_articles', index: 'idx_ca_perf', sql: 'CREATE INDEX idx_ca_perf ON current_affair_articles (publishStatus, publishedDate)' },
+      { table: 'current_affair_articles', index: 'idx_ca_edition', sql: 'CREATE INDEX idx_ca_edition ON current_affair_articles (editionId, publishStatus)' },
+      
+      // Daily Quizzes: queries filter by publishDate and isPublished
+      { table: 'daily_quizzes', index: 'idx_dq_perf', sql: 'CREATE INDEX idx_dq_perf ON daily_quizzes (publishDate, isPublished)' },
+      { table: 'daily_quizzes', index: 'idx_dq_slug', sql: 'CREATE INDEX idx_dq_slug ON daily_quizzes (slug)' },
+      { table: 'daily_quiz_questions', index: 'idx_dqq_quiz', sql: 'CREATE INDEX idx_dqq_quiz ON daily_quiz_questions (quizId, createdAt)' },
+
+      // LMS Quizzes & Questions
+      { table: 'lms_quizzes', index: 'idx_lms_quizzes_perf', sql: 'CREATE INDEX idx_lms_quizzes_perf ON lms_quizzes (courseId, isPublished, createdAt)' },
+      { table: 'lms_questions', index: 'idx_lms_questions_quiz_order', sql: 'CREATE INDEX idx_lms_questions_quiz_order ON lms_questions (quizId, orderIndex)' },
+      { table: 'lms_quiz_attempts', index: 'idx_lms_attempts_user_quiz', sql: 'CREATE INDEX idx_lms_attempts_user_quiz ON lms_quiz_attempts (userId, quizId, submittedAt)' },
+      { table: 'lms_enrollments', index: 'idx_lms_enrollments_user_course', sql: 'CREATE INDEX idx_lms_enrollments_user_course ON lms_enrollments (userId, courseId, enrolledAt)' },
+
+      // Test Series & Hierarchy
+      { table: 'TestSeries', index: 'idx_testseries_exam_pub', sql: 'CREATE INDEX idx_testseries_exam_pub ON TestSeries (examId, isPublished)' },
+      { table: 'TestSeries', index: 'idx_testseries_slug', sql: 'CREATE INDEX idx_testseries_slug ON TestSeries (slug)' },
+
+      // Leads & Book Orders
+      { table: 'leads', index: 'idx_leads_created', sql: 'CREATE INDEX idx_leads_created ON leads (createdAt)' },
+      { table: 'book_orders', index: 'idx_book_orders_order', sql: 'CREATE INDEX idx_book_orders_order ON book_orders (orderId)' }
+    ];
+
+    for (const item of perfIndexes) {
+      try {
+        const [existing]: any = await pool.query(
+          `SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ? LIMIT 1`,
+          [item.table, item.index]
+        );
+        if (!existing || existing.length === 0) {
+          await pool.query(item.sql);
+        }
+      } catch (e) {
+        // Silently skip if table doesn't exist yet or index already in place
+      }
+    }
+
+    console.log('MySQL Database tables and performance indexes initialized successfully.');
 
     
     // Seed settings table if empty
