@@ -449,6 +449,17 @@ router.delete('/admin/daily/:id', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Admin Get Daily Quiz Questions (Includes correctAnswer & explanation for CMS editing)
+router.get('/admin/daily/:quizId/questions', async (req: AuthRequest, res: Response) => {
+  try {
+    const quizId = req.params.quizId as string;
+    const questions = await lmsDB.getDailyQuizQuestions(quizId);
+    res.json({ success: true, count: questions.length, data: questions });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Admin Save Daily Quiz Question (Single or Array)
 router.post('/admin/daily/:quizId/questions', async (req: AuthRequest, res: Response) => {
   try {

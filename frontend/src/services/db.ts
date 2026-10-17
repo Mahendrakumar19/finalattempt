@@ -1028,6 +1028,15 @@ class FinalAttemptDB {
     return res?.success !== false;
   }
 
+  public async getAdminDailyQuizQuestions<T = any>(quizId: string): Promise<T[]> {
+    const res = (await this.apiFetch(`/api/quizzes/admin/daily/${quizId}/questions`)) ||
+                (await this.apiFetch(`/api/lms/quizzes/admin/daily/${quizId}/questions`));
+    if (res && res.data && Array.isArray(res.data)) {
+      return res.data as T[];
+    }
+    return this.getLocalDailyQuestionStore(quizId) as unknown as T[];
+  }
+
   public async saveDailyQuizQuestion<T = any>(quizId: string, question: any): Promise<T> {
     const qStore = this.getLocalDailyQuestionStore(quizId);
     const existingIdx = qStore.findIndex((q: DailyQuizQuestion) => q.id === question.id);

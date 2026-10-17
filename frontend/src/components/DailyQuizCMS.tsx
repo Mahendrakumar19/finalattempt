@@ -187,11 +187,16 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
     setSelectedQuizId(quizId);
     setLoadingQuestions(true);
     try {
-      const data = await db.startDailyQuiz(quizId);
-      if (data && data.questions) {
-        setQuestions(data.questions);
+      const adminQuestions = await (db as any).getAdminDailyQuizQuestions(quizId);
+      if (Array.isArray(adminQuestions) && adminQuestions.length > 0) {
+        setQuestions(adminQuestions);
       } else {
-        setQuestions([]);
+        const data = await db.startDailyQuiz(quizId);
+        if (data && data.questions) {
+          setQuestions(data.questions);
+        } else {
+          setQuestions([]);
+        }
       }
     } catch (err) {
       console.error('Failed loading questions:', err);
@@ -405,6 +410,20 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
       await handleSelectQuizForQuestions(selectedQuizId);
     } catch (err) {
       console.error('Error duplicating question:', err);
+    }
+  };
+
+  // Quick 1-Click Update Correct Answer from Card
+  const handleQuickSetCorrectAnswer = async (q: Question, newCorrectKey: string) => {
+    if (!selectedQuizId) return;
+    const updatedQ = { ...q, correctAnswer: newCorrectKey };
+    // Optimistic UI update
+    setQuestions(prev => prev.map(item => item.id === q.id ? updatedQ : item));
+    try {
+      await db.saveDailyQuizQuestion(selectedQuizId, updatedQ);
+    } catch (err) {
+      console.error('Failed quick saving correct answer:', err);
+      await handleSelectQuizForQuestions(selectedQuizId);
     }
   };
 
@@ -1024,14 +1043,15 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                             );
                           })()}
 
-                          {q.questionTextHi && (
+                          {/* Only render Hindi question text if it's actually different from English */}
+                          {q.questionTextHi && q.questionTextHi.trim() !== (q.questionText || '').trim() && (
                             <p className="text-xs text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
                               {q.questionTextHi}
                             </p>
                           )}
                         </div>
 
-                        {/* Options Display with Crystal-Clear High-Contrast Styling */}
+                        {/* Options Display with 1-Click Interactive Answer Selector */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs pt-1">
                           {[
                             { key: 'A', text: q.optionA, textHi: q.optionAHi },
@@ -1042,12 +1062,15 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                           ].filter(opt => opt.text || opt.textHi).map(opt => {
                             const isCorrect = String(q.correctAnswer || '').trim().toUpperCase() === opt.key.toUpperCase();
                             return (
-                              <div
+                              <button
                                 key={opt.key}
-                                className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-all ${
+                                type="button"
+                                onClick={() => handleQuickSetCorrectAnswer(q, opt.key)}
+                                title={`Click to set Option ${opt.key} as the correct answer`}
+                                className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-all text-left cursor-pointer ${
                                   isCorrect
-                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 text-emerald-950 dark:text-emerald-100 font-bold shadow-xs'
-                                    : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:border-amber-400'
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 text-emerald-950 dark:text-emerald-100 font-bold shadow-xs ring-1 ring-emerald-500/20'
+                                    : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:border-amber-400 hover:bg-amber-50/30'
                                 }`}
                               >
                                 <div className="flex items-center gap-2.5 overflow-hidden">
@@ -1060,13 +1083,17 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                                   </span>
                                   <span className="truncate text-slate-900 dark:text-white font-medium">{opt.text || opt.textHi}</span>
                                 </div>
-                                {isCorrect && (
+                                {isCorrect ? (
                                   <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md border border-emerald-400 shrink-0">
                                     <Check className="w-3 h-3 stroke-[3]" />
                                     <span>Correct</span>
                                   </span>
+                                ) : (
+                                  <span className="text-[10px] font-semibold text-slate-400 opacity-0 hover:opacity-100 transition-opacity">
+                                    Set Correct
+                                  </span>
                                 )}
-                              </div>
+                              </button>
                             );
                           })}
                         </div>

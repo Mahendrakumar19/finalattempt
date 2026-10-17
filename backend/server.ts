@@ -91,9 +91,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // General API rate limit (not on auth routes — those have their own limiter)
 const generalLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 120,
+  max: 300, // Increased to 300 req/min for modern SPAs loading multiple assets simultaneously
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Whitelist loopback / local diagnostics so load-testing tools can measure true performance
+    const ip = req.ip || req.socket.remoteAddress || '';
+    return ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1' || ip.includes('127.0.0.1') || ip === 'localhost';
+  },
   message: { success: false, error: 'Too many requests. Please slow down.', code: 'RATE_LIMIT' }
 });
 app.use('/api/', generalLimiter);
