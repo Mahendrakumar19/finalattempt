@@ -18,21 +18,33 @@ router.post(['/create-order', '/create-order-direct'], optionalAuth, async (req:
 
     if (customAmount && Number(customAmount) > 0) {
       // If amount passed directly (in paise or INR)
-      amount = Number(customAmount) < 100 ? Math.round(Number(customAmount) * 100) : Math.round(Number(customAmount));
+      const num = Number(customAmount);
+      amount = Math.round(num < 100 ? num * 100 : num);
     } else if (courseId) {
-      // 1. Try fetching from lms_courses
-      const course = await lmsDB.getCourseById(courseId);
-      if (course) {
-        let rawFee = course.fee;
-        amount = typeof rawFee === 'string' ? parseInt(rawFee.replace(/[^0-9]/g, '')) * 100 : rawFee;
-        title = course.title;
+      // 1. Try fetching from TestSeries first if it's a test series (or id starts with ts-)
+      const testSeries = await lmsDB.getTestSeriesById(courseId);
+      if (testSeries) {
+        const discounted = Number(testSeries.discountedPrice);
+        const regular = Number(testSeries.price);
+        const finalPriceInRupees = (discounted && discounted > 0) ? discounted : (regular || 0);
+        amount = Math.round(finalPriceInRupees * 100);
+        title = testSeries.title || 'Test Series';
       } else {
-        // 2. Try fetching from TestSeries
-        const testSeries = await lmsDB.getTestSeriesById(courseId);
-        if (testSeries) {
-          const price = testSeries.discountedPrice || testSeries.price || 0;
-          amount = price * 100;
-          title = testSeries.title;
+        // 2. Fetch from lms_courses
+        const course = await lmsDB.getCourseById(courseId);
+        if (course) {
+          let feeInRupees = 0;
+          if (course.discountedPrice && Number(course.discountedPrice) > 0) {
+            feeInRupees = Number(course.discountedPrice);
+          } else if (course.discount && Number(course.discount) > 0) {
+            feeInRupees = Number(course.discount);
+          } else if (course.fee !== undefined && course.fee !== null) {
+            feeInRupees = typeof course.fee === 'string'
+              ? (parseFloat(course.fee.replace(/[^0-9.]/g, '')) || 0)
+              : (Number(course.fee) || 0);
+          }
+          amount = Math.round(feeInRupees * 100);
+          title = course.title || 'Course Access';
         }
       }
     }
@@ -135,13 +147,24 @@ router.post(['/verify', '/verify-payment'], optionalAuth, async (req: AuthReques
       targetIds = Array.from(new Set(targetIds.filter(Boolean)));
 
       let amount = 0;
-      const course = await lmsDB.getCourseById(courseId);
-      if (course) {
-        amount = typeof course.fee === 'string' ? parseInt(course.fee.replace(/[^0-9]/g, '')) * 100 : course.fee;
+      const ts = await lmsDB.getTestSeriesById(courseId);
+      if (ts) {
+        const finalPrice = Number(ts.discountedPrice) > 0 ? Number(ts.discountedPrice) : Number(ts.price || 0);
+        amount = Math.round(finalPrice * 100);
       } else {
-        const ts = await lmsDB.getTestSeriesById(courseId);
-        if (ts) {
-          amount = (ts.discountedPrice || ts.price || 0) * 100;
+        const course = await lmsDB.getCourseById(courseId);
+        if (course) {
+          let feeInRupees = 0;
+          if (course.discountedPrice && Number(course.discountedPrice) > 0) {
+            feeInRupees = Number(course.discountedPrice);
+          } else if (course.discount && Number(course.discount) > 0) {
+            feeInRupees = Number(course.discount);
+          } else if (course.fee !== undefined && course.fee !== null) {
+            feeInRupees = typeof course.fee === 'string'
+              ? (parseFloat(course.fee.replace(/[^0-9.]/g, '')) || 0)
+              : (Number(course.fee) || 0);
+          }
+          amount = Math.round(feeInRupees * 100);
         }
       }
 

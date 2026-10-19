@@ -7,10 +7,20 @@ import {
   HelpCircle, Eye, Sparkles, RefreshCw, AlertCircle,
   Upload, FileText, Check, Copy, ArrowUp, ArrowDown,
   Search, CheckCircle2, Image as ImageIcon, Layers,
-  BookOpen
+  BookOpen, Share2, ExternalLink, Link2
 } from 'lucide-react';
 import { db } from '@/services/db';
 import { renderFormattedQuestionText, sanitizeAndRepairQuestion } from '@/utils/questionFormatter';
+
+export function generateDailyQuizSlug(title: string, publishDate: string): string {
+  const cleanTitle = (title || 'daily-practice-quiz')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  const cleanDate = (publishDate || new Date().toISOString().split('T')[0]).trim();
+  return `${cleanTitle || 'daily-quiz'}-${cleanDate}`.replace(/--+/g, '-');
+}
 
 export interface DailyQuiz {
   id: string;
@@ -122,6 +132,8 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
   const [editingQuiz, setEditingQuiz] = useState<Partial<DailyQuiz>>({ ...BLANK_DAILY_QUIZ });
   const [savingQuiz, setSavingQuiz] = useState(false);
   const [quizModalLangTab, setQuizModalLangTab] = useState<'en' | 'hi'>('en');
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
+  const [copiedLinkQuizId, setCopiedLinkQuizId] = useState<string | null>(null);
 
   // Question Management State
   const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
@@ -245,8 +257,8 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
       const titleForSlug = editingQuiz.title || 'daily-practice-quiz';
       const fallbackDate = editingQuiz.publishDate || new Date().toISOString().split('T')[0];
       const autoSlug = (editingQuiz.slug && editingQuiz.slug.trim())
-        ? editingQuiz.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-        : (titleForSlug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + fallbackDate);
+        ? editingQuiz.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+        : generateDailyQuizSlug(titleForSlug, fallbackDate);
 
       const newQuiz: DailyQuiz = {
         id: editingQuiz.id || `dq-${Date.now()}`,
@@ -299,11 +311,13 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
     try {
       const duplicateId = `dq-${Date.now()}`;
       const duplicateTitle = `${quiz.title} (Copy)`;
+      const today = new Date().toISOString().split('T')[0];
       const dupQuiz: DailyQuiz = {
         ...quiz,
         id: duplicateId,
         title: duplicateTitle,
-        slug: `${quiz.slug || 'daily-quiz'}-copy-${Date.now().toString().slice(-4)}`,
+        publishDate: today,
+        slug: generateDailyQuizSlug(duplicateTitle, today),
         attemptsCount: 0
       };
 
@@ -672,7 +686,14 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
           <button
             onClick={() => {
-              setEditingQuiz({ ...BLANK_DAILY_QUIZ });
+              const today = new Date().toISOString().split('T')[0];
+              const defaultTitle = 'Daily Practice: Current Affairs & Bihar GS';
+              setEditingQuiz({
+                ...BLANK_DAILY_QUIZ,
+                publishDate: today,
+                slug: generateDailyQuizSlug(defaultTitle, today)
+              });
+              setIsSlugManuallyEdited(false);
               setQuizModalLangTab('en');
               setIsQuizModalOpen(true);
             }}
@@ -782,14 +803,20 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => {
-                            const url = `${window.location.origin}/daily-quiz/${q.slug || q.id}`;
+                            const origin = typeof window !== 'undefined' ? window.location.origin : 'https://finalattemptias.com';
+                            const url = `${origin}/daily-quiz/${q.slug || q.id}`;
                             navigator.clipboard.writeText(url);
-                            alert(`Direct Quiz Link copied:\n${url}`);
+                            setCopiedLinkQuizId(q.id);
+                            setTimeout(() => setCopiedLinkQuizId(null), 2500);
                           }}
-                          className="p-1 hover:text-amber-500 transition-colors"
+                          className={`p-1 transition-colors ${copiedLinkQuizId === q.id ? 'text-emerald-500 font-bold' : 'hover:text-amber-500'}`}
                           title="Copy Shareable Link"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          {copiedLinkQuizId === q.id ? (
+                            <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                          ) : (
+                            <Share2 className="w-3.5 h-3.5" />
+                          )}
                         </button>
                         <button
                           onClick={() => handleDuplicateQuiz(q)}
@@ -801,6 +828,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                         <button
                           onClick={() => {
                             setEditingQuiz(q);
+                            setIsSlugManuallyEdited(Boolean(q.slug));
                             setQuizModalLangTab('en');
                             setIsQuizModalOpen(true);
                           }}
@@ -854,6 +882,71 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                     <span>⏱️ {currentSelectedQuiz.timeLimitMins || 10} Mins</span>
                     <span>🎯 Passing: {currentSelectedQuiz.passingScore || 40}%</span>
                     <span>📚 {questions.length} Questions</span>
+                  </div>
+
+                  {/* Shareable Public Quiz Link Banner */}
+                  <div className="mt-3 p-2.5 sm:p-3 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/25 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 max-w-2xl">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-300 bg-amber-500/15 px-2 py-0.5 rounded-md shrink-0 flex items-center gap-1 border border-amber-500/30">
+                        <Link2 className="w-3 h-3" />
+                        <span>Share URL</span>
+                      </span>
+                      <span className="text-xs font-mono text-slate-700 dark:text-slate-200 font-bold truncate select-all">
+                        {typeof window !== 'undefined' ? `${window.location.origin}/daily-quiz/${currentSelectedQuiz.slug || currentSelectedQuiz.id}` : `/daily-quiz/${currentSelectedQuiz.slug || currentSelectedQuiz.id}`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => {
+                          const origin = typeof window !== 'undefined' ? window.location.origin : 'https://finalattemptias.com';
+                          const url = `${origin}/daily-quiz/${currentSelectedQuiz.slug || currentSelectedQuiz.id}`;
+                          navigator.clipboard.writeText(url);
+                          setCopiedLinkQuizId(currentSelectedQuiz.id);
+                          setTimeout(() => setCopiedLinkQuizId(null), 2500);
+                        }}
+                        className={`px-3 py-1.5 font-black rounded-xl text-[11px] transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                          copiedLinkQuizId === currentSelectedQuiz.id
+                            ? 'bg-emerald-500 text-slate-950 font-black'
+                            : 'bg-amber-500 hover:bg-amber-600 text-slate-950'
+                        }`}
+                        title="Copy direct link for students"
+                      >
+                        {copiedLinkQuizId === currentSelectedQuiz.id ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Link Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Copy Link</span>
+                          </>
+                        )}
+                      </button>
+
+                      <a
+                        href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
+                          `🎯 Final Attempt IAS Daily Quiz\n📚 ${currentSelectedQuiz.title}\n📅 Date: ${currentSelectedQuiz.publishDate}\n⏱️ ${currentSelectedQuiz.timeLimitMins || 10} Mins | ${questions.length || 10} Questions\n\nAttempt now & check your state leaderboard rank:\n${typeof window !== 'undefined' ? window.location.origin : 'https://finalattemptias.com'}/daily-quiz/${currentSelectedQuiz.slug || currentSelectedQuiz.id}`
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[11px] transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                        title="Share directly into WhatsApp Groups & Channels"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        <span>WhatsApp</span>
+                      </a>
+
+                      <Link
+                        href={`/daily-quiz/${currentSelectedQuiz.slug || currentSelectedQuiz.id}`}
+                        target="_blank"
+                        className="p-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition-all"
+                        title="Test & preview student portal in new tab"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
                   </div>
                 </div>
 
@@ -1188,11 +1281,13 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                         const newTitle = e.target.value;
                         setEditingQuiz(prev => {
                           const datePart = prev.publishDate || new Date().toISOString().split('T')[0];
-                          const auto = newTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + datePart;
+                          const newSlug = (!isSlugManuallyEdited || !prev.slug)
+                            ? generateDailyQuizSlug(newTitle, datePart)
+                            : prev.slug;
                           return {
                             ...prev,
                             title: newTitle,
-                            slug: prev.slug ? prev.slug : auto
+                            slug: newSlug
                           };
                         });
                       }}
@@ -1200,18 +1295,51 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-600 dark:text-slate-400 flex items-center justify-between">
-                      <span>URL Slug (For Direct Sharing & SEO)</span>
-                      <span className="text-[10px] text-amber-500 font-normal">/daily-quiz/[slug]</span>
-                    </label>
+                  <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <span>URL Slug (Unique Link for Sharing)</span>
+                        {!isSlugManuallyEdited ? (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded">Auto Generated</span>
+                        ) : (
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded">Custom</span>
+                        )}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const auto = generateDailyQuizSlug(editingQuiz.title || '', editingQuiz.publishDate || '');
+                          setEditingQuiz(prev => ({ ...prev, slug: auto }));
+                          setIsSlugManuallyEdited(false);
+                        }}
+                        className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:text-amber-500 flex items-center gap-1 cursor-pointer bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg transition-all"
+                        title="Re-generate slug using current Title & Publish Date"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>Auto-Generate from Title & Date</span>
+                      </button>
+                    </div>
+
                     <input
                       type="text"
-                      placeholder="e.g. daily-current-affairs-bihar-gs-set-14"
+                      placeholder="e.g. daily-practice-current-affairs-bihar-gs-2026-10-18"
                       value={editingQuiz.slug || ''}
-                      onChange={e => setEditingQuiz(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
-                      className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white focus:border-amber-500 font-mono text-xs shadow-2xs"
+                      onChange={e => {
+                        setIsSlugManuallyEdited(true);
+                        setEditingQuiz(prev => ({
+                          ...prev,
+                          slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/--+/g, '-')
+                        }));
+                      }}
+                      className="w-full p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none text-slate-900 dark:text-white focus:border-amber-500 font-mono text-xs shadow-inner"
                     />
+
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 font-mono">
+                      <span className="text-slate-400">Share Link:</span>
+                      <span className="text-amber-600 dark:text-amber-400 truncate">
+                        /daily-quiz/{editingQuiz.slug || generateDailyQuizSlug(editingQuiz.title || '', editingQuiz.publishDate || '')}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
@@ -1283,7 +1411,20 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                     type="date"
                     required
                     value={editingQuiz.publishDate || ''}
-                    onChange={e => setEditingQuiz(prev => ({ ...prev, publishDate: e.target.value }))}
+                    onChange={e => {
+                      const newDate = e.target.value;
+                      setEditingQuiz(prev => {
+                        const titlePart = prev.title || 'daily-practice-quiz';
+                        const newSlug = (!isSlugManuallyEdited || !prev.slug)
+                          ? generateDailyQuizSlug(titlePart, newDate)
+                          : prev.slug;
+                        return {
+                          ...prev,
+                          publishDate: newDate,
+                          slug: newSlug
+                        };
+                      });
+                    }}
                     className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-900 dark:text-white focus:border-amber-500 shadow-2xs"
                   />
                 </div>

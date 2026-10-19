@@ -4819,6 +4819,7 @@ class LmsDB {
           faculty:  typeof r.faculty  === 'string' ? JSON.parse(r.faculty)  : r.faculty,
           demoLectures: typeof r.demoLectures === 'string' ? JSON.parse(r.demoLectures) : r.demoLectures,
           fee: r.fee,
+          discountedPrice: r.discountedFee ? Number(r.discountedFee) : null,  // map DB column discountedFee → discountedPrice
           originalPrice: r.originalPrice || null,
           discount: r.discount || null
         };
@@ -6853,6 +6854,7 @@ class LmsDB {
 
         try {
           await mysqlPool.query('ALTER TABLE daily_quizzes ADD COLUMN IF NOT EXISTS slug VARCHAR(255), ADD COLUMN IF NOT EXISTS title_hi TEXT, ADD COLUMN IF NOT EXISTS description_hi TEXT');
+          await mysqlPool.query('ALTER TABLE daily_quizzes ADD INDEX idx_daily_quizzes_slug (slug)');
         } catch (_) {}
 
         await mysqlPool.query(`
@@ -6936,6 +6938,23 @@ class LmsDB {
   }
 
   public async getDailyQuizById(idOrSlug: string): Promise<any | null> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          'SELECT * FROM daily_quizzes WHERE id = ? OR slug = ? LIMIT 1',
+          [idOrSlug, idOrSlug]
+        );
+        if (Array.isArray(rows) && rows.length > 0) {
+          return {
+            ...rows[0],
+            isFree: Boolean(rows[0].isFree)
+          };
+        }
+      } catch (err) {
+        console.error('[LmsDB] getDailyQuizById MySQL error:', err);
+      }
+    }
+
     const list = await this.getAllDailyQuizzes();
     return list.find((q: any) => q.id === idOrSlug || q.slug === idOrSlug) || null;
   }
@@ -6943,9 +6962,21 @@ class LmsDB {
   public async saveDailyQuiz(quiz: any): Promise<any> {
     await this.initDailyQuizTables();
     const id = quiz.id || `dq-${Date.now()}`;
-    const generatedSlug = (quiz.slug && quiz.slug.trim()) 
-      ? quiz.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
-      : ((quiz.title || 'daily-quiz').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + (quiz.publishDate || new Date().toISOString().split('T')[0]));
+    const cleanTitle = (quiz.title || 'daily-quiz')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const datePart = (quiz.publishDate || new Date().toISOString().split('T')[0]).trim();
+
+    let generatedSlug = (quiz.slug && quiz.slug.trim())
+      ? quiz.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+      : `${cleanTitle || 'daily-quiz'}-${datePart}`.replace(/--+/g, '-');
+
+    if (!generatedSlug || generatedSlug === '-' || generatedSlug === 'daily-quiz') {
+      generatedSlug = `daily-quiz-${datePart}`;
+    }
+
     const record = {
       id,
       slug: generatedSlug,

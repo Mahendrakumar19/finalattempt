@@ -9,7 +9,7 @@ import FormattedExplanation from '@/components/FormattedExplanation';
 import { 
   Sparkles, Calendar, Clock, HelpCircle, Trophy, Award, ArrowLeft, ArrowRight,
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Bookmark, ChevronRight,
-  Search, Play, Check, BarChart2, User, X
+  Search, Play, Check, BarChart2, User, X, Share2
 } from 'lucide-react';
 
 interface Question {
@@ -101,6 +101,7 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
   const [activeQuiz, setActiveQuiz] = useState<QuizMeta | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [copiedSlugToast, setCopiedSlugToast] = useState<string | null>(null);
 
   // User authentication check (lazy initializer for purity)
   const [currentUser] = useState<{ userId?: string; name?: string; email?: string } | null>(() => {
@@ -498,10 +499,34 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                     </div>
                   </div>
 
-                  <div className="shrink-0 w-full md:w-auto">
+                  <div className="shrink-0 w-full md:w-auto flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        const origin = typeof window !== 'undefined' ? window.location.origin : 'https://finalattemptias.com';
+                        const url = `${origin}/daily-quiz/${todayQuiz.slug || todayQuiz.id}`;
+                        navigator.clipboard.writeText(url);
+                        setCopiedSlugToast(todayQuiz.id);
+                        setTimeout(() => setCopiedSlugToast(null), 2500);
+                      }}
+                      className="px-4 py-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[var(--text-color)] font-bold rounded-2xl text-xs uppercase tracking-wider border border-[var(--card-border)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      title="Share Quiz Link"
+                    >
+                      {copiedSlugToast === todayQuiz.id ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-500" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Share2 className="w-4 h-4 text-amber-500" />
+                          <span>Share</span>
+                        </>
+                      )}
+                    </button>
+
                     <button
                       onClick={() => handleStartQuiz(todayQuiz)}
-                      className="w-full md:w-auto px-8 py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      className="flex-1 md:flex-initial px-8 py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <Play className="w-4 h-4 fill-current" />
                       <span>{t('dailyQuiz.startQuiz', 'Attempt Quiz Now')}</span>
@@ -602,13 +627,33 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                           {quiz.totalQuestions} Qs • {quiz.timeLimitMins}m
                         </span>
 
-                        <button
-                          onClick={() => handleStartQuiz(quiz)}
-                          className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-[var(--text-color)] font-bold rounded-xl text-xs transition-all flex items-center gap-1 cursor-pointer"
-                        >
-                          <span>{t('dailyQuiz.startQuiz', 'Take Quiz')}</span>
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => {
+                              const origin = typeof window !== 'undefined' ? window.location.origin : 'https://finalattemptias.com';
+                              const url = `${origin}/daily-quiz/${quiz.slug || quiz.id}`;
+                              navigator.clipboard.writeText(url);
+                              setCopiedSlugToast(quiz.id);
+                              setTimeout(() => setCopiedSlugToast(null), 2500);
+                            }}
+                            className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-[var(--text-color)] rounded-xl text-xs transition-all cursor-pointer"
+                            title="Share this Quiz"
+                          >
+                            {copiedSlugToast === quiz.id ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-500" />
+                            ) : (
+                              <Share2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+
+                          <button
+                            onClick={() => handleStartQuiz(quiz)}
+                            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-[var(--text-color)] font-bold rounded-xl text-xs transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>{t('dailyQuiz.startQuiz', 'Take Quiz')}</span>
+                            <ChevronRight className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
