@@ -449,10 +449,10 @@ export default function Home() {
 
           {/* Left Column: Popular Courses */}
           <div className="lg:col-span-8 space-y-6">
-            <div className="flex justify-between items-end border-b border-slate-150 pb-4">
+            <div className="flex justify-between items-end border-b border-slate-150 dark:border-white/10 pb-4">
               <div>
-                <span className="text-xs font-bold text-[#1E3A8A] uppercase tracking-widest">{t('home.popularCourses')}</span>
-                <h2 className="text-2xl font-heading font-extrabold text-slate-900 mt-1">{t('home.exploreClasses')}</h2>
+                <span className="text-xs font-bold text-[#1E3A8A] dark:text-amber-400 uppercase tracking-widest">{t('home.popularCourses')}</span>
+                <h2 className="text-2xl font-heading font-extrabold text-slate-900 dark:text-white mt-1">{t('home.exploreClasses')}</h2>
               </div>
               <Link
                 href="/courses"
@@ -1081,16 +1081,13 @@ export default function Home() {
       )}
 
       {/* 3.5 PREMIUM TESTIMONIALS SECTION */}
-      <section className="py-20 bg-gradient-to-b from-[var(--bg-color)] to-slate-50 border-t border-slate-100 overflow-hidden">
+      <section className="py-20 bg-gradient-to-b from-[var(--bg-color)] to-slate-50 dark:from-[var(--bg-color)] dark:to-[var(--bg-color)] border-t border-slate-100 dark:border-white/[0.06] overflow-hidden">
         <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="text-center max-w-2xl mx-auto space-y-4">
             <span className="text-s font-bold text-amber-500 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl uppercase tracking-widest">
               {t('home.mentorsPen')}
             </span>
-            <h3 className="text-xs font-heading font-black text-slate-900 leading-tight">
-
-            </h3>
-            <p className="text-s font-black text-slate-900 max-w-md mx-auto">
+            <p className="text-s font-black text-slate-900 dark:text-white max-w-md mx-auto">
               {t('home.mentorsWords')}
             </p>
           </div>
@@ -1154,37 +1151,37 @@ export default function Home() {
       {/* 4. STRATEGY LEAD CAPTURE FORM */}
       <section id="book-session" className="py-16 bg-[var(--bg-color)] border-t border-slate-100 dark:border-white/[0.06]">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-white rounded-3xl p-8 sm:p-12 border border-slate-100 shadow-sm relative overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 sm:p-12 border border-slate-100 dark:border-white/[0.06] shadow-sm relative overflow-hidden">
             <div className="text-center space-y-4 mb-8">
-              <h3 className="text-2xl font-heading font-extrabold text-slate-900">
+              <h3 className="text-2xl font-heading font-extrabold text-slate-900 dark:text-white">
                 {t('home.counselingTitle')}
               </h3>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
+              <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
                 {t('home.counselingDesc')}
               </p>
             </div>
 
             {formSuccess ? (
-              <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-6 rounded-2xl text-center space-y-2">
+              <div className="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 p-6 rounded-2xl text-center space-y-2">
                 <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto" />
                 <h5 className="font-bold text-sm">Session Registration Successful!</h5>
-                <p className="text-xs text-emerald-600">Our senior counselor will contact you within 24 hours to schedule your slot.</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400">Our senior counselor will contact you within 24 hours to schedule your slot.</p>
               </div>
             ) : (
               <form onSubmit={handleSubmitLead} className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('home.fullName')}</label>
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('home.fullName')}</label>
                   <input
                     type="text"
                     required
                     placeholder={t('home.enterName', 'Enter your name')}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('home.mobileNumber')}</label>
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('home.mobileNumber')}</label>
                   <input
                     type="tel"
                     required
@@ -1192,15 +1189,15 @@ export default function Home() {
                     placeholder={t('home.enterMobile', 'Enter mobile number')}
                     value={mobile}
                     onChange={(e) => setMobile(e.target.value)}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('home.targetExam')}</label>
+                  <label className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{t('home.targetExam')}</label>
                   <select
                     value={targetExam}
                     onChange={(e) => setTargetExam(e.target.value)}
-                    className="w-full px-4 py-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   >
                     <option value="BPSC Foundation Batch">{t('home.optFoundation', 'BPSC Foundation Batch')}</option>
                     <option value="BPSC Target Batch">{t('home.optTarget', 'BPSC Target Batch')}</option>
@@ -1208,7 +1205,7 @@ export default function Home() {
                     <option value="Mains Answer Writing">{t('home.optMainsAW', 'Mains Answer Writing')}</option>
                   </select>
                 </div>
-                <div className="sm:col-span-3 pt-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-slate-100 mt-4">
+                <div className="sm:col-span-3 pt-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-slate-100 dark:border-white/[0.06] mt-4">
                   <p className="text-[10px] text-slate-400 font-medium">
                     {t('home.leadConsentDesc', 'By submitting, you agree to receive exam updates and counsel calls.')}
                   </p>
