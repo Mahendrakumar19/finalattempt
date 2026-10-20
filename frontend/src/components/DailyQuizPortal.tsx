@@ -9,7 +9,7 @@ import FormattedExplanation from '@/components/FormattedExplanation';
 import { 
   Sparkles, Calendar, Clock, HelpCircle, Trophy, Award, ArrowLeft, ArrowRight,
   CheckCircle2, XCircle, AlertCircle, RefreshCw, Bookmark, ChevronRight,
-  Search, Play, Check, BarChart2, User, X, Share2
+  Search, Play, Check, BarChart2, User, X, Share2, Languages
 } from 'lucide-react';
 
 interface Question {
@@ -127,6 +127,7 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
   const [timeRemaining, setTimeRemaining] = useState<number>(600); // 10 mins default
   const [timerActive, setTimerActive] = useState(false);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [quizLang, setQuizLang] = useState<'en' | 'hi'>('en');
 
   // Result state
   const [resultData, setResultData] = useState<QuizResultData | null>(null);
@@ -728,12 +729,25 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                 </div>
               </div>
 
-              {/* Timer Pill */}
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-mono font-black ${
-                timeRemaining < 120 ? 'bg-red-500/10 text-red-500 border-red-500/30 animate-pulse' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-              }`}>
-                <Clock className="w-4 h-4" />
-                <span>{formatTime(timeRemaining)}</span>
+              <div className="flex items-center gap-3">
+                {/* Language Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setQuizLang(prev => (prev === 'en' ? 'hi' : 'en'))}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-xs font-bold text-amber-600 dark:text-amber-400 transition-all cursor-pointer"
+                  title="Switch Language (हिन्दी / English)"
+                >
+                  <Languages className="w-4 h-4" />
+                  <span>{quizLang === 'en' ? 'हिन्दी' : 'English'}</span>
+                </button>
+
+                {/* Timer Pill */}
+                <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-mono font-black ${
+                  timeRemaining < 120 ? 'bg-red-500/10 text-red-500 border-red-500/30 animate-pulse' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+                }`}>
+                  <Clock className="w-4 h-4" />
+                  <span>{formatTime(timeRemaining)}</span>
+                </div>
               </div>
             </div>
 
@@ -846,35 +860,44 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                 {/* Question Text */}
                 <div className="space-y-2">
                   {(() => {
-                    const raw = questions[currentQuestionIndex].questionText || '';
-                    const { isHtml, formatted } = renderFormattedQuestionText(raw);
-                    if (isHtml) {
-                      return <div className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />;
-                    }
+                    const qObj = questions[currentQuestionIndex];
+                    const rawEn = qObj.questionText || '';
+                    const rawHi = qObj.questionTextHi || '';
+                    const primaryRaw = (quizLang === 'hi' && rawHi.trim()) ? rawHi : rawEn;
+                    const secondaryRaw = (quizLang === 'hi') ? (rawEn !== rawHi ? rawEn : '') : (rawHi !== rawEn ? rawHi : '');
+
+                    const { isHtml, formatted } = renderFormattedQuestionText(primaryRaw);
                     return (
-                      <h3 className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed">
-                        {raw}
-                      </h3>
+                      <>
+                        {isHtml ? (
+                          <div className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />
+                        ) : (
+                          <h3 className="text-lg sm:text-xl font-heading font-extrabold text-[var(--text-color)] leading-relaxed">
+                            {primaryRaw}
+                          </h3>
+                        )}
+                        {secondaryRaw && (
+                          <p className="text-sm sm:text-base text-amber-600 dark:text-amber-400 font-medium leading-relaxed pt-1 border-t border-[var(--card-border)]/60">
+                            {secondaryRaw}
+                          </p>
+                        )}
+                      </>
                     );
                   })()}
-
-                  {questions[currentQuestionIndex].questionTextHi && questions[currentQuestionIndex].questionTextHi.trim() !== (questions[currentQuestionIndex].questionText || '').trim() && (
-                    <p className="text-base text-amber-600 dark:text-amber-400 font-medium leading-relaxed pt-1">
-                      {questions[currentQuestionIndex].questionTextHi}
-                    </p>
-                  )}
                 </div>
 
                 {/* Option Cards Grid */}
                 <div className="space-y-3 pt-2">
                   {[
-                    { key: 'A', text: questions[currentQuestionIndex].optionA, textHi: questions[currentQuestionIndex].optionAHi },
-                    { key: 'B', text: questions[currentQuestionIndex].optionB, textHi: questions[currentQuestionIndex].optionBHi },
-                    { key: 'C', text: questions[currentQuestionIndex].optionC, textHi: questions[currentQuestionIndex].optionCHi },
-                    { key: 'D', text: questions[currentQuestionIndex].optionD, textHi: questions[currentQuestionIndex].optionDHi },
-                    { key: 'E', text: questions[currentQuestionIndex].optionE, textHi: questions[currentQuestionIndex].optionEHi }
-                  ].filter(o => o.text || o.textHi).map((opt) => {
+                    { key: 'A', textEn: questions[currentQuestionIndex].optionA, textHi: questions[currentQuestionIndex].optionAHi },
+                    { key: 'B', textEn: questions[currentQuestionIndex].optionB, textHi: questions[currentQuestionIndex].optionBHi },
+                    { key: 'C', textEn: questions[currentQuestionIndex].optionC, textHi: questions[currentQuestionIndex].optionCHi },
+                    { key: 'D', textEn: questions[currentQuestionIndex].optionD, textHi: questions[currentQuestionIndex].optionDHi },
+                    { key: 'E', textEn: questions[currentQuestionIndex].optionE, textHi: questions[currentQuestionIndex].optionEHi }
+                  ].filter(o => o.textEn || o.textHi).map((opt) => {
                     const selected = userAnswers[questions[currentQuestionIndex].id] === opt.key;
+                    const primaryOpt = (quizLang === 'hi' && opt.textHi?.trim()) ? opt.textHi : opt.textEn;
+                    const secondaryOpt = (quizLang === 'hi') ? (opt.textEn !== opt.textHi ? opt.textEn : '') : (opt.textHi !== opt.textEn ? opt.textHi : '');
 
                     let optClass = 'bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-500/10 text-slate-950 dark:text-slate-50 font-medium shadow-sm';
                     if (selected) {
@@ -895,11 +918,11 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                           </span>
                           <div>
                             <span className="text-base sm:text-lg font-bold text-slate-950 dark:text-white leading-normal block">
-                              {opt.text}
+                              {primaryOpt}
                             </span>
-                            {opt.textHi && opt.textHi !== opt.text && (
-                              <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block mt-0.5">
-                                {opt.textHi}
+                            {secondaryOpt && (
+                              <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 block mt-0.5">
+                                {secondaryOpt}
                               </span>
                             )}
                           </div>

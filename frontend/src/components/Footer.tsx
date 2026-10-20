@@ -143,6 +143,33 @@ export default function Footer() {
               {t('footer.aboutText')}
             </p>
 
+            {/* Official Mobile App Download Button */}
+            <div className="pt-1">
+              <a
+                href="https://play.google.com/store/apps/details?id=com.nighwantech.finalattempt"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group inline-flex items-center gap-3.5 px-4 py-2.5 rounded-2xl bg-black hover:bg-neutral-950 border border-neutral-700/80 hover:border-amber-400/80 transition-all duration-300 shadow-xl hover:scale-[1.02] active:scale-100"
+              >
+                <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                  <svg className="w-7 h-7 group-hover:scale-110 transition-transform" viewBox="0 0 512 512" aria-hidden="true">
+                    <path fill="#00D2FF" d="M47.7 20.3c-7.3 7.8-11.7 19.3-11.7 34v403.4c0 14.7 4.4 26.2 11.7 34l1.9 1.8 225.8-225.8v-5.4L49.6 18.5l-1.9 1.8z" />
+                    <path fill="#00E676" d="M351.4 330.4l-75.9-75.9v-5.4l75.9-75.9 1.8 1 89.8 51.1c25.6 14.5 25.6 38.4 0 53l-89.8 51.1-1.8 1.1z" />
+                    <path fill="#FF3D00" d="M353.2 329.4L275.5 251.7 47.7 479.5c8.4 8.9 22.3 10 37.8 1.2l267.7-151.3z" />
+                    <path fill="#FFD600" d="M353.2 178.6L85.5 27.3C70 18.5 56.1 19.6 47.7 28.5l227.8 227.8 77.7-77.7z" />
+                  </svg>
+                </div>
+                <div className="text-left font-sans">
+                  <span className="text-[10px] uppercase font-bold tracking-widest text-neutral-400 block leading-none">
+                    GET IT ON
+                  </span>
+                  <span className="text-sm font-extrabold text-white tracking-wide leading-tight block mt-0.5">
+                    Google Play
+                  </span>
+                </div>
+              </a>
+            </div>
+
             {/* Social Media Channels */}
             <div className="pt-2">
               <p className="text-xs uppercase font-extrabold tracking-widest text-slate-400 mb-3">

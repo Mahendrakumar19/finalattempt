@@ -285,6 +285,83 @@ class _TestResultScreenState extends State<TestResultScreen> {
                 ),
                 const SizedBox(height: 12),
 
+                // All Options with Visual Feedback
+                const SizedBox(height: 8),
+                ...[
+                  {'key': 'A', 'text': q.optionAEn},
+                  {'key': 'B', 'text': q.optionBEn},
+                  {'key': 'C', 'text': q.optionCEn},
+                  {'key': 'D', 'text': q.optionDEn},
+                  if (q.optionEEn != null && q.optionEEn!.isNotEmpty) {'key': 'E', 'text': q.optionEEn!},
+                ].map((opt) {
+                  final isThisCorrect = q.correctAnswer == opt['key'];
+                  final isUserSelected = userAns == opt['key'];
+
+                  Color optBg = Colors.grey.shade50;
+                  Color optBorder = Colors.grey.shade200;
+                  Color textColor = Colors.black87;
+
+                  if (isThisCorrect) {
+                    optBg = const Color(0xFFDCFCE7);
+                    optBorder = const Color(0xFF16A34A);
+                    textColor = const Color(0xFF14532D);
+                  } else if (isUserSelected && !isThisCorrect) {
+                    optBg = const Color(0xFFFEE2E2);
+                    optBorder = const Color(0xFFDC2626);
+                    textColor = const Color(0xFF7F1D1D);
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: optBg,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: optBorder, width: (isThisCorrect || isUserSelected) ? 1.5 : 1),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isThisCorrect
+                                ? const Color(0xFF16A34A)
+                                : (isUserSelected ? const Color(0xFFDC2626) : Colors.grey.shade300),
+                          ),
+                          child: Center(
+                            child: Text(
+                              opt['key']!,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: (isThisCorrect || isUserSelected) ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            opt['text']!,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: (isThisCorrect || isUserSelected) ? FontWeight.bold : FontWeight.normal,
+                              color: textColor,
+                            ),
+                          ),
+                        ),
+                        if (isThisCorrect)
+                          const Icon(Icons.check_circle_rounded, color: Color(0xFF16A34A), size: 18),
+                        if (isUserSelected && !isThisCorrect)
+                          const Icon(Icons.cancel_rounded, color: Color(0xFFDC2626), size: 18),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 10),
+
                 // Correct answer badge
                 Container(
                   padding: const EdgeInsets.all(10),

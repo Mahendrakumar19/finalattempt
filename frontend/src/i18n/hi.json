@@ -43,7 +43,25 @@
     "downloadFreeMaterial": "निःशुल्क सामग्री डाउनलोड करें",
     "readLatestBlogs": "नवीनतम ब्लॉग पढ़ें",
     "contactAdmissions": "प्रवेश हेतु संपर्क करें",
-    "downloads": "डाउनलोड"
+    "downloads": "डाउनलोड",
+    "appDownload": "मोबाइल ऐप डाउनलोड करें",
+    "getOnPlayStore": "Google Play से डाउनलोड करें",
+    "appShowcaseBadge": "BPSC और राज्य PCS 2026-27",
+    "appShowcaseBadgeSub": "आधिकारिक मोबाइल ऐप",
+    "appShowcaseTitle": "सिविल सेवा परीक्षा क्रैक करें",
+    "appShowcaseTagline": "क्या आप अपने Final Attempt के लिए तैयार हैं?",
+    "appShowcaseDesc": "BPSC अभ्यर्थियों के लिए भारत का समर्पित लर्निंग ऐप। रिवर्स इंजीनियरिंग के साथ विषयवार PYQs का अभ्यास करें, द्विभाषी दैनिक करेंट अफेयर्स कैप्सूल पढ़ें और सर्वश्रेष्ठ फैकल्टी के मार्गदर्शन में अध्ययन करें।",
+    "appFeature1Title": "BPSC प्रीलिम्स PYQ टेस्ट इंजन",
+    "appFeature1Tag": "विषयवार",
+    "appFeature1Desc": "रियल-टाइम नेगेटिव मार्किंग विश्लेषण के साथ समयबद्ध सेक्शनल और फुल मॉक टेस्ट सीरीज़।",
+    "appFeature2Title": "दैनिक इंटरएक्टिव लाइव क्लासेस",
+    "appFeature2Tag": "1080p HD",
+    "appFeature2Desc": "लाइव फैकल्टी चैट, बुकमार्किंग और फुल रिकॉर्डेड आर्काइव के साथ हाई-डेफिनिशन स्ट्रीमिंग।",
+    "appFeature3Title": "बिहार तथ्य संग्रह और CA कैप्सूल",
+    "appFeature3Tag": "द्विभाषी",
+    "appFeature3Desc": "दैनिक 6 परीक्षा-उपयोगी संपादकीय सारांश और उच्च-उत्पादक ऑफ़लाइन डाउनलोड करने योग्य रिवीजन PDF।",
+    "appPlayRating": "रेटिंग",
+    "appPlayVerified": "सत्यापित सुरक्षित"
   },
   "mega": {
     "courses": {

@@ -28,11 +28,15 @@ import {
   Edit3,
   BarChart2,
   Rocket,
-  Flame
+  Flame,
+  Smartphone,
+  Download,
+  Star
 } from 'lucide-react';
 
 import { db, Course } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
+import { useTheme } from '@/context/ThemeContext';
 import NextImage from 'next/image';
 
 // Lazy-load below-fold heavy component — deferred until viewport scroll
@@ -120,6 +124,8 @@ function YoutubeFacade({ videoId, title }: { videoId: string; title: string }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   const { t, locale } = useTranslation();
   // Real-time dynamic states
@@ -1151,6 +1157,370 @@ export default function Home() {
               </div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* 3.7 FINAL ATTEMPT OFFICIAL MOBILE LEARNING SUITE */}
+      <section id="download-app" className="py-16 sm:py-24 transition-colors duration-200 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* Main Showcase Stage Card with rich backdrop & subtle ambient glows */}
+          <div
+            className="relative overflow-hidden rounded-[36px] p-6 sm:p-10 lg:p-14 shadow-2xl border transition-all duration-300"
+            style={{
+              backgroundColor: isDark ? '#0A0F1D' : '#FFFFFF',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : '#FDE68A',
+              color: isDark ? '#FFFFFF' : '#0F172A',
+              boxShadow: isDark 
+                ? '0 25px 60px -15px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+                : '0 25px 60px -20px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9)'
+            }}
+          >
+            {/* Ambient Radial Spotlight (Warm Amber top-left + Royal Blue center-right behind phone) */}
+            <div className="absolute top-0 right-0 sm:right-12 w-96 h-96 rounded-full bg-amber-500/[0.08] dark:bg-amber-500/[0.12] blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 right-1/4 w-[28rem] h-[28rem] rounded-full bg-blue-600/[0.06] dark:bg-blue-600/[0.1] blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-80 h-80 rounded-full bg-emerald-500/[0.05] dark:bg-emerald-500/[0.07] blur-3xl pointer-events-none" />
+
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+              
+              {/* Left Column: Final Attempt Mobile Value Proposition */}
+              <div className="lg:col-span-7 space-y-7">
+                
+                {/* Header Badge */}
+                <div 
+                  className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider border"
+                  style={{
+                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.12)',
+                    borderColor: isDark ? 'rgba(245, 158, 11, 0.4)' : '#F59E0B',
+                    color: isDark ? '#FCD34D' : '#B45309'
+                  }}
+                >
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                  <span>{t('nav.appShowcaseBadge', 'BPSC & State PCS 2026-27')}</span>
+                  <span className="opacity-60">•</span>
+                  <span style={{ color: isDark ? '#FFFFFF' : '#1E293B', fontWeight: 700 }}>
+                    {t('nav.appShowcaseBadgeSub', 'Official Mobile App')}
+                  </span>
+                </div>
+
+                {/* Main Heading */}
+                <div className="space-y-2">
+                  <h2 
+                    className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black tracking-tight leading-[1.15]"
+                    style={{ color: isDark ? '#FFFFFF' : '#0A0F1D' }}
+                  >
+                    {t('nav.appShowcaseTitle', 'Crack Civil Services with')}{' '}
+                    <span className="text-[#F59E0B]">
+                      Final Attempt
+                    </span>
+                  </h2>
+                  <p 
+                    className="text-base sm:text-lg font-bold tracking-wide"
+                    style={{ color: isDark ? '#FBBF24' : '#1E3A8A' }}
+                  >
+                    {t('nav.appShowcaseTagline', 'Ready for your Final Attempt?')}
+                  </p>
+                  <p 
+                    className="text-xs sm:text-sm leading-relaxed max-w-2xl font-medium pt-1"
+                    style={{ color: isDark ? '#F1F5F9' : '#334155' }}
+                  >
+                    {t('nav.appShowcaseDesc', "India's dedicated BPSC learning app. Practice topic-wise PYQs with reverse engineering, read bilingual daily current affairs capsules, and study with top faculty guidance right on your phone.")}
+                  </p>
+                </div>
+
+                {/* Structured 3 Feature Advantage Rows — High contrast, zero muddy grey */}
+                <div className="space-y-3 pt-1">
+                  {/* Row 1: PYQ & Test Series */}
+                  <div
+                    className="flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all duration-200 hover:shadow-sm"
+                    style={{
+                      backgroundColor: isDark ? '#111827' : '#FFFFFF',
+                      borderColor: isDark ? 'rgba(59, 130, 246, 0.35)' : '#BFDBFE'
+                    }}
+                  >
+                    <div 
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-black text-sm border"
+                      style={{
+                        backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.1)',
+                        borderColor: isDark ? 'rgba(59, 130, 246, 0.4)' : 'rgba(59, 130, 246, 0.25)',
+                        color: isDark ? '#60A5FA' : '#1D4ED8'
+                      }}
+                    >
+                      <Target className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 
+                        className="text-xs sm:text-sm font-extrabold flex items-center gap-2"
+                        style={{ color: isDark ? '#FFFFFF' : '#0A0F1D' }}
+                      >
+                        <span>{t('nav.appFeature1Title', 'BPSC Prelims PYQ Test Engine')}</span>
+                        <span 
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                          style={{
+                            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.15)',
+                            borderColor: isDark ? 'rgba(245, 158, 11, 0.4)' : '#FDE68A',
+                            color: isDark ? '#FCD34D' : '#B45309'
+                          }}
+                        >
+                          {t('nav.appFeature1Tag', 'Topic-Wise')}
+                        </span>
+                      </h4>
+                      <p 
+                        className="text-[11px] sm:text-xs mt-0.5 leading-snug"
+                        style={{ color: isDark ? '#E2E8F0' : '#475569' }}
+                      >
+                        {t('nav.appFeature1Desc', 'Timed sectional & full mock test series with real-time negative-mark analysis.')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Row 2: Live Classes & Recorded Vault */}
+                  <div
+                    className="flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all duration-200 hover:shadow-sm"
+                    style={{
+                      backgroundColor: isDark ? '#111827' : '#FFFDF5',
+                      borderColor: isDark ? 'rgba(245, 158, 11, 0.35)' : '#FDE68A'
+                    }}
+                  >
+                    <div 
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border"
+                      style={{
+                        backgroundColor: isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.15)',
+                        borderColor: isDark ? 'rgba(245, 158, 11, 0.4)' : 'rgba(245, 158, 11, 0.3)',
+                        color: isDark ? '#FCD34D' : '#B45309'
+                      }}
+                    >
+                      <Video className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 
+                        className="text-xs sm:text-sm font-extrabold flex items-center gap-2"
+                        style={{ color: isDark ? '#FFFFFF' : '#0A0F1D' }}
+                      >
+                        <span>{t('nav.appFeature2Title', 'Daily Interactive Live Classes')}</span>
+                        <span 
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                          style={{
+                            backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)',
+                            borderColor: isDark ? 'rgba(16, 185, 129, 0.4)' : '#BBF7D0',
+                            color: isDark ? '#6EE7B7' : '#047857'
+                          }}
+                        >
+                          {t('nav.appFeature2Tag', '1080p HD')}
+                        </span>
+                      </h4>
+                      <p 
+                        className="text-[11px] sm:text-xs mt-0.5 leading-snug"
+                        style={{ color: isDark ? '#E2E8F0' : '#475569' }}
+                      >
+                        {t('nav.appFeature2Desc', 'High-definition streaming with live faculty chat, bookmarking & full replay archive.')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Row 3: Bihar Special & Current Affairs */}
+                  <div
+                    className="flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all duration-200 hover:shadow-sm"
+                    style={{
+                      backgroundColor: isDark ? '#111827' : '#F0FDF4',
+                      borderColor: isDark ? 'rgba(16, 185, 129, 0.35)' : '#BBF7D0'
+                    }}
+                  >
+                    <div 
+                      className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border"
+                      style={{
+                        backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.15)',
+                        borderColor: isDark ? 'rgba(16, 185, 129, 0.4)' : 'rgba(16, 185, 129, 0.3)',
+                        color: isDark ? '#6EE7B7' : '#047857'
+                      }}
+                    >
+                      <Download className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 
+                        className="text-xs sm:text-sm font-extrabold flex items-center gap-2"
+                        style={{ color: isDark ? '#FFFFFF' : '#0A0F1D' }}
+                      >
+                        <span>{t('nav.appFeature3Title', 'Bihar Tathya Sangrah & CA Capsules')}</span>
+                        <span 
+                          className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
+                          style={{
+                            backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.15)',
+                            borderColor: isDark ? 'rgba(59, 130, 246, 0.4)' : '#BFDBFE',
+                            color: isDark ? '#93C5FD' : '#1D4ED8'
+                          }}
+                        >
+                          {t('nav.appFeature3Tag', 'Bilingual')}
+                        </span>
+                      </h4>
+                      <p 
+                        className="text-[11px] sm:text-xs mt-0.5 leading-snug"
+                        style={{ color: isDark ? '#E2E8F0' : '#475569' }}
+                      >
+                        {t('nav.appFeature3Desc', 'Daily 6 exam-relevant editorial summaries and high-yield offline downloadable revision PDFs.')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Redesigned Premium CTA & Social Proof Strip (Zero Muddy Grey) */}
+                <div className="pt-2 flex flex-wrap items-center gap-4">
+                  {/* Official Google Play Store Badge */}
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.nighwantech.finalattempt"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group inline-flex items-center gap-3 px-5 py-2.5 rounded-xl bg-black hover:bg-neutral-900 text-white border border-neutral-800 hover:border-amber-400 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer"
+                  >
+                    <div className="w-7 h-7 flex items-center justify-center shrink-0">
+                      <svg className="w-6 h-6 group-hover:scale-105 transition-transform" viewBox="0 0 512 512" aria-hidden="true">
+                        <path fill="#00D2FF" d="M47.7 20.3c-7.3 7.8-11.7 19.3-11.7 34v403.4c0 14.7 4.4 26.2 11.7 34l1.9 1.8 225.8-225.8v-5.4L49.6 18.5l-1.9 1.8z" />
+                        <path fill="#00E676" d="M351.4 330.4l-75.9-75.9v-5.4l75.9-75.9 1.8 1 89.8 51.1c25.6 14.5 25.6 38.4 0 53l-89.8 51.1-1.8 1.1z" />
+                        <path fill="#FF3D00" d="M353.2 329.4L275.5 251.7 47.7 479.5c8.4 8.9 22.3 10 37.8 1.2l267.7-151.3z" />
+                        <path fill="#FFD600" d="M353.2 178.6L85.5 27.3C70 18.5 56.1 19.6 47.7 28.5l227.8 227.8 77.7-77.7z" />
+                      </svg>
+                    </div>
+                    <div className="text-left font-sans leading-none">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-white/90 block">
+                        GET IT ON
+                      </span>
+                      <span className="text-[19px] font-bold text-white tracking-tight block mt-0.5">
+                        Google Play
+                      </span>
+                    </div>
+                  </a>
+
+                  {/* Rating Pill Badge: Warm Amber Theme */}
+                  <div 
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border"
+                    style={{
+                      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)',
+                      borderColor: isDark ? 'rgba(245, 158, 11, 0.35)' : '#FDE68A'
+                    }}
+                  >
+                    <div className="flex text-amber-500">
+                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    </div>
+                    <div className="leading-tight">
+                      <span 
+                        className="text-xs font-black"
+                        style={{ color: isDark ? '#FFFFFF' : '#0A0F1D' }}
+                      >
+                        4.8
+                      </span>
+                      <span 
+                        className="text-[10px] ml-1 font-bold"
+                        style={{ color: isDark ? '#FCD34D' : '#B45309' }}
+                      >
+                        {t('nav.appPlayRating', 'Rating')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Play Protect Verified Pill Badge: Fresh Emerald Theme */}
+                  <div 
+                    className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl border"
+                    style={{
+                      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
+                      borderColor: isDark ? 'rgba(16, 185, 129, 0.35)' : '#BBF7D0'
+                    }}
+                  >
+                    <ShieldCheck 
+                      className="w-4 h-4" 
+                      style={{ color: isDark ? '#34D399' : '#059669' }} 
+                    />
+                    <span 
+                      className="text-xs font-bold leading-tight"
+                      style={{ color: isDark ? '#6EE7B7' : '#047857' }}
+                    >
+                      {t('nav.appPlayVerified', 'Verified Safe')}
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Right Column: Hero Stage Spotlight Presentation of iPhone Showcase */}
+              <div className="lg:col-span-5 flex flex-col justify-center items-center relative py-4">
+                
+                {/* Spotlight Backdrop Radial behind iPhone */}
+                <div 
+                  className="absolute -inset-6 rounded-full blur-3xl pointer-events-none opacity-80"
+                  style={{
+                    background: isDark
+                      ? 'radial-gradient(circle at center, rgba(245, 158, 11, 0.18) 0%, rgba(30, 58, 138, 0.12) 50%, transparent 75%)'
+                      : 'radial-gradient(circle at center, rgba(251, 191, 36, 0.22) 0%, rgba(59, 130, 246, 0.1) 50%, transparent 75%)'
+                  }}
+                />
+
+                {/* iPhone Hardware Outer Frame (Ultra-Slim Titanium Showcase) */}
+                <div className="relative">
+                  <div
+                    className="relative w-[245px] sm:w-[265px] rounded-[46px] p-[5px] border-[2px] transition-all"
+                    style={{
+                      backgroundColor: '#090D16',
+                      borderColor: isDark ? '#334155' : '#1E293B',
+                      boxShadow: isDark
+                        ? '0 25px 50px -12px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.08)'
+                        : '0 20px 40px -12px rgba(15,23,42,0.25), 0 0 0 1px rgba(15,23,42,0.2)'
+                    }}
+                  >
+                    {/* iPhone Side Hardware Buttons (Flush Profile) */}
+                    <div className="absolute -left-[3px] top-[68px] w-[2px] h-[16px] bg-slate-500 rounded-l-xs" />
+                    <div className="absolute -left-[3px] top-[96px] w-[2px] h-[30px] bg-slate-500 rounded-l-xs" />
+                    <div className="absolute -left-[3px] top-[134px] w-[2px] h-[30px] bg-slate-500 rounded-l-xs" />
+                    <div className="absolute -right-[3px] top-[102px] w-[2px] h-[44px] bg-slate-500 rounded-r-xs" />
+
+                    {/* iPhone Inner Bezel Screen: Matches Exact Aspect Ratio (266 / 592) */}
+                    <div
+                      className="relative rounded-[40px] overflow-hidden bg-white shadow-inner"
+                      style={{ aspectRatio: '266 / 592' }}
+                    >
+                      {/* iOS Dynamic Island */}
+                      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center justify-between px-2 py-0.5 w-[72px] h-[17px] bg-black rounded-full shadow-md border border-neutral-850 pointer-events-none">
+                        {/* Front Camera Lens */}
+                        <div className="w-1.5 h-1.5 rounded-full bg-neutral-950 border border-neutral-750 flex items-center justify-center">
+                          <div className="w-0.5 h-0.5 rounded-full bg-blue-900" />
+                        </div>
+                        {/* Sensor */}
+                        <div className="w-1.5 h-1.5 rounded-full bg-neutral-950" />
+                      </div>
+
+                      {/* Actual Final Attempt Mobile App Screen Image (Crisp, 100% Filled, Zoomed Out) */}
+                      <NextImage
+                        src="/app-screenshot.png"
+                        alt="Final Attempt iOS Mobile App Showcase"
+                        fill
+                        unoptimized
+                        sizes="(max-width: 640px) 245px, 265px"
+                        className="object-contain object-top select-none pointer-events-none"
+                        style={{ imageRendering: '-webkit-optimize-contrast' }}
+                        priority
+                      />
+
+                      {/* iOS Subtle Screen Glare overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.03] to-transparent pointer-events-none z-10" />
+
+                      {/* iOS Home Indicator Bar */}
+                      <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 z-20 w-22 h-[3px] bg-slate-800/60 backdrop-blur-md rounded-full pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Stage Pedestal Grounding Shadow underneath phone */}
+                  <div 
+                    className="w-[85%] h-5 mx-auto mt-3 rounded-[100%] blur-md pointer-events-none"
+                    style={{
+                      background: isDark
+                        ? 'radial-gradient(ellipse at center, rgba(0,0,0,0.8) 0%, transparent 75%)'
+                        : 'radial-gradient(ellipse at center, rgba(15,23,42,0.3) 0%, transparent 75%)'
+                    }}
+                  />
+                </div>
+
+              </div>
+
+            </div>
           </div>
         </div>
       </section>
