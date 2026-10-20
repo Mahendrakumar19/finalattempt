@@ -600,17 +600,77 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
         else ansLetter = val;
       }
 
+      // Helper function to split bilingual text into { en, hi }
+      const splitBilingualText = (rawStr: string): { en: string; hi?: string } => {
+        if (!rawStr) return { en: '' };
+        const trimmed = rawStr.trim();
+        const hasHindi = /[\u0900-\u097F]/.test(trimmed);
+        if (!hasHindi) return { en: trimmed };
+
+        // Case 1: Split by " / " or " // "
+        if (trimmed.includes(' / ') || trimmed.includes(' // ') || trimmed.includes(' | ')) {
+          const parts = trimmed.split(/\s*(?:\/{1,2}|\|)\s*/);
+          if (parts.length >= 2) {
+            const hiPart = parts.find(p => /[\u0900-\u097F]/.test(p));
+            const enPart = parts.find(p => !/[\u0900-\u097F]/.test(p) && /[a-zA-Z0-9]/.test(p));
+            if (hiPart && enPart) {
+              return { en: enPart.trim(), hi: hiPart.trim() };
+            }
+          }
+        }
+
+        // Case 2: Parenthetical Hindi or English: "Agra Gharana (आगरा घराना)"
+        const parenMatch = trimmed.match(/^([^\(\)]+?)\s*[\(（]([\u0900-\u097F\s\-]+)[\)）]$/);
+        if (parenMatch && /[a-zA-Z]/.test(parenMatch[1])) {
+          return { en: parenMatch[1].trim(), hi: parenMatch[2].trim() };
+        }
+
+        // Case 3: Line-separated bilingual (English line followed by Hindi line)
+        const lines = trimmed.split('\n').map(l => l.trim()).filter(Boolean);
+        if (lines.length === 2) {
+          if (!/[\u0900-\u097F]/.test(lines[0]) && /[\u0900-\u097F]/.test(lines[1])) {
+            return { en: lines[0], hi: lines[1] };
+          }
+        }
+
+        return { en: trimmed };
+      };
+
+      const qSplit = splitBilingualText(qText.replace(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])\s*/i, '').trim());
+      const optASplit = splitBilingualText(optA);
+      const optBSplit = splitBilingualText(optB);
+      const optCSplit = splitBilingualText(optC);
+      const optDSplit = splitBilingualText(optD);
+      const optESplit = optE ? splitBilingualText(optE) : undefined;
+
+      let expEn = expMatch ? expMatch[1].trim() : 'Refer to official syllabus notes.';
+      let expHi: string | undefined = undefined;
+      if (expEn) {
+        const expSplit = splitBilingualText(expEn);
+        if (expSplit.hi) {
+          expEn = expSplit.en;
+          expHi = expSplit.hi;
+        }
+      }
+
       if (qText) {
         const repaired = sanitizeAndRepairQuestion({
           id: `q-bulk-${Date.now()}-${parsed.length + 1}`,
-          questionText: qText.replace(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])\s*/i, '').trim(),
-          optionA: optA,
-          optionB: optB,
-          optionC: optC,
-          optionD: optD,
-          optionE: optE || undefined,
+          questionText: qSplit.en || qText,
+          questionTextHi: qSplit.hi,
+          optionA: optASplit.en || optA,
+          optionAHi: optASplit.hi,
+          optionB: optBSplit.en || optB,
+          optionBHi: optBSplit.hi,
+          optionC: optCSplit.en || optC,
+          optionCHi: optCSplit.hi,
+          optionD: optDSplit.en || optD,
+          optionDHi: optDSplit.hi,
+          optionE: optESplit ? (optESplit.en || optE) : undefined,
+          optionEHi: optESplit?.hi,
           correctAnswer: ansLetter,
-          explanation: expMatch ? expMatch[1].trim() : 'Refer to official syllabus notes.',
+          explanation: expEn,
+          explanationHi: expHi,
           marks: bulkDefaultMarks,
           negativeMarks: bulkDefaultNegMarks
         });
@@ -1166,7 +1226,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                                     : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:border-amber-400 hover:bg-amber-50/30'
                                 }`}
                               >
-                                <div className="flex items-center gap-2.5 overflow-hidden">
+                                <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
                                   <span className={`w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center shrink-0 border ${
                                     isCorrect
                                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
@@ -1174,7 +1234,16 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                                   }`}>
                                     {opt.key}
                                   </span>
-                                  <span className="truncate text-slate-900 dark:text-white font-medium">{opt.text || opt.textHi}</span>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="text-slate-900 dark:text-white font-medium leading-snug line-clamp-2">
+                                      {opt.text || opt.textHi}
+                                    </span>
+                                    {opt.text && opt.textHi && opt.textHi.trim() !== opt.text.trim() && (
+                                      <span className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-snug line-clamp-2 mt-0.5">
+                                        {opt.textHi}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 {isCorrect ? (
                                   <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md border border-emerald-400 shrink-0">
@@ -1182,7 +1251,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                                     <span>Correct</span>
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] font-semibold text-slate-400 opacity-0 hover:opacity-100 transition-opacity">
+                                  <span className="text-[10px] font-semibold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                     Set Correct
                                   </span>
                                 )}
@@ -1911,12 +1980,32 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                         <span className="font-bold text-emerald-600 dark:text-emerald-400">Answer: {pq.correctAnswer}</span>
                       </div>
                       <p className="font-medium text-slate-900 dark:text-white">{pq.questionText}</p>
+                      {pq.questionTextHi && pq.questionTextHi !== pq.questionText && (
+                        <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium">{pq.questionTextHi}</p>
+                      )}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                        <span>A: {pq.optionA}</span>
-                        <span>B: {pq.optionB}</span>
-                        <span>C: {pq.optionC}</span>
-                        <span>D: {pq.optionD}</span>
-                        {pq.optionE && <span className="col-span-2 text-purple-600 dark:text-purple-400 font-bold">E: {pq.optionE}</span>}
+                        <div>
+                          <span>A: {pq.optionA}</span>
+                          {pq.optionAHi && <span className="block text-[10px] text-amber-800 dark:text-amber-300">({pq.optionAHi})</span>}
+                        </div>
+                        <div>
+                          <span>B: {pq.optionB}</span>
+                          {pq.optionBHi && <span className="block text-[10px] text-amber-800 dark:text-amber-300">({pq.optionBHi})</span>}
+                        </div>
+                        <div>
+                          <span>C: {pq.optionC}</span>
+                          {pq.optionCHi && <span className="block text-[10px] text-amber-800 dark:text-amber-300">({pq.optionCHi})</span>}
+                        </div>
+                        <div>
+                          <span>D: {pq.optionD}</span>
+                          {pq.optionDHi && <span className="block text-[10px] text-amber-800 dark:text-amber-300">({pq.optionDHi})</span>}
+                        </div>
+                        {pq.optionE && (
+                          <div className="col-span-2 text-purple-600 dark:text-purple-400 font-bold">
+                            <span>E: {pq.optionE}</span>
+                            {pq.optionEHi && <span className="block text-[10px] text-purple-700 dark:text-purple-300">({pq.optionEHi})</span>}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
