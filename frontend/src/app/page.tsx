@@ -790,7 +790,8 @@ export default function Home() {
                 title: t('home.quickQuiz'),
                 icon: Flame,
                 iconColor: 'text-amber-500',
-                link: '/daily-quiz'
+                link: '/daily-quiz',
+                badge: 'HOT'
               },
               {
                 title: t('home.quickPYQ'),
@@ -839,6 +840,12 @@ export default function Home() {
                 href={item.link}
                 className="group relative overflow-hidden rounded-3xl p-8 sm:p-10 text-center flex flex-col items-center justify-center gap-5 transition-all duration-300 hover-lift bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl hover:scale-[1.03] border border-slate-200/80 dark:border-slate-800 cursor-pointer"
               >
+                {item.badge && (
+                  <span className="absolute top-4 right-4 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/25 animate-pulse">
+                    <Flame className="w-3 h-3 fill-current" />
+                    {item.badge}
+                  </span>
+                )}
                 <div className="flex items-center justify-center p-2">
                   {item.imgSrc ? (
                     <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-110 transition-all duration-300">

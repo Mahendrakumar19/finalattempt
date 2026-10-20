@@ -6852,10 +6852,18 @@ class LmsDB {
           )
         `);
 
-        try {
-          await mysqlPool.query('ALTER TABLE daily_quizzes ADD COLUMN IF NOT EXISTS slug VARCHAR(255), ADD COLUMN IF NOT EXISTS title_hi TEXT, ADD COLUMN IF NOT EXISTS description_hi TEXT');
-          await mysqlPool.query('ALTER TABLE daily_quizzes ADD INDEX idx_daily_quizzes_slug (slug)');
-        } catch (_) {}
+        // Alter daily_quizzes table columns individually so one failure does not abort the rest
+        const quizColsToAdd = [
+          'ADD COLUMN slug VARCHAR(255)',
+          'ADD COLUMN title_hi TEXT',
+          'ADD COLUMN description_hi TEXT',
+          'ADD INDEX idx_daily_quizzes_slug (slug)'
+        ];
+        for (const col of quizColsToAdd) {
+          try {
+            await mysqlPool.query(`ALTER TABLE daily_quizzes ${col}`);
+          } catch (_) {}
+        }
 
         await mysqlPool.query(`
           CREATE TABLE IF NOT EXISTS daily_quiz_questions (
@@ -6938,6 +6946,7 @@ class LmsDB {
   }
 
   public async getDailyQuizById(idOrSlug: string): Promise<any | null> {
+    await this.initDailyQuizTables();
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query(
@@ -6950,7 +6959,22 @@ class LmsDB {
             isFree: Boolean(rows[0].isFree)
           };
         }
-      } catch (err) {
+      } catch (err: any) {
+        // Fallback for older MySQL schemas if slug column doesn't exist yet
+        if (err?.code === 'ER_BAD_FIELD_ERROR') {
+          try {
+            const [fallbackRows]: any = await mysqlPool.query(
+              'SELECT * FROM daily_quizzes WHERE id = ? LIMIT 1',
+              [idOrSlug]
+            );
+            if (Array.isArray(fallbackRows) && fallbackRows.length > 0) {
+              return {
+                ...fallbackRows[0],
+                isFree: Boolean(fallbackRows[0].isFree)
+              };
+            }
+          } catch (_) {}
+        }
         console.error('[LmsDB] getDailyQuizById MySQL error:', err);
       }
     }
