@@ -243,6 +243,7 @@ export default function Header() {
           },
           { heading: t('mega.ca.topics'), items: [
               { label: t('mega.ca.dailyAnalysis'), href: '/current-affairs/daily', desc: t('mega.ca.dailyAnalysisDesc'), icon: IC.sparkle},
+              { label: 'हिंदी करंट अफेयर्स पोर्टल', href: '/current-affairs-hindi', desc: 'दैनिक व मासिक हिन्दी समसामयिकी हब', icon: IC.globe, isNew: true },
               { label: t('mega.ca.dailyMcqPractice') || 'Daily MCQ Practice', href: '/daily-quiz', desc: t('mega.ca.dailyMcqPracticeDesc') || 'Daily MCQ Practice & State Leaderboard', icon: IC.test, isNew: false },
             ],
           },
@@ -320,7 +321,7 @@ export default function Header() {
         groups: [
           { heading: t('mega.blogs.explore'), items: [
               { label: t('mega.blogs.allArticles'),       href: '/blog',              desc: t('mega.blogs.allArticlesDesc'),    icon: IC.blog },
-              // { label: t('mega.blogs.currentAffairs'),    href: '/current-affairs',   desc: t('mega.blogs.currentAffairsDesc'), icon: IC.daily },
+              { label: 'हिन्दी ब्लॉग पोर्टल (Hindi Blogs)', href: '/blog-hindi',        desc: 'हिन्दी माध्यम के विशेष रणनीतिक लेख व विश्लेषण', icon: IC.globe, isNew: true },
             ],
           },
           { heading: t('mega.blogs.strategyGuidance'), items: [

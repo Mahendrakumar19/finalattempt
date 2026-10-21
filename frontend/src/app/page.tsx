@@ -29,7 +29,6 @@ import {
   BarChart2,
   Rocket,
   Flame,
-  Smartphone,
   Download,
   Star
 } from 'lucide-react';

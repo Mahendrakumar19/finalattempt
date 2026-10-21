@@ -33,11 +33,7 @@ import {
   GraduationCap,
   UserCheck,
   ShieldCheck,
-  PhoneCall,
   ArrowUpRight,
-  CheckCircle2,
-  Copy,
-  Search,
   Bell
 } from 'lucide-react';
 import { useTheme } from '@/context/ThemeContext';
@@ -2755,6 +2751,15 @@ export default function AdminPortal() {
                           </td>
                           <td className="p-4">
                             <div className="flex items-center gap-2">
+                              <a
+                                href={targetPage === 'hindi' ? `/blog-hindi` : `/blog/${blog.slug || blog.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-xl font-bold transition-all cursor-pointer border border-blue-500/20"
+                                title={targetPage === 'hindi' ? 'Open in Hindi Portal (/blog-hindi)' : 'Open in Blog Portal (/blog)'}
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -3305,6 +3310,7 @@ export default function AdminPortal() {
                     if (caEditionTargetFilter === 'all') return true;
                     return target === caEditionTargetFilter;
                   }).map((ed, idx) => {
+                    const target = ed.publish_target || 'both';
                     const natCount = ed.articles?.filter(a => a.category === 'NATIONAL').length || 0;
                     const intCount = ed.articles?.filter(a => a.category === 'INTERNATIONAL').length || 0;
                     const bihCount = ed.articles?.filter(a => a.category === 'BIHAR').length || 0;
@@ -3329,6 +3335,15 @@ export default function AdminPortal() {
                         </div>
 
                         <div className="flex gap-2 border-t border-slate-50 dark:border-white/[0.02] pt-4 mt-2">
+                          <a
+                            href={target === 'hindi' ? '/current-affairs-hindi' : `/current-affairs/daily?date=${ed.publishDate}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 border border-blue-200 dark:border-blue-900/40 rounded-xl hover:bg-blue-50 text-blue-600 dark:text-blue-400 font-bold text-xs cursor-pointer flex justify-center items-center"
+                            title={target === 'hindi' ? 'View in Hindi Portal (/current-affairs-hindi)' : 'View in Current Affairs (/current-affairs)'}
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
                           <button
                             onClick={() => {
                               setEditingEdition(ed);
@@ -4113,10 +4128,29 @@ export default function AdminPortal() {
                                   <div className="flex items-center gap-2">
                                     <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 border border-amber-500/20">{art.category}</span>
                                     <span className="text-[10px] text-slate-400">{art.importance} Importance &bull; {art.readingTime}</span>
+                                    {art.publish_target === 'hindi' ? (
+                                      <span className="px-2 py-0.5 rounded text-[9px] font-black bg-orange-500/15 text-orange-600 border border-orange-500/30">Hindi Portal Only</span>
+                                    ) : art.publish_target === 'english' ? (
+                                      <span className="px-2 py-0.5 rounded text-[9px] font-black bg-blue-500/15 text-blue-600 border border-blue-500/30">English Portal Only</span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-500/15 text-emerald-600 border border-emerald-500/30">Both Portals</span>
+                                    )}
                                   </div>
                                   <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100">{art.title}</h5>
+                                  {art.title_hi && <p className="text-[10px] text-amber-600 font-semibold">{art.title_hi}</p>}
                                 </div>
                                 <div className="flex gap-2">
+                                  {art.slug && (
+                                    <a
+                                      href={art.publish_target === 'hindi' ? '/current-affairs-hindi' : `/current-affairs/daily/${editingEdition.publishDate}/${(art.category || 'national').toLowerCase()}/${art.slug}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-2 border border-blue-200 dark:border-blue-800 rounded-xl hover:bg-blue-50 text-blue-600 dark:text-blue-400 cursor-pointer flex items-center justify-center"
+                                      title={art.publish_target === 'hindi' ? 'View in Hindi Portal (/current-affairs-hindi)' : 'View in Daily Reader'}
+                                    >
+                                      <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                  )}
                                   <button
                                     type="button" onClick={() => {
                                       setEditingArticle(art);

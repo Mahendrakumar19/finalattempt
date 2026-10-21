@@ -636,11 +636,34 @@ app.get('/api/dynamic-current-affairs/editions', async (req, res) => {
 
     const editions = await db.getDynamicCurrentAffairsEditions(includeDrafts);
 
-    const localized = await Promise.all(editions.map(async (ed) => {
+    const targetFilter = req.query.target as string | undefined;
+
+    const filteredEditions = editions.filter(ed => {
+      const edTarget = ed.publish_target || 'both';
+      if (includeDrafts) return true;
+      if (targetFilter) {
+        if (targetFilter === 'hindi') return edTarget === 'hindi' || edTarget === 'both';
+        if (targetFilter === 'english') return edTarget === 'english' || edTarget === 'both';
+      }
+      return true;
+    });
+
+    const localized = await Promise.all(filteredEditions.map(async (ed) => {
       if (Array.isArray(ed.articles) && ed.articles.length > 0) {
+        // Filter articles inside edition based on target if query specifies
+        let arts = ed.articles;
+        if (!includeDrafts && targetFilter) {
+          arts = arts.filter(a => {
+            const aTarget = a.publish_target || 'both';
+            if (targetFilter === 'hindi') return aTarget === 'hindi' || aTarget === 'both';
+            if (targetFilter === 'english') return aTarget === 'english' || aTarget === 'both';
+            return true;
+          });
+        }
+
         const locArticles = await ContentLocalizer.localizeEntityList(
           'current_affair_article',
-          ed.articles,
+          arts,
           ['title', 'summary'],
           targetLang,
           ['summary']
@@ -881,10 +904,15 @@ app.get('/api/blogs', async (req, res) => {
     }
 
     let list = await db.getBlogs();
+    const targetFilter = req.query.target as string | undefined;
 
     if (!isAdmin && Array.isArray(list)) {
       list = list.filter((b: any) => {
         const target = b.publish_target || b.publishTarget || 'both';
+        if (targetFilter) {
+          if (targetFilter === 'hindi') return target === 'hindi' || target === 'both';
+          if (targetFilter === 'english') return target === 'english' || target === 'both';
+        }
         if (target === 'both') return true;
         if (target === 'english' && targetLang === 'en') return true;
         if (target === 'hindi' && targetLang === 'hi') return true;
