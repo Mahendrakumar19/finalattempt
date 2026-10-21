@@ -33,7 +33,7 @@ import {
   Star
 } from 'lucide-react';
 
-import { db, Course } from '@/services/db';
+import { db, Course, BlogItem } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
 import { useTheme } from '@/context/ThemeContext';
 import NextImage from 'next/image';
@@ -51,23 +51,6 @@ export interface YoutubeVideoItem {
   title: string;
   description?: string;
   publishedAt: string;
-}
-
-export interface BlogItem {
-  id: string;
-  title: string;
-  blurb?: string;
-  content?: string;
-  imageUrl?: string;
-  cover_image_url?: string;
-  photo?: string;
-  displayImage?: string;
-  category?: string;
-  author?: string;
-  readTime?: string;
-  publishDate?: string;
-  summary?: string;
-  [key: string]: unknown;
 }
 
 export interface AnnouncementItem {
@@ -277,13 +260,24 @@ export default function Home() {
     // 1. New Daily Current Affairs
     if (Array.isArray(liveCaEditions)) {
       liveCaEditions.forEach((ed: Record<string, unknown>) => {
-        const articles = ed.articles as Array<{ title?: string }> | undefined;
-        const articleTitle = articles && articles.length > 0 ? articles[0]?.title : null;
+        const articles = ed.articles as Array<{ title?: string; title_hi?: string; publish_target?: string }> | undefined;
+        const edTarget = (ed.publish_target || 'both') as string;
+        const isHindi = edTarget === 'hindi' || (articles && articles.length > 0 && articles[0]?.publish_target === 'hindi') || locale === 'hi';
+        
+        const firstArt = articles && articles.length > 0 ? articles[0] : null;
+        const articleTitle = firstArt ? (isHindi ? (firstArt.title_hi || firstArt.title) : firstArt.title) : null;
         const pubDate = ed.publishDate as string | undefined;
+
+        const caLink = isHindi
+          ? '/current-affairs-hindi'
+          : (pubDate ? `/current-affairs/daily?date=${pubDate}` : '/current-affairs/daily');
+
         feed.push({
-          date: 'DAILY CA',
-          text: articleTitle ? `Current Affairs Update: ${articleTitle}` : `Current Affairs Edition (${pubDate || 'Latest'})`,
-          link: pubDate ? `/current-affairs/daily?date=${pubDate}` : '/current-affairs/daily',
+          date: isHindi ? 'हिन्दी सामयिकी' : 'DAILY CA',
+          text: articleTitle 
+            ? (isHindi ? `करेंट अफेयर्स अपडेट: ${articleTitle}` : `Current Affairs Update: ${articleTitle}`)
+            : (isHindi ? `दैनिक समसामयिकी संस्करण (${pubDate || 'नवीनतम'})` : `Current Affairs Edition (${pubDate || 'Latest'})`),
+          link: caLink,
           isNew: true,
           isExternal: false,
           timestamp: getTS(ed) || (pubDate ? new Date(pubDate).getTime() : 0),
@@ -294,10 +288,17 @@ export default function Home() {
     // 2. Published Blog & Strategy Articles
     if (Array.isArray(blogsList)) {
       blogsList.forEach((blog: BlogItem) => {
+        const bTarget = ((blog as { publish_target?: string; publishTarget?: string }).publish_target || (blog as { publish_target?: string; publishTarget?: string }).publishTarget || 'both') as string;
+        const isHindiBlog = bTarget === 'hindi' || locale === 'hi';
+        const blogTitle = isHindiBlog ? (blog.title_hi || blog.title) : blog.title;
+        const blogLink = bTarget === 'hindi'
+          ? `/blog-hindi`
+          : `/blog/${blog.slug || blog.id}`;
+
         feed.push({
-          date: (blog.category || 'ARTICLE').toUpperCase(),
-          text: blog.title,
-          link: `/blog/${blog.slug || blog.id}`,
+          date: (blog.category || (isHindiBlog ? 'लेख' : 'ARTICLE')).toUpperCase(),
+          text: blogTitle,
+          link: blogLink,
           isNew: true,
           isExternal: false,
           timestamp: getTS(blog as unknown as Record<string, unknown>),
@@ -361,7 +362,7 @@ export default function Home() {
 
     // Sort ALL updates descending by timestamp (latest strictly on top)
     return feed.sort((a, b) => b.timestamp - a.timestamp);
-  }, [liveCaEditions, blogsList, liveCourses, liveTestSeries, liveResources, dynamicAnnouncements]);
+  }, [liveCaEditions, blogsList, liveCourses, liveTestSeries, liveResources, dynamicAnnouncements, locale]);
 
   const handleSubmitLead = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -945,7 +946,7 @@ export default function Home() {
               </h2>
             </div>
             <Link
-              href="/blog"
+              href={locale === 'hi' ? '/blog-hindi' : '/blog'}
               className="btn-outline text-xs flex items-center gap-1.5 shrink-0"
             >
               <span>{t('home.exploreArticles')}</span>
@@ -955,61 +956,75 @@ export default function Home() {
 
           {/* Cards Grid Matching Modern Design */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            {blogsList.slice(0, 3).map((blog) => (
-              <Link
-                key={blog.id}
-                href={`/blog/${blog.slug || blog.id}`}
-                className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-amber-500/50 transition-all duration-300 flex flex-col justify-between cursor-pointer"
-              >
-                <div className="space-y-4">
-                  {/* Card Image Cover */}
-                  <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                    <img
-                      src={resolveUrl(blog.imageUrl || blog.cover_image_url || blog.photo || blog.displayImage) || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800'}
-                      alt={blog.title}
-                      loading="lazy"
-                      decoding="async"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800';
-                      }}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-3 left-3">
-                      <span className="text-[9px] font-black uppercase tracking-wider text-amber-900 bg-amber-400/90 backdrop-blur-md px-2.5 py-1 rounded-lg shadow-sm">
-                        {blog.category || 'EXAM STRATEGY'}
+            {blogsList
+              .filter(blog => {
+                const bTarget = ((blog as { publish_target?: string; publishTarget?: string }).publish_target || (blog as { publish_target?: string; publishTarget?: string }).publishTarget || 'both');
+                if (locale === 'hi') return bTarget === 'hindi' || bTarget === 'both';
+                return bTarget === 'english' || bTarget === 'both';
+              })
+              .slice(0, 3)
+              .map((blog) => {
+                const bTarget = ((blog as { publish_target?: string; publishTarget?: string }).publish_target || (blog as { publish_target?: string; publishTarget?: string }).publishTarget || 'both');
+                const isHindiBlog = bTarget === 'hindi' || locale === 'hi';
+                const displayTitle = isHindiBlog ? (blog.title_hi || blog.title) : blog.title;
+                const displayBlurb = isHindiBlog ? (blog.blurb_hi || blog.blurb || blog.content_hi || blog.content) : (blog.blurb || blog.content);
+                const blogHref = bTarget === 'hindi' ? '/blog-hindi' : `/blog/${blog.slug || blog.id}`;
+
+                return (
+                  <Link
+                    key={blog.id}
+                    href={blogHref}
+                    className="group bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-amber-500/50 transition-all duration-300 flex flex-col justify-between cursor-pointer"
+                  >
+                    <div className="space-y-4">
+                      {/* Card Image Cover */}
+                      <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <img
+                          src={resolveUrl(blog.imageUrl || blog.cover_image_url || blog.photo || blog.displayImage) || 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800'}
+                          alt={displayTitle}
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80&w=800';
+                          }}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute top-3 left-3">
+                          <span className="text-[9px] font-black uppercase tracking-wider text-amber-900 bg-amber-400/90 backdrop-blur-md px-2.5 py-1 rounded-lg shadow-sm">
+                            {blog.category || 'EXAM STRATEGY'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Body Content */}
+                      <div className="p-6 space-y-3">
+                        <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-2 leading-snug">
+                          {displayTitle}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
+                          {displayBlurb ? String(displayBlurb).replace(/<[^>]*>?/gm, '').slice(0, 140) + '...' : 'Read our comprehensive exam strategy breakdown...'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Card Footer Author & Expand Button */}
+                    <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-[10px]">
+                          {(blog.author ? String(blog.author) : 'Final Attempt').charAt(0)}
+                        </div>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          {blog.author || (locale === 'hi' ? 'फ़ाइनल अटेम्प्ट' : 'Final Attempt')}
+                        </span>
+                      </div>
+
+                      <span className="text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
+                        <ArrowRight className="w-4 h-4 -rotate-45" />
                       </span>
                     </div>
-                  </div>
-
-                  {/* Card Body Content */}
-                  <div className="p-6 space-y-3">
-                    <h3 className="font-heading font-extrabold text-base text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-2 leading-snug">
-                      {blog.title}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-3 leading-relaxed">
-                      {(blog.blurb || blog.content) ? String(blog.blurb || blog.content).replace(/<[^>]*>?/gm, '').slice(0, 140) + '...' : 'Read our comprehensive exam strategy breakdown...'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Card Footer Author & Expand Button */}
-                <div className="px-6 pb-6 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-slate-900 text-amber-400 flex items-center justify-center font-bold text-[10px]">
-                      {(blog.author ? String(blog.author) : 'Final Attempt').charAt(0)}
-                    </div>
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                      {blog.author || 'Final Attempt'}
-                    </span>
-                  </div>
-
-
-                  <span className="text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform">
-                    <ArrowRight className="w-4 h-4 -rotate-45" />
-                  </span>
-                </div>
-              </Link>
-            ))}
+                  </Link>
+                );
+              })}
           </div>
         </div>
       </section>

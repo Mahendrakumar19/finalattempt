@@ -8,7 +8,8 @@ import {
   Calendar, Zap, Search, X, Filter, ChevronDown, Newspaper
 } from 'lucide-react';
 import { db, DynamicCurrentAffairEdition } from '@/services/db';
-import { useTranslation } from '@/context/LocaleContext';
+import { useTranslation, useLocale } from '@/context/LocaleContext';
+import { useRouter } from 'next/navigation';
 
 /* ── helpers ─────────────────────────────────────────────────── */
 function getISOWeek(dateStr: string): { week: number; year: number } {
@@ -79,7 +80,9 @@ function SidebarSection({ icon, title }: { icon: React.ReactNode; title: string 
    MAIN PAGE
 ═══════════════════════════════════════════════════════════════ */
 export default function CurrentAffairsLanding() {
+  const router = useRouter();
   const { t } = useTranslation();
+  const { locale, setLocale } = useLocale();
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
   const [activeTopic, setActiveTopic] = useState<'all' | 'editorials' | 'hindi' | 'national' | 'international' | 'bihar' | 'arunachal'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -90,10 +93,13 @@ export default function CurrentAffairsLanding() {
   const dateDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (locale !== 'en') {
+      setLocale('en', true);
+    }
     db.getDynamicCurrentAffairsEditions(false)
       .then(list => setEditions(list || []))
       .catch(err => console.error('Error loading current affairs editions:', err));
-  }, []);
+  }, [locale, setLocale]);
 
   // Close Date Dropdown on Outside Click
   useEffect(() => {
@@ -691,7 +697,13 @@ export default function CurrentAffairsLanding() {
                 ).map((item) => (
                   <button
                     key={item.key}
-                    onClick={() => setActiveTopic(item.key)}
+                    onClick={() => {
+                      if (item.key === 'hindi') {
+                        router.push('/current-affairs-hindi');
+                        return;
+                      }
+                      setActiveTopic(item.key);
+                    }}
                     className={`px-4 py-2 rounded-full border text-xs font-extrabold tracking-wide transition-all duration-150 cursor-pointer ${item.color} ${activeTopic === item.key ? "ring-2 ring-offset-1 ring-amber-400/50 dark:ring-offset-slate-900" : "opacity-80 hover:opacity-100"}`}
                   >
                     {item.label}

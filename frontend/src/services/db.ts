@@ -84,12 +84,15 @@ export interface BlogItem {
   content: string;
   imageUrl?: string;
   cover_image_url?: string;
+  photo?: string;
+  displayImage?: string;
   author?: string;
   author_name?: string;
   author_image?: string;
   authorImage?: string;
   blurb?: string;
   excerpt?: string;
+  summary?: string;
   title_hi?: string;
   content_hi?: string;
   blurb_hi?: string;
