@@ -658,8 +658,17 @@ export default function AdminPortal() {
 
   const handleSaveArticleToEdition = () => {
     if (!editingEdition || !editingArticle) return;
-    if (!editingArticle.title || !editingArticle.summary) {
-      alert('Title and Summary are required.');
+    
+    // Resolve effective Title and Summary across English and Hindi inputs
+    const effectiveTitle = (editingArticle.title || '').trim() || (editingArticle.title_hi || '').trim();
+    const effectiveSummary = (editingArticle.summary || '').trim() || (editingArticle.summary_hi || '').trim();
+
+    if (!effectiveTitle) {
+      alert('Article Title (English or Hindi) is required.');
+      return;
+    }
+    if (!effectiveSummary) {
+      alert('Article Summary / Blurb (English or Hindi) is required.');
       return;
     }
 
@@ -676,7 +685,7 @@ export default function AdminPortal() {
         .replace(/^-+|-+$/g, '');
     };
 
-    const slugifiedTitle = generateUnicodeSlug(editingArticle.title) || generateUnicodeSlug(editingArticle.title_hi || '') || `article-${Date.now()}`;
+    const slugifiedTitle = generateUnicodeSlug(editingArticle.title || '') || generateUnicodeSlug(editingArticle.title_hi || '') || `article-${Date.now()}`;
     const publishedDate = editingEdition.publishDate || new Date().toISOString().split('T')[0];
     const category = editingArticle.category || 'NATIONAL';
 
@@ -711,19 +720,23 @@ export default function AdminPortal() {
 
     let tags = parseCsv(editingArticle.tags);
     if (tags.length === 0) {
-      const extractedWords = editingArticle.title.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3).slice(0, 4);
+      const extractedWords = effectiveTitle.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3).slice(0, 4);
       tags = Array.from(new Set([category.toLowerCase(), 'current-affairs', 'bpsc-prelims', 'mains-notes', ...extractedWords]));
     }
 
     // 💡 AUTO-POPULATE SEO PARAMETERS IF NOT TYPED MANUALLY
     const stripHtml = (html: string) => (html || '').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-    const seoTitle = (editingArticle.seo?.seoTitle || '').trim() || `${editingArticle.title} | Final Attempt`;
+    const seoTitle = (editingArticle.seo?.seoTitle || '').trim() || `${effectiveTitle} | Final Attempt`;
     const canonicalUrl = (editingArticle.seo?.canonicalUrl || '').trim() || `https://finalattemptias.com/current-affairs/daily/${publishedDate}/${category.toLowerCase()}/${finalSlug}`;
-    const seoKeywords = (editingArticle.seo?.seoKeywords || '').trim() || Array.from(new Set([editingArticle.title, category, ...subjects, ...exams, ...tags])).join(', ');
-    const seoDescription = (editingArticle.seo?.seoDescription || '').trim() || (editingArticle.summary || stripHtml(editingArticle.content || '')).slice(0, 155);
+    const seoKeywords = (editingArticle.seo?.seoKeywords || '').trim() || Array.from(new Set([effectiveTitle, category, ...subjects, ...exams, ...tags])).join(', ');
+    const seoDescription = (editingArticle.seo?.seoDescription || '').trim() || (effectiveSummary || stripHtml(editingArticle.content || '')).slice(0, 155);
 
     const nextArt = {
       ...editingArticle,
+      title: editingArticle.title?.trim() || effectiveTitle,
+      summary: editingArticle.summary?.trim() || effectiveSummary,
+      title_hi: editingArticle.title_hi?.trim() || effectiveTitle,
+      summary_hi: editingArticle.summary_hi?.trim() || effectiveSummary,
       id: editingArticle.id || `art-${Date.now()}`,
       slug: finalSlug,
       publishedDate,
@@ -4214,10 +4227,11 @@ export default function AdminPortal() {
                     {/* Basic Meta */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Article Title <span className="text-red-500">*</span></label>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Article Title (English / Primary) <span className="text-amber-500">*</span></label>
                         <input
-                          type="text" required value={editingArticle.title}
+                          type="text" value={editingArticle.title || ''}
                           onChange={(e) => setEditingArticle({ ...editingArticle, title: e.target.value })}
+                          placeholder="e.g. Supreme Court Directive on Article 200..."
                           className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs font-bold focus:border-amber-500 outline-none"
                         />
                       </div>
@@ -4358,11 +4372,12 @@ export default function AdminPortal() {
 
                     {/* Executive Summary */}
                     <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">English Executive Summary (Short Blurb) <span className="text-red-500">*</span></label>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">English Executive Summary (Short Blurb) <span className="text-amber-500">*</span></label>
                       <textarea
-                        rows={2} required value={editingArticle.summary}
+                        rows={2} value={editingArticle.summary || ''}
                         onChange={(e) => setEditingArticle({ ...editingArticle, summary: e.target.value })}
-                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                        placeholder="Brief overview blurb for cards and readers..."
+                        className="w-full px-4 py-2 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 text-xs focus:border-amber-500 outline-none"
                       />
                     </div>
 

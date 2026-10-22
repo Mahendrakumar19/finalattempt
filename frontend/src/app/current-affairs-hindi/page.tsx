@@ -88,17 +88,23 @@ export default function CurrentAffairsHindiLanding() {
       [...editions]
         .filter(ed => {
           const target = ed.publish_target || 'both';
+          // Strictly reject English-only editions
           return target === 'both' || target === 'hindi';
         })
         .sort((a, b) => (b.publishDate || '').localeCompare(a.publishDate || ''))
         .forEach(ed => {
           (ed.articles || []).forEach(art => {
-            const target = art.publish_target || 'both';
-            if (target === 'english') return; // Skip English-only items
+            const target = art.publish_target || ed.publish_target || 'both';
+            // Strictly exclude English-only items from Hindi portal
+            if (target === 'english') return;
+            if (art.language === 'en' && target !== 'both' && target !== 'hindi') return;
 
+            // Only display articles that have dedicated Hindi title or are meant for Hindi portal
+            const titleHi = (art.title_hi || '').trim() || (target === 'hindi' ? (art.title || '').trim() : '');
+            if (!titleHi) return; // Do NOT overlap English articles without Hindi content
+
+            const summaryHi = (art.summary_hi || '').trim() || (target === 'hindi' ? (art.summary || '').trim() : '');
             const cat = art.category?.toLowerCase() || '';
-            const titleHi = art.title_hi || art.title || '';
-            const summaryHi = art.summary_hi || art.summary || '';
             const tagsText = (art.tags || []).join(' ').toLowerCase();
 
             const matchesTopic = activeTopic === 'all'

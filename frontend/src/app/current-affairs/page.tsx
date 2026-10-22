@@ -215,6 +215,7 @@ export default function CurrentAffairsLanding() {
       [...editions]
         .filter(ed => {
           const edTarget = ed.publish_target || 'both';
+          // Strictly reject Hindi-only editions from English page
           return edTarget === 'both' || edTarget === 'english';
         })
         .sort((a, b) => (b.publishDate || '').localeCompare(a.publishDate || ''))
@@ -223,22 +224,28 @@ export default function CurrentAffairsLanding() {
             return;
           }
           (ed.articles || []).forEach(art => {
-            const artTarget = art.publish_target || 'both';
-            if (artTarget === 'hindi') return; // Exclude Hindi-only articles from English page
+            const artTarget = art.publish_target || ed.publish_target || 'both';
+            // Exclude Hindi-only articles from English page
+            if (artTarget === 'hindi') return;
+            if (art.language === 'hi' && artTarget !== 'both' && artTarget !== 'english') return;
+
+            // Only display articles with valid English titles
+            const titleText = (art.title || '').trim();
+            if (!titleText && artTarget !== 'both') return;
 
             const cat = art.category?.toLowerCase() || '';
-            const titleText = (art.title || '').toLowerCase();
+            const lowerTitle = titleText.toLowerCase();
             const tagsText = (art.tags || []).join(' ').toLowerCase();
 
             const matchesTopic = activeTopic === 'all' 
               || cat === activeTopic 
               || (activeTopic === 'editorials' && (cat === 'editorial' || cat === 'editorials' || cat === 'mains'))
               || (activeTopic === 'arunachal' && cat === 'arunachal');
-            const matchesQuery = !query || titleText.includes(query) || cat.includes(query) || tagsText.includes(query);
+            const matchesQuery = !query || lowerTitle.includes(query) || cat.includes(query) || tagsText.includes(query);
 
             if (matchesTopic && matchesQuery) {
               all.push({
-                title: art.title || 'Current Affairs Article',
+                title: titleText || 'Current Affairs Article',
                 date: ed.publishDate || '',
                 category: art.category || 'NATIONAL',
                 slug: art.slug || '',

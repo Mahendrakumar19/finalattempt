@@ -553,7 +553,7 @@ export default function NewsTodayLayout({
       <div className="max-w-7xl mx-auto space-y-6">
 
         {/* Top Breadcrumbs */}
-        <div className="flex items-center justify-between text-xs text-slate-500 font-semibold border-b border-slate-200 dark:border-white/10 pb-4">
+        <div className="no-print flex items-center justify-between text-xs text-slate-500 font-semibold border-b border-slate-200 dark:border-white/10 pb-4">
           <div className="flex items-center gap-2">
             <Link href="/" className="hover:text-amber-500 transition-colors">Home</Link>
             <ChevronRight className="w-3.5 h-3.5 text-slate-350" />

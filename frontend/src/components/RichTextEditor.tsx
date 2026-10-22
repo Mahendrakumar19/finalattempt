@@ -38,39 +38,154 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
   // Media Asset Picker Modal state
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [mediaPickerMode, setMediaPickerMode] = useState<'IMAGE' | 'DOCUMENT'>('IMAGE');
+  // Track whether the user is actively focused/typing to prevent re-render innerHTML resets
+  const isUserFocusedRef = useRef(false);
 
-  // Set initial content once
+  // Helper: Convert Markdown pipe table text to beautifully styled HTML table
+  const convertMarkdownTableToHtml = (markdown: string): string => {
+    const lines = markdown.trim().split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) return '';
+
+    // Verify it has pipe characters
+    if (!lines[0].includes('|')) return '';
+
+    const parseRow = (line: string): string[] => {
+      let trimmed = line;
+      if (trimmed.startsWith('|')) trimmed = trimmed.slice(1);
+      if (trimmed.endsWith('|')) trimmed = trimmed.slice(0, -1);
+      return trimmed.split('|').map(cell => cell.trim());
+    };
+
+    const headerCells = parseRow(lines[0]);
+    if (headerCells.length === 0) return '';
+
+    // Check if second line is divider (e.g. |---|---| or |:---|---:|)
+    let bodyStartIndex = 1;
+    if (lines.length > 1 && /^\|?(\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?$/.test(lines[1])) {
+      bodyStartIndex = 2;
+    }
+
+    let html = `<div style="overflow-x:auto; margin:1.25rem 0; max-width:100%; border-radius:12px; border:1.5px solid #cbd5e1; box-shadow:0 2px 8px rgba(0,0,0,0.04);">`;
+    html += `<table style="width:100%; border-collapse:collapse; margin:0 auto; font-size:13px; text-align:left; background:#ffffff;">`;
+    
+    // THEAD
+    html += `<thead><tr style="background:#f1f5f9; border-bottom:2px solid #cbd5e1;">`;
+    for (const h of headerCells) {
+      html += `<th style="border:1px solid #cbd5e1; padding:10px 14px; font-weight:800; color:#0f172a; text-transform:uppercase; font-size:12px; letter-spacing:0.03em;">${h || '&nbsp;'}</th>`;
+    }
+    html += `</tr></thead>`;
+
+    // TBODY
+    html += `<tbody>`;
+    for (let i = bodyStartIndex; i < lines.length; i++) {
+      const rowLine = lines[i];
+      if (!rowLine.includes('|')) continue;
+      const cells = parseRow(rowLine);
+      const bg = (i - bodyStartIndex) % 2 === 1 ? 'background:#f8fafc;' : 'background:#ffffff;';
+      html += `<tr style="${bg} border-bottom:1px solid #e2e8f0;">`;
+      for (let c = 0; c < headerCells.length; c++) {
+        const val = cells[c] !== undefined ? cells[c] : '';
+        html += `<td style="border:1px solid #e2e8f0; padding:10px 14px; color:#1e293b; line-height:1.6; font-size:13px;">${val || '&nbsp;'}</td>`;
+      }
+      html += `</tr>`;
+    }
+    html += `</tbody></table></div><p><br/></p>`;
+    return html;
+  };
+
+  // Convert all markdown tables in a block of text into HTML tables
+  const convertAllMarkdownTables = (text: string): { hasTables: boolean; result: string } => {
+    // Regex for markdown table block
+    const tableRegex = /(?:^|\n)(\|[^\n]+\|\r?\n\|[-:\s|]+\|\r?\n(?:\|[^\n]+\|\r?\n?)+)/g;
+    let hasTables = false;
+    const transformed = text.replace(tableRegex, (match, tableContent) => {
+      const htmlTable = convertMarkdownTableToHtml(tableContent);
+      if (htmlTable) {
+        hasTables = true;
+        return '\n' + htmlTable + '\n';
+      }
+      return match;
+    });
+    return { hasTables, result: transformed };
+  };
+
+  // Safe DOM sync: only update innerHTML if not actively focused by user
   useEffect(() => {
-    if (editorRef.current && isFirstLoad.current && value) {
-      editorRef.current.innerHTML = value;
+    if (editorRef.current && isFirstLoad.current) {
+      editorRef.current.innerHTML = value || '';
       isFirstLoad.current = false;
+      return;
+    }
+
+    // If editor has lost all content from outside reset
+    if (editorRef.current && !value && !isUserFocusedRef.current) {
+      if (editorRef.current.innerHTML !== '') {
+        editorRef.current.innerHTML = '';
+      }
+      return;
+    }
+
+    // Only update innerHTML if value came from external source and editor isn't focused
+    if (editorRef.current && !isUserFocusedRef.current) {
+      if (editorRef.current.innerHTML !== value) {
+        editorRef.current.innerHTML = value || '';
+      }
     }
   }, [value]);
 
   // Synchronize modal editor with current content when opening popup
   useEffect(() => {
     if (isFullscreen && modalEditorRef.current) {
-      modalEditorRef.current.innerHTML = editorRef.current ? editorRef.current.innerHTML : value;
+      const currentHtml = editorRef.current ? editorRef.current.innerHTML : (value || '');
+      modalEditorRef.current.innerHTML = currentHtml;
+      // Maintain scroll to top on first open
+      modalEditorRef.current.focus();
     }
-  }, [isFullscreen, value]);
-
-  // If the value gets cleared, empty the editor
-  useEffect(() => {
-    if (editorRef.current && !value) {
-      editorRef.current.innerHTML = '';
-      isFirstLoad.current = true;
-    }
-  }, [value]);
+  }, [isFullscreen]);
 
   const handleInput = () => {
     const targetRef = isFullscreen ? modalEditorRef : editorRef;
     if (targetRef.current) {
       const html = targetRef.current.innerHTML;
       onChange(html);
-      // Sync content between inline & modal editor
+      // Sync content between inline & modal editor without resetting active focus
       if (isFullscreen && editorRef.current) {
         editorRef.current.innerHTML = html;
+      } else if (!isFullscreen && modalEditorRef.current) {
+        modalEditorRef.current.innerHTML = html;
       }
+    }
+  };
+
+  // Smart Paste Handler: Converts markdown pipe tables into real interactive HTML tables on paste!
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const clipboardText = e.clipboardData.getData('text/plain');
+    if (!clipboardText) return;
+
+    // Check if pasted content contains a markdown table
+    if (clipboardText.includes('|') && /\|[-:\s|]+\|/.test(clipboardText)) {
+      const { hasTables, result } = convertAllMarkdownTables(clipboardText);
+      if (hasTables) {
+        e.preventDefault();
+        // Insert clean converted HTML directly at current caret position
+        document.execCommand('insertHTML', false, result);
+        handleInput();
+        return;
+      }
+    }
+  };
+
+  const handleManualMarkdownTablePrompt = () => {
+    const input = prompt(
+      'Paste your Markdown table here (with | columns and |---| dividers):',
+      '| देश/राज्य | प्रमुख पहल |\n|---|---|\n| अफ्रीका | अफ्रीकी रिस्क कैपेसिटी |\n| फिजी | चक्रवात वित्तीय सहायता |'
+    );
+    if (!input) return;
+    const htmlTable = convertMarkdownTableToHtml(input);
+    if (htmlTable) {
+      execCmd('insertHTML', htmlTable);
+    } else {
+      alert('Could not parse Markdown table. Please ensure it uses standard pipe | formatting with header and separator lines.');
     }
   };
 
@@ -578,10 +693,20 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
         type="button"
         onClick={insertTable}
         className="rounded p-1.5 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer flex items-center gap-1 font-bold text-[10px]"
-        title="Insert Table"
+        title="Insert Grid Table"
       >
         <Table className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
         <span>+ Table</span>
+      </button>
+
+      {/* Direct Markdown Table Parser Button */}
+      <button
+        type="button"
+        onClick={handleManualMarkdownTablePrompt}
+        className="rounded px-2 py-1 text-slate-800 dark:text-amber-300 bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/40 transition-colors cursor-pointer flex items-center gap-1 font-black text-[10px]"
+        title="Paste or convert a Markdown pipe table directly (| col | col |)"
+      >
+        <span>📊 + MD Table</span>
       </button>
 
       {/* Table Width Resizer Selector */}
@@ -723,6 +848,13 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
           ref={editorRef}
           contentEditable
           onInput={handleInput}
+          onPaste={handlePaste}
+          onFocus={() => {
+            isUserFocusedRef.current = true;
+          }}
+          onBlur={() => {
+            isUserFocusedRef.current = false;
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Tab') {
               e.preventDefault();
@@ -733,16 +865,16 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
               }
             }
           }}
-          className="min-h-[220px] max-h-[350px] overflow-y-auto bg-white dark:bg-slate-900 p-4 outline-none text-slate-900 dark:text-slate-100 text-xs leading-relaxed prose dark:prose-invert max-w-none focus:outline-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 dark:[&_th]:bg-slate-800 [&_th]:p-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-slate-900 dark:[&_th]:text-slate-100 [&_td]:p-2.5 [&_td]:border [&_td]:border-slate-200 dark:[&_td]:border-slate-800 [&_tr:nth-child(even)]:bg-slate-50/50 dark:[&_tr:nth-child(even)]:bg-slate-800/30"
+          className="min-h-[220px] max-h-[400px] overflow-y-auto bg-white dark:bg-slate-900 p-4 outline-none text-slate-900 dark:text-slate-100 text-xs sm:text-sm leading-relaxed prose dark:prose-invert max-w-none focus:outline-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 dark:[&_th]:bg-slate-800 [&_th]:p-2.5 [&_th]:text-left [&_th]:font-bold [&_th]:text-slate-900 dark:[&_th]:text-slate-100 [&_td]:p-2.5 [&_td]:border [&_td]:border-slate-200 dark:[&_td]:border-slate-800 [&_td]:text-slate-800 dark:[&_td]:text-slate-200 [&_tr:nth-child(even)]:bg-slate-50/50 dark:[&_tr:nth-child(even)]:bg-slate-800/30"
         />
       </div>
 
-      {/* Full Screen Popup View Modal */}
+      {/* Full Screen Popup View Modal - z-[100] to sit above any parent admin modal (z-50) */}
       {isFullscreen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-8 animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[100] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-8 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[92vh] rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl flex flex-col overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/70 shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-amber-500 font-extrabold text-sm">✏️ Full-Screen Canvas</span>
                 <h3 className="font-heading font-black text-slate-900 dark:text-white text-base">{label}</h3>
@@ -770,13 +902,20 @@ export default function RichTextEditor({ value, onChange, label = 'Rich Text Edi
             {renderToolbarControls()}
 
             {/* Expanded Editor Content Area */}
-            <div className="flex-grow p-8 bg-slate-50/50 dark:bg-slate-950/30 overflow-y-auto">
-              <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-8 min-h-[600px] shadow-sm">
+            <div className="flex-grow p-4 sm:p-8 bg-slate-100 dark:bg-slate-950/60 overflow-y-auto">
+              <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 sm:p-10 min-h-[600px] shadow-sm">
                 <div
                   ref={modalEditorRef}
                   contentEditable
                   onInput={handleInput}
-                  className="min-h-[550px] outline-none text-slate-900 dark:text-white text-sm sm:text-base leading-relaxed prose dark:prose-invert max-w-none focus:outline-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 [&_th]:dark:bg-slate-800 [&_th]:p-3 [&_th]:text-left [&_th]:font-bold [&_td]:p-3 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-white/10 [&_tr:nth-child(even)]:bg-slate-50/50 [&_tr:nth-child(even)]:dark:bg-slate-800/30"
+                  onPaste={handlePaste}
+                  onFocus={() => {
+                    isUserFocusedRef.current = true;
+                  }}
+                  onBlur={() => {
+                    isUserFocusedRef.current = false;
+                  }}
+                  className="min-h-[550px] outline-none text-slate-900 dark:text-slate-100 text-sm sm:text-base leading-relaxed prose dark:prose-invert max-w-none focus:outline-none [&_table]:w-full [&_table]:border-collapse [&_table]:my-4 [&_th]:bg-slate-100 dark:[&_th]:bg-slate-800 [&_th]:p-3 [&_th]:text-left [&_th]:font-bold [&_th]:text-slate-900 dark:[&_th]:text-slate-100 [&_td]:p-3 [&_td]:border [&_td]:border-slate-200 dark:[&_td]:border-white/10 [&_td]:text-slate-800 dark:[&_td]:text-slate-200 [&_tr:nth-child(even)]:bg-slate-50/50 [&_tr:nth-child(even)]:dark:bg-slate-800/30"
                 />
               </div>
             </div>
