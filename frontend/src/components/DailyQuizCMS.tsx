@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   Flame, Plus, Trash2, Edit3, X, 
@@ -22,6 +24,45 @@ export function generateDailyQuizSlug(title: string, publishDate: string): strin
   return `${cleanTitle || 'daily-quiz'}-${cleanDate}`.replace(/--+/g, '-');
 }
 
+export function generateUniqueId(prefix = 'id'): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+}
+
+/** Strips any leading "(a) " / "(A) " / "(क) " option prefix from stored option text */
+function stripOptionPrefix(text: string): string {
+  if (!text) return '';
+  return text.replace(/^\s*\([a-dA-D\u0915-\u0918]\)\s+/, '').trim();
+}
+
+function stringToSeed(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
+  }
+  return hash >>> 0;
+}
+
+function mulberry32(a: number) {
+  return function () {
+    let t = (a += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+export function shuffleArraySeeded<T>(array: T[], seedStr: string): T[] {
+  const arr = [...array];
+  const random = mulberry32(stringToSeed(seedStr));
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export interface DailyQuiz {
   id: string;
   slug?: string;
@@ -38,6 +79,10 @@ export interface DailyQuiz {
   attemptsCount?: number;
   passingScore?: number;
   isFree?: boolean;
+  setMode?: 'single' | 'multi';
+  defaultSet?: string;
+  availableSets?: string[];
+  scheduledReleaseAt?: string;
 }
 
 export interface Question {
@@ -61,6 +106,7 @@ export interface Question {
   imageUrl?: string;
   marks?: number;
   negativeMarks?: number;
+  [key: string]: unknown;
 }
 
 const BLANK_DAILY_QUIZ: Partial<DailyQuiz> = {
@@ -76,7 +122,10 @@ const BLANK_DAILY_QUIZ: Partial<DailyQuiz> = {
   difficulty: 'MEDIUM',
   category: 'Daily Practice',
   passingScore: 40,
-  isFree: true
+  isFree: true,
+  setMode: 'single',
+  defaultSet: 'SET-A',
+  availableSets: ['SET-A', 'SET-B', 'SET-C', 'SET-D']
 };
 
 const BLANK_QUESTION: Partial<Question> = {
@@ -151,55 +200,29 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
   // Bulk Importer Modal State (Full Test Series Standard)
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkParseMode, setBulkParseMode] = useState<'text' | 'file'>('text');
   const [bulkRawText, setBulkRawText] = useState('');
   const [parsedBulkQuestions, setParsedBulkQuestions] = useState<Question[]>([]);
   const [bulkDefaultMarks, setBulkDefaultMarks] = useState(1.0);
   const [bulkDefaultNegMarks, setBulkDefaultNegMarks] = useState(0.33);
   const [importingBulk, setImportingBulk] = useState(false);
+  const [parsingBulkFile, setParsingBulkFile] = useState(false);
+  const [bulkParseErrors, setBulkParseErrors] = useState<string[]>([]);
 
   // Answer Key Inspector Modal State
   const [isAnswerKeyModalOpen, setIsAnswerKeyModalOpen] = useState(false);
   const [copiedKeyToast, setCopiedKeyToast] = useState(false);
 
-  // Fetch all daily quizzes
-  const loadQuizzes = async () => {
-    setLoading(true);
-    try {
-      const data = await db.getPreviousDailyQuizzes();
-      setQuizzes(data || []);
-      if (!selectedQuizId && data && data.length > 0) {
-        handleSelectQuizForQuestions(data[0].id);
-      }
-    } catch (err) {
-      console.error('Failed loading daily quizzes:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let isSubscribed = true;
-    db.getPreviousDailyQuizzes()
-      .then(data => {
-        if (!isSubscribed) return;
-        setQuizzes(data || []);
-        if (data && data.length > 0 && !selectedQuizId) {
-          handleSelectQuizForQuestions(data[0].id);
-        }
-      })
-      .catch(err => console.error('Failed loading daily quizzes:', err))
-      .finally(() => {
-        if (isSubscribed) setLoading(false);
-      });
-    return () => { isSubscribed = false; };
-  }, []);
+  // SET Inspection & Variant preview state (SET-A, SET-B, SET-C, SET-D)
+  const [selectedSetCode, setSelectedSetCode] = useState<'SET-A' | 'SET-B' | 'SET-C' | 'SET-D'>('SET-A');
 
   // Fetch questions for a selected quiz
-  const handleSelectQuizForQuestions = async (quizId: string) => {
+  const handleSelectQuizForQuestions = useCallback(async (quizId: string) => {
     setSelectedQuizId(quizId);
     setLoadingQuestions(true);
+    setSelectedSetCode('SET-A');
     try {
-      const adminQuestions = await (db as any).getAdminDailyQuizQuestions(quizId);
+      const adminQuestions = await (db as unknown as { getAdminDailyQuizQuestions: (id: string) => Promise<Question[]> }).getAdminDailyQuizQuestions(quizId);
       if (Array.isArray(adminQuestions) && adminQuestions.length > 0) {
         setQuestions(adminQuestions);
       } else {
@@ -216,12 +239,96 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
     } finally {
       setLoadingQuestions(false);
     }
-  };
+  }, []);
+
+  // Fetch all daily quizzes
+  const loadQuizzes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await db.getPreviousDailyQuizzes();
+      setQuizzes(data || []);
+      if (data && data.length > 0) {
+        setSelectedQuizId(prev => {
+          if (!prev) {
+            handleSelectQuizForQuestions(data[0].id);
+          }
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.error('Failed loading daily quizzes:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [handleSelectQuizForQuestions]);
+
+  useEffect(() => {
+    let isSubscribed = true;
+    db.getPreviousDailyQuizzes()
+      .then(data => {
+        if (!isSubscribed) return;
+        setQuizzes(data || []);
+        if (data && data.length > 0) {
+          setSelectedQuizId(prev => {
+            if (!prev) {
+              handleSelectQuizForQuestions(data[0].id);
+            }
+            return prev;
+          });
+        }
+      })
+      .catch(err => console.error('Failed loading daily quizzes:', err))
+      .finally(() => {
+        if (isSubscribed) setLoading(false);
+      });
+    return () => { isSubscribed = false; };
+  }, [handleSelectQuizForQuestions]);
 
   // Selected Quiz object
   const currentSelectedQuiz = useMemo(() => {
     return quizzes.find(q => q.id === selectedQuizId) || null;
   }, [quizzes, selectedQuizId]);
+
+  // Compute SET-shuffled questions for current quiz and selectedSetCode
+  const activeSetQuestions = useMemo<Question[]>(() => {
+    if (!questions || questions.length === 0) return [];
+    if (selectedSetCode === 'SET-A' || currentSelectedQuiz?.setMode !== 'multi') {
+      return questions.map(q => ({ ...q, mappedCorrectKey: q.correctAnswer }));
+    }
+    const seed = `seed-${selectedQuizId || 'dq'}-${selectedSetCode}`;
+    const shuffledQs = shuffleArraySeeded(questions, `${seed}-q`);
+    return shuffledQs.map((q: Question) => {
+      const rawOptionPairs = [
+        { origKey: 'A', text: q.optionA, textHi: q.optionAHi },
+        { origKey: 'B', text: q.optionB, textHi: q.optionBHi },
+        { origKey: 'C', text: q.optionC, textHi: q.optionCHi },
+        { origKey: 'D', text: q.optionD, textHi: q.optionDHi },
+        { origKey: 'E', text: q.optionE, textHi: q.optionEHi },
+      ];
+      const optionPairs = rawOptionPairs.filter(o => o.text || o.textHi);
+      const shuffledOpts = shuffleArraySeeded(optionPairs, `${seed}-opt-${q.id}`);
+      let mappedCorrectKey = q.correctAnswer;
+      const newLetters = ['A', 'B', 'C', 'D', 'E'];
+      shuffledOpts.forEach((opt: any, idx: number) => {
+        if (opt.origKey === q.correctAnswer) mappedCorrectKey = newLetters[idx];
+      });
+
+      return {
+        ...q,
+        optionA: shuffledOpts[0]?.text || '',
+        optionB: shuffledOpts[1]?.text || '',
+        optionC: shuffledOpts[2]?.text || '',
+        optionD: shuffledOpts[3]?.text || '',
+        optionE: shuffledOpts[4]?.text || undefined,
+        optionAHi: shuffledOpts[0]?.textHi || undefined,
+        optionBHi: shuffledOpts[1]?.textHi || undefined,
+        optionCHi: shuffledOpts[2]?.textHi || undefined,
+        optionDHi: shuffledOpts[3]?.textHi || undefined,
+        optionEHi: shuffledOpts[4]?.textHi || undefined,
+        mappedCorrectKey
+      };
+    });
+  }, [questions, selectedSetCode, currentSelectedQuiz, selectedQuizId]);
 
   // Filtered Quizzes
   const filteredQuizzes = useMemo(() => {
@@ -236,17 +343,17 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
     );
   }, [quizzes, searchQuizQuery]);
 
-  // Filtered Questions in selected quiz
+  // Filtered Questions in selected quiz (using activeSetQuestions)
   const filteredQuestions = useMemo(() => {
-    if (!searchQuestionQuery.trim()) return questions;
+    if (!searchQuestionQuery.trim()) return activeSetQuestions;
     const q = searchQuestionQuery.toLowerCase();
-    return questions.filter(item =>
+    return activeSetQuestions.filter((item: Question) =>
       item.questionText?.toLowerCase().includes(q) ||
       item.questionTextHi?.includes(q) ||
       item.explanation?.toLowerCase().includes(q) ||
       item.explanationHi?.includes(q)
     );
-  }, [questions, searchQuestionQuery]);
+  }, [activeSetQuestions, searchQuestionQuery]);
 
   // Save / Update Daily Quiz Metadata
   const handleSaveQuiz = async (e: React.FormEvent) => {
@@ -261,7 +368,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
         : generateDailyQuizSlug(titleForSlug, fallbackDate);
 
       const newQuiz: DailyQuiz = {
-        id: editingQuiz.id || `dq-${Date.now()}`,
+        id: editingQuiz.id || generateUniqueId('dq'),
         slug: autoSlug,
         title: editingQuiz.title || 'Daily Practice Quiz',
         title_hi: editingQuiz.title_hi || undefined,
@@ -275,7 +382,10 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
         category: editingQuiz.category || 'Daily Practice',
         attemptsCount: editingQuiz.attemptsCount || 0,
         passingScore: Number(editingQuiz.passingScore || 40),
-        isFree: true
+        isFree: true,
+        setMode: editingQuiz.setMode || 'single',
+        defaultSet: editingQuiz.defaultSet || 'SET-A',
+        availableSets: editingQuiz.availableSets || ['SET-A', 'SET-B', 'SET-C', 'SET-D']
       };
 
       await db.saveDailyQuiz(newQuiz);
@@ -309,7 +419,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
   // Duplicate Daily Quiz
   const handleDuplicateQuiz = async (quiz: DailyQuiz) => {
     try {
-      const duplicateId = `dq-${Date.now()}`;
+      const duplicateId = generateUniqueId('dq');
       const duplicateTitle = `${quiz.title} (Copy)`;
       const today = new Date().toISOString().split('T')[0];
       const dupQuiz: DailyQuiz = {
@@ -328,7 +438,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
       if (origData && origData.questions && origData.questions.length > 0) {
         const clonedQs = origData.questions.map((q: Question, idx: number) => ({
           ...q,
-          id: `q-${duplicateId}-${idx + 1}-${Date.now()}`
+          id: generateUniqueId(`q-${duplicateId}-${idx + 1}`)
         }));
         await (db as any).saveDailyQuizQuestionsBulk(duplicateId, clonedQs);
       }
@@ -367,7 +477,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
     try {
       const newQ: Question = {
-        id: editingQ.id || `q-${selectedQuizId}-${Date.now()}`,
+        id: editingQ.id || generateUniqueId(`q-${selectedQuizId}`),
         questionText: editingQ.questionText || '',
         questionTextHi: editingQ.questionTextHi || undefined,
         optionA: editingQ.optionA || '',
@@ -417,7 +527,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
     try {
       const cloned: Question = {
         ...q,
-        id: `q-${selectedQuizId}-${Date.now()}`,
+        id: generateUniqueId(`q-${selectedQuizId}`),
         questionText: `${q.questionText} (Copy)`
       };
       await db.saveDailyQuizQuestion(selectedQuizId, cloned);
@@ -505,7 +615,9 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
           setParsedBulkQuestions(parsed);
           return;
         }
-      } catch (_) {}
+      } catch {
+        // Not JSON formatted
+      }
     }
 
     // 2. Try parsing CSV format
@@ -707,10 +819,12 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
   // Copy Answer Key to Clipboard
   const handleCopyAnswerKey = () => {
-    if (!questions.length) return;
-    const summaryText = questions
-      .map((q, idx) => `Q${idx + 1}: ${q.correctAnswer} (Marks: +${q.marks || 1}, -${q.negativeMarks || 0.33}) - ${q.explanation || 'No explanation'}`)
-      .join('\n');
+    const listToCopy = activeSetQuestions.length ? activeSetQuestions : questions;
+    if (!listToCopy.length) return;
+    const summaryText = `Final Attempt Daily Quiz Answer Key [${selectedSetCode}]\nQuiz: ${currentSelectedQuiz?.title || 'Daily Quiz'}\n` +
+      listToCopy
+        .map((q: Question, idx: number) => `Q${idx + 1}: ${(q as any).mappedCorrectKey || q.correctAnswer} (Marks: +${q.marks || 1}, -${q.negativeMarks || 0.33}) - ${q.explanation || 'No explanation'}`)
+        .join('\n');
     navigator.clipboard.writeText(summaryText);
     setCopiedKeyToast(true);
     setTimeout(() => setCopiedKeyToast(false), 2500);
@@ -1044,6 +1158,47 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                 </div>
               </div>
 
+              {/* SET Paper Variant Selector Bar (Test Series Standard) */}
+              {currentSelectedQuiz?.setMode === 'multi' && (
+                <div className="p-3 bg-gradient-to-r from-amber-500/10 via-slate-100 dark:via-slate-900 to-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 bg-amber-500 text-slate-950 font-black text-[10px] rounded-lg uppercase tracking-wider">
+                      Multi-SET Paper
+                    </span>
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Active Variant Inspection:
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 bg-white dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-inner">
+                    {(currentSelectedQuiz.availableSets || ['SET-A', 'SET-B', 'SET-C', 'SET-D']).map((setCode) => {
+                      const isSelected = selectedSetCode === setCode;
+                      return (
+                        <button
+                          key={setCode}
+                          type="button"
+                          onClick={() => setSelectedSetCode(setCode as any)}
+                          className={`px-3 py-1 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                            isSelected
+                              ? 'bg-amber-500 text-slate-950 shadow-xs scale-105'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white'
+                          }`}
+                        >
+                          {setCode}
+                          {currentSelectedQuiz.defaultSet === setCode && (
+                            <span className="ml-1 text-[9px] font-black opacity-80">(Default)</span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    Shuffled viewing: Showing question order and answer keys for <strong>{selectedSetCode}</strong>
+                  </span>
+                </div>
+              )}
+
               {/* Filter Questions in Bank */}
               <div className="flex items-center justify-between gap-3">
                 <div className="relative flex-1">
@@ -1172,7 +1327,6 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                         {/* Optional Question Diagram Image */}
                         {(q.questionImageUrl || q.imageUrl) && (
                           <div className="max-w-xs rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={q.questionImageUrl || q.imageUrl}
                               alt="Question Diagram"
@@ -1213,13 +1367,20 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                             { key: 'D', text: q.optionD, textHi: q.optionDHi },
                             { key: 'E', text: q.optionE, textHi: q.optionEHi }
                           ].filter(opt => opt.text || opt.textHi).map(opt => {
-                            const isCorrect = String(q.correctAnswer || '').trim().toUpperCase() === opt.key.toUpperCase();
+                            const effectiveCorrectKey = String((q as any).mappedCorrectKey || q.correctAnswer || '').trim().toUpperCase();
+                            const isCorrect = effectiveCorrectKey === opt.key.toUpperCase();
                             return (
                               <button
                                 key={opt.key}
                                 type="button"
-                                onClick={() => handleQuickSetCorrectAnswer(q, opt.key)}
-                                title={`Click to set Option ${opt.key} as the correct answer`}
+                                onClick={() => {
+                                  if (selectedSetCode !== 'SET-A' && currentSelectedQuiz?.setMode === 'multi') {
+                                    alert('Answer key can be modified in SET-A (Master Key). Variants (B, C, D) are automatically mapped.');
+                                    return;
+                                  }
+                                  handleQuickSetCorrectAnswer(q, opt.key);
+                                }}
+                                title={selectedSetCode === 'SET-A' ? `Click to set Option ${opt.key} as the correct answer` : `Mapped answer for ${selectedSetCode}`}
                                 className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-all text-left cursor-pointer ${
                                   isCorrect
                                     ? 'bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 text-emerald-950 dark:text-emerald-100 font-bold shadow-xs ring-1 ring-emerald-500/20'
@@ -1248,7 +1409,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                                 {isCorrect ? (
                                   <span className="flex items-center gap-1 text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-2 py-0.5 rounded-md border border-emerald-400 shrink-0">
                                     <Check className="w-3 h-3 stroke-[3]" />
-                                    <span>Correct</span>
+                                    <span>Correct {selectedSetCode !== 'SET-A' ? `(${selectedSetCode})` : ''}</span>
                                   </span>
                                 ) : (
                                   <span className="text-[10px] font-semibold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
@@ -1534,6 +1695,77 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                 </div>
               </div>
 
+              {/* SET-Wise Exam Paper Access Configuration Card (Test Series Standard) */}
+              <div className="p-5 bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4 shadow-xs">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                  <div>
+                    <label className="block text-amber-500 font-extrabold uppercase text-[10px] tracking-wider">
+                      SET-Wise Exam Paper Access System
+                    </label>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                      Configure paper variants (SET-A, B, C, D) and default assigned SET code
+                    </span>
+                  </div>
+                  <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-lg text-[9px] font-black uppercase shrink-0">
+                    {editingQuiz.setMode === 'multi' ? 'Multi-SET Mode' : 'Single Paper Mode'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 mb-1 text-[10px] uppercase font-bold">SET Access Mode</label>
+                    <select
+                      value={editingQuiz.setMode || 'single'}
+                      onChange={e => setEditingQuiz(prev => ({ ...prev, setMode: e.target.value as 'single' | 'multi' }))}
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold cursor-pointer text-xs focus:border-amber-500 transition-colors"
+                    >
+                      <option value="single">Single Paper (Standard)</option>
+                      <option value="multi">Multi-SET Paper (Sets A, B, C, D)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 dark:text-slate-300 mb-1 text-[10px] uppercase font-bold">Assigned Default SET Code</label>
+                    <select
+                      value={editingQuiz.defaultSet || 'SET-A'}
+                      onChange={e => setEditingQuiz(prev => ({ ...prev, defaultSet: e.target.value }))}
+                      className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold cursor-pointer text-xs focus:border-amber-500 transition-colors"
+                    >
+                      <option value="SET-A">SET-A</option>
+                      <option value="SET-B">SET-B</option>
+                      <option value="SET-C">SET-C</option>
+                      <option value="SET-D">SET-D</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 dark:text-slate-300 mb-2 text-[10px] uppercase font-bold">Available SET Variants</label>
+                  <div className="flex flex-wrap items-center gap-4">
+                    {['SET-A', 'SET-B', 'SET-C', 'SET-D'].map((setCode) => {
+                      const currentSets: string[] = editingQuiz.availableSets || ['SET-A', 'SET-B', 'SET-C', 'SET-D'];
+                      const isChecked = currentSets.includes(setCode);
+                      return (
+                        <label key={setCode} className="flex items-center gap-2 cursor-pointer text-xs font-bold select-none bg-slate-50 dark:bg-slate-950 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 transition-colors shadow-2xs">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              const nextSets = e.target.checked
+                                ? [...currentSets, setCode]
+                                : currentSets.filter(s => s !== setCode);
+                              setEditingQuiz(prev => ({ ...prev, availableSets: nextSets }));
+                            }}
+                            className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                          />
+                          <span className={isChecked ? 'text-amber-500 font-black' : 'text-slate-600 dark:text-slate-400'}>{setCode}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -1800,6 +2032,26 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                 </div>
               </div>
 
+              {/* Quick Marking Scheme Presets */}
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Quick Presets:</span>
+                {[
+                  { label: '+1.0 / -0.33 (BPSC/UPSC 1/3rd)', m: 1.0, neg: 0.33 },
+                  { label: '+2.0 / -0.66 (UPSC GS-1)', m: 2.0, neg: 0.66 },
+                  { label: '+2.0 / -0.50 (BPSC 1/4th)', m: 2.0, neg: 0.50 },
+                  { label: '+1.0 / 0.00 (No Negative)', m: 1.0, neg: 0.00 }
+                ].map((preset, pIdx) => (
+                  <button
+                    key={pIdx}
+                    type="button"
+                    onClick={() => setEditingQ(prev => ({ ...prev, marks: preset.m, negativeMarks: preset.neg }))}
+                    className="px-2.5 py-1 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
               {/* Diagram / Image URL */}
               <div className="space-y-1 pt-1">
                 <label className="font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
@@ -1815,7 +2067,6 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                 />
                 {editingQ.questionImageUrl && (
                   <div className="mt-2 max-w-xs rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={editingQ.questionImageUrl}
                       alt="Preview"
@@ -1885,10 +2136,114 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
               </button>
             </div>
 
+            {/* Mode Switcher Tabs (Test Series Caliber) */}
+            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+              <button
+                type="button"
+                onClick={() => { setBulkParseMode('text'); setBulkParseErrors([]); }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  bulkParseMode === 'text'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-950'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Paste Text / MCQs</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setBulkParseMode('file'); setBulkParseErrors([]); }}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  bulkParseMode === 'file'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-950'
+                }`}
+              >
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload Document / PDF / Excel</span>
+              </button>
+            </div>
+
+            {bulkParseErrors.length > 0 && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-600 dark:text-red-400 font-bold space-y-1">
+                {bulkParseErrors.map((err, i) => (
+                  <p key={i}>⚠️ {err}</p>
+                ))}
+              </div>
+            )}
+
             {/* Input & Helper Row */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500">Paste Text / Questions Feed:</span>
+            {bulkParseMode === 'file' ? (
+              <div className="p-8 border-2 border-dashed border-amber-500/40 rounded-3xl space-y-4 text-center bg-amber-50/20 dark:bg-slate-900/40">
+                <FileText className="w-12 h-12 text-amber-500 mx-auto" />
+                <div className="space-y-1">
+                  <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">
+                    Upload Exam Paper / Question Document
+                  </h4>
+                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                    Supports digital PDF question papers, Excel (.xlsx/.csv), or text documents with questions and solutions.
+                  </p>
+                </div>
+                <label className="inline-block px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl cursor-pointer shadow-md transition-all">
+                  <span>{parsingBulkFile ? 'Parsing Document...' : 'Select PDF or Document File'}</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.txt,.docx,.csv"
+                    disabled={parsingBulkFile}
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setParsingBulkFile(true);
+                      setBulkParseErrors([]);
+                      try {
+                        if (file.name.endsWith('.pdf')) {
+                          const res = await (db as any).parseBilingualPdf(file);
+                          if (res && res.success && res.report && res.report.questionsPreview) {
+                            const qList = res.report.questionsPreview.map((q: any, idx: number) => ({
+                              id: `q-bulk-${Date.now()}-${idx + 1}`,
+                              questionText: q.questionText || '',
+                              questionTextHi: q.questionTextHi || undefined,
+                              optionA: stripOptionPrefix(q.optionA || ''),
+                              optionAHi: q.optionAHi ? stripOptionPrefix(q.optionAHi) : undefined,
+                              optionB: stripOptionPrefix(q.optionB || ''),
+                              optionBHi: q.optionBHi ? stripOptionPrefix(q.optionBHi) : undefined,
+                              optionC: stripOptionPrefix(q.optionC || ''),
+                              optionCHi: q.optionCHi ? stripOptionPrefix(q.optionCHi) : undefined,
+                              optionD: stripOptionPrefix(q.optionD || ''),
+                              optionDHi: q.optionDHi ? stripOptionPrefix(q.optionDHi) : undefined,
+                              optionE: q.optionE ? stripOptionPrefix(q.optionE) : undefined,
+                              optionEHi: q.optionEHi ? stripOptionPrefix(q.optionEHi) : undefined,
+                              correctAnswer: q.correctAnswer || 'A',
+                              explanation: q.explanation || 'Refer to official syllabus notes.',
+                              explanationHi: q.explanationHi || undefined,
+                              marks: bulkDefaultMarks,
+                              negativeMarks: bulkDefaultNegMarks
+                            }));
+                            setParsedBulkQuestions(qList);
+                          } else {
+                            setBulkParseErrors([res?.error || 'Could not parse PDF questions.']);
+                          }
+                        } else {
+                          const text = await file.text();
+                          setBulkRawText(text);
+                          setBulkParseMode('text');
+                          setTimeout(() => handleParseBulkText(), 100);
+                        }
+                      } catch (err: any) {
+                        setBulkParseErrors([err.message || 'Error processing file.']);
+                      } finally {
+                        setParsingBulkFile(false);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500">Paste Text / Questions Feed:</span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -1950,6 +2305,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                 </button>
               </div>
             </div>
+            )}
 
             {/* Parsed Preview Section */}
             {parsedBulkQuestions.length > 0 && (
@@ -2034,8 +2390,35 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
               </button>
             </div>
 
+            {/* SET Selector in Answer Key Modal */}
+            {currentSelectedQuiz?.setMode === 'multi' && (
+              <div className="flex items-center justify-between gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+                <span className="text-xs font-black uppercase text-amber-700 dark:text-amber-300">
+                  Select SET Variant:
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {(currentSelectedQuiz.availableSets || ['SET-A', 'SET-B', 'SET-C', 'SET-D']).map((setCode) => (
+                    <button
+                      key={setCode}
+                      type="button"
+                      onClick={() => setSelectedSetCode(setCode as any)}
+                      className={`px-3 py-1 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                        selectedSetCode === setCode
+                          ? 'bg-amber-500 text-slate-950 shadow-xs'
+                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-950'
+                      }`}
+                    >
+                      {setCode}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Quick Verification Grid:</span>
+              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                Verification Grid ({selectedSetCode}):
+              </span>
               <button
                 onClick={handleCopyAnswerKey}
                 className="px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-amber-900 dark:text-amber-300 font-bold text-xs rounded-xl transition-all cursor-pointer flex items-center gap-1.5 border border-amber-200 dark:border-slate-700"
@@ -2047,14 +2430,14 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
             {/* Answer Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 max-h-96 overflow-y-auto pr-1 text-xs">
-              {questions.map((q, idx) => (
+              {activeSetQuestions.map((q: Question, idx: number) => (
                 <div
                   key={q.id || idx}
                   className="p-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between shadow-2xs"
                 >
                   <span className="font-bold text-slate-600 dark:text-slate-400">Q{idx + 1}</span>
                   <span className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-400 font-black flex items-center justify-center">
-                    {q.correctAnswer}
+                    {(q as any).mappedCorrectKey || q.correctAnswer}
                   </span>
                 </div>
               ))}

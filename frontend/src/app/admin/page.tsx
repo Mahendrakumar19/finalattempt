@@ -36,23 +36,31 @@ import {
   ArrowUpRight,
   Bell
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useTheme } from '@/context/ThemeContext';
 import { useLocale } from '@/context/LocaleContext';
-import RichTextEditor from '@/components/RichTextEditor';
-import MediaDashboard from '@/components/MediaDashboard';
-import MediaPicker from '@/components/MediaPicker';
-import SyllabusStrategyCMS from '@/components/SyllabusStrategyCMS';
-import PYQsManagerCMS from '@/components/PYQsManagerCMS';
-import NCERTBooksManagerCMS from '@/components/NCERTBooksManagerCMS';
-import NcertStyleResourceCMS from '@/components/NcertStyleResourceCMS';
 import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTopper } from '@/services/db';
-import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
-import DailyQuizCMS from '@/components/DailyQuizCMS';
-import CustomPagesCMS from '@/components/CustomPagesCMS';
-import MainsEvaluationCMS from '@/components/MainsEvaluationCMS';
-import AdminChatPanel from '@/components/admin/AdminChatPanel';
-import BookOrdersCMS from '@/components/admin/BookOrdersCMS';
-import OffersAndNotificationsCMS from '@/components/admin/OffersAndNotificationsCMS';
+
+// 🚀 Performance Optimization: Lazy load heavy sub-CMS panels on demand
+const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
+  loading: () => <div className="p-8 text-center text-xs text-slate-400">Loading editor canvas...</div>,
+  ssr: false
+});
+const MediaDashboard = dynamic(() => import('@/components/MediaDashboard'), {
+  loading: () => <div className="p-8 text-center text-xs text-slate-400">Loading media library...</div>
+});
+const MediaPicker = dynamic(() => import('@/components/MediaPicker'));
+const SyllabusStrategyCMS = dynamic(() => import('@/components/SyllabusStrategyCMS'));
+const PYQsManagerCMS = dynamic(() => import('@/components/PYQsManagerCMS'));
+const NCERTBooksManagerCMS = dynamic(() => import('@/components/NCERTBooksManagerCMS'));
+const NcertStyleResourceCMS = dynamic(() => import('@/components/NcertStyleResourceCMS'));
+const TestSeriesAdmin = dynamic(() => import('@/components/admin/TestSeriesAdmin'));
+const DailyQuizCMS = dynamic(() => import('@/components/DailyQuizCMS'));
+const CustomPagesCMS = dynamic(() => import('@/components/CustomPagesCMS'));
+const MainsEvaluationCMS = dynamic(() => import('@/components/MainsEvaluationCMS'));
+const AdminChatPanel = dynamic(() => import('@/components/admin/AdminChatPanel'));
+const BookOrdersCMS = dynamic(() => import('@/components/admin/BookOrdersCMS'));
+const OffersAndNotificationsCMS = dynamic(() => import('@/components/admin/OffersAndNotificationsCMS'));
 
 type AdminTab = 'Dashboard' | 'Student Chats' | 'Book Orders' | 'Books & Publications' | 'Offers & Notifications' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Useful Documents' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Daily Quiz' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
