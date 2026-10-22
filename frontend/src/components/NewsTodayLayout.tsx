@@ -78,16 +78,27 @@ export default function NewsTodayLayout({
     triggerPdfDownload();
   };
 
-  // Calendar Date State
+  // Calendar Date State & Prop Synchronization without cascading render
+  const [prevDateStr, setPrevDateStr] = useState(currentDateStr);
   const [calendarDate, setCalendarDate] = useState<Date>(() => {
     if (currentDateStr) {
       const parts = currentDateStr.split('-');
       if (parts.length === 3) {
-        return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
       }
     }
     return new Date();
   });
+
+  if (prevDateStr !== currentDateStr) {
+    setPrevDateStr(currentDateStr);
+    if (currentDateStr) {
+      const parts = currentDateStr.split('-');
+      if (parts.length === 3) {
+        setCalendarDate(new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
+      }
+    }
+  }
 
   // In-memory article cache to enable instant 0ms topic switching
   const articleCacheRef = useRef<Map<string, DynamicCurrentAffairArticle>>(new Map());
@@ -154,13 +165,6 @@ export default function NewsTodayLayout({
       }
     }
     loadData();
-
-    if (currentDateStr) {
-      const parts = currentDateStr.split('-');
-      if (parts.length === 3) {
-        setCalendarDate(new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10)));
-      }
-    }
   }, [currentDateStr, currentArticleSlug, locale]);
 
   // Set of dates that have published editions (YYYY-MM-DD)
@@ -632,8 +636,8 @@ export default function NewsTodayLayout({
                 />
 
                 {/* 1. ARTICLE HEADER BANNER */}
-                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 sm:p-8 space-y-4 shadow-xs">
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-white/5 pb-3">
+                <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-white/10 p-6 sm:p-8 space-y-4 shadow-xs print:p-0 print:m-0 print:space-y-2">
+                  <div className="no-print flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-white/5 pb-3">
                     <div className="flex flex-wrap gap-2 items-center text-xs">
                       {activeArticle?.category && (
                         <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-500/20">

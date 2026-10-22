@@ -1382,7 +1382,7 @@ html.dark {
    ═══════════════════════════════════════════════════════════ */
 @media print {
   @page {
-    margin: 12mm 14mm 12mm 14mm;
+    margin: 8mm 12mm 10mm 12mm;
     size: A4 portrait;
   }
 
@@ -1392,14 +1392,14 @@ html.dark {
     position: fixed;
     top: 50%;
     left: 50%;
-    width: 160mm;
-    height: 80mm;
+    width: 140mm;
+    height: 70mm;
     transform: translate(-50%, -50%) rotate(-25deg);
     background-image: url('/darklogofull.png');
     background-repeat: no-repeat;
     background-position: center center;
     background-size: contain;
-    opacity: 0.13 !important;
+    opacity: 0.12 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     pointer-events: none;
@@ -1411,7 +1411,7 @@ html.dark {
     display: block !important;
   }
 
-  /* Hide navigation, footers, interactive buttons, sidebars, breadcrumbs in PDF/Print */
+  /* Hide navigation, footers, interactive buttons, sidebars, breadcrumbs, modals */
   header,
   nav,
   footer,
@@ -1427,8 +1427,10 @@ html.dark {
   body {
     background: #ffffff !important;
     color: #0f172a !important;
-    font-size: 11pt !important;
-    line-height: 1.65 !important;
+    font-size: 10pt !important;
+    line-height: 1.5 !important;
+    margin: 0 !important;
+    padding: 0 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -1445,42 +1447,92 @@ html.dark {
     background: transparent !important;
   }
 
-  /* Remove bulky card borders and paddings in print for ultra-clean layout */
+  /* Zero out outer wrappers padding and margins that cause page spillover */
+  .min-h-screen,
+  .max-w-7xl,
+  .max-w-4xl,
   .bg-white,
   .dark\:bg-slate-900 {
     box-shadow: none !important;
     border: none !important;
     background: transparent !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: auto !important;
   }
 
-  /* Keep article titles and headings together with text */
+  /* Title */
   h1 {
-    font-size: 20pt !important;
+    font-size: 16pt !important;
     font-weight: 900 !important;
     color: #0f172a !important;
-    margin-bottom: 12pt !important;
-    line-height: 1.3 !important;
+    margin: 0 0 8pt 0 !important;
+    padding: 0 !important;
+    line-height: 1.25 !important;
   }
 
-  h2, h3, h4 {
+  h2 {
+    font-size: 12.5pt !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    margin-top: 10pt !important;
+    margin-bottom: 4pt !important;
     page-break-after: avoid;
     break-after: avoid;
-    color: #0f172a !important;
-    margin-top: 14pt !important;
-    margin-bottom: 6pt !important;
   }
 
-  p, blockquote, li, img, table {
-    page-break-inside: avoid;
-    break-inside: avoid;
-  }
-
-  /* Clean contrast for printable elements */
-  .prose, .article-prose-container {
-    color: #1e293b !important;
+  h3, h4 {
     font-size: 11pt !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    margin-top: 8pt !important;
+    margin-bottom: 3pt !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Prose spacing in print - keep compact to fit naturally without spilling 2-3 extra pages */
+  .article-prose-container,
+  .prose {
+    color: #1e293b !important;
+    font-size: 10pt !important;
+    line-height: 1.5 !important;
+    max-width: 100% !important;
+  }
+
+  .prose p,
+  .article-prose-container p {
+    margin-top: 4pt !important;
+    margin-bottom: 5pt !important;
+  }
+
+  .prose ul,
+  .prose ol {
+    margin-top: 3pt !important;
+    margin-bottom: 4pt !important;
+    padding-left: 14pt !important;
+  }
+
+  .prose li {
+    margin-top: 1.5pt !important;
+    margin-bottom: 1.5pt !important;
+  }
+
+  /* Callout boxes compact spacing */
+  .prose div,
+  .article-prose-container div {
+    margin-top: 5pt !important;
+    margin-bottom: 5pt !important;
+  }
+
+  /* Tables */
+  table {
+    font-size: 9pt !important;
+    margin: 6pt 0 !important;
+    page-break-inside: auto;
+  }
+  th, td {
+    padding: 4pt 6pt !important;
   }
 
   /* Hide auto-printed href URLs in browsers (e.g. Chrome / Edge) */
