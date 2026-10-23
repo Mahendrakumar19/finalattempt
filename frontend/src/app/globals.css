@@ -1382,28 +1382,56 @@ html.dark {
    ═══════════════════════════════════════════════════════════ */
 @media print {
   @page {
-    margin: 8mm 12mm 10mm 12mm;
+    /* Set custom print margins and suppress default browser headers/footers */
+    margin: 10mm 12mm 10mm 12mm;
     size: A4 portrait;
   }
 
-  /* Universal repeating official logo watermark on every PDF/print page */
+  /* Universal repeating official logo watermark overlay */
+  .fixed-print-watermark {
+    display: flex !important;
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) rotate(-25deg) !important;
+    width: 145mm !important;
+    height: 75mm !important;
+    align-items: center !important;
+    justify-content: center !important;
+    pointer-events: none !important;
+    z-index: 999999 !important;
+    opacity: 0.16 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-watermark-img {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Universal fallback repeating official logo watermark on body */
   body::before {
     content: "";
     position: fixed;
     top: 50%;
     left: 50%;
-    width: 140mm;
-    height: 70mm;
+    width: 145mm;
+    height: 75mm;
     transform: translate(-50%, -50%) rotate(-25deg);
     background-image: url('/darklogofull.png');
     background-repeat: no-repeat;
     background-position: center center;
     background-size: contain;
-    opacity: 0.12 !important;
+    opacity: 0.16 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     pointer-events: none;
-    z-index: 999999;
+    z-index: 999998;
   }
 
   /* Reveal print-only elements */

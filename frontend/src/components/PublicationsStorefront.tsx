@@ -1,20 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Download, BookOpen, Eye, Home, ChevronRight, X, Folder, ArrowLeft, FolderOpen, ShoppingBag, Layers, Filter } from 'lucide-react';
+import { Search, Download, BookOpen, Eye, Home, ChevronRight, X, Folder, ArrowLeft, FolderOpen } from 'lucide-react';
 import { db, CustomPage, DownloadItem } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
 import PublicationCheckoutModal from './PublicationCheckoutModal';
 import ShareButton from './ShareButton';
-
-const FOLDER_PALETTES = [
-  { bg: 'from-purple-500/15 via-purple-500/5 to-transparent', border: 'border-purple-500/30 hover:border-purple-500', text: 'text-purple-600 dark:text-purple-400', badge: 'bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30', iconBg: 'bg-purple-600 text-white' },
-  { bg: 'from-amber-500/15 via-amber-500/5 to-transparent', border: 'border-amber-500/30 hover:border-amber-500', text: 'text-amber-600 dark:text-amber-400', badge: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30', iconBg: 'bg-amber-500 text-slate-950' },
-  { bg: 'from-blue-500/15 via-blue-500/5 to-transparent', border: 'border-blue-500/30 hover:border-blue-500', text: 'text-blue-600 dark:text-blue-400', badge: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30', iconBg: 'bg-blue-600 text-white' },
-  { bg: 'from-emerald-500/15 via-emerald-500/5 to-transparent', border: 'border-emerald-500/30 hover:border-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', badge: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30', iconBg: 'bg-emerald-500 text-slate-950' },
-  { bg: 'from-cyan-500/15 via-cyan-500/5 to-transparent', border: 'border-cyan-500/30 hover:border-cyan-500', text: 'text-cyan-600 dark:text-cyan-400', badge: 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-500/30', iconBg: 'bg-cyan-500 text-slate-950' }
-];
 
 export default function PublicationsStorefront() {
   const { t } = useTranslation();
@@ -32,58 +26,52 @@ export default function PublicationsStorefront() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  const loadExams = useCallback(async () => {
-    try {
-      const data = await db.getExamsHierarchy();
-      if (Array.isArray(data)) {
-        setExamsList(data.filter((e: any) => e.isActive !== false));
-      }
-    } catch (err) {
-      console.error('Error loading exams list:', err);
-    }
-  }, []);
-
-  const loadPage = useCallback(async () => {
-    setLoading(true);
-    try {
-      let data = await db.getCustomPageBySlug('downloads/fa-publication');
-      if (!data) {
-        data = await db.getCustomPageBySlug('fa-publication');
-      }
-      if (data) {
-        setPageData(data);
-      }
-    } catch (err) {
-      console.error('Error loading publications page:', err);
-    }
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
-    loadPage();
-    loadExams();
-  }, [loadPage, loadExams]);
+    let active = true;
+    const fetchInitialData = async () => {
+      try {
+        const [examData, pubPage1, pubPage2] = await Promise.all([
+          db.getExamsHierarchy().catch(() => null),
+          db.getCustomPageBySlug('downloads/fa-publication').catch(() => null),
+          db.getCustomPageBySlug('fa-publication').catch(() => null),
+        ]);
+        if (!active) return;
 
-  useEffect(() => {
-    if (!pageData || !pageData.downloadItems || pageData.downloadItems.length === 0) return;
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const targetId = params.get('book') || params.get('item') || params.get('slug');
-      if (targetId) {
-        const found = pageData.downloadItems.find(
-          i => i.id === targetId ||
-               i.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') === targetId.toLowerCase()
-        );
-        if (found) {
-          const targetFolder = found.examCategory || found.type;
-          if (targetFolder) {
-            setActiveFolder(targetFolder);
-          }
-          setActiveDetailModal(found);
+        if (Array.isArray(examData)) {
+          setExamsList(examData.filter((e: any) => e.isActive !== false));
         }
+
+        const data = pubPage1 || pubPage2;
+        if (data) {
+          setPageData(data);
+          if (typeof window !== 'undefined' && data.downloadItems?.length) {
+            const params = new URLSearchParams(window.location.search);
+            const targetId = params.get('book') || params.get('item') || params.get('slug');
+            if (targetId) {
+              const found = data.downloadItems.find(
+                (i: DownloadItem) => i.id === targetId ||
+                     i.title.toLowerCase().replace(/[^a-z0-9]+/g, '-') === targetId.toLowerCase()
+              );
+              if (found) {
+                const targetFolder = found.examCategory || found.type;
+                if (targetFolder) {
+                  setActiveFolder(targetFolder);
+                }
+                setActiveDetailModal(found);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error loading publications data:', err);
+      } finally {
+        if (active) setLoading(false);
       }
-    }
-  }, [pageData]);
+    };
+
+    fetchInitialData();
+    return () => { active = false; };
+  }, []);
 
   const getCategoryLogo = (categoryName: string): string | null => {
     if (!categoryName) return null;
@@ -268,8 +256,7 @@ export default function PublicationsStorefront() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {folderVaults.map(({ folderName, items }, idx) => {
-                const theme = FOLDER_PALETTES[idx % FOLDER_PALETTES.length];
+              {folderVaults.map(({ folderName, items }) => {
                 const examLogo = getCategoryLogo(folderName);
 
                 return (

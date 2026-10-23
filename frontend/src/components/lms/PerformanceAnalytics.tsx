@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -26,7 +27,7 @@ export default function PerformanceAnalytics({ accessToken }: PerformanceAnalyti
         } else {
           setError(res.error || 'Failed to fetch performance analytics.');
         }
-      } catch (err) {
+      } catch {
         setError('Connection error loading your learning analytics.');
       } finally {
         setLoading(false);

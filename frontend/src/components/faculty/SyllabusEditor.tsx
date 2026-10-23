@@ -1,7 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from 'react';
-import { Plus, Check, ShieldAlert, Sparkles, BookOpen, Film } from 'lucide-react';
+import { Plus, Check, ShieldAlert, BookOpen } from 'lucide-react';
 
 interface SyllabusEditorProps {
   courseId: string;
@@ -61,7 +62,7 @@ export default function SyllabusEditor({ courseId, initialSyllabus = [], accessT
       } else {
         setError(data.error || 'Failed to persist syllabus.');
       }
-    } catch (err) {
+    } catch {
       setError('Connection error. Failed to save syllabus changes.');
     } finally {
       setSaving(false);

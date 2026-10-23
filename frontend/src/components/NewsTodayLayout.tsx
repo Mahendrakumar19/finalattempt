@@ -75,7 +75,7 @@ export default function NewsTodayLayout({
   };
 
   const handleDownloadPdf = () => {
-    triggerPdfDownload();
+    triggerPdfDownload(activeArticle?.title || 'Current Affairs');
   };
 
   // Calendar Date State & Prop Synchronization without cascading render

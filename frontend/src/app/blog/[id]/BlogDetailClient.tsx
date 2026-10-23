@@ -250,7 +250,7 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => triggerPdfDownload()}
+                    onClick={() => triggerPdfDownload(blog.title)}
                     className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all flex items-center gap-1.5 text-xs font-bold"
                     title="Download as PDF"
                   >

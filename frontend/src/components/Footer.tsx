@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,13 +9,10 @@ import {
   Mail,
   MapPin,
   PhoneCall,
-  Eye,
   TrendingUp,
   ChevronRight,
   Sparkles,
   ArrowRight,
-  ShieldCheck,
-  Award,
 } from 'lucide-react';
 
 import {
@@ -24,15 +23,6 @@ import {
 } from 'react-icons/fa';
 import { db } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
-
-const getBackendUrl = () => {
-  if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
-  if (typeof window !== 'undefined') {
-    const hostname = window.location.hostname;
-    return `http://${hostname}:5000`;
-  }
-  return 'http://localhost:5000';
-};
 
 export default function Footer() {
   const pathname = usePathname();
@@ -70,7 +60,9 @@ export default function Footer() {
         if (count !== null) {
           setVisitorsCount(Math.max(1000, count));
         }
-      } catch (_) {}
+      } catch {
+        // Ignore visitor count increment failure
+      }
     };
 
     incrementVisitors();

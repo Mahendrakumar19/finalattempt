@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
-  Send, MessageSquare, ShieldAlert, User, RefreshCw,
+  Send, MessageSquare, User, RefreshCw,
   Search, Trash2, Edit2, Ban, Check, X,
   Paperclip, FileText, Download, Loader2
 } from 'lucide-react';
@@ -20,7 +22,6 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
   const [inputMessage, setInputMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [blockedUsers, setBlockedUsers] = useState<string[]>([]);
   const [editingMsg, setEditingMsg] = useState<{ id: string; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -44,32 +45,39 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
   };
   const BACKEND_URL = getBackendUrl();
 
-  // Fetch Rooms & Blocked Users
-  const loadRooms = async () => {
-    try {
-      setLoading(true);
-      const res = await getAdminChatRooms(adminToken);
-      if (res.success && res.data) {
-        setRooms(res.data);
-        if (res.data.length > 0 && !activeRoom) {
-          setActiveRoom(res.data[0]);
-        }
-      }
-
-      const blockedRes = await fetch(`${BACKEND_URL}/api/chats/blocked-users`).then(r => r.json()).catch(() => null);
-      if (blockedRes && blockedRes.success && Array.isArray(blockedRes.data)) {
-        setBlockedUsers(blockedRes.data);
-      }
-    } catch (err) {
-      setError('Failed to fetch student chat channels.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadRooms();
-  }, [adminToken]);
+    let active = true;
+    const fetchRooms = async () => {
+      try {
+        const [res, blockedRes] = await Promise.all([
+          getAdminChatRooms(adminToken).catch(() => null),
+          fetch(`${BACKEND_URL}/api/chats/blocked-users`).then(r => r.json()).catch(() => null)
+        ]);
+
+        if (!active) return;
+
+        if (res?.success && res.data) {
+          setRooms(res.data);
+          if (res.data.length > 0) {
+            setActiveRoom((prev: any) => prev || res.data[0]);
+          }
+        }
+
+        if (blockedRes?.success && Array.isArray(blockedRes.data)) {
+          setBlockedUsers(blockedRes.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch student chat channels:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    fetchRooms();
+    return () => {
+      active = false;
+    };
+  }, [adminToken, BACKEND_URL]);
 
   // Socket Connection & Real-Time Event Handlers
   useEffect(() => {

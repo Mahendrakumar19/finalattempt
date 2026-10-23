@@ -1,15 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
-  Send, MessageSquare, ShieldAlert, Sparkles, Hash, Volume2,
-  ShieldCheck, UserCheck, Edit2, Trash2, Ban, Check, X, AlertTriangle,
+  Send, MessageSquare, ShieldAlert,
+  Edit2, Trash2, Check, X, AlertTriangle,
   Paperclip, FileText, Download, Loader2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
-import { getChatRooms, getChatMessages, getSupportRoom } from '@/services/auth';
+import { getChatMessages, getSupportRoom } from '@/services/auth';
 
 interface MentorshipChatProps {
   courseId: string;
@@ -27,7 +29,6 @@ interface FacultyMember {
 export default function MentorshipChat({ courseId }: MentorshipChatProps) {
   const { user, accessToken } = useAuth();
   const { t } = useTranslation();
-  const [rooms, setRooms] = useState<any[]>([]);
   const [activeRoom, setActiveRoom] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [faculties, setFaculties] = useState<FacultyMember[]>([]);
@@ -79,7 +80,6 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
           isDirect: true
         };
 
-        setRooms([mainRoom]);
         setActiveRoom(mainRoom);
 
         // Check if current user is blocked
@@ -89,7 +89,7 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
             setIsBlocked(true);
           }
         }
-      } catch (err) {
+      } catch {
         setError('Network error loading mentorship channels.');
       } finally {
         setLoading(false);
@@ -97,7 +97,7 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
     };
 
     loadInitialData();
-  }, [courseId, accessToken, user]);
+  }, [courseId, accessToken, user, BACKEND_URL]);
 
   // 2. Fetch Chat History & Connect Socket
   useEffect(() => {
@@ -171,7 +171,7 @@ export default function MentorshipChat({ courseId }: MentorshipChatProps) {
     return () => {
       socket.disconnect();
     };
-  }, [activeRoom, accessToken, user]);
+  }, [activeRoom, accessToken, user, BACKEND_URL]);
 
   // Scroll to Bottom
   useEffect(() => {

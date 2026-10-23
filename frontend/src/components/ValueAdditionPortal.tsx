@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Download, Eye, Home, ChevronRight, X, Scale, FileText, Bookmark, Sparkles } from 'lucide-react';
+import { Search, Download, Eye, Home, ChevronRight, X, Scale } from 'lucide-react';
 import { db, CustomPage, DownloadItem } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
 
@@ -19,25 +19,26 @@ export default function ValueAdditionPortal() {
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
-  const loadPage = useCallback(async () => {
-    setLoading(true);
-    try {
-      let data = await db.getCustomPageBySlug('downloads/value-added-mains');
-      if (!data) {
-        data = await db.getCustomPageBySlug('value-added-mains');
-      }
-      if (data) {
-        setPageData(data);
-      }
-    } catch (err) {
-      console.error('Error loading value-added-mains page:', err);
-    }
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
-    loadPage();
-  }, [loadPage]);
+    let active = true;
+    const fetchPage = async () => {
+      try {
+        let data = await db.getCustomPageBySlug('downloads/value-added-mains');
+        if (!data) {
+          data = await db.getCustomPageBySlug('value-added-mains');
+        }
+        if (active && data) {
+          setPageData(data);
+        }
+      } catch (err) {
+        console.error('Error loading value-added-mains page:', err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    fetchPage();
+    return () => { active = false; };
+  }, []);
 
   const resolveUrl = (url?: string) => {
     if (!url) return '';
