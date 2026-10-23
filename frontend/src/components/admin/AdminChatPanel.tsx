@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import {
   Send, MessageSquare, User, RefreshCw,
@@ -45,21 +45,49 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
   };
   const BACKEND_URL = getBackendUrl();
 
+  const fetchRooms = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [res, blockedRes] = await Promise.all([
+        getAdminChatRooms(adminToken).catch(() => null),
+        fetch(`${BACKEND_URL}/api/chats/blocked-users`).then(r => r.json()).catch(() => null)
+      ]);
+
+      if (res?.success && Array.isArray(res.data)) {
+        const roomsData = res.data;
+        setRooms(roomsData);
+        if (roomsData.length > 0) {
+          setActiveRoom((prev: any) => prev || roomsData[0]);
+        }
+      }
+
+      if (blockedRes?.success && Array.isArray(blockedRes.data)) {
+        setBlockedUsers(blockedRes.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch student chat channels:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [adminToken, BACKEND_URL]);
+
   useEffect(() => {
-    let active = true;
-    const fetchRooms = async () => {
+    let isMounted = true;
+
+    const loadInitialRooms = async () => {
       try {
         const [res, blockedRes] = await Promise.all([
           getAdminChatRooms(adminToken).catch(() => null),
           fetch(`${BACKEND_URL}/api/chats/blocked-users`).then(r => r.json()).catch(() => null)
         ]);
 
-        if (!active) return;
+        if (!isMounted) return;
 
-        if (res?.success && res.data) {
-          setRooms(res.data);
-          if (res.data.length > 0) {
-            setActiveRoom((prev: any) => prev || res.data[0]);
+        if (res?.success && Array.isArray(res.data)) {
+          const roomsData = res.data;
+          setRooms(roomsData);
+          if (roomsData.length > 0) {
+            setActiveRoom((prev: any) => prev || roomsData[0]);
           }
         }
 
@@ -69,13 +97,16 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
       } catch (err) {
         console.error('Failed to fetch student chat channels:', err);
       } finally {
-        if (active) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchRooms();
+    loadInitialRooms();
+
     return () => {
-      active = false;
+      isMounted = false;
     };
   }, [adminToken, BACKEND_URL]);
 
@@ -402,7 +433,7 @@ export default function AdminChatPanel({ adminToken }: AdminChatPanelProps) {
         </div>
 
         <button
-          onClick={loadRooms}
+          onClick={fetchRooms}
           className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-xl text-xs font-bold flex items-center gap-2 border border-slate-200 dark:border-white/10 transition-all cursor-pointer shrink-0"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
