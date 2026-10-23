@@ -103,6 +103,8 @@ export interface BlogItem {
   language?: 'en' | 'hi' | 'bilingual' | string;
   publish_target?: string;
   publishTarget?: string;
+  tags?: string[];
+  canonicalUrl?: string;
   createdAt?: string;
 }
 

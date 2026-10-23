@@ -40,6 +40,7 @@ import dynamic from 'next/dynamic';
 import { useTheme } from '@/context/ThemeContext';
 import { useLocale } from '@/context/LocaleContext';
 import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTopper } from '@/services/db';
+import { extractContentKeywords, resolveAutoTags } from '@/utils/tagGenerator';
 
 // 🚀 Performance Optimization: Lazy load heavy sub-CMS panels on demand
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), {
@@ -146,6 +147,7 @@ interface BlogItem {
   language?: string;
   publish_target?: string;
   publishTarget?: string;
+  tags?: string[];
   createdAt?: string;
 }
 
@@ -726,11 +728,14 @@ export default function AdminPortal() {
       exams = ['BPSC', 'UPSC CSE', 'State PCS'];
     }
 
-    let tags = parseCsv(editingArticle.tags);
-    if (tags.length === 0) {
-      const extractedWords = effectiveTitle.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 3).slice(0, 4);
-      tags = Array.from(new Set([category.toLowerCase(), 'current-affairs', 'bpsc-prelims', 'mains-notes', ...extractedWords]));
-    }
+    // 🏷️ Intelligent Automated Tags: Suggest & extract keywords from content if not explicitly provided
+    const combinedContent = `${effectiveTitle} ${effectiveSummary} ${editingArticle.content || ''} ${editingArticle.content_hi || ''} ${editingArticle.keyHighlights || ''} ${editingArticle.whyInNews || ''}`;
+    const tags = resolveAutoTags(
+      editingArticle.tags,
+      effectiveTitle,
+      combinedContent,
+      category
+    );
 
     // 💡 AUTO-POPULATE SEO PARAMETERS IF NOT TYPED MANUALLY
     const stripHtml = (html: string) => (html || '').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
@@ -903,13 +908,23 @@ export default function AdminPortal() {
     const isGenericSlug = userSlug.startsWith('blog-') && /\d+$/.test(userSlug);
     const finalSlug = (userSlug && !isGenericSlug) ? generateUnicodeSlug(userSlug) : (slugifiedTitle || `article-${Date.now()}`);
 
+    const blogTitle = blogForm.title || blogForm.title_hi || '';
+    const blogBody = `${blogForm.blurb || ''} ${blogForm.blurb_hi || ''} ${blogForm.content || ''} ${blogForm.content_hi || ''}`;
+    const blogTags = resolveAutoTags(
+      blogForm.tags,
+      blogTitle,
+      blogBody,
+      blogForm.category
+    );
+
     const autoSeoTitle = (blogForm.seoTitle || '').trim() || `${blogForm.title || blogForm.title_hi || 'Blog Post'} | Final Attempt IAS`;
     const autoSeoDesc = (blogForm.seoDescription || '').trim() || (blogForm.blurb || blogForm.blurb_hi || stripHtml(blogForm.content || blogForm.content_hi || '')).slice(0, 155);
-    const autoSeoKeywords = (blogForm.seoKeywords || '').trim() || `${blogForm.title || ''}, ${blogForm.category || 'Strategy'}, BPSC Prelims, BPSC Mains, Civil Services, Final Attempt IAS`;
+    const autoSeoKeywords = (blogForm.seoKeywords || '').trim() || Array.from(new Set([blogTitle, blogForm.category || 'Strategy', ...blogTags, 'BPSC Prelims', 'BPSC Mains', 'Final Attempt IAS'])).join(', ');
 
     const preparedBlog = {
       ...blogForm,
       slug: finalSlug,
+      tags: blogTags,
       author_name: (blogForm.author_name || blogForm.author || 'Final Attempt Team').trim(),
       author_image: (blogForm.author_image || blogForm.authorImage || '').trim(),
       seoTitle: autoSeoTitle,
@@ -4427,14 +4442,65 @@ export default function AdminPortal() {
                           />
                         </div>
                         <div className="space-y-1.5">
-                          <label className="text-[10px] text-slate-400 font-bold uppercase">Tags (comma separated)</label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Tags (comma separated)</label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const title = editingArticle.title || editingArticle.title_hi || '';
+                                const body = `${editingArticle.summary || ''} ${editingArticle.content || ''} ${editingArticle.content_hi || ''} ${editingArticle.whyInNews || ''}`;
+                                const extracted = extractContentKeywords(title, body, {
+                                  category: editingArticle.category,
+                                  maxTags: 6
+                                });
+                                const current = Array.isArray(editingArticle.tags) ? editingArticle.tags : [];
+                                const combined = Array.from(new Set([...current, ...extracted]));
+                                setEditingArticle({ ...editingArticle, tags: combined });
+                              }}
+                              className="text-[10px] text-amber-500 hover:text-amber-600 font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              <span>Suggest from Content</span>
+                            </button>
+                          </div>
                           <input
                             type="text"
                             value={Array.isArray(editingArticle.tags) ? editingArticle.tags.join(', ') : (editingArticle.tags || '')}
                             onChange={(e) => setEditingArticle({ ...editingArticle, tags: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-                            placeholder="governance, budget..."
+                            placeholder="governance, budget, constitutional-amendment..."
                             className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                           />
+                          {/* Suggested keywords preview pills */}
+                          {(() => {
+                            const title = editingArticle.title || editingArticle.title_hi || '';
+                            const body = `${editingArticle.summary || ''} ${editingArticle.content || ''}`;
+                            if (!title && !body) return null;
+                            const suggestions = extractContentKeywords(title, body, {
+                              category: editingArticle.category,
+                              maxTags: 5
+                            });
+                            const current = new Set(Array.isArray(editingArticle.tags) ? editingArticle.tags : []);
+                            const unselected = suggestions.filter(s => !current.has(s));
+                            if (unselected.length === 0) return null;
+                            return (
+                              <div className="pt-1 flex flex-wrap items-center gap-1.5">
+                                <span className="text-[9px] text-slate-400 font-semibold">Suggested:</span>
+                                {unselected.map(s => (
+                                  <button
+                                    key={s}
+                                    type="button"
+                                    onClick={() => {
+                                      const now = Array.isArray(editingArticle.tags) ? [...editingArticle.tags] : [];
+                                      setEditingArticle({ ...editingArticle, tags: [...now, s] });
+                                    }}
+                                    className="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 text-[10px] font-bold rounded-lg border border-amber-200/60 dark:border-amber-800/40 cursor-pointer transition-all"
+                                  >
+                                    + {s}
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>
