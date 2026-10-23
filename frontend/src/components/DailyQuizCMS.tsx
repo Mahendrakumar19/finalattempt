@@ -8,7 +8,7 @@ import {
   Flame, Plus, Trash2, Edit3, X, 
   HelpCircle, Eye, Sparkles, RefreshCw, AlertCircle,
   Upload, FileText, Check, Copy, ArrowUp, ArrowDown,
-  Search, CheckCircle2, Image as ImageIcon, Layers,
+  Search, Image as ImageIcon, Layers,
   BookOpen, Share2, ExternalLink, Link2
 } from 'lucide-react';
 import { db } from '@/services/db';
@@ -198,9 +198,12 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
   const [hasOptionE, setHasOptionE] = useState(false);
   const [previewMarkdown, setPreviewMarkdown] = useState(false);
 
-  // Bulk Importer Modal State (Full Test Series Standard)
+  // Question Display View Layout ('cards' | 'table')
+  const [questionViewLayout, setQuestionViewLayout] = useState<'cards' | 'table'>('table');
+
+  // Bulk Importer Modal State (Universal Test Series Standard)
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [bulkParseMode, setBulkParseMode] = useState<'text' | 'file'>('text');
+  const [bulkParseMode, setBulkParseMode] = useState<'text' | 'pdf' | 'excel'>('text');
   const [bulkRawText, setBulkRawText] = useState('');
   const [parsedBulkQuestions, setParsedBulkQuestions] = useState<Question[]>([]);
   const [bulkDefaultMarks, setBulkDefaultMarks] = useState(1.0);
@@ -208,6 +211,10 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
   const [importingBulk, setImportingBulk] = useState(false);
   const [parsingBulkFile, setParsingBulkFile] = useState(false);
   const [bulkParseErrors, setBulkParseErrors] = useState<string[]>([]);
+  const [bilingualReport, setBilingualReport] = useState<any>(null);
+  const [bilingualViewMode, setBilingualViewMode] = useState<'canonical' | 'single'>('canonical');
+  const [previewQuestionIndex, setPreviewQuestionIndex] = useState(0);
+  const [bilingualPaperLanguage, setBilingualPaperLanguage] = useState<'BILINGUAL' | 'HINDI_ONLY' | 'ENGLISH_ONLY'>('BILINGUAL');
 
   // Answer Key Inspector Modal State
   const [isAnswerKeyModalOpen, setIsAnswerKeyModalOpen] = useState(false);
@@ -799,16 +806,40 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
   // Commit Parsed Bulk Questions to Quiz
   const handleCommitBulkImport = async () => {
-    if (!selectedQuizId || parsedBulkQuestions.length === 0) return;
+    const toImport = parsedBulkQuestions.length > 0
+      ? parsedBulkQuestions
+      : (bilingualReport?.questionsPreview || []).map((q: any, idx: number) => ({
+          id: generateUniqueId(`q-bulk-${idx + 1}`),
+          questionText: q.questionText || '',
+          questionTextHi: q.questionTextHi || undefined,
+          optionA: stripOptionPrefix(q.optionA || ''),
+          optionAHi: q.optionAHi ? stripOptionPrefix(q.optionAHi) : undefined,
+          optionB: stripOptionPrefix(q.optionB || ''),
+          optionBHi: q.optionBHi ? stripOptionPrefix(q.optionBHi) : undefined,
+          optionC: stripOptionPrefix(q.optionC || ''),
+          optionCHi: q.optionCHi ? stripOptionPrefix(q.optionCHi) : undefined,
+          optionD: stripOptionPrefix(q.optionD || ''),
+          optionDHi: q.optionDHi ? stripOptionPrefix(q.optionDHi) : undefined,
+          optionE: q.optionE ? stripOptionPrefix(q.optionE) : undefined,
+          optionEHi: q.optionEHi ? stripOptionPrefix(q.optionEHi) : undefined,
+          correctAnswer: q.correctAnswer || 'A',
+          explanation: q.explanation || 'Refer to official syllabus notes.',
+          explanationHi: q.explanationHi || undefined,
+          marks: bulkDefaultMarks,
+          negativeMarks: bulkDefaultNegMarks
+        }));
+
+    if (!selectedQuizId || toImport.length === 0) return;
     setImportingBulk(true);
 
     try {
-      await (db as any).saveDailyQuizQuestionsBulk(selectedQuizId, parsedBulkQuestions);
+      await (db as any).saveDailyQuizQuestionsBulk(selectedQuizId, toImport);
       await handleSelectQuizForQuestions(selectedQuizId);
       setIsBulkModalOpen(false);
       setParsedBulkQuestions([]);
+      setBilingualReport(null);
       setBulkRawText('');
-      alert(`Successfully imported ${parsedBulkQuestions.length} questions into this Daily Quiz!`);
+      alert(`Successfully imported ${toImport.length} questions into this Daily Quiz!`);
     } catch (err) {
       console.error('Error importing bulk questions:', err);
       alert('Failed importing questions.');
@@ -1199,9 +1230,9 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                 </div>
               )}
 
-              {/* Filter Questions in Bank */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="relative flex-1">
+              {/* Filter Questions in Bank & View Layout Switcher */}
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
@@ -1211,12 +1242,45 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                     className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none focus:border-amber-500 shadow-xs placeholder:text-slate-400"
                   />
                 </div>
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0">
-                  Total Marks: {questions.reduce((acc, q) => acc + (q.marks || 1), 0).toFixed(2)}
-                </span>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* View Layout Toggle: Table vs Cards */}
+                  <div className="flex items-center p-0.5 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setQuestionViewLayout('table')}
+                      className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition-all ${
+                        questionViewLayout === 'table'
+                          ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                      title="Spreadsheet Table View"
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>Table</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQuestionViewLayout('cards')}
+                      className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition-all ${
+                        questionViewLayout === 'cards'
+                          ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                      title="Expanded Card View"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>Cards</span>
+                    </button>
+                  </div>
+
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                    Total Marks: {questions.reduce((acc, q) => acc + (q.marks || 1), 0).toFixed(2)}
+                  </span>
+                </div>
               </div>
 
-              {/* Questions List */}
+              {/* Questions List (Cards or Table) */}
               {loadingQuestions ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map(i => (
@@ -1252,7 +1316,134 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                     </button>
                   </div>
                 </div>
+              ) : questionViewLayout === 'table' ? (
+                /* ── SPREADSHEET TABLE VIEW (TEST SERIES STANDARD) ──────────────── */
+                <div className="border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="bg-slate-100/80 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider">
+                          <th className="py-3 px-3 w-12 text-center">#</th>
+                          <th className="py-3 px-4 min-w-[240px]">Question Prompt (EN / HI)</th>
+                          <th className="py-3 px-3 w-16 text-center">Key</th>
+                          <th className="py-3 px-4 min-w-[280px]">Options (A - E)</th>
+                          <th className="py-3 px-3 w-20 text-center">Marks</th>
+                          <th className="py-3 px-3 w-28 text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                        {filteredQuestions.map((q, idx) => {
+                          const originalIndex = questions.findIndex(orig => orig.id === q.id);
+                          const correctKey = String((q as any).mappedCorrectKey || q.correctAnswer || 'A').toUpperCase();
+                          return (
+                            <tr
+                              key={q.id || idx}
+                              className="hover:bg-amber-50/30 dark:hover:bg-slate-800/40 transition-colors"
+                            >
+                              {/* Serial Index */}
+                              <td className="py-3 px-3 text-center align-top font-black text-amber-600 dark:text-amber-400">
+                                {originalIndex + 1}
+                              </td>
+
+                              {/* Question Prompt */}
+                              <td className="py-3 px-4 align-top space-y-1">
+                                <p className="font-bold text-slate-900 dark:text-blue-100 leading-snug line-clamp-3">
+                                  {q.questionText}
+                                </p>
+                                {q.questionTextHi && q.questionTextHi !== q.questionText && (
+                                  <p className="text-[11px] text-blue-900 dark:text-blue-300 font-medium leading-snug line-clamp-2">
+                                    {q.questionTextHi}
+                                  </p>
+                                )}
+                                {(q.explanation || q.explanationHi) && (
+                                  <span className="inline-block text-[10px] text-slate-500 dark:text-slate-400 font-medium italic mt-1 line-clamp-1">
+                                    💡 {q.explanation || q.explanationHi}
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Correct Key */}
+                              <td className="py-3 px-3 text-center align-top">
+                                <span className="inline-flex w-7 h-7 rounded-lg bg-emerald-500 text-slate-950 font-black text-xs items-center justify-center shadow-xs">
+                                  {correctKey}
+                                </span>
+                              </td>
+
+                              {/* Options */}
+                              <td className="py-3 px-4 align-top space-y-1">
+                                <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
+                                  <div className={correctKey === 'A' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-300'}>
+                                    <span className="font-black text-blue-900 dark:text-blue-400">A.</span> {stripOptionPrefix(q.optionA || '')}
+                                  </div>
+                                  <div className={correctKey === 'B' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-300'}>
+                                    <span className="font-black text-blue-900 dark:text-blue-400">B.</span> {stripOptionPrefix(q.optionB || '')}
+                                  </div>
+                                  <div className={correctKey === 'C' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-300'}>
+                                    <span className="font-black text-blue-900 dark:text-blue-400">C.</span> {stripOptionPrefix(q.optionC || '')}
+                                  </div>
+                                  <div className={correctKey === 'D' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-300'}>
+                                    <span className="font-black text-blue-900 dark:text-blue-400">D.</span> {stripOptionPrefix(q.optionD || '')}
+                                  </div>
+                                  {q.optionE && (
+                                    <div className={`col-span-2 ${correctKey === 'E' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-indigo-900 dark:text-indigo-300 font-semibold'}`}>
+                                      <span className="font-black text-blue-900 dark:text-blue-400">E.</span> {stripOptionPrefix(q.optionE || '')}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+
+                              {/* Marks Scheme */}
+                              <td className="py-3 px-3 text-center align-top">
+                                <div className="inline-flex flex-col text-[10px] font-bold">
+                                  <span className="text-emerald-600 dark:text-emerald-400">+{q.marks || 1.0}</span>
+                                  <span className="text-red-500">-{q.negativeMarks || 0.33}</span>
+                                </div>
+                              </td>
+
+                              {/* Row Actions */}
+                              <td className="py-3 px-3 text-center align-top">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button
+                                    onClick={() => handleMoveQuestion(originalIndex, 'up')}
+                                    disabled={originalIndex === 0}
+                                    className="p-1 rounded-lg text-slate-400 hover:text-amber-500 disabled:opacity-20 cursor-pointer"
+                                    title="Move Up"
+                                  >
+                                    <ArrowUp className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleMoveQuestion(originalIndex, 'down')}
+                                    disabled={originalIndex === questions.length - 1}
+                                    className="p-1 rounded-lg text-slate-400 hover:text-amber-500 disabled:opacity-20 cursor-pointer"
+                                    title="Move Down"
+                                  >
+                                    <ArrowDown className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleOpenEditQuestion(q)}
+                                    className="p-1 rounded-lg text-amber-500 hover:bg-amber-500/10 cursor-pointer"
+                                    title="Edit Question"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteQuestion(q.id)}
+                                    className="p-1 rounded-lg text-red-500 hover:bg-red-500/10 cursor-pointer"
+                                    title="Delete Question"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               ) : (
+                /* ── EXPANDED CARD VIEW ─────────────────────────────────────────── */
                 <div className="space-y-4">
                   {filteredQuestions.map((q, idx) => {
                     const originalIndex = questions.findIndex(orig => orig.id === q.id);
@@ -1341,10 +1532,10 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                             const raw = q.questionText || '';
                             const { isHtml, formatted } = renderFormattedQuestionText(raw);
                             if (isHtml) {
-                              return <div className="font-heading font-bold text-sm text-slate-900 dark:text-white leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />;
+                              return <div className="font-heading font-bold text-sm text-slate-900 dark:text-blue-100 leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />;
                             }
                             return (
-                              <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-white leading-relaxed">
+                              <h4 className="font-heading font-bold text-sm text-slate-900 dark:text-blue-100 leading-relaxed">
                                 {raw}
                               </h4>
                             );
@@ -1352,7 +1543,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
                           {/* Only render Hindi question text if it's actually different from English */}
                           {q.questionTextHi && q.questionTextHi.trim() !== (q.questionText || '').trim() && (
-                            <p className="text-xs text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
+                            <p className="text-xs text-blue-900 dark:text-blue-300 font-medium leading-relaxed">
                               {q.questionTextHi}
                             </p>
                           )}
@@ -1384,14 +1575,14 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                                 className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 transition-all text-left cursor-pointer ${
                                   isCorrect
                                     ? 'bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-500 text-emerald-950 dark:text-emerald-100 font-bold shadow-xs ring-1 ring-emerald-500/20'
-                                    : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 hover:border-amber-400 hover:bg-amber-50/30'
+                                    : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 hover:border-blue-400 hover:bg-blue-50/20'
                                 }`}
                               >
                                 <div className="flex items-center gap-2.5 overflow-hidden min-w-0">
                                   <span className={`w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center shrink-0 border ${
                                     isCorrect
                                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                                      : 'bg-amber-100 dark:bg-slate-700 text-amber-950 dark:text-amber-200 border-amber-300 dark:border-slate-600'
+                                      : 'bg-blue-100 dark:bg-slate-700 text-blue-950 dark:text-blue-200 border-blue-300 dark:border-slate-600'
                                   }`}>
                                     {opt.key}
                                   </span>
@@ -1400,7 +1591,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                                       {opt.text || opt.textHi}
                                     </span>
                                     {opt.text && opt.textHi && opt.textHi.trim() !== opt.text.trim() && (
-                                      <span className="text-[11px] text-amber-800 dark:text-amber-300 font-medium leading-snug line-clamp-2 mt-0.5">
+                                      <span className="text-[11px] text-blue-900 dark:text-blue-300 font-medium leading-snug line-clamp-2 mt-0.5">
                                         {opt.textHi}
                                       </span>
                                     )}
@@ -1423,15 +1614,15 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
                         {/* Explanation Rationale Box */}
                         {(q.explanation || q.explanationHi) && (
-                          <div className="p-3.5 bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-xl text-xs space-y-1">
-                            <span className="font-extrabold text-amber-900 dark:text-amber-400 text-[10px] uppercase tracking-wider">
+                          <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-xl text-xs space-y-1">
+                            <span className="font-extrabold text-blue-900 dark:text-blue-400 text-[10px] uppercase tracking-wider">
                               Rationale / Solution:
                             </span>
                             {q.explanation && (
                               <p className="text-slate-800 dark:text-slate-200 leading-relaxed">{q.explanation}</p>
                             )}
                             {q.explanationHi && (
-                              <p className="text-amber-800 dark:text-amber-300 font-medium leading-relaxed">{q.explanationHi}</p>
+                              <p className="text-blue-900 dark:text-blue-300 font-medium leading-relaxed">{q.explanationHi}</p>
                             )}
                           </div>
                         )}
@@ -2114,260 +2305,665 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
         </div>
       )}
 
-      {/* ── MODAL 3: UNIVERSAL BULK QUESTION IMPORTER (TEST SERIES STANDARD) ─ */}
+      {/* ── MODAL 3: UNIVERSAL 3-MODE BILINGUAL IMPORTER & REVIEW DASHBOARD (TEST SERIES STANDARD) ─ */}
       {isBulkModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 max-w-4xl w-full space-y-6 shadow-2xl max-h-[92vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 px-6 py-4 shrink-0 bg-white dark:bg-slate-900">
               <div>
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md text-[10px] font-black uppercase tracking-wider">
                   <Upload className="w-3.5 h-3.5" />
-                  <span>Bulk Question Importer</span>
+                  <span>Universal Bilingual Engine</span>
                 </div>
-                <h3 className="text-xl font-heading font-black text-slate-900 dark:text-white mt-1">
-                  Import Multiple Questions in One Click
+                <h3 className="font-heading font-black text-xl text-slate-900 dark:text-white mt-0.5">
+                  Bilingual Question Importer & Review Dashboard
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Paste entire tests from Word/PDF/Notepad or CSV/JSON. The universal parser detects questions, options (A-E), answers, and explanations.
+                  Import questions into &quot;{currentSelectedQuiz?.title}&quot; via Paste Text, Document/PDF, or structured Excel (.xlsx).
                 </p>
               </div>
-              <button onClick={() => setIsBulkModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkModalOpen(false);
+                  setBilingualReport(null);
+                  setBulkParseErrors([]);
+                  setBulkParseMode('text');
+                }}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Mode Switcher Tabs (Test Series Caliber) */}
-            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-              <button
-                type="button"
-                onClick={() => { setBulkParseMode('text'); setBulkParseErrors([]); }}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                  bulkParseMode === 'text'
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-950'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Paste Text / MCQs</span>
-              </button>
+            {/* Modal Body (Scrollable) */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-              <button
-                type="button"
-                onClick={() => { setBulkParseMode('file'); setBulkParseErrors([]); }}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
-                  bulkParseMode === 'file'
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-950'
-                }`}
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Upload Document / PDF / Excel</span>
-              </button>
-            </div>
-
-            {bulkParseErrors.length > 0 && (
-              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-600 dark:text-red-400 font-bold space-y-1">
-                {bulkParseErrors.map((err, i) => (
-                  <p key={i}>⚠️ {err}</p>
-                ))}
-              </div>
-            )}
-
-            {/* Input & Helper Row */}
-            {bulkParseMode === 'file' ? (
-              <div className="p-8 border-2 border-dashed border-amber-500/40 rounded-3xl space-y-4 text-center bg-amber-50/20 dark:bg-slate-900/40">
-                <FileText className="w-12 h-12 text-amber-500 mx-auto" />
-                <div className="space-y-1">
-                  <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">
-                    Upload Exam Paper / Question Document
-                  </h4>
-                  <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                    Supports digital PDF question papers, Excel (.xlsx/.csv), or text documents with questions and solutions.
-                  </p>
-                </div>
-                <label className="inline-block px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl cursor-pointer shadow-md transition-all">
-                  <span>{parsingBulkFile ? 'Parsing Document...' : 'Select PDF or Document File'}</span>
-                  <input
-                    type="file"
-                    accept=".pdf,.txt,.docx,.csv"
-                    disabled={parsingBulkFile}
-                    className="hidden"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      setParsingBulkFile(true);
-                      setBulkParseErrors([]);
-                      try {
-                        if (file.name.endsWith('.pdf')) {
-                          const res = await (db as any).parseBilingualPdf(file);
-                          if (res && res.success && res.report && res.report.questionsPreview) {
-                            const qList = res.report.questionsPreview.map((q: any, idx: number) => ({
-                              id: `q-bulk-${Date.now()}-${idx + 1}`,
-                              questionText: q.questionText || '',
-                              questionTextHi: q.questionTextHi || undefined,
-                              optionA: stripOptionPrefix(q.optionA || ''),
-                              optionAHi: q.optionAHi ? stripOptionPrefix(q.optionAHi) : undefined,
-                              optionB: stripOptionPrefix(q.optionB || ''),
-                              optionBHi: q.optionBHi ? stripOptionPrefix(q.optionBHi) : undefined,
-                              optionC: stripOptionPrefix(q.optionC || ''),
-                              optionCHi: q.optionCHi ? stripOptionPrefix(q.optionCHi) : undefined,
-                              optionD: stripOptionPrefix(q.optionD || ''),
-                              optionDHi: q.optionDHi ? stripOptionPrefix(q.optionDHi) : undefined,
-                              optionE: q.optionE ? stripOptionPrefix(q.optionE) : undefined,
-                              optionEHi: q.optionEHi ? stripOptionPrefix(q.optionEHi) : undefined,
-                              correctAnswer: q.correctAnswer || 'A',
-                              explanation: q.explanation || 'Refer to official syllabus notes.',
-                              explanationHi: q.explanationHi || undefined,
-                              marks: bulkDefaultMarks,
-                              negativeMarks: bulkDefaultNegMarks
-                            }));
-                            setParsedBulkQuestions(qList);
-                          } else {
-                            setBulkParseErrors([res?.error || 'Could not parse PDF questions.']);
-                          }
-                        } else {
-                          const text = await file.text();
-                          setBulkRawText(text);
-                          setBulkParseMode('text');
-                          setTimeout(() => handleParseBulkText(), 100);
-                        }
-                      } catch (err: any) {
-                        setBulkParseErrors([err.message || 'Error processing file.']);
-                      } finally {
-                        setParsingBulkFile(false);
-                      }
-                    }}
-                  />
-                </label>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-500">Paste Text / Questions Feed:</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setBulkRawText(SAMPLE_BULK_TEXT)}
-                    className="text-[11px] font-bold text-amber-500 hover:underline cursor-pointer"
-                  >
-                    Insert BPSC Sample Format
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBulkRawText('')}
-                    className="text-[11px] font-bold text-slate-400 hover:text-red-500 cursor-pointer"
-                  >
-                    Clear Text
-                  </button>
-                </div>
-              </div>
-
-              <textarea
-                rows={9}
-                placeholder="1. Question text here...&#10;(A) Option A&#10;(B) Option B&#10;(C) Option C&#10;(D) Option D&#10;(E) Option E (optional)&#10;Ans: B&#10;Explanation: Solution here..."
-                value={bulkRawText}
-                onChange={e => setBulkRawText(e.target.value)}
-                className="w-full p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none text-slate-900 dark:text-white font-mono text-xs focus:border-amber-500 leading-relaxed shadow-2xs"
-              />
-
-              {/* Bulk Settings & Parse Button */}
-              <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-amber-50/50 dark:bg-slate-900/60 rounded-2xl border border-amber-200/60 dark:border-slate-700">
-                <div className="flex items-center gap-4 text-xs font-bold">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-600 dark:text-slate-400">Default Marks:</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={bulkDefaultMarks}
-                      onChange={e => setBulkDefaultMarks(Number(e.target.value))}
-                      className="w-16 p-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-center text-slate-900 dark:text-white shadow-2xs"
-                    />
+              {/* STEP 1: Input — 3 Mode Switcher (Paste Text, Upload PDF/Doc, Excel .xlsx) */}
+              {!bilingualReport && (
+                <div className="space-y-5">
+                  {/* Mode Toggle Tabs */}
+                  <div className="flex flex-wrap gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl text-xs font-bold w-fit">
+                    <button
+                      type="button"
+                      onClick={() => { setBulkParseMode('text'); setBulkParseErrors([]); }}
+                      className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${
+                        bulkParseMode === 'text'
+                          ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      📋 Paste Text
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setBulkParseMode('pdf'); setBulkParseErrors([]); }}
+                      className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${
+                        bulkParseMode === 'pdf'
+                          ? 'bg-amber-500 text-slate-950 font-black shadow-sm'
+                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      📄 Upload Document / PDF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setBulkParseMode('excel'); setBulkParseErrors([]); }}
+                      className={`px-4 py-2 rounded-xl cursor-pointer transition-all ${
+                        bulkParseMode === 'excel'
+                          ? 'bg-emerald-500 text-slate-950 font-black shadow-sm'
+                          : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      📊 Import from Excel (.xlsx)
+                    </button>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-600 dark:text-slate-400">Negative Marks:</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={bulkDefaultNegMarks}
-                      onChange={e => setBulkDefaultNegMarks(Number(e.target.value))}
-                      className="w-16 p-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-center text-slate-900 dark:text-white shadow-2xs"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleParseBulkText}
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-sm transition-all cursor-pointer"
-                >
-                  ⚡ Parse & Preview Questions
-                </button>
-              </div>
-            </div>
-            )}
-
-            {/* Parsed Preview Section */}
-            {parsedBulkQuestions.length > 0 && (
-              <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                    <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">
-                      Successfully Parsed {parsedBulkQuestions.length} Questions
-                    </h4>
-                  </div>
-
-                  <button
-                    onClick={handleCommitBulkImport}
-                    disabled={importingBulk}
-                    className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-md cursor-pointer disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {importingBulk ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
-                    <span>Import All {parsedBulkQuestions.length} Questions</span>
-                  </button>
-                </div>
-
-                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                  {parsedBulkQuestions.map((pq, pidx) => (
-                    <div key={pidx} className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs space-y-1.5 shadow-2xs">
-                      <div className="flex items-center justify-between">
-                        <span className="font-black text-amber-700 dark:text-amber-400">Q{pidx + 1}</span>
-                        <span className="font-bold text-emerald-600 dark:text-emerald-400">Answer: {pq.correctAnswer}</span>
+                  {/* Info Banner */}
+                  {bulkParseMode !== 'excel' ? (
+                    <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed flex items-center gap-3">
+                      <span className="text-xl shrink-0">✨</span>
+                      <div>
+                        <strong className="block font-bold text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">
+                          Universal Format-Agnostic Import Engine
+                        </strong>
+                        <span>Paste text or upload test papers in any format (English, Hindi, or Bilingual). The engine automatically detects questions, options A-E, answers, and explanations.</span>
                       </div>
-                      <p className="font-medium text-slate-900 dark:text-white">{pq.questionText}</p>
-                      {pq.questionTextHi && pq.questionTextHi !== pq.questionText && (
-                        <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium">{pq.questionTextHi}</p>
-                      )}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                        <div>
-                          <span>A: {pq.optionA}</span>
-                          {pq.optionAHi && <span className="block text-[10px] text-amber-800 dark:text-amber-300">({pq.optionAHi})</span>}
+                    </div>
+                  ) : (
+                    <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl text-xs text-emerald-800 dark:text-emerald-300 leading-relaxed flex items-center gap-3">
+                      <span className="text-xl shrink-0">📊</span>
+                      <div>
+                        <strong className="block font-bold text-xs text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-0.5">
+                          Structured Question Bank Excel Engine
+                        </strong>
+                        <span>Strict 1-row-per-question importer using standard Question Bank template (.xlsx) for 100% structured accuracy.</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bulk Default Marks Settings */}
+                  <div className="flex flex-wrap items-center gap-4 p-4 bg-amber-50/50 dark:bg-slate-800/40 rounded-2xl border border-amber-200/60 dark:border-slate-700 text-xs font-bold">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-600 dark:text-slate-400">Default Positive Marks:</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={bulkDefaultMarks}
+                        onChange={e => setBulkDefaultMarks(Number(e.target.value))}
+                        className="w-16 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-center text-slate-900 dark:text-white"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-600 dark:text-slate-400">Negative Penalty:</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={bulkDefaultNegMarks}
+                        onChange={e => setBulkDefaultNegMarks(Number(e.target.value))}
+                        className="w-16 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-center text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Parse Errors */}
+                  {bulkParseErrors.length > 0 && (
+                    <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-2xl space-y-1">
+                      {bulkParseErrors.map((err, i) => (
+                        <p key={i} className="text-xs font-medium text-red-600 dark:text-red-400">⚠️ {err}</p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 1. TEXT MODE */}
+                  {bulkParseMode === 'text' && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-slate-500">Paste Text / Questions Feed:</span>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setBulkRawText(SAMPLE_BULK_TEXT)}
+                            className="text-xs font-bold text-amber-500 hover:underline cursor-pointer"
+                          >
+                            Insert BPSC Sample Format
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setBulkRawText('')}
+                            className="text-xs font-bold text-slate-400 hover:text-red-500 cursor-pointer"
+                          >
+                            Clear Text
+                          </button>
                         </div>
-                        <div>
-                          <span>B: {pq.optionB}</span>
-                          {pq.optionBHi && <span className="block text-[10px] text-amber-800 dark:text-amber-300">({pq.optionBHi})</span>}
+                      </div>
+
+                      <textarea
+                        rows={12}
+                        value={bulkRawText}
+                        onChange={e => { setBulkRawText(e.target.value); setBulkParseErrors([]); }}
+                        placeholder="1. Question text here...&#10;(A) Option A&#10;(B) Option B&#10;(C) Option C&#10;(D) Option D&#10;(E) Option E (optional)&#10;Ans: B&#10;Explanation: Solution here..."
+                        className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white rounded-2xl outline-none focus:border-amber-500 font-mono text-xs resize-y leading-relaxed shadow-2xs"
+                      />
+
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          disabled={parsingBulkFile || !bulkRawText.trim()}
+                          onClick={async () => {
+                            if (!bulkRawText.trim()) return;
+                            setParsingBulkFile(true);
+                            setBulkParseErrors([]);
+                            try {
+                              const res = await (db as any).parseBilingualText(bulkRawText);
+                              if (res && res.success && res.report) {
+                                if (res.report.errors && res.report.errors.length > 0) {
+                                  setBulkParseErrors(res.report.errors);
+                                }
+                                setBilingualReport(res.report);
+                                if (res.report.questionsPreview) {
+                                  const qList = res.report.questionsPreview.map((q: any, idx: number) => ({
+                                    id: generateUniqueId(`q-bulk-${idx + 1}`),
+                                    questionText: q.questionText || '',
+                                    questionTextHi: q.questionTextHi || undefined,
+                                    optionA: stripOptionPrefix(q.optionA || ''),
+                                    optionAHi: q.optionAHi ? stripOptionPrefix(q.optionAHi) : undefined,
+                                    optionB: stripOptionPrefix(q.optionB || ''),
+                                    optionBHi: q.optionBHi ? stripOptionPrefix(q.optionBHi) : undefined,
+                                    optionC: stripOptionPrefix(q.optionC || ''),
+                                    optionCHi: q.optionCHi ? stripOptionPrefix(q.optionCHi) : undefined,
+                                    optionD: stripOptionPrefix(q.optionD || ''),
+                                    optionDHi: q.optionDHi ? stripOptionPrefix(q.optionDHi) : undefined,
+                                    optionE: q.optionE ? stripOptionPrefix(q.optionE) : undefined,
+                                    optionEHi: q.optionEHi ? stripOptionPrefix(q.optionEHi) : undefined,
+                                    correctAnswer: q.correctAnswer || 'A',
+                                    explanation: q.explanation || 'Refer to official syllabus notes.',
+                                    explanationHi: q.explanationHi || undefined,
+                                    marks: bulkDefaultMarks,
+                                    negativeMarks: bulkDefaultNegMarks
+                                  }));
+                                  setParsedBulkQuestions(qList);
+                                }
+                              } else {
+                                handleParseBulkText();
+                              }
+                            } catch {
+                              handleParseBulkText();
+                            } finally {
+                              setParsingBulkFile(false);
+                            }
+                          }}
+                          className="px-8 py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl cursor-pointer shadow-md transition-all"
+                        >
+                          {parsingBulkFile ? 'Parsing...' : 'Parse & Validate →'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2. PDF / DOC MODE */}
+                  {bulkParseMode === 'pdf' && (
+                    <div className="space-y-4">
+                      <div className="p-8 border-2 border-dashed border-amber-500/40 rounded-3xl hover:border-amber-500 transition-colors space-y-4 text-center bg-amber-50/20 dark:bg-slate-900/50">
+                        <FileText className="w-12 h-12 text-amber-500 mx-auto" />
+                        <div className="space-y-1">
+                          <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">
+                            Upload Test Paper (PDF, Word, or Document)
+                          </h4>
+                          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                            Universal Engine extracts questions, bilingual options, and explanations from digital exam papers.
+                          </p>
                         </div>
-                        <div>
-                          <span>C: {pq.optionC}</span>
-                          {pq.optionCHi && <span className="block text-[10px] text-amber-800 dark:text-amber-300">({pq.optionCHi})</span>}
+                        <label className="inline-block px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-2xl cursor-pointer shadow-md transition-all">
+                          <span>{parsingBulkFile ? 'Extracting & Validating Document...' : 'Select PDF or Document File'}</span>
+                          <input
+                            type="file"
+                            accept=".pdf,.docx,.txt"
+                            disabled={parsingBulkFile}
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setParsingBulkFile(true);
+                              setBulkParseErrors([]);
+                              try {
+                                if (file.name.endsWith('.pdf')) {
+                                  const res = await (db as any).parseBilingualPdf(file);
+                                  if (res && res.success && res.report) {
+                                    if (res.report.errors && res.report.errors.length > 0) {
+                                      setBulkParseErrors(res.report.errors);
+                                    }
+                                    setBilingualReport(res.report);
+                                    if (res.report.questionsPreview) {
+                                      const qList = res.report.questionsPreview.map((q: any, idx: number) => ({
+                                        id: generateUniqueId(`q-bulk-${idx + 1}`),
+                                        questionText: q.questionText || '',
+                                        questionTextHi: q.questionTextHi || undefined,
+                                        optionA: stripOptionPrefix(q.optionA || ''),
+                                        optionAHi: q.optionAHi ? stripOptionPrefix(q.optionAHi) : undefined,
+                                        optionB: stripOptionPrefix(q.optionB || ''),
+                                        optionBHi: q.optionBHi ? stripOptionPrefix(q.optionBHi) : undefined,
+                                        optionC: stripOptionPrefix(q.optionC || ''),
+                                        optionCHi: q.optionCHi ? stripOptionPrefix(q.optionCHi) : undefined,
+                                        optionD: stripOptionPrefix(q.optionD || ''),
+                                        optionDHi: q.optionDHi ? stripOptionPrefix(q.optionDHi) : undefined,
+                                        optionE: q.optionE ? stripOptionPrefix(q.optionE) : undefined,
+                                        optionEHi: q.optionEHi ? stripOptionPrefix(q.optionEHi) : undefined,
+                                        correctAnswer: q.correctAnswer || 'A',
+                                        explanation: q.explanation || 'Refer to official syllabus notes.',
+                                        explanationHi: q.explanationHi || undefined,
+                                        marks: bulkDefaultMarks,
+                                        negativeMarks: bulkDefaultNegMarks
+                                      }));
+                                      setParsedBulkQuestions(qList);
+                                    }
+                                  } else {
+                                    setBulkParseErrors([res?.error || 'Failed parsing PDF document.']);
+                                  }
+                                } else {
+                                  const text = await file.text();
+                                  setBulkRawText(text);
+                                  setBulkParseMode('text');
+                                  setTimeout(() => handleParseBulkText(), 100);
+                                }
+                              } catch (err: any) {
+                                setBulkParseErrors([err.message || 'Error extracting file.']);
+                              } finally {
+                                setParsingBulkFile(false);
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. EXCEL MODE (.xlsx) */}
+                  {bulkParseMode === 'excel' && (
+                    <div className="space-y-4">
+                      <div className="p-8 border-2 border-dashed border-emerald-500/30 rounded-3xl hover:border-emerald-500/60 transition-colors space-y-4 text-center bg-emerald-500/5 dark:bg-emerald-950/20">
+                        <FileText className="w-12 h-12 text-emerald-500 mx-auto" />
+                        <div className="space-y-1">
+                          <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">
+                            Upload Excel Question Bank (.xlsx)
+                          </h4>
+                          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                            Uses standard 17-column Question Bank schema for 100% structured accuracy.
+                          </p>
                         </div>
-                        <div>
-                          <span>D: {pq.optionD}</span>
-                          {pq.optionDHi && <span className="block text-[10px] text-amber-800 dark:text-amber-300">({pq.optionDHi})</span>}
+                        <div className="flex flex-wrap items-center justify-center gap-3">
+                          <label className="inline-block px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-xs rounded-2xl cursor-pointer shadow-md transition-all">
+                            <span>{parsingBulkFile ? 'Parsing Excel File...' : 'Select Excel File (.xlsx)'}</span>
+                            <input
+                              type="file"
+                              accept=".xlsx,.xls"
+                              disabled={parsingBulkFile}
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setParsingBulkFile(true);
+                                setBulkParseErrors([]);
+                                try {
+                                  const res = await (db as any).parseExcel(file);
+                                  if (res && res.success && res.report) {
+                                    if (res.report.errors && res.report.errors.length > 0) {
+                                      setBulkParseErrors(res.report.errors);
+                                    }
+                                    setBilingualReport(res.report);
+                                    if (res.report.questionsPreview) {
+                                      const qList = res.report.questionsPreview.map((q: any, idx: number) => ({
+                                        id: generateUniqueId(`q-bulk-${idx + 1}`),
+                                        questionText: q.questionText || '',
+                                        questionTextHi: q.questionTextHi || undefined,
+                                        optionA: stripOptionPrefix(q.optionA || ''),
+                                        optionAHi: q.optionAHi ? stripOptionPrefix(q.optionAHi) : undefined,
+                                        optionB: stripOptionPrefix(q.optionB || ''),
+                                        optionBHi: q.optionBHi ? stripOptionPrefix(q.optionBHi) : undefined,
+                                        optionC: stripOptionPrefix(q.optionC || ''),
+                                        optionCHi: q.optionCHi ? stripOptionPrefix(q.optionCHi) : undefined,
+                                        optionD: stripOptionPrefix(q.optionD || ''),
+                                        optionDHi: q.optionDHi ? stripOptionPrefix(q.optionDHi) : undefined,
+                                        optionE: q.optionE ? stripOptionPrefix(q.optionE) : undefined,
+                                        optionEHi: q.optionEHi ? stripOptionPrefix(q.optionEHi) : undefined,
+                                        correctAnswer: q.correctAnswer || 'A',
+                                        explanation: q.explanation || 'Refer to official syllabus notes.',
+                                        explanationHi: q.explanationHi || undefined,
+                                        marks: bulkDefaultMarks,
+                                        negativeMarks: bulkDefaultNegMarks
+                                      }));
+                                      setParsedBulkQuestions(qList);
+                                    }
+                                  } else {
+                                    setBulkParseErrors([res?.error || 'Failed parsing Excel file.']);
+                                  }
+                                } catch (err: any) {
+                                  setBulkParseErrors([err.message || 'Error processing Excel file.']);
+                                } finally {
+                                  setParsingBulkFile(false);
+                                }
+                              }}
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={() => (db as any).downloadExcelTemplate()}
+                            className="px-5 py-3 bg-white dark:bg-slate-800 hover:bg-slate-100 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-2xl transition-all border border-slate-200 dark:border-slate-700 flex items-center gap-2 cursor-pointer shadow-xs"
+                          >
+                            <span>📥 Download Excel Template</span>
+                          </button>
                         </div>
-                        {pq.optionE && (
-                          <div className="col-span-2 text-purple-600 dark:text-purple-400 font-bold">
-                            <span>E: {pq.optionE}</span>
-                            {pq.optionEHi && <span className="block text-[10px] text-purple-700 dark:text-purple-300">({pq.optionEHi})</span>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* STEP 2: Canonical Two-Section & Interactive Review Dashboard */}
+              {bilingualReport && (
+                <div className="space-y-6">
+                  {/* Validation Summary Header */}
+                  <div className={`p-4 rounded-2xl border flex items-center justify-between gap-4 text-xs font-bold ${
+                    bilingualReport?.isValid !== false
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">{bilingualReport?.isValid !== false ? '✓' : '⚠️'}</span>
+                      <div>
+                        <span className="font-extrabold uppercase tracking-wider block">
+                          Validation Status: {bilingualReport?.isValid !== false ? 'VALID' : 'REVIEW DETECTED'}
+                        </span>
+                        <span className="text-[10px] font-medium opacity-90">
+                          {bilingualReport?.mappedQuestionsCount || (parsedBulkQuestions || []).length} questions parsed and ready for import.
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => { setBilingualReport(null); setBulkParseErrors([]); }}
+                      className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0 transition-colors"
+                    >
+                      ← Re-upload / Edit Input
+                    </button>
+                  </div>
+
+                  {/* Two-Section View Toggle (Canonical vs Single Card) */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100 dark:bg-slate-800/80 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setBilingualViewMode('canonical')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all cursor-pointer flex items-center gap-2 ${
+                          bilingualViewMode === 'canonical'
+                            ? 'bg-amber-500 text-slate-950 shadow-md'
+                            : 'bg-transparent text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <span>📋 Canonical View (Section 1 Questions + Section 2 Explanations)</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setBilingualViewMode('single')}
+                        className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all cursor-pointer flex items-center gap-2 ${
+                          bilingualViewMode === 'single'
+                            ? 'bg-amber-500 text-slate-950 shadow-md'
+                            : 'bg-transparent text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <span>🔍 Single Question Card View</span>
+                      </button>
+                    </div>
+
+                    {bilingualViewMode === 'single' && (bilingualReport.questionsPreview || parsedBulkQuestions).length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={previewQuestionIndex}
+                          onChange={e => setPreviewQuestionIndex(Number(e.target.value))}
+                          className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl text-xs font-bold outline-none cursor-pointer"
+                        >
+                          {(bilingualReport.questionsPreview || parsedBulkQuestions).map((_: any, idx: number) => (
+                            <option key={idx} value={idx}>
+                              Jump to Q{idx + 1}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          disabled={previewQuestionIndex === 0}
+                          onClick={() => setPreviewQuestionIndex(prev => Math.max(0, prev - 1))}
+                          className="px-3 py-1.5 bg-white dark:bg-slate-900 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 cursor-pointer disabled:opacity-30"
+                        >
+                          ← Prev
+                        </button>
+                        <button
+                          type="button"
+                          disabled={previewQuestionIndex >= (bilingualReport.questionsPreview || parsedBulkQuestions).length - 1}
+                          onClick={() => setPreviewQuestionIndex(prev => Math.min((bilingualReport.questionsPreview || parsedBulkQuestions).length - 1, prev + 1))}
+                          className="px-3 py-1.5 bg-white dark:bg-slate-900 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 cursor-pointer disabled:opacity-30"
+                        >
+                          Next →
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CANONICAL TWO-SECTION VIEW */}
+                  {bilingualViewMode === 'canonical' && (
+                    <div className="space-y-6 max-h-[55vh] overflow-y-auto pr-1">
+                      {/* Section 1: Questions */}
+                      <div className="p-6 bg-slate-50 dark:bg-slate-900 border-2 border-amber-500/30 rounded-3xl space-y-5">
+                        <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                          <h4 className="font-heading font-black text-sm uppercase text-amber-500 tracking-wider">
+                            SECTION 1 — QUESTIONS (Q1 to Q{(bilingualReport.questionsPreview || parsedBulkQuestions).length})
+                          </h4>
+                          <span className="text-[10px] font-extrabold px-2.5 py-1 bg-amber-500/10 text-amber-500 rounded-lg uppercase">
+                            Question Texts & Options
+                          </span>
+                        </div>
+
+                        <div className="space-y-5 divide-y divide-slate-200 dark:divide-slate-800">
+                          {(bilingualReport.questionsPreview || parsedBulkQuestions).map((q: any, idx: number) => (
+                            <div key={idx} className="pt-4 first:pt-0 space-y-2">
+                              <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black text-xs rounded-lg border border-amber-500/30">
+                                Q{idx + 1}
+                              </span>
+                              <p className="text-xs font-bold text-slate-900 dark:text-white leading-relaxed">
+                                {q.questionText}
+                              </p>
+                              {q.questionTextHi && q.questionTextHi !== q.questionText && (
+                                <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium">
+                                  {q.questionTextHi}
+                                </p>
+                              )}
+                              <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                                {['A', 'B', 'C', 'D', 'E'].map(optKey => {
+                                  const text = q[`option${optKey}`];
+                                  const textHi = q[`option${optKey}Hi`];
+                                  if (!text && !textHi) return null;
+                                  return (
+                                    <div key={optKey} className="p-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl flex items-start gap-2">
+                                      <span className="font-bold text-amber-500">({optKey.toLowerCase()})</span>
+                                      <span className="text-slate-800 dark:text-slate-200 text-[11px]">{stripOptionPrefix(text || textHi)}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Section 2: Explanations */}
+                      <div className="p-6 bg-slate-50 dark:bg-slate-900 border-2 border-emerald-500/30 rounded-3xl space-y-5">
+                        <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+                          <h4 className="font-heading font-black text-sm uppercase text-emerald-500 tracking-wider">
+                            SECTION 2 — EXPLANATIONS & ANSWER KEY (Q1 to Q{(bilingualReport.questionsPreview || parsedBulkQuestions).length})
+                          </h4>
+                          <span className="text-[10px] font-extrabold px-2.5 py-1 bg-emerald-500/10 text-emerald-500 rounded-lg uppercase">
+                            Solution Explanations
+                          </span>
+                        </div>
+
+                        <div className="space-y-4 divide-y divide-slate-200 dark:divide-slate-800">
+                          {(bilingualReport.questionsPreview || parsedBulkQuestions).map((q: any, idx: number) => (
+                            <div key={idx} className="pt-4 first:pt-0 space-y-2">
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <span className="px-2.5 py-0.5 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black text-xs rounded-lg border border-emerald-500/30">
+                                  Q{idx + 1} Answer & Rationale
+                                </span>
+                                <span className="px-3 py-1 bg-emerald-500 text-slate-950 font-black text-xs rounded-xl shadow-xs">
+                                  Correct Option: {q.correctAnswer}
+                                </span>
+                              </div>
+                              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs leading-relaxed space-y-1">
+                                {q.explanation && <p className="text-slate-800 dark:text-slate-200">{q.explanation}</p>}
+                                {q.explanationHi && <p className="text-emerald-800 dark:text-emerald-300 font-medium">{q.explanationHi}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SINGLE QUESTION CARD VIEW */}
+                  {bilingualViewMode === 'single' && (() => {
+                    const curQ = (bilingualReport.questionsPreview || parsedBulkQuestions)[previewQuestionIndex];
+                    if (!curQ) return null;
+                    return (
+                      <div className="p-5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-4 text-xs">
+                        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 font-bold">
+                          <span className="px-3 py-1 bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black rounded-xl">
+                            Q{previewQuestionIndex + 1}
+                          </span>
+                          <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-black rounded-xl border border-emerald-500/30">
+                            Answer: Option {curQ.correctAnswer}
+                          </span>
+                        </div>
+
+                        <div className="space-y-2">
+                          <p className="font-bold text-slate-900 dark:text-white text-sm">{curQ.questionText}</p>
+                          {curQ.questionTextHi && <p className="text-amber-800 dark:text-amber-300">{curQ.questionTextHi}</p>}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                          {['A', 'B', 'C', 'D', 'E'].map(optKey => {
+                            const text = curQ[`option${optKey}`];
+                            const textHi = curQ[`option${optKey}Hi`];
+                            if (!text && !textHi) return null;
+                            const isCorrect = String(curQ.correctAnswer).toUpperCase() === optKey;
+                            return (
+                              <button
+                                key={optKey}
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...(parsedBulkQuestions.length ? parsedBulkQuestions : bilingualReport.questionsPreview)];
+                                  updated[previewQuestionIndex] = { ...updated[previewQuestionIndex], correctAnswer: optKey };
+                                  setParsedBulkQuestions(updated);
+                                }}
+                                className={`p-3 rounded-xl border flex items-center justify-between text-left cursor-pointer transition-all ${
+                                  isCorrect
+                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-950 dark:text-emerald-200 font-bold'
+                                    : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200'
+                                }`}
+                              >
+                                <span><strong>({optKey})</strong> {stripOptionPrefix(text || textHi)}</span>
+                                {isCorrect && <Check className="w-4 h-4 text-emerald-500" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {(curQ.explanation || curQ.explanationHi) && (
+                          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1">
+                            <span className="font-bold uppercase text-[10px] text-amber-600 dark:text-amber-400">Explanation:</span>
+                            <p>{curQ.explanation || curQ.explanationHi}</p>
                           </div>
                         )}
                       </div>
+                    );
+                  })()}
+
+                  {/* Target Medium Selection */}
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-between gap-4 text-xs font-bold">
+                    <div>
+                      <span className="block text-amber-700 dark:text-amber-300 font-black uppercase tracking-wider">
+                        Publish Target Medium
+                      </span>
+                      <span className="text-[11px] text-slate-500">
+                        Choose whether this daily practice test is bilingual, Hindi-only, or English-only.
+                      </span>
                     </div>
-                  ))}
+
+                    <select
+                      value={bilingualPaperLanguage}
+                      onChange={e => setBilingualPaperLanguage(e.target.value as any)}
+                      className="px-4 py-2 bg-white dark:bg-slate-900 border border-amber-500/40 text-slate-900 dark:text-white rounded-xl outline-none font-bold text-xs cursor-pointer shadow-xs"
+                    >
+                      <option value="BILINGUAL">🌐 Both Pages (Bilingual Portal)</option>
+                      <option value="HINDI_ONLY">Hindi Medium Only (हिन्दी)</option>
+                      <option value="ENGLISH_ONLY">English Medium Only</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+
+            {/* Modal Footer (Commit Button) */}
+            <div className="shrink-0 border-t border-slate-200 dark:border-slate-800 px-6 py-4 flex items-center justify-between bg-slate-50 dark:bg-slate-900">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBulkModalOpen(false);
+                  setBilingualReport(null);
+                  setBulkParseErrors([]);
+                }}
+                className="px-5 py-2.5 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-bold rounded-2xl cursor-pointer transition-colors"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                disabled={importingBulk || (parsedBulkQuestions.length === 0 && (!bilingualReport || !bilingualReport.questionsPreview))}
+                onClick={handleCommitBulkImport}
+                className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl cursor-pointer shadow-md transition-all flex items-center gap-2"
+              >
+                {importingBulk ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
+                <span>
+                  {importingBulk
+                    ? 'Importing...'
+                    : `Import All ${parsedBulkQuestions.length || bilingualReport?.questionsPreview?.length || 0} Questions`}
+                </span>
+              </button>
+            </div>
+
           </div>
         </div>
       )}
