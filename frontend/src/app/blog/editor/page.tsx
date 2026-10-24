@@ -526,9 +526,9 @@ function BlogEditorForm() {
     const isGenericSlug = userSlug.startsWith('blog-') && /\d+$/.test(userSlug);
     const finalSlug = (userSlug && !isGenericSlug) ? generateUnicodeSlug(userSlug) : (slugifiedTitle || `article-${Date.now()}`);
 
-    const autoSeoTitle = (formData.seoTitle || '').trim() || `${formData.title || formData.title_hi || 'Blog Post'} | Final Attempt IAS`;
+    const autoSeoTitle = (formData.seoTitle || '').trim() || `${formData.title || formData.title_hi || 'Blog Post'} | Final Attempt`;
     const autoSeoDesc = (formData.seoDescription || '').trim() || (formData.blurb || formData.blurb_hi || stripHtml(formData.content || formData.content_hi || '')).slice(0, 155);
-    const autoSeoKeywords = (formData.seoKeywords || '').trim() || `${formData.title || ''}, ${formData.category || 'Strategy'}, BPSC Prelims, BPSC Mains, Civil Services, Final Attempt IAS`;
+    const autoSeoKeywords = (formData.seoKeywords || '').trim() || `${formData.title || ''}, ${formData.category || 'Strategy'}, BPSC Prelims, BPSC Mains, Civil Services, Final Attempt`;
 
     const finalData = {
       ...formData,

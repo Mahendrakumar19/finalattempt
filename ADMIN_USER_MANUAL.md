@@ -1,7 +1,7 @@
-# Final Attempt IAS Platform — Master Administrator Operations Manual & System Reference Guide
+# Final Attempt Platform — Master Administrator Operations Manual & System Reference Guide
 
 > [!IMPORTANT]
-> **Zero Code Modification Paradigm**: The Final Attempt IAS Web Architecture operates on a **100% Dynamic Content Management Paradigm**. Every section of the application—including Homepage Hero Banners, Announcements, Course Catalogs, Test Series Ingestion Engines, Daily Current Affairs Multi-Tier Compilations, PYQs, NCERTs, Book Order Pipelines, Mains Answer Evaluations, Live Chat, and Feature Flags—is controlled dynamically from the Admin CMS Interface (`/admin`) without needing code changes, database migrations, or server restarts.
+> **Zero Code Modification Paradigm**: The Final Attempt Web Architecture operates on a **100% Dynamic Content Management Paradigm**. Every section of the application—including Homepage Hero Banners, Announcements, Course Catalogs, Test Series Ingestion Engines, Daily Current Affairs Multi-Tier Compilations, PYQs, NCERTs, Book Order Pipelines, Mains Answer Evaluations, Live Chat, and Feature Flags—is controlled dynamically from the Admin CMS Interface (`/admin`) without needing code changes, database migrations, or server restarts.
 
 ---
 
@@ -84,7 +84,7 @@
 
 ## 1. Executive System Architecture & Security Model
 
-The **Final Attempt IAS** administration suite (`/admin`) is an enterprise-grade control center designed to grant complete dynamic control over all database entities, content items, media uploads, and student interactions.
+The **Final Attempt** administration suite (`/admin`) is an enterprise-grade control center designed to grant complete dynamic control over all database entities, content items, media uploads, and student interactions.
 
 ### 1.1 Admin Portal Entry & Authentication Matrix
 
@@ -93,7 +93,7 @@ To access the Admin Portal, open any modern web browser and navigate to:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        FINAL ATTEMPT IAS ADMIN CMS                     │
+│                        FINAL ATTEMPT ADMIN CMS                     │
 │                                                                        │
 │   Email Address:    [ admin@finalattempt.com                         ] │
 │   Password:         [ ••••••••••••••••                               ] │
@@ -562,7 +562,7 @@ Click **+ Add Article** under any category and complete the article fields:
 
 The Current Affairs engine features an **Automated SEO Generator**:
 - If SEO fields are left blank, the system automatically builds:
-  - `seoTitle`: `${Article Title} | Final Attempt IAS`
+  - `seoTitle`: `${Article Title} | Final Attempt`
   - `canonicalUrl`: `https://finalattemptias.com/current-affairs/daily/${date}/${category}/${slug}`
   - `seoKeywords`: Auto-extracted keywords from headline, category, and subjects.
   - `seoDescription`: Auto-truncated 155-character meta summary snippet.

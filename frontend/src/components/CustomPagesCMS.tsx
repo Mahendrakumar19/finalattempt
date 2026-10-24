@@ -366,7 +366,7 @@ export default function CustomPagesCMS({ defaultLocation = 'NAVBAR', targetSlug 
                   {/* Live Helmet / Next.js Metadata Output Snippet Preview */}
                   <div className="bg-slate-900 text-slate-200 p-3.5 rounded-2xl text-[11px] font-mono space-y-1 border border-slate-700">
                     <p className="text-[10px] font-bold text-amber-400 uppercase tracking-wider font-sans mb-1">⚡ Generated Helmet & Head Output Tags Preview:</p>
-                    <div className="text-emerald-400">&lt;title&gt;{form.metaTitle || form.title || 'Page Title'} | Final Attempt IAS&lt;/title&gt;</div>
+                    <div className="text-emerald-400">&lt;title&gt;{form.metaTitle || form.title || 'Page Title'} | Final Attempt&lt;/title&gt;</div>
                     <div className="text-sky-300">&lt;meta name="keywords" content="{form.metaKeywords || 'bpsc, civil services, institute'}" /&gt;</div>
                     <div className="text-sky-300">&lt;meta name="description" content="{form.metaDescription || 'Page description for search engines...'}" /&gt;</div>
                     <div className="text-purple-300">&lt;link rel="canonical" href="https://finalattemptias.com/p/{(form.slug || 'page').replace(/^downloads\//, '').replace(/^p\//, '')}" /&gt;</div>

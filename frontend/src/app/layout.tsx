@@ -152,7 +152,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "EducationalOrganization",
               "name": "Final Attempt",
-              "legalName": "Final Attempt IAS Academy",
+              "legalName": "Final Attempt",
               "url": "https://finalattemptias.com",
               "logo": "https://finalattemptias.com/darklogofull.png",
               "description": "Premier mentorship and coaching platform for UPSC Civil Services and State PCS examinations.",

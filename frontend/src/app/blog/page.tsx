@@ -69,7 +69,6 @@ export default function Blog() {
 
           <Link
             href="/blog-hindi"
-            onClick={() => setLocale('hi', true)}
             className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold rounded-xl text-xs flex items-center gap-2 border border-amber-500/30 transition-all"
           >
             <span>Switch to Hindi Blogs (हिन्दी पोर्टल)</span>
@@ -92,7 +91,6 @@ export default function Blog() {
             <div className="pt-2 flex flex-wrap justify-center gap-3">
               <Link
                 href="/blog-hindi"
-                onClick={() => setLocale('hi', true)}
                 className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-all shadow-md inline-flex items-center gap-1.5"
               >
                 <span>हिन्दी लेख देखें (View Hindi Articles)</span>

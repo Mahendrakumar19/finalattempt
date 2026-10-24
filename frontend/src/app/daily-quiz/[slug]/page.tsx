@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           title,
           description,
           url,
-          siteName: 'Final Attempt IAS Academy',
+          siteName: 'Final Attempt',
           type: 'article',
           locale: 'en_IN',
         },

@@ -398,7 +398,7 @@ export default function TestSeriesDetailPage() {
         key: orderData.key || 'rzp_test_TTzBxGpMqc0rAD',
         amount: orderData.netAmount * 100,
         currency: orderData.currency || 'INR',
-        name: 'FinalAttempt IAS',
+        name: 'Final Attempt',
         description: `Purchase for ${series.title}`,
         order_id: orderData.gatewayOrderId,
         prefill: {
@@ -504,7 +504,7 @@ export default function TestSeriesDetailPage() {
             <ArrowLeft className="w-4 h-4" />
             <span>{t('testSeries.backToPrograms')}</span>
           </Link>
-          <ShareButton title={`${series?.title || 'Test Series'} - Final Attempt IAS`} variant="button" />
+          <ShareButton title={`${series?.title || 'Test Series'} - Final Attempt`} variant="button" />
         </div>
 
         {/* ── Compact Header Banner & Active Access Status ─────────────────── */}
@@ -1170,7 +1170,7 @@ export default function TestSeriesDetailPage() {
                           </span>
                         )}
                         <ShareButton
-                          title={`${quiz.title} - Final Attempt IAS`}
+                          title={`${quiz.title} - Final Attempt`}
                           path={`/test-series/program/${slug}?quiz=${quiz.id}`}
                           variant="icon"
                           size="sm"

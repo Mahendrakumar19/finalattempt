@@ -13,7 +13,7 @@ async function getPageData(slug: string) {
       const data = await res.json();
       return data?.data || null;
     }
-  } catch (_) {}
+  } catch {}
   return null;
 }
 
@@ -23,14 +23,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (!page) {
     return {
-      title: 'Page Not Found | Final Attempt IAS',
-      description: 'The requested page could not be found on Final Attempt IAS.',
+      title: 'Page Not Found | Final Attempt',
+      description: 'The requested page could not be found on Final Attempt.',
     };
   }
 
   const cleanSlug = slug.replace(/^downloads\//, '').replace(/^p\//, '');
-  const title = page.metaTitle || `${page.title} | Final Attempt IAS`;
-  const description = page.metaDescription || `Explore ${page.title} on Final Attempt IAS - Premier State PCS & BPSC Mentorship Platform.`;
+  const title = page.metaTitle || `${page.title} | Final Attempt`;
+  const description = page.metaDescription || `Explore ${page.title} on Final Attempt - Premier State PCS & BPSC Mentorship Platform.`;
   const keywords = page.metaKeywords || `${page.title}, BPSC institute, BPSC coaching, civil services, state pcs`;
   const canonicalUrl = `https://finalattemptias.com/p/${cleanSlug}`;
 
@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       url: canonicalUrl,
-      siteName: 'Final Attempt IAS',
+      siteName: 'Final Attempt',
       locale: 'en_IN',
       type: 'article',
     },
@@ -67,7 +67,7 @@ export default async function CustomDynamicPage({ params }: Props) {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
-    'name': page?.title || 'Final Attempt IAS',
+    'name': page?.title || 'Final Attempt',
     'url': canonicalUrl,
     'description': page?.metaDescription || 'Premier BPSC & State PCS Mentorship Institute',
     'address': {

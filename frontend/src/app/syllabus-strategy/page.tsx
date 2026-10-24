@@ -200,7 +200,6 @@ export default function SyllabusStrategyPage() {
               {/* Language Switcher Pill */}
               <Link
                 href="/syllabus-strategy-hindi"
-                onClick={() => setLocale('hi', true)}
                 className="px-3 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold rounded-xl text-xs flex items-center gap-1.5 border border-amber-500/30 transition-all cursor-pointer"
               >
                 <span>Hindi Portal (हिन्दी)</span>

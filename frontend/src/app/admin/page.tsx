@@ -911,9 +911,9 @@ export default function AdminPortal() {
     const blogTitle = blogForm.title || blogForm.title_hi || '';
     const blogTags = resolveAutoTags(blogForm.tags);
 
-    const autoSeoTitle = (blogForm.seoTitle || '').trim() || `${blogForm.title || blogForm.title_hi || 'Blog Post'} | Final Attempt IAS`;
+    const autoSeoTitle = (blogForm.seoTitle || '').trim() || `${blogForm.title || blogForm.title_hi || 'Blog Post'} | Final Attempt`;
     const autoSeoDesc = (blogForm.seoDescription || '').trim() || (blogForm.blurb || blogForm.blurb_hi || stripHtml(blogForm.content || blogForm.content_hi || '')).slice(0, 155);
-    const autoSeoKeywords = (blogForm.seoKeywords || '').trim() || Array.from(new Set([blogTitle, blogForm.category || 'Strategy', ...blogTags, 'BPSC Prelims', 'BPSC Mains', 'Final Attempt IAS'])).join(', ');
+    const autoSeoKeywords = (blogForm.seoKeywords || '').trim() || Array.from(new Set([blogTitle, blogForm.category || 'Strategy', ...blogTags, 'BPSC Prelims', 'BPSC Mains', 'Final Attempt'])).join(', ');
 
     const preparedBlog = {
       ...blogForm,
@@ -2880,7 +2880,7 @@ export default function AdminPortal() {
                       leadsList.map((lead) => {
                         const cleanPhone = (lead.mobile || '').replace(/[^0-9]/g, '');
                         const waNumber = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-                        const waMessage = encodeURIComponent(`Namaste ${lead.fullName}, thank you for contacting Final Attempt IAS regarding ${lead.targetExam}. How can our counseling team assist you today?`);
+                        const waMessage = encodeURIComponent(`Namaste ${lead.fullName}, thank you for contacting Final Attempt regarding ${lead.targetExam}. How can our counseling team assist you today?`);
 
                         return (
                           <tr key={lead.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02]">
@@ -4244,11 +4244,11 @@ export default function AdminPortal() {
                     {/* Basic Meta */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase">Article Title (English / Primary) <span className="text-amber-500">*</span></label>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Article Title (शीर्षक) <span className="text-amber-500">*</span></label>
                         <input
                           type="text" value={editingArticle.title || ''}
                           onChange={(e) => setEditingArticle({ ...editingArticle, title: e.target.value })}
-                          placeholder="e.g. Supreme Court Directive on Article 200..."
+                          placeholder="Enter article title in English or Hindi..."
                           className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs font-bold focus:border-amber-500 outline-none"
                         />
                       </div>
@@ -4357,7 +4357,7 @@ export default function AdminPortal() {
                           <div className="space-y-3 pt-3 border-t border-amber-500/20">
                             <div className="space-y-1.5">
                               <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                                Hindi Headline (हिन्दी शीर्षक) {editingArticle.publish_target === 'hindi' && <span className="text-amber-500">*</span>}
+                                Hindi Headline (हिन्दी शीर्षक - वैकल्पिक यदि ऊपर भरा गया है)
                               </label>
                               <input
                                 type="text"
@@ -4394,12 +4394,12 @@ export default function AdminPortal() {
                         )}
                       </div>
 
-                      {/* English Fields (Shown for English-only or Both) */}
+                      {/* English / Primary Fields (Shown for English-only or Both) */}
                       {(editingArticle.publish_target !== 'hindi') && (
                         <div className="space-y-4 pt-2">
                           {/* Executive Summary */}
                           <div className="space-y-1.5">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase">English Executive Summary (Short Blurb) <span className="text-amber-500">*</span></label>
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Executive Summary (Short Blurb)</label>
                             <textarea
                               rows={2} value={editingArticle.summary || ''}
                               onChange={(e) => setEditingArticle({ ...editingArticle, summary: e.target.value })}

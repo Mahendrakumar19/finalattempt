@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'UPPSC Prelims 2026: Complete 10-Year PYQ Analysis & Strategy | Final Attempt IAS',
+  title: 'UPPSC Prelims 2026: Complete 10-Year PYQ Analysis & Strategy | Final Attempt',
   description:
     'Data-driven preparation strategy for UPPSC Prelims 2026 based on 10 years (2016-2025) of PYQ trend analysis, subject weightage breakdown, booklists, and time allocation.',
   keywords: [
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     'UPPSC Syllabus Strategy 2026',
     'UPPSC Booklist',
     'PCS Exam Weightage',
-    'Final Attempt IAS Strategy',
+    'Final Attempt Strategy',
   ],
 };
 

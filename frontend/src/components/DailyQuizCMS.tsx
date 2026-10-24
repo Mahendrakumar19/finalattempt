@@ -1132,7 +1132,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
                       <a
                         href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                          `🎯 Final Attempt IAS Daily Quiz\n📚 ${currentSelectedQuiz.title}\n📅 Date: ${currentSelectedQuiz.publishDate}\n⏱️ ${currentSelectedQuiz.timeLimitMins || 10} Mins | ${questions.length || 10} Questions\n\nAttempt now & check your state leaderboard rank:\n${typeof window !== 'undefined' ? window.location.origin : 'https://finalattemptias.com'}/daily-quiz/${currentSelectedQuiz.slug || currentSelectedQuiz.id}`
+                          `🎯 Final Attempt Daily Quiz\n📚 ${currentSelectedQuiz.title}\n📅 Date: ${currentSelectedQuiz.publishDate}\n⏱️ ${currentSelectedQuiz.timeLimitMins || 10} Mins | ${questions.length || 10} Questions\n\nAttempt now & check your state leaderboard rank:\n${typeof window !== 'undefined' ? window.location.origin : 'https://finalattemptias.com'}/daily-quiz/${currentSelectedQuiz.slug || currentSelectedQuiz.id}`
                         )}`}
                         target="_blank"
                         rel="noopener noreferrer"

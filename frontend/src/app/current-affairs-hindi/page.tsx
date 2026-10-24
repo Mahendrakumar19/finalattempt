@@ -130,8 +130,8 @@ export default function CurrentAffairsHindiLanding() {
     const latest = [...editions]
       .filter(e => (e.publish_target || 'both') !== 'english')
       .sort((a, b) => (b.publishDate || '').localeCompare(a.publishDate || ''))[0];
-    if (!latest || !latest.publishDate) return '/current-affairs/daily';
-    return `/current-affairs/daily?date=${latest.publishDate}`;
+    if (!latest || !latest.publishDate) return '/current-affairs/daily?lang=hi';
+    return `/current-affairs/daily?date=${latest.publishDate}&lang=hi`;
   }, [editions]);
 
   const today = new Date();
@@ -250,24 +250,24 @@ export default function CurrentAffairsHindiLanding() {
               <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl p-3 space-y-4 shadow-xs">
                 <div className="space-y-0.5">
                   <SidebarSection icon={<Flame className="w-3.5 h-3.5" />} title="दैनिक अपडेट्स" />
-                  <SidebarItem label="आज के मुख्य समाचार" href="/current-affairs/daily" />
+                  <SidebarItem label="आज के मुख्य समाचार" href="/current-affairs/daily?lang=hi" />
                 </div>
 
                 <div className="h-px bg-slate-100 dark:bg-white/[0.06]" />
 
                 <div className="space-y-0.5">
                   <SidebarSection icon={<Layers className="w-3.5 h-3.5" />} title="साप्ताहिक व मासिक संग्रह" />
-                  <SidebarItem label="साप्ताहिक संकलन" href="/current-affairs/weekly" />
-                  <SidebarItem label="मासिक पत्रिका" href="/current-affairs/monthly" />
+                  <SidebarItem label="साप्ताहिक संकलन" href="/current-affairs/weekly?lang=hi" />
+                  <SidebarItem label="मासिक पत्रिका" href="/current-affairs/monthly?lang=hi" />
                 </div>
 
                 <div className="h-px bg-slate-100 dark:bg-white/[0.06]" />
 
                 <div className="space-y-0.5">
                   <SidebarSection icon={<TrendingUp className="w-3.5 h-3.5" />} title="विषयवार संकलन" />
-                  <SidebarItem label="राष्ट्रीय घटनाक्रम" href="/current-affairs/daily?topic=national" />
-                  <SidebarItem label="अंतर्राष्ट्रीय मामले" href="/current-affairs/daily?topic=international" />
-                  <SidebarItem label="बिहार विशेष परिप्रेक्ष्य" href="/current-affairs/daily?topic=bihar" />
+                  <SidebarItem label="राष्ट्रीय घटनाक्रम" href="/current-affairs/daily?topic=national&lang=hi" />
+                  <SidebarItem label="अंतर्राष्ट्रीय मामले" href="/current-affairs/daily?topic=international&lang=hi" />
+                  <SidebarItem label="बिहार विशेष परिप्रेक्ष्य" href="/current-affairs/daily?topic=bihar&lang=hi" />
                 </div>
               </div>
             </div>

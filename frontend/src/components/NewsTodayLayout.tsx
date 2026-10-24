@@ -52,7 +52,7 @@ export default function NewsTodayLayout({
   const handleShare = async () => {
     if (typeof window !== 'undefined') {
       const shareUrl = window.location.href;
-      const shareTitle = activeArticle?.title || 'Current Affairs - Final Attempt IAS';
+      const shareTitle = activeArticle?.title || 'Current Affairs - Final Attempt';
       if (navigator.share) {
         try {
           await navigator.share({
