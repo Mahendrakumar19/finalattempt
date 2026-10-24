@@ -170,7 +170,7 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
           <span>/</span>
           <Link href="/blog" className="hover:text-amber-500">Blog</Link>
           <span>/</span>
-          <span className="text-slate-700 dark:text-slate-200 truncate max-w-[280px]">{blog.title}</span>
+          <span className="text-slate-700 dark:text-slate-200 truncate max-w-[280px]">{displayTitle}</span>
         </div>
 
         {/* 2-Column Responsive Layout */}

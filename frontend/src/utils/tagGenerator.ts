@@ -141,14 +141,12 @@ export function extractContentKeywords(
 
 /**
  * Resolves the final tags array for saving:
- * If user provided tags, formats and cleans them;
- * If no tags provided, automatically discovers high-value keywords from title & content.
+ * If user provided tags, formats and cleans them.
+ * If no tags were provided, returns an empty array without automatically injecting tags.
+ * (Tag suggestions can still be explicitly selected by the user in the UI).
  */
 export function resolveAutoTags(
-  userTags: string | string[] | undefined,
-  title: string,
-  contentOrSummary: string,
-  category?: string
+  userTags: string | string[] | undefined
 ): string[] {
   let parsed: string[] = [];
 
@@ -166,10 +164,9 @@ export function resolveAutoTags(
 
   if (parsed.length > 0) {
     // Return unique cleaned user-provided tags
-    return Array.from(new Set(parsed)).slice(0, 8);
+    return Array.from(new Set(parsed)).slice(0, 10);
   }
 
-  // No tags provided: automatically extract topic-specific keywords from content
-  const generated = extractContentKeywords(title, contentOrSummary, { category, maxTags: 5 });
-  return generated.length > 0 ? generated : ['general-studies'];
+  // Do not automatic add tags
+  return [];
 }

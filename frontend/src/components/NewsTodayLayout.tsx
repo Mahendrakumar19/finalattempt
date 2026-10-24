@@ -497,7 +497,8 @@ export default function NewsTodayLayout({
                     }
                     if (art.slug && currentDateStr) {
                       const cat = art.category ? art.category.toLowerCase().replace(/\s+/g, '-') : 'general';
-                      router.push(`/current-affairs/daily/${currentDateStr}/${cat}/${art.slug}`);
+                      const langParam = isHindiArticle ? '?lang=hi' : '';
+                      router.push(`/current-affairs/daily/${currentDateStr}/${cat}/${art.slug}${langParam}`);
                     }
                     if (mobileDrawerOpen) setMobileDrawerOpen(false);
                   }}
@@ -511,7 +512,7 @@ export default function NewsTodayLayout({
                     {String(idx + 1).padStart(2, '0')}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <span className="line-clamp-2">{art.title}</span>
+                    <span className="line-clamp-2">{isHindiArticle ? (art.title_hi || art.title) : art.title}</span>
                     {art.category && (
                       <span className={`text-[9px] font-extrabold block mt-0.5 uppercase tracking-wider ${isSelected ? 'text-slate-900/80' : 'text-slate-400 dark:text-slate-500'}`}>
                         {art.category}

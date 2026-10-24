@@ -729,13 +729,7 @@ export default function AdminPortal() {
     }
 
     // 🏷️ Intelligent Automated Tags: Suggest & extract keywords from content if not explicitly provided
-    const combinedContent = `${effectiveTitle} ${effectiveSummary} ${editingArticle.content || ''} ${editingArticle.content_hi || ''} ${editingArticle.keyHighlights || ''} ${editingArticle.whyInNews || ''}`;
-    const tags = resolveAutoTags(
-      editingArticle.tags,
-      effectiveTitle,
-      combinedContent,
-      category
-    );
+    const tags = resolveAutoTags(editingArticle.tags);
 
     // 💡 AUTO-POPULATE SEO PARAMETERS IF NOT TYPED MANUALLY
     const stripHtml = (html: string) => (html || '').replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
@@ -915,13 +909,7 @@ export default function AdminPortal() {
     const finalSlug = (userSlug && !isGenericSlug) ? generateUnicodeSlug(userSlug) : (slugifiedTitle || `article-${Date.now()}`);
 
     const blogTitle = blogForm.title || blogForm.title_hi || '';
-    const blogBody = `${blogForm.blurb || ''} ${blogForm.blurb_hi || ''} ${blogForm.content || ''} ${blogForm.content_hi || ''}`;
-    const blogTags = resolveAutoTags(
-      blogForm.tags,
-      blogTitle,
-      blogBody,
-      blogForm.category
-    );
+    const blogTags = resolveAutoTags(blogForm.tags);
 
     const autoSeoTitle = (blogForm.seoTitle || '').trim() || `${blogForm.title || blogForm.title_hi || 'Blog Post'} | Final Attempt IAS`;
     const autoSeoDesc = (blogForm.seoDescription || '').trim() || (blogForm.blurb || blogForm.blurb_hi || stripHtml(blogForm.content || blogForm.content_hi || '')).slice(0, 155);
@@ -4790,6 +4778,72 @@ export default function AdminPortal() {
                           className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
                         />
                       </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase">Tags (comma separated)</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const title = blogForm.title || blogForm.title_hi || '';
+                            const body = `${blogForm.blurb || ''} ${blogForm.blurb_hi || ''} ${blogForm.content || ''} ${blogForm.content_hi || ''}`;
+                            const extracted = extractContentKeywords(title, body, {
+                              category: blogForm.category,
+                              maxTags: 6
+                            });
+                            const current = Array.isArray(blogForm.tags)
+                              ? blogForm.tags
+                              : (typeof blogForm.tags === 'string' && blogForm.tags ? (blogForm.tags as string).split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+                            const combined = Array.from(new Set([...current, ...extracted]));
+                            setBlogForm({ ...blogForm, tags: combined });
+                          }}
+                          className="text-[10px] text-amber-500 hover:text-amber-600 font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>Suggest from Content</span>
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={Array.isArray(blogForm.tags) ? blogForm.tags.join(', ') : (blogForm.tags || '')}
+                        onChange={(e) => setBlogForm({ ...blogForm, tags: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                        placeholder="strategy, bpsc-mains, interview-guidance..."
+                        className="w-full px-4 py-2 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:border-slate-400 outline-none"
+                      />
+                      {/* Suggested keywords preview pills */}
+                      {(() => {
+                        const title = blogForm.title || blogForm.title_hi || '';
+                        const body = `${blogForm.blurb || ''} ${blogForm.blurb_hi || ''} ${blogForm.content || ''}`;
+                        if (!title && !body) return null;
+                        const suggestions = extractContentKeywords(title, body, {
+                          category: blogForm.category,
+                          maxTags: 5
+                        });
+                        const currentArr = Array.isArray(blogForm.tags)
+                          ? blogForm.tags
+                          : (typeof blogForm.tags === 'string' && blogForm.tags ? (blogForm.tags as string).split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+                        const current = new Set(currentArr);
+                        const unselected = suggestions.filter(s => !current.has(s));
+                        if (unselected.length === 0) return null;
+                        return (
+                          <div className="pt-1 flex flex-wrap items-center gap-1.5">
+                            <span className="text-[9px] text-slate-400 font-semibold">Suggested:</span>
+                            {unselected.map(s => (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => {
+                                  setBlogForm({ ...blogForm, tags: [...currentArr, s] });
+                                }}
+                                className="px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 text-[10px] font-bold rounded-lg border border-amber-200/60 dark:border-amber-800/40 cursor-pointer transition-all"
+                              >
+                                + {s}
+                              </button>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="space-y-1.5">
