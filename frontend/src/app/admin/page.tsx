@@ -744,12 +744,18 @@ export default function AdminPortal() {
     const seoKeywords = (editingArticle.seo?.seoKeywords || '').trim() || Array.from(new Set([effectiveTitle, category, ...subjects, ...exams, ...tags])).join(', ');
     const seoDescription = (editingArticle.seo?.seoDescription || '').trim() || (effectiveSummary || stripHtml(editingArticle.content || '')).slice(0, 155);
 
+    const target = editingArticle.publish_target || 'both';
+    const finalTitle = (editingArticle.title || '').trim() || (target === 'english' ? effectiveTitle : '');
+    const finalTitleHi = (editingArticle.title_hi || '').trim() || (target === 'hindi' ? effectiveTitle : '');
+    const finalSummary = (editingArticle.summary || '').trim() || (target === 'english' ? effectiveSummary : '');
+    const finalSummaryHi = (editingArticle.summary_hi || '').trim() || (target === 'hindi' ? effectiveSummary : '');
+
     const nextArt = {
       ...editingArticle,
-      title: editingArticle.title?.trim() || effectiveTitle,
-      summary: editingArticle.summary?.trim() || effectiveSummary,
-      title_hi: editingArticle.title_hi?.trim() || effectiveTitle,
-      summary_hi: editingArticle.summary_hi?.trim() || effectiveSummary,
+      title: finalTitle || effectiveTitle,
+      summary: finalSummary || effectiveSummary,
+      title_hi: finalTitleHi,
+      summary_hi: finalSummaryHi,
       id: editingArticle.id || `art-${Date.now()}`,
       slug: finalSlug,
       publishedDate,
@@ -4315,106 +4321,118 @@ export default function AdminPortal() {
                       </div>
                     </div>
 
-                    {/* Multi-Language & Publishing Target Settings */}
-                    <div className="p-4 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                          🌐 Article Language Track & Destination
-                        </span>
-                        <span className="text-[10px] text-slate-500">Route to English, Hindi, or Both</span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Destination</label>
-                          <select
-                            value={editingArticle.publish_target || 'both'}
-                            onChange={(e) => setEditingArticle({ ...editingArticle, publish_target: e.target.value as 'both' | 'english' | 'hindi' })}
-                            className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-amber-500/40 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none cursor-pointer"
-                          >
-                            <option value="both">🌐 Both English & Hindi Hubs</option>
-                            <option value="english">English Page Only (/current-affairs)</option>
-                            <option value="hindi">Hindi Page Only (/current-affairs-hindi)</option>
-                          </select>
+                      {/* Multi-Language & Publishing Target Settings */}
+                      <div className="p-4 bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 rounded-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                            🌐 Article Destination & Language
+                          </span>
+                          <span className="text-[10px] text-slate-500">Choose where this article should appear</span>
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] text-slate-400 font-bold uppercase">Language Track</label>
-                          <select
-                            value={editingArticle.language || 'en'}
-                            onChange={(e) => setEditingArticle({ ...editingArticle, language: e.target.value as 'en' | 'hi' | 'bilingual' })}
-                            className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none cursor-pointer"
-                          >
-                            <option value="en">English Primary</option>
-                            <option value="hi">Hindi Primary (हिन्दी)</option>
-                            <option value="bilingual">Bilingual (Authored English & Hindi)</option>
-                          </select>
-                        </div>
-                      </div>
 
-                      {/* Hindi Dedicated Fields for Current Affairs Article */}
-                      {(editingArticle.publish_target === 'hindi' || editingArticle.publish_target === 'both' || editingArticle.language === 'bilingual' || editingArticle.language === 'hi') && (
-                        <div className="space-y-3 pt-2 border-t border-amber-500/20">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
-                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              Hindi Headline (हिन्दी शीर्षक)
-                            </label>
-                            <input
-                              type="text"
-                              value={editingArticle.title_hi || ''}
-                              onChange={(e) => setEditingArticle({ ...editingArticle, title_hi: e.target.value })}
-                              placeholder="उदा. सर्वोच्च न्यायालय द्वारा अनुच्छेद 200 पर निर्देश..."
-                              className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-amber-500/30 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none"
-                            />
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Publish Destination</label>
+                            <select
+                              value={editingArticle.publish_target || 'both'}
+                              onChange={(e) => {
+                                const target = e.target.value as 'both' | 'english' | 'hindi';
+                                setEditingArticle({
+                                  ...editingArticle,
+                                  publish_target: target,
+                                  language: target === 'hindi' ? 'hi' : target === 'english' ? 'en' : editingArticle.language || 'en'
+                                });
+                              }}
+                              className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-amber-500/40 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none cursor-pointer"
+                            >
+                              <option value="english">English Page Only (/current-affairs)</option>
+                              <option value="hindi">Hindi Page Only (/current-affairs-hindi)</option>
+                              <option value="both">🌐 Both English & Hindi Hubs</option>
+                            </select>
                           </div>
-
                           <div className="space-y-1.5">
-                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              Hindi Summary / Key Points (हिन्दी संक्षिप्त सार)
-                            </label>
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">Language Track</label>
+                            <select
+                              value={editingArticle.language || (editingArticle.publish_target === 'hindi' ? 'hi' : 'en')}
+                              onChange={(e) => setEditingArticle({ ...editingArticle, language: e.target.value as 'en' | 'hi' | 'bilingual' })}
+                              className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none cursor-pointer"
+                            >
+                              <option value="en">English Content</option>
+                              <option value="hi">Hindi Content (हिन्दी)</option>
+                              <option value="bilingual">Bilingual (Both EN & HI Provided)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* Dedicated Hindi Fields (Shown for Hindi-only or Both) */}
+                        {(editingArticle.publish_target === 'hindi' || editingArticle.publish_target === 'both' || editingArticle.language === 'bilingual' || editingArticle.language === 'hi') && (
+                          <div className="space-y-3 pt-3 border-t border-amber-500/20">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                                Hindi Headline (हिन्दी शीर्षक) {editingArticle.publish_target === 'hindi' && <span className="text-amber-500">*</span>}
+                              </label>
+                              <input
+                                type="text"
+                                value={editingArticle.title_hi || ''}
+                                onChange={(e) => setEditingArticle({ ...editingArticle, title_hi: e.target.value })}
+                                placeholder="उदा. सर्वोच्च न्यायालय द्वारा अनुच्छेद 200 पर निर्देश..."
+                                className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-amber-500/30 rounded-2xl text-slate-900 dark:text-white text-xs font-bold outline-none"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                                Hindi Summary / Key Points (हिन्दी संक्षिप्त सार)
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={editingArticle.summary_hi || ''}
+                                onChange={(e) => setEditingArticle({ ...editingArticle, summary_hi: e.target.value })}
+                                placeholder="उदा. राज्यपालों द्वारा विधेयकों पर निर्णय लेने हेतु संवैधानिक सीमाएं..."
+                                className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-amber-500/30 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
+                              />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
+                                Hindi Full Article Content (हिन्दी विस्तृत लेख)
+                              </label>
+                              <RichTextEditor
+                                value={editingArticle.content_hi || ''}
+                                onChange={(html) => setEditingArticle({ ...editingArticle, content_hi: html })}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* English Fields (Shown for English-only or Both) */}
+                      {(editingArticle.publish_target !== 'hindi') && (
+                        <div className="space-y-4 pt-2">
+                          {/* Executive Summary */}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase">English Executive Summary (Short Blurb) <span className="text-amber-500">*</span></label>
                             <textarea
-                              rows={2}
-                              value={editingArticle.summary_hi || ''}
-                              onChange={(e) => setEditingArticle({ ...editingArticle, summary_hi: e.target.value })}
-                              placeholder="उदा. राज्यपालों द्वारा विधेयकों पर निर्णय लेने हेतु संवैधानिक सीमाएं..."
-                              className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-amber-500/30 rounded-2xl text-slate-900 dark:text-white text-xs outline-none"
+                              rows={2} value={editingArticle.summary || ''}
+                              onChange={(e) => setEditingArticle({ ...editingArticle, summary: e.target.value })}
+                              placeholder="Brief overview blurb for cards and readers..."
+                              className="w-full px-4 py-2 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 text-xs focus:border-amber-500 outline-none"
                             />
                           </div>
 
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase">
-                              Hindi Full Content (हिन्दी विस्तृत लेख)
-                            </label>
-                            <RichTextEditor
-                              value={editingArticle.content_hi || ''}
-                              onChange={(html) => setEditingArticle({ ...editingArticle, content_hi: html })}
-                            />
+                          {/* EDITORIAL CONTENT FIELD */}
+                          <div className="border-t pt-4 space-y-4">
+                            <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">English Article Content</h4>
+
+                            <div className="space-y-1.5">
+                              <RichTextEditor
+                                value={editingArticle.content || ''}
+                                onChange={(html) => setEditingArticle({ ...editingArticle, content: html })}
+                              />
+                            </div>
                           </div>
                         </div>
                       )}
-                    </div>
-
-                    {/* Executive Summary */}
-                    <div className="space-y-1.5">
-                      <label className="text-[10px] text-slate-400 font-bold uppercase">English Executive Summary (Short Blurb) <span className="text-amber-500">*</span></label>
-                      <textarea
-                        rows={2} value={editingArticle.summary || ''}
-                        onChange={(e) => setEditingArticle({ ...editingArticle, summary: e.target.value })}
-                        placeholder="Brief overview blurb for cards and readers..."
-                        className="w-full px-4 py-2 border border-slate-200 dark:border-white/10 rounded-2xl text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 text-xs focus:border-amber-500 outline-none"
-                      />
-                    </div>
-
-                    {/* EDITORIAL CONTENT FIELD */}
-                    <div className="border-t pt-4 space-y-4">
-                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">English Article Content</h4>
-
-                      <div className="space-y-1.5">
-                        <RichTextEditor
-                          value={editingArticle.content || ''}
-                          onChange={(html) => setEditingArticle({ ...editingArticle, content: html })}
-                        />
-                      </div>
-                    </div>
 
                     {/* METADATA FILTERS INPUTS */}
                     <div className="border-t pt-4 space-y-4">

@@ -8,7 +8,6 @@ import {
   BookOpen, Target, Layers, CheckCircle2,
   ArrowUpRight, Search, ListFilter, ArrowRight
 } from 'lucide-react';
-import { useLocale } from '@/context/LocaleContext';
 
 interface Exam {
   id: string;
@@ -49,14 +48,6 @@ interface StrategyBlock {
 }
 
 export default function SyllabusStrategyHindiPage() {
-  const { locale, setLocale } = useLocale();
-
-  useEffect(() => {
-    if (locale !== 'hi') {
-      setLocale('hi', true);
-    }
-  }, [locale, setLocale]);
-
   const [activeTab, setActiveTab] = useState<'syllabus' | 'strategy'>(() => {
     if (typeof window !== 'undefined' && window.location.hash === '#strategy') {
       return 'strategy';
@@ -207,7 +198,6 @@ export default function SyllabusStrategyHindiPage() {
               {/* Language Switcher Pill */}
               <Link
                 href="/syllabus-strategy"
-                onClick={() => setLocale('en', true)}
                 className="px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-900 dark:text-white font-bold rounded-xl text-xs flex items-center gap-1.5 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
               >
                 <span>English Syllabus & Strategy</span>

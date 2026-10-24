@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale } from '@/context/LocaleContext';
 import {
   Calendar as CalendarIcon, ArrowLeft, Clock,
@@ -35,6 +35,7 @@ export default function NewsTodayLayout({
   currentArticleSlug,
 }: NewsTodayLayoutProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { locale } = useLocale();
 
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
@@ -247,12 +248,30 @@ export default function NewsTodayLayout({
     setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1));
   };
 
+  // Check if article should render in Hindi
+  const isHindiArticle = useMemo(() => {
+    return (
+      searchParams?.get('lang') === 'hi' ||
+      activeArticle?.publish_target === 'hindi' ||
+      currentEdition?.publish_target === 'hindi' ||
+      locale === 'hi'
+    );
+  }, [searchParams, activeArticle, currentEdition, locale]);
+
+  const rawArticleContent = useMemo(() => {
+    if (!activeArticle) return '';
+    if (isHindiArticle) {
+      return activeArticle.content_hi || activeArticle.content || '';
+    }
+    return activeArticle.content || activeArticle.content_hi || '';
+  }, [activeArticle, isHindiArticle]);
+
   // ══════════════════════════════════════════════════════════════════════════
   // DYNAMIC HTML HEADING & UNIQUE ID TOC PARSER
-  // Parses activeArticle.content to extract H2/H3 headings and assign stable IDs
+  // Parses rawArticleContent to extract H2/H3 headings and assign stable IDs
   // ══════════════════════════════════════════════════════════════════════════
   const { processedHtml, tocItems } = useMemo(() => {
-    if (!activeArticle?.content) {
+    if (!rawArticleContent) {
       return { processedHtml: '', tocItems: [] };
     }
 
@@ -261,7 +280,7 @@ export default function NewsTodayLayout({
       const idCounts: Record<string, number> = {};
 
       const headingRegex = /<h([1-4])([^>]*)>(.*?)<\/h\1>/gi;
-      const htmlWithIds = activeArticle.content.replace(headingRegex, (match, levelStr, attrs, innerHtml) => {
+      const htmlWithIds = rawArticleContent.replace(headingRegex, (match: string, levelStr: string, attrs: string, innerHtml: string) => {
         const text = innerHtml.replace(/<[^>]+>/g, '').trim();
         if (!text) return match;
 
@@ -293,9 +312,9 @@ export default function NewsTodayLayout({
       };
     } catch (err) {
       console.error('Error parsing headings for dynamic TOC:', err);
-      return { processedHtml: activeArticle.content, tocItems: [] };
+      return { processedHtml: rawArticleContent, tocItems: [] };
     }
-  }, [activeArticle]);
+  }, [rawArticleContent]);
 
   // Selected date formatted dynamically (No hardcoded fallback)
   const activeDateFormatted = useMemo(() => {
@@ -683,7 +702,7 @@ export default function NewsTodayLayout({
                   </div>
 
                   <h1 className="text-2xl sm:text-3xl font-heading font-black text-slate-900 dark:text-white leading-tight tracking-tight pt-1">
-                    {activeArticle?.title || (loading ? 'Loading Article...' : 'Current Affairs Article')}
+                    {(isHindiArticle ? (activeArticle?.title_hi || activeArticle?.title) : activeArticle?.title) || (loading ? 'Loading Article...' : 'Current Affairs Article')}
                   </h1>
                 </div>
 

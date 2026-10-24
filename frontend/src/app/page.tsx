@@ -1201,32 +1201,15 @@ export default function Home() {
               {/* Left Column: Final Attempt Mobile Value Proposition */}
               <div className="lg:col-span-7 space-y-7">
                 
-                {/* Header Badge */}
-                <div 
-                  className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase tracking-wider border"
-                  style={{
-                    backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.12)',
-                    borderColor: isDark ? 'rgba(245, 158, 11, 0.4)' : '#F59E0B',
-                    color: isDark ? '#FCD34D' : '#B45309'
-                  }}
-                >
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                  <span>{t('nav.appShowcaseBadge', 'BPSC & State PCS 2026-27')}</span>
-                  <span className="opacity-60">•</span>
-                  <span style={{ color: isDark ? '#FFFFFF' : '#1E293B', fontWeight: 700 }}>
-                    {t('nav.appShowcaseBadgeSub', 'Official Mobile App')}
-                  </span>
-                </div>
-
                 {/* Main Heading */}
                 <div className="space-y-2">
                   <h2 
                     className="text-3xl sm:text-4xl lg:text-5xl font-heading font-black tracking-tight leading-[1.15]"
                     style={{ color: isDark ? '#FFFFFF' : '#0A0F1D' }}
                   >
-                    {t('nav.appShowcaseTitle', 'Crack Civil Services with')}{' '}
+                    {t('nav.appShowcaseTitle', "Let's make your attempt final with")}{' '}
                     <span className="text-[#F59E0B]">
-                      Final Attempt
+                      FINAL ATTEMPT
                     </span>
                   </h2>
                   <p 
@@ -1245,7 +1228,7 @@ export default function Home() {
 
                 {/* Structured 3 Feature Advantage Rows — High contrast, zero muddy grey */}
                 <div className="space-y-3 pt-1">
-                  {/* Row 1: PYQ & Test Series */}
+                  {/* Row 1: TEST SERIES */}
                   <div
                     className="flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all duration-200 hover:shadow-sm"
                     style={{
@@ -1268,7 +1251,7 @@ export default function Home() {
                         className="text-xs sm:text-sm font-extrabold flex items-center gap-2"
                         style={{ color: isDark ? '#FFFFFF' : '#0A0F1D' }}
                       >
-                        <span>{t('nav.appFeature1Title', 'BPSC Prelims PYQ Test Engine')}</span>
+                        <span>{t('nav.appFeature1Title', 'TEST SERIES')}</span>
                         <span 
                           className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
                           style={{
@@ -1289,7 +1272,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Row 2: Live Classes & Recorded Vault */}
+                  {/* Row 2: DAILY CURRENT AFFAIRS */}
                   <div
                     className="flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all duration-200 hover:shadow-sm"
                     style={{
@@ -1312,7 +1295,7 @@ export default function Home() {
                         className="text-xs sm:text-sm font-extrabold flex items-center gap-2"
                         style={{ color: isDark ? '#FFFFFF' : '#0A0F1D' }}
                       >
-                        <span>{t('nav.appFeature2Title', 'Daily Interactive Live Classes')}</span>
+                        <span>{t('nav.appFeature2Title', 'DAILY CURRENT AFFAIRS')}</span>
                         <span 
                           className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
                           style={{
@@ -1333,7 +1316,7 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Row 3: Bihar Special & Current Affairs */}
+                  {/* Row 3: QUIZ */}
                   <div
                     className="flex items-start gap-3.5 p-3.5 rounded-2xl border transition-all duration-200 hover:shadow-sm"
                     style={{
@@ -1356,7 +1339,7 @@ export default function Home() {
                         className="text-xs sm:text-sm font-extrabold flex items-center gap-2"
                         style={{ color: isDark ? '#FFFFFF' : '#0A0F1D' }}
                       >
-                        <span>{t('nav.appFeature3Title', 'Bihar Tathya Sangrah & CA Capsules')}</span>
+                        <span>{t('nav.appFeature3Title', 'QUIZ')}</span>
                         <span 
                           className="text-[10px] font-bold px-2 py-0.5 rounded-full border"
                           style={{

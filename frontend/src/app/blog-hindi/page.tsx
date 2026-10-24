@@ -5,10 +5,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Calendar, ArrowRight, BookOpen } from 'lucide-react';
 import { db, BlogItem } from '@/services/db';
-import { useLocale } from '@/context/LocaleContext';
 
 export default function BlogHindi() {
-  const { locale, setLocale } = useLocale();
   const [blogsList, setBlogsList] = useState<BlogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,12 +18,6 @@ export default function BlogHindi() {
   };
 
   useEffect(() => {
-    // Automatically switch language context to Hindi for /blog-hindi without reloading
-    if (locale !== 'hi') {
-      setLocale('hi', true);
-      return;
-    }
-
     const loadBlogs = async () => {
       try {
         db.clearCache('blogs_cache');
@@ -48,7 +40,7 @@ export default function BlogHindi() {
       }
     };
     loadBlogs();
-  }, [locale, setLocale]);
+  }, []);
 
   const stripHtml = (html: string) => {
     if (!html) return '';
@@ -75,7 +67,6 @@ export default function BlogHindi() {
 
           <Link
             href="/blog"
-            onClick={() => setLocale('en', true)}
             className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-900 dark:text-white font-bold rounded-xl text-xs flex items-center gap-2 border border-slate-200 dark:border-white/10 transition-all"
           >
             <span>Switch to English Blogs</span>
@@ -104,7 +95,6 @@ export default function BlogHindi() {
             <div className="pt-2 flex flex-wrap justify-center gap-3">
               <Link
                 href="/blog"
-                onClick={() => setLocale('en', true)}
                 className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs transition-all shadow-md inline-flex items-center gap-1.5"
               >
                 <span>अंग्रेजी लेख देखें (View English Blogs)</span>
@@ -121,7 +111,7 @@ export default function BlogHindi() {
               return (
                 <Link 
                   key={post.id} 
-                  href={`/blog/${post.slug || post.id}`}
+                  href={`/blog/${post.slug || post.id}?lang=hi`}
                   className="bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200/80 dark:border-white/10 p-6 flex flex-col justify-between hover:shadow-xl hover:border-amber-500/50 transition-all duration-300 group"
                 >
                   <div className="space-y-4">

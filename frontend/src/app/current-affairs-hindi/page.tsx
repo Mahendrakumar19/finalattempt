@@ -8,7 +8,6 @@ import {
   Calendar, Zap, Search, X
 } from 'lucide-react';
 import { db, DynamicCurrentAffairEdition } from '@/services/db';
-import { useLocale } from '@/context/LocaleContext';
 
 function formatDisplayDateHindi(dateStr: string): string {
   const d = new Date(dateStr + 'T00:00:00');
@@ -64,20 +63,16 @@ function SidebarSection({ icon, title }: { icon: React.ReactNode; title: string 
 }
 
 export default function CurrentAffairsHindiLanding() {
-  const { locale, setLocale } = useLocale();
   const [editions, setEditions] = useState<DynamicCurrentAffairEdition[]>([]);
   type TopicKey = 'all' | 'editorials' | 'national' | 'international' | 'bihar' | 'arunachal';
   const [activeTopic, setActiveTopic] = useState<TopicKey>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
-    if (locale !== 'hi') {
-      setLocale('hi', true);
-    }
     db.getDynamicCurrentAffairsEditions(false)
       .then(list => setEditions(list || []))
       .catch(err => console.error('Error loading current affairs editions:', err));
-  }, [locale, setLocale]);
+  }, []);
 
   // Derived filtered articles specifically for Hindi Portal
   const recentArticles = useMemo(() => {
@@ -313,7 +308,7 @@ export default function CurrentAffairsHindiLanding() {
                   {recentArticles.map((art, i) => (
                     <Link
                       key={i}
-                      href={`/current-affairs/daily/${art.date}/${art.category.toLowerCase()}/${art.slug}`}
+                      href={`/current-affairs/daily/${art.date}/${art.category.toLowerCase()}/${art.slug}?lang=hi`}
                       className="group bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl overflow-hidden hover:border-amber-500/30 hover:-translate-y-1 transition-all duration-200 shadow-xs flex flex-col justify-between"
                     >
                       <div className={`h-1.5 w-full ${art.category === 'BIHAR' ? 'bg-amber-500' : art.category === 'INTERNATIONAL' ? 'bg-violet-500' : 'bg-blue-500'}`} />

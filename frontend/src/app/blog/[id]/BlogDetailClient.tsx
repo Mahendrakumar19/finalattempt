@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { 
   Calendar, Clock, User, ArrowLeft, Share2, 
   Check, ArrowRight, BookOpen, Download
 } from 'lucide-react';
 import { db, BlogItem } from '@/services/db';
 import PdfLetterhead, { triggerPdfDownload } from '@/components/PdfLetterhead';
-import { useTranslation, useLocale } from '@/context/LocaleContext';
+import { useLocale } from '@/context/LocaleContext';
 
 interface BlogDetailClientProps {
   idOrSlug: string;
@@ -16,7 +17,8 @@ interface BlogDetailClientProps {
 }
 
 export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailClientProps) {
-  const { locale, setLocale } = useLocale();
+  const { locale } = useLocale();
+  const searchParams = useSearchParams();
 
   const [blog, setBlog] = useState<BlogItem | null>(initialBlog || null);
   const [recentBlogs, setRecentBlogs] = useState<BlogItem[]>([]);
@@ -51,16 +53,6 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
           active = matched || list[0] || null;
         }
         setBlog(active);
-
-        // Auto-detect and sync language context
-        if (active) {
-          const target = (active as { publish_target?: string; publishTarget?: string }).publish_target || (active as { publish_target?: string; publishTarget?: string }).publishTarget || 'both';
-          if (target === 'hindi' && locale !== 'hi') {
-            setLocale('hi', true);
-          } else if (target === 'english' && locale !== 'en') {
-            setLocale('en', true);
-          }
-        }
       } catch (err) {
         console.error('Failed loading blog post detail:', err);
       } finally {
@@ -71,7 +63,7 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
     if (idOrSlug) {
       loadPost();
     }
-  }, [idOrSlug, initialBlog, locale, setLocale]);
+  }, [idOrSlug, initialBlog]);
 
   const handleShare = async () => {
     if (typeof window !== 'undefined') {
@@ -129,10 +121,17 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
     .filter((b: BlogItem) => String(b.id) !== String(blog?.id) && b.slug !== blog?.slug)
     .slice(0, 3);
 
+  const target = (blog as { publish_target?: string; publishTarget?: string })?.publish_target || (blog as { publish_target?: string; publishTarget?: string })?.publishTarget || 'both';
+  const isHindiArticle = searchParams?.get('lang') === 'hi' || target === 'hindi' || locale === 'hi';
+
+  const displayTitle = isHindiArticle ? (blog.title_hi || blog.title) : blog.title;
+  const displayBlurb = isHindiArticle ? (blog.blurb_hi || blog.blurb) : (blog.blurb || blog.blurb_hi);
+  const displayContent = isHindiArticle ? (blog.content_hi || blog.content) : (blog.content || blog.content_hi);
+
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
-    'headline': blog.title,
+    'headline': displayTitle,
     'description': blog.blurb || (blog.content ? blog.content.replace(/<[^>]*>?/gm, '').slice(0, 160) : ''),
     'image': resolveUrl(blog.imageUrl || blog.cover_image_url) || 'https://finalattemptias.com/og-image.jpg',
     'datePublished': blog.publishDate || blog.createdAt || new Date().toISOString(),
@@ -279,12 +278,12 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
               </div>
 
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-black text-slate-900 dark:text-white leading-tight">
-                {locale === 'hi' ? (blog.title_hi || blog.title) : blog.title}
+                {displayTitle}
               </h1>
 
-              {(blog.blurb || blog.blurb_hi) && (
+              {displayBlurb && (
                 <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 font-medium italic border-l-2 border-amber-500 pl-4 py-1 leading-relaxed">
-                  {locale === 'hi' ? (blog.blurb_hi || blog.blurb) : (blog.blurb || blog.blurb_hi)}
+                  {displayBlurb}
                 </p>
               )}
 
@@ -294,10 +293,10 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
                 </div>
                 <div>
                   <p className="text-xs font-bold text-slate-900 dark:text-white">
-                    {blog.author || (locale === 'hi' ? 'फ़ाइनल अटेम्प्ट टीम' : 'Final Attempt Faculty')}
+                    {blog.author || (isHindiArticle ? 'फ़ाइनल अटेम्प्ट टीम' : 'Final Attempt Faculty')}
                   </p>
                   <p className="text-[10px] text-slate-400">
-                    {locale === 'hi' ? 'सिविल सेवा मार्गदर्शक' : 'Senior Faculty & UPSC Mentor'}
+                    {isHindiArticle ? 'सिविल सेवा मार्गदर्शक' : 'Senior Faculty & UPSC Mentor'}
                   </p>
                 </div>
               </div>
@@ -309,7 +308,7 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={resolveUrl(blog.imageUrl || blog.cover_image_url)}
-                  alt={locale === 'hi' ? (blog.title_hi || blog.title) : blog.title}
+                  alt={displayTitle}
                   className="w-full h-full object-cover max-h-[460px]"
                 />
               </div>
@@ -320,7 +319,7 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
               <div 
                 className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 text-sm sm:text-base leading-relaxed space-y-4 font-normal"
                 dangerouslySetInnerHTML={{ 
-                  __html: (locale === 'hi' ? (blog.content_hi || blog.content) : (blog.content || blog.content_hi)) || '<p>No content available.</p>' 
+                  __html: displayContent || '<p>No content available.</p>' 
                 }}
               />
 
