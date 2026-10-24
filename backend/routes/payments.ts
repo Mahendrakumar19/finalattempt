@@ -256,7 +256,7 @@ router.post('/create-publication-order', async (req, res) => {
         id: order.id,
         amount: order.amount,
         currency: order.currency,
-        key: process.env.RAZORPAY_KEY_ID || 'rzp_test_dev_dummy_key_id_123456'
+        key: process.env.RAZORPAY_KEY_ID || 'rzp_test_TTzBxGpMqc0rAD'
       }
     });
   } catch (err: any) {
@@ -287,7 +287,7 @@ router.post('/verify-publication-order', async (req, res) => {
   }
 
   try {
-    const key_secret = process.env.RAZORPAY_KEY_SECRET || 'rzp_test_dev_dummy_secret_78910';
+    const key_secret = process.env.RAZORPAY_KEY_SECRET || '4ViOK1jEPrPtZPYcou4ut48V';
     
     if (razorpaySignature && razorpayOrderId && !razorpayOrderId.startsWith('order_sim_')) {
       const generated_signature = crypto
