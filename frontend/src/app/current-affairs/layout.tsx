@@ -15,6 +15,8 @@ export const metadata: Metadata = {
     title: "Daily Current Affairs for UPSC & BPSC | Final Attempt",
     description: "Daily current affairs in Hindi & English for UPSC, BPSC, APPSC and State PCS aspirants from Final Attempt.",
     url: "https://finalattemptias.com/current-affairs",
+    siteName: "Final Attempt",
+    locale: "en_IN",
     images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
   },
 };

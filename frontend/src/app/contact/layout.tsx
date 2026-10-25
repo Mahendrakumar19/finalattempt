@@ -9,6 +9,8 @@ export const metadata: Metadata = {
     title: "Contact Final Attempt | Patna BPSC Coaching",
     description: "Reach us at Boring Road Crossing, Patna for BPSC admissions, batch counseling and study material queries.",
     url: "https://finalattemptias.com/contact",
+    siteName: "Final Attempt",
+    locale: "en_IN",
     images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
   },
 };

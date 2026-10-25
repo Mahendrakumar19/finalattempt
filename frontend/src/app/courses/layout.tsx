@@ -9,6 +9,8 @@ export const metadata: Metadata = {
     title: "BPSC Coaching Batches | Final Attempt Patna",
     description: "Join Bihar's top BPSC coaching batches at Final Attempt, Boring Road, Patna. Foundation, Prelims, Mains & Interview programs.",
     url: "https://finalattemptias.com/courses",
+    siteName: "Final Attempt",
+    locale: "en_IN",
     images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
   },
 };

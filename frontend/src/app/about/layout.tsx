@@ -9,6 +9,8 @@ export const metadata: Metadata = {
     title: "About Final Attempt | Coaching Patna",
     description: "About Final Attempt — Bihar's top mentorship institute for BPSC & UPSC preparation at Boring Road, Patna.",
     url: "https://finalattemptias.com/about",
+    siteName: "Final Attempt",
+    locale: "en_IN",
     images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
   },
 };

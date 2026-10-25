@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (quiz) {
       const title = `${quiz.title} — Daily Quiz | Final Attempt`;
       const description = quiz.description || 'Test your BPSC & State PCS preparation with our daily high-yield practice quiz. Compete on the leaderboard and improve accuracy.';
-      const url = `https://finalattempt.in/daily-quiz/${quiz.slug || quiz.id}`;
+      const url = `https://finalattemptias.com/daily-quiz/${quiz.slug || quiz.id}`;
 
       return {
         title,

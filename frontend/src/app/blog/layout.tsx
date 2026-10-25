@@ -15,6 +15,8 @@ export const metadata: Metadata = {
     title: "BPSC Strategy Blogs | Final Attempt",
     description: "Expert BPSC preparation blogs, study strategies and topper insights from Final Attempt mentors.",
     url: "https://finalattemptias.com/blog",
+    siteName: "Final Attempt",
+    locale: "en_IN",
     images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
   },
 };
