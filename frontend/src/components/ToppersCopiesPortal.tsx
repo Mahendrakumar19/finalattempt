@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, Download, Eye, Home, ChevronRight, X, Trophy, CheckCircle2 } from 'lucide-react';
 import { db, CustomPage, DownloadItem } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
+import ShareButton from '@/components/ShareButton';
 
 export default function ToppersCopiesPortal() {
   const { t } = useTranslation();
@@ -106,11 +107,19 @@ export default function ToppersCopiesPortal() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-4 py-2.5 rounded-2xl shrink-0">
-          <Trophy className="w-5 h-5 text-amber-500" />
-          <div>
-            <span className="text-xs font-black text-slate-900 dark:text-white block">{downloadItems.length} Evaluated Copies</span>
-            <span className="text-[10px] text-slate-500 font-bold uppercase">68th &amp; 69th BPSC Rankers</span>
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <ShareButton
+            title={pageData?.title || t('downloads.toppersCopiesTitle', "Toppers' Copies & Model Answers")}
+            text={pageData?.metaDescription || t('downloads.toppersCopiesDesc', 'Read evaluated mains answer copies of selected candidates and toppers.')}
+            url="/downloads/toppers-copies"
+            variant="compact"
+          />
+          <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-4 py-2.5 rounded-2xl shrink-0">
+            <Trophy className="w-5 h-5 text-amber-500" />
+            <div>
+              <span className="text-xs font-black text-slate-900 dark:text-white block">{downloadItems.length} Evaluated Copies</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase">68th &amp; 69th BPSC Rankers</span>
+            </div>
           </div>
         </div>
       </div>

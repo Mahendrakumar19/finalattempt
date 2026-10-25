@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Search, FileText, Download, BookOpen, Eye, Home, ChevronRight, X } from 'lucide-react';
+import ShareButton from '@/components/ShareButton';
 
 interface Exam {
   id: string;
@@ -162,12 +163,20 @@ export default function PyqPage() {
           </h1>
         </div>
 
-        {/* Quick Stats Banner */}
-        <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-5 py-3.5 rounded-2xl shrink-0">
-          <BookOpen className="w-6 h-6 text-amber-500" />
-          <div>
-            <span className="text-xs font-black text-slate-900 dark:text-white block">{pyqList.length} Papers Uploaded</span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{exams.length} Active Exam Vaults</span>
+        {/* Quick Stats Banner & Share */}
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <ShareButton
+            title="Previous Year Papers (PYQs) | Final Attempt"
+            text="Download official UPSC, BPSC, and State PCS Previous Year Question Papers & Answer Keys from Final Attempt."
+            url="/pyq"
+            variant="compact"
+          />
+          <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-5 py-3.5 rounded-2xl shrink-0">
+            <BookOpen className="w-6 h-6 text-amber-500" />
+            <div>
+              <span className="text-xs font-black text-slate-900 dark:text-white block">{pyqList.length} Papers Uploaded</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{exams.length} Active Exam Vaults</span>
+            </div>
           </div>
         </div>
       </div>

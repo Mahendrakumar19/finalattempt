@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, Download, Eye, Home, ChevronRight, X, Scale } from 'lucide-react';
 import { db, CustomPage, DownloadItem } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
+import ShareButton from '@/components/ShareButton';
 
 export default function ValueAdditionPortal() {
   const { t } = useTranslation();
@@ -103,11 +104,19 @@ export default function ValueAdditionPortal() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-3 bg-cyan-500/10 border border-cyan-500/20 px-4 py-2.5 rounded-2xl shrink-0">
-          <Scale className="w-5 h-5 text-cyan-500" />
-          <div>
-            <span className="text-xs font-black text-slate-900 dark:text-white block">{downloadItems.length} Mains Booklets</span>
-            <span className="text-[10px] text-slate-500 font-bold uppercase">SC Judgments, Quotes &amp; Schemes</span>
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <ShareButton
+            title={pageData?.title || t('downloads.valueAddedTitle', 'Value Added Materials — Mains')}
+            text={pageData?.metaDescription || 'Download Supreme Court Judgments, Quotes, Committees & Bihar Government Schemes for Mains exam.'}
+            url="/downloads/value-added-mains"
+            variant="compact"
+          />
+          <div className="flex items-center gap-3 bg-cyan-500/10 border border-cyan-500/20 px-4 py-2.5 rounded-2xl shrink-0">
+            <Scale className="w-5 h-5 text-cyan-500" />
+            <div>
+              <span className="text-xs font-black text-slate-900 dark:text-white block">{downloadItems.length} Mains Booklets</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase">SC Judgments, Quotes &amp; Schemes</span>
+            </div>
           </div>
         </div>
       </div>

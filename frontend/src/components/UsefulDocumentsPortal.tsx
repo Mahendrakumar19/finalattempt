@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, Download, Eye, Home, ChevronRight, X, FileText, CheckCircle } from 'lucide-react';
 import { db, CustomPage, DownloadItem } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
+import ShareButton from '@/components/ShareButton';
 
 export default function UsefulDocumentsPortal() {
   const { t } = useTranslation();
@@ -111,11 +112,19 @@ export default function UsefulDocumentsPortal() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 bg-rose-500/10 border border-rose-500/20 px-4 py-2.5 rounded-2xl shrink-0">
-          <FileText className="w-5 h-5 text-rose-500" />
-          <div>
-            <span className="text-xs font-black text-slate-900 dark:text-white block">{downloadItems.length} Useful Documents</span>
-            <span className="text-[10px] text-slate-500 font-bold uppercase">Essential Resource Vault</span>
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <ShareButton
+            title={pageData?.title || t('downloads.usefulDocumentsTitle', 'Useful Documents')}
+            text={pageData?.metaDescription || t('downloads.usefulDocumentsDesc', 'Consolidated reference documents, notes, timelines, and essential study material.')}
+            url="/downloads/useful-documents"
+            variant="compact"
+          />
+          <div className="flex items-center gap-3 bg-rose-500/10 border border-rose-500/20 px-4 py-2.5 rounded-2xl shrink-0">
+            <FileText className="w-5 h-5 text-rose-500" />
+            <div>
+              <span className="text-xs font-black text-slate-900 dark:text-white block">{downloadItems.length} Useful Documents</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase">Essential Resource Vault</span>
+            </div>
           </div>
         </div>
       </div>

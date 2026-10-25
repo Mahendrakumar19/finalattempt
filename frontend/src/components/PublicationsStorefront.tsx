@@ -214,6 +214,13 @@ export default function PublicationsStorefront() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <ShareButton
+            title={activeFolder ? `${activeFolder} Books Vault | Final Attempt Publication` : 'Final Attempt Publication Books Vault'}
+            text="Explore official Final Attempt books, study material, and publications for civil services exams."
+            url="/downloads/fa-publication"
+            variant="compact"
+          />
+
           <Link
             href="/track-order"
             className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-slate-950 px-4 py-2.5 rounded-2xl text-xs font-black transition-all shadow-md"

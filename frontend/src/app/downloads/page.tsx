@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { db, CustomPage } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
+import ShareButton from '@/components/ShareButton';
 
 interface ResourceItem {
   id: string;
@@ -241,13 +242,22 @@ export default function DedicatedDownloadsPage() {
       {/* ── Hero Search Banner ─────────────────────────────────────── */}
       <div className="border-b border-[var(--card-border)]" style={{ background: 'var(--card-bg)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-5">
-          <div className="space-y-1">
-            <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest">
-              {t('downloads.subtitle')}
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-heading font-black text-[var(--text-color)] tracking-tight">
-              {t('downloads.title')}
-            </h1>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-widest">
+                {t('downloads.subtitle')}
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-heading font-black text-[var(--text-color)] tracking-tight">
+                {t('downloads.title')}
+              </h1>
+            </div>
+
+            <ShareButton
+              title="Downloads & Study Resources | Final Attempt"
+              text="Download free UPSC, BPSC, and State PCS study resources, NCERT notes, and PYQs from Final Attempt."
+              url="/downloads"
+              variant="compact"
+            />
           </div>
 
           {/* Search */}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, Download, BookOpen, Eye, Home, ChevronRight, X, Layers } from 'lucide-react';
+import ShareButton from '@/components/ShareButton';
 
 interface NCERTBookItem {
   id: string;
@@ -116,12 +117,20 @@ export default function NcertPage() {
           </h1>
         </div>
 
-        {/* Quick Stats Banner */}
-        <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-5 py-3.5 rounded-2xl shrink-0">
-          <BookOpen className="w-6 h-6 text-emerald-500" />
-          <div>
-            <span className="text-xs font-black text-slate-900 dark:text-white block">{booksList.length} Books Available</span>
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{allSubjects.length} Subject Vaults</span>
+        {/* Quick Stats Banner & Share */}
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <ShareButton
+            title="NCERT Textbooks Vault | Final Attempt"
+            text="Download free NCERT Textbooks for UPSC & State PCS preparation from Final Attempt."
+            url="/downloads/ncert"
+            variant="compact"
+          />
+          <div className="flex items-center gap-3 bg-emerald-500/10 border border-emerald-500/20 px-5 py-3.5 rounded-2xl shrink-0">
+            <BookOpen className="w-6 h-6 text-emerald-500" />
+            <div>
+              <span className="text-xs font-black text-slate-900 dark:text-white block">{booksList.length} Books Available</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{allSubjects.length} Subject Vaults</span>
+            </div>
           </div>
         </div>
       </div>
