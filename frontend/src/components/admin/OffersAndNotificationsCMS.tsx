@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { db, AppNotification, OfferPromo } from '@/services/db';
 import {
   Bell,
@@ -21,7 +21,6 @@ import {
   XCircle,
   Info,
   Eye,
-  ChevronDown,
 } from 'lucide-react';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -94,27 +93,48 @@ export default function OffersAndNotificationsCMS() {
   const [expiryDate, setExpiryDate] = useState('');
   const [usageLimit, setUsageLimit] = useState<number>(100);
 
-  useEffect(() => { loadData(); }, []);
-  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [auditLog]);
-
-  // Auto-clear success/error after 5s
-  useEffect(() => {
-    if (successMsg) { const t = setTimeout(() => setSuccessMsg(null), 5000); return () => clearTimeout(t); }
-  }, [successMsg]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       const [notifsData, offersData] = await Promise.all([db.getNotifications(), db.getOffers()]);
       setNotifications(notifsData || []);
       setOffers(offersData || []);
-    } catch (err: unknown) {
+    } catch {
       setError('Failed to load data. Check network connection.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    async function init() {
+      try {
+        setError(null);
+        const [notifsData, offersData] = await Promise.all([db.getNotifications(), db.getOffers()]);
+        if (!ignore) {
+          setNotifications(notifsData || []);
+          setOffers(offersData || []);
+          setLoading(false);
+        }
+      } catch {
+        if (!ignore) {
+          setError('Failed to load data. Check network connection.');
+          setLoading(false);
+        }
+      }
+    }
+    init();
+    return () => { ignore = true; };
+  }, []);
+
+  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [auditLog]);
+
+  // Auto-clear success/error after 5s
+  useEffect(() => {
+    if (successMsg) { const t = setTimeout(() => setSuccessMsg(null), 5000); return () => clearTimeout(t); }
+  }, [successMsg]);
 
   // ── Push a line to audit log ────────────────────────────────────────────────
   const pushAudit = (event: Omit<AuditEvent, 'id' | 'timestamp'>) => {
@@ -189,7 +209,9 @@ export default function OffersAndNotificationsCMS() {
             await db.deleteNotification((found as AppNotification).id);
             setNotifications(prev => prev.filter(n => n.id !== (found as AppNotification).id));
             pushAudit({ type: 'INFO', title: 'Test notification cleaned up', detail: `ID ${(found as AppNotification).id} removed from history.` });
-          } catch (_) {}
+          } catch {
+            // Ignored test cleanup error
+          }
         }, 3000);
       }
     } catch (err: unknown) {
@@ -222,7 +244,7 @@ export default function OffersAndNotificationsCMS() {
       setNotifTitle(''); setNotifMessage(''); setNotifImageUrl(''); setNotifActionUrl(''); setNotifOfferCode(''); setNotifIsOffer(false);
       pushAudit({ type: 'SENT', title: `Broadcast: "${notifTitle}"`, detail: `Audience: ${notifAudience}`, audience: notifAudience });
       await loadData();
-    } catch (err) {
+    } catch {
       setError('Failed to send notification. Check backend.');
     } finally {
       setIsSending(false);

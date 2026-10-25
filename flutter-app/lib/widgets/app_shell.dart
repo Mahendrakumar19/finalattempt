@@ -168,12 +168,12 @@ class _LiquidGlassDock extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: borderRadius,
               color: isDark
-                  ? const Color(0xFF111827).withValues(alpha: 0.60) // Reduced from 0.71
-                  : const Color(0xFFF8FAFC).withValues(alpha: 0.65), // Reduced from 0.75
+                  ? const Color(0xFF050811).withValues(alpha: 0.82)
+                  : const Color(0xFFF8FAFC).withValues(alpha: 0.65),
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.12) // Reduced from 0.15
-                    : Colors.black.withValues(alpha: 0.08), // Reduced from 0.10
+                    ? Colors.white.withValues(alpha: 0.10)
+                    : Colors.black.withValues(alpha: 0.08),
                 width: 1.0,
               ),
             ),

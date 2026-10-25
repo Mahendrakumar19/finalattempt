@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../core/theme/app_theme.dart';
+import '../providers/notifications_provider.dart';
+import 'notifications_modal.dart';
 
 class TopHeaderActions extends ConsumerWidget {
   const TopHeaderActions({super.key});
@@ -145,6 +147,64 @@ class TopHeaderActions extends ConsumerWidget {
           ),
           onPressed: () {
             ref.read(themeModeProvider.notifier).toggleTheme();
+          },
+        ),
+
+        const SizedBox(width: 2),
+
+        // 2. Notifications & Alerts Bell with Unread Badge
+        Consumer(
+          builder: (context, ref, _) {
+            final unreadCount = ref.watch(unreadNotificationsCountProvider);
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                IconButton(
+                  tooltip: 'Announcements & Alerts',
+                  icon: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : AppTheme.primaryBlue.withValues(alpha: 0.08),
+                    ),
+                    child: Icon(
+                      unreadCount > 0 ? Icons.notifications_active_rounded : Icons.notifications_none_rounded,
+                      color: unreadCount > 0 ? const Color(0xFFF59E0B) : (isDark ? Colors.white : AppTheme.primaryBlue),
+                      size: 18,
+                    ),
+                  ),
+                  onPressed: () {
+                    NotificationsModal.show(context);
+                  },
+                ),
+                if (unreadCount > 0)
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(3.5),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEF4444),
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      child: Center(
+                        child: Text(
+                          unreadCount > 9 ? '9+' : '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            height: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            );
           },
         ),
 

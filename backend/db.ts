@@ -6046,7 +6046,7 @@ class LmsDB {
   async getQuizById(idOrSlug: string): Promise<any | null> {
     if (mysqlPool) {
       try {
-        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quizzes WHERE id = ? OR slug = ? LIMIT 1', [idOrSlug, idOrSlug]);
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quizzes WHERE id = ? LIMIT 1', [idOrSlug]);
         if (rows && rows.length > 0) return rows[0];
       } catch (err) { console.error('[LmsDB] getQuizById MySQL error:', err); }
     }

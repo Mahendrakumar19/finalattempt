@@ -181,16 +181,12 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
 
     final authState = ref.read(authStateProvider);
     if (!authState.isLoggedIn) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please login to purchase test series.'),
-          action: SnackBarAction(
-            label: 'Login',
-            textColor: Colors.amber,
-            onPressed: () => context.push('/auth/login'),
-          ),
-        ),
+      AppToast.warning(
+        context,
+        'Please sign in to unlock test series packages.',
+        title: 'Sign In Required',
       );
+      context.push('/login');
       return;
     }
 

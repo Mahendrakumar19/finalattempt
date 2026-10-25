@@ -68,21 +68,22 @@ class AppTheme {
   // Text Colors
   static const Color textDarkPrimary = Color(0xFF0F172A); // Black / Dark Navy for Light theme
   static const Color textDarkSecondary = Color(0xFF334155);
-  static const Color textLightPrimary = Color(0xFFFFFFFF); // White for Dark theme
-  static const Color textLightSecondary = Color(0xFFCBD5E1);
+  static const Color textLightPrimary = Color(0xFFF8FAFC); // High clarity crisp white
+  static const Color textLightSecondary = Color(0xFF94A3B8); // High contrast secondary
   static const Color textMuted = Color(0xFF64748B);
   static const Color borderLight = Color(0xFFE2E8F0);
-  static const Color borderDark = Color(0xFF334155);
+  static const Color borderDark = Color(0xFF1E293B); // Deep refined dark border
 
   // System Status
   static const Color success = Color(0xFF10B981);
   static const Color error = Color(0xFFEF4444);
   static const Color warning = Color(0xFFF59E0B);
 
-  // Static compatibility aliases
+  // Static compatibility aliases — Premium Deep Dark Palette (Pitch Black 0x050811 / Deep Obsidian 0x0B1120)
   static const Color amber = primaryBlue;
-  static const Color darkBg = Color(0xFF0F172A);
-  static const Color bgDark = Color(0xFF0F172A);
+  static const Color darkBg = Color(0xFF030712); // True deep midnight black (Pitch OLED grade)
+  static const Color bgDark = Color(0xFF030712);
+  static const Color darkCardBg = Color(0xFF0B132B); // Obsidian slate elevated card surface
   static const Color bgCard = pureWhite;
   static const Color bgCardLight = lightBlueBg;
   static const Color textPrimaryCol = textDarkPrimary;
@@ -96,25 +97,25 @@ class AppTheme {
       Theme.of(context).brightness == Brightness.dark ? darkBg : pureWhite;
 
   static Color cardBgOf(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : pureWhite;
+      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0B1120) : pureWhite;
 
   static Color cardBgLightOf(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : lightBlueBg;
+      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF111827) : lightBlueBg;
 
   static Color textPrimaryOf(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark ? textLightPrimary : textDarkPrimary;
 
   static Color textSecondaryOf(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? textLightPrimary : textDarkSecondary;
+      Theme.of(context).brightness == Brightness.dark ? textLightSecondary : textDarkSecondary;
 
   static Color textMutedOf(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? textLightPrimary : textMuted;
+      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF64748B) : textMuted;
 
   static Color primaryOf(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF60A5FA) : primaryBlue;
+      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF38BDF8) : primaryBlue;
 
   static Color borderOf(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? borderDark : borderLight;
+      Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : borderLight;
 
   // iOS Glass & Container Helper System
   static BoxDecoration glassDecoration(
@@ -273,69 +274,69 @@ class AppTheme {
     );
   }
 
-  // Dark Theme with White Font Colors & Luminous High Contrast Accents
+  // Dark Theme with Deep Midnight Black, Obsidian Glass Cards & Luminous Accents
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: darkBg,
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF60A5FA),
-        secondary: Color(0xFF93C5FD),
-        surface: Color(0xFF1E293B),
+        primary: Color(0xFF38BDF8),
+        secondary: Color(0xFF60A5FA),
+        surface: Color(0xFF0B1120),
         onSurface: textLightPrimary,
-        onPrimary: pureWhite,
+        onPrimary: Color(0xFF030712),
         error: error,
       ),
-      textTheme: _buildTextTheme(ThemeData.dark(), textLightPrimary, textLightPrimary, textLightPrimary),
+      textTheme: _buildTextTheme(ThemeData.dark(), textLightPrimary, textLightSecondary, const Color(0xFF64748B)),
       cardTheme: CardThemeData(
-        color: const Color(0xFF1E293B),
-        elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.3),
+        color: const Color(0xFF0B1120),
+        elevation: 0,
+        shadowColor: Colors.black.withValues(alpha: 0.6),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: borderDark, width: 1),
+          side: const BorderSide(color: Color(0xFF1E293B), width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: darkBg,
-        foregroundColor: pureWhite,
+        foregroundColor: textLightPrimary,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: fontOutfit(fontSize: 18, fontWeight: FontWeight.w800, color: pureWhite),
+        titleTextStyle: fontOutfit(fontSize: 18, fontWeight: FontWeight.w800, color: textLightPrimary),
         toolbarHeight: 64,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: pureWhite),
+        iconTheme: const IconThemeData(color: textLightPrimary),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: const Color(0xFF1E293B),
-        indicatorColor: const Color(0xFF60A5FA).withValues(alpha: 0.2),
+        backgroundColor: const Color(0xFF0B1120),
+        indicatorColor: const Color(0xFF38BDF8).withValues(alpha: 0.16),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           return fontOutfit(
             fontSize: 11,
             fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
-            color: states.contains(WidgetState.selected) ? const Color(0xFF60A5FA) : const Color(0xFF94A3B8),
+            color: states.contains(WidgetState.selected) ? const Color(0xFF38BDF8) : const Color(0xFF64748B),
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           return IconThemeData(
-            color: states.contains(WidgetState.selected) ? const Color(0xFF60A5FA) : const Color(0xFF94A3B8),
+            color: states.contains(WidgetState.selected) ? const Color(0xFF38BDF8) : const Color(0xFF64748B),
             size: 22,
           );
         }),
         height: 64,
-        elevation: 2,
+        elevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF1E293B),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: borderDark)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: borderDark)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF60A5FA), width: 2)),
+        fillColor: const Color(0xFF0B1120),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF1E293B))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF1E293B))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF38BDF8), width: 1.8)),
         errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: error)),
-        hintStyle: fontOutfit(fontSize: 13, color: const Color(0xFF94A3B8)),
+        hintStyle: fontOutfit(fontSize: 13, color: const Color(0xFF64748B)),
         labelStyle: fontOutfit(fontSize: 13, color: textLightSecondary),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
