@@ -877,7 +877,10 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                           </h3>
                         )}
                         {secondaryRaw && (
-                          <p className="text-sm sm:text-base text-blue-950 dark:text-sky-300 font-semibold leading-relaxed pt-1 border-t border-[var(--card-border)]/60">
+                          <p
+                            className="text-sm sm:text-base font-bold leading-relaxed pt-1.5 border-t border-[var(--card-border)]/60"
+                            style={{ color: '#1e3a8a' }}
+                          >
                             {secondaryRaw}
                           </p>
                         )}
@@ -911,9 +914,12 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                         className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between gap-4 transition-all min-h-[52px] cursor-pointer ${optClass}`}
                       >
                         <div className="flex items-center gap-3">
-                          <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-heading font-black text-xs shrink-0 transition-colors ${
-                            selected ? 'bg-amber-500 text-slate-950' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-bold'
-                          }`}>
+                          <span
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center font-heading font-black text-xs shrink-0 transition-colors ${
+                              selected ? 'bg-amber-500 text-slate-950' : 'text-white font-bold'
+                            }`}
+                            style={!selected ? { backgroundColor: '#1e3a8a' } : undefined}
+                          >
                             {opt.key}
                           </span>
                           <div>
@@ -921,7 +927,10 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                               {primaryOpt}
                             </span>
                             {secondaryOpt && (
-                              <span className="text-sm font-semibold text-blue-950 dark:text-sky-300 block mt-0.5">
+                              <span
+                                className="text-sm font-bold block mt-1"
+                                style={{ color: '#1e3a8a' }}
+                              >
                                 {secondaryOpt}
                               </span>
                             )}
@@ -1165,7 +1174,10 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                         })()}
 
                         {detail.questionTextHi && detail.questionTextHi.trim() !== (detail.questionText || '').trim() && (
-                          <p className="text-sm text-blue-950 dark:text-sky-300 font-semibold leading-relaxed">
+                          <p
+                            className="text-sm font-bold leading-relaxed"
+                            style={{ color: '#1e3a8a' }}
+                          >
                             {detail.questionTextHi}
                           </p>
                         )}
