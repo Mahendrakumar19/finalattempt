@@ -1351,7 +1351,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                                   {q.questionText}
                                 </p>
                                 {q.questionTextHi && q.questionTextHi !== q.questionText && (
-                                  <p className="text-[11px] text-blue-900 dark:text-blue-300 font-medium leading-snug line-clamp-2">
+                                  <p className="text-[11px] text-blue-950 dark:text-sky-300 font-medium leading-snug line-clamp-2">
                                     {q.questionTextHi}
                                   </p>
                                 )}
@@ -1373,20 +1373,20 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                               <td className="py-3 px-4 align-top space-y-1">
                                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
                                   <div className={correctKey === 'A' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-300'}>
-                                    <span className="font-black text-blue-900 dark:text-blue-400">A.</span> {stripOptionPrefix(q.optionA || '')}
+                                    <span className="font-black text-blue-950 dark:text-sky-300">A.</span> {stripOptionPrefix(q.optionA || '')}
                                   </div>
                                   <div className={correctKey === 'B' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-300'}>
-                                    <span className="font-black text-blue-900 dark:text-blue-400">B.</span> {stripOptionPrefix(q.optionB || '')}
+                                    <span className="font-black text-blue-950 dark:text-sky-300">B.</span> {stripOptionPrefix(q.optionB || '')}
                                   </div>
                                   <div className={correctKey === 'C' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-300'}>
-                                    <span className="font-black text-blue-900 dark:text-blue-400">C.</span> {stripOptionPrefix(q.optionC || '')}
+                                    <span className="font-black text-blue-950 dark:text-sky-300">C.</span> {stripOptionPrefix(q.optionC || '')}
                                   </div>
                                   <div className={correctKey === 'D' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-300'}>
-                                    <span className="font-black text-blue-900 dark:text-blue-400">D.</span> {stripOptionPrefix(q.optionD || '')}
+                                    <span className="font-black text-blue-950 dark:text-sky-300">D.</span> {stripOptionPrefix(q.optionD || '')}
                                   </div>
                                   {q.optionE && (
                                     <div className={`col-span-2 ${correctKey === 'E' ? 'font-bold text-emerald-600 dark:text-emerald-400' : 'text-indigo-900 dark:text-indigo-300 font-semibold'}`}>
-                                      <span className="font-black text-blue-900 dark:text-blue-400">E.</span> {stripOptionPrefix(q.optionE || '')}
+                                      <span className="font-black text-blue-950 dark:text-sky-300">E.</span> {stripOptionPrefix(q.optionE || '')}
                                     </div>
                                   )}
                                 </div>
@@ -1543,7 +1543,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
                           {/* Only render Hindi question text if it's actually different from English */}
                           {q.questionTextHi && q.questionTextHi.trim() !== (q.questionText || '').trim() && (
-                            <p className="text-xs text-blue-900 dark:text-blue-300 font-medium leading-relaxed">
+                            <p className="text-xs text-blue-950 dark:text-sky-300 font-medium leading-relaxed">
                               {q.questionTextHi}
                             </p>
                           )}
@@ -1582,7 +1582,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                                   <span className={`w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center shrink-0 border ${
                                     isCorrect
                                       ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                                      : 'bg-blue-100 dark:bg-slate-700 text-blue-950 dark:text-blue-200 border-blue-300 dark:border-slate-600'
+                                      : 'bg-blue-950 text-white border-blue-900 shadow-xs'
                                   }`}>
                                     {opt.key}
                                   </span>
@@ -1591,7 +1591,7 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                                       {opt.text || opt.textHi}
                                     </span>
                                     {opt.text && opt.textHi && opt.textHi.trim() !== opt.text.trim() && (
-                                      <span className="text-[11px] text-blue-900 dark:text-blue-300 font-medium leading-snug line-clamp-2 mt-0.5">
+                                      <span className="text-[11px] text-blue-950 dark:text-sky-300 font-medium leading-snug line-clamp-2 mt-0.5">
                                         {opt.textHi}
                                       </span>
                                     )}
@@ -1615,14 +1615,14 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                         {/* Explanation Rationale Box */}
                         {(q.explanation || q.explanationHi) && (
                           <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-xl text-xs space-y-1">
-                            <span className="font-extrabold text-blue-900 dark:text-blue-400 text-[10px] uppercase tracking-wider">
+                            <span className="font-extrabold text-blue-950 dark:text-sky-300 text-[10px] uppercase tracking-wider">
                               Rationale / Solution:
                             </span>
                             {q.explanation && (
-                              <p className="text-slate-800 dark:text-slate-200 leading-relaxed">{q.explanation}</p>
+                              <p className="text-slate-900 dark:text-slate-200 leading-relaxed font-normal">{q.explanation}</p>
                             )}
                             {q.explanationHi && (
-                              <p className="text-blue-900 dark:text-blue-300 font-medium leading-relaxed">{q.explanationHi}</p>
+                              <p className="text-blue-950 dark:text-sky-300 font-medium leading-relaxed">{q.explanationHi}</p>
                             )}
                           </div>
                         )}
