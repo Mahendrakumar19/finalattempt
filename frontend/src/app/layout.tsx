@@ -7,6 +7,7 @@ import FloatingWhatsAppButton from "@/components/FloatingWhatsAppButton";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { LocaleProvider } from "@/context/LocaleContext";
 import LanguageSelectionModal from "@/components/LanguageSelectionModal";
+import GlobalToaster from "@/components/GlobalToaster";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -181,6 +182,7 @@ export default function RootLayout({
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         <LocaleProvider>
           <ThemeProvider>
+            <GlobalToaster />
             <LanguageSelectionModal />
             <Header />
             <main className="flex-grow">{children}</main>

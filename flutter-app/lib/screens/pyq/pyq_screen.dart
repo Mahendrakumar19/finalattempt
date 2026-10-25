@@ -50,6 +50,7 @@ class _PYQScreenState extends ConsumerState<PYQScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
+            letterSpacing: -0.3,
             color: textPrimary,
           ),
         ),

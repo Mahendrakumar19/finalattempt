@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/course_model.dart';
 import '../core/theme/app_theme.dart';
+import 'apple_pressable.dart';
 
 class CourseCard extends StatelessWidget {
   final CourseModel course;
@@ -11,8 +12,10 @@ class CourseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return ApplePressable(
       onTap: onTap,
+      scaleDown: 0.95,
+      enableHaptic: true,
       child: Container(
         width: 200,
         margin: const EdgeInsets.only(right: 12),

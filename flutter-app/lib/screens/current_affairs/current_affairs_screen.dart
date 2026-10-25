@@ -89,6 +89,7 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w800,
+            letterSpacing: -0.35,
             color: textPrimary,
           ),
         ),

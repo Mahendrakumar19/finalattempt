@@ -18,13 +18,14 @@ class AppLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     final useDarkMode = isDark ?? (Theme.of(context).brightness == Brightness.dark);
 
+    // Use logo_light.png for dark theme, and logo_dark.png for light theme
     final primaryPath = useDarkMode
-        ? 'assets/images/Logo for dark bg.png'
-        : 'assets/images/Logo for light bg.png';
+        ? 'assets/images/logo_light.png'
+        : 'assets/images/logo_dark.png';
 
-    final secondaryPath = useDarkMode
-        ? 'assets/images/logo.png'
-        : 'assets/images/logo_light.png';
+    final fallbackPath = useDarkMode
+        ? 'assets/images/darklogofull.png'
+        : 'assets/images/auth_screen_logo.png';
 
     return Image.asset(
       primaryPath,
@@ -32,7 +33,7 @@ class AppLogo extends StatelessWidget {
       fit: fit,
       errorBuilder: (context, error, stackTrace) {
         return Image.asset(
-          secondaryPath,
+          fallbackPath,
           height: height,
           fit: fit,
           errorBuilder: (context, error, stackTrace) {

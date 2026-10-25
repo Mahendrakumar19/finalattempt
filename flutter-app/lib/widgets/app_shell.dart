@@ -342,7 +342,14 @@ class _NavItem extends StatelessWidget {
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500, // Reduced from w700 / w500
                   letterSpacing: -0.15,
                 ),
-                child: Text(label, maxLines: 1, overflow: TextOverflow.visible),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
             ],
           ),

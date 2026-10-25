@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:flutter/foundation.dart';
+
 import '../../providers/test_series_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../models/test_series_model.dart';
 import '../../core/theme/app_theme.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
 import '../../core/services/api_service.dart';
-
-import 'package:flutter/foundation.dart';
+import '../../widgets/apple_pressable.dart';
+import '../../widgets/app_toast.dart';
 
 class TestSeriesDetailScreen extends ConsumerStatefulWidget {
   final String seriesId;
@@ -20,8 +23,10 @@ class TestSeriesDetailScreen extends ConsumerStatefulWidget {
 
 class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen> {
   String _selectedFilterTab = 'ALL';
+  String? _selectedPlanCode = 'FULL'; // Default to FULL package or MINI/HALF
   Razorpay? _razorpay;
   bool _isProcessingPayment = false;
+  String? _pendingOrderId;
 
   @override
   void initState() {
@@ -42,74 +47,277 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     super.dispose();
   }
 
+  // ── Helper: Evaluate highest owned entitlement ─────────────────────────────
+  String _getHighestTier(List<UserEntitlement> entitlements) {
+    if (entitlements.any((e) => (e.entitlementType == 'COMPLETE' || e.entitlementType == 'LEGACY_ENROLLMENT') && e.status == 'ACTIVE')) {
+      return 'COMPLETE';
+    }
+    if (entitlements.any((e) => e.entitlementType == 'FULL' && e.status == 'ACTIVE')) {
+      return 'FULL';
+    }
+    if (entitlements.any((e) => e.entitlementType == 'HALF' && e.status == 'ACTIVE')) {
+      return 'HALF';
+    }
+    if (entitlements.any((e) => e.entitlementType == 'MINI' && e.status == 'ACTIVE')) {
+      return 'MINI';
+    }
+    return 'NONE';
+  }
+
+  bool _isQuizAccessible(TestQuiz quiz, int index, TestSeries series, List<UserEntitlement> entitlements, List<TestSeriesPlan> plans) {
+    if (quiz.isFree || series.isPurchased) return true;
+    final seq = index + 1;
+
+    for (final ent in entitlements) {
+      if (ent.status != 'ACTIVE') continue;
+      if (ent.entitlementType == 'COMPLETE' || ent.entitlementType == 'LEGACY_ENROLLMENT') {
+        return true;
+      }
+      if (ent.entitlementType == 'FULL') {
+        final plan = plans.firstWhere((p) => p.planCode == 'FULL', orElse: () => plans.first);
+        return seq <= (ent.snapshotMaxSequence > 0 ? ent.snapshotMaxSequence : plan.sequenceEndNumber);
+      }
+      if (ent.entitlementType == 'HALF') {
+        final plan = plans.firstWhere((p) => p.planCode == 'HALF', orElse: () => plans.first);
+        return seq <= (ent.snapshotMaxSequence > 0 ? ent.snapshotMaxSequence : plan.sequenceEndNumber);
+      }
+      if (ent.entitlementType == 'MINI') {
+        final plan = plans.firstWhere((p) => p.planCode == 'MINI', orElse: () => plans.first);
+        return seq <= (ent.snapshotMaxSequence > 0 ? ent.snapshotMaxSequence : plan.sequenceEndNumber);
+      }
+      if (ent.entitlementType == 'INDIVIDUAL_TEST' && ent.quizId == quiz.id) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ── Handle Payment Success & Verification (Same as Web) ────────────────────
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
     try {
       final apiService = ref.read(apiServiceProvider);
-      await apiService.post('/payments/verify', data: {
-        'razorpay_payment_id': response.paymentId,
-        'razorpay_order_id': response.orderId,
-        'razorpay_signature': response.signature,
-        'courseId': widget.seriesId,
-      });
+      
+      // 1. Try Authoritative Order Verification Endpoint (Same as Web)
+      if (_pendingOrderId != null && _pendingOrderId!.isNotEmpty) {
+        try {
+          await apiService.post('/test-series-purchase/order/verify', data: {
+            'orderId': _pendingOrderId,
+            'razorpayPaymentId': response.paymentId,
+            'razorpayOrderId': response.orderId,
+            'razorpaySignature': response.signature,
+          });
+        } catch (_) {
+          // Fallback to legacy payments verify if standard order verify errors
+          await apiService.post('/payments/verify', data: {
+            'razorpay_payment_id': response.paymentId,
+            'razorpay_order_id': response.orderId,
+            'razorpay_signature': response.signature,
+            'courseId': widget.seriesId,
+          });
+        }
+      } else {
+        await apiService.post('/payments/verify', data: {
+          'razorpay_payment_id': response.paymentId,
+          'razorpay_order_id': response.orderId,
+          'razorpay_signature': response.signature,
+          'courseId': widget.seriesId,
+        });
+      }
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment Successful! Access granted.')));
+        AppToast.success(
+          context,
+          'Test Series unlocked! You have full access to your tests.',
+          title: 'Payment Successful',
+        );
         ref.invalidate(testSeriesDetailProvider(widget.seriesId));
+        ref.invalidate(userEntitlementsProvider(widget.seriesId));
+        ref.invalidate(testSeriesQuizzesProvider(widget.seriesId));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Verification failed: $e')));
+        AppToast.error(
+          context,
+          'Verification failed: $e',
+          title: 'Verification Failed',
+        );
       }
     } finally {
-      if (mounted) setState(() => _isProcessingPayment = false);
+      if (mounted) {
+        setState(() {
+          _isProcessingPayment = false;
+          _pendingOrderId = null;
+        });
+      }
     }
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
     if (mounted) {
-      setState(() => _isProcessingPayment = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment Failed: ${response.message}')));
+      setState(() {
+        _isProcessingPayment = false;
+        _pendingOrderId = null;
+      });
+      AppToast.error(
+        context,
+        response.message ?? 'Payment was cancelled or failed.',
+        title: 'Payment Incomplete',
+      );
     }
   }
 
   void _handleExternalWallet(ExternalWalletResponse response) {
-    if (mounted) setState(() => _isProcessingPayment = false);
+    if (mounted) {
+      setState(() {
+        _isProcessingPayment = false;
+        _pendingOrderId = null;
+      });
+    }
   }
 
-  Future<void> _startPayment() async {
+  // ── Initiate Checkout with Selected Plan ──────────────────────────────────
+  Future<void> _startPayment({TestSeriesPlan? planOverride}) async {
     if (_isProcessingPayment) return;
+
+    final authState = ref.read(authStateProvider);
+    if (!authState.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please login to purchase test series.'),
+          action: SnackBarAction(
+            label: 'Login',
+            textColor: Colors.amber,
+            onPressed: () => context.push('/auth/login'),
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isProcessingPayment = true);
-    
+
     try {
       final apiService = ref.read(apiServiceProvider);
-      final res = await apiService.post('/payments/create-order', data: {
-        'courseId': widget.seriesId,
-        'currency': 'INR',
-      });
-      
-      final data = res['data'];
+      final plans = await ref.read(testSeriesPlansProvider(widget.seriesId).future);
+      final entitlements = await ref.read(userEntitlementsProvider(widget.seriesId).future);
+      final highestTier = _getHighestTier(entitlements);
+
+      // Determine selected plan
+      final targetPlanCode = planOverride?.planCode ?? _selectedPlanCode ?? 'FULL';
+      final selectedPlan = plans.firstWhere(
+        (p) => p.planCode == targetPlanCode,
+        orElse: () => plans.isNotEmpty ? plans.first : TestSeriesPlan(
+          id: 'default',
+          seriesId: widget.seriesId,
+          planCode: 'FULL',
+          title: 'FULL Package',
+          price: 599,
+        ),
+      );
+
+      final isUpgrade = highestTier == 'MINI' || highestTier == 'HALF' || highestTier == 'FULL';
+      final itemType = isUpgrade ? 'UPGRADE_PLAN' : 'PACKAGE_PLAN';
+
+      final userUid = authState.userId ?? 'user';
+      final idempotencyKey = 'idemp_${userUid}_${widget.seriesId}_${DateTime.now().millisecondsSinceEpoch}';
+
+      // 1. Call authoritative order creation endpoint (Same as Web)
+      dynamic orderRes;
+      try {
+        orderRes = await apiService.post('/test-series-purchase/order/create', data: {
+          'seriesId': widget.seriesId,
+          'items': [
+            {
+              'itemType': itemType,
+              'planCode': selectedPlan.planCode,
+            }
+          ],
+          'idempotencyKey': idempotencyKey,
+        });
+      } catch (e) {
+        // Fallback to legacy payments/create-order if custom purchase endpoint has issue
+        orderRes = await apiService.post('/payments/create-order', data: {
+          'courseId': widget.seriesId,
+          'amount': selectedPlan.sellingPrice,
+          'currency': 'INR',
+        });
+      }
+
+      final data = orderRes['data'] ?? orderRes;
+      final orderId = data['orderId'] ?? data['id'] ?? data['order_id'];
+      _pendingOrderId = orderId?.toString();
+
+      // Zero-amount fulfillment check (Free or 100% upgrade credit)
+      if (orderRes['message']?.toString().contains('Zero payable amount') == true ||
+          data['isFreeFulfillment'] == true) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Color(0xFF15803D),
+              content: Text('Access Granted Instantly!'),
+            ),
+          );
+          ref.invalidate(testSeriesDetailProvider(widget.seriesId));
+          ref.invalidate(userEntitlementsProvider(widget.seriesId));
+          ref.invalidate(testSeriesQuizzesProvider(widget.seriesId));
+          setState(() => _isProcessingPayment = false);
+        }
+        return;
+      }
+
+      final gatewayOrderId = data['gatewayOrderId'] ?? data['order_id'] ?? data['id'];
+      final rawAmount = data['netAmount'] != null
+          ? (data['netAmount'] * 100).toInt()
+          : (data['amount'] ?? (selectedPlan.sellingPrice * 100).toInt());
+      final razorpayKey = data['key'] ?? 'rzp_test_TTzBxGpMqc0rAD';
+
       final options = {
-        'key': data['key'],
-        'amount': data['amount'],
+        'key': razorpayKey,
+        'amount': rawAmount,
         'name': 'Final Attempt',
-        'order_id': data['order_id'],
-        'description': 'Test Series Access',
+        'order_id': gatewayOrderId,
+        'description': '${selectedPlan.title} (${selectedPlan.planCode})',
         'prefill': {
           'contact': '',
-          'email': ''
-        }
+          'email': authState.userEmail ?? '',
+        },
+        'theme': {'color': '#f59e0b'},
       };
-      
-      if (_razorpay != null) {
+
+      if (!kIsWeb && _razorpay != null) {
         _razorpay!.open(options);
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment gateway is supported only on mobile devices.')));
+        // Fallback or web simulation: call verification directly
+        final simVerify = await apiService.post('/test-series-purchase/order/verify', data: {
+          'orderId': orderId,
+          'razorpayPaymentId': 'pay_sim_${DateTime.now().millisecondsSinceEpoch}',
+          'razorpayOrderId': gatewayOrderId,
+        });
+
+        if (simVerify['success'] == true) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                backgroundColor: Color(0xFF15803D),
+                content: Text('Payment Verified! Access granted.'),
+              ),
+            );
+            ref.invalidate(testSeriesDetailProvider(widget.seriesId));
+            ref.invalidate(userEntitlementsProvider(widget.seriesId));
+            ref.invalidate(testSeriesQuizzesProvider(widget.seriesId));
+          }
         }
+        if (mounted) setState(() => _isProcessingPayment = false);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isProcessingPayment = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not initiate checkout: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFDC2626),
+            content: Text('Could not initiate checkout: $e'),
+          ),
+        );
       }
     }
   }
@@ -118,10 +326,12 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
   Widget build(BuildContext context) {
     final seriesAsync = ref.watch(testSeriesDetailProvider(widget.seriesId));
     final quizzesAsync = ref.watch(testSeriesQuizzesProvider(widget.seriesId));
+    final plansAsync = ref.watch(testSeriesPlansProvider(widget.seriesId));
+    final entitlementsAsync = ref.watch(userEntitlementsProvider(widget.seriesId));
+
     final bg = AppTheme.bgOf(context);
     final cardBg = AppTheme.cardBgOf(context);
     final textPrimary = AppTheme.textPrimaryOf(context);
-
 
     return DefaultTabController(
       length: 2,
@@ -164,7 +374,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
             unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
             tabs: [
               Tab(text: 'Tests List'),
-              Tab(text: 'Overview & Features'),
+              Tab(text: 'Packages & Overview'),
             ],
           ),
         ),
@@ -172,22 +382,29 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
           loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
           error: (err, _) => _buildErrorState(context, err.toString()),
           data: (series) {
+            final entitlements = entitlementsAsync.value ?? [];
+            final plans = plansAsync.value ?? [];
+
             return TabBarView(
               children: [
                 // Tab 1: Test List
                 quizzesAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue)),
                   error: (e, _) => _buildErrorState(context, e.toString()),
-                  data: (quizzes) => _buildTestList(context, series, quizzes),
+                  data: (quizzes) => _buildTestList(context, series, quizzes, entitlements, plans),
                 ),
-                // Tab 2: Overview
-                _buildOverviewTab(context, series),
+                // Tab 2: Packages & Overview
+                _buildOverviewTab(context, series, plans, entitlements),
               ],
             );
           },
         ),
         bottomNavigationBar: seriesAsync.when(
-          data: (series) => _buildBottomBuyBar(context, series),
+          data: (series) {
+            final entitlements = entitlementsAsync.value ?? [];
+            final plans = plansAsync.value ?? [];
+            return _buildBottomBuyBar(context, series, plans, entitlements);
+          },
           loading: () => const SizedBox.shrink(),
           error: (_, __) => const SizedBox.shrink(),
         ),
@@ -195,12 +412,19 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     );
   }
 
-  Widget _buildTestList(BuildContext context, TestSeries series, List<TestQuiz> quizzes) {
+  // ── Tab 1: Tests List ──────────────────────────────────────────────────────
+  Widget _buildTestList(
+    BuildContext context,
+    TestSeries series,
+    List<TestQuiz> quizzes,
+    List<UserEntitlement> entitlements,
+    List<TestSeriesPlan> plans,
+  ) {
     final cardBg = AppTheme.cardBgOf(context);
     final borderCol = AppTheme.borderOf(context);
     final textPrimary = AppTheme.textPrimaryOf(context);
 
-    // Filter quizzes by tier filter
+    // Filter quizzes by category/demo filter
     final filteredQuizzes = quizzes.where((q) {
       if (_selectedFilterTab == 'ALL') return true;
       if (_selectedFilterTab == 'FULL') return q.testCategory.toUpperCase() == 'FULL';
@@ -234,12 +458,12 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
           child: filteredQuizzes.isEmpty
               ? _buildEmptyQuizState(context)
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
                   physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                   itemCount: filteredQuizzes.length,
                   itemBuilder: (context, index) {
                     final quiz = filteredQuizzes[index];
-                    final canAttempt = quiz.isFree || series.isPurchased;
+                    final canAttempt = _isQuizAccessible(quiz, index, series, entitlements, plans);
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -432,13 +656,20 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     );
   }
 
-  Widget _buildOverviewTab(BuildContext context, TestSeries series) {
+  // ── Tab 2: Packages & Overview (Matches Website Options: MINI, HALF, FULL) ──
+  Widget _buildOverviewTab(
+    BuildContext context,
+    TestSeries series,
+    List<TestSeriesPlan> plans,
+    List<UserEntitlement> entitlements,
+  ) {
     final cardBg = AppTheme.cardBgOf(context);
     final borderCol = AppTheme.borderOf(context);
     final textPrimary = AppTheme.textPrimaryOf(context);
+    final highestTier = _getHighestTier(entitlements);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
       physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,6 +703,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
               },
             ),
           ],
+
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -514,6 +746,216 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
             ),
           ),
           const SizedBox(height: 20),
+
+          // ── SECTION: CHOOSE PACKAGE TIER (MINI, HALF, FULL) ───────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Choose Package Tier',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.flash_on, size: 12, color: Color(0xFFD97706)),
+                    SizedBox(width: 4),
+                    Text(
+                      'ALL OPTIONS',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFD97706)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Select cumulative package or upgrade with instant credit adjustment:',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 12),
+
+          // Package Cards List (MINI, HALF, FULL)
+          ...plans.map((plan) {
+            final isPlanSelected = _selectedPlanCode == plan.planCode;
+            final isOwned = _isPlanOwned(plan.planCode, highestTier);
+            final isUpgradeCandidate = _isUpgradeCandidate(plan.planCode, highestTier);
+
+            return ApplePressable(
+              onTap: isOwned
+                  ? null
+                  : () {
+                      setState(() {
+                        _selectedPlanCode = plan.planCode;
+                      });
+                    },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isPlanSelected
+                        ? const Color(0xFFF59E0B)
+                        : (isOwned ? const Color(0xFF10B981) : borderCol),
+                    width: isPlanSelected ? 2 : 1.2,
+                  ),
+                  boxShadow: [
+                    if (isPlanSelected)
+                      BoxShadow(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: _getPlanBadgeBg(plan.planCode),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '${plan.planCode} PACKAGE',
+                                  style: TextStyle(
+                                    color: _getPlanBadgeColor(plan.planCode),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  'Tests ${plan.sequenceStartNumber}–${plan.sequenceEndNumber}',
+                                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isPlanSelected
+                                ? const Color(0xFFF59E0B)
+                                : (isOwned ? const Color(0xFF10B981) : (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : const Color(0xFFE2E8F0))),
+                          ),
+                          child: Icon(
+                            isOwned ? Icons.check : (isPlanSelected ? Icons.check : Icons.circle_outlined),
+                            size: 14,
+                            color: (isPlanSelected || isOwned) ? Colors.white : AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      plan.title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: textPrimary,
+                      ),
+                    ),
+                    if (plan.description != null && plan.description!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        plan.description!,
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.3),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              '₹${plan.sellingPrice.toInt()}',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                color: textPrimary,
+                              ),
+                            ),
+                            if (plan.originalMrp != null) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '₹${plan.originalMrp!.toInt()}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textMuted,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(width: 6),
+                            const Text(
+                              'cumulative',
+                              style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                        if (isOwned)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.check_circle, size: 12, color: Color(0xFF15803D)),
+                                SizedBox(width: 4),
+                                Text(
+                                  'ACTIVE ACCESS',
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF15803D)),
+                                ),
+                              ],
+                            ),
+                          )
+                        else if (isUpgradeCandidate)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'Upgrade from $highestTier',
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFD97706)),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+          const SizedBox(height: 16),
 
           // Highlights Section
           Text(
@@ -603,19 +1045,66 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     );
   }
 
+  bool _isPlanOwned(String planCode, String highestTier) {
+    if (highestTier == 'COMPLETE' || highestTier == 'LEGACY_ENROLLMENT') return true;
+    if (planCode == 'MINI') return highestTier == 'MINI' || highestTier == 'HALF' || highestTier == 'FULL';
+    if (planCode == 'HALF') return highestTier == 'HALF' || highestTier == 'FULL';
+    if (planCode == 'FULL') return highestTier == 'FULL';
+    return false;
+  }
+
+  bool _isUpgradeCandidate(String planCode, String highestTier) {
+    if (highestTier == 'MINI' && (planCode == 'HALF' || planCode == 'FULL')) return true;
+    if (highestTier == 'HALF' && planCode == 'FULL') return true;
+    return false;
+  }
+
+  Color _getPlanBadgeBg(String planCode) {
+    switch (planCode) {
+      case 'MINI':
+        return const Color(0xFFFEF3C7);
+      case 'HALF':
+        return const Color(0xFFE0E7FF);
+      case 'FULL':
+      default:
+        return const Color(0xFFDCFCE7);
+    }
+  }
+
+  Color _getPlanBadgeColor(String planCode) {
+    switch (planCode) {
+      case 'MINI':
+        return const Color(0xFFD97706);
+      case 'HALF':
+        return const Color(0xFF4338CA);
+      case 'FULL':
+      default:
+        return const Color(0xFF15803D);
+    }
+  }
+
   Widget _buildSpecRow(BuildContext context, String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimaryOf(context))),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.textPrimaryOf(context))),
       ],
     );
   }
 
-  Widget _buildBottomBuyBar(BuildContext context, TestSeries series) {
-    if (series.isPurchased) {
+  // ── Bottom Buy Bar ─────────────────────────────────────────────────────────
+  Widget _buildBottomBuyBar(
+    BuildContext context,
+    TestSeries series,
+    List<TestSeriesPlan> plans,
+    List<UserEntitlement> entitlements,
+  ) {
+    final highestTier = _getHighestTier(entitlements);
+
+    if (series.isPurchased || highestTier == 'COMPLETE' || highestTier == 'FULL') {
       return Container(
+        margin: const EdgeInsets.only(bottom: 84),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         color: const Color(0xFFDCFCE7),
         child: const Row(
@@ -633,7 +1122,18 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
       );
     }
 
-    final price = series.discountedPrice ?? series.price;
+    // Determine currently selected plan
+    final activePlan = plans.firstWhere(
+      (p) => p.planCode == _selectedPlanCode,
+      orElse: () => plans.isNotEmpty ? plans.first : TestSeriesPlan(
+        id: 'default',
+        seriesId: widget.seriesId,
+        planCode: 'FULL',
+        title: 'FULL Package',
+        price: series.discountedPrice ?? series.price,
+      ),
+    );
+
     final cardBg = AppTheme.cardBgOf(context);
     final borderCol = AppTheme.borderOf(context);
     final textPrimary = AppTheme.textPrimaryOf(context);
@@ -656,36 +1156,62 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Special Price', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                Text(
-                  '₹${price.toInt()}',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: textPrimary,
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${activePlan.planCode} PLAN SELECTED',
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFD97706), letterSpacing: 0.5),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
-              ],
-            ),
-              ElevatedButton(
-                onPressed: _isProcessingPayment ? null : () => _startPayment(),
-                style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                backgroundColor: AppColors.primaryBlue,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '₹${activePlan.sellingPrice.toInt()}',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: textPrimary,
+                        ),
+                      ),
+                      if (activePlan.originalMrp != null) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          '₹${activePlan.originalMrp!.toInt()}',
+                          style: const TextStyle(fontSize: 12, color: AppColors.textMuted, decoration: TextDecoration.lineThrough),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ),
-              child: _isProcessingPayment
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text(
-                      'Unlock Pass Now',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+            ApplePressable(
+              onTap: _isProcessingPayment ? null : () => _startPayment(planOverride: activePlan),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
                     ),
+                  ],
+                ),
+                child: _isProcessingPayment
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(
+                        'Buy ${activePlan.planCode} (₹${activePlan.sellingPrice.toInt()})',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                      ),
+              ),
             ),
           ],
         ),
@@ -741,6 +1267,8 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
               onPressed: () {
                 ref.invalidate(testSeriesDetailProvider(widget.seriesId));
                 ref.invalidate(testSeriesQuizzesProvider(widget.seriesId));
+                ref.invalidate(testSeriesPlansProvider(widget.seriesId));
+                ref.invalidate(userEntitlementsProvider(widget.seriesId));
               },
               icon: const Icon(Icons.refresh, size: 16),
               label: const Text('Retry'),

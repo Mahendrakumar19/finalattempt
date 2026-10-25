@@ -15,6 +15,7 @@ import '../../providers/content_providers.dart';
 import '../../models/site_settings_model.dart';
 import '../../models/test_series_model.dart';
 import '../../models/current_affair_model.dart';
+import '../../widgets/apple_pressable.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -321,138 +322,143 @@ class HomeScreen extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderCol),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+      child: ApplePressable(
+        scaleDown: 0.98,
+        enableHaptic: true,
+        onTap: () => context.push('/test/daily-quiz-today/instructions'),
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderCol),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bolt_rounded, size: 14, color: Color(0xFF10B981)),
+                        SizedBox(width: 4),
+                        Text(
+                          'DAILY LIVE QUIZ',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF10B981),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: const Row(
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'FREE PRACTICE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: primaryColor,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Daily Current Affairs & Bihar GS Practice',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimaryOf(context),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '10 High-yield exam questions covering state economy, polity, history & international affairs.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textMutedOf(context),
+                  height: 1.35,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 12,
+                runSpacing: 10,
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.bolt_rounded, size: 14, color: Color(0xFF10B981)),
-                      SizedBox(width: 4),
-                      Text(
-                        'DAILY LIVE QUIZ',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF10B981),
-                          letterSpacing: 0.5,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.timer_outlined, size: 14, color: AppTheme.textMutedOf(context)),
+                          const SizedBox(width: 4),
+                          Text(
+                            '10 Mins',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMutedOf(context)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 14),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.help_outline_rounded, size: 14, color: AppTheme.textMutedOf(context)),
+                          const SizedBox(width: 4),
+                          Text(
+                            '10 Questions',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMutedOf(context)),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: primaryColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'FREE PRACTICE',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: primaryColor,
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      context.push('/test/daily-quiz-today/instructions');
+                    },
+                    icon: const Icon(Icons.play_arrow_rounded, size: 16),
+                    label: const Text('Start Quiz'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryColor,
+                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Daily Current Affairs & Bihar GS Practice',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimaryOf(context),
+                ],
               ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '10 High-yield exam questions covering state economy, polity, history & international affairs.',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppTheme.textMutedOf(context),
-                height: 1.35,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 12,
-              runSpacing: 10,
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.timer_outlined, size: 14, color: AppTheme.textMutedOf(context)),
-                        const SizedBox(width: 4),
-                        Text(
-                          '10 Mins',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMutedOf(context)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 14),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.help_outline_rounded, size: 14, color: AppTheme.textMutedOf(context)),
-                        const SizedBox(width: 4),
-                        Text(
-                          '10 Questions',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMutedOf(context)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    context.push('/test/daily-quiz-today/instructions');
-                  },
-                  icon: const Icon(Icons.play_arrow_rounded, size: 16),
-                  label: const Text('Start Quiz'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: isDark ? Colors.black : Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -660,9 +666,10 @@ class _QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return ApplePressable(
       onTap: () => context.go(path),
-      borderRadius: BorderRadius.circular(14),
+      scaleDown: 0.94,
+      enableHaptic: true,
       child: Container(
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.06),
@@ -706,16 +713,17 @@ class _TestSeriesHomeCard extends StatelessWidget {
     return Container(
       width: 220,
       margin: const EdgeInsets.only(right: 12),
-      child: Card(
-        elevation: isDark ? 0 : 1,
-        color: AppTheme.cardBgOf(context),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: AppTheme.borderOf(context)),
-        ),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => context.push('/test-series/${series.id}'),
+      child: ApplePressable(
+        scaleDown: 0.96,
+        enableHaptic: true,
+        onTap: () => context.push('/test-series/${series.id}'),
+        child: Card(
+          elevation: isDark ? 0 : 1,
+          color: AppTheme.cardBgOf(context),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: AppTheme.borderOf(context)),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(

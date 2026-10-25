@@ -74,6 +74,108 @@ class TestSeries {
   }
 }
 
+class TestSeriesPlan {
+  final String id;
+  final String seriesId;
+  final String planCode; // 'MINI', 'HALF', 'FULL', 'COMPLETE'
+  final String title;
+  final String? description;
+  final int sequenceStartNumber;
+  final int sequenceEndNumber;
+  final double price;
+  final double? discountedPrice;
+  final String? includedQuizIds;
+  final bool isActive;
+
+  TestSeriesPlan({
+    required this.id,
+    required this.seriesId,
+    required this.planCode,
+    required this.title,
+    this.description,
+    this.sequenceStartNumber = 1,
+    this.sequenceEndNumber = 40,
+    required this.price,
+    this.discountedPrice,
+    this.includedQuizIds,
+    this.isActive = true,
+  });
+
+  double get sellingPrice {
+    if (discountedPrice != null && discountedPrice! > 0) {
+      return discountedPrice! < price ? discountedPrice! : price;
+    }
+    return price;
+  }
+
+  double? get originalMrp {
+    if (discountedPrice != null && discountedPrice! > 0 && discountedPrice! < price) {
+      return price;
+    }
+    return null;
+  }
+
+  int get testCount {
+    if (includedQuizIds != null && includedQuizIds!.isNotEmpty) {
+      try {
+        final List<dynamic> ids = (includedQuizIds!.startsWith('[') && includedQuizIds!.endsWith(']'))
+            ? (includedQuizIds!.replaceAll(RegExp(r'[\[\]" ]'), '').split(',').where((s) => s.isNotEmpty).toList())
+            : [];
+        if (ids.isNotEmpty) return ids.length;
+      } catch (_) {}
+    }
+    return (sequenceEndNumber - sequenceStartNumber + 1).clamp(0, 999);
+  }
+
+  factory TestSeriesPlan.fromJson(Map<String, dynamic> json) {
+    return TestSeriesPlan(
+      id: json['id'] ?? '',
+      seriesId: json['series_id'] ?? json['seriesId'] ?? '',
+      planCode: (json['plan_code'] ?? json['planCode'] ?? 'FULL').toString().toUpperCase(),
+      title: json['title'] ?? '',
+      description: json['description'],
+      sequenceStartNumber: json['sequence_start_number'] ?? json['sequenceStartNumber'] ?? 1,
+      sequenceEndNumber: json['sequence_end_number'] ?? json['sequenceEndNumber'] ?? 40,
+      price: TestSeries._parseDouble(json['price']) ?? 0.0,
+      discountedPrice: TestSeries._parseDouble(json['discounted_price'] ?? json['discountedPrice']),
+      includedQuizIds: json['included_quiz_ids']?.toString() ?? json['includedQuizIds']?.toString(),
+      isActive: json['is_active'] == null || json['is_active'] == true || json['is_active'] == 1,
+    );
+  }
+}
+
+class UserEntitlement {
+  final String id;
+  final String seriesId;
+  final String entitlementType; // 'MINI', 'HALF', 'FULL', 'COMPLETE', 'LEGACY_ENROLLMENT', 'INDIVIDUAL_TEST'
+  final int maxSequenceNumber;
+  final int snapshotMaxSequence;
+  final String status;
+  final String? quizId;
+
+  UserEntitlement({
+    required this.id,
+    required this.seriesId,
+    required this.entitlementType,
+    this.maxSequenceNumber = 999,
+    this.snapshotMaxSequence = 999,
+    this.status = 'ACTIVE',
+    this.quizId,
+  });
+
+  factory UserEntitlement.fromJson(Map<String, dynamic> json) {
+    return UserEntitlement(
+      id: json['id'] ?? '',
+      seriesId: json['series_id'] ?? json['seriesId'] ?? '',
+      entitlementType: (json['entitlement_type'] ?? json['entitlementType'] ?? 'FULL').toString().toUpperCase(),
+      maxSequenceNumber: json['max_sequence_number'] ?? json['maxSequenceNumber'] ?? 999,
+      snapshotMaxSequence: json['snapshot_max_sequence'] ?? json['snapshotMaxSequence'] ?? 999,
+      status: json['status'] ?? 'ACTIVE',
+      quizId: json['quiz_id'] ?? json['quizId'],
+    );
+  }
+}
+
 class TestQuiz {
   final String id;
   final String courseId;

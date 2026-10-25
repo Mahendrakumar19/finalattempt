@@ -39,6 +39,68 @@ final testSeriesQuizzesProvider = FutureProvider.family.autoDispose<List<TestQui
   return [];
 });
 
+// Test Series Plans Provider (MINI, HALF, FULL)
+final testSeriesPlansProvider = FutureProvider.family.autoDispose<List<TestSeriesPlan>, String>((ref, seriesId) async {
+  final apiService = ref.watch(apiServiceProvider);
+  try {
+    final response = await apiService.get('/test-series-purchase/$seriesId/plans');
+    final data = response is Map ? (response['data'] ?? response) : response;
+    if (data is List && data.isNotEmpty) {
+      return data.map((item) => TestSeriesPlan.fromJson(item)).toList();
+    }
+  } catch (_) {}
+
+  // Fallback defaults if plans are not yet customized in DB
+  return [
+    TestSeriesPlan(
+      id: 'mini-default',
+      seriesId: seriesId,
+      planCode: 'MINI',
+      title: 'MINI Package',
+      description: 'Tests 1 to 16 with solutions & rankings',
+      sequenceStartNumber: 1,
+      sequenceEndNumber: 16,
+      price: 299,
+      discountedPrice: 249,
+    ),
+    TestSeriesPlan(
+      id: 'half-default',
+      seriesId: seriesId,
+      planCode: 'HALF',
+      title: 'HALF Package',
+      description: 'Tests 1 to 28 with sectional practice',
+      sequenceStartNumber: 1,
+      sequenceEndNumber: 28,
+      price: 499,
+      discountedPrice: 399,
+    ),
+    TestSeriesPlan(
+      id: 'full-default',
+      seriesId: seriesId,
+      planCode: 'FULL',
+      title: 'FULL Package',
+      description: 'All 40+ tests, all sectional & full length mocks',
+      sequenceStartNumber: 1,
+      sequenceEndNumber: 40,
+      price: 699,
+      discountedPrice: 599,
+    ),
+  ];
+});
+
+// User Entitlements Provider
+final userEntitlementsProvider = FutureProvider.family.autoDispose<List<UserEntitlement>, String>((ref, seriesId) async {
+  final apiService = ref.watch(apiServiceProvider);
+  try {
+    final response = await apiService.get('/test-series-purchase/entitlements', params: {'seriesId': seriesId});
+    final data = response is Map ? (response['data'] ?? response) : response;
+    if (data is List) {
+      return data.map((item) => UserEntitlement.fromJson(item)).toList();
+    }
+  } catch (_) {}
+  return [];
+});
+
 // Interactive Test Player State Engine
 class TestPlayerState {
   final TestQuiz quiz;
@@ -302,13 +364,35 @@ class TestPlayerNotifier extends StateNotifier<TestPlayerState> {
 // Dynamic Live Questions & Test Attempt Provider
 final quizQuestionsProvider = FutureProvider.family.autoDispose<List<TestQuestion>, String>((ref, quizId) async {
   final apiService = ref.watch(apiServiceProvider);
-  final response = await apiService.get('/quizzes/$quizId/start');
-  final data = response is Map ? (response['data'] ?? response) : response;
-  if (data is Map && data.containsKey('questions')) {
-    final questionsList = data['questions'] as List;
-    return questionsList.map((q) => TestQuestion.fromJson(q)).toList();
-  } else if (data is List) {
-    return data.map((q) => TestQuestion.fromJson(q)).toList();
+  try {
+    // If daily quiz ID or slug
+    if (quizId.startsWith('daily') || quizId.contains('quiz')) {
+      final dailyRes = await apiService.get('/quizzes/daily/$quizId/start');
+      final dData = dailyRes is Map ? (dailyRes['data'] ?? dailyRes) : dailyRes;
+      if (dData is Map && dData.containsKey('questions')) {
+        final questionsList = dData['questions'] as List;
+        return questionsList.map((q) => TestQuestion.fromJson(q)).toList();
+      }
+    }
+
+    final response = await apiService.get('/quizzes/$quizId/start');
+    final data = response is Map ? (response['data'] ?? response) : response;
+    if (data is Map && data.containsKey('questions')) {
+      final questionsList = data['questions'] as List;
+      return questionsList.map((q) => TestQuestion.fromJson(q)).toList();
+    } else if (data is List) {
+      return data.map((q) => TestQuestion.fromJson(q)).toList();
+    }
+  } catch (_) {
+    // Fallback: try daily endpoint if standard failed
+    try {
+      final fallbackRes = await apiService.get('/quizzes/daily/$quizId/start');
+      final fData = fallbackRes is Map ? (fallbackRes['data'] ?? fallbackRes) : fallbackRes;
+      if (fData is Map && fData.containsKey('questions')) {
+        final questionsList = fData['questions'] as List;
+        return questionsList.map((q) => TestQuestion.fromJson(q)).toList();
+      }
+    } catch (_) {}
   }
   return [];
 });
