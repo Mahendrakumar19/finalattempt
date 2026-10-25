@@ -2540,12 +2540,20 @@ class BackendDB {
       return { valid: false, discountAmount: 0, finalAmount: cartAmount, message: 'Invalid or expired coupon code' };
     }
 
-    // Check expiration date
-    if (offer.endDate) {
+    // Check expiration date (support endDate and expiryDate)
+    const expiry = offer.endDate || (offer as any).expiryDate;
+    if (expiry) {
       const now = new Date().toISOString().split('T')[0];
-      if (now > offer.endDate) {
+      if (now > expiry) {
         return { valid: false, discountAmount: 0, finalAmount: cartAmount, message: 'This coupon has expired' };
       }
+    }
+
+    // Check usage limits if configured
+    const usageLimit = (offer as any).usageLimit || 0;
+    const usageCount = (offer as any).usageCount || (offer as any).usedCount || 0;
+    if (usageLimit > 0 && usageCount >= usageLimit) {
+      return { valid: false, discountAmount: 0, finalAmount: cartAmount, message: 'This coupon usage limit has been reached' };
     }
 
     // Check minimum order amount
@@ -2553,7 +2561,7 @@ class BackendDB {
       return { valid: false, discountAmount: 0, finalAmount: cartAmount, message: `Minimum order amount of ₹${offer.minOrderAmount} required` };
     }
 
-    // Check applicability
+    // Check applicability ('ALL' or matching itemType)
     if (offer.applicableTo !== 'ALL' && offer.applicableTo !== itemType) {
       return { valid: false, discountAmount: 0, finalAmount: cartAmount, message: `Coupon applicable only on ${offer.applicableTo}` };
     }
@@ -2563,13 +2571,16 @@ class BackendDB {
     }
 
     let discount = 0;
-    if (offer.discountType === 'PERCENT') {
-      discount = Math.round((cartAmount * offer.discountValue) / 100);
-      if (offer.maxDiscount && offer.maxDiscount > 0 && discount > offer.maxDiscount) {
-        discount = offer.maxDiscount;
+    const isPercent = offer.discountType === 'PERCENT' || (offer.discountType as any) === 'PERCENTAGE';
+    const maxCap = offer.maxDiscount || (offer as any).maxDiscountAmount || 0;
+
+    if (isPercent) {
+      discount = Math.round((cartAmount * Number(offer.discountValue || 0)) / 100);
+      if (maxCap > 0 && discount > maxCap) {
+        discount = maxCap;
       }
     } else {
-      discount = offer.discountValue;
+      discount = Number(offer.discountValue || 0);
     }
 
     if (discount > cartAmount) discount = cartAmount;
