@@ -55,9 +55,28 @@ class _CourseViewerScreenState extends ConsumerState<CourseViewerScreen>
 
       if (mounted) {
         if (data != null) {
+          // Sort quizzes naturally so they display 1, 2, 3...
+          int extractNum(String title) {
+            final match = RegExp(r'(?:test|tests|quiz|मि​नी|मिनी|टेस्ट|\b)\s*[-:–—]?\s*(\d+)', caseSensitive: false).firstMatch(title);
+            if (match != null) return int.tryParse(match.group(1)!) ?? 9999;
+            final anyNum = RegExp(r'(\d+)').firstMatch(title);
+            if (anyNum != null) return int.tryParse(anyNum.group(1)!) ?? 9999;
+            return 9999;
+          }
+
+          final sortedQuizzes = List<dynamic>.from(quizzes);
+          sortedQuizzes.sort((a, b) {
+            final titleA = (a is Map ? (a['title'] ?? '') : '').toString();
+            final titleB = (b is Map ? (b['title'] ?? '') : '').toString();
+            final numA = extractNum(titleA);
+            final numB = extractNum(titleB);
+            if (numA != numB) return numA.compareTo(numB);
+            return titleA.compareTo(titleB);
+          });
+
           setState(() {
             _sections = data['sections'] ?? [];
-            _quizzes = quizzes;
+            _quizzes = sortedQuizzes;
             _assignments = assignments;
             _isLoading = false;
 

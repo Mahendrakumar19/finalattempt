@@ -66,7 +66,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
 
   bool _isQuizAccessible(TestQuiz quiz, int index, TestSeries series, List<UserEntitlement> entitlements, List<TestSeriesPlan> plans) {
     if (quiz.isFree || series.isPurchased) return true;
-    final seq = index + 1;
+    final seq = (quiz.sequenceNumber > 0 && quiz.sequenceNumber < 9999) ? quiz.sequenceNumber : (index + 1);
 
     for (final ent in entitlements) {
       if (ent.status != 'ACTIVE') continue;

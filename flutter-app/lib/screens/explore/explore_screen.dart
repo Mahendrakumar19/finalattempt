@@ -195,26 +195,50 @@ class ExploreScreen extends ConsumerWidget {
                     _buildDivider(context),
                     _ExploreListTile(
                       icon: Icons.auto_stories_rounded,
-                      iconColor: const Color(0xFF8B5CF6),
-                      title: 'NCERTs & Study Materials',
-                      subtitle: 'Free Class 6-12 NCERT textbooks & revision notes',
-                      onTap: () => context.push('/pyq'),
+                      iconColor: const Color(0xFF10B981),
+                      title: 'NCERT Textbooks',
+                      subtitle: 'Free Class 6–12 NCERT textbooks by subject',
+                      onTap: () => context.push('/downloads/ncert'),
+                    ),
+                    _buildDivider(context),
+                    _ExploreListTile(
+                      icon: Icons.bolt_rounded,
+                      iconColor: const Color(0xFFF59E0B),
+                      title: 'Useful Documents',
+                      subtitle: 'Exam revision notes, summaries & study materials',
+                      onTap: () => context.push('/downloads/useful-documents'),
+                    ),
+                    _buildDivider(context),
+                    _ExploreListTile(
+                      icon: Icons.lightbulb_rounded,
+                      iconColor: const Color(0xFFA855F7),
+                      title: 'Value Added Materials — Mains',
+                      subtitle: 'Supreme Court judgments, facts & Mains enrichment',
+                      onTap: () => context.push('/downloads/value-added-mains'),
+                    ),
+                    _buildDivider(context),
+                    _ExploreListTile(
+                      icon: Icons.fact_check_rounded,
+                      iconColor: const Color(0xFF14B8A6),
+                      title: 'Toppers\' Copies',
+                      subtitle: 'Real evaluated answer copies of BPSC toppers',
+                      onTap: () => context.push('/downloads/toppers-copies'),
                     ),
                     _buildDivider(context),
                     _ExploreListTile(
                       icon: Icons.menu_book_rounded,
-                      iconColor: const Color(0xFF14B8A6),
+                      iconColor: const Color(0xFF6366F1),
                       title: 'Syllabus & Strategy Breakdown',
                       subtitle: 'Official BPSC pattern, marks distribution & plan',
                       onTap: () => context.push('/syllabus-strategy'),
                     ),
                     _buildDivider(context),
                     _ExploreListTile(
-                      icon: Icons.book_outlined,
+                      assetImage: 'assets/images/favicon.png',
                       iconColor: const Color(0xFFD97706),
                       title: 'FA Publications & Books',
                       subtitle: 'Order official BPSC books, notes & publications',
-                      onTap: () => _openExternal('https://finalattemptias.com/downloads/fa-publication'),
+                      onTap: () => context.push('/downloads/fa-publication'),
                     ),
                     _buildDivider(context),
                     _ExploreListTile(
@@ -351,14 +375,16 @@ class ExploreScreen extends ConsumerWidget {
 }
 
 class _ExploreListTile extends StatelessWidget {
-  final IconData icon;
+  final IconData? icon;
+  final String? assetImage;
   final Color iconColor;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
 
   const _ExploreListTile({
-    required this.icon,
+    this.icon,
+    this.assetImage,
     required this.iconColor,
     required this.title,
     required this.subtitle,
@@ -374,12 +400,24 @@ class _ExploreListTile extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
+                color: assetImage != null ? Colors.white : iconColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
+                border: assetImage != null
+                    ? Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.35), width: 1.2)
+                    : null,
               ),
-              child: Icon(icon, color: iconColor, size: 20),
+              child: assetImage != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(9),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Image.asset(assetImage!, fit: BoxFit.contain),
+                      ),
+                    )
+                  : Icon(icon, color: iconColor, size: 20),
             ),
             const SizedBox(width: 14),
             Expanded(

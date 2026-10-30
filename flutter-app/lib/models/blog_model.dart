@@ -14,6 +14,7 @@ class BlogModel {
   final String? blurb;
   final String? excerpt;
   final String? status;
+  final List<String> tags;
 
   const BlogModel({
     required this.id,
@@ -31,6 +32,7 @@ class BlogModel {
     this.blurb,
     this.excerpt,
     this.status,
+    this.tags = const [],
   });
 
   String get displayImage => imageUrl ?? coverImageUrl ?? '';
@@ -39,6 +41,17 @@ class BlogModel {
   String get preview => blurb ?? excerpt ?? (content.replaceAll(RegExp(r'<[^>]*>'), '').substring(0, content.length.clamp(0, 150)));
 
   factory BlogModel.fromJson(Map<String, dynamic> json) {
+    List<String> parsedTags = [];
+    if (json['tags'] is List) {
+      parsedTags = (json['tags'] as List).map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+    } else if (json['tags'] is String && (json['tags'] as String).trim().isNotEmpty) {
+      parsedTags = (json['tags'] as String)
+          .split(RegExp(r'[,|]'))
+          .map((e) => e.trim().replaceAll(RegExp(r'^#'), ''))
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
     return BlogModel(
       id: json['id']?.toString() ?? '',
       title: json['title'] ?? '',
@@ -55,6 +68,7 @@ class BlogModel {
       blurb: json['blurb'],
       excerpt: json['excerpt'],
       status: json['status'],
+      tags: parsedTags,
     );
   }
 }

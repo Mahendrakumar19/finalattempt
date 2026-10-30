@@ -1,60 +1,109 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Safe cross-platform Outfit font style helper (prevents Flutter Web AssetManifest.bin.json 404 crashes)
-  static TextStyle fontOutfit({
+  // Apple SF Pro & Inter cross-platform typography system
+  // On iOS/macOS: uses native SF Pro Display/Text via system-ui
+  // On Android/Web: uses Inter (metrically identical to SF Pro) with Noto Sans Devanagari fallback
+  static TextStyle fontApple({
     double? fontSize,
     FontWeight? fontWeight,
     Color? color,
     double? letterSpacing,
     double? height,
   }) {
+    // Apple WWDC Typography rule: optical tracking (negative for large titles, positive for small captions)
+    final autoTracking = letterSpacing ??
+        (fontSize != null
+            ? (fontSize >= 28
+                ? -0.6
+                : fontSize >= 20
+                    ? -0.4
+                    : fontSize >= 16
+                        ? -0.2
+                        : fontSize <= 11
+                            ? 0.3
+                            : 0.0)
+            : 0.0);
+
+    // Apple WWDC Typography rule: inverse leading (tight leading on large headings, comfortable on body)
+    final autoHeight = height ??
+        (fontSize != null
+            ? (fontSize >= 24 ? 1.18 : (fontSize >= 16 ? 1.25 : 1.4))
+            : null);
+
     if (kIsWeb) {
       return TextStyle(
-        fontFamily: 'Outfit',
-        fontFamilyFallback: const ['system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'sans-serif'],
+        fontFamily: '-apple-system',
+        fontFamilyFallback: const [
+          'BlinkMacSystemFont',
+          'SF Pro Display',
+          'SF Pro Text',
+          'Inter',
+          'Segoe UI',
+          'Roboto',
+          'Noto Sans Devanagari',
+          'sans-serif',
+        ],
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        letterSpacing: autoTracking,
+        height: autoHeight,
+      );
+    }
+
+    return GoogleFonts.inter(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      letterSpacing: autoTracking,
+      height: autoHeight,
+    );
+  }
+
+  // Alias for backwards compatibility across existing widgets
+  static TextStyle fontOutfit({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+    double? height,
+  }) =>
+      fontApple(
         fontSize: fontSize,
         fontWeight: fontWeight,
         color: color,
         letterSpacing: letterSpacing,
         height: height,
       );
-    }
-    return GoogleFonts.outfit(
-      fontSize: fontSize,
-      fontWeight: fontWeight,
-      color: color,
-      letterSpacing: letterSpacing,
-      height: height,
-    );
-  }
 
   static TextTheme _buildTextTheme(ThemeData base, Color primaryColor, Color secondaryColor, Color mutedColor) {
     if (kIsWeb) {
-      return base.textTheme.apply(fontFamily: 'Outfit').copyWith(
-        displayLarge: fontOutfit(fontSize: 32, fontWeight: FontWeight.w900, color: primaryColor),
-        displayMedium: fontOutfit(fontSize: 26, fontWeight: FontWeight.w800, color: primaryColor),
-        headlineLarge: fontOutfit(fontSize: 22, fontWeight: FontWeight.w800, color: primaryColor),
-        headlineMedium: fontOutfit(fontSize: 18, fontWeight: FontWeight.w700, color: primaryColor),
-        titleLarge: fontOutfit(fontSize: 16, fontWeight: FontWeight.w700, color: primaryColor),
-        bodyLarge: fontOutfit(fontSize: 14, fontWeight: FontWeight.w400, color: primaryColor),
-        bodyMedium: fontOutfit(fontSize: 13, fontWeight: FontWeight.w400, color: secondaryColor),
-        bodySmall: fontOutfit(fontSize: 11, fontWeight: FontWeight.w400, color: mutedColor),
-        labelLarge: fontOutfit(fontSize: 12, fontWeight: FontWeight.w700, color: primaryColor, letterSpacing: 0.8),
+      return base.textTheme.apply(fontFamily: '-apple-system').copyWith(
+        displayLarge: fontApple(fontSize: 32, fontWeight: FontWeight.w800, color: primaryColor),
+        displayMedium: fontApple(fontSize: 26, fontWeight: FontWeight.w700, color: primaryColor),
+        headlineLarge: fontApple(fontSize: 22, fontWeight: FontWeight.w700, color: primaryColor),
+        headlineMedium: fontApple(fontSize: 18, fontWeight: FontWeight.w600, color: primaryColor),
+        titleLarge: fontApple(fontSize: 16, fontWeight: FontWeight.w600, color: primaryColor),
+        bodyLarge: fontApple(fontSize: 14, fontWeight: FontWeight.w400, color: primaryColor),
+        bodyMedium: fontApple(fontSize: 13, fontWeight: FontWeight.w400, color: secondaryColor),
+        bodySmall: fontApple(fontSize: 11, fontWeight: FontWeight.w400, color: mutedColor),
+        labelLarge: fontApple(fontSize: 12, fontWeight: FontWeight.w600, color: primaryColor),
       );
     }
-    return GoogleFonts.outfitTextTheme(base.textTheme).copyWith(
-      displayLarge: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.w900, color: primaryColor),
-      displayMedium: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.w800, color: primaryColor),
-      headlineLarge: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800, color: primaryColor),
-      headlineMedium: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: primaryColor),
-      titleLarge: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: primaryColor),
-      bodyLarge: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w400, color: primaryColor),
-      bodyMedium: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w400, color: secondaryColor),
-      bodySmall: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w400, color: mutedColor),
-      labelLarge: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w700, color: primaryColor, letterSpacing: 0.8),
+    return GoogleFonts.interTextTheme(base.textTheme).copyWith(
+      displayLarge: fontApple(fontSize: 32, fontWeight: FontWeight.w800, color: primaryColor),
+      displayMedium: fontApple(fontSize: 26, fontWeight: FontWeight.w700, color: primaryColor),
+      headlineLarge: fontApple(fontSize: 22, fontWeight: FontWeight.w700, color: primaryColor),
+      headlineMedium: fontApple(fontSize: 18, fontWeight: FontWeight.w600, color: primaryColor),
+      titleLarge: fontApple(fontSize: 16, fontWeight: FontWeight.w600, color: primaryColor),
+      bodyLarge: fontApple(fontSize: 14, fontWeight: FontWeight.w400, color: primaryColor),
+      bodyMedium: fontApple(fontSize: 13, fontWeight: FontWeight.w400, color: secondaryColor),
+      bodySmall: fontApple(fontSize: 11, fontWeight: FontWeight.w400, color: mutedColor),
+      labelLarge: fontApple(fontSize: 12, fontWeight: FontWeight.w600, color: primaryColor),
     );
   }
 
@@ -271,6 +320,15 @@ class AppTheme {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       ),
       dividerTheme: const DividerThemeData(color: borderLight, thickness: 1),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+        },
+      ),
     );
   }
 
@@ -360,6 +418,15 @@ class AppTheme {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       ),
       dividerTheme: const DividerThemeData(color: borderDark, thickness: 1),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+        },
+      ),
     );
   }
 }

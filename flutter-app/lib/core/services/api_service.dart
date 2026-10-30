@@ -44,9 +44,9 @@ class ApiService {
     ));
   }
 
-  Future<dynamic> get(String path, {Map<String, dynamic>? params}) async {
+  Future<dynamic> get(String path, {Map<String, dynamic>? params, Options? options}) async {
     try {
-      final res = await _dio.get(path, queryParameters: params);
+      final res = await _dio.get(path, queryParameters: params, options: options);
       return res.data;
     } on DioException catch (e) {
       throw _handleError(e);

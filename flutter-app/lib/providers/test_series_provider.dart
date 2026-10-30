@@ -28,13 +28,20 @@ final testSeriesDetailProvider = FutureProvider.family.autoDispose<TestSeries, S
   return list.firstWhere((item) => item.id == id || item.slug == id);
 });
 
-// Quizzes under a test series provider - Strictly dynamic live API fetch
+// Quizzes under a test series provider - Strictly dynamic live API fetch with natural sequence sorting
 final testSeriesQuizzesProvider = FutureProvider.family.autoDispose<List<TestQuiz>, String>((ref, seriesId) async {
   final apiService = ref.watch(apiServiceProvider);
   final response = await apiService.get('/lms/courses/$seriesId/quizzes');
   final data = response is Map ? (response['data'] ?? response) : response;
   if (data is List) {
-    return data.map((item) => TestQuiz.fromJson(item)).toList();
+    final list = data.map((item) => TestQuiz.fromJson(item)).toList();
+    list.sort((a, b) {
+      if (a.sequenceNumber != b.sequenceNumber) {
+        return a.sequenceNumber.compareTo(b.sequenceNumber);
+      }
+      return a.title.compareTo(b.title);
+    });
+    return list;
   }
   return [];
 });

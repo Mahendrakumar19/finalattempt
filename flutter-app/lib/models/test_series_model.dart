@@ -188,6 +188,7 @@ class TestQuiz {
   final bool isFree;
   final bool isAttempted;
   final double? lastScore;
+  final int sequenceNumber;
 
   TestQuiz({
     required this.id,
@@ -201,13 +202,40 @@ class TestQuiz {
     this.isFree = false,
     this.isAttempted = false,
     this.lastScore,
+    this.sequenceNumber = 9999,
   });
 
+  static int extractTestNumber(String text) {
+    if (text.isEmpty) return 9999;
+    // Matches: 'टेस्ट- 8', 'टेस्ट - 8', 'टेस्ट 8', 'Test 8', 'Test-8', 'Mini Test-8', 'Quiz 8', etc.
+    final match = RegExp(r'(?:test|tests|quiz|मि​नी|मिनी|टेस्ट|\b)\s*[-:–—]?\s*(\d+)', caseSensitive: false).firstMatch(text);
+    if (match != null) {
+      return int.tryParse(match.group(1)!) ?? 9999;
+    }
+    // Also fallback to any first standalone number
+    final anyNum = RegExp(r'(\d+)').firstMatch(text);
+    if (anyNum != null) {
+      return int.tryParse(anyNum.group(1)!) ?? 9999;
+    }
+    return 9999;
+  }
+
   factory TestQuiz.fromJson(Map<String, dynamic> json) {
+    final title = json['title'] ?? '';
+    // Always prioritize natural test number from title (e.g. 'टेस्ट- 8' -> 8, 'TEST-34' -> 34)
+    // because backend API often sends createdAt-based sequence_number (1, 2, 3...) which scrambles the order!
+    final extractedFromTitle = extractTestNumber(title);
+    final parsedSeq = json['sequence_number'] ?? json['sequenceNumber'];
+    final rawSeq = parsedSeq != null ? int.tryParse(parsedSeq.toString()) : null;
+
+    final seq = (extractedFromTitle < 9999)
+        ? extractedFromTitle
+        : (rawSeq ?? 9999);
+
     return TestQuiz(
       id: json['id'] ?? '',
       courseId: json['courseId'] ?? '',
-      title: json['title'] ?? '',
+      title: title,
       description: json['description'],
       timeLimitMins: json['timeLimitMins'] ?? 60,
       totalQuestions: json['totalQuestions'] ?? json['questionCount'] ?? 150,
@@ -216,6 +244,7 @@ class TestQuiz {
       isFree: json['isFree'] == true || json['isFree'] == 1 || json['is_standalone_purchasable'] == false,
       isAttempted: json['isAttempted'] == true || json['isAttempted'] == 1,
       lastScore: TestSeries._parseDouble(json['lastScore']),
+      sequenceNumber: seq,
     );
   }
 }

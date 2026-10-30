@@ -22,6 +22,11 @@ class CurrentAffairArticleModel {
   final List<String> exams;
   final List<String> tags;
   final String? coverImageUrl;
+  final String? titleHi;
+  final String? summaryHi;
+  final String? contentHi;
+  final String? language;
+  final String? publishTarget;
 
   const CurrentAffairArticleModel({
     required this.id,
@@ -47,7 +52,36 @@ class CurrentAffairArticleModel {
     this.exams = const [],
     this.tags = const [],
     this.coverImageUrl,
+    this.titleHi,
+    this.summaryHi,
+    this.contentHi,
+    this.language,
+    this.publishTarget,
   });
+
+  String getTitle([String lang = 'en']) {
+    if (lang == 'hi') {
+      if (titleHi != null && titleHi!.trim().isNotEmpty) return titleHi!.trim();
+      if (language == 'hi' || publishTarget == 'hindi') return title;
+    }
+    return title;
+  }
+
+  String getSummary([String lang = 'en']) {
+    if (lang == 'hi') {
+      if (summaryHi != null && summaryHi!.trim().isNotEmpty) return summaryHi!.trim();
+      if (language == 'hi' || publishTarget == 'hindi') return summary;
+    }
+    return summary;
+  }
+
+  String? getContent([String lang = 'en']) {
+    if (lang == 'hi') {
+      if (contentHi != null && contentHi!.trim().isNotEmpty) return contentHi!.trim();
+      if (language == 'hi' || publishTarget == 'hindi') return content;
+    }
+    return content;
+  }
 
   factory CurrentAffairArticleModel.fromJson(Map<String, dynamic> json) {
     final media = json['media'] as List?;
@@ -114,6 +148,11 @@ class CurrentAffairArticleModel {
       exams: _asList(json['exams']),
       tags: _asList(json['tags']),
       coverImageUrl: coverImage,
+      titleHi: _cleanText(json['title_hi'] ?? json['titleHi']),
+      summaryHi: _cleanText(json['summary_hi'] ?? json['summaryHi']),
+      contentHi: _cleanHtml(json['content_hi'] ?? json['contentHi']),
+      language: json['language']?.toString().toLowerCase(),
+      publishTarget: json['publish_target'] ?? json['publishTarget'],
     );
   }
 

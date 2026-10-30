@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import '../core/theme/app_theme.dart';
 
 class LoadingShimmer extends StatelessWidget {
   final double height;
@@ -16,20 +15,65 @@ class LoadingShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+    final highlightColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Shimmer.fromColors(
-        baseColor: AppTheme.bgCard,
-        highlightColor: AppTheme.bgCardLight,
+        baseColor: baseColor,
+        highlightColor: highlightColor,
         child: Container(
           height: height,
           width: width ?? double.infinity,
           decoration: BoxDecoration(
-            color: AppTheme.bgCard,
+            color: baseColor,
             borderRadius: borderRadius ?? BorderRadius.circular(16),
           ),
         ),
       ),
+    );
+  }
+}
+
+class CardSkeleton extends StatelessWidget {
+  final double height;
+  const CardSkeleton({super.key, this.height = 100});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+    final highlightColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        height: height,
+        decoration: BoxDecoration(
+          color: baseColor,
+          borderRadius: BorderRadius.circular(18),
+        ),
+      ),
+    );
+  }
+}
+
+class ListSkeleton extends StatelessWidget {
+  final int count;
+  final double itemHeight;
+  const ListSkeleton({super.key, this.count = 5, this.itemHeight = 90});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: count,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemBuilder: (_, __) => CardSkeleton(height: itemHeight),
     );
   }
 }
@@ -40,6 +84,10 @@ class LoadingGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+    final highlightColor = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -48,13 +96,14 @@ class LoadingGrid extends StatelessWidget {
       crossAxisSpacing: 12,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       childAspectRatio: 1.4,
-      children: List.generate(count, (_) =>
-        Shimmer.fromColors(
-          baseColor: AppTheme.bgCard,
-          highlightColor: AppTheme.bgCardLight,
+      children: List.generate(
+        count,
+        (_) => Shimmer.fromColors(
+          baseColor: baseColor,
+          highlightColor: highlightColor,
           child: Container(
             decoration: BoxDecoration(
-              color: AppTheme.bgCard,
+              color: baseColor,
               borderRadius: BorderRadius.circular(16),
             ),
           ),

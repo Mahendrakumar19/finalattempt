@@ -677,7 +677,7 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
                     ),
                   ),
                 ),
-              const SliverToBoxAdapter(child: SizedBox(height: 90)),
+              const SliverToBoxAdapter(child: SizedBox(height: 140)),
             ],
           );
         },
@@ -1117,7 +1117,7 @@ class _ArticleCard extends StatelessWidget {
               ],
               const SizedBox(height: 10),
               Text(
-                article.title,
+                article.getTitle(lang),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -1125,10 +1125,10 @@ class _ArticleCard extends StatelessWidget {
                   height: 1.3,
                 ),
               ),
-              if (article.summary.isNotEmpty) ...[
+              if (article.getSummary(lang).isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
-                  article.summary,
+                  article.getSummary(lang),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryOf(context), height: 1.4),

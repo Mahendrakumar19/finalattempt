@@ -15,6 +15,9 @@ import '../../providers/content_providers.dart';
 import '../../models/site_settings_model.dart';
 import '../../models/test_series_model.dart';
 import '../../models/current_affair_model.dart';
+import '../../models/course_model.dart';
+import '../../models/blog_model.dart';
+import '../../providers/courses_provider.dart';
 import '../../widgets/apple_pressable.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -144,51 +147,8 @@ class HomeScreen extends ConsumerWidget {
 
                         const SizedBox(height: 24),
 
-                        // 3. Quick Action Cards Grid
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _SectionTitle(loc.tr('quick_actions')),
-                              const SizedBox(height: 12),
-                              GridView.count(
-                                crossAxisCount: 4,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                mainAxisSpacing: 12,
-                                crossAxisSpacing: 12,
-                                childAspectRatio: 0.85,
-                                children: [
-                                  _QuickActionCard(
-                                    icon: Icons.assignment_turned_in_rounded,
-                                    label: loc.tr('test_series'),
-                                    path: '/test-series',
-                                    color: isDark ? const Color(0xFF60A5FA) : AppTheme.primaryBlue,
-                                  ),
-                                  _QuickActionCard(
-                                    icon: Icons.newspaper_rounded,
-                                    label: loc.tr('current_affairs'),
-                                    path: '/current-affairs',
-                                    color: isDark ? const Color(0xFF34D399) : const Color(0xFF10B981),
-                                  ),
-                                  _QuickActionCard(
-                                    icon: Icons.library_books_rounded,
-                                    label: loc.tr('pyqs'),
-                                    path: '/pyq',
-                                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFF59E0B),
-                                  ),
-                                  _QuickActionCard(
-                                    icon: Icons.school_rounded,
-                                    label: loc.tr('courses'),
-                                    path: '/courses',
-                                    color: isDark ? const Color(0xFFA78BFA) : AppTheme.secondaryBlue,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
+                        // 3. Quick Action Preparation Portal Grid (Matching Website Core Portal)
+                        _buildPreparationPortalGrid(context, loc),
 
                         const SizedBox(height: 28),
 
@@ -202,6 +162,11 @@ class HomeScreen extends ConsumerWidget {
 
                         const SizedBox(height: 28),
 
+                        // 4c. Website Live Courses & Batches Section (Matching Website)
+                        _buildCoursesSection(context, ref, loc),
+
+                        const SizedBox(height: 28),
+
                         // 5. Current Affairs Latest Edition Card
                         _buildCurrentAffairsSection(context, ref, loc, caAsync),
 
@@ -209,6 +174,16 @@ class HomeScreen extends ConsumerWidget {
 
                         // 6. PYQ Practice Banner
                         _buildPYQSection(context, ref, loc, pyqsAsync),
+
+                        const SizedBox(height: 28),
+
+                        // 7. Why Final Attempt Stands Out (Pillars from Website)
+                        _buildWhyFinalAttemptSection(context, loc),
+
+                        const SizedBox(height: 28),
+
+                        // 8. Latest Strategy Articles & Insights (From Website)
+                        _buildLatestInsightsSection(context, ref, loc),
 
                         const SizedBox(height: 110),
                       ],
@@ -648,51 +623,674 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+
+  // 4c. Website Live Courses & Batches Section (Matching Website)
+  Widget _buildCoursesSection(BuildContext context, WidgetRef ref, AppLocalizations loc) {
+    final coursesAsync = ref.watch(coursesProvider);
+    final primaryColor = AppTheme.primaryOf(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _SectionTitle(
+            'Target Batches & Courses',
+            action: TextButton(
+              onPressed: () => context.push('/courses'),
+              child: Text(
+                loc.tr('see_all'),
+                style: TextStyle(color: primaryColor, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        coursesAsync.when(
+          loading: () => const LoadingShimmer(height: 150),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (courses) {
+            if (courses.isEmpty) return const SizedBox.shrink();
+            return SizedBox(
+              height: 190,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: courses.length,
+                itemBuilder: (context, i) {
+                  final course = courses[i];
+                  return _CourseHomeCard(course: course);
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  // 7. Core Preparation Portal 9-Grid (Matching Website Section 3.44)
+  Widget _buildPreparationPortalGrid(BuildContext context, AppLocalizations loc) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderCol = AppTheme.borderOf(context);
+
+    final portalItems = [
+      {
+        'title': 'DAILY CURRENT AFFAIRS',
+        'icon': Icons.newspaper_rounded,
+        'color': const Color(0xFFEF4444),
+        'path': '/current-affairs',
+        'badge': null,
+      },
+      {
+        'title': 'DAILY LIVE QUIZ',
+        'icon': Icons.local_fire_department_rounded,
+        'color': const Color(0xFFF59E0B),
+        'path': '/test/daily-quiz-today/instructions',
+        'badge': 'HOT',
+      },
+      {
+        'title': 'OFFICIAL PYQ PAPERS',
+        'icon': Icons.description_rounded,
+        'color': const Color(0xFF3B82F6),
+        'path': '/pyq',
+        'badge': null,
+      },
+      {
+        'title': 'NCERT TEXTBOOKS',
+        'icon': Icons.menu_book_rounded,
+        'color': const Color(0xFF10B981),
+        'path': '/downloads/ncert',
+        'badge': null,
+      },
+      {
+        'title': 'USEFUL DOCUMENTS',
+        'icon': Icons.bolt_rounded,
+        'color': const Color(0xFFF59E0B),
+        'path': '/downloads/useful-documents',
+        'badge': null,
+      },
+      {
+        'title': 'VALUE ADDED MAINS',
+        'icon': Icons.lightbulb_rounded,
+        'color': const Color(0xFFA855F7),
+        'path': '/downloads/value-added-mains',
+        'badge': null,
+      },
+      {
+        'title': 'TOPPERS\' COPIES',
+        'icon': Icons.fact_check_rounded,
+        'color': const Color(0xFF14B8A6),
+        'path': '/downloads/toppers-copies',
+        'badge': null,
+      },
+      {
+        'title': 'SYLLABUS & STRATEGY',
+        'icon': Icons.explore_rounded,
+        'color': const Color(0xFF6366F1),
+        'path': '/syllabus-strategy',
+        'badge': null,
+      },
+      {
+        'title': 'FA PUBLICATIONS & BOOKS',
+        'icon': Icons.menu_book_rounded,
+        'assetImage': 'assets/images/favicon.png',
+        'color': const Color(0xFFD97706),
+        'path': '/downloads/fa-publication',
+        'badge': 'NEW',
+      },
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'QUICK ACTIONS • PREPARATION PORTAL',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                  color: AppTheme.textPrimaryOf(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final crossAxisCount = width > 600 ? 4 : (width < 340 ? 2 : 3);
+              final aspectRatio = width < 360 ? 0.95 : 0.88;
+
+              return GridView.builder(
+                itemCount: portalItems.length,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: aspectRatio,
+                ),
+                itemBuilder: (context, idx) {
+                  final item = portalItems[idx];
+                  final itemColor = item['color'] as Color;
+                  final badge = item['badge'] as String?;
+
+                  return ApplePressable(
+                    onTap: () => context.push(item['path'] as String),
+                    scaleDown: 0.94,
+                    enableHaptic: true,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: borderCol),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          if (badge != null)
+                            Positioned(
+                              top: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFFDC2626), Color(0xFFF59E0B)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  badge,
+                                  style: const TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: item['assetImage'] != null ? Colors.white : itemColor.withValues(alpha: 0.12),
+                                    shape: BoxShape.circle,
+                                    border: item['assetImage'] != null
+                                        ? Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.35), width: 1.5)
+                                        : null,
+                                  ),
+                                  child: item['assetImage'] != null
+                                      ? ClipOval(
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(5),
+                                            child: Image.asset(
+                                              item['assetImage'] as String,
+                                              fit: BoxFit.contain,
+                                            ),
+                                          ),
+                                        )
+                                      : Icon(
+                                          item['icon'] as IconData,
+                                          color: itemColor,
+                                          size: 20,
+                                        ),
+                                ),
+                                const SizedBox(height: 6),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                                  child: Text(
+                                    item['title'] as String,
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.textPrimaryOf(context),
+                                      height: 1.15,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 8. Why Final Attempt Stands Out (Matching Website Section 3.4)
+  Widget _buildWhyFinalAttemptSection(BuildContext context, AppLocalizations loc) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final borderCol = AppTheme.borderOf(context);
+
+    final pillars = [
+      {
+        'title': 'Personalized Mentorship',
+        'desc': 'Direct 1-on-1 regular interaction, strategy guidance & answer writing feedback.',
+        'icon': Icons.people_outline_rounded,
+        'color': const Color(0xFF3B82F6),
+      },
+      {
+        'title': 'Top Educator Faculty',
+        'desc': 'Learn directly from seasoned mentors with proven civil services expertise.',
+        'icon': Icons.school_outlined,
+        'color': const Color(0xFFF59E0B),
+      },
+      {
+        'title': 'Focused State PCS Syllabus',
+        'desc': 'Complete coverage aligned with the latest evolving pattern of BPSC & State exams.',
+        'icon': Icons.track_changes_rounded,
+        'color': const Color(0xFFEF4444),
+      },
+      {
+        'title': 'Rigorous Answer Evaluation',
+        'desc': 'In-depth line-by-line Mains checking within 24-48 hours with model answers.',
+        'icon': Icons.edit_note_rounded,
+        'color': const Color(0xFFF97316),
+      },
+      {
+        'title': 'Real-Time Rank & Analytics',
+        'desc': 'Compare your preparation standing across thousands of serious state aspirants.',
+        'icon': Icons.bar_chart_rounded,
+        'color': const Color(0xFF14B8A6),
+      },
+      {
+        'title': 'AI & Digital Smart Tools',
+        'desc': 'Targeted practice papers, performance heatmaps & curated digital material.',
+        'icon': Icons.rocket_launch_outlined,
+        'color': const Color(0xFFA855F7),
+      },
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 4,
+                height: 18,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'WHY FINAL ATTEMPT STANDS OUT',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
+                  color: AppTheme.textPrimaryOf(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ListView.separated(
+            itemCount: pillars.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, idx) {
+              final p = pillars[idx];
+              final pColor = p['color'] as Color;
+
+              return Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: borderCol),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: pColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(p['icon'] as IconData, color: pColor, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            p['title'] as String,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimaryOf(context),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            p['desc'] as String,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textMutedOf(context),
+                              height: 1.3,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 9. Latest Strategy Articles & Insights (Matching Website Section 3.48)
+  Widget _buildLatestInsightsSection(BuildContext context, WidgetRef ref, AppLocalizations loc) {
+    final blogsAsync = ref.watch(blogsProvider);
+    final primaryColor = AppTheme.primaryOf(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _SectionTitle(
+            'Strategy Insights & Articles',
+            action: TextButton(
+              onPressed: () => context.push('/blog'),
+              child: Text(
+                loc.tr('see_all'),
+                style: TextStyle(color: primaryColor, fontSize: 13, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        blogsAsync.when(
+          loading: () => const LoadingShimmer(height: 120),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (blogs) {
+            if (blogs.isEmpty) return const SizedBox.shrink();
+            final topBlogs = blogs.take(3).toList();
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ListView.separated(
+                itemCount: topBlogs.length,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (context, idx) {
+                  final b = topBlogs[idx];
+                  return _BlogHomeCard(blog: b);
+                },
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
 }
 
-// Subcomponents
-class _QuickActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String path;
-  final Color color;
+// Course Home Card
+class _CourseHomeCard extends StatelessWidget {
+  final CourseModel course;
 
-  const _QuickActionCard({
-    required this.icon,
-    required this.label,
-    required this.path,
-    required this.color,
-  });
+  const _CourseHomeCard({required this.course});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = AppTheme.primaryOf(context);
+
+    return Container(
+      width: 240,
+      margin: const EdgeInsets.only(right: 12),
+      child: ApplePressable(
+        scaleDown: 0.96,
+        enableHaptic: true,
+        onTap: () => context.push('/courses/${course.id}'),
+        child: Card(
+          elevation: isDark ? 0 : 1,
+          color: AppTheme.cardBgOf(context),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: AppTheme.borderOf(context)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (course.thumbnail != null && course.thumbnail!.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: Image.network(
+                            course.thumbnail!.startsWith('http')
+                                ? course.thumbnail!
+                                : 'https://finalattemptias.com${course.thumbnail}',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                          ),
+                        ),
+                      )
+                    else
+                      Container(
+                        height: 70,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Center(
+                          child: Icon(Icons.school_rounded, color: Color(0xFF2563EB), size: 28),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    if (course.category != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          course.category!.toUpperCase(),
+                          style: TextStyle(color: primaryColor, fontSize: 9, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    const SizedBox(height: 4),
+                    Text(
+                      course.title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimaryOf(context),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      course.duration ?? 'Batch Access',
+                      style: TextStyle(fontSize: 11, color: AppTheme.textMutedOf(context)),
+                    ),
+                    Text(
+                      course.fee != null ? '₹${course.fee}' : 'Enquire',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primaryColor),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Blog Home Card
+class _BlogHomeCard extends StatelessWidget {
+  final BlogModel blog;
+
+  const _BlogHomeCard({required this.blog});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = AppTheme.primaryOf(context);
+
     return ApplePressable(
-      onTap: () => context.go(path),
-      scaleDown: 0.94,
+      onTap: () => context.push('/blog/${blog.id}'),
+      scaleDown: 0.98,
       enableHaptic: true,
       child: Container(
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.06),
+          color: AppTheme.cardBgOf(context),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withValues(alpha: 0.12)),
+          border: Border.all(color: AppTheme.borderOf(context)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
+            if (blog.imageUrl != null && blog.imageUrl!.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 70,
+                  height: 70,
+                  child: Image.network(
+                    blog.imageUrl!.startsWith('http')
+                        ? blog.imageUrl!
+                        : 'https://finalattemptias.com${blog.imageUrl}',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: primaryColor.withValues(alpha: 0.1),
+                      child: Icon(Icons.article_rounded, color: primaryColor, size: 24),
+                    ),
+                  ),
+                ),
+              )
+            else
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.article_rounded, color: primaryColor, size: 28),
               ),
-              child: Icon(icon, color: color, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      (blog.category ?? 'STRATEGY').toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 8.5,
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFFD97706),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    blog.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimaryOf(context),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    blog.author ?? 'Final Attempt',
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: AppTheme.textMutedOf(context),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color, height: 1.1),
-            ),
+            Icon(Icons.chevron_right_rounded, color: AppTheme.textMutedOf(context), size: 20),
           ],
         ),
       ),

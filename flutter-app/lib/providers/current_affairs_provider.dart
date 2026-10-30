@@ -1,10 +1,22 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/services/api_service.dart';
 import '../models/current_affair_model.dart';
 
 final caEditionsProvider = FutureProvider.family<List<CurrentAffairEditionModel>, String>((ref, lang) async {
   final api = ref.read(apiServiceProvider);
-  final response = await api.get('/dynamic-current-affairs/editions', params: {'lang': lang});
+  final response = await api.get(
+    '/dynamic-current-affairs/editions',
+    params: {
+      'lang': lang,
+      'locale': lang,
+      if (lang == 'hi') 'target': 'hindi',
+    },
+    options: Options(headers: {
+      'x-locale': lang,
+      'Accept-Language': lang,
+    }),
+  );
   final data = response is Map ? (response['data'] ?? response) : response;
   if (data is List) {
     return data
@@ -16,7 +28,17 @@ final caEditionsProvider = FutureProvider.family<List<CurrentAffairEditionModel>
 
 final caArticleProvider = FutureProvider.family<CurrentAffairArticleModel?, ({String slug, String lang})>((ref, arg) async {
   final api = ref.read(apiServiceProvider);
-  final response = await api.get('/dynamic-current-affairs/article/${arg.slug}', params: {'lang': arg.lang});
+  final response = await api.get(
+    '/dynamic-current-affairs/article/${arg.slug}',
+    params: {
+      'lang': arg.lang,
+      'locale': arg.lang,
+    },
+    options: Options(headers: {
+      'x-locale': arg.lang,
+      'Accept-Language': arg.lang,
+    }),
+  );
   final data = response is Map ? (response['data'] ?? response) : response;
   if (data is Map<String, dynamic> && (data['id'] != null || data['slug'] != null)) {
     return CurrentAffairArticleModel.fromJson(data);

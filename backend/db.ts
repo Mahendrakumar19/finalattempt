@@ -6084,18 +6084,53 @@ class LmsDB {
 
         const [rows]: any = await mysqlPool.query('SELECT * FROM lms_quizzes WHERE courseId = ? OR courseId = ? ORDER BY createdAt ASC, id ASC', [primaryId, slugId]);
         if (rows && Array.isArray(rows)) {
-          return rows.map((q: any, idx: number) => ({
-            ...q,
-            sequence_number: idx + 1
-          }));
+          const extractTestNumber = (title: string): number => {
+            if (!title) return 9999;
+            const match = title.match(/(?:test|tests|quiz|मि​नी|मिनी|टेस्ट|\b)\s*[-:–—]?\s*(\d+)/i);
+            return match ? parseInt(match[1], 10) : 9999;
+          };
+
+          const sortedList = [...rows];
+          sortedList.sort((a: any, b: any) => {
+            const numA = extractTestNumber(a.title || '');
+            const numB = extractTestNumber(b.title || '');
+            if (numA !== numB) return numA - numB;
+            const timeA = new Date(a.createdAt || 0).getTime() || 0;
+            const timeB = new Date(b.createdAt || 0).getTime() || 0;
+            return timeA - timeB;
+          });
+
+          return sortedList.map((q: any, idx: number) => {
+            const parsedNum = extractTestNumber(q.title || '');
+            return {
+              ...q,
+              sequence_number: parsedNum < 9999 ? parsedNum : (idx + 1)
+            };
+          });
         }
       } catch (err) { console.error('[LmsDB] getQuizzesByCourseId MySQL error:', err); }
     }
     const [tsRows]: any = await (mysqlPool ? mysqlPool.query('SELECT id, slug FROM TestSeries WHERE id = ? OR slug = ? LIMIT 1', [courseId, courseId]) : [[]]);
     const targetIds = tsRows && tsRows.length > 0 ? [tsRows[0].id, tsRows[0].slug] : [courseId];
     const list = lmsLocalQuizzes.filter(q => targetIds.includes(q.courseId));
-    list.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
-    return list.map((q, idx) => ({ ...q, sequence_number: idx + 1 }));
+    const extractNum = (title: string): number => {
+      if (!title) return 9999;
+      const match = title.match(/(?:test|tests|quiz|मि​नी|मिनी|टेस्ट|\b)\s*[-:–—]?\s*(\d+)/i);
+      return match ? parseInt(match[1], 10) : 9999;
+    };
+    list.sort((a, b) => {
+      const numA = extractNum(a.title || '');
+      const numB = extractNum(b.title || '');
+      if (numA !== numB) return numA - numB;
+      return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+    });
+    return list.map((q, idx) => {
+      const parsedNum = extractNum(q.title || '');
+      return {
+        ...q,
+        sequence_number: parsedNum < 9999 ? parsedNum : (idx + 1)
+      };
+    });
   }
 
   // ── Question Methods ──────────────────────────────────────────────────────

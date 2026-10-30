@@ -40,11 +40,15 @@ class _AppShellState extends ConsumerState<AppShell> {
       selectedIdx = 0;
     }
 
-    final hideBottomNav = matchedLoc != '/' && 
+    final isArticleOrSubDetail = matchedLoc.startsWith('/current-affairs/article/') || 
+                                 matchedLoc.startsWith('/blog/') || 
+                                 matchedLoc.startsWith('/downloads/');
+    final hideBottomNav = isArticleOrSubDetail || (
+                          matchedLoc != '/' && 
                           !matchedLoc.startsWith('/test-series') && 
                           !matchedLoc.startsWith('/explore') &&
                           !matchedLoc.startsWith('/chat') &&
-                          !matchedLoc.startsWith('/current-affairs');
+                          !matchedLoc.startsWith('/current-affairs'));
 
     if (hideBottomNav) {
       return Scaffold(

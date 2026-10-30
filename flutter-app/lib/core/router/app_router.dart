@@ -28,6 +28,11 @@ import '../../screens/test_series/test_instructions_screen.dart';
 import '../../screens/test_series/test_player_screen.dart';
 
 import '../../screens/syllabus_strategy/syllabus_strategy_screen.dart';
+import '../../screens/downloads/useful_documents_screen.dart';
+import '../../screens/downloads/value_added_mains_screen.dart';
+import '../../screens/downloads/toppers_copies_screen.dart';
+import '../../screens/downloads/ncert_books_screen.dart';
+import '../../screens/downloads/fa_publications_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -95,6 +100,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/student/profile', builder: (_, __) => const StudentProfileScreen()),
           GoRoute(path: '/chat', builder: (_, __) => const ChatScreen()),
           GoRoute(path: '/explore', builder: (_, __) => const ExploreScreen()),
+          GoRoute(path: '/downloads/useful-documents', builder: (_, __) => const UsefulDocumentsScreen()),
+          GoRoute(path: '/downloads/value-added-mains', builder: (_, __) => const ValueAddedMainsScreen()),
+          GoRoute(path: '/downloads/toppers-copies', builder: (_, __) => const ToppersCopiesScreen()),
+          GoRoute(path: '/downloads/ncert', builder: (_, __) => const NcertBooksScreen()),
+          GoRoute(path: '/downloads/fa-publication', builder: (_, __) => const FaPublicationsScreen()),
         ],
       ),
       GoRoute(

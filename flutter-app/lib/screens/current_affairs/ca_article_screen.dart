@@ -68,7 +68,7 @@ class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
 
     void addSec(String? raw, String title, String id, {bool highlight = false}) {
       if (raw == null || raw.trim().isEmpty) return;
-      final clean = _stripDuplicateTitle(raw, article.title, title, article.coverImageUrl);
+      final clean = _stripDuplicateTitle(raw, article.getTitle(_activeLang), title, article.coverImageUrl);
       if (clean.trim().isNotEmpty) {
         sections.add(_ArticleSectionItem(
           id: id,
@@ -80,8 +80,8 @@ class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
       }
     }
 
-    // 1. Detailed Analysis
-    addSec(article.content, '📄 Detailed Analysis', 'detailed-analysis');
+    // 1. Detailed Analysis (picks content_hi when _activeLang is 'hi')
+    addSec(article.getContent(_activeLang), _activeLang == 'hi' ? '📄 विस्तृत विश्लेषण' : '📄 Detailed Analysis', 'detailed-analysis');
 
     // 2. Sub-headings from content if present, or modular fields
     addSec(article.whyInNews, '📢 Why in News?', 'why-in-news');
@@ -399,19 +399,24 @@ class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
           ),
         ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: articleAsync.maybeWhen(
         data: (article) {
           if (article == null) return null;
           final sections = _buildSections(article);
-          return FloatingActionButton.extended(
-            onPressed: () => _showTableOfContentsModal(context, article, sections),
-            backgroundColor: AppColors.primaryOf(context),
-            foregroundColor: Colors.white,
-            elevation: 4,
-            icon: const Icon(Icons.menu_book_rounded, size: 18),
-            label: const Text(
-              'Index',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+          return Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            child: FloatingActionButton.extended(
+              heroTag: 'ca_article_index_fab',
+              onPressed: () => _showTableOfContentsModal(context, article, sections),
+              backgroundColor: AppColors.primaryOf(context),
+              foregroundColor: Colors.white,
+              elevation: 6,
+              icon: const Icon(Icons.menu_book_rounded, size: 18),
+              label: const Text(
+                'Index',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+              ),
             ),
           );
         },
@@ -514,7 +519,7 @@ class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
 
                 // Main Article Title
                 Text(
-                  article.title,
+                  article.getTitle(_activeLang),
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
@@ -542,13 +547,22 @@ class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
 
                 // Featured Cover Image (matching website article view)
                 if (article.coverImageUrl != null && article.coverImageUrl!.isNotEmpty) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: AspectRatio(
-                      aspectRatio: 16 / 9,
+                  Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: borderCol, width: 0.5),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
                       child: Image.network(
-                        article.coverImageUrl!,
-                        fit: BoxFit.cover,
+                        article.coverImageUrl!.startsWith('http')
+                            ? article.coverImageUrl!
+                            : 'https://finalattemptias.com/${article.coverImageUrl!.replaceAll(RegExp(r'^/'), '')}',
+                        fit: BoxFit.contain,
                         width: double.infinity,
                         errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       ),
@@ -558,7 +572,7 @@ class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
                 ],
 
                 // Summary / Context Box
-                if (article.summary.isNotEmpty) ...[
+                if (article.getSummary(_activeLang).isNotEmpty) ...[
                   Container(
                     key: _summaryKey,
                     width: double.infinity,
@@ -576,14 +590,14 @@ class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
                             Icon(Icons.lightbulb_outline_rounded, size: 16, color: AppColors.primaryOf(context)),
                             const SizedBox(width: 6),
                             Text(
-                              'Overview',
+                              _activeLang == 'hi' ? 'अवलोकन (Overview)' : 'Overview',
                               style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: AppColors.primaryOf(context)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          article.summary,
+                          article.getSummary(_activeLang),
                           style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryOf(context), height: 1.6),
                         ),
                       ],
