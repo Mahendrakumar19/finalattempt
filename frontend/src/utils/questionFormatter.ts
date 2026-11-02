@@ -261,19 +261,154 @@ export function stripHtmlTags(input: string): string {
 }
 
 /**
- * Universal helper that formats question text (Match Lists, Markdown Tables, side-by-side lists)
+ * Auto-formats Assertion and Reason (अभिकथन (A) और कारण (R))
+ * blocks into authentic civil service exam cards with prominent badges.
+ */
+export function formatAssertionReasonInText(input: string): string {
+  if (!input || typeof input !== 'string') return '';
+  if (input.includes('assertion-reason-container')) return input;
+
+  const hasAssertion = /(?:अभिकथन\s*(?:\([Aa1]\)|[Aa1])?|Assertion\s*(?:\([Aa1]\)|[Aa1])?)\s*[:\-]/i.test(input);
+  const hasReason = /(?:कारण\s*(?:\([Rr]\)|[Rr])?|Reason\s*(?:\([Rr]\)|[Rr])?)\s*[:\-]/i.test(input);
+
+  if (!hasAssertion && !hasReason) return input;
+
+  // Regex to extract Intro prompt, Assertion, Reason, and bottom Code instruction if present
+  const regex = /([\s\S]*?)(?:^|\n|\r)\s*(अभिकथन\s*(?:\([Aa1]\)|[Aa1])?|Assertion\s*(?:\([Aa1]\)|[Aa1])?)\s*[:\-]\s*([\s\S]+?)(?=(?:^|\n|\r)\s*(?:कारण\s*(?:\([Rr]\)|[Rr])?|Reason\s*(?:\([Rr]\)|[Rr])?)\s*[:\-])(?:^|\n|\r)\s*(कारण\s*(?:\([Rr]\)|[Rr])?|Reason\s*(?:\([Rr]\)|[Rr])?)\s*[:\-]\s*([\s\S]+?)(?=(?:^|\n|\r)\s*(?:नीचे दिए गए कूट|दिए गए कूट|कूट|Codes?|Select the correct answer|Choose the correct answer|$))/i;
+
+  const match = regex.exec(input);
+  if (!match) return input;
+
+  const introText = match[1]?.trim() || '';
+  const assertionLabel = match[2]?.trim() || 'अभिकथन (A)';
+  const assertionText = match[3]?.trim() || '';
+  const reasonLabel = match[4]?.trim() || 'कारण (R)';
+  const rest = input.substring(match.index + match[0].length).trim();
+
+  let codeInstruction = '';
+  if (rest) {
+    codeInstruction = rest;
+  }
+
+  let html = `<div class="assertion-reason-container my-3 space-y-3">`;
+  if (introText) {
+    html += `<p class="font-bold leading-relaxed mb-2">${introText}</p>`;
+  }
+
+  // Assertion Card
+  html += `<div class="assertion-reason-card p-3.5 sm:p-4 rounded-xl border border-blue-900/30 bg-blue-50/50 dark:bg-blue-950/20 text-slate-900 dark:text-blue-50 space-y-1">`;
+  html += `<div class="flex items-start gap-2.5">`;
+  html += `<span class="assertion-badge-a inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-black bg-blue-950 text-white shrink-0 tracking-wide">${assertionLabel}</span>`;
+  html += `<span class="font-semibold text-sm sm:text-base leading-relaxed">${assertionText}</span>`;
+  html += `</div></div>`;
+
+  // Reason Card
+  html += `<div class="assertion-reason-card p-3.5 sm:p-4 rounded-xl border border-blue-900/30 bg-blue-50/50 dark:bg-blue-950/20 text-slate-900 dark:text-blue-50 space-y-1">`;
+  html += `<div class="flex items-start gap-2.5">`;
+  html += `<span class="assertion-badge-r inline-flex items-center px-2.5 py-0.5 rounded-lg text-xs font-black bg-blue-900 text-white shrink-0 tracking-wide">${reasonLabel}</span>`;
+  html += `<span class="font-semibold text-sm sm:text-base leading-relaxed">${match[5]?.trim() || ''}</span>`;
+  html += `</div></div>`;
+
+  if (codeInstruction) {
+    html += `<div class="pt-1.5"><p class="exam-codes-label font-bold text-xs sm:text-sm text-blue-950 dark:text-sky-300">${codeInstruction}</p></div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+/**
+ * Auto-formats Chronological / Sequence Ordering questions
+ * (e.g. 1. हरियाणा  2. हिमाचल प्रदेश ... कूट / Codes :) into numbered item rows.
+ */
+export function formatStatementOrderingInText(input: string): string {
+  if (!input || typeof input !== 'string') return '';
+  if (input.includes('statement-ordering-container') || input.includes('assertion-reason-container')) return input;
+
+  // Must have numbered statements 1. ... 2. ... and optionally followed by कूट / Codes
+  const hasNumberedItems = /(?:^|\n)\s*[1-5]\s*[\.\)]\s+[^\n]+(?:\n\s*[1-5]\s*[\.\)]\s+[^\n]+)+/i.test(input);
+  if (!hasNumberedItems) return input;
+
+  const lines = input.split('\n').map(l => l.trim()).filter(Boolean);
+  const promptLines: string[] = [];
+  const numberedItems: { num: string; text: string }[] = [];
+  let codePrompt = '';
+  let collectingItems = false;
+
+  for (const line of lines) {
+    const itemMatch = line.match(/^([1-5]|[IVX]+)[\.\)\:\-]\s*(.+)$/i);
+    const isCodeLine = /^(?:कूट\s*[\:\-]|Codes?\s*[\:\-]|नीचे दिए गए कूट|दिए गए कूट)/i.test(line);
+
+    if (isCodeLine) {
+      codePrompt = line;
+      collectingItems = false;
+      continue;
+    }
+
+    if (itemMatch && !isCodeLine) {
+      collectingItems = true;
+      numberedItems.push({
+        num: itemMatch[1],
+        text: itemMatch[2].trim()
+      });
+      continue;
+    }
+
+    if (collectingItems) {
+      // Continuation of previous item or new prompt
+      if (numberedItems.length > 0 && !isCodeLine) {
+        numberedItems[numberedItems.length - 1].text += ' ' + line;
+      }
+    } else {
+      if (numberedItems.length === 0) {
+        promptLines.push(line);
+      } else {
+        codePrompt = (codePrompt ? codePrompt + ' ' : '') + line;
+      }
+    }
+  }
+
+  if (numberedItems.length < 2) return input;
+
+  let html = `<div class="statement-ordering-container my-3 space-y-3">`;
+  if (promptLines.length > 0) {
+    html += `<p class="font-bold leading-relaxed mb-2">${promptLines.join(' ')}</p>`;
+  }
+
+  html += `<div class="statement-ordering-card p-3 sm:p-4 rounded-xl border border-blue-900/30 bg-blue-50/30 dark:bg-blue-950/20 space-y-2">`;
+  for (const item of numberedItems) {
+    html += `<div class="flex items-start gap-3 py-1">`;
+    html += `<span class="statement-number-badge inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-black bg-blue-950 text-white shrink-0">${item.num}</span>`;
+    html += `<span class="font-semibold text-sm sm:text-base leading-relaxed text-slate-900 dark:text-blue-50">${item.text}</span>`;
+    html += `</div>`;
+  }
+  html += `</div>`;
+
+  if (codePrompt) {
+    html += `<div class="pt-1.5"><p class="exam-codes-label font-bold text-xs sm:text-sm text-blue-950 dark:text-sky-300">${codePrompt}</p></div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+/**
+ * Universal helper that formats question text (Match Lists, Markdown Tables, Assertion-Reason, Statement Ordering)
  * and returns whether HTML rendering (dangerouslySetInnerHTML) is needed.
  */
 export function renderFormattedQuestionText(input: string): { isHtml: boolean; formatted: string } {
   if (!input) return { isHtml: false, formatted: '' };
 
   let formatted = input;
-  // If text already starts with a match-list HTML container (e.g. from prior save), clean/parse correctly
   formatted = formatMatchListsInText(formatted);
   formatted = parseMarkdownTables(formatted);
+  formatted = formatAssertionReasonInText(formatted);
+  formatted = formatStatementOrderingInText(formatted);
 
   const isHtml = formatted.includes('<') ||
                  formatted.includes('match-list-container') ||
+                 formatted.includes('assertion-reason-container') ||
+                 formatted.includes('statement-ordering-container') ||
                  formatted.includes('<table') ||
                  formatted.includes('<div') ||
                  formatted.includes('<p');
@@ -300,8 +435,13 @@ export function sanitizeAndRepairQuestion<T extends Record<string, any>>(q: T | 
 
     let formattedQText = formatMatchListsInText(textEn);
     formattedQText = parseMarkdownTables(formattedQText);
+    formattedQText = formatAssertionReasonInText(formattedQText);
+    formattedQText = formatStatementOrderingInText(formattedQText);
+
     let formattedQTextHi = formatMatchListsInText(textHi);
     formattedQTextHi = parseMarkdownTables(formattedQTextHi);
+    formattedQTextHi = formatAssertionReasonInText(formattedQTextHi);
+    formattedQTextHi = formatStatementOrderingInText(formattedQTextHi);
 
     return {
       ...q,
@@ -401,12 +541,16 @@ export function sanitizeAndRepairQuestion<T extends Record<string, any>>(q: T | 
     }
   }
 
-  // Format standard Match List tables if rawQText / rawQTextHi contains matching patterns
+  // Format standard Match List tables, Assertion-Reason, and Statement Ordering if rawQText / rawQTextHi contains matching patterns
   let formattedQText = formatMatchListsInText(rawQText);
   formattedQText = parseMarkdownTables(formattedQText);
+  formattedQText = formatAssertionReasonInText(formattedQText);
+  formattedQText = formatStatementOrderingInText(formattedQText);
 
   let formattedQTextHi = rawQTextHi ? formatMatchListsInText(rawQTextHi) : formattedQText;
   formattedQTextHi = parseMarkdownTables(formattedQTextHi);
+  formattedQTextHi = formatAssertionReasonInText(formattedQTextHi);
+  formattedQTextHi = formatStatementOrderingInText(formattedQTextHi);
 
   return {
     ...q,

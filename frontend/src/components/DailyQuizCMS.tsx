@@ -662,7 +662,9 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
 
     for (const block of blocks) {
       // Check multi-option match (a)... (b)... (c)... (d)... [e]...
-      const multiOptMatch = block.match(/(?:^|\n|\s*)(?:\(([a-dA-D1-4क-घ])\)|([a-dA-D1-4क-घ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([b-eB-E2-5ख-ङ])\)|([b-eB-E2-5ख-ङ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([cC3ग])\)|([cC3ग])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([dD4घ])\)|([dD4घ])[\)\.\:\t]+)\s*([\s\S]+?)(?=\s*(?:\([eE5ङ]\)|[eE5ङ][\)\.\:\t]+|Ans|Answer|Explanation|Sol|Solution|$))/i);
+      // Only match letters (a-d / क-घ / A-D) for options when statements 1, 2, 3, 4 are present in the question body
+      const multiOptMatch = block.match(/(?:^|\n|\s*)(?:\(([a-dA-Dक-घ])\)|([a-dA-Dक-घ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([b-eB-Eख-ङ])\)|([b-eB-Eख-ङ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([cCग])\)|([cCग])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([dDघ])\)|([dDघ])[\)\.\:\t]+)\s*([\s\S]+?)(?=\s*(?:\([eEङ]\)|[eEङ][\)\.\:\t]+|Ans|Answer|Explanation|Sol|Solution|$))/i) ||
+                            block.match(/(?:^|\n|\s*)(?:\(([a-dA-D1-4क-घ])\)|([a-dA-D1-4क-घ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([b-eB-E2-5ख-ङ])\)|([b-eB-E2-5ख-ङ])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([cC3ग])\)|([cC3ग])[\)\.\:\t]+)\s*([\s\S]+?)\s*(?:\(([dD4घ])\)|([dD4घ])[\)\.\:\t]+)\s*([\s\S]+?)(?=\s*(?:\([eE5ङ]\)|[eE5ङ][\)\.\:\t]+|Ans|Answer|Explanation|Sol|Solution|$))/i);
 
       let qText = '';
       let optA = '', optB = '', optC = '', optD = '', optE = '';
@@ -687,12 +689,18 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
           optD = restD.replace(/\s*(?:Ans|Answer|Explanation|Sol|Solution).*$/i, '');
         }
       } else {
-        const qMatch = block.match(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])?\s*([\s\S]+?)(?=\s*(?:\([A-Da-d1-4]\)|[\(\[]?[A-Da-d1-4][\)\.\:\s]))/i);
-        const optAMatch = block.match(/[\(\[]?(?:A|a|1)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:B|b|2)[\)\.\:\s]|$)/i);
-        const optBMatch = block.match(/[\(\[]?(?:B|b|2)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:C|c|3)[\)\.\:\s]|$)/i);
-        const optCMatch = block.match(/[\(\[]?(?:C|c|3)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:D|d|4)[\)\.\:\s]|$)/i);
-        const optDMatch = block.match(/[\(\[]?(?:D|d|4)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:\([Ee5]\)|[Ee5][\)\.\:\s]|Ans|Answer|Correct|Explanation|Sol|Solution|----------|\n\s*\d+\.)[\:\s]|$)/i);
-        const optEMatch = block.match(/[\(\[]?(?:E|e|5)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:Ans|Answer|Correct|Explanation|Sol|Solution|----------|\n\s*\d+\.)[\:\s]|$)/i);
+        const qMatch = block.match(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])?\s*([\s\S]+?)(?=\s*(?:\([A-Da-d]\)|[\(\[]?[A-Da-d][\)\.\:\s]))/i) ||
+                       block.match(/^(?:Q\.?\s*\d+[\.\:\)]?|\d+[\.\:\)])?\s*([\s\S]+?)(?=\s*(?:\([A-Da-d1-4]\)|[\(\[]?[A-Da-d1-4][\)\.\:\s]))/i);
+        const optAMatch = block.match(/[\(\[]?(?:A|a)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:B|b)[\)\.\:\s]|$)/i) ||
+                          block.match(/[\(\[]?(?:A|a|1)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:B|b|2)[\)\.\:\s]|$)/i);
+        const optBMatch = block.match(/[\(\[]?(?:B|b)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:C|c)[\)\.\:\s]|$)/i) ||
+                          block.match(/[\(\[]?(?:B|b|2)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:C|c|3)[\)\.\:\s]|$)/i);
+        const optCMatch = block.match(/[\(\[]?(?:C|c)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:D|d)[\)\.\:\s]|$)/i) ||
+                          block.match(/[\(\[]?(?:C|c|3)[\)\.\:\s]+([\s\S]+?)(?=\s*[\(\[]?(?:D|d|4)[\)\.\:\s]|$)/i);
+        const optDMatch = block.match(/[\(\[]?(?:D|d)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:\([Ee]\)|[Ee][\)\.\:\s]|Ans|Answer|Correct|Explanation|Sol|Solution|----------|\n\s*\d+\.)[\:\s]|$)/i) ||
+                          block.match(/[\(\[]?(?:D|d|4)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:\([Ee5]\)|[Ee5][\)\.\:\s]|Ans|Answer|Correct|Explanation|Sol|Solution|----------|\n\s*\d+\.)[\:\s]|$)/i);
+        const optEMatch = block.match(/[\(\[]?(?:E|e)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:Ans|Answer|Correct|Explanation|Sol|Solution|----------|\n\s*\d+\.)[\:\s]|$)/i) ||
+                          block.match(/[\(\[]?(?:E|e|5)[\)\.\:\s]+([\s\S]+?)(?=\s*(?:Ans|Answer|Correct|Explanation|Sol|Solution|----------|\n\s*\d+\.)[\:\s]|$)/i);
 
         if (qMatch) qText = qMatch[1].trim();
         if (optAMatch) optA = optAMatch[1].trim();
@@ -2793,14 +2801,28 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                               <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-600 dark:text-amber-400 font-black text-xs rounded-lg border border-amber-500/30">
                                 Q{idx + 1}
                               </span>
-                              <p className="text-xs font-bold text-slate-900 dark:text-white leading-relaxed">
-                                {q.questionText}
-                              </p>
-                              {q.questionTextHi && q.questionTextHi !== q.questionText && (
-                                <p className="text-[11px] text-amber-800 dark:text-amber-300 font-medium">
-                                  {q.questionTextHi}
-                                </p>
-                              )}
+                              {(() => {
+                                const { isHtml, formatted } = renderFormattedQuestionText(q.questionText || '');
+                                if (isHtml) {
+                                  return <div className="text-xs font-bold text-slate-900 dark:text-white leading-relaxed" dangerouslySetInnerHTML={{ __html: formatted }} />;
+                                }
+                                return (
+                                  <p className="text-xs font-bold text-slate-900 dark:text-white leading-relaxed">
+                                    {q.questionText}
+                                  </p>
+                                );
+                              })()}
+                              {q.questionTextHi && q.questionTextHi !== q.questionText && (() => {
+                                const { isHtml, formatted } = renderFormattedQuestionText(q.questionTextHi);
+                                if (isHtml) {
+                                  return <div className="text-[11px] text-blue-950 dark:text-sky-300 font-medium" dangerouslySetInnerHTML={{ __html: formatted }} />;
+                                }
+                                return (
+                                  <p className="text-[11px] text-blue-950 dark:text-sky-300 font-medium">
+                                    {q.questionTextHi}
+                                  </p>
+                                );
+                              })()}
                               <div className="grid grid-cols-2 gap-2 text-xs pt-1">
                                 {['A', 'B', 'C', 'D', 'E'].map(optKey => {
                                   const text = q[`option${optKey}`];
@@ -2868,8 +2890,16 @@ export default function DailyQuizCMS({}: DailyQuizCMSProps = {}) {
                         </div>
 
                         <div className="space-y-2">
-                          <p className="font-bold text-slate-900 dark:text-white text-sm">{curQ.questionText}</p>
-                          {curQ.questionTextHi && <p className="text-amber-800 dark:text-amber-300">{curQ.questionTextHi}</p>}
+                          {(() => {
+                            const { isHtml, formatted } = renderFormattedQuestionText(curQ.questionText || '');
+                            if (isHtml) return <div className="font-bold text-slate-900 dark:text-white text-sm" dangerouslySetInnerHTML={{ __html: formatted }} />;
+                            return <p className="font-bold text-slate-900 dark:text-white text-sm">{curQ.questionText}</p>;
+                          })()}
+                          {curQ.questionTextHi && (() => {
+                            const { isHtml, formatted } = renderFormattedQuestionText(curQ.questionTextHi);
+                            if (isHtml) return <div className="text-blue-950 dark:text-sky-300 font-medium" dangerouslySetInnerHTML={{ __html: formatted }} />;
+                            return <p className="text-blue-950 dark:text-sky-300 font-medium">{curQ.questionTextHi}</p>;
+                          })()}
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">

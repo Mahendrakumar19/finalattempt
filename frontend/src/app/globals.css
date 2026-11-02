@@ -878,6 +878,60 @@ html.dark .portal-page .match-list-container td,
   color: #ffffff !important;
 }
 
+/* Authentic UPSC/BPSC Question Formatting Containers */
+.assertion-reason-container,
+.statement-ordering-container {
+  color: inherit;
+}
+
+.cbt-dark .assertion-reason-card,
+.cbt-dark .statement-ordering-card {
+  background-color: rgba(30, 41, 59, 0.7) !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+  color: #f1f5f9 !important;
+}
+
+.cbt-dark .assertion-badge-a,
+.cbt-dark .assertion-badge-r {
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
+}
+
+.cbt-dark .statement-number-badge {
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
+}
+
+.cbt-dark .exam-codes-label {
+  color: #38bdf8 !important;
+}
+
+.cbt-light .assertion-reason-card,
+.cbt-light .statement-ordering-card {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.cbt-light .assertion-badge-a,
+.cbt-light .assertion-badge-r {
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+  border-color: #1e3a8a !important;
+}
+
+.cbt-light .statement-number-badge {
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+  border-color: #1e3a8a !important;
+}
+
+.cbt-light .exam-codes-label {
+  color: #1e3a8a !important;
+}
+
 /* Cards / Panels */
 html.dark .shadow-sm,
 html.dark .shadow-md {

@@ -867,6 +867,7 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                     const secondaryRaw = (quizLang === 'hi') ? (rawEn !== rawHi ? rawEn : '') : (rawHi !== rawEn ? rawHi : '');
 
                     const { isHtml, formatted } = renderFormattedQuestionText(primaryRaw);
+                    const { isHtml: isSecHtml, formatted: secFormatted } = renderFormattedQuestionText(secondaryRaw);
                     return (
                       <>
                         {isHtml ? (
@@ -877,12 +878,19 @@ export default function DailyQuizPortal({ initialSlug }: { initialSlug?: string 
                           </h3>
                         )}
                         {secondaryRaw && (
-                          <p
-                            className="text-sm sm:text-base font-bold leading-relaxed pt-1.5 border-t border-[var(--card-border)]/60"
-                            style={{ color: '#1e3a8a' }}
-                          >
-                            {secondaryRaw}
-                          </p>
+                          isSecHtml ? (
+                            <div
+                              className="text-sm sm:text-base font-bold leading-relaxed pt-1.5 border-t border-[var(--card-border)]/60 text-blue-950 dark:text-sky-300"
+                              dangerouslySetInnerHTML={{ __html: secFormatted }}
+                            />
+                          ) : (
+                            <p
+                              className="text-sm sm:text-base font-bold leading-relaxed pt-1.5 border-t border-[var(--card-border)]/60"
+                              style={{ color: '#1e3a8a' }}
+                            >
+                              {secondaryRaw}
+                            </p>
+                          )
                         )}
                       </>
                     );
