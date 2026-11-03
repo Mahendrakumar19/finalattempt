@@ -318,29 +318,69 @@ export function formatAssertionReasonInText(input: string): string {
 }
 
 /**
+ * Automatically splits inline statements written on a single line
+ * (e.g. "I. ... II. ... III. ...", "1. ... 2. ... 3. ...", or "A. ... B. ... C. ...")
+ * so they appear neatly line-by-line (ऊपर-नीचे).
+ */
+export function normalizeInlineNumberedStatements(input: string): string {
+  if (!input || typeof input !== 'string') return '';
+  let text = input;
+
+  // 1. Separate Roman numerals: I. II. III. IV. or (I), (II), (III), (IV) or i., ii., iii., iv.
+  const hasInlineRoman = /(?:[IVXLCDM]+[\.\)]|\([IVXLCDM]+\))\s+[^\n]+(?:\s+[IVXLCDM]+[\.\)]|\([IVXLCDM]+\))/i.test(text);
+  if (hasInlineRoman) {
+    text = text.replace(/([:।\?\n]|^)\s*([IVXLCDM]+[\.\)]|\([IVXLCDM]+\))\s+/gi, '$1\n$2 ');
+    text = text.replace(/([^\n])\s+([IVXLCDM]+[\.\)]|\([IVXLCDM]+\))\s+/gi, '$1\n$2 ');
+  }
+
+  // 2. Arabic digits inline: 1. ... 2. ... 3. ... or (1) ... (2) ...
+  const hasInlineDigits = /(?:[1-5][\.\)]|\([1-5]\))\s+[^\n]+(?:\s+[1-5][\.\)]|\([1-5]\))/i.test(text);
+  if (hasInlineDigits) {
+    text = text.replace(/([:।\?\n]|^)\s*([1-5][\.\)]|\([1-5]\))\s+/g, '$1\n$2 ');
+    text = text.replace(/([^\n])\s+([1-5][\.\)]|\([1-5]\))\s+/g, '$1\n$2 ');
+  }
+
+  // 3. Letters as statements inside question body: A. B. C. D. when followed by prompt e.g. 'सही शब्दों को विचारानुसार क्रम दीजिए'
+  const hasInlineLetters = /(?:[A-D][\.\)]|\([A-D]\))\s+[^\n]+(?:\s+[B-D][\.\)]|\([B-D]\))/i.test(text);
+  if (hasInlineLetters) {
+    text = text.replace(/([:।\?\n]|^)\s*([A-D][\.\)]|\([A-D]\))\s+/g, '$1\n$2 ');
+    text = text.replace(/([^\n])\s+([A-D][\.\)]|\([A-D]\))\s+/g, '$1\n$2 ');
+  }
+
+  // Also separate bottom question line like: 'उपर्युक्त में से कितने...', 'सही शब्दों को विचारानुसार क्रम दीजिए', 'कूट :'
+  text = text.replace(/([^\n])\s+(उपर्युक्त में से|उपर्युक्त कथनों में से|इनमें से कौन|सही शब्दों को|नीचे दिए गए कूट|दिए गए कूट|कूट\s*[:\-])/g, '$1\n$2');
+
+  return text.trim();
+}
+
+/**
  * Auto-formats Chronological / Sequence Ordering questions
- * (e.g. 1. हरियाणा  2. हिमाचल प्रदेश ... कूट / Codes :) into numbered item rows.
+ * (e.g. 1. हरियाणा  2. हिमाचल प्रदेश ... कूट / Codes : OR I. ... II. ... OR A. ... B. ...)
+ * into authentic numbered item rows.
  */
 export function formatStatementOrderingInText(input: string): string {
   if (!input || typeof input !== 'string') return '';
   if (input.includes('statement-ordering-container') || input.includes('assertion-reason-container')) return input;
 
-  // Must have numbered statements 1. ... 2. ... and optionally followed by कूट / Codes
-  const hasNumberedItems = /(?:^|\n)\s*[1-5]\s*[\.\)]\s+[^\n]+(?:\n\s*[1-5]\s*[\.\)]\s+[^\n]+)+/i.test(input);
-  if (!hasNumberedItems) return input;
+  // First normalize any single-line inline statements into clean multiline
+  const normalized = normalizeInlineNumberedStatements(input);
 
-  const lines = input.split('\n').map(l => l.trim()).filter(Boolean);
+  // Must have numbered statements 1..5, Roman I..V, or Letters A..D
+  const hasNumberedItems = /(?:^|\n)\s*(?:[1-5]|[IVX]+|[A-D])\s*[\.\)]\s+[^\n]+(?:\n\s*(?:[1-5]|[IVX]+|[B-D])\s*[\.\)]\s+[^\n]+)+/i.test(normalized);
+  if (!hasNumberedItems) return normalized;
+
+  const lines = normalized.split('\n').map(l => l.trim()).filter(Boolean);
   const promptLines: string[] = [];
   const numberedItems: { num: string; text: string }[] = [];
   let codePrompt = '';
   let collectingItems = false;
 
   for (const line of lines) {
-    const itemMatch = line.match(/^([1-5]|[IVX]+)[\.\)\:\-]\s*(.+)$/i);
-    const isCodeLine = /^(?:कूट\s*[\:\-]|Codes?\s*[\:\-]|नीचे दिए गए कूट|दिए गए कूट)/i.test(line);
+    const itemMatch = line.match(/^([1-5]|[IVX]+|[A-D])[\.\)\:\-]\s*(.+)$/i);
+    const isCodeLine = /^(?:कूट\s*[\:\-]|Codes?\s*[\:\-]|नीचे दिए गए कूट|दिए गए कूट|उपर्युक्त में से|सही शब्दों को|इनमें से कौन)/i.test(line);
 
     if (isCodeLine) {
-      codePrompt = line;
+      codePrompt = (codePrompt ? codePrompt + ' ' : '') + line;
       collectingItems = false;
       continue;
     }
@@ -368,7 +408,7 @@ export function formatStatementOrderingInText(input: string): string {
     }
   }
 
-  if (numberedItems.length < 2) return input;
+  if (numberedItems.length < 2) return normalized;
 
   let html = `<div class="statement-ordering-container my-3 space-y-3">`;
   if (promptLines.length > 0) {
@@ -378,7 +418,7 @@ export function formatStatementOrderingInText(input: string): string {
   html += `<div class="statement-ordering-card p-3 sm:p-4 rounded-xl border border-blue-900/30 bg-blue-50/30 dark:bg-blue-950/20 space-y-2">`;
   for (const item of numberedItems) {
     html += `<div class="flex items-start gap-3 py-1">`;
-    html += `<span class="statement-number-badge inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-black bg-blue-950 text-white shrink-0">${item.num}</span>`;
+    html += `<span class="statement-number-badge inline-flex items-center justify-center min-w-[1.6rem] h-6 px-1.5 rounded-md text-xs font-black bg-blue-950 text-white shrink-0">${item.num}</span>`;
     html += `<span class="font-semibold text-sm sm:text-base leading-relaxed text-slate-900 dark:text-blue-50">${item.text}</span>`;
     html += `</div>`;
   }
