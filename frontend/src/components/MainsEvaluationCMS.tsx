@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import {
   FileText, CheckCircle, Clock, Search, Download, Eye,
-  Award, MessageSquare, Upload, AlertCircle, RefreshCw, X, Check
+  Award, MessageSquare, Upload, AlertCircle, RefreshCw, X, Check, PenTool
 } from 'lucide-react';
 import { getAllMainsSubmissionsAdmin, evaluateMainsSubmissionAdmin } from '@/services/auth';
+import PDFAnnotationEditor from './PDFAnnotationEditor';
 
 interface SubmissionItem {
   id: string;
@@ -40,6 +41,9 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
   const [evalStatus, setEvalStatus] = useState<string>('Evaluated');
   const [uploadingEvaluatedPdf, setUploadingEvaluatedPdf] = useState(false);
   const [submittingEval, setSubmittingEval] = useState(false);
+
+  // In-browser PDF checking studio state
+  const [annotatingSub, setAnnotatingSub] = useState<SubmissionItem | null>(null);
 
   const loadSubmissions = async () => {
     if (!accessToken) {
@@ -131,6 +135,45 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
       alert('Network error while saving evaluation.');
     } finally {
       setSubmittingEval(false);
+    }
+  };
+
+  const handleSaveAnnotatedPdf = async (fileBlob: Blob, marks?: number, feedbackText?: string) => {
+    if (!annotatingSub || !accessToken) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', fileBlob, `evaluated_${annotatingSub.id}.pdf`);
+
+      const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const uploadRes = await fetch(`${backendBase}/api/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success || !uploadData.url) {
+        throw new Error(uploadData.error || 'Failed to upload checked PDF');
+      }
+
+      const payload = {
+        grade: marks !== undefined ? marks : annotatingSub.grade,
+        feedback: feedbackText !== undefined ? feedbackText : annotatingSub.feedback,
+        evaluatedCopyUrl: uploadData.url,
+        status: 'Evaluated'
+      };
+
+      const res = await evaluateMainsSubmissionAdmin(annotatingSub.id, payload, accessToken);
+      if (res.success) {
+        alert('Checked PDF copy and evaluation saved & reverted back successfully!');
+        setAnnotatingSub(null);
+        loadSubmissions();
+      } else {
+        alert('Failed to save evaluation: ' + (res.error || 'Unknown error'));
+      }
+    } catch (err: any) {
+      console.error('Error saving checked PDF:', err);
+      alert('Error saving evaluated copy: ' + err.message);
     }
   };
 
@@ -262,6 +305,18 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                     </span>
 
                     {sub.submissionUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setAnnotatingSub(sub)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-black rounded-xl transition-all shadow-sm cursor-pointer"
+                        title="Open Interactive PDF Evaluation Canvas"
+                      >
+                        <PenTool className="w-3.5 h-3.5" />
+                        Check & Annotate PDF
+                      </button>
+                    )}
+
+                    {sub.submissionUrl && (
                       <a
                         href={sub.submissionUrl}
                         target="_blank"
@@ -269,7 +324,7 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                         className="inline-flex items-center gap-1.5 px-3 py-2 bg-[var(--card-bg)] text-[var(--text-color)] text-xs font-bold rounded-xl transition-colors border border-[var(--card-border)]"
                       >
                         <Eye className="w-3.5 h-3.5 text-blue-500" />
-                        View Student PDF
+                        Original PDF
                       </a>
                     )}
 
@@ -279,7 +334,7 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                       className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-sm cursor-pointer"
                     >
                       <Award className="w-3.5 h-3.5" />
-                      {isGraded ? 'Edit Evaluation' : 'Grade & Evaluate'}
+                      {isGraded ? 'Edit Marks/Feedback' : 'Score & Remarks'}
                     </button>
                   </div>
                 </div>
@@ -421,6 +476,20 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
             </form>
           </div>
         </div>
+      )}
+
+      {/* INTERACTIVE FULL-SCREEN IN-BROWSER PDF ANNOTATION & CHECKING SUITE */}
+      {annotatingSub && (
+        <PDFAnnotationEditor
+          pdfUrl={annotatingSub.submissionUrl || ''}
+          studentName={annotatingSub.studentName}
+          testTitle={annotatingSub.testTitle}
+          maxMarks={annotatingSub.maxMarks || 100}
+          initialMarks={annotatingSub.grade}
+          initialFeedback={annotatingSub.feedback}
+          onSaveCheckedPdf={handleSaveAnnotatedPdf}
+          onClose={() => setAnnotatingSub(null)}
+        />
       )}
     </div>
   );
