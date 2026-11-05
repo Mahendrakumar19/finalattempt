@@ -1,24 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   Upload, FileText, CheckCircle, Clock, AlertCircle, Eye,
-  ArrowRight, Download, RefreshCw, BookOpen, Layers, ShieldCheck, ChevronRight, Lock
+  Download, RefreshCw, BookOpen
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 import StudentPortalShell from '@/components/StudentPortalShell';
-import { db } from '@/services/db';
+import { db, type TestSeriesItem } from '@/services/db';
 import { getMainsTests, submitMainsCopy, getMyMainsSubmissions } from '@/services/auth';
-
-interface TestSeriesItem {
-  id: string;
-  title: string;
-  slug: string;
-  examId?: string;
-  exam?: { name: string };
-}
 
 interface MainsTestItem {
   id: string;
@@ -46,7 +38,7 @@ interface StudentSubmission {
 }
 
 export default function UploadMainsCopyPage() {
-  const { user, accessToken, isLoading, requireAuth } = useAuth();
+  const { accessToken, isLoading, requireAuth } = useAuth();
   const { t } = useTranslation();
 
   const [testSeriesList, setTestSeriesList] = useState<TestSeriesItem[]>([]);
@@ -77,7 +69,7 @@ export default function UploadMainsCopyPage() {
       try {
         const series = await db.getTestSeries(false);
         if (series && Array.isArray(series)) {
-          setTestSeriesList(series as any);
+          setTestSeriesList(series);
         }
       } catch (err) {
         console.error('Failed to load test series:', err);
@@ -86,23 +78,20 @@ export default function UploadMainsCopyPage() {
     loadSeries();
   }, []);
 
-  // Fetch Mains Tests when Series selected
+  // Fetch Mains Tests when Series selected (or fetch all available if no specific series chosen)
   useEffect(() => {
     const loadTests = async () => {
-      if (!selectedSeriesId) {
-        setMainsTests([]);
-        setSelectedTestId('');
-        return;
-      }
       try {
-        const res = await getMainsTests(selectedSeriesId);
-        if (res.success && res.data) {
-          setMainsTests(res.data);
-          if (res.data.length > 0) {
-            setSelectedTestId(res.data[0].id);
-          } else {
-            setSelectedTestId('');
-          }
+        const res = await getMainsTests(selectedSeriesId || undefined);
+        if (res.success && Array.isArray(res.data)) {
+          const testList: MainsTestItem[] = res.data;
+          setMainsTests(testList);
+          setSelectedTestId(prev => {
+            if (prev && testList.some(item => item.id === prev)) {
+              return prev;
+            }
+            return testList.length > 0 ? testList[0].id : '';
+          });
         }
       } catch (err) {
         console.error('Failed to load mains tests:', err);
@@ -112,8 +101,11 @@ export default function UploadMainsCopyPage() {
   }, [selectedSeriesId]);
 
   // Fetch Student Submissions
-  const loadSubmissions = async () => {
-    if (!accessToken) return;
+  const loadSubmissions = useCallback(async () => {
+    if (!accessToken) {
+      setLoadingSubmissions(false);
+      return;
+    }
     setLoadingSubmissions(true);
     try {
       const res = await getMyMainsSubmissions(accessToken);
@@ -125,10 +117,34 @@ export default function UploadMainsCopyPage() {
     } finally {
       setLoadingSubmissions(false);
     }
-  };
+  }, [accessToken]);
 
   useEffect(() => {
-    loadSubmissions();
+    let isMounted = true;
+    const fetchSubmissions = async () => {
+      if (!accessToken) {
+        setLoadingSubmissions(false);
+        return;
+      }
+      try {
+        const res = await getMyMainsSubmissions(accessToken);
+        if (isMounted && res.success && res.data) {
+          setMySubmissions(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load submissions:', err);
+      } finally {
+        if (isMounted) {
+          setLoadingSubmissions(false);
+        }
+      }
+    };
+
+    fetchSubmissions();
+
+    return () => {
+      isMounted = false;
+    };
   }, [accessToken]);
 
   // PDF File Selection & Local Preview
@@ -273,18 +289,17 @@ export default function UploadMainsCopyPage() {
 
               <form onSubmit={handleSubmitCopy} className="space-y-6">
                 
-                {/* STEP 1: Select Test Series */}
+                {/* STEP 1: Select Test Series (Optional for general open evaluation) */}
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase text-slate-400 tracking-wider block">
-                    1. {t('uploadMains.selectSeries')} *
+                    1. {t('uploadMains.selectSeries')} (Optional for General Practice)
                   </label>
                   <select
                     value={selectedSeriesId}
                     onChange={e => setSelectedSeriesId(e.target.value)}
                     className="w-full px-4 py-3 bg-[var(--bg-color)] border border-[var(--card-border)] rounded-2xl text-xs font-bold text-[var(--text-color)] outline-none focus:border-indigo-500 transition-colors"
-                    required
                   >
-                    <option value="">-- Choose Test Series --</option>
+                    <option value="">-- All Available Mains Tests / Open Practice --</option>
                     {testSeriesList.map(ts => (
                       <option key={ts.id} value={ts.id}>
                         {ts.title}
@@ -298,13 +313,9 @@ export default function UploadMainsCopyPage() {
                   <label className="text-xs font-black uppercase text-slate-400 tracking-wider block">
                     2. {t('uploadMains.selectTest')} *
                   </label>
-                  {!selectedSeriesId ? (
-                    <div className="p-3 rounded-2xl bg-slate-500/10 border border-slate-500/20 text-xs text-slate-400 font-medium">
-                      Please select a Test Series above to see available Mains tests.
-                    </div>
-                  ) : mainsTests.length === 0 ? (
+                  {mainsTests.length === 0 ? (
                     <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                      No active Mains tests published under this test series yet.
+                      No active Mains tests published yet.
                     </div>
                   ) : (
                     <select
