@@ -143,7 +143,7 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
                         scrollDirection: Axis.horizontal,
                         physics: const BouncingScrollPhysics(),
                         child: Row(
-                          children: ['All', 'PRELIMS', 'MAINS', 'FOUNDATION', 'BPSC'].map((cat) {
+                          children: ['All', 'PRELIMS', 'MAINS', 'PYQ', 'CURRENT AFFAIRS', 'FOUNDATION', 'BPSC'].map((cat) {
                             final isSelected = _selectedCategory == cat;
                             final primaryCol = AppTheme.primaryOf(context);
                             final isDark = Theme.of(context).brightness == Brightness.dark;

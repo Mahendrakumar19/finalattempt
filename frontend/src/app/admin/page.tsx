@@ -777,13 +777,40 @@ export default function AdminPortal() {
     setIsArticleModalOpen(false);
   };
 
-  const handleDeleteArticleFromEdition = (artId: string) => {
+  const handleDeleteArticleFromEdition = async (artId: string) => {
     if (!editingEdition) return;
-    if (!window.confirm('Remove this article from layout?')) return;
-    setEditingEdition({
+    if (!window.confirm('Delete this article completely from this edition?')) return;
+    
+    // 1. Immediately delete from database/backend if it's already an existing saved article
+    if (artId && !artId.startsWith('temp-')) {
+      try {
+        await db.deleteDynamicCurrentAffairsArticle(artId);
+      } catch (err) {
+        console.error('Failed to delete article directly from server:', err);
+      }
+    }
+
+    // 2. Remove from currently open edition modal state
+    const updatedArticles = (editingEdition.articles || []).filter(a => a.id !== artId);
+    const updatedEdition = {
       ...editingEdition,
-      articles: (editingEdition.articles || []).filter(a => a.id !== artId)
-    });
+      articles: updatedArticles
+    };
+    setEditingEdition(updatedEdition);
+
+    // 3. If the edition already has an ID, auto-save the updated edition so it never reappears on reload
+    if (editingEdition.id) {
+      try {
+        await db.saveDynamicCurrentAffairsEdition(updatedEdition);
+        // Refresh editions list in parent view
+        const list = await db.getDynamicCurrentAffairsEditions(true);
+        if (list && Array.isArray(list)) {
+          setDynamicEditionsList(list);
+        }
+      } catch (saveErr) {
+        console.error('Failed to sync updated edition after article deletion:', saveErr);
+      }
+    }
   };
 
   // Aggregation Actions

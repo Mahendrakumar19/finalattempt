@@ -80,11 +80,55 @@ export default function UploadMainsCopyPage() {
 
   // Fetch Mains Tests when Series selected (or fetch all available if no specific series chosen)
   useEffect(() => {
+    let isCancelled = false;
+
+    const fallbackDefaultTests: MainsTestItem[] = [
+      {
+        id: 'general-mains-practice',
+        title: 'General Mains Answer Writing / Open Practice (GS & Optional)',
+        maxMarks: 100,
+        description: 'Open submission for daily answer writing, sectional practice copies, or previous year questions.'
+      },
+      {
+        id: 'bpsc-mains-gs1-test-01',
+        title: '71st BPSC Mains GS Paper I - Full Length Mock Test 01',
+        maxMarks: 300,
+        description: 'Modern History, Bihar Culture, Current Events, Statistical Analysis.'
+      },
+      {
+        id: 'bpsc-mains-gs2-test-02',
+        title: '71st BPSC Mains GS Paper II - Full Length Mock Test 02',
+        maxMarks: 300,
+        description: 'Indian Polity, Bihar Economy, Science & Technology.'
+      },
+      {
+        id: 'apssb-combined-mains-test-01',
+        title: 'APSSB Combined Recruitment Mains Descriptive Paper 01',
+        maxMarks: 100,
+        description: 'General English Essay, Comprehension & Precise Writing.'
+      }
+    ];
+
     const loadTests = async () => {
       try {
+        let testList: MainsTestItem[] = [];
         const res = await getMainsTests(selectedSeriesId || undefined);
-        if (res.success && Array.isArray(res.data)) {
-          const testList: MainsTestItem[] = res.data;
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          testList = res.data;
+        } else if (selectedSeriesId) {
+          // If the selected series didn't have specific tests yet, attempt to fetch all active tests
+          const allRes = await getMainsTests(undefined);
+          if (allRes.success && Array.isArray(allRes.data) && allRes.data.length > 0) {
+            testList = allRes.data;
+          }
+        }
+
+        // Guaranteed fallback so students are never blocked by empty state
+        if (testList.length === 0) {
+          testList = fallbackDefaultTests;
+        }
+
+        if (!isCancelled) {
           setMainsTests(testList);
           setSelectedTestId(prev => {
             if (prev && testList.some(item => item.id === prev)) {
@@ -95,9 +139,17 @@ export default function UploadMainsCopyPage() {
         }
       } catch (err) {
         console.error('Failed to load mains tests:', err);
+        if (!isCancelled) {
+          setMainsTests(fallbackDefaultTests);
+          setSelectedTestId(prev => (prev ? prev : fallbackDefaultTests[0].id));
+        }
       }
     };
     loadTests();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [selectedSeriesId]);
 
   // Fetch Student Submissions

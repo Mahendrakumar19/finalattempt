@@ -156,11 +156,11 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
               }
             }
 
-            // Search query filter
+            // Search query filter (evaluating active language title/summary as well)
             if (_searchQuery.isNotEmpty) {
               final q = _searchQuery.toLowerCase();
-              final matchesTitle = art.title.toLowerCase().contains(q);
-              final matchesSummary = art.summary.toLowerCase().contains(q);
+              final matchesTitle = art.getTitle(_activeLang).toLowerCase().contains(q) || art.title.toLowerCase().contains(q);
+              final matchesSummary = art.getSummary(_activeLang).toLowerCase().contains(q) || art.summary.toLowerCase().contains(q);
               final matchesCat = art.category.toLowerCase().contains(q);
               final matchesTags = art.tags.any((t) => t.toLowerCase().contains(q));
               if (!matchesTitle && !matchesSummary && !matchesCat && !matchesTags) {
@@ -842,7 +842,7 @@ class _CurrentAffairsScreenState extends ConsumerState<CurrentAffairsScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            art.title,
+                                            art.getTitle(_activeLang),
                                             style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w700,

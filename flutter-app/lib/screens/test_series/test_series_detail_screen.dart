@@ -425,13 +425,23 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
       if (_selectedFilterTab == 'ALL') return true;
       if (_selectedFilterTab == 'FULL') return q.testCategory.toUpperCase() == 'FULL';
       if (_selectedFilterTab == 'SECTIONAL') return q.testCategory.toUpperCase() == 'SECTIONAL' || q.testCategory.toUpperCase() == 'CHAPTER';
+      if (_selectedFilterTab == 'PYQ') {
+        final cat = q.testCategory.toUpperCase();
+        final title = q.title.toLowerCase();
+        return cat == 'PYQ' || title.contains('pyq') || title.contains('previous year') || title.contains('पूर्व वर्ष');
+      }
+      if (_selectedFilterTab == 'CURRENT') {
+        final cat = q.testCategory.toUpperCase();
+        final title = q.title.toLowerCase();
+        return cat == 'CURRENT' || cat == 'CURRENT_AFFAIRS' || title.contains('current') || title.contains('करेंट') || title.contains('समसामयिक');
+      }
       if (_selectedFilterTab == 'FREE') return q.isFree;
       return true;
     }).toList();
 
     return Column(
       children: [
-        // Sub-filter bar (All, Full Mock, Sectional, Free)
+        // Sub-filter bar (All, Full Mock, Sectional, PYQ, Current Affairs, Free)
         Container(
           color: cardBg,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -442,6 +452,8 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                 _buildFilterChip(context, 'ALL', 'All Tests (${quizzes.length})'),
                 _buildFilterChip(context, 'FULL', 'Full Mocks'),
                 _buildFilterChip(context, 'SECTIONAL', 'Sectional'),
+                _buildFilterChip(context, 'PYQ', 'PYQ Tests'),
+                _buildFilterChip(context, 'CURRENT', 'Current Affairs'),
                 _buildFilterChip(context, 'FREE', 'Free Demo'),
               ],
             ),

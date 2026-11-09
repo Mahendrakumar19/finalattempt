@@ -3024,6 +3024,20 @@ class BackendDB {
           }
           
           if (edition.articles) {
+            // Delete any existing articles in this edition that were removed from the incoming articles array
+            const incomingIds = edition.articles.map(a => a.id).filter(Boolean);
+            if (incomingIds.length > 0) {
+              await conn.query(
+                'DELETE FROM current_affair_articles WHERE editionId = ? AND id NOT IN (?)',
+                [edId, incomingIds]
+              );
+            } else {
+              await conn.query(
+                'DELETE FROM current_affair_articles WHERE editionId = ?',
+                [edId]
+              );
+            }
+
             for (const art of edition.articles) {
               const artId = art.id || `art-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
               const finalTitle = (art.title || art.title_hi || 'Current Affairs Article').trim();
@@ -6358,8 +6372,21 @@ class LmsDB {
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query('SELECT * FROM lms_assignments WHERE id = ? LIMIT 1', [id]);
-        return rows && rows.length > 0 ? rows[0] : null;
+        if (rows && rows.length > 0) return rows[0];
       } catch (err) { console.error('[LmsDB] getAssignmentById MySQL error:', err); }
+    }
+    const store = (getLocalStore() as any)?.lmsAssignments || [];
+    const found = store.find((a: any) => a.id === id);
+    if (found) return found;
+
+    // Default open practice test fallback so students can always submit
+    if (id === 'general-mains-practice' || id === 'apssb-combined-mains-test-01') {
+      return {
+        id,
+        title: id === 'general-mains-practice' ? 'General Mains Answer Writing / Open Practice' : 'APSSB Combined Recruitment Mains Descriptive Paper 01',
+        maxMarks: 100,
+        isPublished: 1
+      };
     }
     return null;
   }
@@ -6377,11 +6404,12 @@ class LmsDB {
   async getAssignmentsByTestSeriesId(testSeriesId: string): Promise<any[]> {
     if (mysqlPool) {
       try {
-        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_assignments WHERE testSeriesId = ? AND isPublished = 1 ORDER BY createdAt DESC', [testSeriesId]);
-        return rows;
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_assignments WHERE (testSeriesId = ? OR courseId = ?) AND isPublished = 1 ORDER BY createdAt DESC', [testSeriesId, testSeriesId]);
+        if (rows && rows.length > 0) return rows;
       } catch (err) { console.error('[LmsDB] getAssignmentsByTestSeriesId MySQL error:', err); }
     }
-    return [];
+    const store = (getLocalStore() as any)?.lmsAssignments || [];
+    return store.filter((a: any) => (a.testSeriesId === testSeriesId || a.courseId === testSeriesId) && a.isPublished !== 0);
   }
 
   async getAllMainsAssignments(): Promise<any[]> {
@@ -6395,10 +6423,11 @@ class LmsDB {
            WHERE a.isPublished = 1
            ORDER BY a.createdAt DESC`
         );
-        return rows;
+        if (rows && rows.length > 0) return rows;
       } catch (err) { console.error('[LmsDB] getAllMainsAssignments MySQL error:', err); }
     }
-    return [];
+    const store = (getLocalStore() as any)?.lmsAssignments || [];
+    return store.filter((a: any) => a.isPublished !== 0);
   }
 
   async submitAssignmentResponse(userId: string, assignmentId: string, submissionUrl: string, submissionText?: string): Promise<any> {
@@ -6414,6 +6443,10 @@ class LmsDB {
         return sub;
       } catch (err) { console.error('[LmsDB] submitAssignmentResponse MySQL error:', err); }
     }
+    const store = getLocalStore();
+    if (!store.lmsAssignmentSubmissions) store.lmsAssignmentSubmissions = [];
+    store.lmsAssignmentSubmissions.unshift(sub);
+    saveLocalStore(store);
     return sub;
   }
 
@@ -6431,7 +6464,8 @@ class LmsDB {
         return rows;
       } catch (err) { console.error('[LmsDB] getAssignmentSubmissions MySQL error:', err); }
     }
-    return [];
+    const store = getLocalStore();
+    return (store.lmsAssignmentSubmissions || []).filter((s: any) => s.assignmentId === assignmentId);
   }
 
   async getStudentMainsSubmissions(userId: string): Promise<any[]> {
@@ -6440,17 +6474,27 @@ class LmsDB {
         const [rows]: any = await mysqlPool.query(
           `SELECT s.*, a.title as testTitle, a.maxMarks, a.questionPaperUrl, a.syllabus, ts.title as testSeriesTitle, ex.name as examName
            FROM lms_assignment_submissions s
-           JOIN lms_assignments a ON a.id = s.assignmentId
+           LEFT JOIN lms_assignments a ON a.id = s.assignmentId
            LEFT JOIN TestSeries ts ON ts.id = a.testSeriesId
            LEFT JOIN Exam ex ON ex.id = ts.examId
            WHERE s.userId = ?
            ORDER BY s.submittedAt DESC`,
           [userId]
         );
-        return rows;
+        if (rows && rows.length > 0) return rows;
       } catch (err) { console.error('[LmsDB] getStudentMainsSubmissions MySQL error:', err); }
     }
-    return [];
+    const store = getLocalStore();
+    const subs = (store.lmsAssignmentSubmissions || []).filter((s: any) => s.userId === userId);
+    const tests = (store.lmsAssignments || []);
+    return subs.map((s: any) => {
+      const match = tests.find((t: any) => t.id === s.assignmentId);
+      return {
+        ...s,
+        testTitle: match?.title || s.assignmentId,
+        maxMarks: match?.maxMarks || 100
+      };
+    });
   }
 
   async getStudentSubmissionForTest(userId: string, assignmentId: string): Promise<any | null> {
@@ -6472,30 +6516,90 @@ class LmsDB {
         const [rows]: any = await mysqlPool.query(
           `SELECT s.*, u.fullName as studentName, u.email as studentEmail, a.title as testTitle, a.maxMarks, ts.title as testSeriesTitle
            FROM lms_assignment_submissions s
-           JOIN users u ON u.id = s.userId
-           JOIN lms_assignments a ON a.id = s.assignmentId
+           LEFT JOIN users u ON u.id = s.userId
+           LEFT JOIN lms_assignments a ON a.id = s.assignmentId
            LEFT JOIN TestSeries ts ON ts.id = a.testSeriesId
            ORDER BY s.submittedAt DESC`
         );
-        return rows;
+        if (rows && rows.length > 0) return rows;
       } catch (err) { console.error('[LmsDB] getAllMainsSubmissionsForAdmin MySQL error:', err); }
     }
-    return [];
+    const store = getLocalStore();
+    const subs = store.lmsAssignmentSubmissions || [];
+    const tests = store.lmsAssignments || [];
+    const users = store.users || [];
+    return subs.map((s: any) => {
+      const matchTest = tests.find((t: any) => t.id === s.assignmentId);
+      const matchUser = users.find((u: any) => u.id === s.userId);
+      return {
+        ...s,
+        studentName: matchUser?.fullName || 'Student',
+        studentEmail: matchUser?.email || 'student@finalattempt.com',
+        testTitle: matchTest?.title || s.assignmentId,
+        maxMarks: matchTest?.maxMarks || 100
+      };
+    });
   }
 
   async evaluateMainsSubmission(submissionId: string, data: { grade?: number; feedback?: string; evaluatedCopyUrl?: string; status?: string }): Promise<boolean> {
+    const status = data.status || 'Evaluated';
+    let targetUserId: string | null = null;
+    let targetTestTitle = 'Mains Answer Copy';
+
     if (mysqlPool) {
       try {
-        const status = data.status || 'Evaluated';
+        const [subRows]: any = await mysqlPool.query(
+          `SELECT s.userId, a.title as testTitle
+           FROM lms_assignment_submissions s
+           LEFT JOIN lms_assignments a ON a.id = s.assignmentId
+           WHERE s.id = ? LIMIT 1`,
+          [submissionId]
+        );
+        if (subRows && subRows.length > 0) {
+          targetUserId = subRows[0].userId;
+          if (subRows[0].testTitle) targetTestTitle = subRows[0].testTitle;
+        }
+
         await mysqlPool.query(
           `UPDATE lms_assignment_submissions 
            SET grade = ?, feedback = ?, evaluatedCopyUrl = ?, status = ?, evaluatedAt = NOW() 
            WHERE id = ?`,
           [data.grade !== undefined ? data.grade : null, data.feedback || '', data.evaluatedCopyUrl || null, status, submissionId]
         );
-        return true;
       } catch (err) { console.error('[LmsDB] evaluateMainsSubmission MySQL error:', err); }
     }
+
+    const store = getLocalStore();
+    if (store.lmsAssignmentSubmissions) {
+      const idx = store.lmsAssignmentSubmissions.findIndex((s: any) => s.id === submissionId);
+      if (idx >= 0) {
+        store.lmsAssignmentSubmissions[idx] = {
+          ...store.lmsAssignmentSubmissions[idx],
+          grade: data.grade !== undefined ? data.grade : store.lmsAssignmentSubmissions[idx].grade,
+          feedback: data.feedback !== undefined ? data.feedback : store.lmsAssignmentSubmissions[idx].feedback,
+          evaluatedCopyUrl: data.evaluatedCopyUrl !== undefined ? data.evaluatedCopyUrl : store.lmsAssignmentSubmissions[idx].evaluatedCopyUrl,
+          status,
+          evaluatedAt: new Date().toISOString()
+        };
+        targetUserId = store.lmsAssignmentSubmissions[idx].userId;
+        saveLocalStore(store);
+      }
+    }
+
+    // 🔔 Send Instant Push & In-App Notification to Student
+    try {
+      await db.createNotification({
+        title: `Mains Copy Checked: ${targetTestTitle}`,
+        message: data.grade !== undefined
+          ? `Your copy has been evaluated! Score: ${data.grade}. Check your detailed annotations and examiner feedback now.`
+          : 'Your Mains answer copy has been evaluated and uploaded by the examiner. View checked copy now.',
+        targetAudience: 'ALL',
+        actionUrl: '/student/upload-mains'
+      });
+    } catch (notifErr) {
+      console.error('[LmsDB] Failed to create evaluation notification:', notifErr);
+    }
+
     return true;
   }
 

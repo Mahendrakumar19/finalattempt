@@ -3,8 +3,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   PenTool, Highlighter, Type, Check, X, Undo, Redo, ZoomIn, ZoomOut,
-  ChevronLeft, ChevronRight, Save, Download, RotateCcw, Award, Trash2,
-  Maximize2, Minimize2, Palette, ShieldAlert, Sparkles, Sliders, Eraser
+  ChevronLeft, ChevronRight, Save, Award, Trash2,
+  Eraser, PanelRightClose,
+  Sparkles
 } from 'lucide-react';
 import { PDFDocument, rgb } from 'pdf-lib';
 
@@ -59,18 +60,41 @@ interface PageAnnotations {
   stamps: StampAnnotation[];
 }
 
+interface PDFDocumentProxyLike {
+  numPages: number;
+  getPage: (pageNumber: number) => Promise<{
+    getViewport: (options: { scale: number }) => { width: number; height: number };
+    render: (params: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => {
+      promise: Promise<void>;
+      cancel: () => void;
+    };
+  }>;
+}
+
+interface PDFRenderTaskLike {
+  promise: Promise<void>;
+  cancel: () => void;
+}
+
 const PRESET_QUICK_REMARKS = [
   'Good Introduction 👍',
-  'Add Map / Diagram 🗺️',
+  'Add Map / Flowchart 🗺️',
   'Structure Needs Improvement',
-  'Well Addressed Demand of Question ⭐',
+  'Well Addressed Demand ⭐',
   'Include Factual / Statistical Data',
-  'Conclusion is weak, make it forward-looking',
+  'Forward-looking Conclusion',
   'Irrelevant point ❌',
   'Underline Key Keywords ✍️'
 ];
 
 const PRESET_SCORE_BADGES = ['+0.5', '+1.0', '+1.5', '+2.0', '+2.5', '+3.0', '+5.0', '-0.5', '-1.0'];
+
+const PEN_COLORS = [
+  { label: 'Red (Examiner)', hex: '#dc2626' },
+  { label: 'Navy Blue', hex: '#1e3a8a' },
+  { label: 'Emerald Green', hex: '#15803d' },
+  { label: 'Charcoal', hex: '#1e293b' }
+];
 
 export default function PDFAnnotationEditor({
   pdfUrl,
@@ -84,10 +108,10 @@ export default function PDFAnnotationEditor({
 }: PDFAnnotationEditorProps) {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const [scale, setScale] = useState<number>(1.1);
+  const [scale, setScale] = useState<number>(1.25);
   const [tool, setTool] = useState<ToolMode>('pen');
-  const [penColor, setPenColor] = useState<string>('#dc2626'); // Standard Examiner Red
-  const [penSize, setPenSize] = useState<number>(3);
+  const [penColor, setPenColor] = useState<string>('#dc2626');
+  const [penSize] = useState<number>(3);
   const [selectedScoreBadge, setSelectedScoreBadge] = useState<string>('+1.0');
 
   // Text comment popover state
@@ -101,9 +125,8 @@ export default function PDFAnnotationEditor({
   const [loadingPdf, setLoadingPdf] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Fullscreen toggle for tablets & small screens
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  // Responsive / Sidebar controls
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   // Annotation storage per page
   const [annotations, setAnnotations] = useState<Record<number, PageAnnotations>>({});
@@ -116,10 +139,11 @@ export default function PDFAnnotationEditor({
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // PDF instance refs
-  const pdfDocRef = useRef<any>(null);
+  const pdfDocRef = useRef<PDFDocumentProxyLike | null>(null);
   const pdfBytesRef = useRef<ArrayBuffer | null>(null);
   const isDrawingRef = useRef<boolean>(false);
   const currentPathRef = useRef<DrawingPath | null>(null);
+  const renderTaskRef = useRef<PDFRenderTaskLike | null>(null);
 
   // 1. Fetch & parse PDF with pdfjs-dist
   useEffect(() => {
@@ -130,11 +154,26 @@ export default function PDFAnnotationEditor({
         setLoadingPdf(true);
         setLoadError(null);
 
-        // @ts-ignore
+        // @ts-expect-error - dynamic pdfjs module import
         const pdfjs = await import('pdfjs-dist/build/pdf.mjs');
-        pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version || '4.0.379'}/build/pdf.worker.min.mjs`;
+        pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
-        const response = await fetch(pdfUrl);
+        // Resolve target PDF URL handling relative backend paths and external domains
+        const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+        let resolvedTargetUrl = pdfUrl;
+        if (pdfUrl.startsWith('/uploads/') || pdfUrl.startsWith('/api/')) {
+          resolvedTargetUrl = `${backendBase}${pdfUrl}`;
+        } else if (pdfUrl.includes('finalattemptias.com/sample_copy')) {
+          resolvedTargetUrl = '/sample_copy_gs1.pdf';
+        }
+
+        let response: Response;
+        try {
+          response = await fetch(resolvedTargetUrl);
+        } catch {
+          response = await fetch('/sample_copy_gs1.pdf');
+        }
+
         if (!response.ok) {
           throw new Error(`Failed to load PDF (${response.status}: ${response.statusText})`);
         }
@@ -143,17 +182,22 @@ export default function PDFAnnotationEditor({
         if (!active) return;
         pdfBytesRef.current = buffer.slice(0);
 
-        const loadingTask = pdfjs.getDocument({ data: new Uint8Array(buffer) });
-        const pdf = await loadingTask.promise;
+        const loadingTask = pdfjs.getDocument({
+          data: new Uint8Array(buffer),
+          cMapUrl: 'https://unpkg.com/pdfjs-dist@4.0.379/cmaps/',
+          cMapPacked: true
+        });
+        const pdf = (await loadingTask.promise) as PDFDocumentProxyLike;
         if (!active) return;
 
         pdfDocRef.current = pdf;
         setTotalPages(pdf.numPages);
         setCurrentPage(1);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error loading PDF for annotation:', err);
         if (active) {
-          setLoadError(err.message || 'Failed to load PDF document.');
+          const message = err instanceof Error ? err.message : 'Failed to load PDF document.';
+          setLoadError(message);
         }
       } finally {
         if (active) {
@@ -169,41 +213,7 @@ export default function PDFAnnotationEditor({
     };
   }, [pdfUrl]);
 
-  // 2. Render PDF Page on Base Canvas
-  const renderPage = useCallback(async () => {
-    if (!pdfDocRef.current || !pdfCanvasRef.current || !drawCanvasRef.current) return;
-
-    try {
-      const page = await pdfDocRef.current.getPage(currentPage);
-      const viewport = page.getViewport({ scale });
-
-      const pdfCanvas = pdfCanvasRef.current;
-      const pdfCtx = pdfCanvas.getContext('2d');
-      if (!pdfCtx) return;
-
-      pdfCanvas.width = viewport.width;
-      pdfCanvas.height = viewport.height;
-
-      const drawCanvas = drawCanvasRef.current;
-      drawCanvas.width = viewport.width;
-      drawCanvas.height = viewport.height;
-
-      await page.render({
-        canvasContext: pdfCtx,
-        viewport: viewport
-      }).promise;
-
-      redrawAnnotations();
-    } catch (err) {
-      console.error('Error rendering page:', err);
-    }
-  }, [currentPage, scale]);
-
-  useEffect(() => {
-    renderPage();
-  }, [renderPage]);
-
-  // 3. Redraw Overlay Annotations with High-Performance Smooth Curves
+  // 2. High-performance Rendering of Overlay Annotations
   const redrawAnnotations = useCallback(() => {
     const canvas = drawCanvasRef.current;
     if (!canvas) return;
@@ -225,7 +235,7 @@ export default function PDFAnnotationEditor({
       ctx.lineJoin = 'round';
 
       if (p.tool === 'highlighter') {
-        ctx.globalAlpha = 0.38;
+        ctx.globalAlpha = 0.35;
       } else {
         ctx.globalAlpha = 1.0;
       }
@@ -255,7 +265,7 @@ export default function PDFAnnotationEditor({
       const cy = s.y * canvas.height;
 
       if (s.type === 'tick') {
-        ctx.strokeStyle = '#16a34a'; // Vibrant Examiner Green
+        ctx.strokeStyle = '#15803d'; // Examiner Green
         ctx.lineWidth = 4;
         ctx.lineCap = 'round';
         ctx.beginPath();
@@ -264,7 +274,7 @@ export default function PDFAnnotationEditor({
         ctx.lineTo(cx + 18, cy - 12);
         ctx.stroke();
       } else if (s.type === 'cross') {
-        ctx.strokeStyle = '#dc2626'; // Vibrant Examiner Red
+        ctx.strokeStyle = '#dc2626'; // Examiner Red
         ctx.lineWidth = 4;
         ctx.lineCap = 'round';
         ctx.beginPath();
@@ -274,16 +284,15 @@ export default function PDFAnnotationEditor({
         ctx.lineTo(cx - 12, cy + 12);
         ctx.stroke();
       } else if (s.type === 'score_stamp' && s.value) {
-        // Render score badge (e.g. [+2.5], [+1.0])
         const badgeText = s.value;
-        ctx.font = 'bold 15px sans-serif';
+        ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
         const txtWidth = ctx.measureText(badgeText).width;
         const padX = 8;
         const padY = 5;
 
-        ctx.fillStyle = s.value.startsWith('-') ? '#dc2626' : '#16a34a';
+        ctx.fillStyle = s.value.startsWith('-') ? '#dc2626' : '#15803d';
         ctx.beginPath();
-        ctx.roundRect(cx - (txtWidth / 2) - padX, cy - 12 - padY, txtWidth + (padX * 2), 24 + padY, 8);
+        ctx.roundRect(cx - (txtWidth / 2) - padX, cy - 12 - padY, txtWidth + (padX * 2), 24 + padY, 6);
         ctx.fill();
 
         ctx.fillStyle = '#ffffff';
@@ -297,17 +306,16 @@ export default function PDFAnnotationEditor({
 
     // C. Draw Text Annotations
     pageData.texts.forEach(t => {
-      ctx.font = `bold ${t.fontSize || 14}px sans-serif`;
+      ctx.font = `bold ${t.fontSize || 13}px system-ui, -apple-system, sans-serif`;
       ctx.fillStyle = t.color || '#dc2626';
 
-      // Subtle bubble background for readability
       const textMetrics = ctx.measureText(t.text);
       ctx.save();
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillStyle = '#ffffff';
       ctx.strokeStyle = t.color || '#dc2626';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(t.x * canvas.width - 4, t.y * canvas.height - 15, textMetrics.width + 8, 20, 4);
+      ctx.roundRect(t.x * canvas.width - 6, t.y * canvas.height - 16, textMetrics.width + 12, 22, 6);
       ctx.fill();
       ctx.stroke();
       ctx.restore();
@@ -317,9 +325,55 @@ export default function PDFAnnotationEditor({
     });
   }, [annotations, currentPage]);
 
+  const renderPage = useCallback(async () => {
+    if (!pdfDocRef.current || !pdfCanvasRef.current || !drawCanvasRef.current) return;
+
+    if (renderTaskRef.current) {
+      try {
+        renderTaskRef.current.cancel();
+      } catch {
+        // Task cancel safely ignored
+      }
+    }
+
+    try {
+      const page = await pdfDocRef.current.getPage(currentPage);
+      const viewport = page.getViewport({ scale });
+
+      const pdfCanvas = pdfCanvasRef.current;
+      const pdfCtx = pdfCanvas.getContext('2d');
+      if (!pdfCtx) return;
+
+      pdfCanvas.width = viewport.width;
+      pdfCanvas.height = viewport.height;
+      pdfCanvas.style.width = `${viewport.width}px`;
+      pdfCanvas.style.height = `${viewport.height}px`;
+
+      const drawCanvas = drawCanvasRef.current;
+      drawCanvas.width = viewport.width;
+      drawCanvas.height = viewport.height;
+      drawCanvas.style.width = `${viewport.width}px`;
+      drawCanvas.style.height = `${viewport.height}px`;
+
+      const renderTask = page.render({
+        canvasContext: pdfCtx,
+        viewport: viewport
+      });
+      renderTaskRef.current = renderTask;
+      await renderTask.promise;
+
+      redrawAnnotations();
+    } catch (err: unknown) {
+      const renderError = err as { name?: string; message?: string };
+      if (renderError?.name !== 'RenderingCancelledException') {
+        console.error('Error rendering page:', err);
+      }
+    }
+  }, [currentPage, scale, redrawAnnotations]);
+
   useEffect(() => {
-    redrawAnnotations();
-  }, [redrawAnnotations]);
+    renderPage();
+  }, [renderPage]);
 
   // History Recording for Undo / Redo
   const recordHistory = () => {
@@ -328,7 +382,6 @@ export default function PDFAnnotationEditor({
       ...prev,
       [currentPage]: [...(prev[currentPage] || []), JSON.parse(JSON.stringify(cur))]
     }));
-    // Clear redo stack on new action
     setRedoHistory(prev => ({
       ...prev,
       [currentPage]: []
@@ -382,7 +435,7 @@ export default function PDFAnnotationEditor({
   };
 
   const handleClearPage = () => {
-    if (confirm('Clear all markings on this page?')) {
+    if (confirm(`Clear all annotations on Page ${currentPage}?`)) {
       recordHistory();
       setAnnotations(prev => ({
         ...prev,
@@ -391,7 +444,6 @@ export default function PDFAnnotationEditor({
     }
   };
 
-  // Coordinates helper supporting Mouse & Stylus/Touch Event
   const getCanvasNormalizedCoords = (clientX: number, clientY: number) => {
     const canvas = drawCanvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -402,10 +454,9 @@ export default function PDFAnnotationEditor({
     };
   };
 
-  // Pointer Event Handlers (Full Stylus/Apple Pencil/S-Pen & Finger Touch support)
+  // Pointer Event Handlers
   const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-
     const pos = getCanvasNormalizedCoords(e.clientX, e.clientY);
 
     if (tool === 'text') {
@@ -424,11 +475,12 @@ export default function PDFAnnotationEditor({
             stamps: [
               ...pageAnn.stamps,
               {
-                id: `stamp-${Date.now()}-${Math.random()}`,
+                id: `stamp-${Date.now()}`,
                 type: tool,
                 value: tool === 'score_stamp' ? selectedScoreBadge : undefined,
                 x: pos.x,
-                y: pos.y
+                y: pos.y,
+                color: tool === 'tick' ? '#15803d' : tool === 'cross' ? '#dc2626' : undefined
               }
             ]
           }
@@ -441,7 +493,7 @@ export default function PDFAnnotationEditor({
       recordHistory();
       setAnnotations(prev => {
         const pageAnn = prev[currentPage] || { paths: [], texts: [], stamps: [] };
-        const threshold = 0.03;
+        const threshold = 0.035;
         const remainingPaths = pageAnn.paths.filter(p => !p.points.some(pt => Math.hypot(pt.x - pos.x, pt.y - pos.y) < threshold));
         const remainingStamps = pageAnn.stamps.filter(s => Math.hypot(s.x - pos.x, s.y - pos.y) >= threshold);
         const remainingTexts = pageAnn.texts.filter(t => Math.hypot(t.x - pos.x, t.y - pos.y) >= threshold);
@@ -462,7 +514,7 @@ export default function PDFAnnotationEditor({
       recordHistory();
 
       const pressure = e.pressure && e.pressure > 0 ? e.pressure : 0.5;
-      const effectiveSize = tool === 'highlighter' ? 16 : penSize * (0.8 + pressure * 0.4);
+      const effectiveSize = tool === 'highlighter' ? 18 : penSize * (0.8 + pressure * 0.4);
 
       currentPathRef.current = {
         id: `path-${Date.now()}`,
@@ -494,7 +546,7 @@ export default function PDFAnnotationEditor({
       ctx.lineWidth = p.size;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-      if (p.tool === 'highlighter') ctx.globalAlpha = 0.38;
+      if (p.tool === 'highlighter') ctx.globalAlpha = 0.35;
 
       const xc = (pts[pts.length - 2].x + pts[pts.length - 1].x) / 2 * canvas.width;
       const yc = (pts[pts.length - 2].y + pts[pts.length - 1].y) / 2 * canvas.height;
@@ -565,33 +617,29 @@ export default function PDFAnnotationEditor({
     setActiveTextInputPos(null);
   };
 
-  // PDF-Lib Vector Burn & Revert to Student
+  // Burn annotations into PDF and Export
   const handleSaveAndExport = async () => {
-    if (!pdfBytesRef.current) {
-      alert('Original PDF data not loaded.');
-      return;
-    }
+    if (!pdfBytesRef.current) return;
 
-    setIsSaving(true);
     try {
+      setIsSaving(true);
       const pdfDoc = await PDFDocument.load(pdfBytesRef.current);
       const pages = pdfDoc.getPages();
 
-      for (let pageNum = 1; pageNum <= pages.length; pageNum++) {
+      for (let pIdx = 0; pIdx < pages.length; pIdx++) {
+        const pageNum = pIdx + 1;
         const pageAnn = annotations[pageNum];
         if (!pageAnn) continue;
 
-        const page = pages[pageNum - 1];
+        const page = pages[pIdx];
         const { width, height } = page.getSize();
 
         // 1. Draw Paths (Pen & Highlighter)
         for (const p of pageAnn.paths) {
           if (p.points.length < 2) continue;
-
           const r = parseInt(p.color.slice(1, 3), 16) / 255;
           const g = parseInt(p.color.slice(3, 5), 16) / 255;
           const b = parseInt(p.color.slice(5, 7), 16) / 255;
-          const opacity = p.tool === 'highlighter' ? 0.38 : 1.0;
 
           for (let i = 1; i < p.points.length; i++) {
             const startX = p.points[i - 1].x * width;
@@ -602,67 +650,63 @@ export default function PDFAnnotationEditor({
             page.drawLine({
               start: { x: startX, y: startY },
               end: { x: endX, y: endY },
-              thickness: p.size,
+              thickness: p.tool === 'highlighter' ? 14 : p.size * 0.75,
               color: rgb(r, g, b),
-              opacity
+              opacity: p.tool === 'highlighter' ? 0.35 : 1.0
             });
           }
         }
 
-        // 2. Draw Stamps (Ticks, Crosses, Score Pills)
+        // 2. Draw Stamps (Tick, Cross, Score Badges)
         for (const s of pageAnn.stamps) {
-          const cx = s.x * width;
-          const cy = height - (s.y * height);
+          const sx = s.x * width;
+          const sy = height - (s.y * height);
 
           if (s.type === 'tick') {
             page.drawLine({
-              start: { x: cx - 12, y: cy },
-              end: { x: cx - 3, y: cy - 10 },
+              start: { x: sx - 12, y: sy },
+              end: { x: sx - 4, y: sy - 10 },
               thickness: 3.5,
-              color: rgb(0.08, 0.64, 0.29)
+              color: rgb(0.08, 0.5, 0.24)
             });
             page.drawLine({
-              start: { x: cx - 3, y: cy - 10 },
-              end: { x: cx + 16, y: cy + 12 },
+              start: { x: sx - 4, y: sy - 10 },
+              end: { x: sx + 16, y: sy + 10 },
               thickness: 3.5,
-              color: rgb(0.08, 0.64, 0.29)
+              color: rgb(0.08, 0.5, 0.24)
             });
           } else if (s.type === 'cross') {
             page.drawLine({
-              start: { x: cx - 10, y: cy - 10 },
-              end: { x: cx + 10, y: cy + 10 },
+              start: { x: sx - 10, y: sy - 10 },
+              end: { x: sx + 10, y: sy + 10 },
               thickness: 3.5,
               color: rgb(0.86, 0.15, 0.15)
             });
             page.drawLine({
-              start: { x: cx + 10, y: cy - 10 },
-              end: { x: cx - 10, y: cy + 10 },
+              start: { x: sx + 10, y: sy - 10 },
+              end: { x: sx - 10, y: sy + 10 },
               thickness: 3.5,
               color: rgb(0.86, 0.15, 0.15)
             });
           } else if (s.type === 'score_stamp' && s.value) {
             const isNegative = s.value.startsWith('-');
-            const badgeColor = isNegative ? rgb(0.86, 0.15, 0.15) : rgb(0.08, 0.64, 0.29);
-
             page.drawRectangle({
-              x: cx - 24,
-              y: cy - 10,
-              width: 48,
+              x: sx - 22,
+              y: sy - 10,
+              width: 44,
               height: 20,
-              color: badgeColor,
-              opacity: 0.95
+              color: isNegative ? rgb(0.86, 0.15, 0.15) : rgb(0.08, 0.5, 0.24)
             });
-
             page.drawText(s.value, {
-              x: cx - 16,
-              y: cy - 4,
-              size: 12,
+              x: sx - 16,
+              y: sy - 4,
+              size: 11,
               color: rgb(1, 1, 1)
             });
           }
         }
 
-        // 3. Draw Text Comments (Sanitize non-ascii/emojis to avoid PDF font encoding errors)
+        // 3. Draw Text Comments
         for (const t of pageAnn.texts) {
           const tx = t.x * width;
           const ty = height - (t.y * height);
@@ -671,7 +715,6 @@ export default function PDFAnnotationEditor({
           const g = parseInt(t.color.slice(3, 5), 16) / 255;
           const b = parseInt(t.color.slice(5, 7), 16) / 255;
 
-          // Strip characters outside basic printable ASCII (e.g. emojis) for standard PDF Type1 fonts
           const cleanText = t.text.replace(/[^\x20-\x7E\xA0-\xFF]/g, '').trim();
           if (cleanText) {
             page.drawText(cleanText, {
@@ -689,56 +732,73 @@ export default function PDFAnnotationEditor({
 
       const numMarks = marks.trim() !== '' ? Number(marks) : undefined;
       await onSaveCheckedPdf(blob, numMarks, feedback);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error saving checked PDF:', err);
-      alert('Failed to burn annotations into PDF: ' + err.message);
+      const errMsg = err instanceof Error ? err.message : String(err);
+      alert('Failed to burn annotations into PDF: ' + errMsg);
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className={`fixed inset-0 z-50 bg-slate-950 flex flex-col ${isFullscreen ? 'h-screen w-screen' : 'h-screen'} text-slate-100 font-body select-none touch-none`}>
-      {/* ── TOP ACTION BAR (TABLET & DESKTOP RESPONSIVE) ────────────────────────── */}
-      <div className="bg-slate-900 border-b border-slate-800 px-3 py-2 flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2">
+    <div className="fixed inset-0 z-50 bg-[#334155] dark:bg-[#020617] flex flex-col h-screen text-slate-800 dark:text-slate-100 font-sans select-none touch-none">
+      {/* ── TOP ACTION BAR (Clean Neutral Canvas Bar) ────────────────────────── */}
+      <header className="h-14 bg-white dark:bg-[#0f172a] border-b border-slate-200 dark:border-white/10 px-4 flex items-center justify-between gap-3 shrink-0 z-20 shadow-xs">
+        
+        {/* Left: Back & Details */}
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all cursor-pointer border border-slate-200 dark:border-white/10"
             title="Exit Evaluator"
           >
             <X className="w-4 h-4" />
           </button>
           <div className="hidden sm:block">
-            <span className="text-[9px] font-black uppercase text-amber-400 tracking-wider">
-              Canvas Mains Evaluation Studio
-            </span>
-            <h3 className="text-xs font-bold text-white truncate max-w-[200px] md:max-w-xs">
-              {testTitle || 'Mains Copy'} {studentName ? `(${studentName})` : ''}
-            </h3>
+            <div className="flex items-center gap-2">
+              {/* <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-sky-300 border border-blue-200 dark:border-blue-500/20">
+                Evaluation Studio
+              </span> */}
+              <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[200px] md:max-w-xs">
+                {testTitle || 'Mains Copy'}
+              </h3>
+            </div>
+            {studentName && (
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                Candidate: <strong className="text-slate-900 dark:text-slate-200">{studentName}</strong>
+              </p>
+            )}
           </div>
         </div>
 
-        {/* ── CORE CANVAS TOOLBAR (STYLUS / TABLET OPTIMIZED) ────────────────── */}
-        <div className="flex items-center gap-1 bg-slate-800/90 p-1 rounded-2xl border border-slate-700/80 shadow-md">
+        {/* Center: Examiner Tools Group */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#1e293b]/70 p-1 rounded-2xl border border-slate-200 dark:border-white/10">
           <button
             type="button"
             onClick={() => setTool('pen')}
-            className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
-              tool === 'pen' ? 'bg-red-600 text-white shadow-md' : 'text-slate-300 hover:text-white'
+            style={tool === 'pen' ? { backgroundColor: penColor } : undefined}
+            className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+              tool === 'pen' ? 'text-white shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10'
             }`}
-            title="Pen (Stylus / Mouse)"
+            title="Pen Tool"
           >
             <PenTool className="w-3.5 h-3.5" />
             <span className="hidden md:inline">Pen</span>
+            {tool !== 'pen' && (
+              <span
+                className="w-2 h-2 rounded-full inline-block ml-0.5 border border-white/20"
+                style={{ backgroundColor: penColor }}
+              />
+            )}
           </button>
 
           <button
             type="button"
             onClick={() => setTool('highlighter')}
-            className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
-              tool === 'highlighter' ? 'bg-amber-400 text-slate-950 font-black shadow-md' : 'text-slate-300 hover:text-white'
+            className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
+              tool === 'highlighter' ? 'bg-amber-400 text-slate-950 font-black shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10'
             }`}
             title="Highlighter"
           >
@@ -750,11 +810,11 @@ export default function PDFAnnotationEditor({
             type="button"
             onClick={() => setTool('tick')}
             className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1 text-xs font-bold transition-all cursor-pointer ${
-              tool === 'tick' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-300 hover:text-white'
+              tool === 'tick' ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10'
             }`}
-            title="Tick Stamp (Correct)"
+            title="Correct Stamp"
           >
-            <Check className="w-3.5 h-3.5 text-emerald-300" />
+            <Check className="w-3.5 h-3.5 stroke-[3]" />
             <span className="hidden md:inline">Tick</span>
           </button>
 
@@ -762,75 +822,76 @@ export default function PDFAnnotationEditor({
             type="button"
             onClick={() => setTool('cross')}
             className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1 text-xs font-bold transition-all cursor-pointer ${
-              tool === 'cross' ? 'bg-rose-700 text-white shadow-md' : 'text-slate-300 hover:text-white'
+              tool === 'cross' ? 'bg-rose-600 text-white shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10'
             }`}
-            title="Cross Stamp (Incorrect)"
+            title="Incorrect Stamp"
           >
-            <X className="w-3.5 h-3.5 text-rose-300" />
+            <X className="w-3.5 h-3.5 stroke-[3]" />
             <span className="hidden md:inline">Cross</span>
           </button>
 
           <button
             type="button"
             onClick={() => setTool('score_stamp')}
-            className={`px-2 py-1.5 rounded-xl flex items-center gap-1 text-xs font-bold transition-all cursor-pointer ${
-              tool === 'score_stamp' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-300 hover:text-white'
+            className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1 text-xs font-bold transition-all cursor-pointer ${
+              tool === 'score_stamp' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10'
             }`}
-            title="Score Stamp Pill"
+            title="Score Stamp"
           >
-            <Award className="w-3.5 h-3.5 text-indigo-300" />
-            <span className="font-mono text-[11px]">{selectedScoreBadge}</span>
+            <Award className="w-3.5 h-3.5" />
+            <span className="font-mono text-[11px] font-bold">{selectedScoreBadge}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setTool('text')}
             className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer ${
-              tool === 'text' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-300 hover:text-white'
+              tool === 'text' ? 'bg-blue-700 text-white shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10'
             }`}
-            title="Text Marginal Note"
+            title="Text Note"
           >
             <Type className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Comment</span>
+            <span className="hidden md:inline">Note</span>
           </button>
 
           <button
             type="button"
             onClick={() => setTool('eraser')}
             className={`p-1.5 rounded-xl flex items-center text-xs font-bold transition-all cursor-pointer ${
-              tool === 'eraser' ? 'bg-slate-200 text-slate-900 shadow-md' : 'text-slate-400 hover:text-white'
+              tool === 'eraser' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-700 dark:text-slate-400 hover:bg-white dark:hover:bg-white/10'
             }`}
-            title="Eraser (Tap annotation to remove)"
+            title="Eraser"
           >
             <Eraser className="w-3.5 h-3.5" />
           </button>
 
-          <div className="w-[1px] h-4 bg-slate-700 mx-0.5" />
+          <div className="w-[1px] h-4 bg-slate-300 dark:bg-slate-700 mx-1 hidden sm:block" />
 
-          {/* Color Presets */}
-          <div className="flex items-center gap-1 px-1">
-            {['#dc2626', '#1e3a8a', '#16a34a', '#d97706'].map(c => (
+          {/* Color Palettes */}
+          <div className="hidden sm:flex items-center gap-1 px-1">
+            {PEN_COLORS.map(c => (
               <button
-                key={c}
+                key={c.hex}
                 type="button"
-                onClick={() => setPenColor(c)}
-                style={{ backgroundColor: c }}
+                onClick={() => setPenColor(c.hex)}
+                style={{ backgroundColor: c.hex }}
                 className={`w-4 h-4 rounded-full border-2 transition-transform cursor-pointer ${
-                  penColor === c ? 'scale-125 border-white shadow-sm' : 'border-transparent opacity-70 hover:opacity-100'
+                  penColor === c.hex ? 'scale-125 border-slate-900 dark:border-white shadow-xs' : 'border-transparent opacity-60 hover:opacity-100'
                 }`}
+                title={c.label}
               />
             ))}
           </div>
 
-          <div className="w-[1px] h-4 bg-slate-700 mx-0.5" />
+          <div className="w-[1px] h-4 bg-slate-300 dark:bg-slate-700 mx-1" />
 
           {/* Undo / Redo */}
           <button
             type="button"
             onClick={handleUndo}
             disabled={!undoHistory[currentPage] || undoHistory[currentPage].length === 0}
-            className="p-1.5 rounded-xl text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer"
-            title="Undo (Ctrl+Z)"
+            className="p-1.5 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10 disabled:opacity-25 cursor-pointer"
+            title="Undo"
           >
             <Undo className="w-3.5 h-3.5" />
           </button>
@@ -839,73 +900,76 @@ export default function PDFAnnotationEditor({
             type="button"
             onClick={handleRedo}
             disabled={!redoHistory[currentPage] || redoHistory[currentPage].length === 0}
-            className="p-1.5 rounded-xl text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer"
+            className="p-1.5 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10 disabled:opacity-25 cursor-pointer"
             title="Redo"
           >
             <Redo className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* ── RIGHT CONTROLS (PAGING, ZOOM, FULLSCREEN) ─────────────────────── */}
-        <div className="flex items-center gap-1.5">
+        {/* Right: Paging & Sidebar Toggle */}
+        <div className="flex items-center gap-2">
           {/* Paging */}
-          <div className="flex items-center bg-slate-800 rounded-xl p-0.5 border border-slate-700">
+          <div className="flex items-center bg-slate-100 dark:bg-[#1e293b]/70 rounded-xl p-0.5 border border-slate-200 dark:border-white/10">
             <button
               type="button"
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10 disabled:opacity-30 cursor-pointer"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="text-[11px] font-mono font-bold px-1.5 text-slate-200">
+            <span className="text-[11px] font-mono font-bold px-2 text-slate-800 dark:text-slate-200">
               {currentPage} / {totalPages}
             </span>
             <button
               type="button"
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-white disabled:opacity-30 cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10 disabled:opacity-30 cursor-pointer"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           {/* Zoom */}
-          <div className="hidden sm:flex items-center bg-slate-800 rounded-xl p-0.5 border border-slate-700">
+          <div className="hidden lg:flex items-center bg-slate-100 dark:bg-[#1e293b]/70 rounded-xl p-0.5 border border-slate-200 dark:border-white/10">
             <button
               type="button"
               onClick={() => setScale(s => Math.max(0.6, s - 0.15))}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-white cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10 cursor-pointer"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="text-[10px] font-mono px-1 text-slate-200">{Math.round(scale * 100)}%</span>
+            <span className="text-[11px] font-mono font-bold px-1.5 text-slate-800 dark:text-slate-200">{Math.round(scale * 100)}%</span>
             <button
               type="button"
               onClick={() => setScale(s => Math.min(2.5, s + 0.15))}
-              className="p-1.5 rounded-lg text-slate-300 hover:text-white cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-white dark:hover:bg-white/10 cursor-pointer"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Sidebar Toggle for Tablet Drawing Room */}
-          <button
+          {/* Toggle Sidebar */}
+          {/* <button
             type="button"
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 cursor-pointer"
-            title="Toggle Marks Panel (Expand Canvas)"
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className={`p-2 rounded-xl border transition-all cursor-pointer ${
+              isSidebarOpen ? 'bg-blue-50 dark:bg-blue-500/20 text-blue-700 dark:text-sky-300 border-blue-200 dark:border-blue-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10'
+            }`}
+            title="Toggle Marks & Feedback Sidebar"
           >
-            <Sliders className="w-3.5 h-3.5" />
-          </button>
+            {isSidebarOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+          </button> */}
         </div>
-      </div>
+      </header>
 
-      {/* ── QUICK STAMP SELECTOR BAR (WHEN SCORE STAMP IS ACTIVE) ───────────── */}
+      {/* ── SUB-BAR: SCORE STAMP BADGES ───────────────────────────────── */}
       {tool === 'score_stamp' && (
-        <div className="bg-slate-900/90 border-b border-indigo-500/30 px-4 py-1.5 flex items-center gap-2 overflow-x-auto text-xs shrink-0">
-          <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider shrink-0">
+        <div className="bg-white dark:bg-[#0f172a] border-b border-slate-200 dark:border-white/10 px-4 py-2 flex items-center gap-3 overflow-x-auto text-xs shrink-0 z-10">
+          <span className="text-[11px] font-bold text-blue-700 dark:text-sky-300 uppercase tracking-wider shrink-0 flex items-center gap-1.5">
+            <Award className="w-3.5 h-3.5" />
             Tap on page to stamp score:
           </span>
           <div className="flex items-center gap-1.5">
@@ -914,10 +978,10 @@ export default function PDFAnnotationEditor({
                 key={badge}
                 type="button"
                 onClick={() => setSelectedScoreBadge(badge)}
-                className={`px-2.5 py-0.5 rounded-lg font-mono font-bold text-xs transition-all cursor-pointer ${
+                className={`px-3 py-1 rounded-lg font-mono font-black text-xs transition-all cursor-pointer ${
                   selectedScoreBadge === badge
-                    ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-white'
-                    : 'bg-slate-800 text-slate-300 hover:text-white'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
                 {badge}
@@ -928,30 +992,30 @@ export default function PDFAnnotationEditor({
       )}
 
       {/* ── WORKSPACE: CANVAS + EVALUATION SIDEBAR ────────────────────────────── */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Canvas Scrollable Area */}
         <div
           ref={containerRef}
-          className="flex-1 overflow-auto bg-slate-950 p-4 sm:p-6 flex justify-center items-start select-none relative"
+          className="flex-1 overflow-auto bg-[#475569] dark:bg-[#090d16] p-6 sm:p-10 flex justify-center items-start select-none relative"
         >
           {loadingPdf ? (
             <div className="m-auto text-center space-y-3">
-              <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs font-bold text-slate-400">Loading student answer sheet...</p>
+              <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+              <p className="text-xs font-bold text-slate-200">Loading student answer copy...</p>
             </div>
           ) : loadError ? (
-            <div className="m-auto text-center space-y-3 max-w-md p-6 bg-red-950/40 border border-red-800 rounded-2xl">
-              <p className="text-red-400 text-sm font-bold">{loadError}</p>
+            <div className="m-auto text-center space-y-3 max-w-md p-6 bg-white dark:bg-[#0f172a] border border-rose-300 dark:border-rose-900/50 rounded-2xl shadow-lg">
+              <p className="text-rose-600 dark:text-rose-400 text-sm font-bold">{loadError}</p>
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold"
+                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer"
               >
                 Go Back
               </button>
             </div>
           ) : (
-            <div className="relative shadow-2xl rounded-lg overflow-hidden border border-slate-700 bg-white">
+            <div className="relative shadow-2xl rounded-sm border border-slate-300 dark:border-slate-700 bg-white inline-block">
               {/* PDF Background Canvas */}
               <canvas ref={pdfCanvasRef} className="block" />
 
@@ -971,21 +1035,21 @@ export default function PDFAnnotationEditor({
                 }`}
               />
 
-              {/* Floating Quick Remarks / Text Annotations Popover */}
+              {/* Quick Remarks Popover */}
               {activeTextInputPos && (
                 <div
-                  className="absolute z-20 p-3 bg-slate-900 border border-amber-500/70 rounded-2xl shadow-2xl space-y-2 w-72"
+                  className="absolute z-20 p-3.5 bg-white dark:bg-[#0f172a] border border-blue-300 dark:border-blue-500/40 rounded-2xl shadow-2xl space-y-2.5 w-80 text-slate-900 dark:text-white"
                   style={{
-                    left: `${Math.min(0.7, activeTextInputPos.x) * 100}%`,
-                    top: `${Math.min(0.8, activeTextInputPos.y) * 100}%`
+                    left: `${Math.min(0.65, activeTextInputPos.x) * 100}%`,
+                    top: `${Math.min(0.75, activeTextInputPos.y) * 100}%`
                   }}
                 >
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                    <span className="text-[10px] font-bold text-amber-400 uppercase">Examiner Comment</span>
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-2">
+                    <span className="text-[11px] font-bold text-blue-700 dark:text-sky-300 uppercase tracking-wider">Examiner Note</span>
                     <button
                       type="button"
                       onClick={() => setActiveTextInputPos(null)}
-                      className="text-slate-400 hover:text-white cursor-pointer"
+                      className="text-slate-400 hover:text-slate-900 dark:hover:text-white cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -995,34 +1059,34 @@ export default function PDFAnnotationEditor({
                     <input
                       type="text"
                       autoFocus
-                      placeholder="Type custom remark..."
+                      placeholder="Type remark..."
                       value={textInput}
                       onChange={e => setTextInput(e.target.value)}
                       onKeyDown={e => {
                         if (e.key === 'Enter') handleAddTextAnnotation();
                         if (e.key === 'Escape') setActiveTextInputPos(null);
                       }}
-                      className="flex-1 px-2.5 py-1 text-xs bg-slate-800 border border-slate-700 text-white rounded-lg outline-none font-medium"
+                      className="flex-1 px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/10 text-slate-900 dark:text-white rounded-xl outline-none font-medium focus:border-blue-500"
                     />
                     <button
                       type="button"
                       onClick={() => handleAddTextAnnotation()}
-                      className="px-2.5 py-1 bg-amber-500 text-slate-950 font-bold text-xs rounded-lg cursor-pointer"
+                      className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl cursor-pointer"
                     >
                       Add
                     </button>
                   </div>
 
                   {/* 1-Tap Quick Examiner Tags */}
-                  <div className="pt-1 space-y-1">
-                    <span className="text-[9px] font-bold text-slate-400 block">Quick UPSC Tags:</span>
-                    <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-1">
+                  <div className="pt-1 space-y-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">Quick UPSC Remarks:</span>
+                    <div className="flex flex-wrap gap-1 max-h-28 overflow-y-auto pr-1">
                       {PRESET_QUICK_REMARKS.map((remark, idx) => (
                         <button
                           key={idx}
                           type="button"
                           onClick={() => handleAddTextAnnotation(remark)}
-                          className="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-200 rounded-md text-left transition-colors cursor-pointer"
+                          className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[11px] text-slate-800 dark:text-slate-200 rounded-lg text-left transition-colors cursor-pointer border border-slate-200 dark:border-white/5"
                         >
                           {remark}
                         </button>
@@ -1035,32 +1099,34 @@ export default function PDFAnnotationEditor({
           )}
         </div>
 
-        {/* ── EVALUATION SIDEBAR (COLLAPSIBLE FOR MAXIMUM TABLET CANVAS SPACE) ── */}
-        {!isSidebarCollapsed && (
-          <div className="w-72 sm:w-80 bg-slate-900 border-l border-slate-800 p-4 flex flex-col justify-between shrink-0 space-y-4 overflow-y-auto">
-            <div className="space-y-4">
-              <div className="border-b border-slate-800 pb-2.5 flex items-center justify-between">
-                <div>
-                  <span className="text-[9px] font-black uppercase text-amber-500 tracking-wider block">
-                    Mains Scorecard
-                  </span>
-                  <h4 className="text-sm font-bold text-white mt-0.5">Evaluation & Feedback</h4>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsSidebarCollapsed(true)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white"
-                  title="Collapse Sidebar"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+        {/* ── EVALUATION SIDEBAR (Standard Card & Clean Layout) ────────── */}
+        {isSidebarOpen && (
+          <aside className="w-80 sm:w-96 bg-white dark:bg-[#0f172a] border-l border-slate-200 dark:border-white/10 flex flex-col justify-between shrink-0 shadow-lg z-10 transition-all duration-200">
+            {/* Top Scorecard Header */}
+            <div className="p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-black uppercase text-blue-700 dark:text-sky-300 tracking-wider block">
+                  Scorecard & Assessment
+                </span>
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">Mains Copy Evaluation</h4>
               </div>
+              <button
+                type="button"
+                onClick={() => setIsSidebarOpen(false)}
+                className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
+                title="Collapse Sidebar"
+              >
+                <PanelRightClose className="w-4 h-4" />
+              </button>
+            </div>
 
-              {/* Marks Allocation */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+            {/* Scrollable Evaluation Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {/* Awarded Marks Input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
                   <span>Awarded Marks</span>
-                  <span className="text-[10px] text-slate-400 font-mono">Max: {maxMarks}</span>
+                  <span className="text-[11px] text-blue-700 dark:text-sky-300 font-mono font-bold">Max Marks: {maxMarks}</span>
                 </label>
                 <div className="relative">
                   <input
@@ -1071,62 +1137,62 @@ export default function PDFAnnotationEditor({
                     placeholder={`0 - ${maxMarks}`}
                     value={marks}
                     onChange={e => setMarks(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-800 border border-slate-700 rounded-xl text-base font-black text-amber-400 outline-none focus:border-amber-500"
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/10 rounded-2xl text-lg font-black text-blue-900 dark:text-sky-300 outline-none focus:border-blue-500 font-mono transition-colors"
                   />
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 font-mono">
                     / {maxMarks}
                   </span>
                 </div>
               </div>
 
-              {/* Detailed Feedback */}
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-300">
-                  Detailed Remarks & Suggestions
+              {/* Detailed Feedback & Remarks */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Comprehensive Review & Feedback
                 </label>
                 <textarea
-                  rows={5}
-                  placeholder="Feedback on introduction, answer framing, factual accuracy, diagrams, and marks deduction details..."
+                  rows={6}
+                  placeholder="Feedback on introduction, demand addressing, answer structuring, diagrams/flowcharts, and forward-looking conclusion..."
                   value={feedback}
                   onChange={e => setFeedback(e.target.value)}
-                  className="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-xl text-xs text-slate-200 outline-none focus:border-amber-500 leading-relaxed font-medium resize-none"
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-white/10 rounded-2xl text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-blue-500 leading-relaxed font-medium resize-none transition-colors"
                 />
               </div>
 
-              {/* Tablet / Pen Usage Guidance */}
-              <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700/60 text-[11px] text-slate-400 space-y-1">
-                <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Tablet & Stylus Ready</span>
+              {/* Stylus Guidance Pill */}
+              <div className="p-3.5 bg-blue-50 dark:bg-blue-500/10 rounded-2xl border border-blue-200 dark:border-blue-500/20 text-xs text-slate-700 dark:text-slate-300 space-y-1">
+                <div className="flex items-center gap-1.5 text-blue-700 dark:text-sky-300 font-bold">
+                  <Sparkles className="w-4 h-4" />
+                  <span>Tablet & Stylus Support</span>
                 </div>
-                <p className="leading-relaxed">
-                  Apple Pencil, Samsung S-Pen, and touch screens are fully supported. Use Red Pen to annotate and Score Stamps for instant marks.
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Use Apple Pencil or Stylus with red pen to correct answers. Tap Score Stamps to award marks right on the page.
                 </p>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="pt-3 border-t border-slate-800 space-y-2">
+            {/* Bottom Actions */}
+            <div className="p-5 border-t border-slate-200 dark:border-white/10 space-y-2.5 bg-slate-50 dark:bg-[#0b101d]">
               <button
                 type="button"
                 disabled={isSaving || loadingPdf}
                 onClick={handleSaveAndExport}
-                className="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                <span>{isSaving ? 'Burning & Uploading...' : 'Save & Revert Checked PDF'}</span>
+                <span>{isSaving ? 'Saving & Publishing...' : 'Publish Checked Copy'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={handleClearPage}
-                className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-red-400 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full py-2 bg-transparent hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 font-bold text-xs rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Clear Markings on Page {currentPage}</span>
               </button>
             </div>
-          </div>
+          </aside>
         )}
       </div>
     </div>
