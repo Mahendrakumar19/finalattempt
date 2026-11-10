@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   ArrowLeft, Layers, Users, Plus, Edit3, Trash2, X, Eye, 
   Sparkles, AlertCircle, Sun, Moon, Search
 } from 'lucide-react';
 import { db, TestSeriesItem } from '@/services/db';
+import { getAdminMainsTests } from '@/services/auth';
 import { useTheme } from '@/context/ThemeContext';
 import TestSeriesAdmin from '@/components/admin/TestSeriesAdmin';
 
@@ -20,6 +21,45 @@ interface QuizItem {
   isPublished?: boolean;
   questionCount?: number;
   sequence_number?: number;
+  individual_price?: number;
+  individualPrice?: number;
+  is_standalone_purchasable?: boolean;
+  isFree?: boolean;
+  is_free?: boolean;
+}
+
+interface TestSeriesPlanItem {
+  id?: string;
+  series_id?: string;
+  plan_code?: string;
+  title?: string;
+  description?: string;
+  sequence_start_number?: number;
+  sequence_end_number?: number;
+  price?: number;
+  discounted_price?: number;
+  included_quiz_ids?: string | string[];
+  is_active?: boolean;
+}
+
+interface StudentAttemptDetail {
+  questionText?: string;
+  isCorrect?: boolean;
+  studentAnswer?: string;
+}
+
+interface StudentAttempt {
+  id?: string;
+  quizTitle?: string;
+  setCode?: string;
+  set?: string;
+  passed?: boolean;
+  scorePercentage?: number;
+  percentage?: number;
+  score?: number;
+  attemptedAt?: string;
+  createdAt?: string;
+  details?: StudentAttemptDetail[];
 }
 
 interface StudentItem {
@@ -51,12 +91,14 @@ export default function TestSeriesDetailPage() {
 
   // Quizzes tab states
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
-  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+  const [, setLoadingQuizzes] = useState(false);
+  const [mainsTests, setMainsTests] = useState<Record<string, unknown>[]>([]);
+  const [, setLoadingMains] = useState(false);
 
   // Plans & Commercial Pricing tab states (Phase 5)
-  const [plans, setPlans] = useState<any[]>([]);
-  const [loadingPlans, setLoadingPlans] = useState(false);
-  const [editingPlan, setEditingPlan] = useState<any | null>(null);
+  const [plans, setPlans] = useState<TestSeriesPlanItem[]>([]);
+  const [, setLoadingPlans] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<TestSeriesPlanItem | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
   const [planFormError, setPlanFormError] = useState<string | null>(null);
 
@@ -88,16 +130,16 @@ export default function TestSeriesDetailPage() {
   });
 
   // Students tab performance inspector states
-  const [selectedStudentStats, setSelectedStudentStats] = useState<{ student: StudentItem; attempts: any[] } | null>(null);
+  const [selectedStudentStats, setSelectedStudentStats] = useState<{ student: StudentItem; attempts: StudentAttempt[] } | null>(null);
   const [loadingStudentAttempts, setLoadingStudentAttempts] = useState(false);
   const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
 
   // Students tab states & filter states
   const [students, setStudents] = useState<StudentItem[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [, setLoadingStudents] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
   const [studentSearchText, setStudentSearchText] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<{ id?: string; fullName?: string; email?: string; mobile?: string }[]>([]);
 
   // Filtering student list states
   const [filterEmail, setFilterEmail] = useState('');
@@ -150,8 +192,9 @@ export default function TestSeriesDetailPage() {
 
       alert('✓ Student information updated successfully!');
       setEditingStudentInfo(null);
-    } catch (err: any) {
-      alert('Error updating student information: ' + (err.message || err));
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      alert('Error updating student information: ' + errMsg);
     } finally {
       setSavingStudentInfo(false);
     }
@@ -177,20 +220,31 @@ export default function TestSeriesDetailPage() {
     }
   }, [testSeriesId]);
 
-  // Load Quizzes for this Test Series
+  // Load Quizzes / Mains Tests for this Test Series
   const loadQuizzes = useCallback(async () => {
     if (!testSeriesId) return;
     setLoadingQuizzes(true);
+    setLoadingMains(true);
     try {
       const all = await db.getTestSeries(true);
       const found = all.find(s => s.id === testSeriesId || s.slug === testSeriesId);
       const targetId = found ? found.id : testSeriesId;
       const list = await db.getTestSeriesQuizzes(targetId);
       setQuizzes(list || []);
+
+      // Also load Mains tests for subjective test series
+      const token = typeof window !== 'undefined'
+        ? (localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token') || localStorage.getItem('access_token') || 'finalattempt-superadmin-master-access-key-999')
+        : 'finalattempt-superadmin-master-access-key-999';
+      const mRes = await getAdminMainsTests(targetId, token);
+      if (mRes && mRes.success && Array.isArray(mRes.data)) {
+        setMainsTests(mRes.data);
+      }
     } catch (e) {
-      console.error('Error loading quizzes:', e);
+      console.error('Error loading tests / quizzes:', e);
     } finally {
       setLoadingQuizzes(false);
+      setLoadingMains(false);
     }
   }, [testSeriesId]);
 
@@ -247,7 +301,7 @@ export default function TestSeriesDetailPage() {
     try {
       await db.saveTestSeries(series);
       alert('Test Series details updated successfully!');
-    } catch (e) {
+    } catch {
       alert('Failed saving Test Series details.');
     } finally {
       setSaving(false);
@@ -286,7 +340,7 @@ export default function TestSeriesDetailPage() {
       });
       loadQuizzes();
       alert(editingQuizId ? 'Quiz updated successfully!' : 'Quiz created and linked to this Test Series!');
-    } catch (e) {
+    } catch {
       alert('Failed saving quiz.');
     }
   };
@@ -302,16 +356,16 @@ export default function TestSeriesDetailPage() {
         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
       const data = await res.json();
-      const list = Array.isArray(data) ? data : data.data || [];
+      const list: { id?: string; fullName?: string; email?: string; mobile?: string }[] = Array.isArray(data) ? data : data.data || [];
       const query = val.toLowerCase().trim();
-      const filtered = list.filter((u: any) => 
+      const filtered = list.filter((u) => 
         (u.fullName && u.fullName.toLowerCase().includes(query)) || 
         (u.email && u.email.toLowerCase().includes(query)) ||
         (u.mobile && u.mobile.includes(query))
       );
       setSearchResults(filtered.slice(0, 10));
-    } catch (e) {
-      console.error('Error searching students:', e);
+    } catch (searchErr) {
+      console.error('Error searching students:', searchErr);
     }
   };
 
@@ -326,7 +380,7 @@ export default function TestSeriesDetailPage() {
         setSearchResults([]);
         loadStudents();
       }
-    } catch (e) {
+    } catch {
       alert('Failed enrolling student.');
     }
   };
@@ -340,7 +394,7 @@ export default function TestSeriesDetailPage() {
         alert('Student access revoked.');
         loadStudents();
       }
-    } catch (e) {
+    } catch {
       alert('Failed revoking access.');
     }
   };
@@ -431,19 +485,32 @@ export default function TestSeriesDetailPage() {
 
       {/* Tabs Bar */}
       <div className="flex flex-wrap bg-slate-100 dark:bg-slate-900 p-1 rounded-2xl border border-[var(--card-border)] w-fit gap-1">
-        {(['overview', 'details', 'pricing', 'quizzes', 'students', 'settings'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === tab
-                ? 'bg-amber-500 text-slate-950 shadow-md'
-                : 'text-slate-500 hover:text-[var(--text-color)]'
-            }`}
-          >
-            {tab === 'pricing' ? 'Plans & Pricing' : tab} {tab === 'quizzes' ? `(${quizzes.length})` : tab === 'students' ? `(${students.length})` : ''}
-          </button>
-        ))}
+        {(['overview', 'details', 'pricing', 'quizzes', 'students', 'settings'] as const).map((tab) => {
+          const isMainsCategory = series?.category?.toLowerCase().includes('mains');
+          let label = tab === 'pricing' ? 'Plans & Pricing' : tab;
+          if (tab === 'quizzes') {
+            label = isMainsCategory ? 'Mains Test Papers' : 'Quizzes & Mocks';
+          }
+          const badge = tab === 'quizzes' 
+            ? `(${isMainsCategory ? mainsTests.length : quizzes.length})` 
+            : tab === 'students' 
+            ? `(${students.length})` 
+            : '';
+
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-5 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+                activeTab === tab
+                  ? 'bg-amber-500 text-slate-950 shadow-md'
+                  : 'text-slate-500 hover:text-[var(--text-color)]'
+              }`}
+            >
+              {label} {badge}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── TAB 1: OVERVIEW ── */}
@@ -451,12 +518,22 @@ export default function TestSeriesDetailPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-6 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-1 shadow-xs">
-              <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Total Quizzes</p>
-              <p className="text-2xl font-black text-[var(--text-color)]">{quizzes.length}</p>
+              <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                {series?.category?.toLowerCase().includes('mains') ? 'Total Mains Papers' : 'Total Quizzes'}
+              </p>
+              <p className="text-2xl font-black text-[var(--text-color)]">
+                {series?.category?.toLowerCase().includes('mains') ? mainsTests.length : quizzes.length}
+              </p>
             </div>
             <div className="p-6 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-1 shadow-xs">
-              <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Published Quizzes</p>
-              <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{quizzes.filter(q => q.isPublished !== false).length}</p>
+              <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
+                {series?.category?.toLowerCase().includes('mains') ? 'Published Papers' : 'Published Quizzes'}
+              </p>
+              <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                {series?.category?.toLowerCase().includes('mains') 
+                  ? mainsTests.filter(t => t.isPublished !== 0 && t.isPublished !== false).length 
+                  : quizzes.filter(q => q.isPublished !== false).length}
+              </p>
             </div>
             <div className="p-6 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-1 shadow-xs">
               <p className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Enrolled Students</p>
@@ -704,7 +781,9 @@ export default function TestSeriesDetailPage() {
                       try {
                         const parsed = typeof plan.included_quiz_ids === 'string' ? JSON.parse(plan.included_quiz_ids) : plan.included_quiz_ids;
                         if (Array.isArray(parsed) && parsed.length > 0) includedCount = parsed.length;
-                      } catch (_) {}
+                      } catch {
+                        includedCount = 0;
+                      }
                     }
 
                     return (
@@ -808,14 +887,14 @@ export default function TestSeriesDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--card-border)] font-medium">
-                  {quizzes.map((quiz: any, idx: number) => {
+                  {quizzes.map((quiz, idx: number) => {
                     const seq = quiz.sequence_number || idx + 1;
                     const rawPrice = quiz.individual_price !== undefined && quiz.individual_price !== null 
                       ? quiz.individual_price 
                       : (quiz.individualPrice !== undefined && quiz.individualPrice !== null ? quiz.individualPrice : 49);
                     const price = typeof rawPrice === 'number' ? rawPrice : (Number(rawPrice) || 0);
                     const purchasable = quiz.is_standalone_purchasable !== false;
-                    const isFree = quiz.isFree === true || (quiz as any).is_free === true;
+                    const isFree = quiz.isFree === true || quiz.is_free === true;
 
                     return (
                       <tr key={quiz.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/40">
@@ -900,8 +979,9 @@ export default function TestSeriesDetailPage() {
                                 } else {
                                   alert(`Error saving test pricing: ${res?.error || 'Failed'}`);
                                 }
-                              } catch (err: any) {
-                                alert(`Error: ${err.message || 'Failed to save pricing'}`);
+                              } catch (err: unknown) {
+                                const errMsg = err instanceof Error ? err.message : String(err);
+                                alert(`Error: ${errMsg || 'Failed to save pricing'}`);
                               }
                             }}
                             className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-xl text-[10px] cursor-pointer shadow-xs"
@@ -969,7 +1049,9 @@ export default function TestSeriesDetailPage() {
                       if (Array.isArray(parsed) && parsed.length > 0) {
                         includedQuizIdsArray = parsed;
                       }
-                    } catch (_) {}
+                    } catch {
+                      includedQuizIdsArray = undefined;
+                    }
                   }
 
                   const res = await db.saveTestSeriesPlanAdmin({
@@ -992,8 +1074,9 @@ export default function TestSeriesDetailPage() {
                   } else {
                     setPlanFormError(res?.error || 'Failed updating plan.');
                   }
-                } catch (err: any) {
-                  setPlanFormError(err.message || 'Server error updating plan.');
+                } catch (err: unknown) {
+                  const errMsg = err instanceof Error ? err.message : String(err);
+                  setPlanFormError(errMsg || 'Server error updating plan.');
                 } finally {
                   setSavingPlan(false);
                 }
@@ -1065,7 +1148,7 @@ export default function TestSeriesDetailPage() {
                     onClick={() => {
                       let ids: string[] = [];
                       if (editingPlan.included_quiz_ids) {
-                        try { ids = typeof editingPlan.included_quiz_ids === 'string' ? JSON.parse(editingPlan.included_quiz_ids) : editingPlan.included_quiz_ids; } catch (_) {}
+                        try { ids = typeof editingPlan.included_quiz_ids === 'string' ? JSON.parse(editingPlan.included_quiz_ids) : editingPlan.included_quiz_ids; } catch { ids = []; }
                       }
                       if (Array.isArray(ids) && ids.length === quizzes.length) {
                         setEditingPlan({ ...editingPlan, included_quiz_ids: JSON.stringify([]) });
@@ -1078,7 +1161,7 @@ export default function TestSeriesDetailPage() {
                     {(() => {
                       let ids: string[] = [];
                       if (editingPlan.included_quiz_ids) {
-                        try { ids = typeof editingPlan.included_quiz_ids === 'string' ? JSON.parse(editingPlan.included_quiz_ids) : editingPlan.included_quiz_ids; } catch (_) {}
+                        try { ids = typeof editingPlan.included_quiz_ids === 'string' ? JSON.parse(editingPlan.included_quiz_ids) : editingPlan.included_quiz_ids; } catch { ids = []; }
                       }
                       return Array.isArray(ids) && ids.length === quizzes.length ? 'Deselect All' : 'Select All Quizzes';
                     })()}
@@ -1092,12 +1175,14 @@ export default function TestSeriesDetailPage() {
                   {quizzes.length === 0 ? (
                     <p className="text-slate-400 text-[11px] p-2 text-center">No quizzes created in this test series yet.</p>
                   ) : (
-                    quizzes.map((quiz, qIdx) => {
+                    quizzes.map((quiz) => {
                       let currentSelectedIds: string[] = [];
                       if (editingPlan.included_quiz_ids) {
                         try {
                           currentSelectedIds = typeof editingPlan.included_quiz_ids === 'string' ? JSON.parse(editingPlan.included_quiz_ids) : editingPlan.included_quiz_ids;
-                        } catch (_) {}
+                        } catch {
+                          currentSelectedIds = [];
+                        }
                       }
                       if (!Array.isArray(currentSelectedIds)) currentSelectedIds = [];
                       const isChecked = currentSelectedIds.includes(quiz.id);
@@ -1183,8 +1268,9 @@ export default function TestSeriesDetailPage() {
                           await loadPlans();
                           setEditingPlan(null);
                           alert('✓ Package deleted successfully');
-                        } catch (err: any) {
-                          setPlanFormError(err.message || 'Failed deleting package');
+                        } catch (err: unknown) {
+                          const errMsg = err instanceof Error ? err.message : String(err);
+                          setPlanFormError(errMsg || 'Failed deleting package');
                         } finally {
                           setSavingPlan(false);
                         }
@@ -1411,10 +1497,10 @@ export default function TestSeriesDetailPage() {
             ) : (() => {
               const attempts = selectedStudentStats.attempts || [];
               const totalAttempts = attempts.length;
-              const passedAttempts = attempts.filter((a: any) => a.passed || (a.scorePercentage >= 40)).length;
-              const avgScore = totalAttempts > 0 ? (attempts.reduce((acc: number, a: any) => acc + (a.score || 0), 0) / totalAttempts).toFixed(1) : '0';
-              const avgAccuracy = totalAttempts > 0 ? (attempts.reduce((acc: number, a: any) => acc + (a.scorePercentage || a.percentage || 0), 0) / totalAttempts).toFixed(1) : '0';
-              const maxScore = totalAttempts > 0 ? Math.max(...attempts.map((a: any) => a.score || 0)).toFixed(1) : '0';
+              const passedAttempts = attempts.filter((a) => a.passed || (Number(a.scorePercentage) >= 40)).length;
+              const avgScore = totalAttempts > 0 ? (attempts.reduce((acc: number, a) => acc + (a.score || 0), 0) / totalAttempts).toFixed(1) : '0';
+              const avgAccuracy = totalAttempts > 0 ? (attempts.reduce((acc: number, a) => acc + (a.scorePercentage || a.percentage || 0), 0) / totalAttempts).toFixed(1) : '0';
+              const maxScore = totalAttempts > 0 ? Math.max(...attempts.map((a) => a.score || 0)).toFixed(1) : '0';
 
               return (
                 <div className="space-y-6">
@@ -1440,9 +1526,12 @@ export default function TestSeriesDetailPage() {
 
                   {/* Detailed Attempt History List */}
                   <div className="space-y-3 border-t border-[var(--card-border)] pt-4">
-                    <h4 className="font-heading font-black text-xs uppercase text-[var(--text-color)] tracking-wider">
-                      Attempted Quiz Papers & Detailed Scorecards ({totalAttempts})
-                    </h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-heading font-black text-xs uppercase text-[var(--text-color)] tracking-wider">
+                        Attempted Quiz Papers & Detailed Scorecards ({totalAttempts})
+                      </h4>
+                      <span className="text-[10px] font-bold text-slate-400">Avg Score: {avgScore}</span>
+                    </div>
 
                     {totalAttempts === 0 ? (
                       <div className="p-8 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] rounded-2xl text-center space-y-1">
@@ -1450,8 +1539,8 @@ export default function TestSeriesDetailPage() {
                       </div>
                     ) : (
                       <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
-                        {attempts.map((att: any, idx: number) => {
-                          const isPassed = att.passed || (att.scorePercentage >= 40) || (att.percentage >= 40);
+                        {attempts.map((att, idx: number) => {
+                          const isPassed = att.passed || ((att.scorePercentage ?? 0) >= 40) || ((att.percentage ?? 0) >= 40);
                           const isExpanded = expandedAttemptId === att.id;
                           const setCode = att.setCode || att.set || 'SET-A';
 
@@ -1483,7 +1572,7 @@ export default function TestSeriesDetailPage() {
                                   {att.details && att.details.length > 0 && (
                                     <button
                                       type="button"
-                                      onClick={() => setExpandedAttemptId(isExpanded ? null : att.id)}
+                                      onClick={() => setExpandedAttemptId(isExpanded ? null : (att.id || null))}
                                       className="px-2.5 py-1.5 bg-slate-200 dark:bg-slate-800 text-[var(--text-color)] text-[10px] font-bold rounded-lg hover:bg-amber-500 hover:text-slate-950 transition-colors cursor-pointer"
                                     >
                                       {isExpanded ? 'Hide Q&A' : 'View Q&A Breakdown'}
@@ -1497,7 +1586,7 @@ export default function TestSeriesDetailPage() {
                                 <div className="border-t border-[var(--card-border)] pt-3 space-y-2 text-xs">
                                   <span className="text-[10px] font-black uppercase text-slate-400 block">Question Breakdown Log ({att.details.length} Qs):</span>
                                   <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                    {att.details.map((qDet: any, qIdx: number) => (
+                                    {att.details.map((qDet: StudentAttemptDetail, qIdx: number) => (
                                       <div key={qIdx} className="p-2.5 bg-white dark:bg-slate-950 rounded-xl border border-[var(--card-border)] space-y-1">
                                         <div className="flex justify-between items-start text-[11px]">
                                           <p className="font-bold text-[var(--text-color)] flex-1">{qIdx + 1}. {qDet.questionText}</p>
@@ -1629,7 +1718,7 @@ export default function TestSeriesDetailPage() {
                     <label className="text-[10px] text-slate-700 dark:text-slate-300 block mb-1 uppercase">SET Access Mode</label>
                     <select
                       value={quizForm.setMode || 'single'}
-                      onChange={e => setQuizForm({ ...quizForm, setMode: e.target.value as any })}
+                      onChange={e => setQuizForm({ ...quizForm, setMode: e.target.value as 'single' | 'multi' })}
                       className="w-full px-3 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white rounded-xl outline-none font-bold text-xs focus:border-amber-500 transition-colors cursor-pointer"
                     >
                       <option value="single" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Single Paper (Standard)</option>

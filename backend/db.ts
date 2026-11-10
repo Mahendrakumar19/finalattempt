@@ -994,6 +994,10 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     // Dynamically ensure new Mains columns exist on lms_assignments & lms_assignment_submissions
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN testSeriesId VARCHAR(255) NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN questionPaperUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN answerBookletUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN modelAnswerUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN discussionVideoUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN syllabusPdfUrl TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN syllabus TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN status VARCHAR(50) DEFAULT 'Submitted'"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedCopyUrl TEXT NULL"); } catch (e) {}
@@ -6325,45 +6329,125 @@ class LmsDB {
       title: data.title,
       description: data.description || '',
       questionPaperUrl: data.questionPaperUrl || '',
+      answerBookletUrl: data.answerBookletUrl || '',
+      modelAnswerUrl: data.modelAnswerUrl || '',
+      discussionVideoUrl: data.discussionVideoUrl || '',
+      syllabusPdfUrl: data.syllabusPdfUrl || '',
       syllabus: data.syllabus || '',
       dueDate: data.dueDate || '',
       maxMarks: Number(data.maxMarks || 100),
       submissionType: data.submissionType || 'pdf',
-      isPublished: data.isPublished ? 1 : 0
+      isPublished: data.isPublished !== undefined ? (data.isPublished ? 1 : 0) : 1
     };
 
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_assignments (id, courseId, testSeriesId, lessonId, title, description, questionPaperUrl, syllabus, dueDate, maxMarks, submissionType, isPublished) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [assign.id, assign.courseId, assign.testSeriesId, assign.lessonId, assign.title, assign.description, assign.questionPaperUrl, assign.syllabus, assign.dueDate, assign.maxMarks, assign.submissionType, assign.isPublished]
+          'INSERT INTO lms_assignments (id, courseId, testSeriesId, lessonId, title, description, questionPaperUrl, answerBookletUrl, modelAnswerUrl, discussionVideoUrl, syllabusPdfUrl, syllabus, dueDate, maxMarks, submissionType, isPublished) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [assign.id, assign.courseId, assign.testSeriesId, assign.lessonId, assign.title, assign.description, assign.questionPaperUrl, assign.answerBookletUrl, assign.modelAnswerUrl, assign.discussionVideoUrl, assign.syllabusPdfUrl, assign.syllabus, assign.dueDate, assign.maxMarks, assign.submissionType, assign.isPublished]
         );
+        if (assign.testSeriesId) {
+          await this.syncTestSeriesTestCount(assign.testSeriesId);
+        }
         return assign;
       } catch (err) { console.error('[LmsDB] createAssignment MySQL error:', err); }
+    }
+    // Also save in local store fallback
+    const store = getLocalStore();
+    if (!store.lmsAssignments) store.lmsAssignments = [];
+    const idx = store.lmsAssignments.findIndex((a: any) => a.id === id);
+    if (idx >= 0) store.lmsAssignments[idx] = assign;
+    else store.lmsAssignments.unshift(assign);
+    saveLocalStore(store);
+    if (assign.testSeriesId) {
+      await this.syncTestSeriesTestCount(assign.testSeriesId);
     }
     return assign;
   }
 
+  async syncTestSeriesTestCount(testSeriesId: string): Promise<void> {
+    if (!testSeriesId) return;
+    try {
+      if (mysqlPool) {
+        // Count published assignments for this test series
+        const [assignRows]: any = await mysqlPool.query(
+          'SELECT COUNT(*) as count FROM lms_assignments WHERE (testSeriesId = ? OR courseId = ?) AND isPublished = 1',
+          [testSeriesId, testSeriesId]
+        );
+        const count = assignRows?.[0]?.count ? Number(assignRows[0].count) : 0;
+        if (count > 0) {
+          await mysqlPool.query('UPDATE TestSeries SET totalTests = ? WHERE id = ? OR slug = ?', [count, testSeriesId, testSeriesId]);
+        }
+      }
+      // Also sync local store
+      const store = getLocalStore();
+      if (store.testSeries) {
+        const found = store.testSeries.find((ts: any) => ts.id === testSeriesId || ts.slug === testSeriesId);
+        if (found) {
+          const assignments = (store.lmsAssignments || []).filter((a: any) => 
+            (a.testSeriesId === testSeriesId || a.courseId === testSeriesId) && a.isPublished !== 0
+          );
+          if (assignments.length > 0) {
+            found.totalTests = assignments.length;
+            saveLocalStore(store);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[LmsDB] syncTestSeriesTestCount error:', err);
+    }
+  }
+
   async updateAssignment(id: string, data: any): Promise<boolean> {
+    const existing = await this.getAssignmentById(id);
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'UPDATE lms_assignments SET title = ?, description = ?, questionPaperUrl = ?, syllabus = ?, dueDate = ?, maxMarks = ?, submissionType = ?, isPublished = ? WHERE id = ?',
-          [data.title, data.description, data.questionPaperUrl || '', data.syllabus || '', data.dueDate, Number(data.maxMarks || 100), data.submissionType, data.isPublished ? 1 : 0, id]
+          'UPDATE lms_assignments SET title = ?, description = ?, questionPaperUrl = ?, answerBookletUrl = ?, modelAnswerUrl = ?, discussionVideoUrl = ?, syllabusPdfUrl = ?, syllabus = ?, dueDate = ?, maxMarks = ?, submissionType = ?, isPublished = ? WHERE id = ?',
+          [data.title, data.description, data.questionPaperUrl || '', data.answerBookletUrl || '', data.modelAnswerUrl || '', data.discussionVideoUrl || '', data.syllabusPdfUrl || '', data.syllabus || '', data.dueDate, Number(data.maxMarks || 100), data.submissionType, data.isPublished ? 1 : 0, id]
         );
-        return true;
+        const targetSeriesId = data.testSeriesId || existing?.testSeriesId;
+        if (targetSeriesId) {
+          await this.syncTestSeriesTestCount(targetSeriesId);
+        }
       } catch (err) { console.error('[LmsDB] updateAssignment MySQL error:', err); }
+    }
+    // Local store fallback
+    const store = getLocalStore();
+    if (!store.lmsAssignments) store.lmsAssignments = [];
+    const found = store.lmsAssignments.find((a: any) => a.id === id);
+    if (found) {
+      Object.assign(found, data);
+      if (data.maxMarks !== undefined) found.maxMarks = Number(data.maxMarks);
+      if (data.isPublished !== undefined) found.isPublished = data.isPublished ? 1 : 0;
+      saveLocalStore(store);
+      const targetSeriesId = data.testSeriesId || existing?.testSeriesId || found.testSeriesId;
+      if (targetSeriesId) {
+        await this.syncTestSeriesTestCount(targetSeriesId);
+      }
     }
     return true;
   }
 
   async deleteAssignment(id: string): Promise<boolean> {
+    const existing = await this.getAssignmentById(id);
+    const targetSeriesId = existing?.testSeriesId || existing?.courseId;
     if (mysqlPool) {
       try {
         await mysqlPool.query('DELETE FROM lms_assignments WHERE id = ?', [id]);
         await mysqlPool.query('DELETE FROM lms_assignment_submissions WHERE assignmentId = ?', [id]);
-        return true;
+        if (targetSeriesId) {
+          await this.syncTestSeriesTestCount(targetSeriesId);
+        }
       } catch (err) { console.error('[LmsDB] deleteAssignment MySQL error:', err); }
+    }
+    const store = getLocalStore();
+    if (store.lmsAssignments) {
+      store.lmsAssignments = store.lmsAssignments.filter((a: any) => a.id !== id);
+      saveLocalStore(store);
+      if (targetSeriesId) {
+        await this.syncTestSeriesTestCount(targetSeriesId);
+      }
     }
     return true;
   }
@@ -6380,11 +6464,30 @@ class LmsDB {
     if (found) return found;
 
     // Default open practice test fallback so students can always submit
-    if (id === 'general-mains-practice' || id === 'apssb-combined-mains-test-01') {
+    const fallbackMap: Record<string, { title: string; maxMarks: number }> = {
+      'general-mains-practice': {
+        title: 'General Mains Answer Writing / Open Practice (GS & Optional)',
+        maxMarks: 100
+      },
+      'bpsc-mains-gs1-test-01': {
+        title: '71st BPSC Mains GS Paper I - Full Length Mock Test 01',
+        maxMarks: 300
+      },
+      'bpsc-mains-gs2-test-02': {
+        title: '71st BPSC Mains GS Paper II - Full Length Mock Test 02',
+        maxMarks: 300
+      },
+      'apssb-combined-mains-test-01': {
+        title: 'APSSB Combined Recruitment Mains Descriptive Paper 01',
+        maxMarks: 100
+      }
+    };
+
+    if (fallbackMap[id]) {
       return {
         id,
-        title: id === 'general-mains-practice' ? 'General Mains Answer Writing / Open Practice' : 'APSSB Combined Recruitment Mains Descriptive Paper 01',
-        maxMarks: 100,
+        title: fallbackMap[id].title,
+        maxMarks: fallbackMap[id].maxMarks,
         isPublished: 1
       };
     }
@@ -6401,15 +6504,21 @@ class LmsDB {
     return [];
   }
 
-  async getAssignmentsByTestSeriesId(testSeriesId: string): Promise<any[]> {
+  async getAssignmentsByTestSeriesId(testSeriesId: string, includeUnpublished = false): Promise<any[]> {
     if (mysqlPool) {
       try {
-        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_assignments WHERE (testSeriesId = ? OR courseId = ?) AND isPublished = 1 ORDER BY createdAt DESC', [testSeriesId, testSeriesId]);
+        const query = includeUnpublished
+          ? 'SELECT * FROM lms_assignments WHERE (testSeriesId = ? OR courseId = ?) ORDER BY createdAt DESC'
+          : 'SELECT * FROM lms_assignments WHERE (testSeriesId = ? OR courseId = ?) AND isPublished = 1 ORDER BY createdAt DESC';
+        const [rows]: any = await mysqlPool.query(query, [testSeriesId, testSeriesId]);
         if (rows && rows.length > 0) return rows;
       } catch (err) { console.error('[LmsDB] getAssignmentsByTestSeriesId MySQL error:', err); }
     }
     const store = (getLocalStore() as any)?.lmsAssignments || [];
-    return store.filter((a: any) => (a.testSeriesId === testSeriesId || a.courseId === testSeriesId) && a.isPublished !== 0);
+    return store.filter((a: any) => {
+      const match = a.testSeriesId === testSeriesId || a.courseId === testSeriesId;
+      return includeUnpublished ? match : (match && a.isPublished !== 0);
+    });
   }
 
   async getAllMainsAssignments(): Promise<any[]> {

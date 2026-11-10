@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 import StudentPortalShell from '@/components/StudentPortalShell';
 import { db, type TestSeriesItem } from '@/services/db';
-import { getMainsTests, submitMainsCopy, getMyMainsSubmissions } from '@/services/auth';
+import { getMainsTests, submitMainsCopy, getMyMainsSubmissions, checkEnrollment } from '@/services/auth';
 
 interface MainsTestItem {
   id: string;
@@ -19,6 +19,9 @@ interface MainsTestItem {
   dueDate?: string;
   maxMarks?: number;
   questionPaperUrl?: string;
+  answerBookletUrl?: string;
+  modelAnswerUrl?: string;
+  discussionVideoUrl?: string;
   syllabus?: string;
   testSeriesId?: string;
 }
@@ -54,6 +57,8 @@ export default function UploadMainsCopyPage() {
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [submittingCopy, setSubmittingCopy] = useState(false);
   const [validationError, setValidationError] = useState<string>('');
+  const [isSeriesEnrolled, setIsSeriesEnrolled] = useState<boolean>(true);
+  const [checkingEnrollment, setCheckingEnrollment] = useState<boolean>(false);
 
   const [mySubmissions, setMySubmissions] = useState<StudentSubmission[]>([]);
   const [loadingSubmissions, setLoadingSubmissions] = useState(true);
@@ -147,10 +152,29 @@ export default function UploadMainsCopyPage() {
     };
     loadTests();
 
+    // Verify enrollment for selected series
+    if (selectedSeriesId && accessToken) {
+      setCheckingEnrollment(true);
+      checkEnrollment(selectedSeriesId, accessToken)
+        .then(res => {
+          if (!isCancelled) {
+            setIsSeriesEnrolled(!!res.data?.enrolled);
+          }
+        })
+        .catch(() => {
+          if (!isCancelled) setIsSeriesEnrolled(true);
+        })
+        .finally(() => {
+          if (!isCancelled) setCheckingEnrollment(false);
+        });
+    } else {
+      setIsSeriesEnrolled(true);
+    }
+
     return () => {
       isCancelled = true;
     };
-  }, [selectedSeriesId]);
+  }, [selectedSeriesId, accessToken]);
 
   // Fetch Student Submissions
   const loadSubmissions = useCallback(async () => {
@@ -385,9 +409,9 @@ export default function UploadMainsCopyPage() {
                   )}
                 </div>
 
-                {/* Selected Test Details Preview Box */}
+                {/* Selected Test Details Preview Box (Vision IAS Architecture) */}
                 {selectedTest && (
-                  <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-2 text-xs">
+                  <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3 text-xs">
                     <div className="flex items-center justify-between font-bold text-indigo-600 dark:text-indigo-400">
                       <span>{selectedTest.title}</span>
                       <span>Max Marks: {selectedTest.maxMarks || 100}</span>
@@ -395,16 +419,53 @@ export default function UploadMainsCopyPage() {
                     {selectedTest.description && (
                       <p className="text-slate-500 leading-relaxed text-[11px]">{selectedTest.description}</p>
                     )}
-                    {selectedTest.questionPaperUrl && (
-                      <a
-                        href={selectedTest.questionPaperUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-500 hover:underline pt-1"
-                      >
-                        <Download className="w-3.5 h-3.5" /> Download Question Paper PDF
-                      </a>
+                    {selectedTest.syllabus && (
+                      <p className="text-slate-500 text-[11px]"><span className="font-bold text-slate-400">Syllabus:</span> {selectedTest.syllabus}</p>
                     )}
+
+                    {/* Quick Access to the PDFs for this Test */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-indigo-500/10">
+                      {selectedTest.syllabusPdfUrl && (
+                        <a
+                          href={selectedTest.syllabusPdfUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-400 hover:underline px-2.5 py-1 bg-purple-500/10 rounded-lg border border-purple-500/20"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Syllabus PDF
+                        </a>
+                      )}
+                      {selectedTest.questionPaperUrl && (
+                        <a
+                          href={selectedTest.questionPaperUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-500 hover:underline px-2.5 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Question Paper
+                        </a>
+                      )}
+                      {selectedTest.answerBookletUrl && (
+                        <a
+                          href={selectedTest.answerBookletUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-500 hover:underline px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Answer Booklet
+                        </a>
+                      )}
+                      {selectedTest.modelAnswerUrl && (
+                        <a
+                          href={selectedTest.modelAnswerUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 hover:underline px-2.5 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20"
+                        >
+                          <Download className="w-3.5 h-3.5" /> Model Answer
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -469,6 +530,25 @@ export default function UploadMainsCopyPage() {
                   />
                 </div>
 
+                {/* Non-Enrolled Notice Banner */}
+                {selectedSeriesId && !isSeriesEnrolled && !checkingEnrollment && (
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 space-y-2 text-xs">
+                    <div className="flex items-center gap-2 font-bold">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
+                      <span>Test Series Enrollment Required</span>
+                    </div>
+                    <p className="text-[11px] leading-relaxed">
+                      You are not enrolled in this Test Series program. You must enroll or purchase this series to submit answer copies for expert evaluation.
+                    </p>
+                    <Link
+                      href={`/test-series/${selectedSeriesId}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-[11px] transition-colors"
+                    >
+                      View Plans &amp; Enroll Now ↗
+                    </Link>
+                  </div>
+                )}
+
                 {validationError && (
                   <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -478,15 +558,15 @@ export default function UploadMainsCopyPage() {
 
                 <button
                   type="submit"
-                  disabled={submittingCopy || uploadingPdf || !uploadedUrl}
+                  disabled={submittingCopy || uploadingPdf || !uploadedUrl || (!!selectedSeriesId && !isSeriesEnrolled)}
                   className={`w-full py-4 text-white text-sm font-heading font-black rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all ${
-                    uploadingPdf || submittingCopy || !uploadedUrl
+                    uploadingPdf || submittingCopy || !uploadedUrl || (!!selectedSeriesId && !isSeriesEnrolled)
                       ? 'bg-slate-700 cursor-not-allowed opacity-60'
                       : 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 cursor-pointer'
                   }`}
                 >
                   <CheckCircle className="w-5 h-5" />
-                  {submittingCopy ? t('uploadMains.submitting') : t('uploadMains.submit')}
+                  {submittingCopy ? t('uploadMains.submitting') : (!!selectedSeriesId && !isSeriesEnrolled) ? 'Enrollment Required to Submit' : t('uploadMains.submit')}
                 </button>
               </form>
             </div>

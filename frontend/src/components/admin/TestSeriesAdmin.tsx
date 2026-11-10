@@ -3,9 +3,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Plus, Trash2, Edit3, ChevronDown, ChevronRight, FileText, X, Check,
-  Layers, Sparkles, ArrowUp, ArrowDown, Folder
+  Layers, Sparkles, ArrowUp, ArrowDown, Folder, Download, Video, BookOpen, Upload
 } from 'lucide-react';
 import { db, TestSeriesItem, ExamData } from '@/services/db';
+import {
+  getAdminMainsTests,
+  createAdminMainsTest,
+  updateAdminMainsTest,
+  deleteAdminMainsTest
+} from '@/services/auth';
 import MediaPicker from '@/components/MediaPicker';
 import { sanitizeAndRepairQuestion, renderFormattedQuestionText, stripHtmlTags } from '@/utils/questionFormatter';
 import { formatDateFormatted } from '@/components/TestSeriesComparisonTable';
@@ -169,7 +175,28 @@ export default function TestSeriesAdmin({
   const [editingExam, setEditingExam] = useState<ExamData | null>(null);
   const [savingExam, setSavingExam] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
-  const [mediaPickerTarget, setMediaPickerTarget] = useState<'exam_logo' | 'series_pdf' | 'series_image'>('exam_logo');
+  const [mediaPickerTarget, setMediaPickerTarget] = useState<'exam_logo' | 'series_pdf' | 'series_image' | 'mains_question' | 'mains_booklet' | 'mains_model' | 'mains_syllabus'>('exam_logo');
+
+  // Mains Descriptive Papers Manager States (For Mains category test series)
+  const [mainsTests, setMainsTests] = useState<any[]>([]);
+  const [loadingMainsTests, setLoadingMainsTests] = useState(false);
+  const [showMainsTestModal, setShowMainsTestModal] = useState(false);
+  const [editingMainsTest, setEditingMainsTest] = useState<any | null>(null);
+  const [savingMainsTest, setSavingMainsTest] = useState(false);
+  const [uploadingMainsDoc, setUploadingMainsDoc] = useState<'question' | 'booklet' | 'model' | 'syllabus' | null>(null);
+  const [mainsForm, setMainsForm] = useState({
+    title: '',
+    description: '',
+    syllabus: '',
+    syllabusPdfUrl: '',
+    maxMarks: 100,
+    dueDate: '',
+    questionPaperUrl: '',
+    answerBookletUrl: '',
+    modelAnswerUrl: '',
+    discussionVideoUrl: '',
+    isPublished: true
+  });
 
   // Series Add/Edit Modal
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
@@ -276,6 +303,62 @@ export default function TestSeriesAdmin({
       });
     return () => { isSubscribed = false; };
   }, [initialSeriesId, selectedSeriesId]);
+
+  // Current selected series object
+  const currentSelectedSeries = seriesList.find(s => s.id === selectedSeriesId);
+  const isMainsSeries = currentSelectedSeries?.category?.toLowerCase().includes('mains');
+
+  // Load Mains Tests for selected series
+  const loadMainsTests = useCallback(async () => {
+    if (!selectedSeriesId) return;
+    try {
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('access_token') || localStorage.getItem('token') || '') : '';
+      const res = await getAdminMainsTests(selectedSeriesId, token);
+      if (res && res.success && Array.isArray(res.data)) {
+        setMainsTests(res.data);
+      } else {
+        // Fallback to public mains tests endpoint if admin endpoint returns empty
+        const { getMainsTests } = await import('@/services/auth');
+        const pubRes = await getMainsTests(selectedSeriesId);
+        if (pubRes && pubRes.success && Array.isArray(pubRes.data)) {
+          setMainsTests(pubRes.data);
+        } else {
+          setMainsTests([]);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading mains tests:', err);
+    }
+  }, [selectedSeriesId]);
+
+  useEffect(() => {
+    if (!isMainsSeries || !selectedSeriesId) return;
+    let isSubscribed = true;
+    const token = typeof window !== 'undefined'
+      ? (localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token') || localStorage.getItem('access_token') || 'finalattempt-superadmin-master-access-key-999')
+      : 'finalattempt-superadmin-master-access-key-999';
+    getAdminMainsTests(selectedSeriesId, token)
+      .then(res => {
+        if (!isSubscribed) return;
+        if (res && res.success && Array.isArray(res.data)) {
+          setMainsTests(res.data);
+        } else {
+          import('@/services/auth').then(({ getMainsTests }) => {
+            getMainsTests(selectedSeriesId).then(pubRes => {
+              if (isSubscribed && pubRes && pubRes.success && Array.isArray(pubRes.data)) {
+                setMainsTests(pubRes.data);
+              }
+            });
+          });
+        }
+      })
+      .catch(err => console.error('Error loading mains tests:', err))
+      .finally(() => {
+        if (isSubscribed) setLoadingMainsTests(false);
+      });
+
+    return () => { isSubscribed = false; };
+  }, [isMainsSeries, selectedSeriesId]);
 
   // Sync quizzes when selected test series changes
   useEffect(() => {
@@ -1238,14 +1321,14 @@ export default function TestSeriesAdmin({
         </div>
       )}
 
-      {/* ── SUB-TAB 2: QUIZZES & QUESTION BANK MANAGER ─────────────────────── */}
+      {/* ── SUB-TAB 2: QUIZZES & QUESTION BANK / MAINS PAPERS MANAGER ─────── */}
       {subTab === 'quizzes' && (
         <div className="space-y-6">
           {/* Select Target Test Series Program (Shown only on global tab) */}
           {!initialSeriesId && (
             <div className="bg-[var(--card-bg)] p-6 rounded-3xl border border-[var(--card-border)] shadow-xs space-y-3">
               <label className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                Select Test Series Program to Manage Quizzes
+                Select Test Series Program to Manage {isMainsSeries ? 'Mains Papers' : 'Quizzes'}
               </label>
               <select
                 value={selectedSeriesId}
@@ -1261,12 +1344,255 @@ export default function TestSeriesAdmin({
             </div>
           )}
 
-          {selectedSeriesId && (
+          {/* DYNAMIC BRANCH: IF MAINS SERIES -> SHOW MAINS PAPERS MANAGER (NO QUIZ) */}
+          {selectedSeriesId && isMainsSeries && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-gradient-to-r from-blue-900/20 via-indigo-900/10 to-transparent border border-blue-500/30 rounded-3xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                      Mains Descriptive Architecture
+                    </span>
+                    <span className="text-xs text-slate-400 font-bold">
+                      {currentSelectedSeries?.title}
+                    </span>
+                  </div>
+                  <h4 className="font-heading font-black text-xl text-[var(--text-color)] mt-1.5 flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-blue-400" />
+                    <span>Mains Question Papers &amp; Solution Booklets</span>
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Manage subjective test papers test-wise: upload Question Paper PDF, Answer Booklet PDF, and Model Answer / Solution PDF. No MCQs or Quizzes required.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingMainsTest(null);
+                    setMainsForm({
+                      title: '',
+                      description: '',
+                      syllabus: '',
+                      maxMarks: 100,
+                      dueDate: '',
+                      questionPaperUrl: '',
+                      answerBookletUrl: '',
+                      modelAnswerUrl: '',
+                      discussionVideoUrl: '',
+                      isPublished: true
+                    });
+                    setShowMainsTestModal(true);
+                  }}
+                  className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-2xl transition-all shadow-md cursor-pointer shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Mains Paper</span>
+                </button>
+              </div>
+
+              {loadingMainsTests ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="h-40 rounded-3xl bg-[var(--card-bg)] border border-[var(--card-border)] animate-pulse" />
+                  ))}
+                </div>
+              ) : mainsTests.length === 0 ? (
+                <div className="p-12 rounded-3xl bg-[var(--card-bg)] border border-[var(--card-border)] text-center space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center mx-auto">
+                    <FileText className="w-7 h-7" />
+                  </div>
+                  <h4 className="font-black text-base text-[var(--text-color)]">No Mains Papers Uploaded Yet</h4>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    Click &quot;Add Mains Paper&quot; above to create a descriptive mock paper with its Question PDF, Answer Booklet PDF, and Model Answer PDF.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  {mainsTests.map((t) => (
+                    <div
+                      key={t.id}
+                      className="bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-blue-500/40 rounded-3xl p-6 transition-all shadow-xs flex flex-col justify-between space-y-4"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20 inline-block">
+                              Mains Paper • {t.maxMarks || 100} Marks
+                            </span>
+                            <h4 className="font-heading font-black text-base text-[var(--text-color)] leading-snug">
+                              {t.title}
+                            </h4>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border shrink-0 ${
+                            t.isPublished !== 0
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                              : 'bg-slate-500/10 text-slate-400 border-slate-500/30'
+                          }`}>
+                            {t.isPublished !== 0 ? 'Published' : 'Draft'}
+                          </span>
+                        </div>
+
+                        {t.description && (
+                          <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                            {t.description}
+                          </p>
+                        )}
+
+                        {t.syllabus && (
+                          <div className="text-[11px] text-slate-400 bg-slate-900/40 p-2.5 rounded-xl border border-[var(--card-border)]">
+                            <span className="font-bold text-slate-300">Syllabus:</span> {t.syllabus}
+                          </div>
+                        )}
+
+                        {/* 4 PDFs Badges & Quick Action Links */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                          {/* 1. Syllabus PDF */}
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-purple-400">Syllabus PDF</span>
+                            {t.syllabusPdfUrl ? (
+                              <a
+                                href={t.syllabusPdfUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-1 text-[11px] font-bold text-purple-400 hover:underline flex items-center gap-1 truncate"
+                              >
+                                <Download className="w-3 h-3 shrink-0" /> Syllabus PDF
+                              </a>
+                            ) : (
+                              <span className="mt-1 text-[11px] text-slate-500 italic">No PDF linked</span>
+                            )}
+                          </div>
+
+                          {/* 2. Question Paper */}
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-blue-400">Question Paper</span>
+                            {t.questionPaperUrl ? (
+                              <a
+                                href={t.questionPaperUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-1 text-[11px] font-bold text-blue-400 hover:underline flex items-center gap-1 truncate"
+                              >
+                                <Download className="w-3 h-3 shrink-0" /> View PDF
+                              </a>
+                            ) : (
+                              <span className="mt-1 text-[11px] text-slate-500 italic">Not uploaded</span>
+                            )}
+                          </div>
+
+                          {/* 3. Answer Booklet */}
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400">Answer Booklet</span>
+                            {t.answerBookletUrl ? (
+                              <a
+                                href={t.answerBookletUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-1 text-[11px] font-bold text-amber-400 hover:underline flex items-center gap-1 truncate"
+                              >
+                                <Download className="w-3 h-3 shrink-0" /> Ruled Booklet
+                              </a>
+                            ) : (
+                              <span className="mt-1 text-[11px] text-slate-500 italic">Not uploaded</span>
+                            )}
+                          </div>
+
+                          {/* 4. Model Answer */}
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between">
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Model Answer</span>
+                            {t.modelAnswerUrl ? (
+                              <a
+                                href={t.modelAnswerUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="mt-1 text-[11px] font-bold text-emerald-400 hover:underline flex items-center gap-1 truncate"
+                              >
+                                <Download className="w-3 h-3 shrink-0" /> Solution PDF
+                              </a>
+                            ) : (
+                              <span className="mt-1 text-[11px] text-slate-500 italic">Pending release</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {t.discussionVideoUrl && (
+                          <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-bold">
+                            <Video className="w-3.5 h-3.5" />
+                            <a href={t.discussionVideoUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                              Discussion Video Lecture ↗
+                            </a>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="pt-3 border-t border-[var(--card-border)] flex items-center justify-between">
+                        <span className="text-[11px] text-slate-500 font-bold">
+                          {t.dueDate ? `Due Date: ${new Date(t.dueDate).toLocaleDateString()}` : 'Open Practice'}
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingMainsTest(t);
+                              setMainsForm({
+                                title: t.title || '',
+                                description: t.description || '',
+                                syllabus: t.syllabus || '',
+                                syllabusPdfUrl: t.syllabusPdfUrl || '',
+                                maxMarks: Number(t.maxMarks || 100),
+                                dueDate: t.dueDate ? t.dueDate.split('T')[0] : '',
+                                questionPaperUrl: t.questionPaperUrl || '',
+                                answerBookletUrl: t.answerBookletUrl || '',
+                                modelAnswerUrl: t.modelAnswerUrl || '',
+                                discussionVideoUrl: t.discussionVideoUrl || '',
+                                isPublished: t.isPublished !== 0
+                              });
+                              setShowMainsTestModal(true);
+                            }}
+                            className="px-3 py-1.5 bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Edit Paper</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!confirm(`Are you sure you want to delete "${t.title}"?`)) return;
+                              const token = typeof window !== 'undefined'
+                                ? (localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token') || localStorage.getItem('access_token') || 'finalattempt-superadmin-master-access-key-999')
+                                : 'finalattempt-superadmin-master-access-key-999';
+                              const res = await deleteAdminMainsTest(t.id, token);
+                              if (res && res.success) {
+                                alert('Mains paper deleted successfully!');
+                                loadMainsTests();
+                              } else {
+                                alert(res?.error || 'Failed to delete mains paper.');
+                              }
+                            }}
+                            className="p-1.5 text-red-400 hover:bg-red-500/10 rounded-xl transition-colors cursor-pointer"
+                            title="Delete paper"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* DYNAMIC BRANCH: IF PRELIMS / NON-MAINS -> SHOW STANDARD QUIZ & QUESTION BANK */}
+          {selectedSeriesId && !isMainsSeries && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-heading font-black text-base text-[var(--text-color)]">
-                    Quizzes & Mock Papers
+                    Quizzes &amp; Mock Papers
                   </h4>
                   <p className="text-xs text-slate-500">
                     {quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''} configured for this test series program.
@@ -1643,6 +1969,469 @@ export default function TestSeriesAdmin({
         </div>
       )}
 
+      {/* ── CREATE / EDIT MAINS PAPER MODAL ───────────────────────────────── */}
+      {showMainsTestModal && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!mainsForm.title.trim()) {
+                alert('Please enter a test paper title.');
+                return;
+              }
+              if (!selectedSeriesId) {
+                alert('No test series selected.');
+                return;
+              }
+
+              setSavingMainsTest(true);
+              try {
+                const token = typeof window !== 'undefined'
+                  ? (localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token') || localStorage.getItem('access_token') || 'finalattempt-superadmin-master-access-key-999')
+                  : 'finalattempt-superadmin-master-access-key-999';
+                const payload = {
+                  ...mainsForm,
+                  testSeriesId: selectedSeriesId,
+                  maxMarks: Number(mainsForm.maxMarks || 100)
+                };
+
+                let res;
+                if (editingMainsTest) {
+                  res = await updateAdminMainsTest(editingMainsTest.id, payload, token);
+                } else {
+                  res = await createAdminMainsTest(payload, token);
+                }
+
+                if (res && res.success) {
+                  alert(editingMainsTest ? 'Mains paper updated successfully!' : 'Mains paper created successfully!');
+                  setShowMainsTestModal(false);
+                  loadMainsTests();
+                } else {
+                  alert(res?.error || 'Failed to save mains paper.');
+                }
+              } catch (err: any) {
+                alert('Error saving mains paper: ' + (err.message || err));
+              } finally {
+                setSavingMainsTest(false);
+              }
+            }}
+            className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
+                  Mains Subjective Paper
+                </span>
+                <h3 className="font-heading font-black text-lg text-[var(--text-color)]">
+                  {editingMainsTest ? 'Edit Mains Test Paper' : 'Add New Mains Test Paper'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMainsTestModal(false)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-[var(--text-color)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">
+                  Test Paper Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 71st BPSC Mains GS Paper I - Full Length Mock 01"
+                  value={mainsForm.title}
+                  onChange={e => setMainsForm({ ...mainsForm, title: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">
+                    Maximum Marks
+                  </label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="1000"
+                    value={mainsForm.maxMarks}
+                    onChange={e => setMainsForm({ ...mainsForm, maxMarks: Number(e.target.value) })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">
+                    Submission Due Date (Optional)
+                  </label>
+                  <input
+                    type="date"
+                    value={mainsForm.dueDate}
+                    onChange={e => setMainsForm({ ...mainsForm, dueDate: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">
+                  Syllabus Coverage / Topics
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Modern History of India, Bihar's Art & Culture, Current National Events, Statistical Analysis"
+                  value={mainsForm.syllabus}
+                  onChange={e => setMainsForm({ ...mainsForm, syllabus: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-400 font-bold mb-1">
+                  Instructions / Description
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Total 8 questions to be answered. Word limit for 38-mark questions is 400 words."
+                  value={mainsForm.description}
+                  onChange={e => setMainsForm({ ...mainsForm, description: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                />
+              </div>
+
+              {/* ──────────────── 4 MAINS PDF UPLOADERS ──────────────── */}
+              <div className="space-y-4 pt-3 border-t border-[var(--card-border)]">
+                <h4 className="font-heading font-black text-sm text-[var(--text-color)] flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-400" />
+                  <span>Mains Documents &amp; PDFs (Test-wise)</span>
+                </h4>
+
+                {/* 1. Syllabus PDF */}
+                <div className="p-3.5 bg-purple-500/5 border border-purple-500/20 rounded-2xl space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="font-black text-purple-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <span>1. Syllabus &amp; Topics PDF</span>
+                      {mainsForm.syllabusPdfUrl && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <label className="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-[10px] font-black cursor-pointer inline-flex items-center gap-1 transition-colors shadow-xs">
+                        <Upload className="w-3 h-3" />
+                        <span>{uploadingMainsDoc === 'syllabus' ? 'Uploading…' : 'Upload PDF File'}</span>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          disabled={uploadingMainsDoc !== null}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setUploadingMainsDoc('syllabus');
+                            try {
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              formData.append('target', 'mains_syllabus');
+                              const res = await fetch(`${BACKEND_URL}/api/upload`, {
+                                method: 'POST',
+                                body: formData
+                              });
+                              const data = await res.json();
+                              if (data.success && data.url) {
+                                setMainsForm(prev => ({ ...prev, syllabusPdfUrl: data.url }));
+                              } else {
+                                alert(data.error || 'Failed to upload Syllabus PDF.');
+                              }
+                            } catch (err: any) {
+                              alert('Upload failed: ' + (err.message || err));
+                            } finally {
+                              setUploadingMainsDoc(null);
+                            }
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMediaPickerTarget('mains_syllabus');
+                          setShowMediaPicker(true);
+                        }}
+                        className="px-2.5 py-1 bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 rounded-lg text-[10px] font-black cursor-pointer"
+                      >
+                        Browse DAM Picker
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Upload file above or paste URL (https://.../syllabus.pdf)"
+                      value={mainsForm.syllabusPdfUrl}
+                      onChange={e => setMainsForm({ ...mainsForm, syllabusPdfUrl: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Detailed syllabus, theme breakdown, or micro-listing PDF for this specific test.
+                  </p>
+                </div>
+
+                {/* 2. Question Paper PDF */}
+                <div className="p-3.5 bg-blue-500/5 border border-blue-500/20 rounded-2xl space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="font-black text-blue-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <span>2. Question Paper PDF</span>
+                      {mainsForm.questionPaperUrl && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <label className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-black cursor-pointer inline-flex items-center gap-1 transition-colors shadow-xs">
+                        <Upload className="w-3 h-3" />
+                        <span>{uploadingMainsDoc === 'question' ? 'Uploading…' : 'Upload PDF File'}</span>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          disabled={uploadingMainsDoc !== null}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setUploadingMainsDoc('question');
+                            try {
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              formData.append('target', 'mains_question');
+                              const res = await fetch(`${BACKEND_URL}/api/upload`, {
+                                method: 'POST',
+                                body: formData
+                              });
+                              const data = await res.json();
+                              if (data.success && data.url) {
+                                setMainsForm(prev => ({ ...prev, questionPaperUrl: data.url }));
+                              } else {
+                                alert(data.error || 'Failed to upload Question Paper PDF.');
+                              }
+                            } catch (err: any) {
+                              alert('Upload failed: ' + (err.message || err));
+                            } finally {
+                              setUploadingMainsDoc(null);
+                            }
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMediaPickerTarget('mains_question');
+                          setShowMediaPicker(true);
+                        }}
+                        className="px-2.5 py-1 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 rounded-lg text-[10px] font-black cursor-pointer"
+                      >
+                        Browse DAM Picker
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Upload file above or paste URL (https://.../question_paper.pdf)"
+                      value={mainsForm.questionPaperUrl}
+                      onChange={e => setMainsForm({ ...mainsForm, questionPaperUrl: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    The question paper document that students view and download before writing.
+                  </p>
+                </div>
+
+                {/* 3. Blank Answer Booklet PDF */}
+                <div className="p-3.5 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="font-black text-amber-500 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <span>3. Mains Answer Booklet PDF (Ruled / Margin format)</span>
+                      {mainsForm.answerBookletUrl && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <label className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-[10px] font-black cursor-pointer inline-flex items-center gap-1 transition-colors shadow-xs">
+                        <Upload className="w-3 h-3" />
+                        <span>{uploadingMainsDoc === 'booklet' ? 'Uploading…' : 'Upload PDF File'}</span>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          disabled={uploadingMainsDoc !== null}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setUploadingMainsDoc('booklet');
+                            try {
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              formData.append('target', 'mains_booklet');
+                              const res = await fetch(`${BACKEND_URL}/api/upload`, {
+                                method: 'POST',
+                                body: formData
+                              });
+                              const data = await res.json();
+                              if (data.success && data.url) {
+                                setMainsForm(prev => ({ ...prev, answerBookletUrl: data.url }));
+                              } else {
+                                alert(data.error || 'Failed to upload Answer Booklet PDF.');
+                              }
+                            } catch (err: any) {
+                              alert('Upload failed: ' + (err.message || err));
+                            } finally {
+                              setUploadingMainsDoc(null);
+                            }
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMediaPickerTarget('mains_booklet');
+                          setShowMediaPicker(true);
+                        }}
+                        className="px-2.5 py-1 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 rounded-lg text-[10px] font-black cursor-pointer"
+                      >
+                        Browse DAM Picker
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Upload file above or paste URL (https://.../blank_answer_booklet.pdf)"
+                      value={mainsForm.answerBookletUrl}
+                      onChange={e => setMainsForm({ ...mainsForm, answerBookletUrl: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    The printable blank answer booklet with standard margins that students print and write on.
+                  </p>
+                </div>
+
+                {/* 4. Model Answer / Solution PDF */}
+                <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="font-black text-emerald-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                      <span>4. Model Answer / Solution PDF</span>
+                      {mainsForm.modelAnswerUrl && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <label className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black cursor-pointer inline-flex items-center gap-1 transition-colors shadow-xs">
+                        <Upload className="w-3 h-3" />
+                        <span>{uploadingMainsDoc === 'model' ? 'Uploading…' : 'Upload PDF File'}</span>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          disabled={uploadingMainsDoc !== null}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setUploadingMainsDoc('model');
+                            try {
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              formData.append('target', 'mains_model');
+                              const res = await fetch(`${BACKEND_URL}/api/upload`, {
+                                method: 'POST',
+                                body: formData
+                              });
+                              const data = await res.json();
+                              if (data.success && data.url) {
+                                setMainsForm(prev => ({ ...prev, modelAnswerUrl: data.url }));
+                              } else {
+                                alert(data.error || 'Failed to upload Model Answer PDF.');
+                              }
+                            } catch (err: any) {
+                              alert('Upload failed: ' + (err.message || err));
+                            } finally {
+                              setUploadingMainsDoc(null);
+                            }
+                          }}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMediaPickerTarget('mains_model');
+                          setShowMediaPicker(true);
+                        }}
+                        className="px-2.5 py-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded-lg text-[10px] font-black cursor-pointer"
+                      >
+                        Browse DAM Picker
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Upload file above or paste URL (https://.../model_answers.pdf)"
+                      value={mainsForm.modelAnswerUrl}
+                      onChange={e => setMainsForm({ ...mainsForm, modelAnswerUrl: e.target.value })}
+                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Model answers, framing points, and solution hints shown to students once released.
+                  </p>
+                </div>
+
+                {/* Optional Discussion Video URL */}
+                <div>
+                  <label className="block text-slate-400 font-bold mb-1">
+                    Discussion Video URL (YouTube / Video Lecture)
+                  </label>
+                  <input
+                    type="url"
+                    placeholder="https://youtube.com/watch?v=..."
+                    value={mainsForm.discussionVideoUrl}
+                    onChange={e => setMainsForm({ ...mainsForm, discussionVideoUrl: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="mainsPublishedCheckbox"
+                    checked={mainsForm.isPublished}
+                    onChange={e => setMainsForm({ ...mainsForm, isPublished: e.target.checked })}
+                    className="w-4 h-4 rounded text-blue-600 cursor-pointer"
+                  />
+                  <label htmlFor="mainsPublishedCheckbox" className="font-bold text-[var(--text-color)] cursor-pointer">
+                    Publish this Mains Test immediately for enrolled students
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-[var(--card-border)]">
+              <button
+                type="button"
+                onClick={() => setShowMainsTestModal(false)}
+                className="px-5 py-2.5 border border-[var(--card-border)] text-slate-400 text-xs font-bold rounded-2xl cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={savingMainsTest}
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-2xl shadow-md cursor-pointer flex items-center gap-2"
+              >
+                {savingMainsTest ? 'Saving…' : (editingMainsTest ? 'Update Mains Paper' : 'Save Mains Paper')}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* ── CREATE / EDIT TEST SERIES PROGRAM MODAL ───────────────────────── */}
       {isSeriesModalOpen && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
@@ -1724,8 +2513,8 @@ export default function TestSeriesAdmin({
                     onChange={e => {
                       const selectedExId = e.target.value;
                       const selectedExObj = examsList.find(ex => ex.id === selectedExId) || examsList[0];
-                      const defaultStageId = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].id : null;
-                      const defaultCategory = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].name : null;
+                      const defaultStageId = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].id : (editingSeries.category === 'Mains' ? 'stage-mains' : 'stage-prelims');
+                      const defaultCategory = editingSeries.category || (selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].name : 'Prelims');
                       const newExamCode = selectedExObj?.code || selectedExObj?.name || 'exam';
                       const categoryPart = (defaultCategory || '').toLowerCase().replace(/[^a-z0-9]/g, '');
                       const titlePart = (editingSeries.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -1748,33 +2537,42 @@ export default function TestSeriesAdmin({
                 </div>
 
                 <div>
-                  <label className="block text-slate-400 mb-1">Exam Stage</label>
+                  <label className="block text-slate-400 mb-1">Exam Stage / Program Type *</label>
                   {(() => {
                     const currentEx = examsList.find((ex: any) => ex.id === editingSeries.examId) || examsList[0];
-                    if (!currentEx || !currentEx.hasStages || !currentEx.stages || currentEx.stages.length === 0) {
-                      return (
-                        <div className="px-3 py-3 bg-slate-100 dark:bg-slate-800 border border-[var(--card-border)] text-slate-400 rounded-xl font-bold">
-                          Not Applicable (Direct Series)
-                        </div>
-                      );
-                    }
+                    const customStages = currentEx?.stages || [];
+                    
                     return (
                       <select
-                        value={editingSeries.stageId || (currentEx.stages[0]?.id || '')}
+                        value={editingSeries.category || (editingSeries.stageId?.toLowerCase().includes('mains') ? 'Mains' : 'Prelims')}
                         onChange={e => {
-                          const stgId = e.target.value;
-                          const stgObj = currentEx.stages?.find((s: any) => s.id === stgId);
+                          const chosenCategory = e.target.value;
+                          const matchedCustomStage = customStages.find((s: any) => s.name?.toLowerCase() === chosenCategory.toLowerCase());
+                          const stgId = matchedCustomStage ? matchedCustomStage.id : `stage-${chosenCategory.toLowerCase()}`;
+                          
+                          const newExamCode = currentEx?.code || currentEx?.name || 'exam';
+                          const categoryPart = chosenCategory.toLowerCase().replace(/[^a-z0-9]/g, '');
+                          const titlePart = (editingSeries.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                          const autoSlug = [newExamCode.toLowerCase().replace(/[^a-z0-9]/g, ''), categoryPart, titlePart].filter(Boolean).join('-');
+
                           setEditingSeries({
                             ...editingSeries,
                             stageId: stgId,
-                            category: stgObj?.name || 'Prelims'
+                            category: chosenCategory,
+                            slug: autoSlug
                           });
                         }}
                         className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
                       >
-                        {currentEx.stages.map((stg: any) => (
-                          <option key={stg.id} value={stg.id}>{stg.name} Stage</option>
-                        ))}
+                        <option value="Prelims">🎯 Prelims (Objective Mocks & Quizzes)</option>
+                        <option value="Mains">📝 Mains (Descriptive Answer Writing & Evaluation)</option>
+                        <option value="Combined">🔄 Integrated / Combined (Prelims + Mains)</option>
+                        <option value="Interview">🎙️ Interview & Personality Test</option>
+                        {customStages
+                          .filter((stg: any) => !['prelims', 'mains', 'combined', 'interview'].includes(stg.name?.toLowerCase()))
+                          .map((stg: any) => (
+                            <option key={stg.id} value={stg.name}>{stg.name} Stage</option>
+                          ))}
                       </select>
                     );
                   })()}
@@ -1837,22 +2635,26 @@ export default function TestSeriesAdmin({
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Total Mocks</label>
+                <label className="block text-slate-400 mb-1">
+                  {editingSeries.category === 'Mains' ? 'Total Mains Papers' : 'Total Mocks'}
+                </label>
                 <input
                   type="number"
                   min="1"
-                  value={editingSeries.totalTests || 10}
+                  value={editingSeries.totalTests || (editingSeries.category === 'Mains' ? 8 : 10)}
                   onChange={e => setEditingSeries({ ...editingSeries, totalTests: Number(e.target.value) })}
                   className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1">Total Questions</label>
+                <label className="block text-slate-400 mb-1">
+                  {editingSeries.category === 'Mains' ? 'Total Questions' : 'Total Questions'}
+                </label>
                 <input
                   type="number"
-                  min="10"
-                  value={editingSeries.totalQuestions || 1500}
+                  min="1"
+                  value={editingSeries.totalQuestions || (editingSeries.category === 'Mains' ? 80 : 1500)}
                   onChange={e => setEditingSeries({ ...editingSeries, totalQuestions: Number(e.target.value) })}
                   className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
                 />
@@ -2993,12 +3795,28 @@ export default function TestSeriesAdmin({
       {/* Site DAM Media Picker Modal */}
       {showMediaPicker && (
         <MediaPicker
-          allowedTypes={mediaPickerTarget === 'series_pdf' ? ['DOCUMENT'] : ['IMAGE']}
+          allowedTypes={
+            mediaPickerTarget === 'series_pdf' ||
+            mediaPickerTarget === 'mains_question' ||
+            mediaPickerTarget === 'mains_booklet' ||
+            mediaPickerTarget === 'mains_model' ||
+            mediaPickerTarget === 'mains_syllabus'
+              ? ['DOCUMENT']
+              : ['IMAGE']
+          }
           onSelect={(url) => {
             if (mediaPickerTarget === 'series_pdf') {
               setEditingSeries(prev => ({ ...prev, schedulePdfUrl: url }));
             } else if (mediaPickerTarget === 'series_image') {
               setEditingSeries(prev => ({ ...prev, thumbnailUrl: url }));
+            } else if (mediaPickerTarget === 'mains_syllabus') {
+              setMainsForm(prev => ({ ...prev, syllabusPdfUrl: url }));
+            } else if (mediaPickerTarget === 'mains_question') {
+              setMainsForm(prev => ({ ...prev, questionPaperUrl: url }));
+            } else if (mediaPickerTarget === 'mains_booklet') {
+              setMainsForm(prev => ({ ...prev, answerBookletUrl: url }));
+            } else if (mediaPickerTarget === 'mains_model') {
+              setMainsForm(prev => ({ ...prev, modelAnswerUrl: url }));
             } else if (editingExam) {
               setEditingExam(prev => (prev ? { ...prev, logoUrl: url } : prev));
             }

@@ -87,4 +87,88 @@ class StudentService {
     }
     return null;
   }
+
+  // ── Analytics ──────────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>?> getStudentAnalytics() async {
+    try {
+      final res = await _api.get('/lms/analytics/me');
+      if (res != null && res['success'] == true && res['data'] != null) {
+        return res['data'] as Map<String, dynamic>;
+      }
+    } catch (e) {
+      // Return null on error
+    }
+    return null;
+  }
+
+  // ── Prelims: My Quiz Attempts ───────────────────────────────────────────────
+  Future<List<dynamic>> getMyQuizAttempts() async {
+    try {
+      final res = await _api.get('/quizzes/attempts/me');
+      if (res != null && res['success'] == true && res['data'] != null) {
+        return res['data'] as List<dynamic>;
+      }
+    } catch (e) {
+      // Return empty list on error
+    }
+    return [];
+  }
+
+  // ── Mains: Tests & Submissions ──────────────────────────────────────────────
+  Future<List<dynamic>> getMainsTests({String? testSeriesId}) async {
+    try {
+      final query = testSeriesId != null && testSeriesId.isNotEmpty ? '?testSeriesId=$testSeriesId' : '';
+      final res = await _api.get('/lms/mains/tests$query');
+      if (res != null && res['success'] == true && res['data'] != null) {
+        return res['data'] as List<dynamic>;
+      }
+    } catch (e) {
+      // Return empty list on error
+    }
+    return [];
+  }
+
+  Future<List<dynamic>> getMyMainsSubmissions() async {
+    try {
+      final res = await _api.get('/lms/mains/submissions/me');
+      if (res != null && res['success'] == true && res['data'] != null) {
+        return res['data'] as List<dynamic>;
+      }
+    } catch (e) {
+      // Return empty list on error
+    }
+    return [];
+  }
+
+  Future<Map<String, dynamic>?> submitMainsTestCopy({
+    required String testId,
+    required String submissionUrl,
+    String? submissionText,
+  }) async {
+    try {
+      final res = await _api.post('/lms/mains/tests/$testId/submit', data: {
+        'submissionUrl': submissionUrl,
+        'submissionText': submissionText ?? '',
+      });
+      if (res != null && res['success'] == true) {
+        return res['data'] as Map<String, dynamic>?;
+      }
+    } catch (e) {
+      // handle error
+    }
+    return null;
+  }
+
+  // ── Upload PDF ─────────────────────────────────────────────────────────────
+  Future<String?> uploadPdf(List<int> bytes, String filename) async {
+    try {
+      final res = await _api.uploadFile('/upload', bytes, filename);
+      if (res != null && res['success'] == true && res['url'] != null) {
+        return res['url'].toString();
+      }
+    } catch (e) {
+      // Upload error
+    }
+    return null;
+  }
 }

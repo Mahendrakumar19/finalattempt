@@ -51,3 +51,33 @@ final enrollmentsProvider = FutureProvider<List<Enrollment>>((ref) async {
   final raw = await service.getMyEnrollments();
   return raw.map((e) => Enrollment.fromJson(e as Map<String, dynamic>)).toList();
 });
+
+// ── Student Analytics Provider ──────────────────────────────────────────────
+final studentAnalyticsProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  final isLoggedIn = ref.watch(authStateProvider).isLoggedIn;
+  if (!isLoggedIn) return null;
+  final service = ref.watch(studentServiceProvider);
+  return await service.getStudentAnalytics();
+});
+
+// ── Student Quiz Attempts Provider ──────────────────────────────────────────
+final studentQuizAttemptsProvider = FutureProvider<List<dynamic>>((ref) async {
+  final isLoggedIn = ref.watch(authStateProvider).isLoggedIn;
+  if (!isLoggedIn) return [];
+  final service = ref.watch(studentServiceProvider);
+  return await service.getMyQuizAttempts();
+});
+
+// ── Student Mains Submissions Provider ──────────────────────────────────────
+final studentMainsSubmissionsProvider = FutureProvider<List<dynamic>>((ref) async {
+  final isLoggedIn = ref.watch(authStateProvider).isLoggedIn;
+  if (!isLoggedIn) return [];
+  final service = ref.watch(studentServiceProvider);
+  return await service.getMyMainsSubmissions();
+});
+
+// ── Mains Tests Provider ────────────────────────────────────────────────────
+final mainsTestsProvider = FutureProvider.family<List<dynamic>, String?>((ref, testSeriesId) async {
+  final service = ref.watch(studentServiceProvider);
+  return await service.getMainsTests(testSeriesId: testSeriesId);
+});
