@@ -4,9 +4,11 @@ import { use, useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { 
   ChevronLeft, Plus, Trash2, Edit3, FileText, Play, FolderOpen, Save, 
-  Check, BookOpen, X, EyeOff, Radio, Info, Users, Video, HelpCircle, CheckSquare, Inbox
+  Check, BookOpen, X, EyeOff, Radio, Info, Users, Video, HelpCircle, CheckSquare, Inbox,
+  Copy, Key, RefreshCw, Upload, Search, Download, GraduationCap
 } from 'lucide-react';
 import MediaPicker from '@/components/MediaPicker';
+import { db, ExamData } from '@/services/db';
 
 interface Lesson {
   id: string;
@@ -20,6 +22,9 @@ interface Lesson {
   liveMeetingUrl?: string;
   liveStatus?: 'scheduled' | 'live' | 'ended' | string;
   recordingUrl?: string;
+  liveStreamKey?: string;
+  customRtmpUrl?: string;
+  playbackHlsUrl?: string;
 }
 
 interface Section {
@@ -73,6 +78,7 @@ interface CourseData {
   demoLectures: DemoLecture[];
   faq: FaqItem[];
   syllabus: SyllabusSubject[];
+  syllabusPdfUrl?: string;
   [key: string]: unknown;
 }
 
@@ -118,15 +124,15 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:500
 
 export default function CourseEditorPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = use(params);
-  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'faculty' | 'demo' | 'faq' | 'quizzes' | 'assignments'>(() => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'syllabus' | 'faculty' | 'demo' | 'faq' | 'quizzes' | 'assignments' | 'students'>(() => {
     if (typeof window !== 'undefined') {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const urlTab = urlParams.get('tab');
         const savedTab = localStorage.getItem(`course_editor_tab_${courseId}`);
         const validTab = urlTab || savedTab;
-        if (validTab && ['overview', 'syllabus', 'faculty', 'demo', 'faq', 'quizzes', 'assignments'].includes(validTab)) {
-          return validTab as 'overview' | 'syllabus' | 'faculty' | 'demo' | 'faq' | 'quizzes' | 'assignments';
+        if (validTab && ['overview', 'syllabus', 'faculty', 'demo', 'faq', 'quizzes', 'assignments', 'students'].includes(validTab)) {
+          return validTab as 'overview' | 'syllabus' | 'faculty' | 'demo' | 'faq' | 'quizzes' | 'assignments' | 'students';
         }
       } catch {
         // Ignore storage or URL parsing errors
@@ -135,6 +141,20 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     return 'overview';
   });
   const [loading, setLoading] = useState(true);
+
+  // Dynamic Exams List
+  const [availableExams, setAvailableExams] = useState<ExamData[]>([]);
+
+  // Enrolled Students tab states
+  const [students, setStudents] = useState<any[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+  const [studentSearchText, setStudentSearchText] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [filterEmail, setFilterEmail] = useState('');
+  const [filterState, setFilterState] = useState('');
+  const [filterDistrict, setFilterDistrict] = useState('');
+  const [uploadingSyllabusPdf, setUploadingSyllabusPdf] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && activeTab) {
@@ -169,7 +189,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     faculty: [] as FacultyMember[],
     demoLectures: [] as DemoLecture[],
     faq: [] as FaqItem[],
-    syllabus: [] as SyllabusSubject[]
+    syllabus: [] as SyllabusSubject[],
+    syllabusPdfUrl: ''
   });
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -201,13 +222,19 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     type: 'video',
     videoUrl: '',
     duration: '15 mins',
-    liveClassType: 'youtube',
+    liveClassType: 'custom',
     liveScheduledAt: '',
     liveMeetingUrl: '',
     liveStatus: 'scheduled',
     recordingUrl: '',
+    liveStreamKey: '',
+    customRtmpUrl: 'rtmp://live.finalattempt.com/live',
+    playbackHlsUrl: '',
     isFree: false
   });
+  const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedRtmp, setCopiedRtmp] = useState(false);
+  const [generatingKey, setGeneratingKey] = useState(false);
 
   // Site Course Content Edit Modals
   const [showFacultyModal, setShowFacultyModal] = useState(false);
@@ -251,10 +278,25 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
           faculty: Array.isArray(c.faculty) ? c.faculty : [],
           demoLectures: Array.isArray(c.demoLectures) ? c.demoLectures : [],
           faq: Array.isArray(c.faq) ? c.faq : [],
-          syllabus: Array.isArray(c.syllabus) ? c.syllabus : []
+          syllabus: Array.isArray(c.syllabus) ? c.syllabus : [],
+          syllabusPdfUrl: c.syllabusPdfUrl || ''
         });
         setSections(curData.data.sections || []);
       }
+
+      // Fetch dynamic exams hierarchy
+      try {
+        const exams = await db.getExamsHierarchy(true);
+        if (exams && exams.length > 0) {
+          setAvailableExams(exams);
+        }
+      } catch (_) {}
+
+      // Fetch enrolled students
+      try {
+        const stds = await db.getCourseEnrolledStudents(courseId);
+        setStudents(stds || []);
+      } catch (_) {}
 
       const quizRes = await fetch(`${BACKEND_URL}/api/lms/courses/${courseId}/quizzes`);
       const quizData = await quizRes.json();
@@ -416,6 +458,69 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     saveCourseDataToBackend(nextData);
   };
 
+  // ── Students Management Handlers ──
+  const loadStudents = useCallback(async () => {
+    setLoadingStudents(true);
+    try {
+      const stds = await db.getCourseEnrolledStudents(courseId);
+      setStudents(stds || []);
+    } catch (e) {
+      console.error('Error loading enrolled students:', e);
+    } finally {
+      setLoadingStudents(false);
+    }
+  }, [courseId]);
+
+  const handleSearchStudents = async (val: string) => {
+    setStudentSearchText(val);
+    if (!val.trim()) { setSearchResults([]); return; }
+    try {
+      const token = localStorage.getItem('admin_token');
+      const res = await fetch(`${BACKEND_URL}/api/auth/users`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+      const data = await res.json();
+      const list: { id?: string; fullName?: string; email?: string; mobile?: string }[] = Array.isArray(data) ? data : data.data || [];
+      const query = val.toLowerCase().trim();
+      const filtered = list.filter((u) => 
+        (u.fullName && u.fullName.toLowerCase().includes(query)) || 
+        (u.email && u.email.toLowerCase().includes(query)) ||
+        (u.mobile && u.mobile.includes(query))
+      );
+      setSearchResults(filtered.slice(0, 10));
+    } catch (searchErr) {
+      console.error('Error searching students:', searchErr);
+    }
+  };
+
+  const handleAddStudent = async (userId: string) => {
+    try {
+      const ok = await db.addStudentToCourse(courseId, userId);
+      if (ok) {
+        alert('Student successfully enrolled in Course!');
+        setIsAddStudentModalOpen(false);
+        setStudentSearchText('');
+        setSearchResults([]);
+        loadStudents();
+      }
+    } catch {
+      alert('Failed enrolling student.');
+    }
+  };
+
+  const handleRemoveStudent = async (userId: string, name: string) => {
+    if (!confirm(`Revoke access for student "${name}" from this course?`)) return;
+    try {
+      const ok = await db.removeStudentFromCourse(courseId, userId);
+      if (ok) {
+        alert('Student access revoked.');
+        loadStudents();
+      }
+    } catch {
+      alert('Failed revoking access.');
+    }
+  };
+
   // ── Section CRUD ──
   const handleAddSection = async () => {
     const title = window.prompt('Enter Section/Chapter Title:');
@@ -471,14 +576,18 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   };
 
   const handleAddLiveClass = (sectionId: string) => {
+    const defaultStreamKey = `fa_live_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}`;
+    const rtmpServer = process.env.NEXT_PUBLIC_RTMP_SERVER_URL || 'rtmp://live.finalattempt.com/live';
+    const hlsUrl = `https://live.finalattempt.com/hls/${defaultStreamKey}.m3u8`;
+
     setLessonForm({
       id: '',
       sectionId,
       title: 'Live Interactive Session',
       type: 'live',
-      videoUrl: '',
+      videoUrl: hlsUrl,
       duration: '60 mins',
-      liveClassType: 'youtube',
+      liveClassType: 'custom',
       liveScheduledAt: new Date(Date.now() + 86400000).toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
@@ -487,12 +596,55 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
         minute: '2-digit',
         hour12: true
       }),
-      liveMeetingUrl: '',
+      liveMeetingUrl: hlsUrl,
       liveStatus: 'scheduled',
       recordingUrl: '',
+      liveStreamKey: defaultStreamKey,
+      customRtmpUrl: rtmpServer,
+      playbackHlsUrl: hlsUrl,
       isFree: false
     });
     setShowLessonModal(true);
+  };
+
+  const handleGenerateObsCredentials = async () => {
+    if (!lessonForm.id) {
+      const newKey = `fa_live_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}`;
+      const rtmp = lessonForm.customRtmpUrl || 'rtmp://live.finalattempt.com/live';
+      const hls = `https://live.finalattempt.com/hls/${newKey}.m3u8`;
+      setLessonForm(prev => ({
+        ...prev,
+        liveStreamKey: newKey,
+        customRtmpUrl: rtmp,
+        playbackHlsUrl: hls,
+        videoUrl: prev.videoUrl || hls,
+        liveMeetingUrl: prev.liveMeetingUrl || hls
+      }));
+      return;
+    }
+    setGeneratingKey(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/lms/lessons/${lessonForm.id}/live-stream-credentials`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regenerate: true })
+      });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setLessonForm(prev => ({
+          ...prev,
+          liveStreamKey: data.data.streamKey,
+          customRtmpUrl: data.data.rtmpServerUrl,
+          playbackHlsUrl: data.data.playbackHlsUrl,
+          videoUrl: prev.videoUrl || data.data.playbackHlsUrl,
+          liveMeetingUrl: prev.liveMeetingUrl || data.data.playbackHlsUrl
+        }));
+      }
+    } catch (err) {
+      console.error('Error generating stream key:', err);
+    } finally {
+      setGeneratingKey(false);
+    }
   };
 
   const handleSaveLesson = async (e: React.FormEvent) => {
@@ -517,6 +669,9 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
           liveMeetingUrl: lessonForm.liveMeetingUrl,
           liveStatus: lessonForm.liveStatus,
           recordingUrl: lessonForm.recordingUrl,
+          liveStreamKey: lessonForm.liveStreamKey,
+          customRtmpUrl: lessonForm.customRtmpUrl,
+          playbackHlsUrl: lessonForm.playbackHlsUrl,
           isFree: lessonForm.isFree
         })
       });
@@ -706,7 +861,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
             { id: 'demo' as const, label: 'Demo', icon: Video, desc: 'Free Demo Video Lectures' },
             { id: 'faq' as const, label: 'FAQ', icon: HelpCircle, desc: 'Questions & Answers' },
             { id: 'quizzes' as const, label: 'Quizzes', icon: CheckSquare, desc: 'MCQ Practice Tests' },
-            { id: 'assignments' as const, label: 'Assignments', icon: Inbox, desc: 'Mains Descriptive Tests' }
+            { id: 'assignments' as const, label: 'Assignments', icon: Inbox, desc: 'Mains Descriptive Tests' },
+            { id: 'students' as const, label: `Students (${students.length})`, icon: GraduationCap, desc: 'Enrolled Students & Access' }
           ].map(t => {
             const Icon = t.icon;
             return (
@@ -767,10 +923,23 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                   <select
                     value={courseData.exam || 'BPSC'}
                     onChange={(e) => setCourseData({ ...courseData, exam: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none text-slate-900"
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none text-slate-900 cursor-pointer"
                   >
-                    <option value="BPSC">BPSC (Bihar PCS)</option>
-                    <option value="Arunachal PCS">Arunachal PCS (APPSC)</option>
+                    {availableExams && availableExams.length > 0 ? (
+                      availableExams.map((ex: ExamData) => (
+                        <option key={ex.id || ex.code} value={ex.name || ex.code}>
+                          {ex.name} {ex.code && ex.code !== ex.name ? `(${ex.code})` : ''}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="BPSC">BPSC (Bihar PCS)</option>
+                        <option value="APPSC">APPSC (Arunachal PCS)</option>
+                        <option value="APSSB">APSSB (Staff Selection)</option>
+                        <option value="UPSC">UPSC Civil Services</option>
+                        <option value="UPPSC">UPPSC (Uttar Pradesh PCS)</option>
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -1035,6 +1204,80 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
         {/* ─────────────────────────────────────────────────────────────────── */}
         {activeTab === 'syllabus' && (
           <div className="space-y-8">
+
+            {/* Official Course Syllabus PDF Upload Card */}
+            <div className="bg-white p-6 rounded-3xl border border-blue-200 shadow-xs space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 pb-3">
+                <div>
+                  <h3 className="font-extrabold text-sm text-blue-950 flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <span>Official Course Syllabus Document (PDF)</span>
+                  </h3>
+                  <p className="text-[10px] text-slate-500">
+                    Upload official micro-listing syllabus or curriculum PDF that students can view and download on the course page.
+                  </p>
+                </div>
+                {courseData.syllabusPdfUrl && (
+                  <a
+                    href={courseData.syllabusPdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold rounded-xl hover:bg-blue-100"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>View Uploaded PDF</span>
+                  </a>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <input
+                  type="text"
+                  placeholder="Paste PDF link (https://.../syllabus.pdf) or upload below"
+                  value={courseData.syllabusPdfUrl || ''}
+                  onChange={(e) => setCourseData({ ...courseData, syllabusPdfUrl: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 outline-none"
+                />
+
+                <label className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-black cursor-pointer inline-flex items-center gap-2 shrink-0 transition-all shadow-sm">
+                  <Upload className="w-4 h-4" />
+                  <span>{uploadingSyllabusPdf ? 'Uploading PDF…' : 'Upload Syllabus PDF'}</span>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    disabled={uploadingSyllabusPdf}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setUploadingSyllabusPdf(true);
+                      try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('target', 'course_syllabus');
+                        const res = await fetch(`${BACKEND_URL}/api/upload`, {
+                          method: 'POST',
+                          body: formData
+                        });
+                        const data = await res.json();
+                        if (data.success && data.url) {
+                          const updated = { ...courseData, syllabusPdfUrl: data.url };
+                          setCourseData(updated);
+                          await saveCourseDataToBackend(updated);
+                          alert('✓ Course Syllabus PDF uploaded and saved successfully!');
+                        } else {
+                          alert(data.error || 'Failed to upload syllabus PDF.');
+                        }
+                      } catch (err: any) {
+                        alert('Upload failed: ' + (err.message || err));
+                      } finally {
+                        setUploadingSyllabusPdf(false);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
             
             {/* Chapters & Video Lectures Builder */}
             <div className="space-y-4">
@@ -1144,11 +1387,14 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                                         type: les.type || 'video',
                                         videoUrl: les.videoUrl || '',
                                         duration: les.duration || '15 mins',
-                                        liveClassType: les.liveClassType || 'youtube',
+                                        liveClassType: les.liveClassType || (les.type === 'live' ? 'custom' : 'youtube'),
                                         liveScheduledAt: les.liveScheduledAt || '',
                                         liveMeetingUrl: les.liveMeetingUrl || '',
                                         liveStatus: les.liveStatus || 'scheduled',
                                         recordingUrl: les.recordingUrl || '',
+                                        liveStreamKey: les.liveStreamKey || '',
+                                        customRtmpUrl: les.customRtmpUrl || 'rtmp://live.finalattempt.com/live',
+                                        playbackHlsUrl: les.playbackHlsUrl || '',
                                         isFree: !!les.isFree
                                       });
                                       setShowLessonModal(true);
@@ -1582,64 +1828,138 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
         )}
 
         {/* ─────────────────────────────────────────────────────────────────── */}
-        {/* ── TAB 7: ASSIGNMENTS ── */}
+        {/* ── TAB 8: ENROLLED STUDENTS ── */}
         {/* ─────────────────────────────────────────────────────────────────── */}
-        {activeTab === 'assignments' && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center bg-white p-4 rounded-3xl border border-slate-200">
-              <div>
-                <h3 className="font-bold text-sm text-slate-950">Assignments & Mains Tests</h3>
-                <p className="text-[10px] text-slate-500">Configure descriptive tests, answer copy evaluations, or essay prompts.</p>
-              </div>
-              <button 
-                onClick={() => {
-                  setAssignmentForm({ title: '', description: '', dueDate: '', maxMarks: 100, submissionType: 'pdf' });
-                  setShowAssignmentModal(true);
-                }}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Add Assignment
-              </button>
-            </div>
+        {activeTab === 'students' && (() => {
+          const filteredStudents = students.filter(st => {
+            const matchEmail = !filterEmail.trim() || st.email?.toLowerCase().includes(filterEmail.toLowerCase()) || st.fullName?.toLowerCase().includes(filterEmail.toLowerCase());
+            const matchState = !filterState.trim() || (st.state && st.state.toLowerCase().includes(filterState.toLowerCase()));
+            const matchDistrict = !filterDistrict.trim() || (st.district && st.district.toLowerCase().includes(filterDistrict.toLowerCase()));
+            return matchEmail && matchState && matchDistrict;
+          });
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {assignments.length === 0 ? (
-                <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center text-slate-400 md:col-span-2">
-                  No assignments configured yet for this course.
+          return (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 uppercase tracking-wider">
+                    Course Students ({filteredStudents.length} / {students.length})
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Students who have purchased or been manually enrolled in this course program.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAddStudentModalOpen(true)}
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-xs flex items-center gap-1.5 cursor-pointer shadow-md transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Enroll Student Manually</span>
+                </button>
+              </div>
+
+              {/* Filter Toolbar */}
+              <div className="p-4 bg-white border border-slate-200 rounded-2xl grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs shadow-xs">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Search Name / Email</label>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      placeholder="Filter by name or email..."
+                      value={filterEmail}
+                      onChange={e => setFilterEmail(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Filter State</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by State (e.g. Bihar)..."
+                    value={filterState}
+                    onChange={e => setFilterState(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Filter District</label>
+                  <input
+                    type="text"
+                    placeholder="Filter by District (e.g. Patna)..."
+                    value={filterDistrict}
+                    onChange={e => setFilterDistrict(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 outline-none"
+                  />
+                </div>
+              </div>
+
+              {loadingStudents ? (
+                <p className="text-xs text-slate-400 py-4">Loading enrolled course students...</p>
+              ) : filteredStudents.length === 0 ? (
+                <div className="p-12 bg-white border border-slate-200 rounded-3xl text-center space-y-2 shadow-xs">
+                  <Users className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                  <p className="text-xs font-bold text-slate-600">No students enrolled in this course yet.</p>
+                  <p className="text-[11px] text-slate-400">Click &ldquo;Enroll Student Manually&rdquo; above to assign access to any student.</p>
                 </div>
               ) : (
-                assignments.map(a => (
-                  <div key={a.id} className="bg-white p-6 rounded-3xl border border-slate-200 flex flex-col justify-between space-y-4 shadow-xs">
-                    <div>
-                      <div className="flex justify-between items-start gap-4">
-                        <h4 className="font-bold text-xs text-slate-900 leading-tight">{a.title}</h4>
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={() => {
-                              setAssignmentForm(a);
-                              setShowAssignmentModal(true);
-                            }}
-                            className="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-650"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteAssignment(a.id)}
-                            className="p-1.5 border border-red-100 rounded-lg hover:bg-red-50 text-red-500"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                      <p className="text-[9px] text-amber-500 font-bold uppercase mt-1">Due: {a.dueDate || 'No Due Date'} &bull; Max Marks: {a.maxMarks}</p>
-                      <p className="text-slate-600 text-xs mt-2 line-clamp-3">{a.description}</p>
-                    </div>
-                  </div>
-                ))
+                <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white text-xs shadow-xs">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-bold text-slate-500">
+                      <tr>
+                        <th className="p-4">Student Name</th>
+                        <th className="p-4">Mobile / Email</th>
+                        <th className="p-4">State & District</th>
+                        <th className="p-4">Enrolled At</th>
+                        <th className="p-4">Payment</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-medium">
+                      {filteredStudents.map((st: any) => (
+                        <tr key={st.enrollmentId || `${st.userId}_${st.enrolledAt}`}>
+                          <td className="p-4 font-bold text-slate-900">{st.fullName}</td>
+                          <td className="p-4 text-slate-600">
+                            <div>{st.mobile || 'N/A'}</div>
+                            <div className="text-[10px] text-slate-400">{st.email}</div>
+                          </td>
+                          <td className="p-4 text-slate-600">
+                            {st.state || st.district ? (
+                              <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-[10px] text-amber-700 font-bold">
+                                {[st.district, st.state].filter(Boolean).join(', ')}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 text-[10px]">Not Specified</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-slate-500">{new Date(st.enrolledAt).toLocaleDateString('en-IN')}</td>
+                          <td className="p-4">
+                            <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 rounded-md text-[9px] uppercase font-bold">
+                              {st.paymentOrderId === 'ADMIN_MANUAL' ? 'ADMIN / MANUAL' : (st.amountPaid > 0 ? `₹${st.amountPaid}` : 'PAID (ONLINE)')}
+                            </span>
+                          </td>
+                          <td className="p-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveStudent(st.userId, st.fullName)}
+                              className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold rounded-lg text-[10px] cursor-pointer transition-colors"
+                            >
+                              Revoke Access
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
       </div>
 
@@ -2131,14 +2451,14 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-slate-700 uppercase">Live Broadcast Platform</label>
                       <select
-                        value={lessonForm.liveClassType || 'youtube'}
+                        value={lessonForm.liveClassType || 'custom'}
                         onChange={(e) => setLessonForm({ ...lessonForm, liveClassType: e.target.value })}
                         className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-slate-800 outline-none cursor-pointer"
                       >
+                        <option value="custom">🎥 OBS Studio (Custom RTMP + Stream Key)</option>
                         <option value="youtube">YouTube Live (Unlisted / Public)</option>
                         <option value="zoom">Zoom Meeting (Direct Launch)</option>
                         <option value="meet">Google Meet (Direct Launch)</option>
-                        <option value="custom">Custom HLS Stream / RTMP Embed</option>
                       </select>
                     </div>
                     <div className="space-y-1.5">
@@ -2153,15 +2473,95 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                     </div>
                   </div>
 
+                  {/* OBS Studio Custom RTMP & Stream Key Box */}
+                  {lessonForm.liveClassType === 'custom' && (
+                    <div className="p-4 bg-white/90 border border-rose-300 rounded-2xl space-y-3.5 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black uppercase text-rose-900 tracking-wider flex items-center gap-1.5">
+                          <Key className="w-3.5 h-3.5 text-rose-600" /> OBS Studio Streaming Credentials
+                        </span>
+                        <button
+                          type="button"
+                          disabled={generatingKey}
+                          onClick={handleGenerateObsCredentials}
+                          className="px-2.5 py-1 text-[10px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <RefreshCw className={`w-3 h-3 ${generatingKey ? 'animate-spin' : ''}`} />
+                          <span>{generatingKey ? 'Generating...' : 'Regenerate Key'}</span>
+                        </button>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="font-bold text-slate-700">OBS Server URL (RTMP Destination)</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(lessonForm.customRtmpUrl || 'rtmp://live.finalattempt.com/live');
+                              setCopiedRtmp(true);
+                              setTimeout(() => setCopiedRtmp(false), 2000);
+                            }}
+                            className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Copy className="w-3 h-3" />
+                            <span>{copiedRtmp ? 'Copied!' : 'Copy URL'}</span>
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          readOnly
+                          value={lessonForm.customRtmpUrl || 'rtmp://live.finalattempt.com/live'}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 outline-none select-all"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="font-bold text-slate-700">Private Stream Key (Paste into OBS Stream Key field)</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (lessonForm.liveStreamKey) {
+                                navigator.clipboard.writeText(lessonForm.liveStreamKey);
+                                setCopiedKey(true);
+                                setTimeout(() => setCopiedKey(false), 2000);
+                              }
+                            }}
+                            className="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1 cursor-pointer"
+                          >
+                            <Copy className="w-3 h-3" />
+                            <span>{copiedKey ? 'Copied!' : 'Copy Key'}</span>
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          readOnly
+                          value={lessonForm.liveStreamKey || 'Click regenerate to create key'}
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-rose-600 outline-none select-all"
+                        />
+                      </div>
+
+                      <p className="text-[10px] text-slate-500 leading-snug">
+                        💡 <strong>How to stream via OBS:</strong> In OBS Studio &rarr; <em>Settings &rarr; Stream</em> &rarr; Service: <em>Custom...</em> &rarr; Paste Server & Stream Key &rarr; Click <em>Start Streaming</em>.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-700 uppercase">
-                      {lessonForm.liveClassType === 'zoom' ? 'Zoom Join Link' : lessonForm.liveClassType === 'meet' ? 'Google Meet Link' : 'Live Stream / Embed Link'}
+                      {lessonForm.liveClassType === 'zoom' 
+                        ? 'Zoom Join Link' 
+                        : lessonForm.liveClassType === 'meet' 
+                        ? 'Google Meet Link' 
+                        : lessonForm.liveClassType === 'custom'
+                        ? 'Student HLS Playback URL (.m3u8 link or auto-generated)'
+                        : 'Live Stream / Embed Link'}
                     </label>
                     <input
                       type="text"
                       value={lessonForm.liveMeetingUrl || ''}
-                      onChange={(e) => setLessonForm({ ...lessonForm, liveMeetingUrl: e.target.value })}
-                      placeholder="https://zoom.us/j/... or https://youtube.com/live/..."
+                      onChange={(e) => setLessonForm({ ...lessonForm, liveMeetingUrl: e.target.value, videoUrl: e.target.value })}
+                      placeholder={lessonForm.liveClassType === 'custom' ? 'https://live.finalattempt.com/hls/stream.m3u8' : 'https://zoom.us/j/... or https://youtube.com/live/...'}
                       className="w-full px-3.5 py-2 bg-white border border-rose-200 rounded-xl text-xs font-mono text-slate-800 outline-none"
                     />
                   </div>
@@ -2259,6 +2659,62 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
           }}
           onClose={() => setMediaPickerConfig({ isOpen: false, target: 'lesson' })}
         />
+      )}
+
+      {/* ── ADD STUDENT MANUALLY MODAL ── */}
+      {isAddStudentModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-6">
+          <div className="max-w-md w-full p-8 bg-white border border-slate-200 rounded-3xl space-y-4 text-xs font-bold shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-sm text-slate-900 uppercase">Search & Enroll Student</h3>
+              <button type="button" onClick={() => setIsAddStudentModalOpen(false)}>
+                <X className="w-4 h-4 text-slate-400 hover:text-slate-700" />
+              </button>
+            </div>
+
+            <div>
+              <label className="text-[10px] text-slate-500 uppercase">Search by Name, Mobile, or Email</label>
+              <input
+                type="text"
+                placeholder="Type student name or email..."
+                value={studentSearchText}
+                onChange={e => handleSearchStudents(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none mt-1"
+              />
+            </div>
+
+            <div className="space-y-2 max-h-56 overflow-y-auto">
+              {searchResults.length === 0 && studentSearchText.trim() ? (
+                <p className="text-center py-4 text-slate-400 text-xs">No matching student accounts found.</p>
+              ) : (
+                searchResults.map(st => {
+                  const isAlreadyEnrolled = students.some(s => s.userId === st.id);
+                  return (
+                    <div key={st.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                      <div>
+                        <p className="text-slate-900 font-bold">{st.fullName}</p>
+                        <p className="text-[10px] text-slate-400">{st.mobile || st.email}</p>
+                      </div>
+                      {isAlreadyEnrolled ? (
+                        <span className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold rounded-lg uppercase">
+                          Enrolled
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleAddStudent(st.id)}
+                          className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-lg text-[10px] cursor-pointer shadow-xs"
+                        >
+                          Enroll
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

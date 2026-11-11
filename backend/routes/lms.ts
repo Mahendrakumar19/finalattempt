@@ -384,28 +384,120 @@ router.post('/sections/:sectionId/lessons', async (req: Request, res: Response) 
     res.status(400).json({ success: false, error: 'Invalid sectionId parameter.' });
     return;
   }
-  const { courseId, title, type, videoUrl, duration, liveClassType, liveScheduledAt, liveMeetingUrl, liveStatus, recordingUrl, isFree } = req.body;
+  const {
+    courseId,
+    title,
+    type,
+    videoUrl,
+    duration,
+    liveClassType,
+    liveScheduledAt,
+    liveMeetingUrl,
+    liveStatus,
+    recordingUrl,
+    liveStreamKey,
+    customRtmpUrl,
+    playbackHlsUrl,
+    isFree
+  } = req.body;
   try {
     const id = `les-${sectionId}-${Date.now()}`;
+    const generatedStreamKey = liveStreamKey || (type === 'live' ? `fa_live_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}` : undefined);
+    const defaultRtmpUrl = customRtmpUrl || process.env.LIVE_RTMP_SERVER_URL || 'rtmp://live.finalattempt.com/live';
+    const defaultPlayback = playbackHlsUrl || (generatedStreamKey ? `https://live.finalattempt.com/hls/${generatedStreamKey}.m3u8` : undefined);
+
     const lesson = await lmsDB.createLesson({
       id,
       sectionId,
       courseId: courseId || '',
       title,
       type: type || 'video',
-      videoUrl: videoUrl || '',
+      videoUrl: videoUrl || defaultPlayback || '',
       duration: duration || '10 mins',
       durationSeconds: 600,
       orderIndex: 1,
       isFree: isFree ? 1 : 0,
       isPublished: 1,
-      liveClassType,
+      liveClassType: liveClassType || (type === 'live' ? 'custom' : 'youtube'),
       liveScheduledAt,
-      liveMeetingUrl,
-      liveStatus,
-      recordingUrl
+      liveMeetingUrl: liveMeetingUrl || defaultPlayback,
+      liveStatus: liveStatus || (type === 'live' ? 'scheduled' : null),
+      recordingUrl,
+      liveStreamKey: generatedStreamKey,
+      customRtmpUrl: defaultRtmpUrl,
+      playbackHlsUrl: defaultPlayback
     });
     res.status(201).json({ success: true, data: lesson });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─────────────────────────── LIVE CLASS OBS STREAM KEY & CREDENTIALS ──────────
+// Generate or regenerate OBS Studio RTMP URL & Stream Key for a Live Lesson
+router.post('/lessons/:lessonId/live-stream-credentials', async (req: Request, res: Response) => {
+  try {
+    const lessonId = req.params.lessonId as string;
+    const lesson = await lmsDB.getLessonById(lessonId);
+    if (!lesson) {
+      res.status(404).json({ success: false, error: 'Lesson not found' });
+      return;
+    }
+
+    const { regenerate } = req.body;
+    let streamKey = lesson.liveStreamKey;
+    if (!streamKey || regenerate) {
+      streamKey = `fa_live_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}`;
+    }
+
+    const customRtmpUrl = process.env.LIVE_RTMP_SERVER_URL || 'rtmp://live.finalattempt.com/live';
+    const playbackHlsUrl = `https://live.finalattempt.com/hls/${streamKey}.m3u8`;
+
+    await lmsDB.updateLesson(lessonId, {
+      liveClassType: 'custom',
+      liveStreamKey: streamKey,
+      customRtmpUrl,
+      playbackHlsUrl,
+      liveMeetingUrl: playbackHlsUrl,
+      videoUrl: lesson.videoUrl || playbackHlsUrl
+    });
+
+    res.json({
+      success: true,
+      data: {
+        lessonId,
+        rtmpServerUrl: customRtmpUrl,
+        streamKey,
+        playbackHlsUrl,
+        obsSetup: {
+          service: 'Custom...',
+          server: customRtmpUrl,
+          streamKey: streamKey,
+          instructions: 'In OBS Studio -> Settings -> Stream -> Select "Custom...", paste Server URL and Stream Key, then click Start Streaming.'
+        }
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Update Live Status (e.g., 'live' when faculty starts stream, 'ended' when finished)
+router.post('/lessons/:lessonId/live-status', async (req: Request, res: Response) => {
+  try {
+    const lessonId = req.params.lessonId as string;
+    const { status, recordingUrl } = req.body; // 'scheduled' | 'live' | 'ended'
+    if (!status || !['scheduled', 'live', 'ended'].includes(status)) {
+      res.status(400).json({ success: false, error: 'Valid status (scheduled, live, ended) is required.' });
+      return;
+    }
+
+    const updatePayload: any = { liveStatus: status };
+    if (recordingUrl) {
+      updatePayload.recordingUrl = recordingUrl;
+    }
+    await lmsDB.updateLesson(lessonId, updatePayload);
+    res.json({ success: true, message: `Live status updated to ${status}`, status });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -737,6 +829,44 @@ router.get('/admin/students/:userId/attempts', authenticate, requireAdmin, async
   try {
     const attempts = await lmsDB.getAllStudentQuizAttempts(userId);
     res.json({ success: true, data: attempts });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Get Enrolled Students for a specific Course or Test Series
+router.get('/admin/courses/:courseId/students', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const courseId = req.params.courseId as string;
+  try {
+    const students = await lmsDB.getTestSeriesEnrolledStudents(courseId);
+    res.json({ success: true, data: students });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Manually Add Student to Course
+router.post('/admin/courses/:courseId/enroll', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const courseId = req.params.courseId as string;
+  const { userId } = req.body;
+  if (!userId) {
+    res.status(400).json({ success: false, error: 'Student userId is required.' });
+    return;
+  }
+  try {
+    await lmsDB.createEnrollment(userId, courseId, 'ADMIN_MANUAL', 0);
+    res.json({ success: true, message: 'Student successfully enrolled in Course.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Deactivate Student Access from Course
+router.delete('/admin/courses/:courseId/enroll/:userId', authenticate, requireAdmin, async (req: Request, res: Response) => {
+  const { courseId, userId } = req.params as { courseId: string; userId: string };
+  try {
+    await lmsDB.deleteEnrollment(userId, courseId);
+    res.json({ success: true, message: 'Student access revoked from Course.' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

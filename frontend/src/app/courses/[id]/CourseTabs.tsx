@@ -45,6 +45,7 @@ interface Lesson {
 
 interface CourseExtended extends Omit<Course, 'syllabus' | 'faculty' | 'demoLectures'> {
   syllabus?: (string | { subject?: string; topics?: string[] })[] | string[];
+  syllabusPdfUrl?: string;
   faculty?: FacultyMember[];
   demoLectures?: { title: string; duration: string; url: string; teacher?: string }[];
 }
@@ -309,17 +310,30 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
         {/* TAB 2: SYLLABUS */}
         {activeTab === 'Syllabus' && (
           <div className="space-y-6">
-            <div className="flex justify-between items-center max-w-3xl">
+            <div className="flex flex-wrap justify-between items-center gap-3 max-w-3xl">
               <h3 className="font-heading font-extrabold text-lg text-brand-primary">Syllabus Breakdown</h3>
-              {editMode && (
-                <button
-                  onClick={handleAddSection}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-[10px]"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Chapter</span>
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {(course as CourseExtended).syllabusPdfUrl && (
+                  <a
+                    href={(course as CourseExtended).syllabusPdfUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-[11px] shadow-sm transition-all"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>Download Official Syllabus PDF</span>
+                  </a>
+                )}
+                {editMode && (
+                  <button
+                    onClick={handleAddSection}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-[10px]"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Chapter</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-6 max-w-3xl">

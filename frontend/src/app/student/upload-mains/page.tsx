@@ -152,29 +152,30 @@ export default function UploadMainsCopyPage() {
     };
     loadTests();
 
-    // Verify enrollment for selected series
-    if (selectedSeriesId && accessToken) {
+    // Verify enrollment for selected series or test
+    const effectiveSeriesId = selectedSeriesId || (selectedTestId ? mainsTests.find(t => t.id === selectedTestId)?.testSeriesId : undefined);
+    if (effectiveSeriesId && accessToken) {
       setCheckingEnrollment(true);
-      checkEnrollment(selectedSeriesId, accessToken)
+      checkEnrollment(effectiveSeriesId, accessToken)
         .then(res => {
           if (!isCancelled) {
             setIsSeriesEnrolled(!!res.data?.enrolled);
           }
         })
         .catch(() => {
-          if (!isCancelled) setIsSeriesEnrolled(true);
+          if (!isCancelled) setIsSeriesEnrolled(false);
         })
         .finally(() => {
           if (!isCancelled) setCheckingEnrollment(false);
         });
     } else {
-      setIsSeriesEnrolled(true);
+      setIsSeriesEnrolled(false);
     }
 
     return () => {
       isCancelled = true;
     };
-  }, [selectedSeriesId, accessToken]);
+  }, [selectedSeriesId, selectedTestId, mainsTests, accessToken]);
 
   // Fetch Student Submissions
   const loadSubmissions = useCallback(async () => {
@@ -531,17 +532,17 @@ export default function UploadMainsCopyPage() {
                 </div>
 
                 {/* Non-Enrolled Notice Banner */}
-                {selectedSeriesId && !isSeriesEnrolled && !checkingEnrollment && (
+                {((selectedSeriesId && !isSeriesEnrolled) || (selectedTest?.testSeriesId && !isSeriesEnrolled)) && !checkingEnrollment && (
                   <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 space-y-2 text-xs">
                     <div className="flex items-center gap-2 font-bold">
                       <AlertCircle className="w-4 h-4 shrink-0 text-amber-500" />
                       <span>Test Series Enrollment Required</span>
                     </div>
                     <p className="text-[11px] leading-relaxed">
-                      You are not enrolled in this Test Series program. You must enroll or purchase this series to submit answer copies for expert evaluation.
+                      You are not enrolled in this Test Series program. You must be assigned or purchase this test series before you can submit answer copies.
                     </p>
                     <Link
-                      href={`/test-series/${selectedSeriesId}`}
+                      href={`/test-series/${selectedSeriesId || selectedTest?.testSeriesId}`}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-xl text-[11px] transition-colors"
                     >
                       View Plans &amp; Enroll Now ↗
@@ -558,15 +559,15 @@ export default function UploadMainsCopyPage() {
 
                 <button
                   type="submit"
-                  disabled={submittingCopy || uploadingPdf || !uploadedUrl || (!!selectedSeriesId && !isSeriesEnrolled)}
+                  disabled={submittingCopy || uploadingPdf || !uploadedUrl || !isSeriesEnrolled}
                   className={`w-full py-4 text-white text-sm font-heading font-black rounded-2xl shadow-xl flex items-center justify-center gap-2 transition-all ${
-                    uploadingPdf || submittingCopy || !uploadedUrl || (!!selectedSeriesId && !isSeriesEnrolled)
+                    uploadingPdf || submittingCopy || !uploadedUrl || !isSeriesEnrolled
                       ? 'bg-slate-700 cursor-not-allowed opacity-60'
                       : 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 cursor-pointer'
                   }`}
                 >
                   <CheckCircle className="w-5 h-5" />
-                  {submittingCopy ? t('uploadMains.submitting') : (!!selectedSeriesId && !isSeriesEnrolled) ? 'Enrollment Required to Submit' : t('uploadMains.submit')}
+                  {submittingCopy ? t('uploadMains.submitting') : !isSeriesEnrolled ? 'Enrollment Required to Submit' : t('uploadMains.submit')}
                 </button>
               </form>
             </div>

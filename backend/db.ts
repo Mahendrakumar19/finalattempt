@@ -4293,7 +4293,11 @@ async function initializeAuthTables(pool: mysql.Pool) {
       await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveMeetingUrl TEXT");
       await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveStatus VARCHAR(50) DEFAULT 'scheduled'");
       await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS recordingUrl TEXT");
+      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveStreamKey VARCHAR(100)");
+      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS customRtmpUrl TEXT");
+      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS playbackHlsUrl TEXT");
       await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS courseFormat VARCHAR(50) DEFAULT 'hybrid'");
+      await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS syllabusPdfUrl TEXT");
     } catch (_) {}
 
     // LMS Enrollments
@@ -4865,12 +4869,12 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO lms_courses (id, title, slug, exam, category, description, overview, thumbnailUrl, bannerUrl, fee, originalPrice, discount, duration, schedule, enrolledCount, syllabus, features, faq, faculty, demoLectures, isPublished)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO lms_courses (id, title, slug, exam, category, description, overview, thumbnailUrl, bannerUrl, fee, originalPrice, discount, duration, schedule, syllabusPdfUrl, enrolledCount, syllabus, features, faq, faculty, demoLectures, isPublished)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
           [
             data.id, data.title, slug, data.exam || 'BPSC', data.category || 'Prelims', data.description || '', data.overview || '',
             data.thumbnailUrl || null, data.bannerUrl || null,
-            data.fee || 0, data.originalPrice || null, data.discount || null, data.duration || '', data.schedule || '',
+            data.fee || 0, data.originalPrice || null, data.discount || null, data.duration || '', data.schedule || '', data.syllabusPdfUrl || null,
             JSON.stringify(data.syllabus || []),
             JSON.stringify(data.features || []),
             JSON.stringify(data.faq || []),
@@ -4933,6 +4937,7 @@ class LmsDB {
         if (updates.discount !== undefined) { fields.push('discount = ?'); vals.push(updates.discount); }
         if (updates.duration !== undefined) { fields.push('duration = ?'); vals.push(updates.duration); }
         if (updates.schedule !== undefined) { fields.push('schedule = ?'); vals.push(updates.schedule); }
+        if (updates.syllabusPdfUrl !== undefined) { fields.push('syllabusPdfUrl = ?'); vals.push(updates.syllabusPdfUrl); }
         if (updates.isPublished !== undefined) { fields.push('isPublished = ?'); vals.push(updates.isPublished ? 1 : 0); }
         if (updates.syllabus !== undefined) { fields.push('syllabus = ?'); vals.push(typeof updates.syllabus === 'string' ? updates.syllabus : JSON.stringify(updates.syllabus)); }
         if (updates.features !== undefined) { fields.push('features = ?'); vals.push(typeof updates.features === 'string' ? updates.features : JSON.stringify(updates.features)); }
@@ -5085,6 +5090,17 @@ class LmsDB {
     return db.localStore.lessons.filter(l => l.sectionId === sectionId);
   }
 
+  async getLessonById(id: string): Promise<any | null> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_lessons WHERE id = ? LIMIT 1', [id]);
+        if (rows && rows.length > 0) return { ...rows[0], isFree: !!rows[0].isFree };
+      } catch (err) { console.error('[LmsDB] getLessonById MySQL error:', err); }
+    }
+    const found = db.localStore.lessons.find(l => l.id === id);
+    return found || null;
+  }
+
   async createLesson(data: {
     id: string;
     sectionId: string;
@@ -5102,21 +5118,27 @@ class LmsDB {
     liveMeetingUrl?: string;
     liveStatus?: string;
     recordingUrl?: string;
+    liveStreamKey?: string;
+    customRtmpUrl?: string;
+    playbackHlsUrl?: string;
   }): Promise<any> {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO lms_lessons (id, sectionId, courseId, title, type, videoUrl, duration, durationSeconds, orderIndex, isFree, isPublished, liveClassType, liveScheduledAt, liveMeetingUrl, liveStatus, recordingUrl)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO lms_lessons (id, sectionId, courseId, title, type, videoUrl, duration, durationSeconds, orderIndex, isFree, isPublished, liveClassType, liveScheduledAt, liveMeetingUrl, liveStatus, recordingUrl, liveStreamKey, customRtmpUrl, playbackHlsUrl)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             data.id, data.sectionId, data.courseId, data.title, data.type,
             data.videoUrl, data.duration, data.durationSeconds, data.orderIndex,
             data.isFree, data.isPublished,
-            data.liveClassType || (data.type === 'live' ? 'youtube' : null),
+            data.liveClassType || (data.type === 'live' ? 'custom' : null),
             data.liveScheduledAt || null,
             data.liveMeetingUrl || null,
             data.liveStatus || (data.type === 'live' ? 'scheduled' : null),
-            data.recordingUrl || null
+            data.recordingUrl || null,
+            data.liveStreamKey || null,
+            data.customRtmpUrl || null,
+            data.playbackHlsUrl || null
           ]
         );
         return data;
@@ -5168,6 +5190,9 @@ class LmsDB {
     liveMeetingUrl?: string;
     liveStatus?: string;
     recordingUrl?: string;
+    liveStreamKey?: string;
+    customRtmpUrl?: string;
+    playbackHlsUrl?: string;
     isFree?: number | boolean;
   }): Promise<boolean> {
     if (mysqlPool) {
@@ -5183,6 +5208,9 @@ class LmsDB {
         if (data.liveMeetingUrl !== undefined) { fields.push('liveMeetingUrl = ?'); vals.push(data.liveMeetingUrl); }
         if (data.liveStatus !== undefined) { fields.push('liveStatus = ?'); vals.push(data.liveStatus); }
         if (data.recordingUrl !== undefined) { fields.push('recordingUrl = ?'); vals.push(data.recordingUrl); }
+        if (data.liveStreamKey !== undefined) { fields.push('liveStreamKey = ?'); vals.push(data.liveStreamKey); }
+        if (data.customRtmpUrl !== undefined) { fields.push('customRtmpUrl = ?'); vals.push(data.customRtmpUrl); }
+        if (data.playbackHlsUrl !== undefined) { fields.push('playbackHlsUrl = ?'); vals.push(data.playbackHlsUrl); }
         if (data.isFree !== undefined) { fields.push('isFree = ?'); vals.push(data.isFree ? 1 : 0); }
 
         if (fields.length > 0) {
@@ -5206,10 +5234,31 @@ class LmsDB {
   async isEnrolled(userId: string, courseId: string): Promise<boolean> {
     if (mysqlPool) {
       try {
+        // Check direct enrollment by courseId or testSeriesId / slug
         const [rows]: any = await mysqlPool.query(
-          'SELECT id FROM lms_enrollments WHERE userId = ? AND courseId = ? LIMIT 1', [userId, courseId]
+          `SELECT e.id FROM lms_enrollments e
+           WHERE e.userId = ? AND (
+             e.courseId = ? 
+             OR e.courseId IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+             OR e.courseId IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+           ) LIMIT 1`,
+          [userId, courseId, courseId, courseId, courseId, courseId]
         );
-        return rows && rows.length > 0;
+        if (rows && rows.length > 0) return true;
+
+        // Also check UserEntitlements (test series purchase plans)
+        const [entRows]: any = await mysqlPool.query(
+          `SELECT id FROM UserEntitlements
+           WHERE user_id = ? AND (
+             series_id = ?
+             OR series_id IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+             OR series_id IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+           ) AND status = 'ACTIVE' LIMIT 1`,
+          [userId, courseId, courseId, courseId, courseId, courseId]
+        );
+        if (entRows && entRows.length > 0) return true;
+
+        return false;
       } catch (err) { console.error('[LmsDB] isEnrolled MySQL error:', err); }
     }
     return lmsLocalEnrollments.some(e => e.userId === userId && e.courseId === courseId);

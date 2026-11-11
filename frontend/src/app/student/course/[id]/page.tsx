@@ -394,8 +394,9 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                     ref={videoRef}
                     src={streamUrl}
                     controls
+                    playsInline
                     autoPlay
-                    className="w-full h-full"
+                    className="w-full h-full bg-black object-contain"
                   />
                 );
               })()}

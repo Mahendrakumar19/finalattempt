@@ -66,6 +66,7 @@ export interface Course {
   discount?: string | null;
   discountedPrice?: number;
   syllabus: string[];
+  syllabusPdfUrl?: string;
   features: string[];
   schedule: string;
   demoLectures?: { title: string; duration: string; url: string; teacher?: string }[];
@@ -1886,6 +1887,36 @@ class FinalAttemptDB {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+  }
+
+  async getCourseEnrolledStudents<T = any>(courseId: string): Promise<T[]> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    const res = await this.apiFetch(`/api/lms/admin/courses/${courseId}/students`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    return res?.data || [];
+  }
+
+  async addStudentToCourse(courseId: string, userId: string): Promise<boolean> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    const res = await this.apiFetch(`/api/lms/admin/courses/${courseId}/enroll`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ userId })
+    });
+    return res?.success || false;
+  }
+
+  async removeStudentFromCourse(courseId: string, userId: string): Promise<boolean> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
+    const res = await this.apiFetch(`/api/lms/admin/courses/${courseId}/enroll/${userId}`, {
+      method: 'DELETE',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+    return res?.success || false;
   }
 
   async getTestSeriesEnrolledStudents<T = any>(testSeriesId: string): Promise<T[]> {
