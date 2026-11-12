@@ -23,6 +23,7 @@ interface MainsTestItem {
   modelAnswerUrl?: string;
   discussionVideoUrl?: string;
   syllabus?: string;
+  syllabusPdfUrl?: string;
   testSeriesId?: string;
 }
 

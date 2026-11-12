@@ -1374,6 +1374,7 @@ export default function TestSeriesAdmin({
                       title: '',
                       description: '',
                       syllabus: '',
+                      syllabusPdfUrl: '',
                       maxMarks: 100,
                       dueDate: '',
                       questionPaperUrl: '',

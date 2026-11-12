@@ -47,6 +47,7 @@ interface StudentAttemptDetail {
   questionText?: string;
   isCorrect?: boolean;
   studentAnswer?: string;
+  correctAnswer?: string;
 }
 
 interface StudentAttempt {
@@ -98,7 +99,7 @@ export default function TestSeriesDetailPage() {
 
   // Plans & Commercial Pricing tab states (Phase 5)
   const [plans, setPlans] = useState<TestSeriesPlanItem[]>([]);
-  const [, setLoadingPlans] = useState(false);
+  const [loadingPlans, setLoadingPlans] = useState(false);
   const [editingPlan, setEditingPlan] = useState<TestSeriesPlanItem | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
   const [planFormError, setPlanFormError] = useState<string | null>(null);
@@ -137,7 +138,7 @@ export default function TestSeriesDetailPage() {
 
   // Students tab states & filter states
   const [students, setStudents] = useState<StudentItem[]>([]);
-  const [, setLoadingStudents] = useState(false);
+  const [loadingStudents, setLoadingStudents] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
   const [studentSearchText, setStudentSearchText] = useState('');
   const [searchResults, setSearchResults] = useState<{ id?: string; fullName?: string; email?: string; mobile?: string }[]>([]);
@@ -732,7 +733,6 @@ export default function TestSeriesDetailPage() {
                 onClick={() => {
                   const defaultCode = `CUSTOM_${Date.now().toString().slice(-4)}`;
                   setEditingPlan({
-                    isNew: true,
                     series_id: series?.id || testSeriesId,
                     plan_code: defaultCode,
                     title: 'New Extra Package',
@@ -741,7 +741,7 @@ export default function TestSeriesDetailPage() {
                     sequence_end_number: quizzes.length > 0 ? quizzes.length : 10,
                     price: 299,
                     discounted_price: undefined,
-                    included_quiz_ids: null,
+                    included_quiz_ids: undefined,
                     is_active: true
                   });
                   setPlanFormError(null);
@@ -1057,7 +1057,7 @@ export default function TestSeriesDetailPage() {
 
                   const res = await db.saveTestSeriesPlanAdmin({
                     seriesId: series.id,
-                    planCode: editingPlan.plan_code,
+                    planCode: editingPlan.plan_code || 'PLAN',
                     title: editingPlan.title,
                     description: editingPlan.description,
                     sequenceStartNumber: Number(editingPlan.sequence_start_number || 1),
@@ -1176,7 +1176,7 @@ export default function TestSeriesDetailPage() {
                   {quizzes.length === 0 ? (
                     <p className="text-slate-400 text-[11px] p-2 text-center">No quizzes created in this test series yet.</p>
                   ) : (
-                    quizzes.map((quiz) => {
+                    quizzes.map((quiz, qIdx) => {
                       let currentSelectedIds: string[] = [];
                       if (editingPlan.included_quiz_ids) {
                         try {
@@ -1265,7 +1265,9 @@ export default function TestSeriesDetailPage() {
                       if (confirm(`Are you sure you want to delete '${editingPlan.title}'?`)) {
                         setSavingPlan(true);
                         try {
-                          await db.deleteTestSeriesPlanAdmin(editingPlan.id);
+                          if (editingPlan.id) {
+                            await db.deleteTestSeriesPlanAdmin(editingPlan.id);
+                          }
                           await loadPlans();
                           setEditingPlan(null);
                           alert('✓ Package deleted successfully');
@@ -1798,7 +1800,7 @@ export default function TestSeriesDetailPage() {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => handleAddStudent(st.id)}
+                        onClick={() => st.id && handleAddStudent(st.id)}
                         className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-lg text-[10px] cursor-pointer shadow-xs"
                       >
                         Enroll

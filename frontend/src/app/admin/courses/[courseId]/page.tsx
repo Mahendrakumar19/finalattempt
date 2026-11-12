@@ -570,6 +570,9 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
       liveMeetingUrl: '',
       liveStatus: 'scheduled',
       recordingUrl: '',
+      liveStreamKey: '',
+      customRtmpUrl: 'rtmp://live.finalattempt.com/live',
+      playbackHlsUrl: '',
       isFree: false
     });
     setShowLessonModal(true);
