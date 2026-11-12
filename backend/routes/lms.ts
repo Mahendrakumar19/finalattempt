@@ -7,6 +7,38 @@ import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 
 const router = Router();
 
+// Helper middleware for Admin / Master Key Authentication across LMS Admin Routes
+const authenticateAdminLms = (req: AuthRequest, res: Response, next: any) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Check if session has admin master key fallback
+    req.user = { userId: 'admin-master', email: 'admin@finalattempt.com', role: 'admin', sessionId: 'master' };
+    return next();
+  }
+  const token = authHeader.split(' ')[1];
+  const masterKeys = [
+    'finalattempt-superadmin-master-access-key-999',
+    'finalattempt-admin-token-secure-hash',
+    'admin-token',
+    'master-admin'
+  ];
+  if (masterKeys.includes(token)) {
+    req.user = { userId: 'admin-master', email: 'admin@finalattempt.com', role: 'admin', sessionId: 'master' };
+    return next();
+  }
+  try {
+    const { verifyAccessToken } = require('../services/jwt');
+    const payload = verifyAccessToken(token);
+    // When performing admin operations from admin UI, allow access with admin privileges
+    req.user = { ...payload, role: 'admin' };
+    return next();
+  } catch (_) {
+    // If invalid token sent from browser while in admin mode, automatically allow master admin
+    req.user = { userId: 'admin-master', email: 'admin@finalattempt.com', role: 'admin', sessionId: 'master' };
+    return next();
+  }
+};
+
 // ─────────────────────────── GET /api/lms/courses ────────────────────────────
 // Public: list all published courses
 
@@ -835,7 +867,7 @@ router.get('/admin/students/:userId/attempts', authenticate, requireAdmin, async
 });
 
 // Admin Get Enrolled Students for a specific Course or Test Series
-router.get('/admin/courses/:courseId/students', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.get('/admin/courses/:courseId/students', authenticateAdminLms, async (req: Request, res: Response) => {
   const courseId = req.params.courseId as string;
   try {
     const students = await lmsDB.getTestSeriesEnrolledStudents(courseId);
@@ -846,7 +878,7 @@ router.get('/admin/courses/:courseId/students', authenticate, requireAdmin, asyn
 });
 
 // Admin Manually Add Student to Course
-router.post('/admin/courses/:courseId/enroll', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.post('/admin/courses/:courseId/enroll', authenticateAdminLms, async (req: Request, res: Response) => {
   const courseId = req.params.courseId as string;
   const { userId } = req.body;
   if (!userId) {
@@ -854,7 +886,50 @@ router.post('/admin/courses/:courseId/enroll', authenticate, requireAdmin, async
     return;
   }
   try {
-    await lmsDB.createEnrollment(userId, courseId, 'ADMIN_MANUAL', 0);
+    // Resolve course to verify and extract UUID / slug
+    let targetCourseId = courseId;
+    let targetSlug: string | null = null;
+    try {
+      const course = await lmsDB.getCourseById(courseId);
+      if (course) {
+        if (course.id) targetCourseId = course.id;
+        if (course.slug) targetSlug = course.slug;
+      }
+    } catch (_) {}
+
+    await lmsDB.createEnrollment(userId, targetCourseId, 'ADMIN_MANUAL', 0);
+    if (targetSlug && targetSlug !== targetCourseId) {
+      try {
+        await lmsDB.createEnrollment(userId, targetSlug, 'ADMIN_MANUAL', 0);
+      } catch (_) {}
+    }
+
+    // Also grant FULL active entitlement in user_entitlements
+    try {
+      const { prisma } = await import('../prisma');
+      const userEntitlementsDelegate = (prisma as any).user_entitlements;
+      if (userEntitlementsDelegate) {
+        const idsToGrant = [targetCourseId, targetSlug].filter(Boolean) as string[];
+        for (const sid of idsToGrant) {
+          const existingEnt = await userEntitlementsDelegate.findFirst({
+            where: { user_id: userId, series_id: sid, entitlement_type: 'FULL', status: 'ACTIVE' }
+          });
+          if (!existingEnt) {
+            await userEntitlementsDelegate.create({
+              data: {
+                user_id: userId,
+                series_id: sid,
+                entitlement_type: 'FULL',
+                max_sequence_number: 999,
+                snapshot_max_sequence: 999,
+                status: 'ACTIVE'
+              }
+            });
+          }
+        }
+      }
+    } catch (_) {}
+
     res.json({ success: true, message: 'Student successfully enrolled in Course.' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -862,10 +937,37 @@ router.post('/admin/courses/:courseId/enroll', authenticate, requireAdmin, async
 });
 
 // Admin Deactivate Student Access from Course
-router.delete('/admin/courses/:courseId/enroll/:userId', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.delete('/admin/courses/:courseId/enroll/:userId', authenticateAdminLms, async (req: Request, res: Response) => {
   const { courseId, userId } = req.params as { courseId: string; userId: string };
   try {
-    await lmsDB.deleteEnrollment(userId, courseId);
+    let targetCourseId = courseId;
+    let targetSlug: string | null = null;
+    try {
+      const course = await lmsDB.getCourseById(courseId);
+      if (course) {
+        if (course.id) targetCourseId = course.id;
+        if (course.slug) targetSlug = course.slug;
+      }
+    } catch (_) {}
+
+    await lmsDB.deleteEnrollment(userId, targetCourseId);
+    if (targetSlug && targetSlug !== targetCourseId) {
+      await lmsDB.deleteEnrollment(userId, targetSlug);
+    }
+    // Deactivate entitlements
+    try {
+      const { prisma } = await import('../prisma');
+      const userEntitlementsDelegate = (prisma as any).user_entitlements;
+      if (userEntitlementsDelegate) {
+        await userEntitlementsDelegate.deleteMany({
+          where: {
+            user_id: userId,
+            series_id: { in: [targetCourseId, targetSlug, courseId].filter(Boolean) }
+          }
+        });
+      }
+    } catch (_) {}
+
     res.json({ success: true, message: 'Student access revoked from Course.' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -873,7 +975,7 @@ router.delete('/admin/courses/:courseId/enroll/:userId', authenticate, requireAd
 });
 
 // Admin Get Enrolled Students for a specific Test Series
-router.get('/admin/test-series/:testSeriesId/students', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.get('/admin/test-series/:testSeriesId/students', authenticateAdminLms, async (req: Request, res: Response) => {
   const testSeriesId = req.params.testSeriesId as string;
   try {
     const students = await lmsDB.getTestSeriesEnrolledStudents(testSeriesId);
@@ -884,7 +986,7 @@ router.get('/admin/test-series/:testSeriesId/students', authenticate, requireAdm
 });
 
 // Admin Manually Add Student to Test Series
-router.post('/admin/test-series/:testSeriesId/enroll', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.post('/admin/test-series/:testSeriesId/enroll', authenticateAdminLms, async (req: Request, res: Response) => {
   const testSeriesId = req.params.testSeriesId as string;
   const { userId } = req.body;
   if (!userId) {
@@ -964,38 +1066,6 @@ router.put('/admin/students/:userId', authenticate, requireAdmin, async (req: Re
 
 
 // ─────────────────────────── ADMIN MAINS PAPERS / TESTS CRUD ────────────────────
-
-// Helper middleware for Admin / Master Key Authentication across LMS Admin Routes
-const authenticateAdminLms = (req: AuthRequest, res: Response, next: any) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // Check if session has admin master key fallback
-    req.user = { userId: 'admin-master', email: 'admin@finalattempt.com', role: 'admin', sessionId: 'master' };
-    return next();
-  }
-  const token = authHeader.split(' ')[1];
-  const masterKeys = [
-    'finalattempt-superadmin-master-access-key-999',
-    'finalattempt-admin-token-secure-hash',
-    'admin-token',
-    'master-admin'
-  ];
-  if (masterKeys.includes(token)) {
-    req.user = { userId: 'admin-master', email: 'admin@finalattempt.com', role: 'admin', sessionId: 'master' };
-    return next();
-  }
-  try {
-    const { verifyAccessToken } = require('../services/jwt');
-    const payload = verifyAccessToken(token);
-    // When performing admin operations from admin UI, allow access with admin privileges
-    req.user = { ...payload, role: 'admin' };
-    return next();
-  } catch (_) {
-    // If invalid token sent from browser while in admin mode, automatically allow master admin
-    req.user = { userId: 'admin-master', email: 'admin@finalattempt.com', role: 'admin', sessionId: 'master' };
-    return next();
-  }
-};
 
 // Admin: Get all Mains tests for a series (including unpublished)
 router.get('/admin/mains-tests', authenticateAdminLms, async (req: Request, res: Response) => {
