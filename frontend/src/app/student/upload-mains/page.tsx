@@ -27,6 +27,13 @@ interface MainsTestItem {
   testSeriesId?: string;
 }
 
+interface RubricsBreakdown {
+  introduction?: number;
+  contentAndFacts?: number;
+  structuringDiagrams?: number;
+  conclusion?: number;
+}
+
 interface StudentSubmission {
   id: string;
   assignmentId: string;
@@ -39,7 +46,7 @@ interface StudentSubmission {
   feedback?: string;
   status?: string;
   evaluatedCopyUrl?: string;
-  rubricsBreakdown?: any;
+  rubricsBreakdown?: RubricsBreakdown | string | null;
 }
 
 export default function UploadMainsCopyPage() {
@@ -157,7 +164,9 @@ export default function UploadMainsCopyPage() {
     // Verify enrollment for selected series or test
     const effectiveSeriesId = selectedSeriesId || (selectedTestId ? mainsTests.find(t => t.id === selectedTestId)?.testSeriesId : undefined);
     if (effectiveSeriesId && accessToken) {
-      setCheckingEnrollment(true);
+      queueMicrotask(() => {
+        if (!isCancelled) setCheckingEnrollment(true);
+      });
       checkEnrollment(effectiveSeriesId, accessToken)
         .then(res => {
           if (!isCancelled) {
@@ -652,13 +661,15 @@ export default function UploadMainsCopyPage() {
 
                         {/* Evaluation Results if Evaluated */}
                         {isEvaluated && (() => {
-                          let rubrics: any = null;
+                          let rubrics: RubricsBreakdown | null = null;
                           if (sub.rubricsBreakdown) {
                             try {
                               rubrics = typeof sub.rubricsBreakdown === 'string'
-                                ? JSON.parse(sub.rubricsBreakdown)
-                                : sub.rubricsBreakdown;
-                            } catch (_) {}
+                                ? (JSON.parse(sub.rubricsBreakdown) as RubricsBreakdown)
+                                : (sub.rubricsBreakdown as RubricsBreakdown);
+                            } catch {
+                              rubrics = null;
+                            }
                           }
                           const hasRubrics = rubrics && (
                             rubrics.introduction !== undefined ||
@@ -686,7 +697,7 @@ export default function UploadMainsCopyPage() {
                               </div>
 
                               {/* Rubrics Score Breakdown for Student */}
-                              {hasRubrics && (
+                              {hasRubrics && rubrics && (
                                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 py-1.5 border-y border-emerald-500/20 text-[10px]">
                                   {rubrics.introduction !== undefined && (
                                     <div className="p-1.5 bg-emerald-500/10 rounded-lg">
