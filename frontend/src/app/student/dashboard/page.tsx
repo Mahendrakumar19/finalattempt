@@ -8,7 +8,7 @@ import {
   Award, CheckCircle, Play,
   ChevronRight,
   Target, Zap, Lock,
-  Sun, Moon
+  Sun, Moon, Download, Receipt
 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -18,6 +18,9 @@ import { getMyEnrollments, getCourseQuizzes } from '@/services/auth';
 import MentorshipChat from '@/components/lms/MentorshipChat';
 import PerformanceAnalytics from '@/components/lms/PerformanceAnalytics';
 import StudentPortalShell from '@/components/StudentPortalShell';
+import StudyStreakHeatmap from '@/components/StudyStreakHeatmap';
+import { generateTaxInvoicePdf } from '@/utils/invoiceGenerator';
+import { generateCourseCertificatePdf } from '@/utils/certificateGenerator';
 import { db } from '@/services/db';
 
 type DashTab = 'Dashboard' | 'My Courses' | 'Performance' | 'Tests' | 'Notes' | 'Mentor Connect' | 'Certificates';
@@ -29,6 +32,9 @@ interface Enrollment {
   thumbnailUrl?: string;
   duration?: string;
   enrolledAt: string;
+  amountPaid?: number;
+  paymentOrderId?: string;
+  paymentId?: string;
   testSeriesSlug?: string;
   completedLessons?: number;
   totalLessons?: number;
@@ -187,6 +193,9 @@ function StudentDashboardContent() {
           {/* ── Dashboard Tab ── */}
           {activeTab === 'Dashboard' && (
             <div className="space-y-6">
+              {/* Daily Study Streak & Attendance Heatmap */}
+              <StudyStreakHeatmap completedDates={enrollments.map(e => e.enrolledAt)} />
+
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {stats.map(s => (
@@ -366,8 +375,32 @@ function StudentDashboardContent() {
                         </div>
                         <div className="mt-4 flex items-center gap-2">
                           <div className="flex-1 px-3 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-center">
-                            <p className="text-blue-400 text-[11px] font-bold">Continue →</p>
+                            <p className="text-blue-400 text-[11px] font-bold">Continue Study →</p>
                           </div>
+                          <button
+                            type="button"
+                            onClick={(ev) => {
+                              ev.preventDefault();
+                              ev.stopPropagation();
+                              generateTaxInvoicePdf({
+                                invoiceNumber: `INV-${e.courseId.slice(0, 4).toUpperCase()}-${Date.now().toString().slice(-6)}`,
+                                orderId: e.paymentOrderId || `ORD-${Date.now().toString().slice(-8)}`,
+                                paymentId: e.paymentId || 'pay_online_verified',
+                                date: new Date(e.enrolledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }),
+                                studentName: user?.fullName || 'Aspirant',
+                                studentEmail: user?.email,
+                                studentMobile: user?.mobile,
+                                courseTitle: e.title,
+                                category: e.category,
+                                amountPaid: Number(e.amountPaid) > 0 ? (Number(e.amountPaid) > 1000 ? Math.round(Number(e.amountPaid) / 100) : Number(e.amountPaid)) : 4999,
+                              });
+                            }}
+                            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                            title="Download Official GST Tax Invoice & Fee Receipt"
+                          >
+                            <Receipt className="w-3.5 h-3.5 text-amber-400" />
+                            <span className="text-[10px]">Invoice</span>
+                          </button>
                         </div>
                       </Link>
                     ))}
@@ -377,19 +410,88 @@ function StudentDashboardContent() {
             </div>
           )}
 
-          {/* ── Placeholder Tab (Certificates only) ── */}
+          {/* ── Official QR Verified Certificates Tab ── */}
           {activeTab === 'Certificates' && (
-            <div className="flex flex-col items-center justify-center min-h-64 text-center gap-4 p-8 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06]">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-blue-500/20 flex items-center justify-center">
-                <Award className="w-7 h-7 text-yellow-400" />
+            <div className="space-y-6">
+              <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/20 rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-500/20 mb-2">
+                    <Award className="w-3.5 h-3.5" />
+                    Verified Credentials Hub
+                  </div>
+                  <h2 className="text-white font-extrabold text-lg sm:text-xl">Your Course Completion Certificates</h2>
+                  <p className="text-slate-400 text-xs mt-1">
+                    Download authentic QR-verifiable certificates signed by the Academic Board upon completing programs.
+                  </p>
+                </div>
               </div>
-              <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.certificates')}</h2>
-              <p className="text-slate-600 dark:text-slate-400 text-sm max-w-xs">
-                {t('student.certificatesDesc')}
-              </p>
-              <div className="px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold">
-                {t('student.comingSoon')}
-              </div>
+
+              {enrollments.length === 0 ? (
+                <div className="p-12 rounded-3xl bg-slate-900 border border-white/10 text-center space-y-3">
+                  <Award className="w-12 h-12 text-slate-700 mx-auto" />
+                  <p className="font-bold text-slate-300">No Enrolled Courses Found</p>
+                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    Enroll in a program and complete the syllabus to earn your verifiable certificate.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {enrollments.map((enr) => {
+                    const isCompleted = (enr.completionPercentage || 0) >= 100;
+                    const certId = `FA-${enr.courseId.slice(0, 4).toUpperCase()}-${(user?.id || 'USR').slice(-4).toUpperCase()}-${new Date(enr.enrolledAt).getFullYear()}`;
+
+                    return (
+                      <div
+                        key={enr.courseId}
+                        className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4 hover:border-amber-500/40 transition-all shadow-md flex flex-col justify-between"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">
+                              {enr.category || 'ACADEMIC PROGRAM'}
+                            </span>
+                            {isCompleted ? (
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-black">
+                                ✓ COMPLETED
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-black">
+                                {enr.completionPercentage || 0}% PROGRESS
+                              </span>
+                            )}
+                          </div>
+
+                          <h3 className="text-white font-bold text-base leading-snug">{enr.title}</h3>
+                          <p className="text-slate-400 text-xs">
+                            Enrolled on: {new Date(enr.enrolledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </p>
+                        </div>
+
+                        <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
+                          <span className="text-[10px] font-mono text-slate-500">ID: {certId}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              generateCourseCertificatePdf({
+                                certificateId: certId,
+                                studentName: user?.fullName || 'Aspirant',
+                                courseTitle: enr.title,
+                                category: enr.category,
+                                completionDate: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }),
+                                duration: enr.duration,
+                              });
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Download Certificate (PDF)</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

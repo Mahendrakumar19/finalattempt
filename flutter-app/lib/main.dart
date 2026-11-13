@@ -13,6 +13,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'providers/theme_provider.dart';
+import 'core/services/code_push_updater.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,9 @@ void main() async {
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
+
+  // Check for Shorebird Over-The-Air code patch silently in background
+  CodePushUpdater.checkForUpdates();
 
   if (!kIsWeb) {
     try {

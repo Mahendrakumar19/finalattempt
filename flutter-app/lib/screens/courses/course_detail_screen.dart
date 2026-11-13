@@ -6,10 +6,13 @@ import 'package:flutter/foundation.dart';
 
 import '../../providers/courses_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/student_provider.dart';
+import '../../models/course_model.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/api_service.dart';
 import '../../widgets/loading_shimmer.dart';
 import '../../widgets/app_toast.dart';
+import '../student/course_viewer_screen.dart';
 
 class CourseDetailScreen extends ConsumerStatefulWidget {
   final String courseId;
@@ -59,6 +62,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
           title: 'Enrolled Successfully',
         );
         ref.invalidate(courseDetailProvider(widget.courseId));
+        ref.invalidate(enrollmentsProvider);
       }
     } catch (e) {
       if (mounted) {
@@ -106,8 +110,10 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
 
     try {
       final apiService = ref.read(apiServiceProvider);
+      final double targetPrice = course is CourseModel ? course.numericPrice : 0.0;
       final res = await apiService.post('/payments/create-order', data: {
         'courseId': widget.courseId,
+        if (targetPrice > 0) 'amount': targetPrice,
         'currency': 'INR',
       });
 
@@ -142,6 +148,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
             ),
           );
           ref.invalidate(courseDetailProvider(widget.courseId));
+        ref.invalidate(enrollmentsProvider);
         }
         if (mounted) setState(() => _isEnrolling = false);
       }
@@ -161,10 +168,13 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final courseAsync = ref.watch(courseDetailProvider(widget.courseId));
+    final enrollmentsAsync = ref.watch(enrollmentsProvider);
     final bg = AppTheme.bgOf(context);
     final cardBg = AppTheme.cardBgOf(context);
     final borderCol = AppTheme.borderOf(context);
     final textPrimary = AppTheme.textPrimaryOf(context);
+
+    final isEnrolled = enrollmentsAsync.valueOrNull?.any((e) => e.courseId == widget.courseId) ?? false;
 
     return Scaffold(
       backgroundColor: bg,
@@ -174,7 +184,13 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
         scrolledUnderElevation: 0.5,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new, size: 18, color: textPrimary),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              context.pop();
+            } else {
+              context.go('/courses');
+            }
+          },
         ),
         title: Text(
           'Course Details',
@@ -210,18 +226,42 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (course.category != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            course.category!,
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.6),
-                          ),
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (course.category != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                course.category!,
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.6),
+                              ),
+                            ),
+                          if (isEnrolled)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.check_circle_rounded, size: 13, color: Colors.white),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'ENROLLED',
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.6),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         course.title,
@@ -236,27 +276,73 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
                             _InfoChip(icon: Icons.schedule_rounded, label: course.duration!),
                         ],
                       ),
-                      if (course.fee != null) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          '₹${course.fee}',
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
-                        ),
-                      ],
+                      const SizedBox(height: 16),
+                      // Dynamic Price & Offer Breakdown
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            course.displayPrice,
+                            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white),
+                          ),
+                          if (course.originalPrice != null && course.originalPrice! > course.numericPrice) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '₹${course.originalPrice!.toInt()}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.7),
+                                decoration: TextDecoration.lineThrough,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(width: 8),
+                          if (course.discount != null && course.discount!.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                course.discount!,
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
+                              ),
+                            ),
+                        ],
+                      ),
                       const SizedBox(height: 16),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _isEnrolling ? null : () => _startEnrollment(course),
+                          onPressed: _isEnrolling
+                              ? null
+                              : (isEnrolled
+                                  ? () {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => CourseViewerScreen(
+                                            courseId: course.id,
+                                            courseTitle: course.title,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  : () => _startEnrollment(course)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: AppColors.primaryBlue,
+                            backgroundColor: isEnrolled ? const Color(0xFF10B981) : Colors.white,
+                            foregroundColor: isEnrolled ? Colors.white : AppColors.primaryBlue,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                           child: _isEnrolling
                               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Text('Enroll Now', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                              : Text(
+                                  isEnrolled ? 'Go to Course Room →' : 'Enroll Now (${course.displayPrice})',
+                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                                ),
                         ),
                       ),
                     ],

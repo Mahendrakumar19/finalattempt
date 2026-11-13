@@ -199,6 +199,17 @@ router.post(['/verify', '/verify-payment'], optionalAuth, async (req: AuthReques
         } catch (_) {}
       }
 
+      // Instant Telegram / Webhook Alert for Enrollment & Payment
+      try {
+        const { alertService } = await import('../services/alertService');
+        alertService.notifyPaymentSuccess({
+          studentEmail: req.user.email,
+          courseTitle: lastEnrollment?.title || courseId,
+          amount,
+          orderId
+        }).catch(() => {});
+      } catch (_) {}
+
       res.json({
         success: true,
         data: lastEnrollment || { courseId, userId: req.user.userId },

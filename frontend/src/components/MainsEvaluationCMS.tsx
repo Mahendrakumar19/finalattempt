@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import {
   FileText, CheckCircle, Clock, Search, Download, Eye,
-  Award, MessageSquare, Upload, AlertCircle, RefreshCw, X, Check, PenTool
+  Award, MessageSquare, Upload, AlertCircle, RefreshCw, X, Check, PenTool, UserCheck, Calendar
 } from 'lucide-react';
-import { getAllMainsSubmissionsAdmin, evaluateMainsSubmissionAdmin } from '@/services/auth';
-import PDFAnnotationEditor from './PDFAnnotationEditor';
+import { getAllMainsSubmissionsAdmin, evaluateMainsSubmissionAdmin, assignMainsEvaluatorAdmin } from '@/services/auth';
+import PDFAnnotationEditor, { RubricsScore } from './PDFAnnotationEditor';
 
 interface SubmissionItem {
   id: string;
@@ -25,6 +25,10 @@ interface SubmissionItem {
   status?: string;
   evaluatedCopyUrl?: string;
   evaluatedAt?: string;
+  assignedToUserId?: string;
+  assignedToName?: string;
+  evaluationDeadline?: string;
+  rubricsBreakdown?: any;
 }
 
 export default function MainsEvaluationCMS({ accessToken }: { accessToken?: string }) {
@@ -44,6 +48,19 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
 
   // In-browser PDF checking studio state
   const [annotatingSub, setAnnotatingSub] = useState<SubmissionItem | null>(null);
+
+  // Assignment Modal State (Assign Evaluator)
+  const [assigningSub, setAssigningSub] = useState<SubmissionItem | null>(null);
+  const [evaluatorName, setEvaluatorName] = useState('');
+  const [evaluatorUserId, setEvaluatorUserId] = useState('');
+  const [assignDeadline, setAssignDeadline] = useState('');
+  const [savingAssign, setSavingAssign] = useState(false);
+
+  // Rubrics in Modal
+  const [rubricIntro, setRubricIntro] = useState('');
+  const [rubricContent, setRubricContent] = useState('');
+  const [rubricStruct, setRubricStruct] = useState('');
+  const [rubricConcl, setRubricConcl] = useState('');
 
   const loadSubmissions = async () => {
     if (!accessToken) {
@@ -73,6 +90,54 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
     setEvalFeedback(sub.feedback || '');
     setEvalPdfUrl(sub.evaluatedCopyUrl || '');
     setEvalStatus(sub.status || 'Evaluated');
+
+    let parsedRubrics: any = null;
+    if (sub.rubricsBreakdown) {
+      parsedRubrics = typeof sub.rubricsBreakdown === 'string' ? JSON.parse(sub.rubricsBreakdown) : sub.rubricsBreakdown;
+    }
+    setRubricIntro(parsedRubrics?.introduction !== undefined ? String(parsedRubrics.introduction) : '');
+    setRubricContent(parsedRubrics?.contentAndFacts !== undefined ? String(parsedRubrics.contentAndFacts) : '');
+    setRubricStruct(parsedRubrics?.structuringDiagrams !== undefined ? String(parsedRubrics.structuringDiagrams) : '');
+    setRubricConcl(parsedRubrics?.conclusion !== undefined ? String(parsedRubrics.conclusion) : '');
+  };
+
+  const openAssignModal = (sub: SubmissionItem) => {
+    setAssigningSub(sub);
+    setEvaluatorName(sub.assignedToName || '');
+    setEvaluatorUserId(sub.assignedToUserId || '');
+    setAssignDeadline(sub.evaluationDeadline ? sub.evaluationDeadline.split('T')[0] : '');
+  };
+
+  const handleSaveAssignment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assigningSub || !accessToken) return;
+    if (!evaluatorName.trim()) {
+      alert('Please specify evaluator name.');
+      return;
+    }
+    setSavingAssign(true);
+    try {
+      const res = await assignMainsEvaluatorAdmin(
+        assigningSub.id,
+        {
+          assignedToUserId: evaluatorUserId || 'evaluator-faculty',
+          assignedToName: evaluatorName.trim(),
+          evaluationDeadline: assignDeadline ? new Date(assignDeadline).toISOString() : undefined
+        },
+        accessToken
+      );
+      if (res.success) {
+        alert(`Mains copy assigned to "${evaluatorName}"!`);
+        setAssigningSub(null);
+        loadSubmissions();
+      } else {
+        alert(res.error || 'Failed assigning evaluator.');
+      }
+    } catch {
+      alert('Error assigning evaluator.');
+    } finally {
+      setSavingAssign(false);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,11 +180,19 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
 
     setSubmittingEval(true);
     try {
+      const rubricsPayload = {
+        introduction: rubricIntro !== '' ? Number(rubricIntro) : undefined,
+        contentAndFacts: rubricContent !== '' ? Number(rubricContent) : undefined,
+        structuringDiagrams: rubricStruct !== '' ? Number(rubricStruct) : undefined,
+        conclusion: rubricConcl !== '' ? Number(rubricConcl) : undefined
+      };
+
       const payload = {
         grade: evalGrade !== '' ? Number(evalGrade) : undefined,
         feedback: evalFeedback,
         evaluatedCopyUrl: evalPdfUrl,
-        status: evalStatus
+        status: evalStatus,
+        rubricsBreakdown: rubricsPayload
       };
 
       const res = await evaluateMainsSubmissionAdmin(selectedSub.id, payload, accessToken);
@@ -138,7 +211,7 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
     }
   };
 
-  const handleSaveAnnotatedPdf = async (fileBlob: Blob, marks?: number, feedbackText?: string) => {
+  const handleSaveAnnotatedPdf = async (fileBlob: Blob, marks?: number, feedbackText?: string, rubrics?: RubricsScore) => {
     if (!annotatingSub || !accessToken) return;
 
     try {
@@ -160,7 +233,8 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
         grade: marks !== undefined ? marks : annotatingSub.grade,
         feedback: feedbackText !== undefined ? feedbackText : annotatingSub.feedback,
         evaluatedCopyUrl: uploadData.url,
-        status: 'Evaluated'
+        status: 'Evaluated',
+        rubricsBreakdown: rubrics
       };
 
       const res = await evaluateMainsSubmissionAdmin(annotatingSub.id, payload, accessToken);
@@ -328,6 +402,17 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                       </a>
                     )}
 
+                    {/* Assign Evaluator Button */}
+                    <button
+                      type="button"
+                      onClick={() => openAssignModal(sub)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[var(--text-color)] text-xs font-bold rounded-xl transition-all border border-[var(--card-border)] cursor-pointer"
+                      title="Assign specific evaluator / faculty teacher"
+                    >
+                      <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
+                      {sub.assignedToName ? `Evaluator: ${sub.assignedToName}` : 'Assign Evaluator'}
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => openEvaluationModal(sub)}
@@ -417,11 +502,65 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                   type="number"
                   min="0"
                   max={selectedSub.maxMarks || 100}
+                  step="0.5"
                   placeholder={`Enter score (0 - ${selectedSub.maxMarks || 100})`}
                   value={evalGrade}
                   onChange={e => setEvalGrade(e.target.value)}
                   className="w-full px-3 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl text-xs text-[var(--text-color)] outline-none focus:border-amber-500 font-bold"
                 />
+              </div>
+
+              {/* Rubrics Breakdown in Modal */}
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-[var(--card-border)] space-y-2">
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider block">
+                  UPSC/BPSC Evaluation Rubrics Breakdown
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                  <div>
+                    <label className="text-[10px] text-slate-400 block mb-0.5">Intro</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder="e.g. 2.5"
+                      value={rubricIntro}
+                      onChange={e => setRubricIntro(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white dark:bg-slate-950 border border-[var(--card-border)] rounded-lg font-mono text-xs outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 block mb-0.5">Content/Facts</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder="e.g. 5.0"
+                      value={rubricContent}
+                      onChange={e => setRubricContent(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white dark:bg-slate-950 border border-[var(--card-border)] rounded-lg font-mono text-xs outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 block mb-0.5">Structure/Maps</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder="e.g. 2.0"
+                      value={rubricStruct}
+                      onChange={e => setRubricStruct(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white dark:bg-slate-950 border border-[var(--card-border)] rounded-lg font-mono text-xs outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 block mb-0.5">Conclusion</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      placeholder="e.g. 1.5"
+                      value={rubricConcl}
+                      onChange={e => setRubricConcl(e.target.value)}
+                      className="w-full px-2 py-1.5 bg-white dark:bg-slate-950 border border-[var(--card-border)] rounded-lg font-mono text-xs outline-none focus:border-amber-500"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Evaluated Copy PDF Upload */}
@@ -478,19 +617,99 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
         </div>
       )}
 
-      {/* INTERACTIVE FULL-SCREEN IN-BROWSER PDF ANNOTATION & CHECKING SUITE */}
-      {annotatingSub && (
-        <PDFAnnotationEditor
-          pdfUrl={annotatingSub.submissionUrl || ''}
-          studentName={annotatingSub.studentName}
-          testTitle={annotatingSub.testTitle}
-          maxMarks={annotatingSub.maxMarks || 100}
-          initialMarks={annotatingSub.grade}
-          initialFeedback={annotatingSub.feedback}
-          onSaveCheckedPdf={handleSaveAnnotatedPdf}
-          onClose={() => setAnnotatingSub(null)}
-        />
+      {/* ASSIGN EVALUATOR POPUP MODAL */}
+      {assigningSub && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-3">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-indigo-500" />
+                <h3 className="font-heading font-black text-base text-[var(--text-color)]">
+                  Assign Evaluator / Faculty
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssigningSub(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-[var(--text-color)] cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAssignment} className="space-y-4">
+              <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-[var(--card-border)] text-xs space-y-1">
+                <p className="font-bold text-[var(--text-color)]">{assigningSub.testTitle}</p>
+                <p className="text-slate-400">Student: {assigningSub.studentName} ({assigningSub.studentEmail})</p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-slate-400">Evaluator / Teacher Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dr. R. K. Sharma (Polity Faculty)"
+                  value={evaluatorName}
+                  onChange={e => setEvaluatorName(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl text-xs text-[var(--text-color)] outline-none focus:border-indigo-500 font-bold"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase text-slate-400">Evaluation Deadline (Optional)</label>
+                <input
+                  type="date"
+                  value={assignDeadline}
+                  onChange={e => setAssignDeadline(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl text-xs text-[var(--text-color)] outline-none focus:border-indigo-500 font-bold"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAssigningSub(null)}
+                  className="px-4 py-2 border border-[var(--card-border)] text-slate-400 text-xs font-bold rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingAssign}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs rounded-xl shadow-md cursor-pointer disabled:opacity-50"
+                >
+                  {savingAssign ? 'Assigning…' : 'Confirm Assignment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
+
+      {/* INTERACTIVE FULL-SCREEN IN-BROWSER PDF ANNOTATION & CHECKING SUITE */}
+      {annotatingSub && (() => {
+        let initialRubrics: RubricsScore | undefined;
+        if (annotatingSub.rubricsBreakdown) {
+          try {
+            initialRubrics = typeof annotatingSub.rubricsBreakdown === 'string'
+              ? JSON.parse(annotatingSub.rubricsBreakdown)
+              : annotatingSub.rubricsBreakdown;
+          } catch (_) {}
+        }
+        return (
+          <PDFAnnotationEditor
+            pdfUrl={annotatingSub.submissionUrl || ''}
+            studentName={annotatingSub.studentName}
+            testTitle={annotatingSub.testTitle}
+            maxMarks={annotatingSub.maxMarks || 100}
+            initialMarks={annotatingSub.grade}
+            initialFeedback={annotatingSub.feedback}
+            initialRubrics={initialRubrics}
+            onSaveCheckedPdf={handleSaveAnnotatedPdf}
+            onClose={() => setAnnotatingSub(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

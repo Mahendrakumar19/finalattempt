@@ -5,9 +5,11 @@ import Link from 'next/link';
 import {
   BookOpen, Play, CheckCircle, ChevronLeft, ChevronDown, ChevronRight,
   Lock, Video, Clock, Sparkles, Trophy, MessageSquare, HelpCircle, FileText,
-  Radio, Calendar, Bell, CheckSquare, Inbox
+  Radio, Calendar, Bell, CheckSquare, Inbox, Download
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { downloadWatermarkedPdf } from '@/utils/watermarkPdf';
+import DoubtsCommunityForum from '@/components/DoubtsCommunityForum';
 
 interface Lesson {
   id: string;
@@ -17,6 +19,8 @@ interface Lesson {
   duration: string;
   isFree: boolean;
   isLocked: boolean;
+  notesPdfUrl?: string | null;
+  dppPdfUrl?: string | null;
   liveClassType?: string;
   liveScheduledAt?: string;
   liveMeetingUrl?: string | null;
@@ -69,7 +73,7 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:500
 export default function StudentCourseDetailPage({ params }: CourseDetailPageProps) {
   const resolvedParams = use(params);
   const courseId = resolvedParams.id;
-  const { accessToken, isLoading: authLoading } = useAuth();
+  const { user, accessToken, isLoading: authLoading } = useAuth();
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
@@ -78,8 +82,8 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Tab state (PW-style: Live Classes, Recorded Lectures, Notes, Quizzes, Assignments)
-  const [activeTab, setActiveTab] = useState<'live' | 'curriculum' | 'recordings' | 'quizzes' | 'assignments'>('curriculum');
+  // Tab state (PW-style: Live Classes, Recorded Lectures, Notes, Quizzes, Assignments, Doubts Forum)
+  const [activeTab, setActiveTab] = useState<'live' | 'curriculum' | 'recordings' | 'quizzes' | 'assignments' | 'doubts'>('curriculum');
   const [quizzes, setQuizzes] = useState<QuizItem[]>([]);
   const [assignments, setAssignments] = useState<AssignmentItem[]>([]);
 
@@ -402,19 +406,61 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
               })()}
             </div>
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-white/[0.06] flex items-center gap-2 text-xs text-slate-500">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{playingLesson.duration || 'Duration not set'}</span>
-              {playingLesson.recordingUrl && playingLesson.liveStatus === 'ended' && (
-                <span className="ml-2 text-emerald-400 font-bold text-[10px]">● Full Class Recording Available</span>
-              )}
-              <span className={`ml-auto px-3 py-1 rounded-full font-bold border uppercase tracking-wider text-[10px] ${
-                playingLesson.type === 'live' 
-                  ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
-                  : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-              }`}>
-                {playingLesson.type === 'live' ? 'LIVE CLASS' : (playingLesson.type?.toUpperCase() || 'VIDEO')}
-              </span>
+            <div className="px-6 py-4 border-t border-white/[0.06] flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1.5 text-slate-400">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{playingLesson.duration || 'Duration not set'}</span>
+                </span>
+                {playingLesson.recordingUrl && playingLesson.liveStatus === 'ended' && (
+                  <span className="text-emerald-400 font-bold text-[10px]">● Full Class Recording Available</span>
+                )}
+                <span className={`px-2.5 py-0.5 rounded-full font-bold border uppercase tracking-wider text-[10px] ${
+                  playingLesson.type === 'live' 
+                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
+                    : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                }`}>
+                  {playingLesson.type === 'live' ? 'LIVE CLASS' : (playingLesson.type?.toUpperCase() || 'VIDEO')}
+                </span>
+              </div>
+
+              {/* Watermarked Study Material Downloads */}
+              <div className="flex items-center gap-2">
+                {playingLesson.notesPdfUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      downloadWatermarkedPdf(playingLesson.notesPdfUrl!, `${playingLesson.title}-Class-Notes`, {
+                        studentName: user?.fullName,
+                        email: user?.email,
+                        mobile: user?.mobile,
+                      });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    title="Download Anti-Piracy Watermarked Class Notes"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Class Notes (PDF)</span>
+                  </button>
+                )}
+                {playingLesson.dppPdfUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      downloadWatermarkedPdf(playingLesson.dppPdfUrl!, `${playingLesson.title}-DPP-Practice-Sheet`, {
+                        studentName: user?.fullName,
+                        email: user?.email,
+                        mobile: user?.mobile,
+                      });
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    title="Download Anti-Piracy Watermarked DPP Practice Sheet"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Daily Practice (DPP)</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -513,13 +559,19 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                 label: 'Assignments', 
                 icon: Inbox,
                 count: assignments.length 
+              },
+              { 
+                id: 'doubts', 
+                label: 'Doubts & Discussion', 
+                icon: MessageSquare,
+                count: 0 
               }
             ].map(tab => {
               const Icon = tab.icon;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as 'live' | 'curriculum' | 'recordings' | 'quizzes' | 'assignments')}
+                  onClick={() => setActiveTab(tab.id as 'live' | 'curriculum' | 'recordings' | 'quizzes' | 'assignments' | 'doubts')}
                   className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                     activeTab === tab.id 
                       ? tab.id === 'live' && tab.isPulse
@@ -857,6 +909,44 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                       </div>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                      {/* Attached Notes & DPP pill icons */}
+                                      {lesson.notesPdfUrl && !lesson.isLocked && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            downloadWatermarkedPdf(lesson.notesPdfUrl!, `${lesson.title}-Notes`, {
+                                              studentName: user?.fullName,
+                                              email: user?.email,
+                                              mobile: user?.mobile,
+                                            });
+                                          }}
+                                          className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 transition-all"
+                                          title="Download Watermarked Class Notes"
+                                        >
+                                          <Download className="w-3 h-3" />
+                                          <span className="hidden sm:inline">Notes</span>
+                                        </button>
+                                      )}
+                                      {lesson.dppPdfUrl && !lesson.isLocked && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            downloadWatermarkedPdf(lesson.dppPdfUrl!, `${lesson.title}-DPP`, {
+                                              studentName: user?.fullName,
+                                              email: user?.email,
+                                              mobile: user?.mobile,
+                                            });
+                                          }}
+                                          className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold flex items-center gap-1 transition-all"
+                                          title="Download Watermarked Daily Practice Paper"
+                                        >
+                                          <Download className="w-3 h-3" />
+                                          <span className="hidden sm:inline">DPP</span>
+                                        </button>
+                                      )}
+
                                       {lesson.type === 'live' && lesson.liveStatus === 'live' && !lesson.isLocked && (
                                         <span className="px-3 py-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-extrabold shadow-sm transition-all">
                                           Join Live Class 🚀
@@ -925,7 +1015,14 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
             </div>
           )}
 
-          {/* ── Assignments Tab ── */}
+          {/* ── Doubts & Discussion Community Tab ── */}
+          {activeTab === 'doubts' && (
+            <DoubtsCommunityForum
+              courseId={courseId}
+              currentUser={user ? { id: user.id, fullName: user.fullName, email: user.email, role: user.role } : null}
+              accessToken={accessToken}
+            />
+          )}
           {activeTab === 'assignments' && (
             <div className="space-y-4">
               <div className="bg-slate-900 border border-white/10 rounded-3xl p-6">

@@ -486,6 +486,11 @@ app.post('/api/leads', async (req, res) => {
   }
   try {
     const lead = await db.createLead(fullName, mobile, targetExam, email);
+    // Instant Telegram / Webhook Alert to Counselor Team
+    try {
+      const { alertService } = await import('./services/alertService');
+      alertService.notifyNewLead({ fullName, mobile, email, targetExam }).catch(() => {});
+    } catch (_) {}
     res.json(lead);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

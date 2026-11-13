@@ -430,6 +430,8 @@ router.post('/sections/:sectionId/lessons', async (req: Request, res: Response) 
     liveStreamKey,
     customRtmpUrl,
     playbackHlsUrl,
+    notesPdfUrl,
+    dppPdfUrl,
     isFree
   } = req.body;
   try {
@@ -457,7 +459,9 @@ router.post('/sections/:sectionId/lessons', async (req: Request, res: Response) 
       recordingUrl,
       liveStreamKey: generatedStreamKey,
       customRtmpUrl: defaultRtmpUrl,
-      playbackHlsUrl: defaultPlayback
+      playbackHlsUrl: defaultPlayback,
+      notesPdfUrl: notesPdfUrl || null,
+      dppPdfUrl: dppPdfUrl || null
     });
     res.status(201).json({ success: true, data: lesson });
   } catch (err: any) {
@@ -839,6 +843,17 @@ router.post('/mains/tests/:id/submit', authenticate, requireStudent, async (req:
     }
 
     const sub = await lmsDB.submitAssignmentResponse(req.user!.userId, assignmentId, submissionUrl, submissionText);
+
+    // Instant Alert to Evaluator Team via Telegram/Webhook
+    try {
+      const { alertService } = await import('../services/alertService');
+      alertService.notifyMainsSubmission({
+        studentEmail: req.user?.email,
+        testTitle: test.title,
+        submissionUrl
+      }).catch(() => {});
+    } catch (_) {}
+
     res.status(201).json({ success: true, data: sub, message: 'Answer Copy submitted successfully for evaluation.' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -1150,7 +1165,7 @@ router.delete('/admin/mains-tests/:id', authenticateAdminLms, async (req: Reques
 });
 
 // Admin Get All Mains Submissions for Evaluation
-router.get('/admin/mains-submissions', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.get('/admin/mains-submissions', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const submissions = await lmsDB.getAllMainsSubmissionsForAdmin();
     res.json({ success: true, data: submissions });
@@ -1160,13 +1175,153 @@ router.get('/admin/mains-submissions', authenticate, requireAdmin, async (req: R
 });
 
 // Admin Evaluate Mains Submission
-router.put('/admin/mains-submissions/:submissionId/evaluate', authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.put('/admin/mains-submissions/:submissionId/evaluate', authenticateAdminLms, async (req: Request, res: Response) => {
   const submissionId = req.params.submissionId as string;
-  const { grade, feedback, evaluatedCopyUrl, status } = req.body;
+  const { 
+    grade, 
+    feedback, 
+    evaluatedCopyUrl, 
+    status,
+    rubricsBreakdown,
+    assignedToUserId,
+    assignedToName,
+    evaluationDeadline
+  } = req.body;
 
   try {
-    const ok = await lmsDB.evaluateMainsSubmission(submissionId, { grade, feedback, evaluatedCopyUrl, status: status || 'Evaluated' });
+    const ok = await lmsDB.evaluateMainsSubmission(submissionId, { 
+      grade, 
+      feedback, 
+      evaluatedCopyUrl, 
+      status: status || 'Evaluated',
+      rubricsBreakdown,
+      assignedToUserId,
+      assignedToName,
+      evaluationDeadline
+    });
     res.json({ success: ok, message: 'Mains submission evaluated successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Assign Evaluator to Mains Submission
+router.put('/admin/mains-submissions/:submissionId/assign', authenticateAdminLms, async (req: Request, res: Response) => {
+  const submissionId = req.params.submissionId as string;
+  const { assignedToUserId, assignedToName, evaluationDeadline } = req.body;
+
+  try {
+    const ok = await lmsDB.evaluateMainsSubmission(submissionId, {
+      status: 'Under Evaluation',
+      assignedToUserId,
+      assignedToName,
+      evaluationDeadline
+    });
+    res.json({ success: ok, message: 'Evaluator assigned successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─────────────────────────── DOUBTS & COMMUNITY DISCUSSION ────────────────────
+
+// GET /api/lms/courses/:courseId/doubts - List doubts for a course (or lesson)
+router.get('/courses/:courseId/doubts', async (req: Request, res: Response) => {
+  try {
+    const courseId = Array.isArray(req.params.courseId) ? req.params.courseId[0] : req.params.courseId;
+    const lessonId = req.query.lessonId as string | undefined;
+    const doubts = await lmsDB.getDoubtsByCourse(courseId, lessonId);
+    res.json({ success: true, data: doubts });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/lms/doubts/:doubtId - Get single doubt with threaded replies
+router.get('/doubts/:doubtId', async (req: Request, res: Response) => {
+  try {
+    const doubtId = Array.isArray(req.params.doubtId) ? req.params.doubtId[0] : req.params.doubtId;
+    const doubt = await lmsDB.getDoubtById(doubtId);
+    if (!doubt) {
+      res.status(404).json({ success: false, error: 'Doubt not found' });
+      return;
+    }
+    res.json({ success: true, data: doubt });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/lms/courses/:courseId/doubts - Ask a new doubt
+router.post('/courses/:courseId/doubts', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const courseId = Array.isArray(req.params.courseId) ? req.params.courseId[0] : req.params.courseId;
+    const { title, description, lessonId, timestampSec, userName, userAvatar } = req.body;
+    if (!title || !description) {
+      res.status(400).json({ success: false, error: 'Title and description are required.' });
+      return;
+    }
+
+    const doubt = await lmsDB.createDoubt({
+      courseId,
+      lessonId,
+      userId: req.user?.userId || 'student',
+      userName: userName || req.user?.email?.split('@')[0] || 'Aspirant',
+      userRole: req.user?.role || 'student',
+      userAvatar,
+      title,
+      description,
+      timestampSec: Number(timestampSec || 0)
+    });
+    res.status(201).json({ success: true, data: doubt });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/lms/doubts/:doubtId/replies - Reply to a doubt
+router.post('/doubts/:doubtId/replies', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const doubtId = Array.isArray(req.params.doubtId) ? req.params.doubtId[0] : req.params.doubtId;
+    const { replyText, userName, userAvatar } = req.body;
+    if (!replyText || !replyText.trim()) {
+      res.status(400).json({ success: false, error: 'Reply text cannot be empty.' });
+      return;
+    }
+
+    const isFaculty = req.user?.role === 'faculty' || req.user?.role === 'admin';
+    const reply = await lmsDB.addDoubtReply(doubtId, {
+      userId: req.user?.userId || 'user',
+      userName: userName || (isFaculty ? 'Faculty Mentor' : 'Aspirant'),
+      userRole: req.user?.role || 'student',
+      userAvatar,
+      replyText: replyText.trim(),
+      isFaculty
+    });
+    res.status(201).json({ success: true, data: reply });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/lms/doubts/:doubtId/upvote - Upvote a doubt
+router.put('/doubts/:doubtId/upvote', async (req: Request, res: Response) => {
+  try {
+    const doubtId = Array.isArray(req.params.doubtId) ? req.params.doubtId[0] : req.params.doubtId;
+    const upvotes = await lmsDB.upvoteDoubt(doubtId);
+    res.json({ success: true, upvotes });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/lms/doubts/:doubtId/resolve - Mark resolved / unresolved
+router.put('/doubts/:doubtId/resolve', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const doubtId = Array.isArray(req.params.doubtId) ? req.params.doubtId[0] : req.params.doubtId;
+    const { isResolved } = req.body;
+    const ok = await lmsDB.toggleDoubtResolved(doubtId, Boolean(isResolved));
+    res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

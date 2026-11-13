@@ -388,11 +388,87 @@ export async function deleteAdminMainsTest(id: string, accessToken: string) {
 // ─── Mains Admin: Evaluate Submission ───────────────────────────────────────
 export async function evaluateMainsSubmissionAdmin(
   submissionId: string,
-  payload: { grade?: number; feedback?: string; evaluatedCopyUrl?: string; status?: string },
+  payload: { 
+    grade?: number; 
+    feedback?: string; 
+    evaluatedCopyUrl?: string; 
+    status?: string;
+    rubricsBreakdown?: any;
+    assignedToUserId?: string;
+    assignedToName?: string;
+    evaluationDeadline?: string;
+  },
   accessToken: string
 ) {
   return apiFetch<any>(`/api/lms/admin/mains-submissions/${submissionId}/evaluate`, {
     method: 'PUT',
     body: JSON.stringify(payload)
+  }, accessToken);
+}
+
+export async function assignMainsEvaluatorAdmin(
+  submissionId: string,
+  payload: { assignedToUserId: string; assignedToName: string; evaluationDeadline?: string },
+  accessToken: string
+) {
+  return apiFetch<any>(`/api/lms/admin/mains-submissions/${submissionId}/assign`, {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  }, accessToken);
+}
+
+// ─── Doubts & Community Discussion ──────────────────────────────────────────
+export async function getCourseDoubts(courseId: string, lessonId?: string) {
+  const query = lessonId ? `?lessonId=${encodeURIComponent(lessonId)}` : '';
+  return apiFetch<any[]>(`/api/lms/courses/${courseId}/doubts${query}`);
+}
+
+export async function getDoubtDetail(doubtId: string) {
+  return apiFetch<any>(`/api/lms/doubts/${doubtId}`);
+}
+
+export async function askCourseDoubt(
+  courseId: string,
+  payload: {
+    title: string;
+    description: string;
+    lessonId?: string;
+    timestampSec?: number;
+    userName?: string;
+    userAvatar?: string;
+  },
+  accessToken: string
+) {
+  return apiFetch<any>(`/api/lms/courses/${courseId}/doubts`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }, accessToken);
+}
+
+export async function replyToDoubt(
+  doubtId: string,
+  payload: {
+    replyText: string;
+    userName?: string;
+    userAvatar?: string;
+  },
+  accessToken: string
+) {
+  return apiFetch<any>(`/api/lms/doubts/${doubtId}/replies`, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  }, accessToken);
+}
+
+export async function upvoteCourseDoubt(doubtId: string) {
+  return apiFetch<{ success: boolean; upvotes: number }>(`/api/lms/doubts/${doubtId}/upvote`, {
+    method: 'PUT'
+  });
+}
+
+export async function resolveCourseDoubt(doubtId: string, isResolved: boolean, accessToken: string) {
+  return apiFetch<{ success: boolean }>(`/api/lms/doubts/${doubtId}/resolve`, {
+    method: 'PUT',
+    body: JSON.stringify({ isResolved })
   }, accessToken);
 }

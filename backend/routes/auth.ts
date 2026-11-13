@@ -574,7 +574,8 @@ router.put('/users/:id/status', async (req: Request, res: Response) => {
 router.put('/users/:id/role', async (req: Request, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const { role } = req.body;
-  if (!['student', 'faculty', 'admin'].includes(role)) {
+  const ALLOWED_ROLES = ['student', 'faculty', 'admin', 'evaluator', 'content_manager', 'counselor'];
+  if (!ALLOWED_ROLES.includes(role)) {
     res.status(400).json({ success: false, error: 'Invalid role' });
     return;
   }
@@ -595,6 +596,7 @@ router.put('/users/:id/role', async (req: Request, res: Response) => {
 router.put('/users/:id/profile', async (req: Request, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const { fullName, email, mobile, targetExam, role, avatarUrl } = req.body;
+  const ALLOWED_ROLES = ['student', 'faculty', 'admin', 'evaluator', 'content_manager', 'counselor'];
   try {
     const user = await authDB.findUserById(id);
     if (!user) {
@@ -607,7 +609,7 @@ router.put('/users/:id/profile', async (req: Request, res: Response) => {
       mobile: mobile !== undefined ? mobile : user.mobile,
       targetExam: targetExam !== undefined ? targetExam : user.targetExam,
       avatarUrl: avatarUrl !== undefined ? avatarUrl : user.avatarUrl,
-      role: role && ['student', 'faculty', 'admin'].includes(role) ? role : user.role
+      role: role && ALLOWED_ROLES.includes(role) ? role : user.role
     });
     res.json({ success: true, message: 'User profile updated successfully' });
   } catch (err: any) {

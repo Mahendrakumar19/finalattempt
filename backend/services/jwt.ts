@@ -9,7 +9,7 @@ const REFRESH_EXPIRY = (process.env.JWT_REFRESH_EXPIRY || '30d') as string;
 export interface TokenPayload {
   userId: string;
   email: string;
-  role: 'student' | 'faculty' | 'admin';
+  role: 'student' | 'faculty' | 'admin' | 'evaluator' | 'content_manager' | 'counselor';
   sessionId: string;
 }
 

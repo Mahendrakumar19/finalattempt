@@ -9,6 +9,13 @@ import {
 } from 'lucide-react';
 import { PDFDocument, rgb } from 'pdf-lib';
 
+export interface RubricsScore {
+  introduction?: number;
+  contentAndFacts?: number;
+  structuringDiagrams?: number;
+  conclusion?: number;
+}
+
 export interface PDFAnnotationEditorProps {
   pdfUrl: string;
   studentName?: string;
@@ -16,7 +23,8 @@ export interface PDFAnnotationEditorProps {
   maxMarks?: number;
   initialMarks?: number;
   initialFeedback?: string;
-  onSaveCheckedPdf: (fileBlob: Blob, marks?: number, feedback?: string) => Promise<void>;
+  initialRubrics?: RubricsScore;
+  onSaveCheckedPdf: (fileBlob: Blob, marks?: number, feedback?: string, rubrics?: RubricsScore) => Promise<void>;
   onClose: () => void;
 }
 
@@ -103,6 +111,7 @@ export default function PDFAnnotationEditor({
   maxMarks = 100,
   initialMarks,
   initialFeedback,
+  initialRubrics,
   onSaveCheckedPdf,
   onClose
 }: PDFAnnotationEditorProps) {
@@ -121,6 +130,35 @@ export default function PDFAnnotationEditor({
   // Score & feedback state
   const [marks, setMarks] = useState<string>(initialMarks !== undefined && initialMarks !== null ? String(initialMarks) : '');
   const [feedback, setFeedback] = useState<string>(initialFeedback || '');
+
+  // Structured Rubrics State
+  const [introMarks, setIntroMarks] = useState<string>(initialRubrics?.introduction !== undefined ? String(initialRubrics.introduction) : '');
+  const [contentMarks, setContentMarks] = useState<string>(initialRubrics?.contentAndFacts !== undefined ? String(initialRubrics.contentAndFacts) : '');
+  const [structMarks, setStructMarks] = useState<string>(initialRubrics?.structuringDiagrams !== undefined ? String(initialRubrics.structuringDiagrams) : '');
+  const [conclMarks, setConclMarks] = useState<string>(initialRubrics?.conclusion !== undefined ? String(initialRubrics.conclusion) : '');
+
+  // Auto-calculate total marks when rubrics change
+  const handleRubricChange = (type: 'intro' | 'content' | 'struct' | 'concl', val: string) => {
+    let nextIntro = introMarks;
+    let nextContent = contentMarks;
+    let nextStruct = structMarks;
+    let nextConcl = conclMarks;
+
+    if (type === 'intro') { setIntroMarks(val); nextIntro = val; }
+    if (type === 'content') { setContentMarks(val); nextContent = val; }
+    if (type === 'struct') { setStructMarks(val); nextStruct = val; }
+    if (type === 'concl') { setConclMarks(val); nextConcl = val; }
+
+    const numI = parseFloat(nextIntro) || 0;
+    const numC = parseFloat(nextContent) || 0;
+    const numS = parseFloat(nextStruct) || 0;
+    const numCl = parseFloat(nextConcl) || 0;
+    const sum = numI + numC + numS + numCl;
+    if (sum > 0) {
+      setMarks(String(sum));
+    }
+  };
+
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [loadingPdf, setLoadingPdf] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -731,7 +769,13 @@ export default function PDFAnnotationEditor({
       const blob = new Blob([modifiedPdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
 
       const numMarks = marks.trim() !== '' ? Number(marks) : undefined;
-      await onSaveCheckedPdf(blob, numMarks, feedback);
+      const rubricsPayload: RubricsScore = {
+        introduction: introMarks.trim() !== '' ? Number(introMarks) : undefined,
+        contentAndFacts: contentMarks.trim() !== '' ? Number(contentMarks) : undefined,
+        structuringDiagrams: structMarks.trim() !== '' ? Number(structMarks) : undefined,
+        conclusion: conclMarks.trim() !== '' ? Number(conclMarks) : undefined
+      };
+      await onSaveCheckedPdf(blob, numMarks, feedback, rubricsPayload);
     } catch (err: unknown) {
       console.error('Error saving checked PDF:', err);
       const errMsg = err instanceof Error ? err.message : String(err);
@@ -1125,7 +1169,7 @@ export default function PDFAnnotationEditor({
               {/* Awarded Marks Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">
-                  <span>Awarded Marks</span>
+                  <span>Awarded Total Marks</span>
                   <span className="text-[11px] text-blue-700 dark:text-sky-300 font-mono font-bold">Max Marks: {maxMarks}</span>
                 </label>
                 <div className="relative">
@@ -1142,6 +1186,68 @@ export default function PDFAnnotationEditor({
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 font-mono">
                     / {maxMarks}
                   </span>
+                </div>
+              </div>
+
+              {/* UPSC/BPSC Standard Evaluation Rubrics */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-white/10 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Evaluation Rubrics (Optional)
+                  </span>
+                  <span className="text-[10px] text-slate-400">Auto-sums total</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Introduction</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      placeholder="e.g. 2.5"
+                      value={introMarks}
+                      onChange={e => handleRubricChange('intro', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono font-bold outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Content & Facts</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      placeholder="e.g. 5.0"
+                      value={contentMarks}
+                      onChange={e => handleRubricChange('content', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono font-bold outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Structure / Maps</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      placeholder="e.g. 2.0"
+                      value={structMarks}
+                      onChange={e => handleRubricChange('struct', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono font-bold outline-none focus:border-amber-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">Way Forward</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      placeholder="e.g. 1.5"
+                      value={conclMarks}
+                      onChange={e => handleRubricChange('concl', e.target.value)}
+                      className="w-full px-2.5 py-1.5 bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl text-xs font-mono font-bold outline-none focus:border-amber-500"
+                    />
+                  </div>
                 </div>
               </div>
 

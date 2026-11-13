@@ -1002,6 +1002,10 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN status VARCHAR(50) DEFAULT 'Submitted'"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedCopyUrl TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedAt TIMESTAMP NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN assignedToUserId VARCHAR(255) NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN assignedToName VARCHAR(255) NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN rubricsBreakdown JSON NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluationDeadline TIMESTAMP NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_questions ADD COLUMN optionE TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_questions ADD COLUMN optionEHi TEXT NULL"); } catch (e) {}
 
@@ -1286,7 +1290,7 @@ if (useRealDB) {
 // ═════════════════════════════════════════════════════════════════════════════
 //  LMS LOCAL FALLBACK MEMORY ARRAYS (Declared before BackendDB initialization)
 // ═════════════════════════════════════════════════════════════════════════════
-export const lmsLocalEnrollments: Array<{ id: string; userId: string; courseId: string; enrolledAt: string }> = [];
+export const lmsLocalEnrollments: Array<{ id: string; userId: string; courseId: string; enrolledAt: string; expiresAt?: string | null }> = [];
 export const lmsLocalProgress: Array<{ id: string; userId: string; courseId: string; lessonId: string; completed: boolean; watchedSeconds: number; lastPosition: number; updatedAt: string }> = [];
 export const lmsLocalQuizzes: any[] = [];
 export const lmsLocalQuestions: any[] = [];
@@ -4094,7 +4098,7 @@ interface UserRecord {
   mobile?: string;
   passwordHash?: string;
   googleId?: string;
-  role: 'student' | 'faculty' | 'admin';
+  role: 'student' | 'faculty' | 'admin' | 'evaluator' | 'content_manager' | 'counselor';
   avatarUrl?: string;
   isEmailVerified: boolean;
   isMobileVerified?: boolean;
@@ -4191,6 +4195,7 @@ async function initializeAuthTables(pool: mysql.Pool) {
     // Auto-migrate state & district columns if upgrading existing DB
     try { await pool.query('ALTER TABLE users ADD COLUMN state VARCHAR(100)'); } catch (_) {}
     try { await pool.query('ALTER TABLE users ADD COLUMN district VARCHAR(100)'); } catch (_) {}
+    try { await pool.query("ALTER TABLE users MODIFY COLUMN role VARCHAR(50) DEFAULT 'student'"); } catch (_) {}
 
     // Seed/Ensure default auth users exist in MySQL table
     for (const u of authLocalUsers) {
@@ -4296,8 +4301,12 @@ async function initializeAuthTables(pool: mysql.Pool) {
       await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveStreamKey VARCHAR(100)");
       await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS customRtmpUrl TEXT");
       await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS playbackHlsUrl TEXT");
+      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS notesPdfUrl TEXT");
+      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS dppPdfUrl TEXT");
       await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS courseFormat VARCHAR(50) DEFAULT 'hybrid'");
       await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS syllabusPdfUrl TEXT");
+      await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS validityMonths INT DEFAULT 12");
+      await pool.query("ALTER TABLE lms_enrollments ADD COLUMN IF NOT EXISTS expiresAt DATETIME NULL");
     } catch (_) {}
 
     // LMS Enrollments
@@ -4421,6 +4430,43 @@ async function initializeAuthTables(pool: mysql.Pool) {
     // Drop foreign key constraints if they were created previously so messages from guest/synthetic IDs never fail
     try { await pool.query("ALTER TABLE lms_chat_messages DROP FOREIGN KEY lms_chat_messages_ibfk_2"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_chat_messages DROP FOREIGN KEY lms_chat_messages_ibfk_1"); } catch (e) {}
+
+    // Course & Lesson Doubts / Q&A Community Threads
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lms_doubts (
+        id            VARCHAR(255) PRIMARY KEY,
+        courseId      VARCHAR(255) NOT NULL,
+        lessonId      VARCHAR(255),
+        userId        VARCHAR(255) NOT NULL,
+        userName      VARCHAR(255) NOT NULL,
+        userRole      VARCHAR(50) DEFAULT 'student',
+        userAvatar    TEXT,
+        title         VARCHAR(255) NOT NULL,
+        description   TEXT NOT NULL,
+        timestampSec  INT DEFAULT 0,
+        upvotes       INT DEFAULT 0,
+        isResolved    TINYINT(1) DEFAULT 0,
+        resolvedAt    DATETIME,
+        createdAt     DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt     DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Doubt Replies Table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lms_doubt_replies (
+        id            VARCHAR(255) PRIMARY KEY,
+        doubtId       VARCHAR(255) NOT NULL,
+        userId        VARCHAR(255) NOT NULL,
+        userName      VARCHAR(255) NOT NULL,
+        userRole      VARCHAR(50) DEFAULT 'student',
+        userAvatar    TEXT,
+        replyText     TEXT NOT NULL,
+        isFaculty     TINYINT(1) DEFAULT 0,
+        upvotes       INT DEFAULT 0,
+        createdAt     DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     console.log('Auth & LMS tables initialized.');
   } catch (err) {
@@ -5121,12 +5167,14 @@ class LmsDB {
     liveStreamKey?: string;
     customRtmpUrl?: string;
     playbackHlsUrl?: string;
+    notesPdfUrl?: string;
+    dppPdfUrl?: string;
   }): Promise<any> {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          `INSERT INTO lms_lessons (id, sectionId, courseId, title, type, videoUrl, duration, durationSeconds, orderIndex, isFree, isPublished, liveClassType, liveScheduledAt, liveMeetingUrl, liveStatus, recordingUrl, liveStreamKey, customRtmpUrl, playbackHlsUrl)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO lms_lessons (id, sectionId, courseId, title, type, videoUrl, duration, durationSeconds, orderIndex, isFree, isPublished, liveClassType, liveScheduledAt, liveMeetingUrl, liveStatus, recordingUrl, liveStreamKey, customRtmpUrl, playbackHlsUrl, notesPdfUrl, dppPdfUrl)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             data.id, data.sectionId, data.courseId, data.title, data.type,
             data.videoUrl, data.duration, data.durationSeconds, data.orderIndex,
@@ -5138,7 +5186,9 @@ class LmsDB {
             data.recordingUrl || null,
             data.liveStreamKey || null,
             data.customRtmpUrl || null,
-            data.playbackHlsUrl || null
+            data.playbackHlsUrl || null,
+            data.notesPdfUrl || null,
+            data.dppPdfUrl || null
           ]
         );
         return data;
@@ -5193,6 +5243,8 @@ class LmsDB {
     liveStreamKey?: string;
     customRtmpUrl?: string;
     playbackHlsUrl?: string;
+    notesPdfUrl?: string;
+    dppPdfUrl?: string;
     isFree?: number | boolean;
   }): Promise<boolean> {
     if (mysqlPool) {
@@ -5211,6 +5263,8 @@ class LmsDB {
         if (data.liveStreamKey !== undefined) { fields.push('liveStreamKey = ?'); vals.push(data.liveStreamKey); }
         if (data.customRtmpUrl !== undefined) { fields.push('customRtmpUrl = ?'); vals.push(data.customRtmpUrl); }
         if (data.playbackHlsUrl !== undefined) { fields.push('playbackHlsUrl = ?'); vals.push(data.playbackHlsUrl); }
+        if (data.notesPdfUrl !== undefined) { fields.push('notesPdfUrl = ?'); vals.push(data.notesPdfUrl); }
+        if (data.dppPdfUrl !== undefined) { fields.push('dppPdfUrl = ?'); vals.push(data.dppPdfUrl); }
         if (data.isFree !== undefined) { fields.push('isFree = ?'); vals.push(data.isFree ? 1 : 0); }
 
         if (fields.length > 0) {
@@ -5234,26 +5288,26 @@ class LmsDB {
   async isEnrolled(userId: string, courseId: string): Promise<boolean> {
     if (mysqlPool) {
       try {
-        // Check direct enrollment by courseId or testSeriesId / slug
+        // Check direct enrollment by courseId or testSeriesId / slug (ensuring not expired)
         const [rows]: any = await mysqlPool.query(
           `SELECT e.id FROM lms_enrollments e
            WHERE e.userId = ? AND (
              e.courseId = ? 
              OR e.courseId IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
              OR e.courseId IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
-           ) LIMIT 1`,
+           ) AND (e.expiresAt IS NULL OR e.expiresAt > NOW()) LIMIT 1`,
           [userId, courseId, courseId, courseId, courseId, courseId]
         );
         if (rows && rows.length > 0) return true;
 
-        // Also check UserEntitlements (test series purchase plans)
+        // Also check UserEntitlements (test series purchase plans, ensuring active & not expired)
         const [entRows]: any = await mysqlPool.query(
-          `SELECT id FROM UserEntitlements
+          `SELECT id FROM user_entitlements
            WHERE user_id = ? AND (
              series_id = ?
              OR series_id IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
              OR series_id IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
-           ) AND status = 'ACTIVE' LIMIT 1`,
+           ) AND status = 'ACTIVE' AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1`,
           [userId, courseId, courseId, courseId, courseId, courseId]
         );
         if (entRows && entRows.length > 0) return true;
@@ -5264,8 +5318,25 @@ class LmsDB {
     return lmsLocalEnrollments.some(e => e.userId === userId && e.courseId === courseId);
   }
 
-  async createEnrollment(userId: string, courseId: string, paymentOrderId?: string, amountPaid?: number): Promise<any> {
+  async createEnrollment(userId: string, courseId: string, paymentOrderId?: string, amountPaid?: number, validityMonths?: number): Promise<any> {
     const { v4: uuid } = await import('uuid');
+
+    // Calculate expiry date if validityMonths is passed (or lookup from course)
+    let expiresAt: Date | null = null;
+    let months = validityMonths;
+    if (!months && mysqlPool) {
+      try {
+        const [cRows]: any = await mysqlPool.query('SELECT validityMonths FROM lms_courses WHERE id = ? OR slug = ? LIMIT 1', [courseId, courseId]);
+        if (cRows && cRows.length > 0 && cRows[0].validityMonths) {
+          months = Number(cRows[0].validityMonths);
+        }
+      } catch (_) {}
+    }
+    if (months && months > 0) {
+      expiresAt = new Date();
+      expiresAt.setMonth(expiresAt.getMonth() + months);
+    }
+
     const enrollment = {
       id: uuid(),
       userId,
@@ -5273,13 +5344,14 @@ class LmsDB {
       paymentOrderId: paymentOrderId || null,
       paymentStatus: amountPaid ? 'paid' : 'free',
       amountPaid: amountPaid || 0,
-      enrolledAt: new Date().toISOString()
+      enrolledAt: new Date().toISOString(),
+      expiresAt: expiresAt ? expiresAt.toISOString() : null
     };
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_enrollments (id, userId, courseId, paymentOrderId, paymentStatus, amountPaid) VALUES (?, ?, ?, ?, ?, ?)',
-          [enrollment.id, userId, courseId, enrollment.paymentOrderId, enrollment.paymentStatus, enrollment.amountPaid]
+          'INSERT INTO lms_enrollments (id, userId, courseId, paymentOrderId, paymentStatus, amountPaid, expiresAt) VALUES (?, ?, ?, ?, ?, ?)',
+          [enrollment.id, userId, courseId, enrollment.paymentOrderId, enrollment.paymentStatus, enrollment.amountPaid, expiresAt]
         );
         // Update enrolled count on both Courses and Test Series
         await mysqlPool.query('UPDATE lms_courses SET enrolledCount = enrolledCount + 1 WHERE id = ?', [courseId]);
@@ -5292,8 +5364,8 @@ class LmsDB {
           try {
             await mysqlPool.query('ALTER TABLE lms_enrollments DROP FOREIGN KEY lms_enrollments_ibfk_2');
             await mysqlPool.query(
-              'INSERT INTO lms_enrollments (id, userId, courseId, paymentOrderId, paymentStatus, amountPaid) VALUES (?, ?, ?, ?, ?, ?)',
-              [enrollment.id, userId, courseId, enrollment.paymentOrderId, enrollment.paymentStatus, enrollment.amountPaid]
+              'INSERT INTO lms_enrollments (id, userId, courseId, paymentOrderId, paymentStatus, amountPaid, expiresAt) VALUES (?, ?, ?, ?, ?, ?)',
+              [enrollment.id, userId, courseId, enrollment.paymentOrderId, enrollment.paymentStatus, enrollment.amountPaid, expiresAt]
             );
             await mysqlPool.query('UPDATE TestSeries SET enrolledCount = enrolledCount + 1 WHERE id = ? OR slug = ?', [courseId, courseId]);
             return enrollment;
@@ -5303,7 +5375,7 @@ class LmsDB {
         }
       }
     }
-    lmsLocalEnrollments.push({ id: enrollment.id, userId, courseId, enrolledAt: enrollment.enrolledAt });
+    lmsLocalEnrollments.push({ id: enrollment.id, userId, courseId, enrolledAt: enrollment.enrolledAt, expiresAt: enrollment.expiresAt });
     return enrollment;
   }
 
@@ -5387,7 +5459,7 @@ class LmsDB {
       let lmsRows: any[] = [];
       try {
         lmsRows = await prisma.$queryRawUnsafe<any[]>(`
-          SELECT e.id as enrollmentId, e.userId, e.paymentOrderId, e.paymentStatus, e.amountPaid, e.enrolledAt,
+          SELECT e.id as enrollmentId, e.userId, e.paymentOrderId, e.paymentStatus, e.amountPaid, e.enrolledAt, e.expiresAt,
                  u.fullName, u.email, u.mobile, u.targetExam,
                  'Full Access' as planName,
                  (SELECT COUNT(a.id) FROM lms_quiz_attempts a JOIN lms_quizzes q ON q.id = a.quizId WHERE a.userId = e.userId AND a.status = 'SUBMITTED' AND (q.courseId IN (${formattedIds}) OR q.id IN (${formattedIds}))) as totalAttempts,
@@ -5410,6 +5482,7 @@ class LmsDB {
                  'paid' as paymentStatus,
                  COALESCE(o.net_amount, 0) as amountPaid,
                  u_ent.granted_at as enrolledAt,
+                 u_ent.expires_at as expiresAt,
                  u.fullName, u.email, u.mobile, u.targetExam,
                  u_ent.entitlement_type as entitlementType,
                  q_ent.title as quizTitle,
@@ -6006,6 +6079,199 @@ class LmsDB {
       }
     }
     return list;
+  }
+
+  // ── Doubts & Community Discussion Methods ─────────────────────────────────
+  async createDoubt(data: {
+    courseId: string;
+    lessonId?: string;
+    userId: string;
+    userName: string;
+    userRole?: string;
+    userAvatar?: string;
+    title: string;
+    description: string;
+    timestampSec?: number;
+  }): Promise<any> {
+    const { v4: uuid } = await import('uuid');
+    const id = `doubt-${uuid()}`;
+    const doubt = {
+      id,
+      courseId: data.courseId,
+      lessonId: data.lessonId || null,
+      userId: data.userId,
+      userName: data.userName,
+      userRole: data.userRole || 'student',
+      userAvatar: data.userAvatar || null,
+      title: data.title,
+      description: data.description,
+      timestampSec: data.timestampSec || 0,
+      upvotes: 0,
+      isResolved: 0,
+      resolvedAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      replies: []
+    };
+
+    if (!(db.localStore as any).doubts) (db.localStore as any).doubts = [];
+    (db.localStore as any).doubts.unshift(doubt);
+    db.saveLocalData();
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO lms_doubts (id, courseId, lessonId, userId, userName, userRole, userAvatar, title, description, timestampSec, upvotes, isResolved, createdAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, NOW())`,
+          [id, data.courseId, data.lessonId || null, data.userId, data.userName, data.userRole || 'student', data.userAvatar || null, data.title, data.description, data.timestampSec || 0]
+        );
+      } catch (err) {
+        console.error('[LmsDB] createDoubt MySQL error:', err);
+      }
+    }
+    return doubt;
+  }
+
+  async getDoubtsByCourse(courseId: string, lessonId?: string): Promise<any[]> {
+    let doubts: any[] = [];
+    if (mysqlPool) {
+      try {
+        let query = `
+          SELECT d.*, 
+            (SELECT COUNT(*) FROM lms_doubt_replies r WHERE r.doubtId = d.id) as replyCount
+          FROM lms_doubts d 
+          WHERE d.courseId = ?
+        `;
+        const params: any[] = [courseId];
+        if (lessonId) {
+          query += ` AND d.lessonId = ?`;
+          params.push(lessonId);
+        }
+        query += ` ORDER BY d.createdAt DESC`;
+        const [rows]: any = await mysqlPool.query(query, params);
+        if (rows && rows.length > 0) {
+          doubts = rows;
+        }
+      } catch (err) {
+        console.error('[LmsDB] getDoubtsByCourse MySQL error:', err);
+      }
+    }
+
+    if (doubts.length === 0) {
+      const local = ((db.localStore as any).doubts || []).filter((d: any) => {
+        if (d.courseId !== courseId) return false;
+        if (lessonId && d.lessonId !== lessonId) return false;
+        return true;
+      });
+      doubts = local.map((d: any) => ({ ...d, replyCount: (d.replies || []).length }));
+    }
+    return doubts;
+  }
+
+  async getDoubtById(doubtId: string): Promise<any> {
+    if (mysqlPool) {
+      try {
+        const [dRows]: any = await mysqlPool.query(`SELECT * FROM lms_doubts WHERE id = ? LIMIT 1`, [doubtId]);
+        if (dRows && dRows.length > 0) {
+          const doubt = dRows[0];
+          const [rRows]: any = await mysqlPool.query(`SELECT * FROM lms_doubt_replies WHERE doubtId = ? ORDER BY createdAt ASC`, [doubtId]);
+          doubt.replies = rRows || [];
+          return doubt;
+        }
+      } catch (err) {
+        console.error('[LmsDB] getDoubtById MySQL error:', err);
+      }
+    }
+
+    const local = ((db.localStore as any).doubts || []).find((d: any) => d.id === doubtId);
+    return local || null;
+  }
+
+  async addDoubtReply(doubtId: string, data: {
+    userId: string;
+    userName: string;
+    userRole?: string;
+    userAvatar?: string;
+    replyText: string;
+    isFaculty?: boolean;
+  }): Promise<any> {
+    const { v4: uuid } = await import('uuid');
+    const id = `reply-${uuid()}`;
+    const reply = {
+      id,
+      doubtId,
+      userId: data.userId,
+      userName: data.userName,
+      userRole: data.userRole || 'student',
+      userAvatar: data.userAvatar || null,
+      replyText: data.replyText,
+      isFaculty: data.isFaculty ? 1 : 0,
+      upvotes: 0,
+      createdAt: new Date().toISOString()
+    };
+
+    if (!(db.localStore as any).doubts) (db.localStore as any).doubts = [];
+    const localDoubt = (db.localStore as any).doubts.find((d: any) => d.id === doubtId);
+    if (localDoubt) {
+      if (!localDoubt.replies) localDoubt.replies = [];
+      localDoubt.replies.push(reply);
+      db.saveLocalData();
+    }
+
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `INSERT INTO lms_doubt_replies (id, doubtId, userId, userName, userRole, userAvatar, replyText, isFaculty, upvotes, createdAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, NOW())`,
+          [id, doubtId, data.userId, data.userName, data.userRole || 'student', data.userAvatar || null, data.replyText, data.isFaculty ? 1 : 0]
+        );
+      } catch (err) {
+        console.error('[LmsDB] addDoubtReply MySQL error:', err);
+      }
+    }
+    return reply;
+  }
+
+  async toggleDoubtResolved(doubtId: string, isResolved: boolean): Promise<boolean> {
+    if (!(db.localStore as any).doubts) (db.localStore as any).doubts = [];
+    const local = (db.localStore as any).doubts.find((d: any) => d.id === doubtId);
+    if (local) {
+      local.isResolved = isResolved ? 1 : 0;
+      local.resolvedAt = isResolved ? new Date().toISOString() : null;
+      db.saveLocalData();
+    }
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `UPDATE lms_doubts SET isResolved = ?, resolvedAt = ? WHERE id = ?`,
+          [isResolved ? 1 : 0, isResolved ? new Date() : null, doubtId]
+        );
+      } catch (err) {
+        console.error('[LmsDB] toggleDoubtResolved MySQL error:', err);
+      }
+    }
+    return true;
+  }
+
+  async upvoteDoubt(doubtId: string): Promise<number> {
+    let newCount = 1;
+    if (!(db.localStore as any).doubts) (db.localStore as any).doubts = [];
+    const local = (db.localStore as any).doubts.find((d: any) => d.id === doubtId);
+    if (local) {
+      local.upvotes = (local.upvotes || 0) + 1;
+      newCount = local.upvotes;
+      db.saveLocalData();
+    }
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(`UPDATE lms_doubts SET upvotes = upvotes + 1 WHERE id = ?`, [doubtId]);
+        const [rows]: any = await mysqlPool.query(`SELECT upvotes FROM lms_doubts WHERE id = ?`, [doubtId]);
+        if (rows && rows[0]) newCount = rows[0].upvotes;
+      } catch (err) {
+        console.error('[LmsDB] upvoteDoubt MySQL error:', err);
+      }
+    }
+    return newCount;
   }
 
   // ── Quiz Methods ──────────────────────────────────────────────────────────
@@ -6699,7 +6965,16 @@ class LmsDB {
     });
   }
 
-  async evaluateMainsSubmission(submissionId: string, data: { grade?: number; feedback?: string; evaluatedCopyUrl?: string; status?: string }): Promise<boolean> {
+  async evaluateMainsSubmission(submissionId: string, data: { 
+    grade?: number; 
+    feedback?: string; 
+    evaluatedCopyUrl?: string; 
+    status?: string;
+    rubricsBreakdown?: any;
+    assignedToUserId?: string;
+    assignedToName?: string;
+    evaluationDeadline?: string;
+  }): Promise<boolean> {
     const status = data.status || 'Evaluated';
     let targetUserId: string | null = null;
     let targetTestTitle = 'Mains Answer Copy';
@@ -6718,11 +6993,31 @@ class LmsDB {
           if (subRows[0].testTitle) targetTestTitle = subRows[0].testTitle;
         }
 
+        const rubricsJson = data.rubricsBreakdown ? (typeof data.rubricsBreakdown === 'string' ? data.rubricsBreakdown : JSON.stringify(data.rubricsBreakdown)) : null;
+
         await mysqlPool.query(
           `UPDATE lms_assignment_submissions 
-           SET grade = ?, feedback = ?, evaluatedCopyUrl = ?, status = ?, evaluatedAt = NOW() 
+           SET grade = ?, 
+               feedback = ?, 
+               evaluatedCopyUrl = ?, 
+               status = ?, 
+               evaluatedAt = NOW(),
+               rubricsBreakdown = COALESCE(?, rubricsBreakdown),
+               assignedToUserId = COALESCE(?, assignedToUserId),
+               assignedToName = COALESCE(?, assignedToName),
+               evaluationDeadline = COALESCE(?, evaluationDeadline)
            WHERE id = ?`,
-          [data.grade !== undefined ? data.grade : null, data.feedback || '', data.evaluatedCopyUrl || null, status, submissionId]
+          [
+            data.grade !== undefined ? data.grade : null, 
+            data.feedback || '', 
+            data.evaluatedCopyUrl || null, 
+            status,
+            rubricsJson,
+            data.assignedToUserId || null,
+            data.assignedToName || null,
+            data.evaluationDeadline || null,
+            submissionId
+          ]
         );
       } catch (err) { console.error('[LmsDB] evaluateMainsSubmission MySQL error:', err); }
     }
@@ -6737,6 +7032,10 @@ class LmsDB {
           feedback: data.feedback !== undefined ? data.feedback : store.lmsAssignmentSubmissions[idx].feedback,
           evaluatedCopyUrl: data.evaluatedCopyUrl !== undefined ? data.evaluatedCopyUrl : store.lmsAssignmentSubmissions[idx].evaluatedCopyUrl,
           status,
+          rubricsBreakdown: data.rubricsBreakdown !== undefined ? data.rubricsBreakdown : store.lmsAssignmentSubmissions[idx].rubricsBreakdown,
+          assignedToUserId: data.assignedToUserId !== undefined ? data.assignedToUserId : store.lmsAssignmentSubmissions[idx].assignedToUserId,
+          assignedToName: data.assignedToName !== undefined ? data.assignedToName : store.lmsAssignmentSubmissions[idx].assignedToName,
+          evaluationDeadline: data.evaluationDeadline !== undefined ? data.evaluationDeadline : store.lmsAssignmentSubmissions[idx].evaluationDeadline,
           evaluatedAt: new Date().toISOString()
         };
         targetUserId = store.lmsAssignmentSubmissions[idx].userId;

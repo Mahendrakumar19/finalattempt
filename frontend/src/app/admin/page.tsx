@@ -193,7 +193,7 @@ interface UserProfile {
   email: string;
   mobile?: string;
   avatarUrl?: string;
-  role: 'student' | 'faculty' | 'admin';
+  role: 'student' | 'faculty' | 'admin' | 'evaluator' | 'content_manager' | 'counselor';
   targetExam?: string;
   isActive: boolean;
   createdAt: string;
@@ -219,7 +219,7 @@ export default function AdminPortal() {
   const [usersList, setUsersList] = useState<UserProfile[]>([]);
   const [facultyList, setFacultyList] = useState<Record<string, string>[]>([]);
   const [toppersList, setToppersList] = useState<ResultTopper[]>([]);
-  const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'student' | 'faculty' | 'admin'>('all');
+  const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'student' | 'faculty' | 'admin' | 'evaluator' | 'content_manager' | 'counselor'>('all');
   const [selectedUserModal, setSelectedUserModal] = useState<UserProfile | null>(null);
   const [editUserForm, setEditUserForm] = useState<Partial<UserProfile>>({});
 
@@ -280,6 +280,7 @@ export default function AdminPortal() {
   // Local Storage Auth & Super Admin state
   const [isMounted, setIsMounted] = useState(false);
   const [adminToken, setAdminToken] = useState<string | null>(null);
+  const [adminRole, setAdminRole] = useState<'superadmin' | 'admin' | 'evaluator' | 'content_manager' | 'counselor'>('admin');
   const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -305,8 +306,14 @@ export default function AdminPortal() {
       setIsMounted(true);
       const token = localStorage.getItem('admin_token');
       const superFlag = localStorage.getItem('is_super_admin') === 'true';
+      const savedAdminRole = localStorage.getItem('admin_assigned_role') as 'superadmin' | 'admin' | 'evaluator' | 'content_manager' | 'counselor' | null;
       if (token) setAdminToken(token);
-      if (superFlag) setIsSuperAdmin(true);
+      if (superFlag) {
+        setIsSuperAdmin(true);
+        setAdminRole('superadmin');
+      } else if (savedAdminRole) {
+        setAdminRole(savedAdminRole);
+      }
 
       const savedCollapsed = localStorage.getItem('admin_sidebar_collapsed');
       if (savedCollapsed === 'true') {
@@ -364,8 +371,10 @@ export default function AdminPortal() {
   const handleAdminLogout = () => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('is_super_admin');
+    localStorage.removeItem('admin_assigned_role');
     setAdminToken(null);
     setIsSuperAdmin(false);
+    setAdminRole('admin');
   };
 
   // Form states for CRUD operations
@@ -1156,7 +1165,29 @@ export default function AdminPortal() {
                   ...(isSuperAdmin ? [{ id: 'Super Admin Console', icon: Award }] : [])
                 ]
               }
-            ].map((section) => (
+            ]
+            .map((section) => {
+              // RBAC: Granular Sub-Admin Filter
+              const filteredItems = section.items.filter((tab) => {
+                if (isSuperAdmin || adminRole === 'superadmin' || adminRole === 'admin') return true;
+                if (adminRole === 'evaluator') {
+                  return tab.id === 'Mains Evaluation' || tab.id === 'Dashboard';
+                }
+                if (adminRole === 'content_manager') {
+                  return [
+                    'Dashboard', 'Current Affairs', 'NCERT', 'PYQ', 'Toppers Copies',
+                    'Value Addition', 'Useful Documents', 'Blogs', 'Daily Quiz', 'Exams & Syllabus'
+                  ].includes(tab.id);
+                }
+                if (adminRole === 'counselor') {
+                  return ['Dashboard', 'Leads', 'Student Chats', 'Book Orders', 'Offers & Notifications'].includes(tab.id);
+                }
+                return true;
+              });
+
+              if (filteredItems.length === 0) return null;
+
+              return (
               <div key={section.category} className="space-y-1">
                 {!isSidebarCollapsed && (
                   <p className="px-3 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -1164,7 +1195,7 @@ export default function AdminPortal() {
                   </p>
                 )}
                 <div className="flex flex-col gap-1">
-                  {section.items.map((tab) => (
+                  {filteredItems.map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as AdminTab)}
@@ -1183,7 +1214,8 @@ export default function AdminPortal() {
                   ))}
                 </div>
               </div>
-            ))}
+            );
+            })}
           </nav>
         </div>
 
@@ -5560,11 +5592,14 @@ export default function AdminPortal() {
                   <span className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold">Real-Time Permission Sync</span>
                 </div>
                 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
                     { role: 'student', title: 'Student', desc: 'Standard student portal access' },
                     { role: 'faculty', title: 'Faculty', desc: 'Faculty portal & batch creator' },
-                    { role: 'admin', title: 'Admin', desc: 'Full CMS & platform admin access' }
+                    { role: 'admin', title: 'Admin', desc: 'Full CMS & platform admin access' },
+                    { role: 'evaluator', title: 'Mains Evaluator', desc: 'Restricted: Copy evaluation only' },
+                    { role: 'content_manager', title: 'Content Manager', desc: 'Restricted: CA, NCERT, PYQ, Blogs' },
+                    { role: 'counselor', title: 'Counselor / Sales', desc: 'Restricted: Leads, Chats & Orders' },
                   ].map((r) => (
                     <button
                       key={r.role}

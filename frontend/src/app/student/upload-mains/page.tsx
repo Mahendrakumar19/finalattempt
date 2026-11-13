@@ -39,6 +39,7 @@ interface StudentSubmission {
   feedback?: string;
   status?: string;
   evaluatedCopyUrl?: string;
+  rubricsBreakdown?: any;
 }
 
 export default function UploadMainsCopyPage() {
@@ -650,31 +651,78 @@ export default function UploadMainsCopyPage() {
                         )}
 
                         {/* Evaluation Results if Evaluated */}
-                        {isEvaluated && (
-                          <div className="pt-3 border-t border-[var(--card-border)] space-y-2 bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/20">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="font-black text-emerald-600 dark:text-emerald-400">
-                                Score: {sub.grade} / {sub.maxMarks || 100} Marks
-                              </span>
-                              {sub.evaluatedCopyUrl && (
-                                <a
-                                  href={sub.evaluatedCopyUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline"
-                                >
-                                  <Download className="w-3.5 h-3.5" /> Evaluated Copy PDF
-                                </a>
+                        {isEvaluated && (() => {
+                          let rubrics: any = null;
+                          if (sub.rubricsBreakdown) {
+                            try {
+                              rubrics = typeof sub.rubricsBreakdown === 'string'
+                                ? JSON.parse(sub.rubricsBreakdown)
+                                : sub.rubricsBreakdown;
+                            } catch (_) {}
+                          }
+                          const hasRubrics = rubrics && (
+                            rubrics.introduction !== undefined ||
+                            rubrics.contentAndFacts !== undefined ||
+                            rubrics.structuringDiagrams !== undefined ||
+                            rubrics.conclusion !== undefined
+                          );
+
+                          return (
+                            <div className="pt-3 border-t border-[var(--card-border)] space-y-2 bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/20">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-black text-emerald-600 dark:text-emerald-400">
+                                  Score: {sub.grade} / {sub.maxMarks || 100} Marks
+                                </span>
+                                {sub.evaluatedCopyUrl && (
+                                  <a
+                                    href={sub.evaluatedCopyUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 hover:underline"
+                                  >
+                                    <Download className="w-3.5 h-3.5" /> Evaluated Copy PDF
+                                  </a>
+                                )}
+                              </div>
+
+                              {/* Rubrics Score Breakdown for Student */}
+                              {hasRubrics && (
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 py-1.5 border-y border-emerald-500/20 text-[10px]">
+                                  {rubrics.introduction !== undefined && (
+                                    <div className="p-1.5 bg-emerald-500/10 rounded-lg">
+                                      <span className="text-slate-500 dark:text-slate-400 block font-bold">Intro</span>
+                                      <span className="font-black text-emerald-700 dark:text-emerald-300">{rubrics.introduction}</span>
+                                    </div>
+                                  )}
+                                  {rubrics.contentAndFacts !== undefined && (
+                                    <div className="p-1.5 bg-emerald-500/10 rounded-lg">
+                                      <span className="text-slate-500 dark:text-slate-400 block font-bold">Content/Facts</span>
+                                      <span className="font-black text-emerald-700 dark:text-emerald-300">{rubrics.contentAndFacts}</span>
+                                    </div>
+                                  )}
+                                  {rubrics.structuringDiagrams !== undefined && (
+                                    <div className="p-1.5 bg-emerald-500/10 rounded-lg">
+                                      <span className="text-slate-500 dark:text-slate-400 block font-bold">Structure/Maps</span>
+                                      <span className="font-black text-emerald-700 dark:text-emerald-300">{rubrics.structuringDiagrams}</span>
+                                    </div>
+                                  )}
+                                  {rubrics.conclusion !== undefined && (
+                                    <div className="p-1.5 bg-emerald-500/10 rounded-lg">
+                                      <span className="text-slate-500 dark:text-slate-400 block font-bold">Way Forward</span>
+                                      <span className="font-black text-emerald-700 dark:text-emerald-300">{rubrics.conclusion}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {sub.feedback && (
+                                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                                  <span className="font-bold text-slate-500">Evaluator Feedback:</span> {sub.feedback}
+                                </p>
                               )}
                             </div>
-
-                            {sub.feedback && (
-                              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
-                                <span className="font-bold text-slate-500">Evaluator Feedback:</span> {sub.feedback}
-                              </p>
-                            )}
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     );
                   })}

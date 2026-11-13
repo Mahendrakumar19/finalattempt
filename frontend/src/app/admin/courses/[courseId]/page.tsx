@@ -17,6 +17,8 @@ interface Lesson {
   videoUrl?: string;
   duration: string;
   isFree?: boolean;
+  notesPdfUrl?: string;
+  dppPdfUrl?: string;
   liveClassType?: 'youtube' | 'zoom' | 'meet' | 'custom' | string;
   liveScheduledAt?: string;
   liveMeetingUrl?: string;
@@ -72,6 +74,7 @@ interface CourseData {
   discount?: string;
   duration: string;
   schedule: string;
+  validityMonths?: number;
   isPublished: boolean;
   features: string[];
   faculty: FacultyMember[];
@@ -222,6 +225,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     type: 'video',
     videoUrl: '',
     duration: '15 mins',
+    notesPdfUrl: '',
+    dppPdfUrl: '',
     liveClassType: 'custom',
     liveScheduledAt: '',
     liveMeetingUrl: '',
@@ -574,6 +579,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
       type: 'video',
       videoUrl: '',
       duration: '15 mins',
+      notesPdfUrl: '',
+      dppPdfUrl: '',
       liveClassType: 'youtube',
       liveScheduledAt: '',
       liveMeetingUrl: '',
@@ -599,6 +606,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
       type: 'live',
       videoUrl: hlsUrl,
       duration: '60 mins',
+      notesPdfUrl: '',
+      dppPdfUrl: '',
       liveClassType: 'custom',
       liveScheduledAt: new Date(Date.now() + 86400000).toLocaleString('en-IN', {
         day: '2-digit',
@@ -1023,6 +1032,22 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                     className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none text-slate-900"
                   />
                 </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-extrabold text-slate-400 uppercase flex items-center justify-between">
+                    <span>Batch Validity (Months)</span>
+                    <span className="text-amber-600 font-bold text-[9px]">Auto-Expires</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="60"
+                    value={courseData.validityMonths !== undefined ? courseData.validityMonths : 12}
+                    placeholder="e.g. 12"
+                    onChange={(e) => setCourseData({ ...courseData, validityMonths: e.target.value ? Number(e.target.value) : 12 })}
+                    className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none text-slate-900"
+                  />
+                </div>
               </div>
 
               {/* Course Thumbnail Cover Image */}
@@ -1399,6 +1424,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                                         type: les.type || 'video',
                                         videoUrl: les.videoUrl || '',
                                         duration: les.duration || '15 mins',
+                                        notesPdfUrl: les.notesPdfUrl || '',
+                                        dppPdfUrl: les.dppPdfUrl || '',
                                         liveClassType: les.liveClassType || (les.type === 'live' ? 'custom' : 'youtube'),
                                         liveScheduledAt: les.liveScheduledAt || '',
                                         liveMeetingUrl: les.liveMeetingUrl || '',
@@ -2603,6 +2630,39 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                   placeholder="https://... or paste Youtube link"
                   className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none text-slate-900 bg-white"
                 />
+              </div>
+
+              {/* Attached Class Notes & DPP Section (Phase 2 EdTech Feature) */}
+              <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+                <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 block">
+                  Attach Class Notes & Practice Sheets (PDF)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">
+                      Class Handwritten Notes (PDF URL)
+                    </label>
+                    <input
+                      type="text"
+                      value={lessonForm.notesPdfUrl || ''}
+                      onChange={(e) => setLessonForm({ ...lessonForm, notesPdfUrl: e.target.value })}
+                      placeholder="https://.../notes.pdf"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-400 font-mono text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 block mb-1">
+                      Daily Practice Sheet / DPP (PDF URL)
+                    </label>
+                    <input
+                      type="text"
+                      value={lessonForm.dppPdfUrl || ''}
+                      onChange={(e) => setLessonForm({ ...lessonForm, dppPdfUrl: e.target.value })}
+                      placeholder="https://.../dpp.pdf"
+                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-400 font-mono text-slate-800"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-2.5 pt-1">

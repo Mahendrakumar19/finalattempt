@@ -1,0 +1,6 @@
+# Shorebird Code Push Configuration
+# Documentation: https://docs.shorebird.dev
+# Generated for Final Attempt IAS (com.finalattempt.app)
+
+app_id: 3c5e8b4e-7a91-4d92-8812-finalattempt01
+auto_update: true
