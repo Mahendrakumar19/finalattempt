@@ -33,15 +33,24 @@ interface TestSeriesItem {
 interface MainsTestItem {
   id: string;
   title: string;
+  titleHi?: string;
   description?: string;
+  descriptionHi?: string;
   dueDate?: string;
   maxMarks?: number;
   questionPaperUrl?: string;
+  questionPaperUrlHi?: string;
   answerBookletUrl?: string;
+  answerBookletUrlHi?: string;
   modelAnswerUrl?: string;
+  modelAnswerUrlHi?: string;
   discussionVideoUrl?: string;
+  discussionVideoUrlHi?: string;
   syllabus?: string;
+  syllabusHi?: string;
   syllabusPdfUrl?: string;
+  syllabusPdfUrlHi?: string;
+  medium?: string;
   testSeriesId?: string;
 }
 
@@ -287,11 +296,16 @@ export default function StudentMainsPage() {
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1">
                             <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20 inline-block">
-                              Mains Subjective Test
+                              Mains Subjective Test • {test.medium || 'Bilingual'}
                             </span>
                             <h3 className="text-lg font-heading font-black text-[var(--text-color)] leading-snug">
                               {test.title}
                             </h3>
+                            {test.titleHi && (
+                              <p className="text-xs font-bold text-amber-500">
+                                {test.titleHi}
+                              </p>
+                            )}
                           </div>
 
                           {sub && (
@@ -343,55 +357,94 @@ export default function StudentMainsPage() {
                         )}
                       </div>
 
-                        {/* Vision IAS Architecture: 3 PDF Pill Buttons (Question Paper, Answer Booklet, Model Answer) */}
+                        {/* Vision IAS Architecture: Bilingual PDF Pill Buttons (Question Paper, Answer Booklet, Model Answer) */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-2">
                           {/* 1. Question Paper */}
-                          {test.questionPaperUrl ? (
-                            <a
-                              href={test.questionPaperUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 text-xs font-bold rounded-xl transition-colors border border-blue-500/20"
-                            >
-                              <Download className="w-3.5 h-3.5" /> Question Paper
-                            </a>
-                          ) : (
-                            <div className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800/40 text-slate-500 text-xs font-medium rounded-xl border border-slate-800">
-                              <FileText className="w-3.5 h-3.5" /> Paper Pending
-                            </div>
-                          )}
+                          <div className="flex flex-col gap-1">
+                            {test.questionPaperUrl && (
+                              <a
+                                href={test.questionPaperUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600/10 hover:bg-blue-600/20 text-blue-500 dark:text-blue-400 text-xs font-bold rounded-xl transition-colors border border-blue-500/20"
+                              >
+                                <Download className="w-3.5 h-3.5" /> QP (English)
+                              </a>
+                            )}
+                            {test.questionPaperUrlHi && (
+                              <a
+                                href={test.questionPaperUrlHi}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-500/15 hover:bg-blue-500/25 text-blue-600 dark:text-blue-300 text-xs font-bold rounded-xl transition-colors border border-blue-500/30"
+                              >
+                                <Download className="w-3.5 h-3.5" /> प्रश्न पत्र (हिंदी)
+                              </a>
+                            )}
+                            {!test.questionPaperUrl && !test.questionPaperUrlHi && (
+                              <div className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800/40 text-slate-500 text-xs font-medium rounded-xl border border-slate-800">
+                                <FileText className="w-3.5 h-3.5" /> Paper Pending
+                              </div>
+                            )}
+                          </div>
 
                           {/* 2. Answer Booklet */}
-                          {test.answerBookletUrl ? (
-                            <a
-                              href={test.answerBookletUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-bold rounded-xl transition-colors border border-amber-500/20"
-                            >
-                              <Download className="w-3.5 h-3.5" /> Answer Booklet
-                            </a>
-                          ) : (
-                            <div className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800/40 text-slate-500 text-xs font-medium rounded-xl border border-slate-800">
-                              <FileText className="w-3.5 h-3.5" /> Booklet Pending
-                            </div>
-                          )}
+                          <div className="flex flex-col gap-1">
+                            {test.answerBookletUrl && (
+                              <a
+                                href={test.answerBookletUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold rounded-xl transition-colors border border-amber-500/20"
+                              >
+                                <Download className="w-3.5 h-3.5" /> Answer Booklet
+                              </a>
+                            )}
+                            {test.answerBookletUrlHi && (
+                              <a
+                                href={test.answerBookletUrlHi}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-500 dark:text-amber-300 text-xs font-bold rounded-xl transition-colors border border-amber-500/30"
+                              >
+                                <Download className="w-3.5 h-3.5" /> उत्तर पुस्तिका (HI)
+                              </a>
+                            )}
+                            {!test.answerBookletUrl && !test.answerBookletUrlHi && (
+                              <div className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800/40 text-slate-500 text-xs font-medium rounded-xl border border-slate-800">
+                                <FileText className="w-3.5 h-3.5" /> Booklet Pending
+                              </div>
+                            )}
+                          </div>
 
                           {/* 3. Model Answer */}
-                          {test.modelAnswerUrl ? (
-                            <a
-                              href={test.modelAnswerUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-xl transition-colors border border-emerald-500/20"
-                            >
-                              <Download className="w-3.5 h-3.5" /> Model Answer
-                            </a>
-                          ) : (
-                            <div className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800/40 text-slate-500 text-xs font-medium rounded-xl border border-slate-800">
-                              <Sparkles className="w-3.5 h-3.5" /> Solution Soon
-                            </div>
-                          )}
+                          <div className="flex flex-col gap-1">
+                            {test.modelAnswerUrl && (
+                              <a
+                                href={test.modelAnswerUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl transition-colors border border-emerald-500/20"
+                              >
+                                <Download className="w-3.5 h-3.5" /> Model Answer (EN)
+                              </a>
+                            )}
+                            {test.modelAnswerUrlHi && (
+                              <a
+                                href={test.modelAnswerUrlHi}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-500 dark:text-emerald-300 text-xs font-bold rounded-xl transition-colors border border-emerald-500/30"
+                              >
+                                <Download className="w-3.5 h-3.5" /> मॉडल उत्तर (HI)
+                              </a>
+                            )}
+                            {!test.modelAnswerUrl && !test.modelAnswerUrlHi && (
+                              <div className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-800/40 text-slate-500 text-xs font-medium rounded-xl border border-slate-800">
+                                <Sparkles className="w-3.5 h-3.5" /> Solution Soon
+                              </div>
+                            )}
+                          </div>
                         </div>
 
                       <div className="pt-4 border-t border-[var(--card-border)] flex flex-wrap items-center justify-between gap-3">
@@ -410,7 +463,17 @@ export default function StudentMainsPage() {
                               rel="noreferrer"
                               className="inline-flex items-center gap-1 px-3 py-2 bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 text-xs font-bold rounded-xl border border-purple-500/20"
                             >
-                              <Download className="w-3.5 h-3.5" /> Syllabus PDF
+                              <Download className="w-3.5 h-3.5" /> Syllabus (EN)
+                            </a>
+                          )}
+                          {test.syllabusPdfUrlHi && (
+                            <a
+                              href={test.syllabusPdfUrlHi}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-2 bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 text-xs font-bold rounded-xl border border-purple-500/30"
+                            >
+                              <Download className="w-3.5 h-3.5" /> सिलेबस (HI)
                             </a>
                           )}
 

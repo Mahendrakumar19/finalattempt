@@ -803,7 +803,7 @@ router.get('/mains/tests/:id', async (req: Request, res: Response) => {
 // Student Submit Mains Answer Copy (PDF)
 router.post('/mains/tests/:id/submit', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   const assignmentId = req.params.id as string;
-  const { submissionUrl, submissionText } = req.body;
+  const { submissionUrl, submissionText, medium } = req.body;
 
   if (!submissionUrl) {
     res.status(400).json({ success: false, error: 'Answer Copy PDF file is required.' });
@@ -842,7 +842,7 @@ router.post('/mains/tests/:id/submit', authenticate, requireStudent, async (req:
       }
     }
 
-    const sub = await lmsDB.submitAssignmentResponse(req.user!.userId, assignmentId, submissionUrl, submissionText);
+    const sub = await lmsDB.submitAssignmentResponse(req.user!.userId, assignmentId, submissionUrl, submissionText, medium || 'English');
 
     // Instant Alert to Evaluator Team via Telegram/Webhook
     try {
@@ -1103,16 +1103,25 @@ router.post('/admin/mains-tests', authenticateAdminLms, async (req: Request, res
   try {
     const {
       title,
+      titleHi,
       testSeriesId,
       description,
+      descriptionHi,
       syllabus,
+      syllabusHi,
       syllabusPdfUrl,
+      syllabusPdfUrlHi,
       maxMarks,
       dueDate,
       questionPaperUrl,
+      questionPaperUrlHi,
       answerBookletUrl,
+      answerBookletUrlHi,
       modelAnswerUrl,
+      modelAnswerUrlHi,
       discussionVideoUrl,
+      discussionVideoUrlHi,
+      medium,
       isPublished
     } = req.body;
 
@@ -1123,16 +1132,25 @@ router.post('/admin/mains-tests', authenticateAdminLms, async (req: Request, res
 
     const test = await lmsDB.createAssignment({
       title,
+      titleHi,
       testSeriesId,
       description,
+      descriptionHi,
       syllabus,
+      syllabusHi,
       syllabusPdfUrl,
+      syllabusPdfUrlHi,
       maxMarks: Number(maxMarks || 100),
       dueDate,
       questionPaperUrl,
+      questionPaperUrlHi,
       answerBookletUrl,
+      answerBookletUrlHi,
       modelAnswerUrl,
+      modelAnswerUrlHi,
       discussionVideoUrl,
+      discussionVideoUrlHi,
+      medium: medium || 'Bilingual',
       submissionType: 'pdf',
       isPublished: isPublished !== undefined ? isPublished : true
     });

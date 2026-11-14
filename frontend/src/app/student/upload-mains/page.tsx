@@ -15,15 +15,24 @@ import { getMainsTests, submitMainsCopy, getMyMainsSubmissions, checkEnrollment 
 interface MainsTestItem {
   id: string;
   title: string;
+  titleHi?: string;
   description?: string;
+  descriptionHi?: string;
   dueDate?: string;
   maxMarks?: number;
   questionPaperUrl?: string;
+  questionPaperUrlHi?: string;
   answerBookletUrl?: string;
+  answerBookletUrlHi?: string;
   modelAnswerUrl?: string;
+  modelAnswerUrlHi?: string;
   discussionVideoUrl?: string;
+  discussionVideoUrlHi?: string;
   syllabus?: string;
+  syllabusHi?: string;
   syllabusPdfUrl?: string;
+  syllabusPdfUrlHi?: string;
+  medium?: string;
   testSeriesId?: string;
 }
 
@@ -58,6 +67,7 @@ export default function UploadMainsCopyPage() {
   
   const [mainsTests, setMainsTests] = useState<MainsTestItem[]>([]);
   const [selectedTestId, setSelectedTestId] = useState<string>('');
+  const [candidateMedium, setCandidateMedium] = useState<'English' | 'Hindi'>('English');
 
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>('');
@@ -305,7 +315,11 @@ export default function UploadMainsCopyPage() {
     try {
       const res = await submitMainsCopy(
         selectedTestId,
-        { submissionUrl: uploadedUrl, submissionText },
+        { 
+          submissionUrl: uploadedUrl, 
+          submissionText: submissionText ? `[Medium: ${candidateMedium}]\n${submissionText}` : `[Medium: ${candidateMedium}]`,
+          medium: candidateMedium 
+        },
         accessToken
       );
 
@@ -426,10 +440,18 @@ export default function UploadMainsCopyPage() {
                 {/* Selected Test Details Preview Box (Vision IAS Architecture) */}
                 {selectedTest && (
                   <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-3 text-xs">
-                    <div className="flex items-center justify-between font-bold text-indigo-600 dark:text-indigo-400">
-                      <span>{selectedTest.title}</span>
-                      <span>Max Marks: {selectedTest.maxMarks || 100}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 font-bold text-indigo-600 dark:text-indigo-400">
+                      <div>
+                        <span>{selectedTest.title}</span>
+                        {selectedTest.titleHi && (
+                          <span className="block text-[11px] text-amber-500 font-semibold">{selectedTest.titleHi}</span>
+                        )}
+                      </div>
+                      <span className="shrink-0 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-500/20 text-[10px] uppercase font-black">
+                        Max Marks: {selectedTest.maxMarks || 100}
+                      </span>
                     </div>
+
                     {selectedTest.description && (
                       <p className="text-slate-500 leading-relaxed text-[11px]">{selectedTest.description}</p>
                     )}
@@ -437,51 +459,134 @@ export default function UploadMainsCopyPage() {
                       <p className="text-slate-500 text-[11px]"><span className="font-bold text-slate-400">Syllabus:</span> {selectedTest.syllabus}</p>
                     )}
 
-                    {/* Quick Access to the PDFs for this Test */}
-                    <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-indigo-500/10">
-                      {selectedTest.syllabusPdfUrl && (
-                        <a
-                          href={selectedTest.syllabusPdfUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-400 hover:underline px-2.5 py-1 bg-purple-500/10 rounded-lg border border-purple-500/20"
-                        >
-                          <Download className="w-3.5 h-3.5" /> Syllabus PDF
-                        </a>
-                      )}
-                      {selectedTest.questionPaperUrl && (
-                        <a
-                          href={selectedTest.questionPaperUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-500 hover:underline px-2.5 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20"
-                        >
-                          <Download className="w-3.5 h-3.5" /> Question Paper
-                        </a>
-                      )}
-                      {selectedTest.answerBookletUrl && (
-                        <a
-                          href={selectedTest.answerBookletUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-500 hover:underline px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20"
-                        >
-                          <Download className="w-3.5 h-3.5" /> Answer Booklet
-                        </a>
-                      )}
-                      {selectedTest.modelAnswerUrl && (
-                        <a
-                          href={selectedTest.modelAnswerUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 hover:underline px-2.5 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20"
-                        >
-                          <Download className="w-3.5 h-3.5" /> Model Answer
-                        </a>
-                      )}
+                    {/* Quick Access to Bilingual PDFs for this Test */}
+                    <div className="space-y-1.5 pt-2 border-t border-indigo-500/10">
+                      <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider block">
+                        Download Reference Test Materials:
+                      </span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Question Paper Links */}
+                        {selectedTest.questionPaperUrl && (
+                          <a
+                            href={selectedTest.questionPaperUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-500 hover:underline px-2.5 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20"
+                          >
+                            <Download className="w-3.5 h-3.5" /> QP (English)
+                          </a>
+                        )}
+                        {selectedTest.questionPaperUrlHi && (
+                          <a
+                            href={selectedTest.questionPaperUrlHi}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-400 hover:underline px-2.5 py-1 bg-blue-500/10 rounded-lg border border-blue-500/20"
+                          >
+                            <Download className="w-3.5 h-3.5" /> प्रश्न पत्र (हिंदी)
+                          </a>
+                        )}
+
+                        {/* Answer Booklet Links */}
+                        {selectedTest.answerBookletUrl && (
+                          <a
+                            href={selectedTest.answerBookletUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-500 hover:underline px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Answer Booklet
+                          </a>
+                        )}
+                        {selectedTest.answerBookletUrlHi && (
+                          <a
+                            href={selectedTest.answerBookletUrlHi}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 hover:underline px-2.5 py-1 bg-amber-500/10 rounded-lg border border-amber-500/20"
+                          >
+                            <Download className="w-3.5 h-3.5" /> उत्तर पुस्तिका (हिंदी)
+                          </a>
+                        )}
+
+                        {/* Model Answer Links */}
+                        {selectedTest.modelAnswerUrl && (
+                          <a
+                            href={selectedTest.modelAnswerUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 hover:underline px-2.5 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Model Answer (EN)
+                          </a>
+                        )}
+                        {selectedTest.modelAnswerUrlHi && (
+                          <a
+                            href={selectedTest.modelAnswerUrlHi}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:underline px-2.5 py-1 bg-emerald-500/10 rounded-lg border border-emerald-500/20"
+                          >
+                            <Download className="w-3.5 h-3.5" /> मॉडल उत्तर (HI)
+                          </a>
+                        )}
+
+                        {/* Syllabus PDF Links */}
+                        {selectedTest.syllabusPdfUrl && (
+                          <a
+                            href={selectedTest.syllabusPdfUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-400 hover:underline px-2.5 py-1 bg-purple-500/10 rounded-lg border border-purple-500/20"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Syllabus (EN)
+                          </a>
+                        )}
+                        {selectedTest.syllabusPdfUrlHi && (
+                          <a
+                            href={selectedTest.syllabusPdfUrlHi}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-300 hover:underline px-2.5 py-1 bg-purple-500/10 rounded-lg border border-purple-500/20"
+                          >
+                            <Download className="w-3.5 h-3.5" /> सिलेबस (HI)
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
+
+                {/* Candidate Medium Selection */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-black uppercase text-slate-400 tracking-wider block">
+                    Select Your Answer Writing Medium *
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setCandidateMedium('English')}
+                      className={`flex-1 py-2.5 px-4 rounded-xl border text-xs font-black transition-all cursor-pointer ${
+                        candidateMedium === 'English'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                          : 'bg-[var(--card-bg)] text-slate-600 dark:text-slate-300 border-[var(--card-border)] hover:border-blue-500'
+                      }`}
+                    >
+                      🇬🇧 English Medium
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCandidateMedium('Hindi')}
+                      className={`flex-1 py-2.5 px-4 rounded-xl border text-xs font-black transition-all cursor-pointer ${
+                        candidateMedium === 'Hindi'
+                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                          : 'bg-[var(--card-bg)] text-slate-600 dark:text-slate-300 border-[var(--card-border)] hover:border-amber-500'
+                      }`}
+                    >
+                      🇮🇳 हिंदी माध्यम (Hindi Medium)
+                    </button>
+                  </div>
+                </div>
 
                 {/* STEP 3: PDF File Picker */}
                 <div className="space-y-2">

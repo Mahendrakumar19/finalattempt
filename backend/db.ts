@@ -994,11 +994,21 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     // Dynamically ensure new Mains columns exist on lms_assignments & lms_assignment_submissions
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN testSeriesId VARCHAR(255) NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN questionPaperUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN questionPaperUrlHi TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN answerBookletUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN answerBookletUrlHi TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN modelAnswerUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN modelAnswerUrlHi TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN discussionVideoUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN discussionVideoUrlHi TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN syllabusPdfUrl TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN syllabusPdfUrlHi TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN syllabus TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN syllabusHi TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN titleHi VARCHAR(255) NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN descriptionHi TEXT NULL"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN medium VARCHAR(50) DEFAULT 'Bilingual'"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN medium VARCHAR(50) DEFAULT 'English'"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN status VARCHAR(50) DEFAULT 'Submitted'"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedCopyUrl TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedAt TIMESTAMP NULL"); } catch (e) {}
@@ -6642,13 +6652,22 @@ class LmsDB {
       testSeriesId: data.testSeriesId || null,
       lessonId: data.lessonId || null,
       title: data.title,
+      titleHi: data.titleHi || null,
       description: data.description || '',
+      descriptionHi: data.descriptionHi || '',
       questionPaperUrl: data.questionPaperUrl || '',
+      questionPaperUrlHi: data.questionPaperUrlHi || '',
       answerBookletUrl: data.answerBookletUrl || '',
+      answerBookletUrlHi: data.answerBookletUrlHi || '',
       modelAnswerUrl: data.modelAnswerUrl || '',
+      modelAnswerUrlHi: data.modelAnswerUrlHi || '',
       discussionVideoUrl: data.discussionVideoUrl || '',
+      discussionVideoUrlHi: data.discussionVideoUrlHi || '',
       syllabusPdfUrl: data.syllabusPdfUrl || '',
+      syllabusPdfUrlHi: data.syllabusPdfUrlHi || '',
       syllabus: data.syllabus || '',
+      syllabusHi: data.syllabusHi || '',
+      medium: data.medium || 'Bilingual',
       dueDate: data.dueDate || '',
       maxMarks: Number(data.maxMarks || 100),
       submissionType: data.submissionType || 'pdf',
@@ -6658,8 +6677,23 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_assignments (id, courseId, testSeriesId, lessonId, title, description, questionPaperUrl, answerBookletUrl, modelAnswerUrl, discussionVideoUrl, syllabusPdfUrl, syllabus, dueDate, maxMarks, submissionType, isPublished) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [assign.id, assign.courseId, assign.testSeriesId, assign.lessonId, assign.title, assign.description, assign.questionPaperUrl, assign.answerBookletUrl, assign.modelAnswerUrl, assign.discussionVideoUrl, assign.syllabusPdfUrl, assign.syllabus, assign.dueDate, assign.maxMarks, assign.submissionType, assign.isPublished]
+          `INSERT INTO lms_assignments 
+           (id, courseId, testSeriesId, lessonId, title, titleHi, description, descriptionHi, 
+            questionPaperUrl, questionPaperUrlHi, answerBookletUrl, answerBookletUrlHi, 
+            modelAnswerUrl, modelAnswerUrlHi, discussionVideoUrl, discussionVideoUrlHi, 
+            syllabusPdfUrl, syllabusPdfUrlHi, syllabus, syllabusHi, medium, dueDate, maxMarks, submissionType, isPublished) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            assign.id, assign.courseId, assign.testSeriesId, assign.lessonId,
+            assign.title, assign.titleHi, assign.description, assign.descriptionHi,
+            assign.questionPaperUrl, assign.questionPaperUrlHi,
+            assign.answerBookletUrl, assign.answerBookletUrlHi,
+            assign.modelAnswerUrl, assign.modelAnswerUrlHi,
+            assign.discussionVideoUrl, assign.discussionVideoUrlHi,
+            assign.syllabusPdfUrl, assign.syllabusPdfUrlHi,
+            assign.syllabus, assign.syllabusHi,
+            assign.medium, assign.dueDate, assign.maxMarks, assign.submissionType, assign.isPublished
+          ]
         );
         if (assign.testSeriesId) {
           await this.syncTestSeriesTestCount(assign.testSeriesId);
@@ -6718,8 +6752,29 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'UPDATE lms_assignments SET title = ?, description = ?, questionPaperUrl = ?, answerBookletUrl = ?, modelAnswerUrl = ?, discussionVideoUrl = ?, syllabusPdfUrl = ?, syllabus = ?, dueDate = ?, maxMarks = ?, submissionType = ?, isPublished = ? WHERE id = ?',
-          [data.title, data.description, data.questionPaperUrl || '', data.answerBookletUrl || '', data.modelAnswerUrl || '', data.discussionVideoUrl || '', data.syllabusPdfUrl || '', data.syllabus || '', data.dueDate, Number(data.maxMarks || 100), data.submissionType, data.isPublished ? 1 : 0, id]
+          `UPDATE lms_assignments SET 
+            title = ?, titleHi = ?, description = ?, descriptionHi = ?, 
+            questionPaperUrl = ?, questionPaperUrlHi = ?, 
+            answerBookletUrl = ?, answerBookletUrlHi = ?, 
+            modelAnswerUrl = ?, modelAnswerUrlHi = ?, 
+            discussionVideoUrl = ?, discussionVideoUrlHi = ?, 
+            syllabusPdfUrl = ?, syllabusPdfUrlHi = ?, 
+            syllabus = ?, syllabusHi = ?, medium = ?, 
+            dueDate = ?, maxMarks = ?, submissionType = ?, isPublished = ? 
+           WHERE id = ?`,
+          [
+            data.title, data.titleHi || null,
+            data.description, data.descriptionHi || '',
+            data.questionPaperUrl || '', data.questionPaperUrlHi || '',
+            data.answerBookletUrl || '', data.answerBookletUrlHi || '',
+            data.modelAnswerUrl || '', data.modelAnswerUrlHi || '',
+            data.discussionVideoUrl || '', data.discussionVideoUrlHi || '',
+            data.syllabusPdfUrl || '', data.syllabusPdfUrlHi || '',
+            data.syllabus || '', data.syllabusHi || '',
+            data.medium || 'Bilingual',
+            data.dueDate, Number(data.maxMarks || 100),
+            data.submissionType, data.isPublished ? 1 : 0, id
+          ]
         );
         const targetSeriesId = data.testSeriesId || existing?.testSeriesId;
         if (targetSeriesId) {
@@ -6855,15 +6910,24 @@ class LmsDB {
     return includeUnpublished ? store : store.filter((a: any) => a.isPublished !== 0);
   }
 
-  async submitAssignmentResponse(userId: string, assignmentId: string, submissionUrl: string, submissionText?: string): Promise<any> {
+  async submitAssignmentResponse(userId: string, assignmentId: string, submissionUrl: string, submissionText?: string, medium = 'English'): Promise<any> {
     const { v4: uuid } = await import('uuid');
     const id = uuid();
-    const sub = { id, userId, assignmentId, submissionUrl, submissionText: submissionText || null, submittedAt: new Date(), status: 'Submitted' };
+    const sub = { 
+      id, 
+      userId, 
+      assignmentId, 
+      submissionUrl, 
+      submissionText: submissionText || null, 
+      medium: medium || 'English',
+      submittedAt: new Date(), 
+      status: 'Submitted' 
+    };
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_assignment_submissions (id, userId, assignmentId, submissionUrl, submissionText, status) VALUES (?, ?, ?, ?, ?, ?)',
-          [id, userId, assignmentId, submissionUrl || null, submissionText || null, 'Submitted']
+          'INSERT INTO lms_assignment_submissions (id, userId, assignmentId, submissionUrl, submissionText, medium, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [id, userId, assignmentId, submissionUrl || null, submissionText || null, sub.medium, 'Submitted']
         );
         return sub;
       } catch (err) { console.error('[LmsDB] submitAssignmentResponse MySQL error:', err); }
@@ -6940,8 +7004,12 @@ class LmsDB {
       try {
         const [rows]: any = await mysqlPool.query(
           `SELECT s.*, u.fullName as studentName, u.email as studentEmail, 
-                  a.title as testTitle, a.maxMarks, a.questionPaperUrl, a.answerBookletUrl, a.modelAnswerUrl, a.syllabus,
-                  ts.title as testSeriesTitle
+                  a.title as testTitle, a.titleHi as testTitleHi, a.maxMarks, 
+                  a.questionPaperUrl, a.questionPaperUrlHi, 
+                  a.answerBookletUrl, a.answerBookletUrlHi, 
+                  a.modelAnswerUrl, a.modelAnswerUrlHi, 
+                  a.syllabus, a.syllabusHi, a.medium as testMedium,
+                  ts.title as testSeriesTitle, ts.title_hi as testSeriesTitleHi
            FROM lms_assignment_submissions s
            LEFT JOIN users u ON u.id = s.userId
            LEFT JOIN lms_assignments a ON a.id = s.assignmentId
@@ -6963,11 +7031,17 @@ class LmsDB {
         studentName: matchUser?.fullName || 'Student',
         studentEmail: matchUser?.email || 'student@finalattempt.com',
         testTitle: matchTest?.title || s.assignmentId,
+        testTitleHi: matchTest?.titleHi || '',
         maxMarks: matchTest?.maxMarks || 100,
         questionPaperUrl: matchTest?.questionPaperUrl || '',
+        questionPaperUrlHi: matchTest?.questionPaperUrlHi || '',
         answerBookletUrl: matchTest?.answerBookletUrl || '',
+        answerBookletUrlHi: matchTest?.answerBookletUrlHi || '',
         modelAnswerUrl: matchTest?.modelAnswerUrl || '',
-        syllabus: matchTest?.syllabus || ''
+        modelAnswerUrlHi: matchTest?.modelAnswerUrlHi || '',
+        syllabus: matchTest?.syllabus || '',
+        syllabusHi: matchTest?.syllabusHi || '',
+        testMedium: matchTest?.medium || 'Bilingual'
       };
     });
   }

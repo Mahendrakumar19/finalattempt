@@ -340,7 +340,11 @@ export async function getMainsTestDetail(testId: string, accessToken?: string) {
 }
 
 // ─── Mains: Student Submit Answer Copy (PDF) ──────────────────────────────────
-export async function submitMainsCopy(testId: string, payload: { submissionUrl: string; submissionText?: string }, accessToken: string) {
+export async function submitMainsCopy(
+  testId: string, 
+  payload: { submissionUrl: string; submissionText?: string; medium?: string }, 
+  accessToken: string
+) {
   return apiFetch<any>(`/api/lms/mains/tests/${testId}/submit`, {
     method: 'POST',
     body: JSON.stringify(payload)

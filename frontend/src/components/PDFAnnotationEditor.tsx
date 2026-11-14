@@ -24,8 +24,11 @@ export interface PDFAnnotationEditorProps {
   testSeriesTitle?: string;
   submissionText?: string;
   questionPaperUrl?: string;
+  questionPaperUrlHi?: string;
   modelAnswerUrl?: string;
+  modelAnswerUrlHi?: string;
   answerBookletUrl?: string;
+  answerBookletUrlHi?: string;
   maxMarks?: number;
   initialMarks?: number;
   initialFeedback?: string;
@@ -118,8 +121,11 @@ export default function PDFAnnotationEditor({
   testSeriesTitle,
   submissionText,
   questionPaperUrl,
+  questionPaperUrlHi,
   modelAnswerUrl,
+  modelAnswerUrlHi,
   answerBookletUrl,
+  answerBookletUrlHi,
   maxMarks = 100,
   initialMarks,
   initialFeedback,
@@ -1195,11 +1201,11 @@ export default function PDFAnnotationEditor({
                 </div>
               )}
 
-              {/* Reference Documents Quick Links (Question Paper & Model Answer) */}
-              {(questionPaperUrl || modelAnswerUrl || answerBookletUrl) && (
+              {/* Reference Documents Quick Links (Bilingual Support: Question Paper & Model Answer) */}
+              {(questionPaperUrl || questionPaperUrlHi || modelAnswerUrl || modelAnswerUrlHi || answerBookletUrl || answerBookletUrlHi) && (
                 <div className="p-3 bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-white/10 space-y-2">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                    Reference Materials
+                    Reference Materials (English &amp; Hindi)
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {questionPaperUrl && (
@@ -1209,7 +1215,17 @@ export default function PDFAnnotationEditor({
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 rounded-lg border border-blue-500/20"
                       >
-                        Q. Paper ↗
+                        QP (EN) ↗
+                      </a>
+                    )}
+                    {questionPaperUrlHi && (
+                      <a
+                        href={questionPaperUrlHi}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-500 dark:text-blue-300 bg-blue-500/15 hover:bg-blue-500/25 px-2.5 py-1 rounded-lg border border-blue-500/30"
+                      >
+                        प्रश्न पत्र (HI) ↗
                       </a>
                     )}
                     {modelAnswerUrl && (
@@ -1219,7 +1235,17 @@ export default function PDFAnnotationEditor({
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-lg border border-emerald-500/20"
                       >
-                        Model Ans ↗
+                        Model Ans (EN) ↗
+                      </a>
+                    )}
+                    {modelAnswerUrlHi && (
+                      <a
+                        href={modelAnswerUrlHi}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-500 dark:text-emerald-300 bg-emerald-500/15 hover:bg-emerald-500/25 px-2.5 py-1 rounded-lg border border-emerald-500/30"
+                      >
+                        मॉडल उत्तर (HI) ↗
                       </a>
                     )}
                     {answerBookletUrl && (
@@ -1230,6 +1256,16 @@ export default function PDFAnnotationEditor({
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/20"
                       >
                         Booklet ↗
+                      </a>
+                    )}
+                    {answerBookletUrlHi && (
+                      <a
+                        href={answerBookletUrlHi}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-500 dark:text-amber-300 bg-amber-500/15 hover:bg-amber-500/25 px-2.5 py-1 rounded-lg border border-amber-500/30"
+                      >
+                        पुस्तिका (HI) ↗
                       </a>
                     )}
                   </div>

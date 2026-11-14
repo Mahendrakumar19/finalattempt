@@ -15,14 +15,21 @@ interface SubmissionItem {
   studentName?: string;
   studentEmail?: string;
   testTitle?: string;
+  testTitleHi?: string;
   testSeriesTitle?: string;
+  testSeriesTitleHi?: string;
   maxMarks?: number;
   submissionUrl?: string;
   submissionText?: string;
   questionPaperUrl?: string;
+  questionPaperUrlHi?: string;
   answerBookletUrl?: string;
+  answerBookletUrlHi?: string;
   modelAnswerUrl?: string;
+  modelAnswerUrlHi?: string;
   syllabus?: string;
+  syllabusHi?: string;
+  testMedium?: string;
   submittedAt: string;
   grade?: number;
   feedback?: string;
@@ -795,8 +802,11 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
             testSeriesTitle={annotatingSub.testSeriesTitle}
             submissionText={annotatingSub.submissionText}
             questionPaperUrl={annotatingSub.questionPaperUrl}
+            questionPaperUrlHi={annotatingSub.questionPaperUrlHi}
             modelAnswerUrl={annotatingSub.modelAnswerUrl}
+            modelAnswerUrlHi={annotatingSub.modelAnswerUrlHi}
             answerBookletUrl={annotatingSub.answerBookletUrl}
+            answerBookletUrlHi={annotatingSub.answerBookletUrlHi}
             maxMarks={annotatingSub.maxMarks || 100}
             initialMarks={annotatingSub.grade}
             initialFeedback={annotatingSub.feedback}

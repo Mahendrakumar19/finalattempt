@@ -175,7 +175,13 @@ export default function TestSeriesAdmin({
   const [editingExam, setEditingExam] = useState<ExamData | null>(null);
   const [savingExam, setSavingExam] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
-  const [mediaPickerTarget, setMediaPickerTarget] = useState<'exam_logo' | 'series_pdf' | 'series_image' | 'mains_question' | 'mains_booklet' | 'mains_model' | 'mains_syllabus'>('exam_logo');
+  const [mediaPickerTarget, setMediaPickerTarget] = useState<
+    'exam_logo' | 'series_pdf' | 'series_image' | 
+    'mains_question' | 'mains_question_hi' | 
+    'mains_booklet' | 'mains_booklet_hi' | 
+    'mains_model' | 'mains_model_hi' | 
+    'mains_syllabus' | 'mains_syllabus_hi'
+  >('exam_logo');
 
   // Mains Descriptive Papers Manager States (For Mains category test series)
   const [mainsTests, setMainsTests] = useState<any[]>([]);
@@ -183,18 +189,30 @@ export default function TestSeriesAdmin({
   const [showMainsTestModal, setShowMainsTestModal] = useState(false);
   const [editingMainsTest, setEditingMainsTest] = useState<any | null>(null);
   const [savingMainsTest, setSavingMainsTest] = useState(false);
-  const [uploadingMainsDoc, setUploadingMainsDoc] = useState<'question' | 'booklet' | 'model' | 'syllabus' | null>(null);
+  const [mainsModalLang, setMainsModalLang] = useState<'EN' | 'HI'>('EN');
+  const [uploadingMainsDoc, setUploadingMainsDoc] = useState<
+    'question' | 'question_hi' | 'booklet' | 'booklet_hi' | 'model' | 'model_hi' | 'syllabus' | 'syllabus_hi' | null
+  >(null);
   const [mainsForm, setMainsForm] = useState({
     title: '',
+    titleHi: '',
     description: '',
+    descriptionHi: '',
     syllabus: '',
+    syllabusHi: '',
     syllabusPdfUrl: '',
+    syllabusPdfUrlHi: '',
     maxMarks: 100,
     dueDate: '',
     questionPaperUrl: '',
+    questionPaperUrlHi: '',
     answerBookletUrl: '',
+    answerBookletUrlHi: '',
     modelAnswerUrl: '',
+    modelAnswerUrlHi: '',
     discussionVideoUrl: '',
+    discussionVideoUrlHi: '',
+    medium: 'Bilingual',
     isPublished: true
   });
 
@@ -1372,17 +1390,27 @@ export default function TestSeriesAdmin({
                     setEditingMainsTest(null);
                     setMainsForm({
                       title: '',
+                      titleHi: '',
                       description: '',
+                      descriptionHi: '',
                       syllabus: '',
+                      syllabusHi: '',
                       syllabusPdfUrl: '',
+                      syllabusPdfUrlHi: '',
                       maxMarks: 100,
                       dueDate: '',
                       questionPaperUrl: '',
+                      questionPaperUrlHi: '',
                       answerBookletUrl: '',
+                      answerBookletUrlHi: '',
                       modelAnswerUrl: '',
+                      modelAnswerUrlHi: '',
                       discussionVideoUrl: '',
+                      discussionVideoUrlHi: '',
+                      medium: 'Bilingual',
                       isPublished: true
                     });
+                    setMainsModalLang('EN');
                     setShowMainsTestModal(true);
                   }}
                   className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-2xl transition-all shadow-md cursor-pointer shrink-0"
@@ -1419,11 +1447,16 @@ export default function TestSeriesAdmin({
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1">
                             <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-full border border-blue-500/20 inline-block">
-                              Mains Paper • {t.maxMarks || 100} Marks
+                              Mains Paper • {t.maxMarks || 100} Marks • {t.medium || 'Bilingual'}
                             </span>
                             <h4 className="font-heading font-black text-base text-[var(--text-color)] leading-snug">
                               {t.title}
                             </h4>
+                            {t.titleHi && (
+                              <p className="text-xs font-bold text-amber-500">
+                                {t.titleHi}
+                              </p>
+                            )}
                           </div>
                           <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase border shrink-0 ${
                             t.isPublished !== 0
@@ -1446,74 +1479,126 @@ export default function TestSeriesAdmin({
                           </div>
                         )}
 
-                        {/* 4 PDFs Badges & Quick Action Links */}
+                        {/* 4 PDFs Badges & Quick Action Links (Bilingual Support) */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
                           {/* 1. Syllabus PDF */}
-                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between">
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between space-y-1">
                             <span className="text-[9px] font-bold uppercase tracking-wider text-purple-400">Syllabus PDF</span>
-                            {t.syllabusPdfUrl ? (
-                              <a
-                                href={t.syllabusPdfUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-1 text-[11px] font-bold text-purple-400 hover:underline flex items-center gap-1 truncate"
-                              >
-                                <Download className="w-3 h-3 shrink-0" /> Syllabus PDF
-                              </a>
-                            ) : (
-                              <span className="mt-1 text-[11px] text-slate-500 italic">No PDF linked</span>
-                            )}
+                            <div className="flex flex-col gap-0.5">
+                              {t.syllabusPdfUrl && (
+                                <a
+                                  href={t.syllabusPdfUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] font-bold text-purple-400 hover:underline flex items-center gap-1 truncate"
+                                >
+                                  <Download className="w-2.5 h-2.5 shrink-0" /> EN Syllabus
+                                </a>
+                              )}
+                              {t.syllabusPdfUrlHi && (
+                                <a
+                                  href={t.syllabusPdfUrlHi}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] font-bold text-purple-300 hover:underline flex items-center gap-1 truncate"
+                                >
+                                  <Download className="w-2.5 h-2.5 shrink-0" /> HI सिलेबस
+                                </a>
+                              )}
+                              {!t.syllabusPdfUrl && !t.syllabusPdfUrlHi && (
+                                <span className="text-[10px] text-slate-500 italic">No PDF linked</span>
+                              )}
+                            </div>
                           </div>
 
                           {/* 2. Question Paper */}
-                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between">
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between space-y-1">
                             <span className="text-[9px] font-bold uppercase tracking-wider text-blue-400">Question Paper</span>
-                            {t.questionPaperUrl ? (
-                              <a
-                                href={t.questionPaperUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-1 text-[11px] font-bold text-blue-400 hover:underline flex items-center gap-1 truncate"
-                              >
-                                <Download className="w-3 h-3 shrink-0" /> View PDF
-                              </a>
-                            ) : (
-                              <span className="mt-1 text-[11px] text-slate-500 italic">Not uploaded</span>
-                            )}
+                            <div className="flex flex-col gap-0.5">
+                              {t.questionPaperUrl && (
+                                <a
+                                  href={t.questionPaperUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] font-bold text-blue-400 hover:underline flex items-center gap-1 truncate"
+                                >
+                                  <Download className="w-2.5 h-2.5 shrink-0" /> EN Paper
+                                </a>
+                              )}
+                              {t.questionPaperUrlHi && (
+                                <a
+                                  href={t.questionPaperUrlHi}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] font-bold text-blue-300 hover:underline flex items-center gap-1 truncate"
+                                >
+                                  <Download className="w-2.5 h-2.5 shrink-0" /> HI प्रश्न पत्र
+                                </a>
+                              )}
+                              {!t.questionPaperUrl && !t.questionPaperUrlHi && (
+                                <span className="text-[10px] text-slate-500 italic">Not uploaded</span>
+                              )}
+                            </div>
                           </div>
 
                           {/* 3. Answer Booklet */}
-                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between">
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between space-y-1">
                             <span className="text-[9px] font-bold uppercase tracking-wider text-amber-400">Answer Booklet</span>
-                            {t.answerBookletUrl ? (
-                              <a
-                                href={t.answerBookletUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-1 text-[11px] font-bold text-amber-400 hover:underline flex items-center gap-1 truncate"
-                              >
-                                <Download className="w-3 h-3 shrink-0" /> Ruled Booklet
-                              </a>
-                            ) : (
-                              <span className="mt-1 text-[11px] text-slate-500 italic">Not uploaded</span>
-                            )}
+                            <div className="flex flex-col gap-0.5">
+                              {t.answerBookletUrl && (
+                                <a
+                                  href={t.answerBookletUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] font-bold text-amber-400 hover:underline flex items-center gap-1 truncate"
+                                >
+                                  <Download className="w-2.5 h-2.5 shrink-0" /> Standard Booklet
+                                </a>
+                              )}
+                              {t.answerBookletUrlHi && (
+                                <a
+                                  href={t.answerBookletUrlHi}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] font-bold text-amber-300 hover:underline flex items-center gap-1 truncate"
+                                >
+                                  <Download className="w-2.5 h-2.5 shrink-0" /> HI उत्तर पुस्तिका
+                                </a>
+                              )}
+                              {!t.answerBookletUrl && !t.answerBookletUrlHi && (
+                                <span className="text-[10px] text-slate-500 italic">Not uploaded</span>
+                              )}
+                            </div>
                           </div>
 
                           {/* 4. Model Answer */}
-                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between">
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-[var(--card-border)] flex flex-col justify-between space-y-1">
                             <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400">Model Answer</span>
-                            {t.modelAnswerUrl ? (
-                              <a
-                                href={t.modelAnswerUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-1 text-[11px] font-bold text-emerald-400 hover:underline flex items-center gap-1 truncate"
-                              >
-                                <Download className="w-3 h-3 shrink-0" /> Solution PDF
-                              </a>
-                            ) : (
-                              <span className="mt-1 text-[11px] text-slate-500 italic">Pending release</span>
-                            )}
+                            <div className="flex flex-col gap-0.5">
+                              {t.modelAnswerUrl && (
+                                <a
+                                  href={t.modelAnswerUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] font-bold text-emerald-400 hover:underline flex items-center gap-1 truncate"
+                                >
+                                  <Download className="w-2.5 h-2.5 shrink-0" /> EN Solution
+                                </a>
+                              )}
+                              {t.modelAnswerUrlHi && (
+                                <a
+                                  href={t.modelAnswerUrlHi}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[10px] font-bold text-emerald-300 hover:underline flex items-center gap-1 truncate"
+                                >
+                                  <Download className="w-2.5 h-2.5 shrink-0" /> HI मॉडल उत्तर
+                                </a>
+                              )}
+                              {!t.modelAnswerUrl && !t.modelAnswerUrlHi && (
+                                <span className="text-[10px] text-slate-500 italic">Pending release</span>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -1539,17 +1624,27 @@ export default function TestSeriesAdmin({
                               setEditingMainsTest(t);
                               setMainsForm({
                                 title: t.title || '',
+                                titleHi: t.titleHi || '',
                                 description: t.description || '',
+                                descriptionHi: t.descriptionHi || '',
                                 syllabus: t.syllabus || '',
+                                syllabusHi: t.syllabusHi || '',
                                 syllabusPdfUrl: t.syllabusPdfUrl || '',
+                                syllabusPdfUrlHi: t.syllabusPdfUrlHi || '',
                                 maxMarks: Number(t.maxMarks || 100),
                                 dueDate: t.dueDate ? t.dueDate.split('T')[0] : '',
                                 questionPaperUrl: t.questionPaperUrl || '',
+                                questionPaperUrlHi: t.questionPaperUrlHi || '',
                                 answerBookletUrl: t.answerBookletUrl || '',
+                                answerBookletUrlHi: t.answerBookletUrlHi || '',
                                 modelAnswerUrl: t.modelAnswerUrl || '',
+                                modelAnswerUrlHi: t.modelAnswerUrlHi || '',
                                 discussionVideoUrl: t.discussionVideoUrl || '',
+                                discussionVideoUrlHi: t.discussionVideoUrlHi || '',
+                                medium: t.medium || 'Bilingual',
                                 isPublished: t.isPublished !== 0
                               });
+                              setMainsModalLang('EN');
                               setShowMainsTestModal(true);
                             }}
                             className="px-3 py-1.5 bg-blue-600/10 text-blue-400 hover:bg-blue-600/20 font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer transition-colors"
@@ -1976,7 +2071,7 @@ export default function TestSeriesAdmin({
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              if (!mainsForm.title.trim()) {
+              if (!mainsForm.title.trim() && !mainsForm.titleHi.trim()) {
                 alert('Please enter a test paper title.');
                 return;
               }
@@ -1992,6 +2087,8 @@ export default function TestSeriesAdmin({
                   : 'finalattempt-superadmin-master-access-key-999';
                 const payload = {
                   ...mainsForm,
+                  title: mainsForm.title.trim() || mainsForm.titleHi.trim(),
+                  titleHi: mainsForm.titleHi.trim() || undefined,
                   testSeriesId: selectedSeriesId,
                   maxMarks: Number(mainsForm.maxMarks || 100)
                 };
@@ -2016,12 +2113,12 @@ export default function TestSeriesAdmin({
                 setSavingMainsTest(false);
               }
             }}
-            className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
               <div>
                 <span className="text-[10px] font-black uppercase tracking-wider text-blue-400">
-                  Mains Subjective Paper
+                  Mains Subjective Paper • Bilingual Edition
                 </span>
                 <h3 className="font-heading font-black text-lg text-[var(--text-color)]">
                   {editingMainsTest ? 'Edit Mains Test Paper' : 'Add New Mains Test Paper'}
@@ -2036,19 +2133,78 @@ export default function TestSeriesAdmin({
               </button>
             </div>
 
+            {/* Language Switcher Tabs for Mains Form */}
+            <div className="flex items-center justify-between bg-slate-100 dark:bg-slate-900/80 p-1.5 rounded-2xl border border-[var(--card-border)]">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setMainsModalLang('EN')}
+                  className={`px-4 py-2 text-xs font-black rounded-xl transition-all cursor-pointer ${
+                    mainsModalLang === 'EN'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                  }`}
+                >
+                  🇬🇧 English Medium
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMainsModalLang('HI')}
+                  className={`px-4 py-2 text-xs font-black rounded-xl transition-all cursor-pointer ${
+                    mainsModalLang === 'HI'
+                      ? 'bg-amber-500 text-slate-950 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+                  }`}
+                >
+                  🇮🇳 Hindi Medium (हिंदी माध्यम)
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 pr-2">
+                <span className="text-[10px] font-bold text-slate-400">Paper Medium:</span>
+                <select
+                  value={mainsForm.medium}
+                  onChange={e => setMainsForm({ ...mainsForm, medium: e.target.value })}
+                  className="px-2.5 py-1 bg-[var(--card-bg)] border border-[var(--card-border)] text-xs rounded-xl text-[var(--text-color)] font-bold outline-none cursor-pointer"
+                >
+                  <option value="Bilingual">Bilingual (Both EN &amp; HI)</option>
+                  <option value="English">English Medium Only</option>
+                  <option value="Hindi">Hindi Medium Only</option>
+                </select>
+              </div>
+            </div>
+
             <div className="space-y-4 text-xs">
-              <div>
-                <label className="block text-slate-400 font-bold mb-1">
-                  Test Paper Title *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. 71st BPSC Mains GS Paper I - Full Length Mock 01"
-                  value={mainsForm.title}
-                  onChange={e => setMainsForm({ ...mainsForm, title: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
-                />
+              {/* Paper Title (Bilingual) */}
+              <div className="grid grid-cols-1 gap-3">
+                {mainsModalLang === 'EN' ? (
+                  <div>
+                    <label className="block text-slate-400 font-bold mb-1">
+                      Test Paper Title (English) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 71st BPSC Mains GS Paper I - Full Length Mock 01"
+                      value={mainsForm.title}
+                      onChange={e => setMainsForm({ ...mainsForm, title: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-amber-500 font-bold mb-1">
+                      टेस्ट पेपर शीर्षक (हिंदी में) *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="उदा. 71वीं बीपीएससी मुख्य परीक्षा जीएस पेपर I - फुल लेंथ मॉक टेस्ट 01"
+                      value={mainsForm.titleHi}
+                      onChange={e => setMainsForm({ ...mainsForm, titleHi: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/30 text-[var(--text-color)] rounded-xl outline-none font-bold"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2079,50 +2235,83 @@ export default function TestSeriesAdmin({
                 </div>
               </div>
 
+              {/* Syllabus (Bilingual) */}
               <div>
                 <label className="block text-slate-400 font-bold mb-1">
-                  Syllabus Coverage / Topics
+                  {mainsModalLang === 'EN' ? 'Syllabus Coverage / Topics (English)' : 'पाठ्यक्रम / टॉपिक्स कवरेज (हिंदी में)'}
                 </label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Modern History of India, Bihar's Art & Culture, Current National Events, Statistical Analysis"
-                  value={mainsForm.syllabus}
-                  onChange={e => setMainsForm({ ...mainsForm, syllabus: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
-                />
+                {mainsModalLang === 'EN' ? (
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Modern History of India, Bihar's Art & Culture, Current National Events, Statistical Analysis"
+                    value={mainsForm.syllabus}
+                    onChange={e => setMainsForm({ ...mainsForm, syllabus: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                ) : (
+                  <textarea
+                    rows={2}
+                    placeholder="उदा. भारत का आधुनिक इतिहास, बिहार की कला और संस्कृति, राष्ट्रीय महत्व के वर्तमान घटनाक्रम, सांख्यिकी विश्लेषण"
+                    value={mainsForm.syllabusHi}
+                    onChange={e => setMainsForm({ ...mainsForm, syllabusHi: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/30 text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                )}
               </div>
 
+              {/* Description (Bilingual) */}
               <div>
                 <label className="block text-slate-400 font-bold mb-1">
-                  Instructions / Description
+                  {mainsModalLang === 'EN' ? 'Instructions / Description (English)' : 'विशेष निर्देश एवं विवरण (हिंदी में)'}
                 </label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Total 8 questions to be answered. Word limit for 38-mark questions is 400 words."
-                  value={mainsForm.description}
-                  onChange={e => setMainsForm({ ...mainsForm, description: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
-                />
+                {mainsModalLang === 'EN' ? (
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Total 8 questions to be answered. Word limit for 38-mark questions is 400 words."
+                    value={mainsForm.description}
+                    onChange={e => setMainsForm({ ...mainsForm, description: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                ) : (
+                  <textarea
+                    rows={2}
+                    placeholder="उदा. कुल 8 प्रश्नों के उत्तर देने हैं। 38 अंक वाले प्रश्नों के लिए शब्द सीमा 400 शब्द है।"
+                    value={mainsForm.descriptionHi}
+                    onChange={e => setMainsForm({ ...mainsForm, descriptionHi: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-amber-500/30 text-[var(--text-color)] rounded-xl outline-none"
+                  />
+                )}
               </div>
 
-              {/* ──────────────── 4 MAINS PDF UPLOADERS ──────────────── */}
+              {/* ──────────────── 4 MAINS PDF UPLOADERS (BILINGUAL) ──────────────── */}
               <div className="space-y-4 pt-3 border-t border-[var(--card-border)]">
-                <h4 className="font-heading font-black text-sm text-[var(--text-color)] flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-blue-400" />
-                  <span>Mains Documents &amp; PDFs (Test-wise)</span>
-                </h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-heading font-black text-sm text-[var(--text-color)] flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-blue-400" />
+                    <span>
+                      {mainsModalLang === 'EN' ? 'English Medium Documents & PDFs' : 'हिंदी माध्यम दस्तावेज़ एवं पीडीएफ'}
+                    </span>
+                  </h4>
+                  <span className="text-[10px] font-bold text-slate-400">
+                    Showing {mainsModalLang === 'EN' ? 'English' : 'Hindi'} inputs
+                  </span>
+                </div>
 
                 {/* 1. Syllabus PDF */}
                 <div className="p-3.5 bg-purple-500/5 border border-purple-500/20 rounded-2xl space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <label className="font-black text-purple-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <span>1. Syllabus &amp; Topics PDF</span>
-                      {mainsForm.syllabusPdfUrl && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                      <span>1. Syllabus &amp; Topics PDF ({mainsModalLang === 'EN' ? 'English' : 'हिंदी'})</span>
+                      {(mainsModalLang === 'EN' ? mainsForm.syllabusPdfUrl : mainsForm.syllabusPdfUrlHi) && (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      )}
                     </label>
                     <div className="flex items-center gap-2">
                       <label className="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-[10px] font-black cursor-pointer inline-flex items-center gap-1 transition-colors shadow-xs">
                         <Upload className="w-3 h-3" />
-                        <span>{uploadingMainsDoc === 'syllabus' ? 'Uploading…' : 'Upload PDF File'}</span>
+                        <span>
+                          {uploadingMainsDoc === (mainsModalLang === 'EN' ? 'syllabus' : 'syllabus_hi') ? 'Uploading…' : 'Upload PDF File'}
+                        </span>
                         <input
                           type="file"
                           accept="application/pdf"
@@ -2131,18 +2320,19 @@ export default function TestSeriesAdmin({
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
-                            setUploadingMainsDoc('syllabus');
+                            const isHi = mainsModalLang === 'HI';
+                            setUploadingMainsDoc(isHi ? 'syllabus_hi' : 'syllabus');
                             try {
                               const formData = new FormData();
                               formData.append('file', file);
-                              formData.append('target', 'mains_syllabus');
+                              formData.append('target', isHi ? 'mains_syllabus_hi' : 'mains_syllabus');
                               const res = await fetch(`${BACKEND_URL}/api/upload`, {
                                 method: 'POST',
                                 body: formData
                               });
                               const data = await res.json();
                               if (data.success && data.url) {
-                                setMainsForm(prev => ({ ...prev, syllabusPdfUrl: data.url }));
+                                setMainsForm(prev => isHi ? ({ ...prev, syllabusPdfUrlHi: data.url }) : ({ ...prev, syllabusPdfUrl: data.url }));
                               } else {
                                 alert(data.error || 'Failed to upload Syllabus PDF.');
                               }
@@ -2154,43 +2344,35 @@ export default function TestSeriesAdmin({
                           }}
                         />
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMediaPickerTarget('mains_syllabus');
-                          setShowMediaPicker(true);
-                        }}
-                        className="px-2.5 py-1 bg-purple-600/20 text-purple-400 hover:bg-purple-600/30 rounded-lg text-[10px] font-black cursor-pointer"
-                      >
-                        Browse DAM Picker
-                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Upload file above or paste URL (https://.../syllabus.pdf)"
-                      value={mainsForm.syllabusPdfUrl}
-                      onChange={e => setMainsForm({ ...mainsForm, syllabusPdfUrl: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
-                    />
-                  </div>
-                  <p className="text-[10px] text-slate-500">
-                    Detailed syllabus, theme breakdown, or micro-listing PDF for this specific test.
-                  </p>
+                  <input
+                    type="text"
+                    placeholder={mainsModalLang === 'EN' ? "Upload file above or paste English Syllabus PDF URL" : "फ़ाइल अपलोड करें या हिंदी सिलेबस पीडीएफ यूआरएल पेस्ट करें"}
+                    value={mainsModalLang === 'EN' ? mainsForm.syllabusPdfUrl : mainsForm.syllabusPdfUrlHi}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setMainsForm(prev => mainsModalLang === 'EN' ? ({ ...prev, syllabusPdfUrl: val }) : ({ ...prev, syllabusPdfUrlHi: val }));
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
+                  />
                 </div>
 
                 {/* 2. Question Paper PDF */}
                 <div className="p-3.5 bg-blue-500/5 border border-blue-500/20 rounded-2xl space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <label className="font-black text-blue-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <span>2. Question Paper PDF</span>
-                      {mainsForm.questionPaperUrl && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                      <span>2. Question Paper PDF ({mainsModalLang === 'EN' ? 'English' : 'हिंदी'})</span>
+                      {(mainsModalLang === 'EN' ? mainsForm.questionPaperUrl : mainsForm.questionPaperUrlHi) && (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      )}
                     </label>
                     <div className="flex items-center gap-2">
                       <label className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-[10px] font-black cursor-pointer inline-flex items-center gap-1 transition-colors shadow-xs">
                         <Upload className="w-3 h-3" />
-                        <span>{uploadingMainsDoc === 'question' ? 'Uploading…' : 'Upload PDF File'}</span>
+                        <span>
+                          {uploadingMainsDoc === (mainsModalLang === 'EN' ? 'question' : 'question_hi') ? 'Uploading…' : 'Upload PDF File'}
+                        </span>
                         <input
                           type="file"
                           accept="application/pdf"
@@ -2199,18 +2381,19 @@ export default function TestSeriesAdmin({
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
-                            setUploadingMainsDoc('question');
+                            const isHi = mainsModalLang === 'HI';
+                            setUploadingMainsDoc(isHi ? 'question_hi' : 'question');
                             try {
                               const formData = new FormData();
                               formData.append('file', file);
-                              formData.append('target', 'mains_question');
+                              formData.append('target', isHi ? 'mains_question_hi' : 'mains_question');
                               const res = await fetch(`${BACKEND_URL}/api/upload`, {
                                 method: 'POST',
                                 body: formData
                               });
                               const data = await res.json();
                               if (data.success && data.url) {
-                                setMainsForm(prev => ({ ...prev, questionPaperUrl: data.url }));
+                                setMainsForm(prev => isHi ? ({ ...prev, questionPaperUrlHi: data.url }) : ({ ...prev, questionPaperUrl: data.url }));
                               } else {
                                 alert(data.error || 'Failed to upload Question Paper PDF.');
                               }
@@ -2222,43 +2405,35 @@ export default function TestSeriesAdmin({
                           }}
                         />
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMediaPickerTarget('mains_question');
-                          setShowMediaPicker(true);
-                        }}
-                        className="px-2.5 py-1 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 rounded-lg text-[10px] font-black cursor-pointer"
-                      >
-                        Browse DAM Picker
-                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Upload file above or paste URL (https://.../question_paper.pdf)"
-                      value={mainsForm.questionPaperUrl}
-                      onChange={e => setMainsForm({ ...mainsForm, questionPaperUrl: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
-                    />
-                  </div>
-                  <p className="text-[10px] text-slate-500">
-                    The question paper document that students view and download before writing.
-                  </p>
+                  <input
+                    type="text"
+                    placeholder={mainsModalLang === 'EN' ? "Upload file above or paste English Question Paper PDF URL" : "फ़ाइल अपलोड करें या हिंदी प्रश्न पत्र पीडीएफ यूआरएल पेस्ट करें"}
+                    value={mainsModalLang === 'EN' ? mainsForm.questionPaperUrl : mainsForm.questionPaperUrlHi}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setMainsForm(prev => mainsModalLang === 'EN' ? ({ ...prev, questionPaperUrl: val }) : ({ ...prev, questionPaperUrlHi: val }));
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
+                  />
                 </div>
 
                 {/* 3. Blank Answer Booklet PDF */}
                 <div className="p-3.5 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <label className="font-black text-amber-500 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <span>3. Mains Answer Booklet PDF (Ruled / Margin format)</span>
-                      {mainsForm.answerBookletUrl && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                      <span>3. Mains Answer Booklet PDF ({mainsModalLang === 'EN' ? 'English / Standard' : 'हिंदी माध्यम उत्तर पुस्तिका'})</span>
+                      {(mainsModalLang === 'EN' ? mainsForm.answerBookletUrl : mainsForm.answerBookletUrlHi) && (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      )}
                     </label>
                     <div className="flex items-center gap-2">
                       <label className="px-2.5 py-1 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-[10px] font-black cursor-pointer inline-flex items-center gap-1 transition-colors shadow-xs">
                         <Upload className="w-3 h-3" />
-                        <span>{uploadingMainsDoc === 'booklet' ? 'Uploading…' : 'Upload PDF File'}</span>
+                        <span>
+                          {uploadingMainsDoc === (mainsModalLang === 'EN' ? 'booklet' : 'booklet_hi') ? 'Uploading…' : 'Upload PDF File'}
+                        </span>
                         <input
                           type="file"
                           accept="application/pdf"
@@ -2267,18 +2442,19 @@ export default function TestSeriesAdmin({
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
-                            setUploadingMainsDoc('booklet');
+                            const isHi = mainsModalLang === 'HI';
+                            setUploadingMainsDoc(isHi ? 'booklet_hi' : 'booklet');
                             try {
                               const formData = new FormData();
                               formData.append('file', file);
-                              formData.append('target', 'mains_booklet');
+                              formData.append('target', isHi ? 'mains_booklet_hi' : 'mains_booklet');
                               const res = await fetch(`${BACKEND_URL}/api/upload`, {
                                 method: 'POST',
                                 body: formData
                               });
                               const data = await res.json();
                               if (data.success && data.url) {
-                                setMainsForm(prev => ({ ...prev, answerBookletUrl: data.url }));
+                                setMainsForm(prev => isHi ? ({ ...prev, answerBookletUrlHi: data.url }) : ({ ...prev, answerBookletUrl: data.url }));
                               } else {
                                 alert(data.error || 'Failed to upload Answer Booklet PDF.');
                               }
@@ -2290,43 +2466,35 @@ export default function TestSeriesAdmin({
                           }}
                         />
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMediaPickerTarget('mains_booklet');
-                          setShowMediaPicker(true);
-                        }}
-                        className="px-2.5 py-1 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 rounded-lg text-[10px] font-black cursor-pointer"
-                      >
-                        Browse DAM Picker
-                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Upload file above or paste URL (https://.../blank_answer_booklet.pdf)"
-                      value={mainsForm.answerBookletUrl}
-                      onChange={e => setMainsForm({ ...mainsForm, answerBookletUrl: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
-                    />
-                  </div>
-                  <p className="text-[10px] text-slate-500">
-                    The printable blank answer booklet with standard margins that students print and write on.
-                  </p>
+                  <input
+                    type="text"
+                    placeholder={mainsModalLang === 'EN' ? "Upload file above or paste Answer Booklet PDF URL" : "हिंदी उत्तर पुस्तिका पीडीएफ यूआरएल पेस्ट करें"}
+                    value={mainsModalLang === 'EN' ? mainsForm.answerBookletUrl : mainsForm.answerBookletUrlHi}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setMainsForm(prev => mainsModalLang === 'EN' ? ({ ...prev, answerBookletUrl: val }) : ({ ...prev, answerBookletUrlHi: val }));
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
+                  />
                 </div>
 
                 {/* 4. Model Answer / Solution PDF */}
                 <div className="p-3.5 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <label className="font-black text-emerald-400 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                      <span>4. Model Answer / Solution PDF</span>
-                      {mainsForm.modelAnswerUrl && <Check className="w-3.5 h-3.5 text-emerald-400" />}
+                      <span>4. Model Answer / Solution PDF ({mainsModalLang === 'EN' ? 'English' : 'हिंदी'})</span>
+                      {(mainsModalLang === 'EN' ? mainsForm.modelAnswerUrl : mainsForm.modelAnswerUrlHi) && (
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      )}
                     </label>
                     <div className="flex items-center gap-2">
                       <label className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black cursor-pointer inline-flex items-center gap-1 transition-colors shadow-xs">
                         <Upload className="w-3 h-3" />
-                        <span>{uploadingMainsDoc === 'model' ? 'Uploading…' : 'Upload PDF File'}</span>
+                        <span>
+                          {uploadingMainsDoc === (mainsModalLang === 'EN' ? 'model' : 'model_hi') ? 'Uploading…' : 'Upload PDF File'}
+                        </span>
                         <input
                           type="file"
                           accept="application/pdf"
@@ -2335,18 +2503,19 @@ export default function TestSeriesAdmin({
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (!file) return;
-                            setUploadingMainsDoc('model');
+                            const isHi = mainsModalLang === 'HI';
+                            setUploadingMainsDoc(isHi ? 'model_hi' : 'model');
                             try {
                               const formData = new FormData();
                               formData.append('file', file);
-                              formData.append('target', 'mains_model');
+                              formData.append('target', isHi ? 'mains_model_hi' : 'mains_model');
                               const res = await fetch(`${BACKEND_URL}/api/upload`, {
                                 method: 'POST',
                                 body: formData
                               });
                               const data = await res.json();
                               if (data.success && data.url) {
-                                setMainsForm(prev => ({ ...prev, modelAnswerUrl: data.url }));
+                                setMainsForm(prev => isHi ? ({ ...prev, modelAnswerUrlHi: data.url }) : ({ ...prev, modelAnswerUrl: data.url }));
                               } else {
                                 alert(data.error || 'Failed to upload Model Answer PDF.');
                               }
@@ -2358,42 +2527,33 @@ export default function TestSeriesAdmin({
                           }}
                         />
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMediaPickerTarget('mains_model');
-                          setShowMediaPicker(true);
-                        }}
-                        className="px-2.5 py-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 rounded-lg text-[10px] font-black cursor-pointer"
-                      >
-                        Browse DAM Picker
-                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Upload file above or paste URL (https://.../model_answers.pdf)"
-                      value={mainsForm.modelAnswerUrl}
-                      onChange={e => setMainsForm({ ...mainsForm, modelAnswerUrl: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
-                    />
-                  </div>
-                  <p className="text-[10px] text-slate-500">
-                    Model answers, framing points, and solution hints shown to students once released.
-                  </p>
+                  <input
+                    type="text"
+                    placeholder={mainsModalLang === 'EN' ? "Upload file above or paste English Model Answer PDF URL" : "हिंदी मॉडल उत्तर पीडीएफ यूआरएल पेस्ट करें"}
+                    value={mainsModalLang === 'EN' ? mainsForm.modelAnswerUrl : mainsForm.modelAnswerUrlHi}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setMainsForm(prev => mainsModalLang === 'EN' ? ({ ...prev, modelAnswerUrl: val }) : ({ ...prev, modelAnswerUrlHi: val }));
+                    }}
+                    className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-mono text-[11px]"
+                  />
                 </div>
 
                 {/* Optional Discussion Video URL */}
                 <div>
                   <label className="block text-slate-400 font-bold mb-1">
-                    Discussion Video URL (YouTube / Video Lecture)
+                    Discussion Video URL ({mainsModalLang === 'EN' ? 'English Lecture' : 'हिंदी व्याख्यान'})
                   </label>
                   <input
                     type="url"
                     placeholder="https://youtube.com/watch?v=..."
-                    value={mainsForm.discussionVideoUrl}
-                    onChange={e => setMainsForm({ ...mainsForm, discussionVideoUrl: e.target.value })}
+                    value={mainsModalLang === 'EN' ? mainsForm.discussionVideoUrl : mainsForm.discussionVideoUrlHi}
+                    onChange={e => {
+                      const val = e.target.value;
+                      setMainsForm(prev => mainsModalLang === 'EN' ? ({ ...prev, discussionVideoUrl: val }) : ({ ...prev, discussionVideoUrlHi: val }));
+                    }}
                     className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none"
                   />
                 </div>
