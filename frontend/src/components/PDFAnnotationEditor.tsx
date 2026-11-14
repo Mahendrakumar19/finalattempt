@@ -814,16 +814,21 @@ export default function PDFAnnotationEditor({
           </button>
           <div className="hidden sm:block">
             <div className="flex items-center gap-2">
-              {/* <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-sky-300 border border-blue-200 dark:border-blue-500/20">
-                Evaluation Studio
-              </span> */}
               <h3 className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[200px] md:max-w-xs">
                 {testTitle || 'Mains Copy'}
               </h3>
+              {testSeriesTitle && (
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 truncate max-w-[120px]">
+                  {testSeriesTitle}
+                </span>
+              )}
             </div>
-            {studentName && (
+            {(studentName || studentEmail) && (
               <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                Candidate: <strong className="text-slate-900 dark:text-slate-200">{studentName}</strong>
+                Candidate: <strong className="text-slate-900 dark:text-slate-200">{studentName || studentEmail}</strong>
+                {studentEmail && studentName && (
+                  <span className="text-[10px] text-slate-400 ml-1">({studentEmail})</span>
+                )}
               </p>
             )}
           </div>
