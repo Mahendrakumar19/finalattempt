@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
-  FileText, CheckCircle, Clock, Search, Download, Eye,
-  Award, MessageSquare, Upload, AlertCircle, RefreshCw, X, Check, PenTool, UserCheck, Calendar
+  FileText, Search, Download, Eye,
+  Award, Upload, RefreshCw, X, PenTool, UserCheck
 } from 'lucide-react';
 import { getAllMainsSubmissionsAdmin, evaluateMainsSubmissionAdmin, assignMainsEvaluatorAdmin } from '@/services/auth';
 import PDFAnnotationEditor, { RubricsScore } from './PDFAnnotationEditor';
@@ -32,7 +32,7 @@ interface SubmissionItem {
   assignedToUserId?: string;
   assignedToName?: string;
   evaluationDeadline?: string;
-  rubricsBreakdown?: any;
+  rubricsBreakdown?: string | Record<string, unknown>;
 }
 
 export default function MainsEvaluationCMS({ accessToken }: { accessToken?: string }) {
@@ -66,7 +66,7 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
   const [rubricStruct, setRubricStruct] = useState('');
   const [rubricConcl, setRubricConcl] = useState('');
 
-  const loadSubmissions = async () => {
+  const loadSubmissions = useCallback(async () => {
     if (!accessToken) {
       setLoading(false);
       return;
@@ -82,10 +82,31 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
     } finally {
       setLoading(false);
     }
-  };
+  }, [accessToken]);
 
   useEffect(() => {
-    loadSubmissions();
+    let isCancelled = false;
+    const fetchSubs = async () => {
+      if (!accessToken) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await getAllMainsSubmissionsAdmin(accessToken);
+        if (!isCancelled && res.success && res.data) {
+          setSubmissions(res.data);
+        }
+      } catch (err) {
+        console.error('Error loading mains submissions:', err);
+      } finally {
+        if (!isCancelled) setLoading(false);
+      }
+    };
+    fetchSubs();
+    return () => {
+      isCancelled = true;
+    };
   }, [accessToken]);
 
   const openEvaluationModal = (sub: SubmissionItem) => {
@@ -95,9 +116,9 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
     setEvalPdfUrl(sub.evaluatedCopyUrl || '');
     setEvalStatus(sub.status || 'Evaluated');
 
-    let parsedRubrics: any = null;
+    let parsedRubrics: Record<string, unknown> | null = null;
     if (sub.rubricsBreakdown) {
-      parsedRubrics = typeof sub.rubricsBreakdown === 'string' ? JSON.parse(sub.rubricsBreakdown) : sub.rubricsBreakdown;
+      parsedRubrics = typeof sub.rubricsBreakdown === 'string' ? JSON.parse(sub.rubricsBreakdown) : (sub.rubricsBreakdown as Record<string, unknown>);
     }
     setRubricIntro(parsedRubrics?.introduction !== undefined ? String(parsedRubrics.introduction) : '');
     setRubricContent(parsedRubrics?.contentAndFacts !== undefined ? String(parsedRubrics.contentAndFacts) : '');
@@ -249,9 +270,10 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
       } else {
         alert('Failed to save evaluation: ' + (res.error || 'Unknown error'));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error saving checked PDF:', err);
-      alert('Error saving evaluated copy: ' + err.message);
+      const msg = err instanceof Error ? err.message : String(err);
+      alert('Error saving evaluated copy: ' + msg);
     }
   };
 
@@ -760,7 +782,9 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
             initialRubrics = typeof annotatingSub.rubricsBreakdown === 'string'
               ? JSON.parse(annotatingSub.rubricsBreakdown)
               : annotatingSub.rubricsBreakdown;
-          } catch (_) {}
+          } catch {
+            // ignore malformed rubrics json
+          }
         }
         return (
           <PDFAnnotationEditor
