@@ -57,8 +57,72 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
   const [uploadingEvaluatedPdf, setUploadingEvaluatedPdf] = useState(false);
   const [submittingEval, setSubmittingEval] = useState(false);
 
+  // Fast Direct PDF Upload state for any card
+  const [uploadingForSubId, setUploadingForSubId] = useState<string | null>(null);
+
   // In-browser PDF checking studio state
   const [annotatingSub, setAnnotatingSub] = useState<SubmissionItem | null>(null);
+
+  // Quick Direct Upload Handler: Upload checked copy directly from the card
+  const handleDirectEvaluatedUpload = async (sub: SubmissionItem, file: File) => {
+    if (!file || !accessToken) return;
+    if (file.type !== 'application/pdf') {
+      alert('Please upload a valid PDF file.');
+      return;
+    }
+
+    setUploadingForSubId(sub.id);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('target', 'mains_evaluated_copy');
+
+      const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const uploadRes = await fetch(`${backendBase}/api/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const uploadData = await uploadRes.json();
+
+      if (!uploadData.success || !uploadData.url) {
+        alert('PDF Upload failed: ' + (uploadData.error || 'Server error'));
+        return;
+      }
+
+      const uploadedUrl = uploadData.url;
+
+      // Ask for marks or confirm publication directly
+      const inputMarks = prompt(
+        `Checked PDF uploaded successfully!\n\nEnter marks obtained (Max: ${sub.maxMarks || 100}) or leave blank to keep current:`,
+        sub.grade !== undefined && sub.grade !== null ? String(sub.grade) : ''
+      );
+
+      const payload: any = {
+        evaluatedCopyUrl: uploadedUrl,
+        status: 'Evaluated'
+      };
+
+      if (inputMarks !== null && inputMarks.trim() !== '') {
+        const num = Number(inputMarks.trim());
+        if (!isNaN(num)) {
+          payload.grade = num;
+        }
+      }
+
+      const evalRes = await evaluateMainsSubmissionAdmin(sub.id, payload, accessToken);
+      if (evalRes.success) {
+        alert('Checked Evaluated PDF has been successfully linked and published for the student!');
+        loadSubmissions();
+      } else {
+        alert('Failed saving evaluated record: ' + (evalRes.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Error during direct evaluated PDF upload:', err);
+      alert('Network error while uploading evaluated PDF.');
+    } finally {
+      setUploadingForSubId(null);
+    }
+  };
 
   // Assignment Modal State (Assign Evaluator)
   const [assigningSub, setAssigningSub] = useState<SubmissionItem | null>(null);
@@ -456,6 +520,50 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                       <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
                       {sub.assignedToName ? `Evaluator: ${sub.assignedToName}` : 'Assign Evaluator'}
                     </button>
+
+                    {/* Direct Upload Checked/Evaluated PDF Button */}
+                    <label
+                      className={`inline-flex items-center gap-1.5 px-3 py-2 ${
+                        sub.evaluatedCopyUrl
+                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+                      } text-xs font-black rounded-xl transition-all border border-[var(--card-border)] cursor-pointer shrink-0`}
+                      title="Directly upload evaluated / checked PDF received from external evaluator"
+                    >
+                      <Upload className={`w-3.5 h-3.5 ${uploadingForSubId === sub.id ? 'animate-bounce' : ''}`} />
+                      {uploadingForSubId === sub.id
+                        ? 'Uploading…'
+                        : sub.evaluatedCopyUrl
+                        ? 'Replace Checked PDF'
+                        : 'Upload Checked PDF'}
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        disabled={uploadingForSubId === sub.id}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleDirectEvaluatedUpload(sub, file);
+                          }
+                          e.target.value = '';
+                        }}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {/* View Evaluated Copy if present */}
+                    {sub.evaluatedCopyUrl && (
+                      <a
+                        href={sub.evaluatedCopyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl transition-colors border border-emerald-500/20"
+                        title="Download / View Evaluated Copy"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        View Checked PDF
+                      </a>
+                    )}
 
                     <button
                       type="button"
