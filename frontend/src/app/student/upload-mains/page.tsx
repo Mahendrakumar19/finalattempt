@@ -180,7 +180,9 @@ export default function UploadMainsCopyPage() {
           if (!isCancelled) setCheckingEnrollment(false);
         });
     } else {
-      setIsSeriesEnrolled(false);
+      queueMicrotask(() => {
+        if (!isCancelled) setIsSeriesEnrolled(false);
+      });
     }
 
     return () => {

@@ -115,14 +115,41 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
     );
   }
 
-  const latest10Blogs = recentBlogs.slice(0, 10);
+  const parseDate = (d?: string) => {
+    if (!d) return 0;
+    const t = new Date(d).getTime();
+    if (!isNaN(t)) return t;
+    // In case of '14 Nov 2026' or similar
+    const parsed = Date.parse(d);
+    return isNaN(parsed) ? 0 : parsed;
+  };
 
-  const displayRelated = recentBlogs
+  const sortedRecentBlogs = [...recentBlogs].sort((a: BlogItem, b: BlogItem) => {
+    const timeA = parseDate(a.publishDate) || parseDate(a.createdAt) || 0;
+    const timeB = parseDate(b.publishDate) || parseDate(b.createdAt) || 0;
+    if (timeA !== timeB) return timeB - timeA;
+    // Fallback: compare ID descending if numeric or timestamp
+    const idA = Number(String(a.id).replace(/\D/g, '')) || 0;
+    const idB = Number(String(b.id).replace(/\D/g, '')) || 0;
+    return idB - idA;
+  });
+
+  const latest10Blogs = sortedRecentBlogs.slice(0, 10);
+
+  const displayRelated = sortedRecentBlogs
     .filter((b: BlogItem) => String(b.id) !== String(blog?.id) && b.slug !== blog?.slug)
     .slice(0, 3);
 
   const target = (blog as { publish_target?: string; publishTarget?: string })?.publish_target || (blog as { publish_target?: string; publishTarget?: string })?.publishTarget || 'both';
   const isHindiArticle = searchParams?.get('lang') === 'hi' || target === 'hindi' || locale === 'hi';
+
+  const authorName = (blog.author_name || blog.author || '').trim() || (isHindiArticle ? 'फ़ाइनल अटेम्प्ट टीम' : 'Final Attempt Team');
+  const authorImage = (blog.author_image || (blog as { authorImage?: string }).authorImage || '').trim();
+  const authorRole = (blog as { author_role?: string; authorRole?: string }).author_role || 
+                     (blog as { author_role?: string; authorRole?: string }).authorRole || 
+                     (authorName.toLowerCase().includes('team') || authorName.toLowerCase().includes('faculty') 
+                        ? (isHindiArticle ? 'सिविल सेवा मार्गदर्शक' : 'Senior Faculty & UPSC Mentor')
+                        : (isHindiArticle ? 'विशेषज्ञ लेखक' : 'Subject Matter Expert & Mentor'));
 
   const displayTitle = isHindiArticle ? (blog.title_hi || blog.title) : blog.title;
   const displayBlurb = isHindiArticle ? (blog.blurb_hi || blog.blurb) : (blog.blurb || blog.blurb_hi);
@@ -138,7 +165,7 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
     'dateModified': (blog as { updatedAt?: string; publishDate?: string }).updatedAt || blog.publishDate || new Date().toISOString(),
     'author': {
       '@type': 'Person',
-      'name': blog.author || 'Final Attempt Editorial Team'
+      'name': authorName
     },
     'publisher': {
       '@type': 'Organization',
@@ -288,15 +315,29 @@ export default function BlogDetailClient({ idOrSlug, initialBlog }: BlogDetailCl
               )}
 
               <div className="flex items-center gap-3 pt-2">
-                <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 font-black text-sm">
-                  {blog.author ? blog.author.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
+                <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 font-black text-sm overflow-hidden shrink-0">
+                  {authorImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={resolveUrl(authorImage)}
+                      alt={authorName}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : authorName ? (
+                    authorName.charAt(0).toUpperCase()
+                  ) : (
+                    <User className="w-4 h-4" />
+                  )}
                 </div>
                 <div>
                   <p className="text-xs font-bold text-slate-900 dark:text-white">
-                    {blog.author || (isHindiArticle ? 'फ़ाइनल अटेम्प्ट टीम' : 'Final Attempt Faculty')}
+                    {authorName}
                   </p>
                   <p className="text-[10px] text-slate-400">
-                    {isHindiArticle ? 'सिविल सेवा मार्गदर्शक' : 'Senior Faculty & UPSC Mentor'}
+                    {authorRole}
                   </p>
                 </div>
               </div>
