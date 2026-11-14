@@ -142,43 +142,65 @@ class _LiquidGlassDock extends StatelessWidget {
       color: Colors.white,
     );
 
-    final borderRadius = BorderRadius.circular(isCompact ? 26 : 30);
+    final borderRadius = BorderRadius.circular(isCompact ? 28 : 32);
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.fastOutSlowIn,
       constraints: BoxConstraints(maxWidth: isCompact ? 390 : 440),
-      height: isCompact ? 52 : 60,
-      margin: EdgeInsets.symmetric(horizontal: isCompact ? 22 : 16),
+      height: isCompact ? 54 : 62,
+      margin: EdgeInsets.symmetric(horizontal: isCompact ? 20 : 16),
       decoration: BoxDecoration(
         borderRadius: borderRadius,
         boxShadow: [
+          // 1. Primary ambient soft drop shadow (lifting dock above scrollable content)
           BoxShadow(
             color: isDark 
-                ? Colors.black.withValues(alpha: 0.15) // Reduced from 0.20
-                : Colors.black.withValues(alpha: 0.12), // Reduced from 0.18
-            blurRadius: 22,
-            offset: const Offset(0, 8),
+                ? Colors.black.withValues(alpha: 0.40)
+                : const Color(0xFF0F172A).withValues(alpha: 0.12),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+          ),
+          // 2. Direct light grounding shadow
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : const Color(0xFF0F172A).withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: borderRadius,
         child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20), // Moderate blur
+          // Optical glass refraction blur (Glisse fidelity)
+          filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeOutCubic,
             decoration: BoxDecoration(
               borderRadius: borderRadius,
-              color: isDark
-                  ? const Color(0xFF050811).withValues(alpha: 0.82)
-                  : const Color(0xFFF8FAFC).withValues(alpha: 0.65),
+              // Vertical optical refractive gradient (thicker crystal glass feel)
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: isDark
+                    ? [
+                        const Color(0xFF1E293B).withValues(alpha: 0.72),
+                        const Color(0xFF0A0F1D).withValues(alpha: 0.88),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.78),
+                        const Color(0xFFF1F5F9).withValues(alpha: 0.60),
+                      ],
+              ),
+              // Dual-tone edge: upper specular light highlight
               border: Border.all(
                 color: isDark
-                    ? Colors.white.withValues(alpha: 0.10)
-                    : Colors.black.withValues(alpha: 0.08),
-                width: 1.0,
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : Colors.white.withValues(alpha: 0.85),
+                width: 1.2,
               ),
             ),
             child: DefaultTextStyle(
@@ -197,7 +219,7 @@ class _LiquidGlassDock extends StatelessWidget {
         final itemWidth = constraints.maxWidth / 5;
         return Stack(
           children: [
-            // Liquid Glass Selection Capsule (Matches user reference image pill)
+            // Glisse Liquid Glass Active Selection Capsule (Physical Floating Lens)
             TweenAnimationBuilder<double>(
               tween: Tween<double>(end: selectedIdx.toDouble()),
               duration: const Duration(milliseconds: 300),
@@ -205,25 +227,44 @@ class _LiquidGlassDock extends StatelessWidget {
               builder: (context, animatedIdx, child) {
                 return Positioned(
                   left: animatedIdx * itemWidth,
-                  top: isCompact ? 3 : 4,
-                  bottom: isCompact ? 3 : 4,
+                  top: isCompact ? 3.5 : 4.5,
+                  bottom: isCompact ? 3.5 : 4.5,
                   width: itemWidth,
                   child: child!,
                 );
               },
               child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
+                margin: const EdgeInsets.symmetric(horizontal: 4.5),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(isCompact ? 22.0 : 25.0),
+                  borderRadius: BorderRadius.circular(isCompact ? 24.0 : 26.0),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [
+                            Colors.white.withValues(alpha: 0.16),
+                            Colors.white.withValues(alpha: 0.05),
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.95),
+                            Colors.white.withValues(alpha: 0.70),
+                          ],
+                  ),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.06)
-                        : Colors.black.withValues(alpha: 0.04),
-                    width: 1.0,
+                        ? Colors.white.withValues(alpha: 0.24)
+                        : Colors.white.withValues(alpha: 0.95),
+                    width: 1.1,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark 
+                          ? Colors.black.withValues(alpha: 0.35)
+                          : const Color(0xFF0F172A).withValues(alpha: 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
               ),
             ),
