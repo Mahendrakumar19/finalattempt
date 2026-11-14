@@ -34,7 +34,11 @@ import {
   UserCheck,
   ShieldCheck,
   ArrowUpRight,
-  Bell
+  Bell,
+  Upload,
+  Image as ImageIcon,
+  Check,
+  Loader2
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTheme } from '@/context/ThemeContext';
@@ -385,6 +389,9 @@ export default function AdminPortal() {
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '', category: 'Prelims', subcategory: '' });
   const [resourceUploading, setResourceUploading] = useState(false);
   const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'BPSC Course', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [bannerUrlInput, setBannerUrlInput] = useState('');
+  const [bannerSaveSuccess, setBannerSaveSuccess] = useState(false);
 
   const getBackendUrl = () => {
     if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -532,6 +539,84 @@ export default function AdminPortal() {
     } catch (err) {
       console.error('Save settings error:', err);
       alert('Network error while saving settings.');
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setBannerUploading(true);
+    try {
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fd = new FormData();
+        fd.append('file', file);
+        const res = await fetch(`${BACKEND_URL}/api/upload`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success && data.url) {
+          uploadedUrls.push(data.url);
+        } else {
+          alert(`Failed to upload ${file.name}: ${data.error || 'Server error'}`);
+        }
+      }
+
+      if (uploadedUrls.length > 0) {
+        setSettings(prev => {
+          const existing = prev.heroImageUrl
+            ? prev.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean)
+            : [];
+          const updated = [...existing, ...uploadedUrls];
+          return { ...prev, heroImageUrl: updated.join(', ') };
+        });
+      }
+    } catch (err) {
+      console.error('Banner upload error:', err);
+      alert('Upload failed. Please check network/backend connection.');
+    } finally {
+      setBannerUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleAddBannerUrl = () => {
+    if (!bannerUrlInput.trim()) return;
+    const url = bannerUrlInput.trim();
+    setSettings(prev => {
+      const existing = prev.heroImageUrl
+        ? prev.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean)
+        : [];
+      if (!existing.includes(url)) {
+        existing.push(url);
+      }
+      return { ...prev, heroImageUrl: existing.join(', ') };
+    });
+    setBannerUrlInput('');
+  };
+
+  const moveBannerSlide = (fromIndex: number, toIndex: number) => {
+    const list = settings.heroImageUrl
+      ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    if (toIndex < 0 || toIndex >= list.length) return;
+    const item = list.splice(fromIndex, 1)[0];
+    list.splice(toIndex, 0, item);
+    setSettings(prev => ({ ...prev, heroImageUrl: list.join(', ') }));
+  };
+
+  const handleQuickSaveBanners = async () => {
+    try {
+      const ok = await db.updateSettings(settings);
+      if (ok) {
+        setBannerSaveSuccess(true);
+        setTimeout(() => setBannerSaveSuccess(false), 3000);
+      } else {
+        alert('Failed to save banner settings.');
+      }
+    } catch (err) {
+      console.error('Save banners error:', err);
+      alert('Error saving banners.');
     }
   };
 
@@ -1595,64 +1680,234 @@ export default function AdminPortal() {
 
             <form onSubmit={handleSaveSettings} className="p-6 sm:p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 w-full rounded-3xl shadow-sm space-y-8">
               {/* ── 1. Hero Background Images (Fixed 3840x1326 Aspect Ratio) ─────────────────────────── */}
-              <div className="space-y-4">
-                <h3 className="font-extrabold text-sm text-slate-900 dark:text-white border-b border-slate-100 dark:border-white/10 pb-3 flex items-center justify-between">
-                  <span>1. Hero Slider Banner Images (Fixed 3840x1326 px)</span>
-                  <span className="text-[10px] text-amber-500 font-mono font-bold">
-                    Active Images: {settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean).length : 0}
-                  </span>
-                </h3>
+              <div className="space-y-5 bg-slate-50/70 dark:bg-slate-800/40 p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-white/10 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4">
+                  <div>
+                    <h3 className="font-extrabold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>Hero Slider Banners (Website Top Carousel)</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Images rotate automatically every 5 seconds on the main Home Page. Recommended resolution: 3840×1326 px (or widescreen 16:9 / 21:9).
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/20">
+                      {settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean).length : 0} Active Slides
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleQuickSaveBanners}
+                      className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                        bannerSaveSuccess
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-amber-500 hover:bg-amber-600 text-white'
+                      }`}
+                    >
+                      {bannerSaveSuccess ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Saved!</span>
+                        </>
+                      ) : (
+                        <span>Save Changes</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
 
+                {/* Active Banners Grid with Reorder, Delete, and Full View */}
                 <div className="space-y-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {(settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean) : []).map((url, idx) => (
-                      <div key={idx} className="relative aspect-[3840/1326] rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 dark:border-white/10 group shadow-sm">
-                        <img
-                          src={url}
-                          alt={`Hero Slide ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).src = ''; }}
-                        />
-                        <span className="absolute top-1.5 left-1.5 text-[9px] font-extrabold text-amber-500 bg-slate-950/80 px-2 py-0.5 rounded-md border border-amber-500/20">
-                          Slide #{idx + 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const list = settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean) : [];
-                            list.splice(idx, 1);
-                            setSettings(prev => ({ ...prev, heroImageUrl: list.join(', ') }));
-                          }}
-                          className="absolute top-1.5 right-1.5 p-1 bg-red-500 hover:bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-sm"
-                          title="Remove slide image"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
+                    <span>Current Slides (Left to Right Order)</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Use arrows to rearrange display order</span>
                   </div>
 
-                  <div className="flex items-center gap-3 pt-2">
+                  {(!settings.heroImageUrl || settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean).length === 0) ? (
+                    <div className="py-10 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl flex flex-col items-center justify-center text-center p-6 bg-white/50 dark:bg-slate-900/50">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3">
+                        <ImageIcon className="w-6 h-6" />
+                      </div>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white">No Banner Images Added Yet</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mt-1">
+                        Upload banner images below to display an engaging, high-resolution hero slider at the top of your website.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean).map((url, idx, arr) => (
+                        <div key={idx} className="relative aspect-[3840/1326] rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-white/10 group shadow-md transition-all hover:shadow-lg">
+                          <img
+                            src={url}
+                            alt={`Hero Slide ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).src = ''; }}
+                          />
+                          {/* Slide Index Badge */}
+                          <div className="absolute top-2 left-2 flex items-center gap-1.5 z-10">
+                            <span className="text-[10px] font-black text-amber-400 bg-slate-950/85 backdrop-blur-xs px-2.5 py-0.5 rounded-lg border border-amber-500/30 shadow-xs">
+                              Slide #{idx + 1}
+                            </span>
+                            {idx === 0 && (
+                              <span className="text-[9px] font-bold text-emerald-400 bg-slate-950/85 px-2 py-0.5 rounded-md border border-emerald-500/30">
+                                Primary
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Hover Action Controls */}
+                          <div className="absolute top-2 right-2 flex items-center gap-1 z-10 bg-slate-950/80 backdrop-blur-xs p-1 rounded-xl border border-white/10 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                            {/* Move Left */}
+                            <button
+                              type="button"
+                              disabled={idx === 0}
+                              onClick={() => moveBannerSlide(idx, idx - 1)}
+                              className="p-1 hover:bg-white/20 text-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                              title="Move slide left"
+                            >
+                              <ChevronLeft className="w-3.5 h-3.5" />
+                            </button>
+                            {/* Move Right */}
+                            <button
+                              type="button"
+                              disabled={idx === arr.length - 1}
+                              onClick={() => moveBannerSlide(idx, idx + 1)}
+                              className="p-1 hover:bg-white/20 text-white rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                              title="Move slide right"
+                            >
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                            {/* Open Full Image */}
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1 hover:bg-white/20 text-white rounded-lg transition-colors"
+                              title="Open full size"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                            {/* Delete */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = settings.heroImageUrl ? settings.heroImageUrl.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                list.splice(idx, 1);
+                                setSettings(prev => ({ ...prev, heroImageUrl: list.join(', ') }));
+                              }}
+                              className="p-1 bg-red-500/80 hover:bg-red-600 text-white rounded-lg transition-colors cursor-pointer"
+                              title="Remove slide"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          {/* Image URL preview footer */}
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/90 via-slate-950/50 to-transparent p-2 text-[10px] text-slate-300 font-mono truncate">
+                            {url}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Upload / Add Action Buttons */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                    {/* 1. Direct Computer File Upload */}
+                    <label className={`relative flex items-center justify-center gap-3 p-4 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                      bannerUploading
+                        ? 'border-amber-400 bg-amber-500/10'
+                        : 'border-amber-300 dark:border-amber-500/30 hover:border-amber-500 bg-white dark:bg-slate-900 hover:bg-amber-500/5'
+                    }`}>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                        multiple
+                        disabled={bannerUploading}
+                        onChange={handleBannerUpload}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                      {bannerUploading ? (
+                        <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Uploading banner image(s) to server...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                            <Upload className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-slate-800 dark:text-white">
+                              Upload Banners from Computer
+                            </p>
+                            <p className="text-[10px] text-slate-400">
+                              Click or drag &amp; drop (JPG, PNG, WEBP)
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </label>
+
+                    {/* 2. Media Manager (DAM) Picker */}
                     <button
                       type="button"
                       onClick={() => setMediaPickerConfig({ isOpen: true, field: 'heroImageUrl', allowedTypes: ['IMAGE'] })}
-                      className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-slate-300 dark:border-white/20 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20 text-slate-600 dark:text-slate-300 hover:text-amber-600 rounded-2xl cursor-pointer transition-all text-xs font-bold"
+                      className="flex items-center justify-center gap-3 p-4 border-2 border-dashed border-slate-300 dark:border-white/20 hover:border-blue-400 bg-white dark:bg-slate-900 hover:bg-blue-500/5 rounded-2xl cursor-pointer transition-all text-left"
                     >
-                      <FolderOpen className="w-4 h-4 text-amber-500" />
-                      <span>+ Pick Banner Image from Media Manager (DAM)</span>
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <FolderOpen className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 dark:text-white">
+                          Pick from Media Manager (DAM)
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          Select previously uploaded asset
+                        </p>
+                      </div>
                     </button>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Image URLs (Comma Separated)</label>
-                    <textarea
-                      rows={2}
-                      placeholder="https://example.com/banner1.jpg, https://example.com/banner2.jpg"
-                      value={settings.heroImageUrl || ''}
-                      onChange={(e) => setSettings(prev => ({ ...prev, heroImageUrl: e.target.value }))}
-                      className="w-full px-4 py-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl outline-none font-mono text-slate-900 dark:text-white"
+                  {/* Direct URL Input Row */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="url"
+                      placeholder="Or paste external image URL directly (e.g. https://...)"
+                      value={bannerUrlInput}
+                      onChange={(e) => setBannerUrlInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddBannerUrl();
+                        }
+                      }}
+                      className="flex-1 px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-mono text-slate-900 dark:text-white focus:border-amber-500"
                     />
+                    <button
+                      type="button"
+                      onClick={handleAddBannerUrl}
+                      className="px-4 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-bold hover:bg-amber-500 dark:hover:bg-amber-400 dark:hover:text-black transition-colors cursor-pointer shrink-0"
+                    >
+                      Add URL
+                    </button>
                   </div>
+
+                  {/* Comma-separated Bulk Editor (collapsible) */}
+                  <details className="text-xs pt-1 group">
+                    <summary className="cursor-pointer text-[11px] font-semibold text-slate-400 hover:text-amber-500 transition-colors select-none">
+                      ▸ Advanced: Edit Raw Comma-Separated URLs
+                    </summary>
+                    <div className="mt-2 space-y-1">
+                      <textarea
+                        rows={2}
+                        placeholder="https://example.com/banner1.jpg, https://example.com/banner2.jpg"
+                        value={settings.heroImageUrl || ''}
+                        onChange={(e) => setSettings(prev => ({ ...prev, heroImageUrl: e.target.value }))}
+                        className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-mono text-slate-900 dark:text-white"
+                      />
+                    </div>
+                  </details>
                 </div>
               </div>
 
