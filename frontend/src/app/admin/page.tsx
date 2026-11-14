@@ -43,7 +43,7 @@ import {
 import dynamic from 'next/dynamic';
 import { useTheme } from '@/context/ThemeContext';
 import { useLocale } from '@/context/LocaleContext';
-import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTopper } from '@/services/db';
+import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle, ResultTopper, PromoBannerConfig } from '@/services/db';
 import { extractContentKeywords, resolveAutoTags } from '@/utils/tagGenerator';
 
 // 🚀 Performance Optimization: Lazy load heavy sub-CMS panels on demand
@@ -63,6 +63,7 @@ const TestSeriesAdmin = dynamic(() => import('@/components/admin/TestSeriesAdmin
 const DailyQuizCMS = dynamic(() => import('@/components/DailyQuizCMS'));
 const CustomPagesCMS = dynamic(() => import('@/components/CustomPagesCMS'));
 const MainsEvaluationCMS = dynamic(() => import('@/components/MainsEvaluationCMS'));
+const PromoOverlayModal = dynamic(() => import('@/components/PromoOverlayModal'));
 const AdminChatPanel = dynamic(() => import('@/components/admin/AdminChatPanel'));
 const BookOrdersCMS = dynamic(() => import('@/components/admin/BookOrdersCMS'));
 const OffersAndNotificationsCMS = dynamic(() => import('@/components/admin/OffersAndNotificationsCMS'));
@@ -93,7 +94,8 @@ interface SiteSettings {
   aboutValues?: string;
   aboutMethodology?: { title: string; desc: string }[];
   announcements?: { date: string; text: string; link?: string; isNew?: boolean; createdAt?: string }[];
-  featureFlags?: Record<string, boolean>;
+  featureFlags?: Record<string, any>;
+  promoBanner?: PromoBannerConfig | null;
 }
 
 interface Lead {
@@ -392,6 +394,9 @@ export default function AdminPortal() {
   const [bannerUploading, setBannerUploading] = useState(false);
   const [bannerUrlInput, setBannerUrlInput] = useState('');
   const [bannerSaveSuccess, setBannerSaveSuccess] = useState(false);
+  const [promoUploading, setPromoUploading] = useState(false);
+  const [previewPromoModal, setPreviewPromoModal] = useState(false);
+  const [promoSaveSuccess, setPromoSaveSuccess] = useState(false);
 
   const getBackendUrl = () => {
     if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
@@ -620,6 +625,55 @@ export default function AdminPortal() {
     }
   };
 
+  const handlePromoBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPromoUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`${BACKEND_URL}/api/upload`, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setSettings(prev => ({
+          ...prev,
+          promoBanner: {
+            enabled: prev.promoBanner?.enabled ?? true,
+            imageUrl: data.url,
+            title: prev.promoBanner?.title || '',
+            linkUrl: prev.promoBanner?.linkUrl || '',
+            ctaText: prev.promoBanner?.ctaText || 'Check Details',
+            displayMode: prev.promoBanner?.displayMode || 'once_per_session'
+          }
+        }));
+      } else {
+        alert('Upload failed: ' + (data.error || 'Server error'));
+      }
+    } catch (err) {
+      console.error('Promo banner upload error:', err);
+      alert('Upload failed. Please check backend connection.');
+    } finally {
+      setPromoUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleQuickSavePromoBanner = async () => {
+    try {
+      const ok = await db.updateSettings(settings);
+      if (ok) {
+        setPromoSaveSuccess(true);
+        setTimeout(() => setPromoSaveSuccess(false), 3000);
+      } else {
+        alert('Failed to save promotional banner settings.');
+      }
+    } catch (err) {
+      console.error('Save promo banner error:', err);
+      alert('Error saving promo banner.');
+    }
+  };
+
   const handleTriggerYoutubeSync = async () => {
     if (!adminToken) return;
     setSyncingYoutube(true);
@@ -661,6 +715,14 @@ export default function AdminPortal() {
       setBlogForm(prev => ({ ...prev, imageUrl: url }));
     } else if (field === 'blogAuthorImage') {
       setBlogForm(prev => ({ ...prev, author_image: url }));
+    } else if (field === 'promoBannerImage') {
+      setSettings(prev => ({
+        ...prev,
+        promoBanner: {
+          ...(prev.promoBanner || { enabled: true, imageUrl: '' }),
+          imageUrl: url
+        }
+      }));
     }
     setMediaPickerConfig({ isOpen: false, field: '' });
   };
@@ -1911,13 +1973,322 @@ export default function AdminPortal() {
                 </div>
               </div>
 
-              {/* ── 2. Live "What's New" Updates Manager ─────────────────────────── */}
+              {/* ── 2. Promotional Overlay Banner (First-Visit Website Popup Modal) ─────────────────────────── */}
+              <div className="space-y-5 bg-gradient-to-br from-amber-500/5 via-blue-500/5 to-transparent p-5 sm:p-6 rounded-3xl border border-amber-500/30 dark:border-amber-500/20 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
+                          2. First-Visit Promotional Overlay Banner (Popup Modal)
+                        </h3>
+                        <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
+                          settings.promoBanner?.enabled
+                            ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                            : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
+                        }`}>
+                          {settings.promoBanner?.enabled ? 'Active / Live' : 'Disabled'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+                        This promotional banner pops up as an overlay when a student first visits the website. Perfect for high-converting announcements, new batch launches, and festive discounts.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+                    {/* Live Preview Button */}
+                    <button
+                      type="button"
+                      disabled={!settings.promoBanner?.imageUrl}
+                      onClick={() => setPreviewPromoModal(true)}
+                      className="px-3.5 py-1.5 text-xs font-bold rounded-xl border border-slate-300 dark:border-white/20 hover:border-amber-400 text-slate-700 dark:text-slate-200 hover:text-amber-600 flex items-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Preview Popup</span>
+                    </button>
+
+                    {/* Quick Save */}
+                    <button
+                      type="button"
+                      onClick={handleQuickSavePromoBanner}
+                      className={`px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                        promoSaveSuccess
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-amber-500 hover:bg-amber-600 text-white'
+                      }`}
+                    >
+                      {promoSaveSuccess ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Saved!</span>
+                        </>
+                      ) : (
+                        <span>Save Promo Banner</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  {/* Left: Settings Form */}
+                  <div className="lg:col-span-7 space-y-4">
+                    {/* Enable / Disable Switch */}
+                    <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl">
+                      <div>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">Enable Promo Overlay on Website</p>
+                        <p className="text-[11px] text-slate-400">Turn on or off without removing the banner image</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(settings.promoBanner?.enabled)}
+                          onChange={(e) => {
+                            setSettings(prev => ({
+                              ...prev,
+                              promoBanner: {
+                                ...(prev.promoBanner || { imageUrl: '' }),
+                                enabled: e.target.checked
+                              }
+                            }));
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500" />
+                      </label>
+                    </div>
+
+                    {/* Banner Image Upload Controls */}
+                    <div className="space-y-2">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        Promo Banner Poster Image *
+                      </label>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {/* Direct File Upload */}
+                        <label className={`relative flex items-center justify-center gap-2.5 p-3.5 border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
+                          promoUploading
+                            ? 'border-amber-400 bg-amber-500/10'
+                            : 'border-slate-300 dark:border-white/20 hover:border-amber-400 bg-white dark:bg-slate-900'
+                        }`}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            disabled={promoUploading}
+                            onChange={handlePromoBannerUpload}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                          {promoUploading ? (
+                            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs font-bold">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Uploading poster...</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 text-xs font-bold">
+                              <Upload className="w-4 h-4 text-amber-500" />
+                              <span>Upload Poster from PC</span>
+                            </div>
+                          )}
+                        </label>
+
+                        {/* Media Picker DAM */}
+                        <button
+                          type="button"
+                          onClick={() => setMediaPickerConfig({ isOpen: true, field: 'promoBannerImage', allowedTypes: ['IMAGE'] })}
+                          className="flex items-center justify-center gap-2 p-3.5 border-2 border-dashed border-slate-300 dark:border-white/20 hover:border-blue-400 bg-white dark:bg-slate-900 rounded-2xl cursor-pointer transition-all text-xs font-bold text-slate-700 dark:text-slate-200"
+                        >
+                          <FolderOpen className="w-4 h-4 text-blue-500" />
+                          <span>Pick from Media (DAM)</span>
+                        </button>
+                      </div>
+
+                      {/* Direct URL input */}
+                      <input
+                        type="url"
+                        placeholder="Or paste banner image URL (https://...)"
+                        value={settings.promoBanner?.imageUrl || ''}
+                        onChange={(e) => {
+                          setSettings(prev => ({
+                            ...prev,
+                            promoBanner: {
+                              ...(prev.promoBanner || { enabled: true }),
+                              imageUrl: e.target.value
+                            }
+                          }));
+                        }}
+                        className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none font-mono text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    {/* Target Link URL */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        Target Link URL (OnClick Redirect)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. /courses/72nd-bpsc or /test-series or https://wa.me/..."
+                        value={settings.promoBanner?.linkUrl || ''}
+                        onChange={(e) => {
+                          setSettings(prev => ({
+                            ...prev,
+                            promoBanner: {
+                              ...(prev.promoBanner || { enabled: true, imageUrl: '' }),
+                              linkUrl: e.target.value
+                            }
+                          }));
+                        }}
+                        className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-mono"
+                      />
+                      <p className="text-[10px] text-slate-400">
+                        When a visitor clicks the promotional banner or button, they will be redirected to this page.
+                      </p>
+                    </div>
+
+                    {/* Title & CTA Button */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                          Banner Heading (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 72nd BPSC Foundation Batch"
+                          value={settings.promoBanner?.title || ''}
+                          onChange={(e) => {
+                            setSettings(prev => ({
+                              ...prev,
+                              promoBanner: {
+                                ...(prev.promoBanner || { enabled: true, imageUrl: '' }),
+                                title: e.target.value
+                              }
+                            }));
+                          }}
+                          className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                          Button CTA Text (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Enroll Now / View Details"
+                          value={settings.promoBanner?.ctaText || ''}
+                          onChange={(e) => {
+                            setSettings(prev => ({
+                              ...prev,
+                              promoBanner: {
+                                ...(prev.promoBanner || { enabled: true, imageUrl: '' }),
+                                ctaText: e.target.value
+                              }
+                            }));
+                          }}
+                          className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Display Frequency Mode */}
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                        Display Frequency for Visitors
+                      </label>
+                      <select
+                        value={settings.promoBanner?.displayMode || 'once_per_session'}
+                        onChange={(e) => {
+                          setSettings(prev => ({
+                            ...prev,
+                            promoBanner: {
+                              ...(prev.promoBanner || { enabled: true, imageUrl: '' }),
+                              displayMode: e.target.value as 'once_per_session' | 'first_visit_only' | 'always'
+                            }
+                          }));
+                        }}
+                        className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-medium"
+                      >
+                        <option value="once_per_session">Once Per Browser Session (Recommended - shows on first visit, doesn&apos;t spam refreshes)</option>
+                        <option value="first_visit_only">Only Once Per Device (Saved until browser cache is cleared)</option>
+                        <option value="always">Always Show on Every Page Load (For testing/live announcements)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Right: Live Poster Card Preview */}
+                  <div className="lg:col-span-5 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-white/10 space-y-3">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-slate-200">
+                      <span>Live Poster Preview</span>
+                      {settings.promoBanner?.imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSettings(prev => ({
+                              ...prev,
+                              promoBanner: {
+                                ...(prev.promoBanner || { enabled: false }),
+                                imageUrl: ''
+                              }
+                            }));
+                          }}
+                          className="text-red-500 hover:text-red-600 text-[11px] cursor-pointer"
+                        >
+                          Remove Poster
+                        </button>
+                      )}
+                    </div>
+
+                    {settings.promoBanner?.imageUrl ? (
+                      <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-950 shadow-md">
+                        <img
+                          src={settings.promoBanner.imageUrl}
+                          alt="Promo Preview"
+                          className="w-full h-auto max-h-[320px] object-contain mx-auto"
+                        />
+                        {(settings.promoBanner.title || settings.promoBanner.ctaText) && (
+                          <div className="p-3 bg-slate-950/90 border-t border-white/10 text-white flex items-center justify-between">
+                            <span className="text-xs font-bold truncate">
+                              {settings.promoBanner.title || 'Special Promotion'}
+                            </span>
+                            <span className="text-[10px] bg-amber-500 text-slate-950 font-extrabold px-2 py-0.5 rounded-md">
+                              {settings.promoBanner.ctaText || 'Check Details'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="h-48 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl flex flex-col items-center justify-center p-4 text-center">
+                        <ImageIcon className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
+                        <p className="text-xs font-bold text-slate-500">No Promo Poster Selected</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Upload an image or paste URL to see preview
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 space-y-1">
+                      <p className="font-bold flex items-center gap-1">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Recommended Dimensions:</span>
+                      </p>
+                      <p className="text-[10px] text-slate-600 dark:text-slate-300">
+                        Vertical poster flyer: 800×1000 px, or Square: 1080×1080 px. It automatically scales down cleanly on mobile devices.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ── 3. Live "What's New" Updates Manager ─────────────────────────── */}
               <div className="space-y-4 border-t border-slate-100 dark:border-white/10 pt-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-white/10 pb-3">
                   <div>
                     <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
-                      <span>2. Live &quot;What&apos;s New&quot; Updates Manager</span>
+                      <span>3. Live &quot;What&apos;s New&quot; Updates Manager</span>
                     </h3>
                     <p className="text-[10px] text-slate-400 font-medium mt-0.5">
                       Manage all live website updates (Current Affairs, Strategy Articles, Batches, PYQs &amp; custom announcements).
@@ -5801,6 +6172,15 @@ export default function AdminPortal() {
           allowedTypes={mediaPickerConfig.allowedTypes}
           onSelect={handleSelectMedia}
           onClose={() => setMediaPickerConfig({ isOpen: false, field: '' })}
+        />
+      )}
+
+      {/* Promotional Overlay Modal Live Preview in Admin */}
+      {previewPromoModal && (
+        <PromoOverlayModal
+          banner={settings.promoBanner}
+          isPreview={true}
+          onClosePreview={() => setPreviewPromoModal(false)}
         />
       )}
 

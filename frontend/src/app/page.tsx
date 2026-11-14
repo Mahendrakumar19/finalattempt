@@ -33,10 +33,11 @@ import {
   Star
 } from 'lucide-react';
 
-import { db, Course, BlogItem } from '@/services/db';
+import { db, Course, BlogItem, PromoBannerConfig } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
 import { useTheme } from '@/context/ThemeContext';
 import NextImage from 'next/image';
+import PromoOverlayModal from '@/components/PromoOverlayModal';
 
 // Lazy-load below-fold heavy component — deferred until viewport scroll
 const TestimonialCarousel = dynamic(() => import('@/components/TestimonialCarousel'), {
@@ -117,6 +118,7 @@ export default function Home() {
     tagline: 'Welcome to FINAL ATTEMPT',
     heroImageUrl: ''
   });
+  const [promoBanner, setPromoBanner] = useState<PromoBannerConfig | null>(null);
   const [liveCourses, setLiveCourses] = useState<Course[]>([]);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
 
@@ -203,6 +205,9 @@ export default function Home() {
             tagline: s.tagline || prev.tagline,
             heroImageUrl: s.heroImageUrl || ''
           }));
+          if (s.promoBanner) {
+            setPromoBanner(s.promoBanner);
+          }
           if (s.announcements && Array.isArray(s.announcements) && s.announcements.length > 0) {
             setDynamicAnnouncements(s.announcements.map((a: unknown) => typeof a === 'string' ? { date: 'NOTICE', text: a, isNew: true } : (a as AnnouncementItem)));
           }
@@ -1647,6 +1652,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* 🌟 PROMOTIONAL OVERLAY BANNER POPUP MODAL (FIRST-VISIT) */}
+      <PromoOverlayModal banner={promoBanner} />
 
     </div>
   );

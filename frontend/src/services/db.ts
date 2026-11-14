@@ -25,6 +25,15 @@ export interface ExamData {
   testSeries?: TestSeriesItem[];
 }
 
+export interface PromoBannerConfig {
+  enabled: boolean;
+  imageUrl: string;
+  title?: string;
+  linkUrl?: string;
+  ctaText?: string;
+  displayMode?: 'once_per_session' | 'first_visit_only' | 'always';
+}
+
 export interface SiteSettings {
   heroTitle: string;
   heroSubtitle: string;
@@ -47,7 +56,8 @@ export interface SiteSettings {
   aboutValues?: string;
   aboutMethodology?: { title: string; desc?: string; description?: string }[];
   announcements?: { date: string; text: string; link?: string; isNew?: boolean; createdAt?: string }[];
-  featureFlags?: Record<string, boolean>;
+  featureFlags?: Record<string, any>;
+  promoBanner?: PromoBannerConfig | null;
 }
 
 export interface Course {

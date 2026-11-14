@@ -275,6 +275,15 @@ export interface ResourceDownload {
   subcategory?: string;
 }
 
+export interface PromoBannerConfig {
+  enabled: boolean;
+  imageUrl: string;
+  title?: string;
+  linkUrl?: string;
+  ctaText?: string;
+  displayMode?: 'once_per_session' | 'first_visit_only' | 'always';
+}
+
 export interface SiteSettings {
   heroTitle: string;
   heroSubtitle: string;
@@ -297,7 +306,8 @@ export interface SiteSettings {
   aboutValues?: string;
   aboutMethodology?: { title: string; desc: string }[];
   announcements?: { date: string; text: string; link?: string; isNew?: boolean }[];
-  featureFlags?: Record<string, boolean>;
+  featureFlags?: Record<string, any>;
+  promoBanner?: PromoBannerConfig | null;
 }
 
 export interface DownloadItem {
@@ -1497,12 +1507,14 @@ class BackendDB {
         const [rows]: any = await mysqlPool.query('SELECT * FROM settings LIMIT 1');
         if (rows && rows.length > 0) {
           const row = rows[0];
+          const parsedFeatureFlags = typeof row.featureFlags === 'string' ? JSON.parse(row.featureFlags) : (row.featureFlags || {});
           return {
             ...row,
             visitorsCount: Math.max(2000, Number(row.visitorsCount || 0)),
             aboutMethodology: typeof row.aboutMethodology === 'string' ? JSON.parse(row.aboutMethodology) : (row.aboutMethodology || null),
             announcements: typeof row.announcements === 'string' ? JSON.parse(row.announcements) : (row.announcements || null),
-            featureFlags: typeof row.featureFlags === 'string' ? JSON.parse(row.featureFlags) : (row.featureFlags || {})
+            featureFlags: parsedFeatureFlags,
+            promoBanner: parsedFeatureFlags?.promoBanner || null
           } as SiteSettings;
         }
       } catch (err) {
@@ -1557,7 +1569,10 @@ class BackendDB {
             settings.aboutVision || null, settings.aboutValues || null,
             settings.aboutMethodology ? JSON.stringify(settings.aboutMethodology) : null,
             settings.announcements ? JSON.stringify(settings.announcements) : null,
-            JSON.stringify(settings.featureFlags || {})
+            JSON.stringify({
+              ...(typeof settings.featureFlags === 'object' && settings.featureFlags !== null ? settings.featureFlags : {}),
+              ...(settings.promoBanner !== undefined ? { promoBanner: settings.promoBanner } : {})
+            })
           ]
         );
         return true;
