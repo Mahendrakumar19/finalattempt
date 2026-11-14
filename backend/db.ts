@@ -1008,14 +1008,31 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN titleHi VARCHAR(255) NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN descriptionHi TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_assignments ADD COLUMN medium VARCHAR(50) DEFAULT 'Bilingual'"); } catch (e) {}
-    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN medium VARCHAR(50) DEFAULT 'English'"); } catch (e) {}
-    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN status VARCHAR(50) DEFAULT 'Submitted'"); } catch (e) {}
-    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedCopyUrl TEXT NULL"); } catch (e) {}
-    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluatedAt TIMESTAMP NULL"); } catch (e) {}
-    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN assignedToUserId VARCHAR(255) NULL"); } catch (e) {}
-    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN assignedToName VARCHAR(255) NULL"); } catch (e) {}
-    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN rubricsBreakdown JSON NULL"); } catch (e) {}
-    try { await pool.query("ALTER TABLE lms_assignment_submissions ADD COLUMN evaluationDeadline TIMESTAMP NULL"); } catch (e) {}
+
+    // Safe column migrations for lms_assignment_submissions across all MySQL versions
+    const ensureSubmissionColumn = async (colName: string, colDef: string) => {
+      try {
+        const [colCheck]: any = await pool.query(`
+          SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+          WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lms_assignment_submissions' AND COLUMN_NAME = ?
+        `, [colName]);
+        if (!colCheck || colCheck.length === 0) {
+          await pool.query(`ALTER TABLE lms_assignment_submissions ADD COLUMN ${colName} ${colDef}`);
+        }
+      } catch (_) {
+        try { await pool.query(`ALTER TABLE lms_assignment_submissions ADD COLUMN ${colName} ${colDef}`); } catch (__) {}
+      }
+    };
+
+    await ensureSubmissionColumn('medium', "VARCHAR(50) DEFAULT 'English'");
+    await ensureSubmissionColumn('status', "VARCHAR(50) DEFAULT 'Submitted'");
+    await ensureSubmissionColumn('evaluatedCopyUrl', 'TEXT NULL');
+    await ensureSubmissionColumn('evaluatedAt', 'TIMESTAMP NULL');
+    await ensureSubmissionColumn('assignedToUserId', 'VARCHAR(255) NULL');
+    await ensureSubmissionColumn('assignedToName', 'VARCHAR(255) NULL');
+    await ensureSubmissionColumn('rubricsBreakdown', 'JSON NULL');
+    await ensureSubmissionColumn('evaluationDeadline', 'TIMESTAMP NULL');
+    try { await pool.query("ALTER TABLE lms_assignment_submissions MODIFY COLUMN grade DECIMAL(6,2) NULL"); } catch (_) {}
     try { await pool.query("ALTER TABLE lms_questions ADD COLUMN optionE TEXT NULL"); } catch (e) {}
     try { await pool.query("ALTER TABLE lms_questions ADD COLUMN optionEHi TEXT NULL"); } catch (e) {}
 
@@ -7130,9 +7147,9 @@ class LmsDB {
 
         await mysqlPool.query(
           `UPDATE lms_assignment_submissions 
-           SET grade = ?, 
-               feedback = ?, 
-               evaluatedCopyUrl = ?, 
+           SET grade = COALESCE(?, grade), 
+               feedback = CASE WHEN ? != '' THEN ? ELSE feedback END, 
+               evaluatedCopyUrl = COALESCE(?, evaluatedCopyUrl), 
                status = ?, 
                evaluatedAt = NOW(),
                rubricsBreakdown = COALESCE(?, rubricsBreakdown),
@@ -7143,6 +7160,7 @@ class LmsDB {
           [
             data.grade !== undefined ? data.grade : null, 
             data.feedback || '', 
+            data.feedback || '', 
             data.evaluatedCopyUrl || null, 
             status,
             rubricsJson,
@@ -7152,7 +7170,11 @@ class LmsDB {
             submissionId
           ]
         );
-      } catch (err) { console.error('[LmsDB] evaluateMainsSubmission MySQL error:', err); }
+      } catch (err: any) {
+        console.error('[LmsDB] evaluateMainsSubmission MySQL error:', err);
+        // If MySQL failed (e.g. column missing or timeout), throw so caller knows or handle fallback
+        throw err;
+      }
     }
 
     const store = getLocalStore();

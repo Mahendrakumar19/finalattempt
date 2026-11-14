@@ -86,6 +86,14 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
   const mimetype = req.file.mimetype;
   const ext = path.extname(filename).replace('.', '').toLowerCase();
 
+  // Ensure file is mirrored to LOCAL_UPLOADS_DIR as well for maximum reliability
+  try {
+    const localMirrorPath = path.join(LOCAL_UPLOADS_DIR, filename);
+    if (!fs.existsSync(localMirrorPath) && filePath !== localMirrorPath) {
+      fs.copyFileSync(filePath, localMirrorPath);
+    }
+  } catch (_) {}
+
   // Dual-write to MinIO S3 asynchronously
   try {
     const fileBuffer = fs.readFileSync(filePath);
