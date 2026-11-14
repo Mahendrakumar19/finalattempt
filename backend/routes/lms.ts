@@ -1082,15 +1082,16 @@ router.put('/admin/students/:userId', authenticate, requireAdmin, async (req: Re
 
 // ─────────────────────────── ADMIN MAINS PAPERS / TESTS CRUD ────────────────────
 
-// Admin: Get all Mains tests for a series (including unpublished)
+// Admin: Get all Mains tests across all test series or filtered by testSeriesId (including unpublished)
 router.get('/admin/mains-tests', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const { testSeriesId } = req.query;
-    if (!testSeriesId || typeof testSeriesId !== 'string') {
-      res.status(400).json({ success: false, error: 'testSeriesId parameter is required.' });
-      return;
+    let list: any[] = [];
+    if (testSeriesId && typeof testSeriesId === 'string' && testSeriesId !== 'ALL') {
+      list = await lmsDB.getAssignmentsByTestSeriesId(testSeriesId, true);
+    } else {
+      list = await lmsDB.getAllMainsAssignments(true);
     }
-    const list = await lmsDB.getAssignmentsByTestSeriesId(testSeriesId, true);
     res.json({ success: true, data: list });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

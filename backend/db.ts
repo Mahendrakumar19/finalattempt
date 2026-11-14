@@ -6836,22 +6836,23 @@ class LmsDB {
     });
   }
 
-  async getAllMainsAssignments(): Promise<any[]> {
+  async getAllMainsAssignments(includeUnpublished = false): Promise<any[]> {
     if (mysqlPool) {
       try {
+        const whereClause = includeUnpublished ? '' : 'WHERE a.isPublished = 1';
         const [rows]: any = await mysqlPool.query(
           `SELECT a.*, ts.title as testSeriesTitle, ex.name as examName
            FROM lms_assignments a
            LEFT JOIN TestSeries ts ON ts.id = a.testSeriesId
            LEFT JOIN Exam ex ON ex.id = ts.examId
-           WHERE a.isPublished = 1
+           ${whereClause}
            ORDER BY a.createdAt DESC`
         );
         if (rows && rows.length > 0) return rows;
       } catch (err) { console.error('[LmsDB] getAllMainsAssignments MySQL error:', err); }
     }
     const store = (getLocalStore() as any)?.lmsAssignments || [];
-    return store.filter((a: any) => a.isPublished !== 0);
+    return includeUnpublished ? store : store.filter((a: any) => a.isPublished !== 0);
   }
 
   async submitAssignmentResponse(userId: string, assignmentId: string, submissionUrl: string, submissionText?: string): Promise<any> {
@@ -6938,7 +6939,9 @@ class LmsDB {
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query(
-          `SELECT s.*, u.fullName as studentName, u.email as studentEmail, a.title as testTitle, a.maxMarks, ts.title as testSeriesTitle
+          `SELECT s.*, u.fullName as studentName, u.email as studentEmail, 
+                  a.title as testTitle, a.maxMarks, a.questionPaperUrl, a.answerBookletUrl, a.modelAnswerUrl, a.syllabus,
+                  ts.title as testSeriesTitle
            FROM lms_assignment_submissions s
            LEFT JOIN users u ON u.id = s.userId
            LEFT JOIN lms_assignments a ON a.id = s.assignmentId
@@ -6960,7 +6963,11 @@ class LmsDB {
         studentName: matchUser?.fullName || 'Student',
         studentEmail: matchUser?.email || 'student@finalattempt.com',
         testTitle: matchTest?.title || s.assignmentId,
-        maxMarks: matchTest?.maxMarks || 100
+        maxMarks: matchTest?.maxMarks || 100,
+        questionPaperUrl: matchTest?.questionPaperUrl || '',
+        answerBookletUrl: matchTest?.answerBookletUrl || '',
+        modelAnswerUrl: matchTest?.modelAnswerUrl || '',
+        syllabus: matchTest?.syllabus || ''
       };
     });
   }

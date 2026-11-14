@@ -19,7 +19,13 @@ export interface RubricsScore {
 export interface PDFAnnotationEditorProps {
   pdfUrl: string;
   studentName?: string;
+  studentEmail?: string;
   testTitle?: string;
+  testSeriesTitle?: string;
+  submissionText?: string;
+  questionPaperUrl?: string;
+  modelAnswerUrl?: string;
+  answerBookletUrl?: string;
   maxMarks?: number;
   initialMarks?: number;
   initialFeedback?: string;
@@ -107,7 +113,13 @@ const PEN_COLORS = [
 export default function PDFAnnotationEditor({
   pdfUrl,
   studentName,
+  studentEmail,
   testTitle,
+  testSeriesTitle,
+  submissionText,
+  questionPaperUrl,
+  modelAnswerUrl,
+  answerBookletUrl,
   maxMarks = 100,
   initialMarks,
   initialFeedback,
@@ -1166,6 +1178,59 @@ export default function PDFAnnotationEditor({
 
             {/* Scrollable Evaluation Body */}
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {/* Student Remarks / Notes banner if provided */}
+              {submissionText && (
+                <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-1">
+                  <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider block">
+                    Candidate Note / Question Selection:
+                  </span>
+                  <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">
+                    {submissionText}
+                  </p>
+                </div>
+              )}
+
+              {/* Reference Documents Quick Links (Question Paper & Model Answer) */}
+              {(questionPaperUrl || modelAnswerUrl || answerBookletUrl) && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-200 dark:border-white/10 space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Reference Materials
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {questionPaperUrl && (
+                      <a
+                        href={questionPaperUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 rounded-lg border border-blue-500/20"
+                      >
+                        Q. Paper ↗
+                      </a>
+                    )}
+                    {modelAnswerUrl && (
+                      <a
+                        href={modelAnswerUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 rounded-lg border border-emerald-500/20"
+                      >
+                        Model Ans ↗
+                      </a>
+                    )}
+                    {answerBookletUrl && (
+                      <a
+                        href={answerBookletUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 rounded-lg border border-amber-500/20"
+                      >
+                        Booklet ↗
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Awarded Marks Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center justify-between">

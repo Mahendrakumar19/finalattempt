@@ -19,6 +19,10 @@ interface SubmissionItem {
   maxMarks?: number;
   submissionUrl?: string;
   submissionText?: string;
+  questionPaperUrl?: string;
+  answerBookletUrl?: string;
+  modelAnswerUrl?: string;
+  syllabus?: string;
   submittedAt: string;
   grade?: number;
   feedback?: string;
@@ -358,10 +362,21 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
                     <h4 className="text-[var(--text-color)] font-heading font-black text-base">
                       {sub.testTitle || 'Mains Test'}
                     </h4>
-                    <p className="text-slate-500 dark:text-slate-400 text-xs">
-                      {sub.testSeriesTitle ? `Series: ${sub.testSeriesTitle} · ` : ''}
-                      Submitted: {new Date(sub.submittedAt).toLocaleString('en-IN')}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                      {sub.testSeriesTitle && (
+                        <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 font-bold text-[10px]">
+                          {sub.testSeriesTitle}
+                        </span>
+                      )}
+                      <span>Submitted: {new Date(sub.submittedAt).toLocaleString('en-IN')}</span>
+                    </div>
+
+                    {/* Student Remarks / Note if provided */}
+                    {sub.submissionText && (
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg mt-1 inline-block max-w-xl">
+                        <span className="font-bold">Note from Student:</span> {sub.submissionText}
+                      </p>
+                    )}
                   </div>
 
                   {/* Status & Actions */}
@@ -467,6 +482,57 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
             </div>
 
             <form onSubmit={handleSaveEvaluation} className="space-y-5">
+              {/* Student Remarks / Note Banner */}
+              {selectedSub.submissionText && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1">
+                  <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 block tracking-wider">
+                    Candidate Remarks / Selection Note:
+                  </span>
+                  <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">
+                    {selectedSub.submissionText}
+                  </p>
+                </div>
+              )}
+
+              {/* Reference Documents Links (QP, Model Answer, Booklet) */}
+              {(selectedSub.questionPaperUrl || selectedSub.modelAnswerUrl || selectedSub.answerBookletUrl) && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-[var(--card-border)] flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-slate-500">Test Question &amp; Solutions:</span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {selectedSub.questionPaperUrl && (
+                      <a
+                        href={selectedSub.questionPaperUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-0.5 rounded-lg border border-blue-500/20"
+                      >
+                        <Download className="w-3 h-3" /> Question Paper
+                      </a>
+                    )}
+                    {selectedSub.modelAnswerUrl && (
+                      <a
+                        href={selectedSub.modelAnswerUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-lg border border-emerald-500/20"
+                      >
+                        <Download className="w-3 h-3" /> Model Answer
+                      </a>
+                    )}
+                    {selectedSub.answerBookletUrl && (
+                      <a
+                        href={selectedSub.answerBookletUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/20"
+                      >
+                        <Download className="w-3 h-3" /> Booklet
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Submitted Answer Copy Link */}
               <div className="p-3 bg-[var(--card-bg)] rounded-xl border border-[var(--card-border)] flex items-center justify-between">
                 <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">Student Submitted Copy (PDF)</span>
@@ -700,7 +766,13 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
           <PDFAnnotationEditor
             pdfUrl={annotatingSub.submissionUrl || ''}
             studentName={annotatingSub.studentName}
+            studentEmail={annotatingSub.studentEmail}
             testTitle={annotatingSub.testTitle}
+            testSeriesTitle={annotatingSub.testSeriesTitle}
+            submissionText={annotatingSub.submissionText}
+            questionPaperUrl={annotatingSub.questionPaperUrl}
+            modelAnswerUrl={annotatingSub.modelAnswerUrl}
+            answerBookletUrl={annotatingSub.answerBookletUrl}
             maxMarks={annotatingSub.maxMarks || 100}
             initialMarks={annotatingSub.grade}
             initialFeedback={annotatingSub.feedback}

@@ -358,8 +358,9 @@ export async function getAllMainsSubmissionsAdmin(accessToken: string) {
 }
 
 // ─── Mains Admin: Get All Tests by Test Series ID ────────────────────────────
-export async function getAdminMainsTests(testSeriesId: string, accessToken: string) {
-  return apiFetch<any[]>(`/api/lms/admin/mains-tests?testSeriesId=${encodeURIComponent(testSeriesId)}`, {}, accessToken);
+export async function getAdminMainsTests(testSeriesId?: string, accessToken?: string) {
+  const query = testSeriesId ? `?testSeriesId=${encodeURIComponent(testSeriesId)}` : '';
+  return apiFetch<any[]>(`/api/lms/admin/mains-tests${query}`, {}, accessToken);
 }
 
 // ─── Mains Admin: Create Mains Paper / Test ─────────────────────────────────
