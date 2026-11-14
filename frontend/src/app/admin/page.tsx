@@ -1973,7 +1973,7 @@ export default function AdminPortal() {
                 </div>
               </div>
 
-              {/* ── 2. Promotional Overlay Banner (First-Visit Website Popup Modal) ─────────────────────────── */}
+              {/* ── 2. Promotional Overlay Banner (Website Popup Modal) ─────────────────────────── */}
               <div className="space-y-5 bg-gradient-to-br from-amber-500/5 via-blue-500/5 to-transparent p-5 sm:p-6 rounded-3xl border border-amber-500/30 dark:border-amber-500/20 shadow-xs">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 dark:border-white/10 pb-4">
                   <div className="flex items-start gap-3">
@@ -1983,7 +1983,7 @@ export default function AdminPortal() {
                     <div>
                       <div className="flex items-center gap-2">
                         <h3 className="font-extrabold text-base text-slate-900 dark:text-white">
-                          2. First-Visit Promotional Overlay Banner (Popup Modal)
+                          2. Website Popup Promotional Banner (Coaching Style Overlay)
                         </h3>
                         <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase ${
                           settings.promoBanner?.enabled
@@ -1994,7 +1994,7 @@ export default function AdminPortal() {
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
-                        This promotional banner pops up as an overlay when a student first visits the website. Perfect for high-converting announcements, new batch launches, and festive discounts.
+                        Shows this promotional banner overlay whenever a visitor opens or refreshes the website (standard coaching style). Visitors can click the banner to visit your course/offer link, or dismiss it with the [✕] button.
                       </p>
                     </div>
                   </div>
@@ -2039,8 +2039,8 @@ export default function AdminPortal() {
                     {/* Enable / Disable Switch */}
                     <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl">
                       <div>
-                        <p className="text-xs font-bold text-slate-900 dark:text-white">Enable Promo Overlay on Website</p>
-                        <p className="text-[11px] text-slate-400">Turn on or off without removing the banner image</p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">Enable Popup Banner on Website</p>
+                        <p className="text-[11px] text-slate-400">Pops up on website visits/refresh when active</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
@@ -2064,7 +2064,7 @@ export default function AdminPortal() {
                     {/* Banner Image Upload Controls */}
                     <div className="space-y-2">
                       <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                        Promo Banner Poster Image *
+                        Promotional Banner Poster Image *
                       </label>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2089,7 +2089,7 @@ export default function AdminPortal() {
                           ) : (
                             <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 text-xs font-bold">
                               <Upload className="w-4 h-4 text-amber-500" />
-                              <span>Upload Poster from PC</span>
+                              <span>Upload Poster from Computer</span>
                             </div>
                           )}
                         </label>
@@ -2101,7 +2101,7 @@ export default function AdminPortal() {
                           className="flex items-center justify-center gap-2 p-3.5 border-2 border-dashed border-slate-300 dark:border-white/20 hover:border-blue-400 bg-white dark:bg-slate-900 rounded-2xl cursor-pointer transition-all text-xs font-bold text-slate-700 dark:text-slate-200"
                         >
                           <FolderOpen className="w-4 h-4 text-blue-500" />
-                          <span>Pick from Media (DAM)</span>
+                          <span>Pick from Media Manager</span>
                         </button>
                       </div>
 
@@ -2126,7 +2126,7 @@ export default function AdminPortal() {
                     {/* Target Link URL */}
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                        Target Link URL (OnClick Redirect)
+                        Target Link URL (OnClick Action)
                       </label>
                       <input
                         type="text"
@@ -2144,77 +2144,30 @@ export default function AdminPortal() {
                         className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-mono"
                       />
                       <p className="text-[10px] text-slate-400">
-                        When a visitor clicks the promotional banner or button, they will be redirected to this page.
+                        When student clicks anywhere on the banner poster, they will be redirected to this link.
                       </p>
                     </div>
 
-                    {/* Title & CTA Button */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Banner Heading (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. 72nd BPSC Foundation Batch"
-                          value={settings.promoBanner?.title || ''}
-                          onChange={(e) => {
-                            setSettings(prev => ({
-                              ...prev,
-                              promoBanner: {
-                                ...(prev.promoBanner || { enabled: true, imageUrl: '' }),
-                                title: e.target.value
-                              }
-                            }));
-                          }}
-                          className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                          Button CTA Text (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Enroll Now / View Details"
-                          value={settings.promoBanner?.ctaText || ''}
-                          onChange={(e) => {
-                            setSettings(prev => ({
-                              ...prev,
-                              promoBanner: {
-                                ...(prev.promoBanner || { enabled: true, imageUrl: '' }),
-                                ctaText: e.target.value
-                              }
-                            }));
-                          }}
-                          className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Display Frequency Mode */}
+                    {/* Title */}
                     <div className="space-y-1.5">
                       <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                        Display Frequency for Visitors
+                        Banner Title / Announcement Note (Optional)
                       </label>
-                      <select
-                        value={settings.promoBanner?.displayMode || 'once_per_session'}
+                      <input
+                        type="text"
+                        placeholder="e.g. 72nd BPSC Foundation Batch Admissions Open"
+                        value={settings.promoBanner?.title || ''}
                         onChange={(e) => {
                           setSettings(prev => ({
                             ...prev,
                             promoBanner: {
                               ...(prev.promoBanner || { enabled: true, imageUrl: '' }),
-                              displayMode: e.target.value as 'once_per_session' | 'first_visit_only' | 'always'
+                              title: e.target.value
                             }
                           }));
                         }}
-                        className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-medium"
-                      >
-                        <option value="once_per_session">Once Per Browser Session (Recommended - shows on first visit, doesn&apos;t spam refreshes)</option>
-                        <option value="first_visit_only">Only Once Per Device (Saved until browser cache is cleared)</option>
-                        <option value="always">Always Show on Every Page Load (For testing/live announcements)</option>
-                      </select>
+                        className="w-full px-4 py-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white"
+                      />
                     </div>
                   </div>
 
@@ -2248,13 +2201,13 @@ export default function AdminPortal() {
                           alt="Promo Preview"
                           className="w-full h-auto max-h-[320px] object-contain mx-auto"
                         />
-                        {(settings.promoBanner.title || settings.promoBanner.ctaText) && (
-                          <div className="p-3 bg-slate-950/90 border-t border-white/10 text-white flex items-center justify-between">
-                            <span className="text-xs font-bold truncate">
-                              {settings.promoBanner.title || 'Special Promotion'}
+                        {settings.promoBanner.linkUrl && (
+                          <div className="p-2.5 bg-slate-950/90 border-t border-white/10 text-white flex items-center justify-between text-[11px]">
+                            <span className="truncate text-slate-300 font-mono">
+                              {settings.promoBanner.linkUrl}
                             </span>
-                            <span className="text-[10px] bg-amber-500 text-slate-950 font-extrabold px-2 py-0.5 rounded-md">
-                              {settings.promoBanner.ctaText || 'Check Details'}
+                            <span className="text-[10px] bg-amber-500 text-slate-950 font-extrabold px-2 py-0.5 rounded-md shrink-0">
+                              Opens Link
                             </span>
                           </div>
                         )}
@@ -2262,9 +2215,9 @@ export default function AdminPortal() {
                     ) : (
                       <div className="h-48 border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl flex flex-col items-center justify-center p-4 text-center">
                         <ImageIcon className="w-8 h-8 text-slate-300 dark:text-slate-600 mb-2" />
-                        <p className="text-xs font-bold text-slate-500">No Promo Poster Selected</p>
+                        <p className="text-xs font-bold text-slate-500">No Banner Image Selected</p>
                         <p className="text-[10px] text-slate-400 mt-0.5">
-                          Upload an image or paste URL to see preview
+                          Upload your promotional poster to see live preview
                         </p>
                       </div>
                     )}
@@ -2272,10 +2225,10 @@ export default function AdminPortal() {
                     <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 space-y-1">
                       <p className="font-bold flex items-center gap-1">
                         <Sparkles className="w-3.5 h-3.5" />
-                        <span>Recommended Dimensions:</span>
+                        <span>Display behavior:</span>
                       </p>
                       <p className="text-[10px] text-slate-600 dark:text-slate-300">
-                        Vertical poster flyer: 800×1000 px, or Square: 1080×1080 px. It automatically scales down cleanly on mobile devices.
+                        Shows centered on screen on every visit/refresh. Students close it with the red [✕] button at top right or clicking outside.
                       </p>
                     </div>
                   </div>
