@@ -87,13 +87,21 @@ export default function UploadMainsCopyPage() {
     requireAuth('/auth/login/student');
   }, [requireAuth]);
 
-  // Fetch Test Series
+  // Fetch Test Series (Mains only - strictly exclude Prelims)
   useEffect(() => {
     const loadSeries = async () => {
       try {
         const series = await db.getTestSeries(false);
         if (series && Array.isArray(series)) {
-          setTestSeriesList(series);
+          const mainsOnly = series.filter(s => {
+            const cat = (s.category || '').toLowerCase();
+            const stage = (s.stageId || '').toLowerCase();
+            const title = (s.title || '').toLowerCase();
+            const isMains = cat.includes('mains') || stage.includes('mains') || title.includes('mains');
+            const isPrelims = cat.includes('prelim') || stage.includes('prelim') || title.includes('prelim');
+            return isMains && !isPrelims;
+          });
+          setTestSeriesList(mainsOnly);
         }
       } catch (err) {
         console.error('Failed to load test series:', err);

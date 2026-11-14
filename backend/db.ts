@@ -1083,6 +1083,19 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query('ALTER TABLE lms_quizzes DROP FOREIGN KEY lms_quizzes_ibfk_1'); } catch (_) {}
     try { await pool.query('ALTER TABLE lms_quizzes DROP FOREIGN KEY lms_quizzes_courseId_fkey'); } catch (_) {}
 
+    // Ensure lms_enrollments has expiresAt column on MySQL (safe across all MySQL/MariaDB versions)
+    try {
+      const [colCheck]: any = await pool.query(`
+        SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'lms_enrollments' AND COLUMN_NAME = 'expiresAt'
+      `);
+      if (!colCheck || colCheck.length === 0) {
+        await pool.query('ALTER TABLE lms_enrollments ADD COLUMN expiresAt DATETIME NULL');
+      }
+    } catch (_) {
+      try { await pool.query('ALTER TABLE lms_enrollments ADD COLUMN expiresAt DATETIME NULL'); } catch (_) {}
+    }
+
     // 17. Daily Quizzes & Questions System (Ensure tables & 5-option columns exist on boot)
     try {
       await pool.query(`
@@ -5299,28 +5312,67 @@ class LmsDB {
     if (mysqlPool) {
       try {
         // Check direct enrollment by courseId or testSeriesId / slug (ensuring not expired)
-        const [rows]: any = await mysqlPool.query(
-          `SELECT e.id FROM lms_enrollments e
-           WHERE e.userId = ? AND (
-             e.courseId = ? 
-             OR e.courseId IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
-             OR e.courseId IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
-           ) AND (e.expiresAt IS NULL OR e.expiresAt > NOW()) LIMIT 1`,
-          [userId, courseId, courseId, courseId, courseId, courseId]
-        );
-        if (rows && rows.length > 0) return true;
+        try {
+          const [rows]: any = await mysqlPool.query(
+            `SELECT e.id FROM lms_enrollments e
+             WHERE e.userId = ? AND (
+               e.courseId = ? 
+               OR e.courseId IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+               OR e.courseId IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+             ) AND (e.expiresAt IS NULL OR e.expiresAt > NOW()) LIMIT 1`,
+            [userId, courseId, courseId, courseId, courseId, courseId]
+          );
+          if (rows && rows.length > 0) return true;
+        } catch (colErr: any) {
+          // If expiresAt column does not exist on legacy MySQL schemas, fallback without expiresAt condition
+          if (colErr && (colErr.code === 'ER_BAD_FIELD_ERROR' || colErr.errno === 1054 || String(colErr.message).includes('expiresAt'))) {
+            try {
+              // Self-heal: attempt to add the column in background
+              mysqlPool.query('ALTER TABLE lms_enrollments ADD COLUMN expiresAt DATETIME NULL').catch(() => {});
+              const [fallbackRows]: any = await mysqlPool.query(
+                `SELECT e.id FROM lms_enrollments e
+                 WHERE e.userId = ? AND (
+                   e.courseId = ? 
+                   OR e.courseId IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+                   OR e.courseId IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+                 ) LIMIT 1`,
+                [userId, courseId, courseId, courseId, courseId, courseId]
+              );
+              if (fallbackRows && fallbackRows.length > 0) return true;
+            } catch (innerErr) {
+              console.error('[LmsDB] isEnrolled fallback error:', innerErr);
+            }
+          } else {
+            console.error('[LmsDB] isEnrolled query error:', colErr);
+          }
+        }
 
         // Also check UserEntitlements (test series purchase plans, ensuring active & not expired)
-        const [entRows]: any = await mysqlPool.query(
-          `SELECT id FROM user_entitlements
-           WHERE user_id = ? AND (
-             series_id = ?
-             OR series_id IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
-             OR series_id IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
-           ) AND status = 'ACTIVE' AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1`,
-          [userId, courseId, courseId, courseId, courseId, courseId]
-        );
-        if (entRows && entRows.length > 0) return true;
+        try {
+          const [entRows]: any = await mysqlPool.query(
+            `SELECT id FROM user_entitlements
+             WHERE user_id = ? AND (
+               series_id = ?
+               OR series_id IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+               OR series_id IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+             ) AND status = 'ACTIVE' AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1`,
+            [userId, courseId, courseId, courseId, courseId, courseId]
+          );
+          if (entRows && entRows.length > 0) return true;
+        } catch (entErr: any) {
+          if (entErr && (entErr.code === 'ER_BAD_FIELD_ERROR' || entErr.errno === 1054)) {
+            const [fallbackEnt]: any = await mysqlPool.query(
+              `SELECT id FROM user_entitlements
+               WHERE user_id = ? AND (
+                 series_id = ?
+                 OR series_id IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+                 OR series_id IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
+               ) AND status = 'ACTIVE' LIMIT 1`,
+              [userId, courseId, courseId, courseId, courseId, courseId]
+            ).catch(() => [[]]);
+            if (fallbackEnt && fallbackEnt.length > 0) return true;
+          }
+        }
 
         return false;
       } catch (err) { console.error('[LmsDB] isEnrolled MySQL error:', err); }

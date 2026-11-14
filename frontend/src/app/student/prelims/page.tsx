@@ -90,14 +90,20 @@ export default function StudentPrelimsPage() {
     passRate: number;
   }>({ totalAttempts: 0, avgScore: 0, accuracy: 0, passRate: 0 });
 
-  // Load Exam Hierarchy & Prelims Test Series
+  // Load Exam Hierarchy & Prelims Test Series (strictly exclude Mains)
   useEffect(() => {
     const loadHierarchy = async () => {
       try {
         const series = await db.getTestSeries(false);
-        const prelimsSeries = (series || []).filter(s => 
-          !s.category || s.category.toLowerCase().includes('prelims')
-        );
+        const prelimsSeries = (series || []).filter(s => {
+          const cat = (s.category || '').toLowerCase();
+          const stage = (s.stageId || '').toLowerCase();
+          const title = (s.title || '').toLowerCase();
+          const isMains = cat.includes('mains') || stage.includes('mains') || title.includes('mains');
+          const isPrelims = cat.includes('prelim') || stage.includes('prelim') || title.includes('prelim');
+          // Include if explicitly prelims or default not-mains, but NEVER if it matches mains
+          return !isMains && (isPrelims || !cat || cat.includes('test series'));
+        });
         setTestSeriesList(prelimsSeries as TestSeriesItem[]);
 
         const exList = await db.getExamsHierarchy(false);

@@ -93,7 +93,15 @@ export default function StudentMainsPage() {
         }
         const series = await db.getTestSeries(false);
         if (series && Array.isArray(series)) {
-          const mainsSeries = series.filter(s => (s as unknown as TestSeriesItem).category?.toLowerCase().includes('mains') || true);
+          // Strictly isolate Mains: include only series that belong to Mains and NEVER Prelims
+          const mainsSeries = series.filter(s => {
+            const cat = ((s as any).category || '').toLowerCase();
+            const stage = ((s as any).stageId || '').toLowerCase();
+            const title = ((s as any).title || '').toLowerCase();
+            const isMains = cat.includes('mains') || stage.includes('mains') || title.includes('mains');
+            const isPrelims = cat.includes('prelim') || stage.includes('prelim') || title.includes('prelim');
+            return isMains && !isPrelims;
+          });
           setTestSeriesList(mainsSeries as unknown as TestSeriesItem[]);
         }
       } catch (err) {

@@ -41,15 +41,30 @@ export default function StageFolderPage() {
           const examKey = (foundExam.code || foundExam.name || foundExam.slug || '').toLowerCase();
           const stageKey = (foundStage?.name || stageSlug || '').toLowerCase();
 
-          // Filter series belonging to this exam and stage
+          // Filter series belonging to this exam and stage (strictly isolating Prelims and Mains)
+          const isTargetStageMains = stageKey.includes('mains');
+          const isTargetStagePrelims = stageKey.includes('prelim');
+
           const seriesPool = (foundExam.testSeries && foundExam.testSeries.length > 0) ? foundExam.testSeries : allSeries;
           const filtered = seriesPool.filter((s) => {
             const sExam = (s.exam || s.examId || s.category || s.title || '').toLowerCase();
             const sStage = (s.stageId || s.category || s.title || '').toLowerCase();
 
             const isExamMatch = s.examId === foundExam.id || sExam.includes(examKey);
-            const isStageMatch = !foundStage || s.stageId === foundStage.id || sStage.includes(stageKey);
 
+            if (isTargetStageMains) {
+              const isMains = sStage.includes('mains');
+              const isPrelims = sStage.includes('prelim');
+              return isExamMatch && isMains && !isPrelims;
+            }
+
+            if (isTargetStagePrelims) {
+              const isMains = sStage.includes('mains');
+              const isPrelims = sStage.includes('prelim');
+              return isExamMatch && !isMains && (isPrelims || (!sStage.includes('interview') && !sStage.includes('mains')));
+            }
+
+            const isStageMatch = !foundStage || s.stageId === foundStage.id || sStage.includes(stageKey);
             return isExamMatch && isStageMatch;
           });
 
