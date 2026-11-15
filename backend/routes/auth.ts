@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { requireAdmin } from '../middleware/role';
 import {
   signAccessToken,
   signRefreshToken,
@@ -549,7 +550,7 @@ router.post('/reset-password', authLimiter, async (req: Request, res: Response) 
 });
 
 // ─── ADMIN: Get All Users with Enrollment & Payment Info ─────────────────────
-router.get('/users', async (req: Request, res: Response) => {
+router.get('/users', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const list = await authDB.getUsersWithEnrollments();
     res.json(list);
@@ -559,7 +560,7 @@ router.get('/users', async (req: Request, res: Response) => {
 });
 
 // ─── ADMIN: Toggle User Active/Suspended ─────────────────────────────────────
-router.put('/users/:id/status', async (req: Request, res: Response) => {
+router.put('/users/:id/status', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const { isActive } = req.body;
   try {
@@ -571,7 +572,7 @@ router.put('/users/:id/status', async (req: Request, res: Response) => {
 });
 
 // ─── SUPER ADMIN: Update User Role ───────────────────────────────────────────
-router.put('/users/:id/role', async (req: Request, res: Response) => {
+router.put('/users/:id/role', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const { role } = req.body;
   const ALLOWED_ROLES = ['student', 'faculty', 'admin', 'evaluator', 'content_manager', 'counselor'];
@@ -593,7 +594,7 @@ router.put('/users/:id/role', async (req: Request, res: Response) => {
 });
 
 // ─── SUPER ADMIN: Update User Full Profile Info ─────────────────────────────
-router.put('/users/:id/profile', async (req: Request, res: Response) => {
+router.put('/users/:id/profile', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const { fullName, email, mobile, targetExam, role, avatarUrl } = req.body;
   const ALLOWED_ROLES = ['student', 'faculty', 'admin', 'evaluator', 'content_manager', 'counselor'];
@@ -618,7 +619,7 @@ router.put('/users/:id/profile', async (req: Request, res: Response) => {
 });
 
 // ─── ADMIN: Delete User Profile ──────────────────────────────────────────────
-router.delete('/users/:id', async (req: Request, res: Response) => {
+router.delete('/users/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   try {
     const ok = await authDB.deleteUser(id);

@@ -1,12 +1,17 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
+import { authenticate, AuthRequest } from '../middleware/auth';
+import { requireAdmin } from '../middleware/role';
 import { AdapterFactory } from '../services/documentEngine/adapters/AdapterFactory';
 import { QnaExtractor } from '../services/documentEngine/extraction/QnaExtractor';
 import { StagingService } from '../services/documentEngine/staging/StagingService';
 import { LmsCommitService } from '../services/documentEngine/commit/LmsCommitService';
 
 const router = Router();
+
+// Secure entire document-imports engine: Admin only
+router.use(authenticate, requireAdmin);
 const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB file size limit
 });

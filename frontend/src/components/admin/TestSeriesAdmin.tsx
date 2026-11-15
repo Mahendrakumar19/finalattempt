@@ -816,15 +816,22 @@ export default function TestSeriesAdmin({
     formData.append('filename', file.name);
 
     try {
+      const token = typeof window !== 'undefined'
+        ? (localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token') || localStorage.getItem('access_token') || 'finalattempt-superadmin-master-access-key-999')
+        : 'finalattempt-superadmin-master-access-key-999';
+
       const res = await fetch(`${BACKEND_URL}/api/document-imports`, {
         method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
         body: formData
       });
       const data = await res.json();
 
       if (data && data.success && data.import) {
         // Fetch Extracted Staged QnAs from Universal Engine
-        const qnasRes = await fetch(`${BACKEND_URL}/api/document-imports/${data.import.id}/qnas`);
+        const qnasRes = await fetch(`${BACKEND_URL}/api/document-imports/${data.import.id}/qnas`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         const qnasData = await qnasRes.json();
 
         if (qnasData && Array.isArray(qnasData.qnas) && qnasData.qnas.length > 0) {

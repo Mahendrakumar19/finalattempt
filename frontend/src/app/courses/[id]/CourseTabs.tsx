@@ -93,16 +93,19 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
     return null;
   };
 
+  const getAuthHeader = (): Record<string, string> => {
+    if (typeof window === 'undefined') return {};
+    const tok = localStorage.getItem('access_token') || localStorage.getItem('token') || localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token');
+    return tok ? { 'Authorization': `Bearer ${tok}` } : {};
+  };
+
   // Fetch sections and lessons for this course
   const fetchCurriculum = useCallback(async () => {
     setLoadingCurriculum(true);
     try {
-      // Fetch public sections (fallback offline or direct)
+      // Fetch sections (sends student/admin token if authenticated)
       const res = await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}/sections`, {
-        headers: {
-          // Send simulated auth token for editor validation
-          'Authorization': 'Bearer finalattempt-admin-token-secure-hash'
-        }
+        headers: getAuthHeader()
       });
       if (res.ok) {
         const payload = await res.json();
@@ -130,7 +133,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
     try {
       const res = await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}/sections`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify({ title })
       });
       if (res.ok) {
@@ -146,7 +149,8 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
     if (!window.confirm('Delete this chapter? All lessons inside will be unlinked.')) return;
     try {
       const res = await fetch(`${BACKEND_URL}/api/lms/sections/${sectionId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeader()
       });
       if (res.ok) {
         fetchCurriculum();
@@ -164,7 +168,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
     try {
       const res = await fetch(`${BACKEND_URL}/api/lms/sections/${sectionId}/lessons`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify({
           courseId: course.id,
           title,
@@ -185,7 +189,8 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
     if (!window.confirm('Remove this lecture video?')) return;
     try {
       const res = await fetch(`${BACKEND_URL}/api/lms/lessons/${lessonId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: getAuthHeader()
       });
       if (res.ok) {
         fetchCurriculum();
@@ -201,7 +206,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
     try {
       const res = await fetch(`${BACKEND_URL}/api/lms/sections/${sectionId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify({ title })
       });
       if (res.ok) {
@@ -221,7 +226,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
     try {
       const res = await fetch(`${BACKEND_URL}/api/lms/lessons/${lessonId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
         body: JSON.stringify({ title, videoUrl, duration })
       });
       if (res.ok) {

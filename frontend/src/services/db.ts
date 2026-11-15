@@ -420,12 +420,12 @@ class FinalAttemptDB {
       if (!headers.has('x-locale')) {
         headers.set('x-locale', locale);
       }
-      if (!headers.has('Authorization')) {
-        if (typeof window !== 'undefined') {
-          const adminToken = localStorage.getItem('finalattempt_admin_token') || 'finalattempt-admin-token-secure-hash';
-          headers.set('Authorization', `Bearer ${adminToken}`);
-        } else {
-          headers.set('Authorization', 'Bearer finalattempt-admin-token-secure-hash');
+      if (!headers.has('Authorization') && typeof window !== 'undefined') {
+        const adminTok = localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token');
+        const userTok = localStorage.getItem('access_token') || localStorage.getItem('token');
+        const activeTok = adminTok || userTok;
+        if (activeTok && activeTok !== 'null' && activeTok !== 'undefined') {
+          headers.set('Authorization', `Bearer ${activeTok}`);
         }
       }
       const res = await fetch(`${BACKEND_URL}${endpoint}`, {

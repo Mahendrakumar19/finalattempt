@@ -35,21 +35,22 @@ async function apiFetch<T>(
   };
 
   if (endpoint.includes('/admin/')) {
-    // When calling an admin endpoint, prioritize the master/admin token
+    // When calling an admin endpoint, prioritize the admin token
     if (typeof window !== 'undefined') {
       const adminTok = localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token');
       if (isTokenAcceptable(adminTok)) {
         headers['Authorization'] = `Bearer ${adminTok}`;
       } else if (isTokenAcceptable(accessToken)) {
         headers['Authorization'] = `Bearer ${accessToken}`;
-      } else {
-        headers['Authorization'] = 'Bearer finalattempt-superadmin-master-access-key-999';
       }
-    } else {
-      headers['Authorization'] = 'Bearer finalattempt-superadmin-master-access-key-999';
     }
   } else if (isTokenAcceptable(accessToken)) {
     headers['Authorization'] = `Bearer ${accessToken}`;
+  } else if (typeof window !== 'undefined') {
+    const adminTok = localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token');
+    if (isTokenAcceptable(adminTok)) {
+      headers['Authorization'] = `Bearer ${adminTok}`;
+    }
   }
 
   try {

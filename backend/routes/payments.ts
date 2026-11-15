@@ -116,8 +116,13 @@ router.post(['/verify', '/verify-payment'], optionalAuth, async (req: AuthReques
   try {
     const key_secret = process.env.RAZORPAY_KEY_SECRET || '4ViOK1jEPrPtZPYcou4ut48V';
 
-    // Verify HMAC-SHA256 signature if signature is present and not dummy order
-    if (signature && orderId && !orderId.startsWith('order_ts_') && !orderId.startsWith('order_sim_')) {
+    // Verify HMAC-SHA256 signature
+    const isMockOrder = (orderId.startsWith('order_ts_') || orderId.startsWith('order_sim_')) && process.env.NODE_ENV !== 'production';
+    if (!isMockOrder) {
+      if (!signature) {
+        res.status(400).json({ success: false, error: 'Payment signature is required for verification.', code: 'PAY_SIGNATURE_REQUIRED' });
+        return;
+      }
       const generated_signature = crypto
         .createHmac('sha256', key_secret)
         .update(orderId + '|' + paymentId)

@@ -31,6 +31,8 @@ import testSeriesPurchaseRouter from './routes/testSeriesPurchase';
 import { verifyEmailConnection } from './services/email';
 import { ContentLocalizer, getTargetLang } from './services/contentLocalizer';
 import { memoryCache } from './services/cacheService';
+import { authenticate } from './middleware/auth';
+import { requireAdmin } from './middleware/role';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -198,7 +200,7 @@ app.get('/api/settings', async (req, res) => {
   }
 });
 
-app.put('/api/settings', async (req, res) => {
+app.put('/api/settings', authenticate, requireAdmin, async (req, res) => {
   try {
     const ok = await db.updateSettings(req.body);
     memoryCache.invalidateTag('settings'); // Instant invalidation on update
@@ -470,7 +472,7 @@ app.post('/api/visitors/increment', async (req, res) => {
 });
 
 // LEADS
-app.get('/api/leads', async (req, res) => {
+app.get('/api/leads', authenticate, requireAdmin, async (req, res) => {
   try {
     const leads = await db.getLeads();
     res.json(leads);
@@ -497,8 +499,8 @@ app.post('/api/leads', async (req, res) => {
   }
 });
 
-app.put('/api/leads/:id', async (req, res) => {
-  const { id } = req.params;
+app.put('/api/leads/:id', authenticate, requireAdmin, async (req, res) => {
+  const id = String(req.params.id);
   const { status } = req.body;
   try {
     const ok = await db.updateLeadStatus(id, status);

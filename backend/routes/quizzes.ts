@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { Router, Request, Response } from 'express';
 import { authenticate, optionalAuth, AuthRequest } from '../middleware/auth';
-import { requireStudent } from '../middleware/role';
+import { requireStudent, requireAdmin } from '../middleware/role';
 import { lmsDB } from '../db';
 import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 import { AdapterFactory } from '../services/documentEngine/adapters/AdapterFactory';
@@ -428,7 +428,7 @@ router.post('/daily/:quizId/submit', optionalAuth, async (req: AuthRequest, res:
 });
 
 // Admin Save Daily Quiz Metadata
-router.post('/admin/daily', async (req: AuthRequest, res: Response) => {
+router.post('/admin/daily', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const quiz = await lmsDB.saveDailyQuiz(req.body);
     memoryCache.invalidateTag('daily_quizzes');
@@ -439,7 +439,7 @@ router.post('/admin/daily', async (req: AuthRequest, res: Response) => {
 });
 
 // Admin Delete Daily Quiz
-router.delete('/admin/daily/:id', async (req: AuthRequest, res: Response) => {
+router.delete('/admin/daily/:id', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const ok = await lmsDB.deleteDailyQuiz(req.params.id as string);
     memoryCache.invalidateTag('daily_quizzes');
@@ -450,7 +450,7 @@ router.delete('/admin/daily/:id', async (req: AuthRequest, res: Response) => {
 });
 
 // Admin Get Daily Quiz Questions (Includes correctAnswer & explanation for CMS editing)
-router.get('/admin/daily/:quizId/questions', async (req: AuthRequest, res: Response) => {
+router.get('/admin/daily/:quizId/questions', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
     const questions = await lmsDB.getDailyQuizQuestions(quizId);
@@ -461,7 +461,7 @@ router.get('/admin/daily/:quizId/questions', async (req: AuthRequest, res: Respo
 });
 
 // Admin Save Daily Quiz Question (Single or Array)
-router.post('/admin/daily/:quizId/questions', async (req: AuthRequest, res: Response) => {
+router.post('/admin/daily/:quizId/questions', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
     memoryCache.invalidateTag('daily_quizzes');
@@ -477,7 +477,7 @@ router.post('/admin/daily/:quizId/questions', async (req: AuthRequest, res: Resp
 });
 
 // Admin Bulk Import Daily Quiz Questions
-router.post('/admin/daily/:quizId/questions/bulk', async (req: AuthRequest, res: Response) => {
+router.post('/admin/daily/:quizId/questions/bulk', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
     memoryCache.invalidateTag('daily_quizzes');
@@ -493,7 +493,7 @@ router.post('/admin/daily/:quizId/questions/bulk', async (req: AuthRequest, res:
 });
 
 // Admin Delete Daily Quiz Question
-router.delete('/admin/daily/:quizId/questions/:qId', async (req: AuthRequest, res: Response) => {
+router.delete('/admin/daily/:quizId/questions/:qId', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const quizId = req.params.quizId as string;
     const qId = req.params.qId as string;
@@ -515,7 +515,7 @@ const pdfMemoryStorage = multer.memoryStorage();
 const pdfUpload = multer({ storage: pdfMemoryStorage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Step 1a: Parse Any Document File (PDF, DOCX, DOC, TXT, CSV, JSON, HTML, Images) Buffer & Extract QnAs
-router.post('/admin/parse-bilingual-pdf', pdfUpload.single('file'), async (req: Request & { file?: any }, res: Response) => {
+router.post('/admin/parse-bilingual-pdf', authenticate, requireAdmin, pdfUpload.single('file'), async (req: Request & { file?: any }, res: Response) => {
   try {
     if (!req.file || !req.file.buffer) {
       res.status(400).json({ success: false, error: 'Document file is required in request payload.' });
@@ -583,7 +583,7 @@ router.post('/admin/parse-bilingual-pdf', pdfUpload.single('file'), async (req: 
 });
 
 // Step 1b: Parse plain text (pasted text) & Run Validation Pass (NO DB WRITE)
-router.post('/admin/parse-bilingual-text', async (req: Request, res: Response) => {
+router.post('/admin/parse-bilingual-text', authenticate, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { text } = req.body;
     if (!text || typeof text !== 'string' || !text.trim()) {
@@ -599,7 +599,7 @@ router.post('/admin/parse-bilingual-text', async (req: Request, res: Response) =
 });
 
 // Step 1c: Dedicated Excel Question Bank Import Endpoint (.xlsx ONLY)
-router.post('/admin/parse-excel', pdfUpload.single('file'), async (req: Request & { file?: any }, res: Response) => {
+router.post('/admin/parse-excel', authenticate, requireAdmin, pdfUpload.single('file'), async (req: Request & { file?: any }, res: Response) => {
   try {
     if (!req.file || !req.file.buffer) {
       res.status(400).json({ success: false, error: 'Excel file is required in request payload.' });
@@ -722,7 +722,7 @@ router.get('/attempts/me', authenticate, requireStudent, async (req: AuthRequest
 });
 
 // Step 2: Atomic Import Execution (Creates Quiz + Questions transactional write)
-router.post('/admin/import-bilingual-quiz', async (req: Request, res: Response) => {
+router.post('/admin/import-bilingual-quiz', authenticate, requireAdmin, async (req: Request, res: Response) => {
   try {
     const { quizId, title, courseId, description, questions, replaceExisting } = req.body;
 

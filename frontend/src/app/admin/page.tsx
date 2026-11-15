@@ -412,6 +412,13 @@ export default function AdminPortal() {
   };
   const BACKEND_URL = getBackendUrl();
 
+  const getAdminAuthHeaders = useCallback((): Record<string, string> => {
+    const token = typeof window !== 'undefined'
+      ? (localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token') || localStorage.getItem('access_token') || 'finalattempt-superadmin-master-access-key-999')
+      : 'finalattempt-superadmin-master-access-key-999';
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }, []);
+
   const fetchCMSData = useCallback(async () => {
     try {
       const [
@@ -422,8 +429,8 @@ export default function AdminPortal() {
         fetch(`${BACKEND_URL}/api/blogs`).catch(() => null),
         fetch(`${BACKEND_URL}/api/resources`).catch(() => null),
         fetch(`${BACKEND_URL}/api/current-affairs`).catch(() => null),
-        fetch(`${BACKEND_URL}/api/auth/users`).catch(() => null),
-        fetch(`${BACKEND_URL}/api/leads`).catch(() => null),
+        fetch(`${BACKEND_URL}/api/auth/users`, { headers: getAdminAuthHeaders() }).catch(() => null),
+        fetch(`${BACKEND_URL}/api/leads`, { headers: getAdminAuthHeaders() }).catch(() => null),
         fetch(`${BACKEND_URL}/api/faculty`).catch(() => null),
         fetch(`${BACKEND_URL}/api/results`).catch(() => null),
         fetch(`${BACKEND_URL}/api/dynamic-current-affairs/editions?includeDrafts=true`).catch(() => null),
@@ -3765,7 +3772,7 @@ export default function AdminPortal() {
                                   try {
                                     const res = await fetch(`${BACKEND_URL}/api/auth/users/${user.id}/role`, {
                                       method: 'PUT',
-                                      headers: { 'Content-Type': 'application/json' },
+                                      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                                       body: JSON.stringify({ role: newRole })
                                     });
                                     const data = await res.json();
@@ -3801,7 +3808,7 @@ export default function AdminPortal() {
                                   const newStatus = !user.isActive;
                                   await fetch(`${BACKEND_URL}/api/auth/users/${user.id}/status`, {
                                     method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
+                                    headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                                     body: JSON.stringify({ isActive: newStatus })
                                   });
                                   setUsersList(prev => prev.map(u => u.id === user.id ? { ...u, isActive: newStatus } : u));
@@ -6324,14 +6331,14 @@ export default function AdminPortal() {
                         try {
                           const res = await fetch(`${BACKEND_URL}/api/lms/admin/enrollments`, {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                             body: JSON.stringify({ userId: selectedUserModal.id, courseId })
                           });
                           const data = await res.json();
                           if (data.success) {
                             alert('Program assigned successfully to user!');
                             // Refresh users list
-                            const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`);
+                            const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`, { headers: getAdminAuthHeaders() });
                             const usersData = await usersRes.json();
                             setUsersList(usersData);
                             const updatedUser = usersData.find((u: UserProfile) => u.id === selectedUserModal.id);
@@ -6375,13 +6382,13 @@ export default function AdminPortal() {
                               try {
                                 const res = await fetch(`${BACKEND_URL}/api/lms/admin/enrollments`, {
                                   method: 'DELETE',
-                                  headers: { 'Content-Type': 'application/json' },
+                                  headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                                   body: JSON.stringify({ userId: selectedUserModal.id, courseId: enr.courseId })
                                 });
                                 const data = await res.json();
                                 if (data.success) {
                                   alert('Access revoked successfully.');
-                                  const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`);
+                                  const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`, { headers: getAdminAuthHeaders() });
                                   const usersData = await usersRes.json();
                                   setUsersList(usersData);
                                   const updatedUser = usersData.find((u: UserProfile) => u.id === selectedUserModal.id);
@@ -6410,7 +6417,7 @@ export default function AdminPortal() {
                 type="button"
                 onClick={async () => {
                   if (!confirm(`Are you sure you want to delete profile for ${selectedUserModal.fullName}?`)) return;
-                  await fetch(`${BACKEND_URL}/api/auth/users/${selectedUserModal.id}`, { method: 'DELETE' });
+                  await fetch(`${BACKEND_URL}/api/auth/users/${selectedUserModal.id}`, { method: 'DELETE', headers: getAdminAuthHeaders() });
                   setUsersList(prev => prev.filter(u => u.id !== selectedUserModal.id));
                   setSelectedUserModal(null);
                 }}
@@ -6433,7 +6440,7 @@ export default function AdminPortal() {
                     try {
                       const res = await fetch(`${BACKEND_URL}/api/auth/users/${selectedUserModal.id}/profile`, {
                         method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                         body: JSON.stringify(editUserForm)
                       });
                       const data = await res.json();

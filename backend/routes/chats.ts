@@ -23,8 +23,17 @@ function authenticateAdminOrMasterKey(req: AuthRequest, res: Response, next: Nex
     next();
     return;
   }
-  // Otherwise validate JWT
-  authenticate(req, res, next);
+  try {
+    const decoded = verifyAccessToken(token);
+    if (decoded.role !== 'admin' && decoded.role !== 'faculty' && decoded.role !== 'counselor') {
+      res.status(403).json({ success: false, error: 'Admin or Staff role required', code: 'AUTH_INSUFFICIENT_ROLE' });
+      return;
+    }
+    req.user = decoded;
+    next();
+  } catch (err) {
+    res.status(401).json({ success: false, error: 'Invalid or expired token', code: 'AUTH_INVALID_TOKEN' });
+  }
 }
 
 // Middleware: optional authentication for read endpoints so guests/students never get 401
@@ -58,7 +67,15 @@ const router = Router();
 // Get or Create Personal Support Room (Student <-> Admin/Mentor)
 router.get('/support-room', optionalAuthenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const studentId = req.user?.userId || req.query.studentId as string || 'guest-student-user';
+    let studentId = req.user?.userId;
+    // An admin or counselor can request any student's support room via query param
+    if (req.user && ['admin', 'faculty', 'counselor'].includes(req.user.role) && req.query.studentId) {
+      studentId = String(req.query.studentId);
+    } else if (!studentId) {
+      // Guest users without an account get a scoped guest ID, cannot view real student rooms
+      const guestHeader = req.headers['x-guest-id'] as string;
+      studentId = guestHeader ? `guest-${guestHeader.replace(/[^a-zA-Z0-9_-]/g, '')}` : 'guest-student-user';
+    }
     const room = await lmsDB.getOrCreateSupportRoom(studentId, req.user?.email);
     res.json({ success: true, data: room });
   } catch (err: any) {
@@ -91,6 +108,19 @@ router.get('/rooms/:courseId', authenticate, async (req: AuthRequest, res: Respo
 router.get('/messages/:roomId', optionalAuthenticate, async (req: AuthRequest, res: Response) => {
   try {
     const roomId = Array.isArray(req.params.roomId) ? req.params.roomId[0] : req.params.roomId;
+
+    // Privacy Isolation: Direct support chat messages can only be viewed by the student or staff!
+    if (roomId.startsWith('support-')) {
+      const roomStudentId = roomId.replace('support-', '');
+      const isOwner = req.user && req.user.userId === roomStudentId;
+      const isStaff = req.user && ['admin', 'faculty', 'counselor', 'evaluator'].includes(req.user.role);
+      const isGuestSelf = !req.user && (roomStudentId.startsWith('guest-') || roomStudentId === 'guest-student-user');
+
+      if (!isOwner && !isStaff && !isGuestSelf) {
+        return res.status(403).json({ success: false, error: 'Access denied: You cannot view another student\'s private chat' });
+      }
+    }
+
     const messages = await lmsDB.getChatMessagesByRoomId(roomId, 100);
     res.json({ success: true, data: messages });
   } catch (err: any) {
@@ -132,7 +162,7 @@ router.delete('/messages/:messageId', optionalAuthenticate, async (req: AuthRequ
 });
 
 // Admin: Delete Chat Room
-router.delete('/rooms/:roomId', authenticateAdminOrMasterKey, async (req: AuthRequest, res: Response) => {
+router.delete('/rooms/:roomId', authenticateAdminOrMasterKey, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const roomId = Array.isArray(req.params.roomId) ? req.params.roomId[0] : req.params.roomId;
     const ok = await lmsDB.deleteChatRoom(roomId);
@@ -143,7 +173,7 @@ router.delete('/rooms/:roomId', authenticateAdminOrMasterKey, async (req: AuthRe
 });
 
 // Admin: Block / Unblock User
-router.post('/block-user', authenticateAdminOrMasterKey, async (req: AuthRequest, res: Response) => {
+router.post('/block-user', authenticateAdminOrMasterKey, requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const { userId, isBlocked } = req.body;
     if (!userId) {

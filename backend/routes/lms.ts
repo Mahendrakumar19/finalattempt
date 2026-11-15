@@ -7,13 +7,11 @@ import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 
 const router = Router();
 
-// Helper middleware for Admin / Master Key Authentication across LMS Admin Routes
+// Helper middleware for Admin / Evaluator / Master Key Authentication across LMS Admin Routes
 const authenticateAdminLms = (req: AuthRequest, res: Response, next: any) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    // Check if session has admin master key fallback
-    req.user = { userId: 'admin-master', email: 'admin@finalattempt.com', role: 'admin', sessionId: 'master' };
-    return next();
+    return res.status(401).json({ success: false, error: 'Unauthorized: Authentication required', code: 'AUTH_MISSING_TOKEN' });
   }
   const token = authHeader.split(' ')[1];
   const masterKeys = [
@@ -29,13 +27,13 @@ const authenticateAdminLms = (req: AuthRequest, res: Response, next: any) => {
   try {
     const { verifyAccessToken } = require('../services/jwt');
     const payload = verifyAccessToken(token);
-    // When performing admin operations from admin UI, allow access with admin privileges
-    req.user = { ...payload, role: 'admin' };
+    if (payload.role !== 'admin' && payload.role !== 'faculty' && payload.role !== 'evaluator') {
+      return res.status(403).json({ success: false, error: 'Access denied: Administrator or Faculty privileges required', code: 'AUTH_INSUFFICIENT_ROLE' });
+    }
+    req.user = payload;
     return next();
   } catch (_) {
-    // If invalid token sent from browser while in admin mode, automatically allow master admin
-    req.user = { userId: 'admin-master', email: 'admin@finalattempt.com', role: 'admin', sessionId: 'master' };
-    return next();
+    return res.status(401).json({ success: false, error: 'Unauthorized: Invalid or expired token', code: 'AUTH_INVALID_TOKEN' });
   }
 };
 
@@ -62,7 +60,7 @@ router.get('/courses', async (req, res) => {
 // ─────────────────────────── POST /api/lms/courses ───────────────────────────
 // Admin: create/publish a course
 
-router.post('/courses', async (req: Request, res: Response) => {
+router.post('/courses', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const course = await lmsDB.createCourse(req.body);
     res.status(201).json({ success: true, data: course });
@@ -214,7 +212,7 @@ router.post('/enrollments', authenticate, async (req: AuthRequest, res: Response
 
 // ─────────────────────────── ADMIN ENROLLMENT MANAGEMENT ──────────────────────
 // Admin: Manually assign user to course or test series
-router.post('/admin/enrollments', async (req: Request, res: Response) => {
+router.post('/admin/enrollments', authenticateAdminLms, async (req: Request, res: Response) => {
   const { userId, courseId, amountPaid } = req.body;
   if (!userId || !courseId) {
     res.status(400).json({ success: false, error: 'userId and courseId are required.' });
@@ -253,7 +251,7 @@ router.post('/admin/enrollments', async (req: Request, res: Response) => {
 });
 
 // Admin: Unenroll / revoke course or test series access
-router.delete('/admin/enrollments', async (req: Request, res: Response) => {
+router.delete('/admin/enrollments', authenticateAdminLms, async (req: Request, res: Response) => {
   const { userId, courseId } = req.body;
   if (!userId || !courseId) {
     res.status(400).json({ success: false, error: 'userId and courseId are required.' });
@@ -323,7 +321,7 @@ router.get('/analytics/me', authenticate, requireStudent, async (req: AuthReques
 
 // ─────────────────────────── PUT /api/lms/courses/:id ─────────────────────────
 // Update course details
-router.put('/courses/:id', async (req: Request, res: Response) => {
+router.put('/courses/:id', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     if (!id || typeof id !== 'string') {
@@ -339,7 +337,7 @@ router.put('/courses/:id', async (req: Request, res: Response) => {
 
 // ─────────────────────────── DELETE /api/lms/courses/:id ──────────────────────
 // Delete a course
-router.delete('/courses/:id', async (req: Request, res: Response) => {
+router.delete('/courses/:id', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     if (!id || typeof id !== 'string') {
@@ -355,7 +353,7 @@ router.delete('/courses/:id', async (req: Request, res: Response) => {
 
 // ─────────────────────────── POST /api/lms/courses/:courseId/sections ──────────
 // Add a section to a course
-router.post('/courses/:courseId/sections', async (req: Request, res: Response) => {
+router.post('/courses/:courseId/sections', authenticateAdminLms, async (req: Request, res: Response) => {
   const courseId = Array.isArray(req.params.courseId) ? req.params.courseId[0] : req.params.courseId;
   if (!courseId || typeof courseId !== 'string') {
     res.status(400).json({ success: false, error: 'Invalid courseId parameter.' });
@@ -378,7 +376,7 @@ router.post('/courses/:courseId/sections', async (req: Request, res: Response) =
 
 // ─────────────────────────── PUT /api/lms/sections/:sectionId ─────────────────
 // Update section title
-router.put('/sections/:sectionId', async (req: Request, res: Response) => {
+router.put('/sections/:sectionId', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const sectionId = Array.isArray(req.params.sectionId) ? req.params.sectionId[0] : req.params.sectionId;
     if (!sectionId || typeof sectionId !== 'string') {
@@ -394,7 +392,7 @@ router.put('/sections/:sectionId', async (req: Request, res: Response) => {
 
 // ─────────────────────────── DELETE /api/lms/sections/:sectionId ──────────────
 // Delete a section
-router.delete('/sections/:sectionId', async (req: Request, res: Response) => {
+router.delete('/sections/:sectionId', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const sectionId = Array.isArray(req.params.sectionId) ? req.params.sectionId[0] : req.params.sectionId;
     if (!sectionId || typeof sectionId !== 'string') {
@@ -410,7 +408,7 @@ router.delete('/sections/:sectionId', async (req: Request, res: Response) => {
 
 // ─────────────────────────── POST /api/lms/sections/:sectionId/lessons ─────────
 // Add a lesson/lecture to a section
-router.post('/sections/:sectionId/lessons', async (req: Request, res: Response) => {
+router.post('/sections/:sectionId/lessons', authenticateAdminLms, async (req: Request, res: Response) => {
   const sectionId = Array.isArray(req.params.sectionId) ? req.params.sectionId[0] : req.params.sectionId;
   if (!sectionId || typeof sectionId !== 'string') {
     res.status(400).json({ success: false, error: 'Invalid sectionId parameter.' });
@@ -471,7 +469,7 @@ router.post('/sections/:sectionId/lessons', async (req: Request, res: Response) 
 
 // ─────────────────────────── LIVE CLASS OBS STREAM KEY & CREDENTIALS ──────────
 // Generate or regenerate OBS Studio RTMP URL & Stream Key for a Live Lesson
-router.post('/lessons/:lessonId/live-stream-credentials', async (req: Request, res: Response) => {
+router.post('/lessons/:lessonId/live-stream-credentials', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const lessonId = req.params.lessonId as string;
     const lesson = await lmsDB.getLessonById(lessonId);
@@ -519,7 +517,7 @@ router.post('/lessons/:lessonId/live-stream-credentials', async (req: Request, r
 });
 
 // Update Live Status (e.g., 'live' when faculty starts stream, 'ended' when finished)
-router.post('/lessons/:lessonId/live-status', async (req: Request, res: Response) => {
+router.post('/lessons/:lessonId/live-status', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const lessonId = req.params.lessonId as string;
     const { status, recordingUrl } = req.body; // 'scheduled' | 'live' | 'ended'
@@ -541,7 +539,7 @@ router.post('/lessons/:lessonId/live-status', async (req: Request, res: Response
 
 // ─────────────────────────── PUT /api/lms/lessons/:lessonId ───────────────────
 // Update a lesson/lecture details
-router.put('/lessons/:lessonId', async (req: Request, res: Response) => {
+router.put('/lessons/:lessonId', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const lessonId = Array.isArray(req.params.lessonId) ? req.params.lessonId[0] : req.params.lessonId;
     if (!lessonId || typeof lessonId !== 'string') {
@@ -557,7 +555,7 @@ router.put('/lessons/:lessonId', async (req: Request, res: Response) => {
 
 // ─────────────────────────── DELETE /api/lms/lessons/:lessonId ────────────────
 // Delete a lesson/lecture
-router.delete('/lessons/:lessonId', async (req: Request, res: Response) => {
+router.delete('/lessons/:lessonId', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const lessonId = Array.isArray(req.params.lessonId) ? req.params.lessonId[0] : req.params.lessonId;
     if (!lessonId || typeof lessonId !== 'string') {
@@ -620,7 +618,7 @@ router.get('/courses/:courseId/quizzes', async (req: Request, res: Response) => 
 });
 
 // Create a new quiz
-router.post('/courses/:courseId/quizzes', async (req, res) => {
+router.post('/courses/:courseId/quizzes', authenticateAdminLms, async (req, res) => {
   try {
     const quiz = await lmsDB.createQuiz({ ...req.body, courseId: req.params.courseId });
     res.status(201).json({ success: true, data: quiz });
@@ -630,9 +628,10 @@ router.post('/courses/:courseId/quizzes', async (req, res) => {
 });
 
 // Update quiz details
-router.put('/quizzes/:quizId', async (req, res) => {
+router.put('/quizzes/:quizId', authenticateAdminLms, async (req, res) => {
   try {
-    await lmsDB.updateQuiz(req.params.quizId, req.body);
+    const quizId = String(req.params.quizId);
+    await lmsDB.updateQuiz(quizId, req.body);
     res.json({ success: true, message: 'Quiz updated successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -640,9 +639,10 @@ router.put('/quizzes/:quizId', async (req, res) => {
 });
 
 // Delete a quiz
-router.delete('/quizzes/:quizId', async (req, res) => {
+router.delete('/quizzes/:quizId', authenticateAdminLms, async (req, res) => {
   try {
-    await lmsDB.deleteQuiz(req.params.quizId);
+    const quizId = String(req.params.quizId);
+    await lmsDB.deleteQuiz(quizId);
     res.json({ success: true, message: 'Quiz deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -651,9 +651,10 @@ router.delete('/quizzes/:quizId', async (req, res) => {
 
 // ─────────────────────────── QUESTIONS ───────────────────────────────────────
 // Get questions for a quiz (admin with answers)
-router.get('/quizzes/:quizId/questions', async (req, res) => {
+router.get('/quizzes/:quizId/questions', authenticateAdminLms, async (req, res) => {
   try {
-    const list = await lmsDB.getQuestionsByQuizId(req.params.quizId);
+    const quizId = String(req.params.quizId);
+    const list = await lmsDB.getQuestionsByQuizId(quizId);
     res.json({ success: true, data: list });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -661,9 +662,9 @@ router.get('/quizzes/:quizId/questions', async (req, res) => {
 });
 
 // Add or Upsert a question to a quiz
-router.post('/quizzes/:quizId/questions', async (req, res) => {
+router.post('/quizzes/:quizId/questions', authenticateAdminLms, async (req, res) => {
   try {
-    const quizId = req.params.quizId;
+    const quizId = String(req.params.quizId);
     const body = { ...req.body, quizId };
     let question;
     if (body.id) {
@@ -683,9 +684,10 @@ router.post('/quizzes/:quizId/questions', async (req, res) => {
 });
 
 // Update a question
-router.put('/questions/:questionId', async (req, res) => {
+router.put('/questions/:questionId', authenticateAdminLms, async (req, res) => {
   try {
-    await lmsDB.updateQuestion(req.params.questionId, req.body);
+    const questionId = String(req.params.questionId);
+    await lmsDB.updateQuestion(questionId, req.body);
     res.json({ success: true, message: 'Question updated successfully', data: req.body });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -693,9 +695,10 @@ router.put('/questions/:questionId', async (req, res) => {
 });
 
 // Delete a question
-router.delete('/questions/:questionId', async (req, res) => {
+router.delete('/questions/:questionId', authenticateAdminLms, async (req, res) => {
   try {
-    await lmsDB.deleteQuestion(req.params.questionId);
+    const questionId = String(req.params.questionId);
+    await lmsDB.deleteQuestion(questionId);
     res.json({ success: true, message: 'Question deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -706,7 +709,8 @@ router.delete('/questions/:questionId', async (req, res) => {
 // Get all assignments for a course
 router.get('/courses/:courseId/assignments', async (req, res) => {
   try {
-    const list = await lmsDB.getAssignmentsByCourseId(req.params.courseId);
+    const courseId = String(req.params.courseId);
+    const list = await lmsDB.getAssignmentsByCourseId(courseId);
     res.json({ success: true, data: list });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -714,9 +718,10 @@ router.get('/courses/:courseId/assignments', async (req, res) => {
 });
 
 // Create a new assignment
-router.post('/courses/:courseId/assignments', async (req, res) => {
+router.post('/courses/:courseId/assignments', authenticateAdminLms, async (req, res) => {
   try {
-    const assign = await lmsDB.createAssignment({ ...req.body, courseId: req.params.courseId });
+    const courseId = String(req.params.courseId);
+    const assign = await lmsDB.createAssignment({ ...req.body, courseId });
     res.status(201).json({ success: true, data: assign });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -724,9 +729,10 @@ router.post('/courses/:courseId/assignments', async (req, res) => {
 });
 
 // Update an assignment
-router.put('/assignments/:assignmentId', async (req, res) => {
+router.put('/assignments/:assignmentId', authenticateAdminLms, async (req, res) => {
   try {
-    await lmsDB.updateAssignment(req.params.assignmentId, req.body);
+    const assignmentId = String(req.params.assignmentId);
+    await lmsDB.updateAssignment(assignmentId, req.body);
     res.json({ success: true, message: 'Assignment updated successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -734,19 +740,21 @@ router.put('/assignments/:assignmentId', async (req, res) => {
 });
 
 // Delete an assignment
-router.delete('/assignments/:assignmentId', async (req, res) => {
+router.delete('/assignments/:assignmentId', authenticateAdminLms, async (req, res) => {
   try {
-    await lmsDB.deleteAssignment(req.params.assignmentId);
+    const assignmentId = String(req.params.assignmentId);
+    await lmsDB.deleteAssignment(assignmentId);
     res.json({ success: true, message: 'Assignment deleted successfully' });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Get submissions for an assignment
-router.get('/assignments/:assignmentId/submissions', async (req, res) => {
+// Get submissions for an assignment (Admin / Evaluator only)
+router.get('/assignments/:assignmentId/submissions', authenticateAdminLms, async (req, res) => {
   try {
-    const submissions = await lmsDB.getAssignmentSubmissions(req.params.assignmentId);
+    const assignmentId = String(req.params.assignmentId);
+    const submissions = await lmsDB.getAssignmentSubmissions(assignmentId);
     res.json({ success: true, data: submissions });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -1349,7 +1357,7 @@ router.put('/doubts/:doubtId/resolve', authenticate, async (req: AuthRequest, re
 // ─────────────────────────── ADMIN DATABASE BACKUP & RESTORE ────────────────────
 
 // GET /api/lms/admin/database/export - Download full JSON database backup
-router.get('/admin/database/export', async (req: Request, res: Response) => {
+router.get('/admin/database/export', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const data = await lmsDB.exportBackup();
     const fileName = `finalattempt_db_backup_${new Date().toISOString().split('T')[0]}.json`;
@@ -1363,7 +1371,7 @@ router.get('/admin/database/export', async (req: Request, res: Response) => {
 });
 
 // POST /api/lms/admin/database/import - Restore full JSON database backup
-router.post('/admin/database/import', async (req: Request, res: Response) => {
+router.post('/admin/database/import', authenticateAdminLms, async (req: Request, res: Response) => {
   try {
     const payload = req.body;
     if (!payload || typeof payload !== 'object') {
