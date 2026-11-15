@@ -465,7 +465,8 @@ export default function AdminPortal() {
       }
       if (leadsRes && leadsRes.ok) {
         const lData = await leadsRes.json().catch(() => null);
-        if (lData && lData.success && Array.isArray(lData.data)) setLeadsList(lData.data);
+        if (Array.isArray(lData)) setLeadsList(lData);
+        else if (lData && lData.success && Array.isArray(lData.data)) setLeadsList(lData.data);
       }
       if (facRes && facRes.ok) setFacultyList(await facRes.json().catch(() => []));
       if (topRes && topRes.ok) setToppersList(await topRes.json().catch(() => []));
@@ -753,7 +754,7 @@ export default function AdminPortal() {
       setCaList(prev => [...prev, newItem]);
       await fetch(`${BACKEND_URL}/api/current-affairs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
         body: JSON.stringify(newItem)
       });
     } else {
@@ -761,7 +762,7 @@ export default function AdminPortal() {
       setCaList(prev => prev.map(c => c.id === id ? caForm : c));
       await fetch(`${BACKEND_URL}/api/current-affairs/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
         body: JSON.stringify(caForm)
       });
     }
@@ -771,7 +772,10 @@ export default function AdminPortal() {
   const handleDeleteCA = async (id: string) => {
     if (!window.confirm('Delete this article?')) return;
     setCaList(prev => prev.filter(c => c.id !== id));
-    await fetch(`${BACKEND_URL}/api/current-affairs/${id}`, { method: 'DELETE' });
+    await fetch(`${BACKEND_URL}/api/current-affairs/${id}`, {
+      method: 'DELETE',
+      headers: { ...getAdminAuthHeaders() }
+    });
   };
 
   // Dynamic Current Affairs handlers
@@ -1134,7 +1138,7 @@ export default function AdminPortal() {
       setBlogsList(prev => [newItem, ...prev]);
       await fetch(`${BACKEND_URL}/api/blogs`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
         body: JSON.stringify(newItem)
       });
     } else {
@@ -1142,7 +1146,7 @@ export default function AdminPortal() {
       setBlogsList(prev => prev.map(b => b.id === id ? preparedBlog : b));
       await fetch(`${BACKEND_URL}/api/blogs/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
         body: JSON.stringify(preparedBlog)
       });
     }
@@ -1152,7 +1156,10 @@ export default function AdminPortal() {
   const handleDeleteBlog = async (id: string) => {
     if (!window.confirm('Delete this blog post?')) return;
     setBlogsList(prev => prev.filter(b => b.id !== id));
-    await fetch(`${BACKEND_URL}/api/blogs/${id}`, { method: 'DELETE' });
+    await fetch(`${BACKEND_URL}/api/blogs/${id}`, {
+      method: 'DELETE',
+      headers: { ...getAdminAuthHeaders() }
+    });
   };
 
   const handleSaveResource = async (e: React.FormEvent) => {
@@ -1162,7 +1169,7 @@ export default function AdminPortal() {
       setResourcesList(prev => [...prev, newItem]);
       await fetch(`${BACKEND_URL}/api/resources`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
         body: JSON.stringify(newItem)
       });
     } else {
@@ -1170,7 +1177,7 @@ export default function AdminPortal() {
       setResourcesList(prev => prev.map(r => r.id === id ? resourceForm : r));
       await fetch(`${BACKEND_URL}/api/resources/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
         body: JSON.stringify(resourceForm)
       });
     }
@@ -1179,7 +1186,10 @@ export default function AdminPortal() {
 
   const handleDeleteResource = async (id: string) => {
     setResourcesList(prev => prev.filter(r => r.id !== id));
-    await fetch(`${BACKEND_URL}/api/resources/${id}`, { method: 'DELETE' });
+    await fetch(`${BACKEND_URL}/api/resources/${id}`, {
+      method: 'DELETE',
+      headers: { ...getAdminAuthHeaders() }
+    });
   };
 
   if (!isMounted) {
@@ -2959,7 +2969,7 @@ export default function AdminPortal() {
                       try {
                         await fetch(`${BACKEND_URL}/api/settings`, {
                           method: 'PUT',
-                          headers: { 'Content-Type': 'application/json' },
+                          headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                           body: JSON.stringify(updatedSettings)
                         });
                       } catch (err) {
@@ -3831,7 +3841,7 @@ export default function AdminPortal() {
                                     onClick={async () => {
                                       try {
                                         const res = await fetch(`${BACKEND_URL}/api/lms/admin/students/${user.id}/attempts`, {
-                                          headers: { 'Authorization': `Bearer ${adminToken || ''}` }
+                                          headers: { ...getAdminAuthHeaders() }
                                         });
                                         const data = await res.json();
                                         if (data.success) {
@@ -5851,7 +5861,10 @@ export default function AdminPortal() {
                             onClick={async () => {
                               if (window.confirm('Delete this course?')) {
                                 setCoursesList(prev => prev.filter(c => c.id !== course.id));
-                                await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}`, { method: 'DELETE' });
+                                await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}`, {
+                                  method: 'DELETE',
+                                  headers: { ...getAdminAuthHeaders() }
+                                });
                               }
                             }}
                             className="p-1.5 border border-red-100 rounded-xl hover:bg-red-650 hover:text-white text-red-500 transition-colors"
@@ -5895,7 +5908,7 @@ export default function AdminPortal() {
                             if (title) {
                               await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}/sections`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                                 body: JSON.stringify({ title })
                               });
                               alert('Chapter created successfully!');
@@ -5911,7 +5924,9 @@ export default function AdminPortal() {
                             const title = window.prompt('Enter Lecture Video Title:');
                             const videoUrl = window.prompt('Enter Cloudinary/Video URL:', 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4');
                             if (title && videoUrl) {
-                              const secRes = await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}/sections`);
+                              const secRes = await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}/sections`, {
+                                headers: { ...getAdminAuthHeaders() }
+                              });
                               const secData = await secRes.json();
                               const sections = secData.data?.sections || secData.data || [];
                               if (sections.length === 0) {
@@ -5921,7 +5936,7 @@ export default function AdminPortal() {
                               const targetSectionId = sections[0].id;
                               await fetch(`${BACKEND_URL}/api/lms/sections/${targetSectionId}/lessons`, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                                 body: JSON.stringify({ courseId: course.id, title, videoUrl, duration: '10 mins' })
                               });
                               alert('Lecture Video Added successfully!');
@@ -5962,7 +5977,7 @@ export default function AdminPortal() {
                           setCoursesList(prev => prev.map(c => c.id === course.id ? { ...c, isPublished: nextPub } : c));
                           await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}`, {
                             method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
+                            headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                             body: JSON.stringify({ isPublished: nextPub })
                           });
                         }}
@@ -5989,7 +6004,7 @@ export default function AdminPortal() {
                     setCoursesList(prev => [...prev, courseForm]);
                     await fetch(`${BACKEND_URL}/api/lms/courses`, {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                       body: JSON.stringify(courseForm)
                     });
                   } else {
@@ -5997,7 +6012,7 @@ export default function AdminPortal() {
                     setCoursesList(prev => prev.map(c => c.id === id ? courseForm : c));
                     await fetch(`${BACKEND_URL}/api/lms/courses/${id}`, {
                       method: 'PUT',
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                       body: JSON.stringify(courseForm)
                     });
                   }
@@ -6568,7 +6583,7 @@ export default function AdminPortal() {
                   try {
                     const res = await fetch(url, {
                       method,
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                       body: JSON.stringify(facultyModal.data)
                     });
                     const data = await res.json();
@@ -6684,7 +6699,7 @@ export default function AdminPortal() {
                   try {
                     const res = await fetch(url, {
                       method,
-                      headers: { 'Content-Type': 'application/json' },
+                      headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
                       body: JSON.stringify({
                         name: topperModal.data.name,
                         rank: topperModal.data.rank || 'Rank 01',
