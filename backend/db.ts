@@ -465,31 +465,42 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         visitorsCount INT DEFAULT 0
       )
     `);
-    try {
-      await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS heroImageUrl TEXT');
-    } catch (_) { /* column already exists */ }
-    try {
-      await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS visitorsCount INT DEFAULT 0');
-    } catch (_) { /* column already exists */ }
-    try {
-      await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS featureFlags JSON');
-    } catch (_) { /* column already exists */ }
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactTitle TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactSubtitle TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactAddress TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactPhone TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactEmail TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS contactHours TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS whatsappLink TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS telegramLink TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS googleMapUrl TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutTitle TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutSubtitle TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutMission TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutVision TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutValues TEXT'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS aboutMethodology JSON'); } catch (_) {}
-    try { await pool.query('ALTER TABLE settings ADD COLUMN IF NOT EXISTS announcements JSON'); } catch (_) {}
+    const settingsCols = [
+      { name: 'heroImageUrl', def: 'TEXT NULL' },
+      { name: 'visitorsCount', def: 'INT DEFAULT 0' },
+      { name: 'featureFlags', def: 'LONGTEXT NULL' },
+      { name: 'promoBanner', def: 'LONGTEXT NULL' },
+      { name: 'contactTitle', def: 'TEXT NULL' },
+      { name: 'contactSubtitle', def: 'TEXT NULL' },
+      { name: 'contactAddress', def: 'TEXT NULL' },
+      { name: 'contactPhone', def: 'TEXT NULL' },
+      { name: 'contactEmail', def: 'TEXT NULL' },
+      { name: 'contactHours', def: 'TEXT NULL' },
+      { name: 'whatsappLink', def: 'TEXT NULL' },
+      { name: 'telegramLink', def: 'TEXT NULL' },
+      { name: 'googleMapUrl', def: 'TEXT NULL' },
+      { name: 'aboutTitle', def: 'TEXT NULL' },
+      { name: 'aboutSubtitle', def: 'TEXT NULL' },
+      { name: 'aboutMission', def: 'TEXT NULL' },
+      { name: 'aboutVision', def: 'TEXT NULL' },
+      { name: 'aboutValues', def: 'TEXT NULL' },
+      { name: 'aboutMethodology', def: 'LONGTEXT NULL' },
+      { name: 'announcements', def: 'LONGTEXT NULL' }
+    ];
+    for (const col of settingsCols) {
+      try {
+        const [cRows]: any = await pool.query(
+          'SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = "settings" AND COLUMN_NAME = ?',
+          [col.name]
+        );
+        if (!cRows || cRows.length === 0) {
+          await pool.query(`ALTER TABLE settings ADD COLUMN \`${col.name}\` ${col.def}`);
+          console.log(`[BackendDB] Added missing settings column: ${col.name}`);
+        }
+      } catch (colErr: any) {
+        console.warn(`[BackendDB] Could not ensure column ${col.name}:`, colErr.message);
+      }
+    }
     
     // 2. Leads
     try {
@@ -1508,13 +1519,20 @@ class BackendDB {
         if (rows && rows.length > 0) {
           const row = rows[0];
           const parsedFeatureFlags = typeof row.featureFlags === 'string' ? JSON.parse(row.featureFlags) : (row.featureFlags || {});
+          let parsedPromoBanner = null;
+          if (row.promoBanner) {
+            parsedPromoBanner = typeof row.promoBanner === 'string' ? JSON.parse(row.promoBanner) : row.promoBanner;
+          } else if (parsedFeatureFlags?.promoBanner) {
+            parsedPromoBanner = typeof parsedFeatureFlags.promoBanner === 'string' ? JSON.parse(parsedFeatureFlags.promoBanner) : parsedFeatureFlags.promoBanner;
+          }
+
           return {
             ...row,
             visitorsCount: Math.max(2000, Number(row.visitorsCount || 0)),
             aboutMethodology: typeof row.aboutMethodology === 'string' ? JSON.parse(row.aboutMethodology) : (row.aboutMethodology || null),
             announcements: typeof row.announcements === 'string' ? JSON.parse(row.announcements) : (row.announcements || null),
             featureFlags: parsedFeatureFlags,
-            promoBanner: parsedFeatureFlags?.promoBanner || null
+            promoBanner: parsedPromoBanner
           } as SiteSettings;
         }
       } catch (err) {
@@ -1535,9 +1553,15 @@ class BackendDB {
   public async updateSettings(settings: SiteSettings): Promise<boolean> {
     if (mysqlPool) {
       try {
+        const promoBannerJson = settings.promoBanner ? JSON.stringify(settings.promoBanner) : null;
+        const featureFlagsObj = {
+          ...(typeof settings.featureFlags === 'object' && settings.featureFlags !== null ? settings.featureFlags : {}),
+          ...(settings.promoBanner !== undefined ? { promoBanner: settings.promoBanner } : {})
+        };
+
         await mysqlPool.query(
-          `INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, heroImageUrl, contactTitle, contactSubtitle, contactAddress, contactPhone, contactEmail, contactHours, whatsappLink, telegramLink, googleMapUrl, aboutTitle, aboutSubtitle, aboutMission, aboutVision, aboutValues, aboutMethodology, announcements, featureFlags)
-           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO settings (id, heroTitle, heroSubtitle, tagline, heroImageUrl, contactTitle, contactSubtitle, contactAddress, contactPhone, contactEmail, contactHours, whatsappLink, telegramLink, googleMapUrl, aboutTitle, aboutSubtitle, aboutMission, aboutVision, aboutValues, aboutMethodology, announcements, featureFlags, promoBanner)
+           VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
            heroTitle = VALUES(heroTitle),
            heroSubtitle = VALUES(heroSubtitle),
@@ -1559,7 +1583,8 @@ class BackendDB {
            aboutValues = VALUES(aboutValues),
            aboutMethodology = VALUES(aboutMethodology),
            announcements = VALUES(announcements),
-           featureFlags = VALUES(featureFlags)`,
+           featureFlags = VALUES(featureFlags),
+           promoBanner = VALUES(promoBanner)`,
           [
             settings.heroTitle || '', settings.heroSubtitle || '', settings.tagline || '', settings.heroImageUrl || null,
             settings.contactTitle || null, settings.contactSubtitle || null, settings.contactAddress || null,
@@ -1569,15 +1594,19 @@ class BackendDB {
             settings.aboutVision || null, settings.aboutValues || null,
             settings.aboutMethodology ? JSON.stringify(settings.aboutMethodology) : null,
             settings.announcements ? JSON.stringify(settings.announcements) : null,
-            JSON.stringify({
-              ...(typeof settings.featureFlags === 'object' && settings.featureFlags !== null ? settings.featureFlags : {}),
-              ...(settings.promoBanner !== undefined ? { promoBanner: settings.promoBanner } : {})
-            })
+            JSON.stringify(featureFlagsObj),
+            promoBannerJson
           ]
         );
         return true;
-      } catch (err) {
-        console.error('MySQL update error, using local fallback:', err);
+      } catch (err: any) {
+        console.error('MySQL update error, using fallback:', err.message);
+        try {
+          await mysqlPool.query(
+            `UPDATE settings SET heroTitle = ?, heroSubtitle = ?, tagline = ?, heroImageUrl = ? WHERE id = 1`,
+            [settings.heroTitle || '', settings.heroSubtitle || '', settings.tagline || '', settings.heroImageUrl || null]
+          );
+        } catch (_) {}
       }
     }
     this.localStore.settings = {

@@ -636,17 +636,28 @@ export default function AdminPortal() {
       const res = await fetch(`${BACKEND_URL}/api/upload`, { method: 'POST', body: fd });
       const data = await res.json();
       if (data.success && data.url) {
-        setSettings(prev => ({
-          ...prev,
-          promoBanner: {
-            enabled: prev.promoBanner?.enabled ?? true,
-            imageUrl: data.url,
-            title: prev.promoBanner?.title || '',
-            linkUrl: prev.promoBanner?.linkUrl || '',
-            ctaText: prev.promoBanner?.ctaText || 'Check Details',
-            displayMode: prev.promoBanner?.displayMode || 'once_per_session'
-          }
-        }));
+        let cleanUrl = data.url;
+        if (cleanUrl.includes('localhost:5000') || cleanUrl.includes('127.0.0.1:5000')) {
+          cleanUrl = cleanUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1):5000/g, '');
+        }
+        const updatedPromo = {
+          enabled: true,
+          imageUrl: cleanUrl,
+          title: settings.promoBanner?.title || '',
+          linkUrl: settings.promoBanner?.linkUrl || '',
+          ctaText: settings.promoBanner?.ctaText || 'Check Details',
+          displayMode: 'always' as const
+        };
+        const updatedSettings = {
+          ...settings,
+          promoBanner: updatedPromo
+        };
+        setSettings(updatedSettings);
+        try {
+          await db.updateSettings(updatedSettings);
+          setPromoSaveSuccess(true);
+          setTimeout(() => setPromoSaveSuccess(false), 3000);
+        } catch (_) {}
       } else {
         alert('Upload failed: ' + (data.error || 'Server error'));
       }
@@ -665,6 +676,7 @@ export default function AdminPortal() {
       if (ok) {
         setPromoSaveSuccess(true);
         setTimeout(() => setPromoSaveSuccess(false), 3000);
+        alert('Promotional popup banner saved successfully! Refresh the website to see it.');
       } else {
         alert('Failed to save promotional banner settings.');
       }

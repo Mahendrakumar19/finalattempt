@@ -205,8 +205,14 @@ export default function Home() {
             tagline: s.tagline || prev.tagline,
             heroImageUrl: s.heroImageUrl || ''
           }));
-          if (s.promoBanner) {
-            setPromoBanner(s.promoBanner);
+          const rawPromo = s.promoBanner || (s.featureFlags as any)?.promoBanner;
+          if (rawPromo) {
+            try {
+              const parsedPromo = typeof rawPromo === 'string' ? JSON.parse(rawPromo) : rawPromo;
+              setPromoBanner(parsedPromo);
+            } catch (err) {
+              console.error('Error parsing promoBanner:', err);
+            }
           }
           if (s.announcements && Array.isArray(s.announcements) && s.announcements.length > 0) {
             setDynamicAnnouncements(s.announcements.map((a: unknown) => typeof a === 'string' ? { date: 'NOTICE', text: a, isNew: true } : (a as AnnouncementItem)));

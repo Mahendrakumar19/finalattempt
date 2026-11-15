@@ -19,21 +19,56 @@ export default function PromoOverlayModal({
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
+  // Helper to ensure image URLs (including localhost:5000 or relative paths) load properly
+  const resolveUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('data:')) return url;
+
+    let cleanUrl = url;
+    // Strip localhost:5000 / 127.0.0.1:5000 if stored in DB from server upload
+    if (cleanUrl.includes('localhost:5000') || cleanUrl.includes('127.0.0.1:5000')) {
+      cleanUrl = cleanUrl.replace(/https?:\/\/(localhost|127\.0\.0\.1):5000/g, '');
+    }
+
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) return cleanUrl;
+
+    if (process.env.NEXT_PUBLIC_BACKEND_URL) {
+      return `${process.env.NEXT_PUBLIC_BACKEND_URL}/${cleanUrl.replace(/^\//, '')}`;
+    }
+
+    if (typeof window !== 'undefined') {
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      if (protocol === 'https:' || (hostname !== 'localhost' && hostname !== '127.0.0.1')) {
+        return `/${cleanUrl.replace(/^\//, '')}`;
+      }
+      return `http://${hostname}:5000/${cleanUrl.replace(/^\//, '')}`;
+    }
+    return cleanUrl;
+  };
+
   useEffect(() => {
     if (isPreview) {
       setIsOpen(true);
       return;
     }
 
-    if (!banner || !banner.enabled || !banner.imageUrl) {
+    if (!banner || !banner.imageUrl) {
       setIsOpen(false);
       return;
     }
 
-    // Snappy 350ms delay on page load/refresh
+    // Accept true, 'true', 1
+    const isEnabled = banner.enabled === true || (banner.enabled as unknown) === 'true' || (banner.enabled as unknown) === 1;
+    if (!isEnabled) {
+      setIsOpen(false);
+      return;
+    }
+
+    // Snappy delay on page load/refresh
     const timer = setTimeout(() => {
       setIsOpen(true);
-    }, 350);
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [banner, isPreview]);
@@ -69,6 +104,8 @@ export default function PromoOverlayModal({
     }
   };
 
+  const finalImageUrl = resolveUrl(banner.imageUrl);
+
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
       {/* Background click to dismiss */}
@@ -98,11 +135,11 @@ export default function PromoOverlayModal({
           {/* Banner Poster Image */}
           <div className="relative w-full max-h-[82vh] overflow-hidden flex items-center justify-center bg-slate-950">
             <img
-              src={banner.imageUrl}
+              src={finalImageUrl}
               alt={banner.title || 'Promotional Banner'}
               className="w-full h-auto max-h-[82vh] object-contain block select-none"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '';
+              onError={() => {
+                console.warn('[PromoModal] Image failed to load:', finalImageUrl);
               }}
             />
           </div>
