@@ -67,7 +67,7 @@ export class AutoNewsAgent {
       feeds.map(async (feed) => {
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 3500);
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
           const res = await fetch(feed.url, {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
@@ -167,19 +167,23 @@ Return ONLY the raw JSON object. No markdown codeblock fences, no conversational
     }
 
     const modelsToTry = [
-      { ver: 'v1beta', name: 'gemini-3.1-flash-lite' },
-      { ver: 'v1', name: 'gemini-3.5-flash-lite' },
-      { ver: 'v1beta', name: 'gemini-3.5-flash-lite' },
-      { ver: 'v1', name: 'gemini-3.1-flash-lite' },
-      { ver: 'v1beta', name: 'gemini-3.8-flash' }
+      { ver: 'v1beta', name: 'gemini-2.0-flash' },
+      { ver: 'v1beta', name: 'gemini-1.5-flash' },
+      { ver: 'v1', name: 'gemini-1.5-flash' },
+      { ver: 'v1beta', name: 'gemini-2.0-flash-lite' },
+      { ver: 'v1beta', name: 'gemini-1.5-pro' },
+      { ver: 'v1', name: 'gemini-1.5-pro' },
+      { ver: 'v1beta', name: 'gemini-2.5-flash' },
+      { ver: 'v1beta', name: 'gemini-2.5-pro' }
     ];
     let geminiResponseText = '';
+    const errorsList: string[] = [];
 
     for (const m of modelsToTry) {
       try {
         const url = `https://generativelanguage.googleapis.com/${m.ver}/models/${m.name}:generateContent?key=${apiKey}`;
         const ctrl = new AbortController();
-        const timeoutId = setTimeout(() => ctrl.abort(), 45000);
+        const timeoutId = setTimeout(() => ctrl.abort(), 35000);
 
         const resp = await fetch(url, {
           method: 'POST',
@@ -203,18 +207,29 @@ Return ONLY the raw JSON object. No markdown codeblock fences, no conversational
             console.log(`[AutoNewsAgent] Successfully generated edition using ${m.ver}/${m.name} (${candidate.length} chars)`);
             geminiResponseText = candidate;
             break;
+          } else {
+            errorsList.push(`${m.name}: empty candidate in response`);
           }
         } else {
           const errText = await resp.text().catch(() => '');
-          console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} returned HTTP ${resp.status}:`, errText.slice(0, 180));
+          let msg = errText.slice(0, 180).replace(/\r?\n/g, ' ');
+          try {
+            const parsedErr = JSON.parse(errText);
+            if (parsedErr.error?.message) {
+              msg = parsedErr.error.message;
+            }
+          } catch {}
+          errorsList.push(`${m.ver}/${m.name} HTTP ${resp.status}: ${msg}`);
+          console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} returned HTTP ${resp.status}:`, msg);
         }
       } catch (err: any) {
+        errorsList.push(`${m.ver}/${m.name} err: ${err.message}`);
         console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} request failed:`, err.message);
       }
     }
 
     if (!geminiResponseText) {
-      throw new Error('Gemini AI failed to generate current affairs from feeds. Please check logs for API response.');
+      throw new Error(`Gemini AI failed to generate current affairs. Reason: ${errorsList.join(' | ')}`);
     }
 
     // Clean JSON
