@@ -7145,7 +7145,7 @@ class LmsDB {
                   a.answerBookletUrl, a.answerBookletUrlHi, 
                   a.modelAnswerUrl, a.modelAnswerUrlHi, 
                   a.syllabus, a.syllabusHi, a.medium as testMedium,
-                  ts.title as testSeriesTitle, ts.title_hi as testSeriesTitleHi
+                  ts.title as testSeriesTitle, ts.title as testSeriesTitleHi
            FROM lms_assignment_submissions s
            LEFT JOIN users u ON u.id = s.userId
            LEFT JOIN lms_assignments a ON a.id = s.assignmentId
