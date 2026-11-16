@@ -10,18 +10,21 @@ interface RawNewsItem {
 }
 
 export class AutoNewsAgent {
-  private apiKey: string = '';
+  private apiKeys: string[] = [];
 
   constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY || '';
+    this.apiKeys = this.getApiKeys();
   }
 
-  public getApiKey(): string {
-    if (this.apiKey) return this.apiKey;
-    if (process.env.GEMINI_API_KEY) {
-      this.apiKey = process.env.GEMINI_API_KEY.trim();
-      return this.apiKey;
+  public getApiKeys(): string[] {
+    const keys: string[] = [];
+    const envVars = [process.env.GEMINI_API_KEYS, process.env.GEMINI_API_KEY];
+    for (const ev of envVars) {
+      if (ev) {
+        keys.push(...ev.split(',').map(k => k.trim()).filter(Boolean));
+      }
     }
+
     // Direct file inspection fallback (ensures VPS works even without pm2 --update-env)
     const candidatePaths = [
       path.resolve(process.cwd(), '.env'),
@@ -32,20 +35,28 @@ export class AutoNewsAgent {
       '/var/www/finalattempt/backend/.env',
       '/var/www/finalattempt/.env'
     ];
+
     for (const p of candidatePaths) {
       try {
         if (fs.existsSync(p)) {
           const content = fs.readFileSync(p, 'utf8');
-          const match = content.match(/GEMINI_API_KEY\s*=\s*([^\r\n#]+)/);
-          if (match && match[1]) {
-            this.apiKey = match[1].trim().replace(/^['"]|['"]$/g, '');
-            console.log(`[AutoNewsAgent] Loaded GEMINI_API_KEY from file: ${p}`);
-            return this.apiKey;
+          const matchKeys = content.match(/GEMINI_API_KEYS\s*=\s*([^\r\n#]+)/);
+          if (matchKeys && matchKeys[1]) {
+            const raw = matchKeys[1].trim().replace(/^['"]|['"]$/g, '');
+            keys.push(...raw.split(',').map(k => k.trim()).filter(Boolean));
+          }
+          const matchSingle = content.match(/GEMINI_API_KEY\s*=\s*([^\r\n#]+)/);
+          if (matchSingle && matchSingle[1]) {
+            const raw = matchSingle[1].trim().replace(/^['"]|['"]$/g, '');
+            if (raw) keys.push(raw);
           }
         }
       } catch {}
     }
-    return '';
+
+    const unique = Array.from(new Set(keys.map(k => k.trim()))).filter(k => k.length > 5);
+    this.apiKeys = unique;
+    return unique;
   }
 
   /**
@@ -126,9 +137,10 @@ You are analyzing today's raw news headlines and editorial feeds from The Hindu,
 
 Your task:
 1. Filter out all non-exam gossip, crime, political blame games, or trivia.
-2. Select 4 to 6 top high-priority stories with direct relevance to BPSC / UPSC GS-1, GS-2, GS-3 syllabus (Polity & Governance, Economy, Environment, Sci-Tech, International Relations, and Bihar Special).
+2. Select 4 top high-priority stories with direct relevance to BPSC / UPSC GS-1, GS-2, GS-3 syllabus (Polity, Economy, Environment, Sci-Tech, International, or Bihar Special).
 3. Structure them into an exam-oriented bilingual (English + Hindi) Current Affairs edition.
-4. Output MUST be ONLY valid JSON matching this exact structure:
+4. Keep pointers crisp, factual, and exam-focused.
+5. Output MUST be ONLY valid JSON matching this exact structure:
 
 {
   "publishDate": "${pubDate}",
@@ -144,47 +156,47 @@ Your task:
       "readingTime": "4 mins",
       "tags": ["Polity", "Governance", "BPSC", "GS2"],
       "source": "The Hindu / PIB / Indian Express",
-      "summary": "Crisp 3-sentence summary in English...",
-      "summary_hi": "सटीक 3-वाक्यों का हिंदी सारांश...",
-      "whyInNews": "Why is this topic in the news today?",
-      "keyHighlights": "Key provisions, acts, data points, or policy decisions...",
-      "importantFacts": "Prelims pointers: constitutional articles, institutions, dates, rankings, reports...",
-      "examRelevance": "Mains perspective: governance issues, critical dimensions, way forward...",
-      "content": "Full detailed markdown article in English with subheadings...",
-      "content_hi": "हिंदी में विस्तृत विश्लेषणात्मक लेख (उपशीर्षकों सहित)..."
+      "summary": "Crisp 2-sentence summary in English...",
+      "summary_hi": "सटीक 2-वाक्यों का हिंदी सारांश...",
+      "whyInNews": "Why is this topic in the news today? (चर्चा में क्यों?)",
+      "keyHighlights": "Key provisions, acts, data points, or policy decisions... (प्रमुख बिंदु)",
+      "importantFacts": "Prelims pointers: constitutional articles, institutions, dates, rankings, reports... (प्रारंभिक परीक्षा दृष्टि)",
+      "examRelevance": "Mains perspective: governance issues, critical dimensions, way forward... (मुख्य परीक्षा दृष्टिकोण)"
     }
   ]
 }
 
 Raw News Feeds for ${pubDate}:
-${feedDigest || 'Generate top 5 priority civil services current affairs for today from national and international developments.'}
+${feedDigest || 'Generate top 4 priority civil services current affairs for today from national and international developments.'}
 
 Return ONLY the raw JSON object. No markdown codeblock fences, no conversational intro or outro.`;
 
-    const apiKey = this.getApiKey();
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY is missing. Please ensure GEMINI_API_KEY is defined in backend/.env');
+    const apiKeys = this.getApiKeys();
+    if (apiKeys.length === 0) {
+      throw new Error('No GEMINI_API_KEY or GEMINI_API_KEYS found. Please configure them in backend/.env');
     }
 
+    console.log(`[AutoNewsAgent] Active key pool size: ${apiKeys.length} Gemini API keys.`);
+
     const modelsToTry = [
-      { ver: 'v1beta', name: 'gemini-3.8-flash' },
-      { ver: 'v1', name: 'gemini-3.8-flash' },
       { ver: 'v1beta', name: 'gemini-3.5-flash-lite' },
+      { ver: 'v1beta', name: 'gemini-3.8-flash' },
       { ver: 'v1', name: 'gemini-3.5-flash-lite' },
-      { ver: 'v1beta', name: 'gemini-3.1-pro-preview' },
-      { ver: 'v1', name: 'gemini-3.1-pro-preview' }
+      { ver: 'v1', name: 'gemini-3.8-flash' },
+      { ver: 'v1beta', name: 'gemini-3.1-pro-preview' }
     ];
     let geminiResponseText = '';
     const errorsList: string[] = [];
 
-    for (const m of modelsToTry) {
-      let attempts = 0;
-      while (attempts < 2) {
-        attempts++;
+    keyLoop: for (let keyIdx = 0; keyIdx < apiKeys.length; keyIdx++) {
+      const apiKey = apiKeys[keyIdx];
+      const keyMask = apiKey.length > 8 ? `${apiKey.slice(0, 4)}...${apiKey.slice(-4)}` : '***';
+
+      for (const m of modelsToTry) {
         try {
           const url = `https://generativelanguage.googleapis.com/${m.ver}/models/${m.name}:generateContent?key=${apiKey}`;
           const ctrl = new AbortController();
-          const timeoutId = setTimeout(() => ctrl.abort(), 40000);
+          const timeoutId = setTimeout(() => ctrl.abort(), 20000);
 
           const resp = await fetch(url, {
             method: 'POST',
@@ -193,7 +205,7 @@ Return ONLY the raw JSON object. No markdown codeblock fences, no conversational
               contents: [{ parts: [{ text: systemPrompt }] }],
               generationConfig: {
                 temperature: 0.2,
-                maxOutputTokens: 6144,
+                maxOutputTokens: 3500,
                 responseMimeType: 'application/json'
               }
             }),
@@ -205,11 +217,11 @@ Return ONLY the raw JSON object. No markdown codeblock fences, no conversational
             const data: any = await resp.json();
             const candidate = data.candidates?.[0]?.content?.parts?.find((p: any) => p.text)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text;
             if (candidate) {
-              console.log(`[AutoNewsAgent] Successfully generated edition using ${m.ver}/${m.name} (${candidate.length} chars)`);
+              console.log(`[AutoNewsAgent] Successfully generated edition using Key #${keyIdx + 1} (${keyMask}) with ${m.ver}/${m.name} (${candidate.length} chars)`);
               geminiResponseText = candidate;
-              break;
+              break keyLoop;
             } else {
-              errorsList.push(`${m.name}: empty candidate in response`);
+              errorsList.push(`Key #${keyIdx + 1} ${m.name}: empty candidate`);
             }
           } else {
             const errText = await resp.text().catch(() => '');
@@ -220,25 +232,26 @@ Return ONLY the raw JSON object. No markdown codeblock fences, no conversational
                 msg = parsedErr.error.message;
               }
             } catch {}
-            errorsList.push(`${m.ver}/${m.name} HTTP ${resp.status}: ${msg}`);
-            console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} returned HTTP ${resp.status}:`, msg);
 
-            if ((resp.status === 503 || resp.status === 429) && attempts === 1) {
-              await new Promise(r => setTimeout(r, 1500));
-              continue;
+            console.warn(`[AutoNewsAgent] Key #${keyIdx + 1} (${keyMask}) with ${m.ver}/${m.name} returned HTTP ${resp.status}:`, msg);
+
+            if (resp.status === 429) {
+              errorsList.push(`Key #${keyIdx + 1} (${keyMask}) Quota Exceeded (429)`);
+              console.log(`[AutoNewsAgent] Key #${keyIdx + 1} (${keyMask}) exhausted. Rotating to next key in pool...`);
+              continue keyLoop;
+            } else {
+              errorsList.push(`Key #${keyIdx + 1} ${m.ver}/${m.name} HTTP ${resp.status}: ${msg}`);
             }
           }
         } catch (err: any) {
-          errorsList.push(`${m.ver}/${m.name} err: ${err.message}`);
-          console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} request failed:`, err.message);
+          errorsList.push(`Key #${keyIdx + 1} ${m.ver}/${m.name} err: ${err.message}`);
+          console.warn(`[AutoNewsAgent] Key #${keyIdx + 1} request failed:`, err.message);
         }
-        break;
       }
-      if (geminiResponseText) break;
     }
 
     if (!geminiResponseText) {
-      throw new Error(`Gemini AI failed to generate current affairs. Reason: ${errorsList.join(' | ')}`);
+      throw new Error(`All ${apiKeys.length} Gemini API keys failed or exhausted. Reason: ${errorsList.join(' | ')}`);
     }
 
     // Clean JSON
