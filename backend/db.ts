@@ -3358,6 +3358,29 @@ class BackendDB {
     return false;
   }
 
+  public async publishDynamicCurrentAffairEdition(editionIdOrDate: string): Promise<boolean> {
+    this.editionsCache = null;
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          "UPDATE current_affair_articles SET publishStatus = 'PUBLISHED' WHERE editionId = ? OR editionId IN (SELECT id FROM current_affair_editions WHERE id = ? OR publishDate = ?)",
+          [editionIdOrDate, editionIdOrDate, editionIdOrDate]
+        );
+        return true;
+      } catch (err) {
+        console.error('[BackendDB] publishDynamicCurrentAffairEdition error:', err);
+      }
+    }
+    const editions = this.localStore.dynamicCurrentAffairEditions || [];
+    const ed = editions.find(e => e.id === editionIdOrDate || e.publishDate === editionIdOrDate);
+    if (ed && ed.articles) {
+      ed.articles.forEach(a => a.publishStatus = 'PUBLISHED');
+      this.saveLocalData();
+      return true;
+    }
+    return false;
+  }
+
   public async getDynamicCurrentAffairsSearch(params: {
     keyword?: string;
     category?: string;

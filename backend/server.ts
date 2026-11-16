@@ -33,6 +33,7 @@ import { ContentLocalizer, getTargetLang } from './services/contentLocalizer';
 import { memoryCache } from './services/cacheService';
 import { authenticate } from './middleware/auth';
 import { requireAdmin } from './middleware/role';
+import { autoNewsAgent } from './services/autoNewsAgent';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -789,6 +790,31 @@ app.delete('/api/admin/dynamic-current-affairs/article/:id', async (req, res) =>
     res.json({ success: ok });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ── AI AUTO-NEWS GENERATION & HUMAN APPROVAL ──────────────────────────────────
+app.post('/api/admin/dynamic-current-affairs/auto-generate', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const targetDate = req.body?.targetDate;
+    const asDraft = req.body?.asDraft !== false; // default true for human review
+    const edition = await autoNewsAgent.generateDailyEdition(targetDate, asDraft);
+    memoryCache.invalidateTag('current_affairs');
+    res.json({ success: true, data: edition });
+  } catch (err: any) {
+    console.error('[AutoNews] Generation error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.put('/api/admin/dynamic-current-affairs/edition/:id/publish', authenticate, requireAdmin, async (req, res) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : String(req.params.id);
+    const ok = await db.publishDynamicCurrentAffairEdition(id);
+    memoryCache.invalidateTag('current_affairs');
+    res.json({ success: ok });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
