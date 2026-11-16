@@ -167,65 +167,74 @@ Return ONLY the raw JSON object. No markdown codeblock fences, no conversational
     }
 
     const modelsToTry = [
-      { ver: 'v1beta', name: 'gemini-2.0-flash' },
-      { ver: 'v1beta', name: 'gemini-1.5-flash' },
-      { ver: 'v1', name: 'gemini-1.5-flash' },
-      { ver: 'v1beta', name: 'gemini-2.0-flash-lite' },
-      { ver: 'v1beta', name: 'gemini-1.5-pro' },
-      { ver: 'v1', name: 'gemini-1.5-pro' },
-      { ver: 'v1beta', name: 'gemini-2.5-flash' },
-      { ver: 'v1beta', name: 'gemini-2.5-pro' }
+      { ver: 'v1beta', name: 'gemini-3.8-flash' },
+      { ver: 'v1', name: 'gemini-3.8-flash' },
+      { ver: 'v1beta', name: 'gemini-3.5-flash-lite' },
+      { ver: 'v1', name: 'gemini-3.5-flash-lite' },
+      { ver: 'v1beta', name: 'gemini-3.1-pro-preview' },
+      { ver: 'v1', name: 'gemini-3.1-pro-preview' }
     ];
     let geminiResponseText = '';
     const errorsList: string[] = [];
 
     for (const m of modelsToTry) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/${m.ver}/models/${m.name}:generateContent?key=${apiKey}`;
-        const ctrl = new AbortController();
-        const timeoutId = setTimeout(() => ctrl.abort(), 35000);
+      let attempts = 0;
+      while (attempts < 2) {
+        attempts++;
+        try {
+          const url = `https://generativelanguage.googleapis.com/${m.ver}/models/${m.name}:generateContent?key=${apiKey}`;
+          const ctrl = new AbortController();
+          const timeoutId = setTimeout(() => ctrl.abort(), 40000);
 
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: systemPrompt }] }],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 6144,
-              responseMimeType: 'application/json'
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: systemPrompt }] }],
+              generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 6144,
+                responseMimeType: 'application/json'
+              }
+            }),
+            signal: ctrl.signal
+          });
+          clearTimeout(timeoutId);
+
+          if (resp.ok) {
+            const data: any = await resp.json();
+            const candidate = data.candidates?.[0]?.content?.parts?.find((p: any) => p.text)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (candidate) {
+              console.log(`[AutoNewsAgent] Successfully generated edition using ${m.ver}/${m.name} (${candidate.length} chars)`);
+              geminiResponseText = candidate;
+              break;
+            } else {
+              errorsList.push(`${m.name}: empty candidate in response`);
             }
-          }),
-          signal: ctrl.signal
-        });
-        clearTimeout(timeoutId);
-
-        if (resp.ok) {
-          const data: any = await resp.json();
-          const candidate = data.candidates?.[0]?.content?.parts?.find((p: any) => p.text)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (candidate) {
-            console.log(`[AutoNewsAgent] Successfully generated edition using ${m.ver}/${m.name} (${candidate.length} chars)`);
-            geminiResponseText = candidate;
-            break;
           } else {
-            errorsList.push(`${m.name}: empty candidate in response`);
-          }
-        } else {
-          const errText = await resp.text().catch(() => '');
-          let msg = errText.slice(0, 180).replace(/\r?\n/g, ' ');
-          try {
-            const parsedErr = JSON.parse(errText);
-            if (parsedErr.error?.message) {
-              msg = parsedErr.error.message;
+            const errText = await resp.text().catch(() => '');
+            let msg = errText.slice(0, 180).replace(/\r?\n/g, ' ');
+            try {
+              const parsedErr = JSON.parse(errText);
+              if (parsedErr.error?.message) {
+                msg = parsedErr.error.message;
+              }
+            } catch {}
+            errorsList.push(`${m.ver}/${m.name} HTTP ${resp.status}: ${msg}`);
+            console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} returned HTTP ${resp.status}:`, msg);
+
+            if ((resp.status === 503 || resp.status === 429) && attempts === 1) {
+              await new Promise(r => setTimeout(r, 1500));
+              continue;
             }
-          } catch {}
-          errorsList.push(`${m.ver}/${m.name} HTTP ${resp.status}: ${msg}`);
-          console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} returned HTTP ${resp.status}:`, msg);
+          }
+        } catch (err: any) {
+          errorsList.push(`${m.ver}/${m.name} err: ${err.message}`);
+          console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} request failed:`, err.message);
         }
-      } catch (err: any) {
-        errorsList.push(`${m.ver}/${m.name} err: ${err.message}`);
-        console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} request failed:`, err.message);
+        break;
       }
+      if (geminiResponseText) break;
     }
 
     if (!geminiResponseText) {
