@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { db, DynamicCurrentAffairEdition, DynamicCurrentAffairArticle } from '../db';
 
 interface RawNewsItem {
@@ -8,10 +10,42 @@ interface RawNewsItem {
 }
 
 export class AutoNewsAgent {
-  private apiKey: string;
+  private apiKey: string = '';
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY || '';
+  }
+
+  public getApiKey(): string {
+    if (this.apiKey) return this.apiKey;
+    if (process.env.GEMINI_API_KEY) {
+      this.apiKey = process.env.GEMINI_API_KEY.trim();
+      return this.apiKey;
+    }
+    // Direct file inspection fallback (ensures VPS works even without pm2 --update-env)
+    const candidatePaths = [
+      path.resolve(process.cwd(), '.env'),
+      path.resolve(process.cwd(), 'backend/.env'),
+      path.resolve(__dirname, '.env'),
+      path.resolve(__dirname, '../.env'),
+      path.resolve(__dirname, '../../.env'),
+      '/var/www/finalattempt/backend/.env',
+      '/var/www/finalattempt/.env'
+    ];
+    for (const p of candidatePaths) {
+      try {
+        if (fs.existsSync(p)) {
+          const content = fs.readFileSync(p, 'utf8');
+          const match = content.match(/GEMINI_API_KEY\s*=\s*([^\r\n#]+)/);
+          if (match && match[1]) {
+            this.apiKey = match[1].trim().replace(/^['"]|['"]$/g, '');
+            console.log(`[AutoNewsAgent] Loaded GEMINI_API_KEY from file: ${p}`);
+            return this.apiKey;
+          }
+        }
+      } catch {}
+    }
+    return '';
   }
 
   /**
@@ -127,12 +161,26 @@ ${feedDigest || 'Generate top 5 priority civil services current affairs for toda
 
 Return ONLY the raw JSON object. No markdown codeblock fences, no conversational intro or outro.`;
 
-    const modelsToTry = ['gemini-3.5-flash-lite', 'gemini-flash-latest', 'gemini-2.5-pro'];
+    const apiKey = this.getApiKey();
+    if (!apiKey) {
+      throw new Error('GEMINI_API_KEY is missing. Please ensure GEMINI_API_KEY is defined in backend/.env');
+    }
+
+    const modelsToTry = [
+      { ver: 'v1beta', name: 'gemini-3.1-flash-lite' },
+      { ver: 'v1', name: 'gemini-3.5-flash-lite' },
+      { ver: 'v1beta', name: 'gemini-3.5-flash-lite' },
+      { ver: 'v1', name: 'gemini-3.1-flash-lite' },
+      { ver: 'v1beta', name: 'gemini-3.8-flash' }
+    ];
     let geminiResponseText = '';
 
-    for (const model of modelsToTry) {
+    for (const m of modelsToTry) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/${m.ver}/models/${m.name}:generateContent?key=${apiKey}`;
+        const ctrl = new AbortController();
+        const timeoutId = setTimeout(() => ctrl.abort(), 45000);
+
         const resp = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -140,26 +188,33 @@ Return ONLY the raw JSON object. No markdown codeblock fences, no conversational
             contents: [{ parts: [{ text: systemPrompt }] }],
             generationConfig: {
               temperature: 0.2,
-              maxOutputTokens: 8192
+              maxOutputTokens: 6144,
+              responseMimeType: 'application/json'
             }
-          })
+          }),
+          signal: ctrl.signal
         });
+        clearTimeout(timeoutId);
 
         if (resp.ok) {
           const data: any = await resp.json();
-          const candidate = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          const candidate = data.candidates?.[0]?.content?.parts?.find((p: any) => p.text)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text;
           if (candidate) {
+            console.log(`[AutoNewsAgent] Successfully generated edition using ${m.ver}/${m.name} (${candidate.length} chars)`);
             geminiResponseText = candidate;
             break;
           }
+        } else {
+          const errText = await resp.text().catch(() => '');
+          console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} returned HTTP ${resp.status}:`, errText.slice(0, 180));
         }
-      } catch (err) {
-        console.warn(`[AutoNewsAgent] Model ${model} failed, trying fallback:`, err);
+      } catch (err: any) {
+        console.warn(`[AutoNewsAgent] Model ${m.ver}/${m.name} request failed:`, err.message);
       }
     }
 
     if (!geminiResponseText) {
-      throw new Error('Gemini AI failed to generate current affairs from feeds.');
+      throw new Error('Gemini AI failed to generate current affairs from feeds. Please check logs for API response.');
     }
 
     // Clean JSON
