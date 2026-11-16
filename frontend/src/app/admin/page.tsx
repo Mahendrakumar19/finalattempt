@@ -67,6 +67,7 @@ const PromoOverlayModal = dynamic(() => import('@/components/PromoOverlayModal')
 const AdminChatPanel = dynamic(() => import('@/components/admin/AdminChatPanel'));
 const BookOrdersCMS = dynamic(() => import('@/components/admin/BookOrdersCMS'));
 const OffersAndNotificationsCMS = dynamic(() => import('@/components/admin/OffersAndNotificationsCMS'));
+const ClaudeCurrentAffairsModal = dynamic(() => import('@/components/admin/ClaudeCurrentAffairsModal').then(m => m.ClaudeCurrentAffairsModal));
 
 type AdminTab = 'Dashboard' | 'Student Chats' | 'Book Orders' | 'Books & Publications' | 'Offers & Notifications' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Useful Documents' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Daily Quiz' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
@@ -243,6 +244,7 @@ export default function AdminPortal() {
   const [activeArticleCategory, setActiveArticleCategory] = useState<'NATIONAL' | 'INTERNATIONAL' | 'BIHAR' | 'ARUNACHAL'>('NATIONAL');
   const [isEditionModalOpen, setIsEditionModalOpen] = useState(false);
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
+  const [isClaudeImportOpen, setIsClaudeImportOpen] = useState(false);
   const [caSubTab, setCaSubTab] = useState<'daily' | 'mains' | 'aggregation'>('daily');
   const [booksSubTab, setBooksSubTab] = useState<'orders' | 'publications'>('orders');
 
@@ -3959,6 +3961,14 @@ export default function AdminPortal() {
 
                   <div className="flex flex-wrap gap-2">
                     <button
+                      type="button"
+                      onClick={() => setIsClaudeImportOpen(true)}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black rounded-2xl text-xs shadow-md cursor-pointer transition-all hover:scale-102"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>🤖 Import from Claude AI</span>
+                    </button>
+                    <button
                       onClick={() => {
                         setEditingEdition({ id: '', publishDate: new Date().toISOString().split('T')[0], summary: 'Daily Edition', publish_target: 'both', articles: [] });
                         setIsEditionModalOpen(true);
@@ -4890,6 +4900,16 @@ export default function AdminPortal() {
                 </div>
               </div>
             )}
+
+            {/* Claude AI Current Affairs Smart Importer Modal */}
+            <ClaudeCurrentAffairsModal
+              isOpen={isClaudeImportOpen}
+              onClose={() => setIsClaudeImportOpen(false)}
+              onSuccess={async () => {
+                const list = await db.getDynamicCurrentAffairsEditions(true);
+                setDynamicEditionsList(list);
+              }}
+            />
 
             {/* Dynamic Article Creator Sub-Modal */}
             {isArticleModalOpen && editingArticle && (
