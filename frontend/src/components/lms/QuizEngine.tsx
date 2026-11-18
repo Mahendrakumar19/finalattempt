@@ -916,6 +916,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 })()}
               </div>
 
+              {/* Question Visual / Diagram (if attached via imageUrl or questionImageUrl) */}
+              {Boolean((currentQ as any)?.questionImageUrl || (currentQ as any)?.imageUrl) && (
+                <div className="my-3 p-2 bg-slate-100 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-white/10 flex justify-center max-w-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={(currentQ as any).questionImageUrl || (currentQ as any).imageUrl}
+                    alt="Question Diagram"
+                    className="max-h-72 max-w-full object-contain rounded-xl shadow-xs"
+                  />
+                </div>
+              )}
+
               {/* Options - ~64-72px high desktop cards, high readability & click targets */}
               <div className="space-y-3.5 pt-2 max-w-4xl">
                 {['A', 'B', 'C', 'D', 'E'].map((opt) => {
@@ -1532,6 +1544,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                               </p>
                             );
                           })()}
+
+                          {/* Question Attached Diagram (if present) */}
+                          {Boolean((det as any)?.questionImageUrl || (det as any)?.imageUrl) && (
+                            <div className="my-2 p-2 bg-slate-100 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-white/10 flex justify-center max-w-md">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={(det as any).questionImageUrl || (det as any).imageUrl}
+                                alt="Question Diagram"
+                                className="max-h-56 max-w-full object-contain rounded-lg"
+                              />
+                            </div>
+                          )}
 
                           {/* Options grid with HTML awareness if options present */}
                           {det.options && (

@@ -440,6 +440,11 @@ export function renderFormattedQuestionText(input: string): { isHtml: boolean; f
   if (!input) return { isHtml: false, formatted: '' };
 
   let formatted = input;
+  // Convert Markdown image syntax ![alt](url) to responsive centered HTML <img> tag
+  formatted = formatted.replace(
+    /!\[(.*?)\]\(((?:https?:\/\/|\/)[^\s\)]+)\)/g,
+    '<div class="my-2.5 flex justify-center"><img src="$2" alt="$1" class="max-h-72 max-w-full rounded-xl shadow-xs object-contain" /></div>'
+  );
   formatted = formatMatchListsInText(formatted);
   formatted = parseMarkdownTables(formatted);
   formatted = formatAssertionReasonInText(formatted);
