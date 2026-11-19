@@ -8,9 +8,7 @@ import {
   Award, CheckCircle, Play,
   ChevronRight,
   Target, Zap, Lock,
-  Sun, Moon, Download, Receipt,
-  Calendar, HelpCircle, ShieldAlert, Sparkles, Layers, Compass,
-  Gift, Bell
+  Sun, Moon, Download, Receipt
 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -20,7 +18,6 @@ import { getMyEnrollments, getCourseQuizzes } from '@/services/auth';
 import MentorshipChat from '@/components/lms/MentorshipChat';
 import PerformanceAnalytics from '@/components/lms/PerformanceAnalytics';
 import StudentPortalShell from '@/components/StudentPortalShell';
-import StudyStreakHeatmap from '@/components/StudyStreakHeatmap';
 import { generateTaxInvoicePdf } from '@/utils/invoiceGenerator';
 import { generateCourseCertificatePdf } from '@/utils/certificateGenerator';
 import { db } from '@/services/db';
@@ -168,261 +165,37 @@ function StudentDashboardContent() {
   return (
     <StudentPortalShell activeNav={activeNavKey}>
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-
-          {/* ── PW Style Content Subheader (Breadcrumb + Gifts/Notification Actions) ── */}
-          <div className="flex items-center justify-between pb-1">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-              <span className="text-slate-900 dark:text-white font-extrabold text-xl tracking-tight">
-                {activeTab === 'Dashboard' ? 'Study' : activeTab}
-              </span>
-              {activeTab !== 'Dashboard' && (
-                <>
-                  <span className="text-slate-400">/</span>
-                  <button
-                    onClick={() => setActiveTab('Dashboard')}
-                    className="text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-                  >
-                    ← Back to Study
-                  </button>
-                </>
-              )}
-            </div>
-
-            {/* Gift & Bell Quick Icons (PW Header Alignment) */}
-            <div className="flex items-center gap-2">
-              <Link
-                href="/student/dashboard?tab=Performance"
-                className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 hover:border-amber-400 dark:hover:border-amber-400/50 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all shadow-xs"
-                title="Daily Study Streak & Rewards"
-              >
-                <Gift className="w-4 h-4 sm:w-5 sm:h-5" />
-              </Link>
-              <button
-                onClick={() => setActiveTab('Dashboard')}
-                className="p-2 sm:p-2.5 rounded-xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 hover:border-indigo-400 dark:hover:border-indigo-400/50 text-slate-600 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all shadow-xs relative cursor-pointer"
-                title="Notifications"
-              >
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-[#141519]" />
-              </button>
-            </div>
+        
+        {/* Top Bar */}
+        <header className="sticky top-0 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/[0.06] px-6 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-slate-900 dark:text-white font-bold text-lg">
+              {activeTab === 'Dashboard' ? `${new Date().getHours() < 12 ? t('student.morning') : new Date().getHours() < 17 ? t('student.afternoon') : t('student.evening')}, ${user?.fullName ? user.fullName.split(' ')[0] : 'Student'} 👋` : activeTab}
+            </h1>
+            {activeTab === 'Dashboard' && (
+              <p className="text-slate-500 dark:text-slate-500 text-xs mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            )}
           </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/[0.08] transition-all cursor-pointer"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-500" />}
+            </button>
+          </div>
+        </header>
+
+        <div className="p-4 sm:p-6 max-w-7xl">
 
           {/* ── Dashboard Tab ── */}
           {activeTab === 'Dashboard' && (
-            <div className="space-y-7">
-              
-              {/* BATCH OFFERINGS (Signature PW Quick Access Grid) */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-slate-900 dark:text-white font-extrabold text-lg tracking-tight">
-                    Batch Offerings
-                  </h2>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    Quick Navigation
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-                  {/* Card 1: All Classes */}
-                  <Link
-                    href="/student/dashboard?tab=My+Courses"
-                    className="p-4 rounded-2xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 hover:border-blue-500/60 dark:hover:border-blue-500/50 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-11 h-11 rounded-2xl bg-blue-50 dark:bg-blue-500/15 border border-blue-200/70 dark:border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 group-hover:scale-105 transition-transform">
-                        <BookOpen className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          All Classes
-                        </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
-                          Lectures & Batches
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-
-                  {/* Card 2: All Tests */}
-                  <Link
-                    href="/student/prelims"
-                    className="p-4 rounded-2xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 hover:border-indigo-500/60 dark:hover:border-indigo-500/50 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-11 h-11 rounded-2xl bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-200/70 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform font-black text-sm">
-                        A+
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                          All Tests
-                        </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
-                          Prelims & Mock Series
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-
-                  {/* Card 3: My Doubts */}
-                  <Link
-                    href="/student/dashboard?tab=Mentor+Connect"
-                    className="p-4 rounded-2xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 hover:border-purple-500/60 dark:hover:border-purple-500/50 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-11 h-11 rounded-2xl bg-purple-50 dark:bg-purple-500/15 border border-purple-200/70 dark:border-purple-500/20 flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0 group-hover:scale-105 transition-transform">
-                        <HelpCircle className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                          My Doubts
-                        </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
-                          Ask Faculty & Mentors
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-purple-600 dark:group-hover:text-purple-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-
-                  {/* Card 4: Mains Evaluation (Test Pass) */}
-                  <Link
-                    href="/student/upload-mains"
-                    className="p-4 rounded-2xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 hover:border-amber-500/60 dark:hover:border-amber-500/50 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-500/15 border border-amber-200/70 dark:border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
-                        <ShieldAlert className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                          Mains Test Pass
-                        </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
-                          Answer Evaluation
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-
-                  {/* Card 5: Khazana (Vault) */}
-                  <Link
-                    href="/downloads"
-                    className="p-4 rounded-2xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 hover:border-amber-500/60 dark:hover:border-amber-500/50 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-500/15 border border-amber-200/70 dark:border-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
-                        <Lock className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                          Khazana
-                        </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
-                          Toppers Notes & Handouts
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-
-                  {/* Card 6: Infinite Practice */}
-                  <Link
-                    href="/pyqs"
-                    className="p-4 rounded-2xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 hover:border-emerald-500/60 dark:hover:border-emerald-500/50 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-11 h-11 rounded-2xl bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200/70 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
-                        <Target className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                          Infinite Practice
-                        </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
-                          BPSC & UPSC PYQ Bank
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-
-                  {/* Card 7: Daily Current Affairs */}
-                  <Link
-                    href="/current-affairs"
-                    className="p-4 rounded-2xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 hover:border-rose-500/60 dark:hover:border-rose-500/50 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-500/15 border border-rose-200/70 dark:border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0 group-hover:scale-105 transition-transform">
-                        <Zap className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
-                          Daily Affairs
-                        </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
-                          The Hindu & PIB Curated
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-rose-600 dark:group-hover:text-rose-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-
-                  {/* Card 8: Performance Analytics */}
-                  <Link
-                    href="/student/dashboard?tab=Performance"
-                    className="p-4 rounded-2xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 hover:border-cyan-500/60 dark:hover:border-cyan-500/50 hover:shadow-md transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0">
-                      <div className="w-11 h-11 rounded-2xl bg-cyan-50 dark:bg-cyan-500/15 border border-cyan-200/70 dark:border-cyan-500/20 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0 group-hover:scale-105 transition-transform">
-                        <TrendingUp className="w-5 h-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs sm:text-sm font-extrabold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-                          My Analytics
-                        </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-medium">
-                          Rank, Accuracy & Tests
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-cyan-500 dark:group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                  </Link>
-                </div>
-              </div>
-
-              {/* 3. UPCOMING EVENTS (Exact PW style schedule card) */}
-              <div className="space-y-3">
-                <h2 className="text-slate-900 dark:text-white font-extrabold text-lg tracking-tight">
-                  Upcoming Events (0)
-                </h2>
-                <div className="p-6 sm:p-7 rounded-2xl bg-white dark:bg-[#141519] border border-slate-200 dark:border-white/10 flex flex-col items-center justify-center text-center space-y-4 shadow-xs">
-                  <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium">
-                    <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400">
-                      <Calendar className="w-4 h-4" />
-                    </div>
-                    <span>Today&apos;s live events have ended</span>
-                  </div>
-                  <Link
-                    href="/courses"
-                    className="px-6 py-2.5 rounded-xl border border-indigo-600/40 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-xs font-bold transition-all shadow-xs"
-                  >
-                    View Weekly Schedule
-                  </Link>
-                </div>
-              </div>
-
-              {/* 4. Daily Study Streak & Attendance Heatmap */}
-              <StudyStreakHeatmap completedDates={enrollments.map(e => e.enrolledAt)} />
-
-              {/* 5. Quick Stats Grid */}
+            <div className="space-y-6">
+              {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {stats.map(s => (
-                  <div key={s.label} className={`p-3.5 sm:p-4 rounded-2xl ${s.bg} border ${s.border} backdrop-blur-xs flex flex-col justify-between shadow-xs`}>
+                  <div key={s.label} className={`p-3.5 sm:p-4 rounded-2xl ${s.bg} border ${s.border} backdrop-blur-xs flex flex-col justify-between`}>
                     <div className={`w-8 h-8 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center mb-2 sm:mb-3`}>
                       <s.icon className={`w-4 h-4 ${s.iconColor}`} />
                     </div>
@@ -636,23 +409,23 @@ function StudentDashboardContent() {
           {/* ── Official QR Verified Certificates Tab ── */}
           {activeTab === 'Certificates' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-amber-500/10 via-slate-100 to-slate-100 dark:from-amber-950/40 dark:via-[#141519] dark:to-[#141519] border border-amber-500/30 dark:border-amber-500/20 rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xs">
+              <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/20 rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-500/20 mb-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-500/20 mb-2">
                     <Award className="w-3.5 h-3.5" />
                     Verified Credentials Hub
                   </div>
-                  <h2 className="text-slate-900 dark:text-white font-extrabold text-lg sm:text-xl">Your Course Completion Certificates</h2>
-                  <p className="text-slate-600 dark:text-slate-400 text-xs mt-1">
+                  <h2 className="text-white font-extrabold text-lg sm:text-xl">Your Course Completion Certificates</h2>
+                  <p className="text-slate-400 text-xs mt-1">
                     Download authentic QR-verifiable certificates signed by the Academic Board upon completing programs.
                   </p>
                 </div>
               </div>
 
               {enrollments.length === 0 ? (
-                <div className="p-12 rounded-3xl bg-white dark:bg-[#141519] border border-slate-200 dark:border-white/10 text-center space-y-3 shadow-xs">
-                  <Award className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto" />
-                  <p className="font-bold text-slate-800 dark:text-slate-200">No Enrolled Courses Found</p>
+                <div className="p-12 rounded-3xl bg-slate-900 border border-white/10 text-center space-y-3">
+                  <Award className="w-12 h-12 text-slate-700 mx-auto" />
+                  <p className="font-bold text-slate-300">No Enrolled Courses Found</p>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
                     Enroll in a program and complete the syllabus to earn your verifiable certificate.
                   </p>
@@ -666,32 +439,32 @@ function StudentDashboardContent() {
                     return (
                       <div
                         key={enr.courseId}
-                        className="bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 rounded-3xl p-6 space-y-4 hover:border-amber-500/50 transition-all shadow-xs dark:shadow-md flex flex-col justify-between"
+                        className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4 hover:border-amber-500/40 transition-all shadow-md flex flex-col justify-between"
                       >
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+                            <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">
                               {enr.category || 'ACADEMIC PROGRAM'}
                             </span>
                             {isCompleted ? (
-                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-black">
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-black">
                                 ✓ COMPLETED
                               </span>
                             ) : (
-                              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-[10px] font-black">
+                              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-black">
                                 {enr.completionPercentage || 0}% PROGRESS
                               </span>
                             )}
                           </div>
 
-                          <h3 className="text-slate-900 dark:text-white font-bold text-base leading-snug">{enr.title}</h3>
-                          <p className="text-slate-500 dark:text-slate-400 text-xs">
+                          <h3 className="text-white font-bold text-base leading-snug">{enr.title}</h3>
+                          <p className="text-slate-400 text-xs">
                             Enrolled on: {new Date(enr.enrolledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         </div>
 
-                        <div className="pt-3 border-t border-slate-100 dark:border-white/[0.06] flex items-center justify-between">
-                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">ID: {certId}</span>
+                        <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
+                          <span className="text-[10px] font-mono text-slate-500">ID: {certId}</span>
                           <button
                             type="button"
                             onClick={() => {
