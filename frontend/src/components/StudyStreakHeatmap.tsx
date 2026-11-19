@@ -54,29 +54,29 @@ export default function StudyStreakHeatmap({ completedDates = [] }: AttendanceTr
   }, [days]);
 
   return (
-    <div className="p-6 rounded-3xl bg-slate-900 border border-white/10 shadow-xl space-y-4">
+    <div className="p-6 rounded-3xl bg-white dark:bg-[#141519] border border-slate-200/90 dark:border-white/10 shadow-xs dark:shadow-xl space-y-4 transition-colors">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 flex items-center justify-center shrink-0">
             <Flame className="w-6 h-6 text-amber-500 animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+              <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
                 Daily Study Streak
               </span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-black border border-amber-500/30">
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 text-[10px] font-black border border-amber-200 dark:border-amber-500/30">
                 🔥 {currentStreak} DAYS STREAK
               </span>
             </div>
-            <h3 className="text-white font-extrabold text-sm sm:text-base mt-0.5">
+            <h3 className="text-slate-900 dark:text-white font-extrabold text-sm sm:text-base mt-0.5">
               Consistent Practice & Lecture Heatmap
             </h3>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-          <Calendar className="w-4 h-4 text-blue-400" />
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <Calendar className="w-4 h-4 text-blue-500 dark:text-blue-400" />
           <span>Last 28 Days Activity</span>
         </div>
       </div>
@@ -91,9 +91,9 @@ export default function StudyStreakHeatmap({ completedDates = [] }: AttendanceTr
               className={`p-2 rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer ${
                 day.active
                   ? day.isToday
-                    ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 font-black ring-2 ring-amber-400 shadow-md shadow-amber-900/30'
-                    : 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-bold'
-                  : 'bg-white/[0.03] border border-white/[0.06] text-slate-500 hover:border-slate-500'
+                    ? 'bg-gradient-to-br from-amber-500 to-amber-600 text-white font-black ring-2 ring-amber-400 shadow-md shadow-amber-900/20'
+                    : 'bg-emerald-50 dark:bg-emerald-500/20 border border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-400 font-bold'
+                  : 'bg-slate-50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.06] text-slate-400 dark:text-slate-500 hover:border-slate-400 dark:hover:border-slate-500'
               }`}
             >
               <span className="text-[9px] uppercase opacity-75">{day.label}</span>
@@ -104,17 +104,17 @@ export default function StudyStreakHeatmap({ completedDates = [] }: AttendanceTr
       </div>
 
       {/* Footer Motivation Banner */}
-      <div className="pt-2 border-t border-white/[0.04] flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
+      <div className="pt-2 border-t border-slate-100 dark:border-white/[0.06] flex flex-wrap items-center justify-between text-xs text-slate-500 dark:text-slate-400 gap-2">
         <div className="flex items-center gap-2">
-          <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+          <Trophy className="w-4 h-4 text-amber-500 shrink-0" />
           <span>Keep your streak alive to rank higher on the Bihar Aspirant Leaderboard!</span>
         </div>
         <div className="flex items-center gap-3 text-[11px]">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-white/[0.05] border border-white/10" /> Inactive
+            <span className="w-2.5 h-2.5 rounded bg-slate-100 dark:bg-white/[0.05] border border-slate-300 dark:border-white/10" /> Inactive
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded bg-emerald-500/40 border border-emerald-500" /> Studied
+            <span className="w-2.5 h-2.5 rounded bg-emerald-100 dark:bg-emerald-500/40 border border-emerald-300 dark:border-emerald-500" /> Studied
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded bg-amber-500" /> Today

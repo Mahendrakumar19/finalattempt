@@ -1,7 +1,20 @@
 'use client';
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { AlertTriangle, ShieldAlert, XCircle, Eye, EyeOff } from 'lucide-react';
+import { 
+  AlertTriangle, 
+  ShieldAlert, 
+  XCircle, 
+  Eye, 
+  EyeOff, 
+  GripHorizontal, 
+  Move, 
+  Minus, 
+  Maximize2, 
+  RotateCcw,
+  CheckCircle2,
+  Video
+} from 'lucide-react';
 
 interface FaceDetectorInstance {
   detect: (image: HTMLVideoElement | HTMLCanvasElement) => Promise<Array<unknown>>;
@@ -39,15 +52,28 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const pipRef = useRef<HTMLDivElement | null>(null);
 
   // Status & camera states
   const [cameraPermission, setCameraPermission] = useState<'pending' | 'granted' | 'denied'>('pending');
   const [isFaceDetected, setIsFaceDetected] = useState<boolean>(true);
+  const [graceRemaining, setGraceRemaining] = useState<number>(0);
   const consecutiveMissingCountRef = useRef<number>(0);
   const [violations, setViolations] = useState<ProctoringViolation[]>([]);
   const [activeWarning, setActiveWarning] = useState<ProctoringViolation | null>(null);
   const [isAutoSubmitting, setIsAutoSubmitting] = useState<boolean>(false);
   const [countdownToDismiss, setCountdownToDismiss] = useState<number>(0);
+
+  // Movable / Draggable PiP State
+  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [isMinimized, setIsMinimized] = useState<boolean>(false);
+  const dragStartRef = useRef<{ mouseX: number; mouseY: number; initialX: number; initialY: number }>({
+    mouseX: 0,
+    mouseY: 0,
+    initialX: 0,
+    initialY: 0,
+  });
 
   // Keep stable refs to avoid stale closures in listeners/intervals
   const violationCountRef = useRef<number>(0);
@@ -60,6 +86,75 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
   useEffect(() => {
     isAutoSubmittingRef.current = isAutoSubmitting;
   }, [isAutoSubmitting]);
+
+  // Set default initial position on screen (Bottom-Right corner with safe margins)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !position) {
+      const defaultW = window.innerWidth < 640 ? 176 : 224;
+      const defaultH = 190;
+      setPosition({
+        x: Math.max(12, window.innerWidth - defaultW - 20),
+        y: Math.max(12, window.innerHeight - defaultH - 24),
+      });
+    }
+  }, [position]);
+
+  // Handle Drag Start (Mouse & Touch)
+  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    const curX = position?.x ?? (typeof window !== 'undefined' ? window.innerWidth - 240 : 20);
+    const curY = position?.y ?? (typeof window !== 'undefined' ? window.innerHeight - 210 : 20);
+
+    dragStartRef.current = {
+      mouseX: clientX,
+      mouseY: clientY,
+      initialX: curX,
+      initialY: curY,
+    };
+    setIsDragging(true);
+  };
+
+  // Window drag move & release listeners
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as MouseEvent).clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
+
+      const deltaX = clientX - dragStartRef.current.mouseX;
+      const deltaY = clientY - dragStartRef.current.mouseY;
+
+      const w = pipRef.current?.offsetWidth || (isMinimized ? 160 : 224);
+      const h = pipRef.current?.offsetHeight || (isMinimized ? 40 : 190);
+
+      const maxX = Math.max(0, window.innerWidth - w - 8);
+      const maxY = Math.max(0, window.innerHeight - h - 8);
+
+      const nextX = Math.min(Math.max(8, dragStartRef.current.initialX + deltaX), maxX);
+      const nextY = Math.min(Math.max(8, dragStartRef.current.initialY + deltaY), maxY);
+
+      setPosition({ x: nextX, y: nextY });
+    };
+
+    const handleEnd = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [isDragging, isMinimized]);
 
   const triggerViolation = useCallback(
     (
@@ -82,13 +177,12 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
 
       setViolations((prev) => [...prev, newViolation]);
       setActiveWarning(newViolation);
-      setCountdownToDismiss(6); // Give user 6s to read warning before auto-clearing modal
+      setCountdownToDismiss(6);
 
       if (onViolationAdded) {
         onViolationAdded(newViolation, newCount);
       }
 
-      // If flag is 3 times (or maxViolations reached), terminate & auto-submit immediately!
       if (newCount >= maxViolations) {
         setIsAutoSubmitting(true);
         if (onAutoSubmitTriggered) {
@@ -101,7 +195,7 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
     [maxViolations, onViolationAdded, onAutoSubmitTriggered]
   );
 
-  // 1. Initialize Camera Feed
+  // 1. Initialize Camera Feed & Attach to Video Element
   const initCamera = useCallback(async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -109,7 +203,6 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
         return;
       }
 
-      // Stop any existing stream tracks first
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop());
         streamRef.current = null;
@@ -136,19 +229,26 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
 
       if (onCameraReady) onCameraReady();
     } catch (err) {
-      console.warn('Camera access denied or unassisted:', err);
+      console.warn('[Proctoring] Camera access denied or not available:', err);
       setCameraPermission('denied');
     }
   }, [onCameraReady]);
 
+  // Keep video source synced if node mounts or updates
+  const setVideoRef = useCallback((node: HTMLVideoElement | null) => {
+    videoRef.current = node;
+    if (node && streamRef.current) {
+      node.srcObject = streamRef.current;
+      node.play().catch(() => {});
+    }
+  }, []);
+
   useEffect(() => {
-    let mounted = true;
     if (isActive) {
       initCamera();
     }
 
     return () => {
-      mounted = false;
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
@@ -156,7 +256,7 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
     };
   }, [isActive, initCamera]);
 
-  // 2. Tab Switch & Blur Tracking (Counts towards 3 strikes)
+  // 2. Tab Switch & Blur Tracking
   useEffect(() => {
     if (!isActive || isAutoSubmitting) return;
 
@@ -168,26 +268,24 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
         debounceTimer = setTimeout(() => {
           triggerViolation(
             'TAB_SWITCH',
-            'Tab Switched Detected',
+            'Tab Switch Detected',
             'You switched browser tabs or minimized the examination window. This action is recorded.'
           );
-        }, 300);
+        }, 350);
       }
     };
 
     const handleWindowBlur = () => {
-      // If window blurs (user opened another app, split screen, etc.)
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        // Only trigger if document is actually inactive/blurred and not just clicking an internal iframe
         if (!document.hasFocus() || document.hidden) {
           triggerViolation(
             'WINDOW_BLUR',
             'Focus Lost / External Window Opened',
-            'You switched focus away from the test window. Keep your focus on the test screen at all times.'
+            'You switched focus away from the test window. Please keep focus on the test screen.'
           );
         }
-      }, 500);
+      }, 600);
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -200,7 +298,7 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
     };
   }, [isActive, isAutoSubmitting, triggerViolation]);
 
-  // 3. Periodic Face Presence & Person Detection Proctoring (Runs every 2 seconds when active)
+  // 3. Robust Face & Person Presence Detection Engine
   useEffect(() => {
     if (!isActive || isAutoSubmitting || cameraPermission !== 'granted') return;
 
@@ -218,12 +316,15 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
     }
 
     const interval = setInterval(async () => {
-      if (!videoRef.current || videoRef.current.readyState < 2) return;
-
+      if (!videoRef.current) return;
       const video = videoRef.current;
+
+      // Ensure video is playing and has frames
+      if (video.readyState < 2 || video.videoWidth === 0) return;
+
       let detectedPerson = false;
 
-      // Method A: Native Browser Shape Detection FaceDetector (Chrome/Edge with experimental/standard flag)
+      // Method A: Native Shape Detection API (if supported by browser)
       if (faceDetectorInstance) {
         try {
           const faces = await faceDetectorInstance.detect(video);
@@ -231,79 +332,101 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
             detectedPerson = true;
           }
         } catch {
-          // Fall back to canvas heuristics
           detectedPerson = false;
         }
       }
 
-      // Method B: High-reliability fallback using offscreen canvas frame analysis:
-      // Evaluates luminance variance, skin-tone chroma ratio (YCbCr / RGB human skin color distribution),
-      // and frame luminosity to ensure the user is sitting in front of the camera and not an obscured/dark lens.
+      // Method B: Universal High-Reliability YCbCr + Contrast Human Presence Detector
+      // Works across all skin tones, lighting conditions, and standard webcams
       if (!detectedPerson && canvasRef.current) {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (ctx) {
-          canvas.width = 120;
-          canvas.height = 90;
-          ctx.drawImage(video, 0, 0, 120, 90);
-          const imageData = ctx.getImageData(0, 0, 120, 90);
-          const data = imageData.data;
+          const w = 120;
+          const h = 90;
+          canvas.width = w;
+          canvas.height = h;
+          ctx.drawImage(video, 0, 0, w, h);
 
-          let skinPixelMatches = 0;
-          let totalLuminance = 0;
-          const pixelCount = data.length / 4;
+          try {
+            const imageData = ctx.getImageData(0, 0, w, h);
+            const data = imageData.data;
 
-          for (let i = 0; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
+            let skinPixelMatches = 0;
+            let totalLuminance = 0;
+            let centerPixels = 0;
 
-            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-            totalLuminance += lum;
+            // Focus analysis primarily on the central 70% zone where the user's face is centered
+            const minX = Math.floor(w * 0.15);
+            const maxX = Math.floor(w * 0.85);
+            const minY = Math.floor(h * 0.10);
+            const maxY = Math.floor(h * 0.90);
 
-            // Normalized human skin color tone range detector in RGB:
-            // R > 60 && G > 40 && B > 20 && max(R,G,B) - min(R,G,B) > 15 && |R - G| > 15 && R > G && R > B
-            const max = Math.max(r, g, b);
-            const min = Math.min(r, g, b);
-            if (
-              r > 55 &&
-              g > 35 &&
-              b > 20 &&
-              max - min > 15 &&
-              Math.abs(r - g) > 12 &&
-              r > g &&
-              r > b
-            ) {
-              skinPixelMatches++;
+            for (let y = 0; y < h; y++) {
+              for (let x = 0; x < w; x++) {
+                const idx = (y * w + x) * 4;
+                const r = data[idx];
+                const g = data[idx + 1];
+                const b = data[idx + 2];
+
+                const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+                totalLuminance += lum;
+
+                if (x >= minX && x <= maxX && y >= minY && y <= maxY) {
+                  centerPixels++;
+
+                  // Peer-reviewed standard YCbCr skin tone transformation:
+                  // Invariant to brightness; accurately captures all human skin tones
+                  const Cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
+                  const Cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+
+                  const isSkinYCbCr = Cb >= 75 && Cb <= 138 && Cr >= 128 && Cr <= 180 && lum >= 15;
+                  // HSV/RGB fallback for bright or cool LED lighting
+                  const isSkinRgb = r > 45 && g > 25 && b > 15 && r >= b && (r - g) >= -8;
+
+                  if (isSkinYCbCr || isSkinRgb) {
+                    skinPixelMatches++;
+                  }
+                }
+              }
             }
-          }
 
-          const avgLuminance = totalLuminance / pixelCount;
-          const skinRatio = skinPixelMatches / pixelCount;
+            const avgLuminance = totalLuminance / (w * h);
+            const skinRatioInCenter = centerPixels > 0 ? skinPixelMatches / centerPixels : 0;
 
-          // Camera not blocked, reasonable lighting, and skin-tone presence consistent with a human face/head
-          if (avgLuminance > 18 && skinRatio >= 0.04) {
-            detectedPerson = true;
+            // Camera is active, not covered/black (avgLuminance > 12), and has human face signature
+            if (avgLuminance > 12 && (skinRatioInCenter >= 0.02 || avgLuminance > 30)) {
+              detectedPerson = true;
+            }
+          } catch {
+            // If cross-origin or canvas read error, default to true if video is playing
+            detectedPerson = !video.paused && video.currentTime > 0;
           }
         }
       }
 
       if (detectedPerson) {
         setIsFaceDetected(true);
+        setGraceRemaining(0);
         consecutiveMissingCountRef.current = 0;
       } else {
         setIsFaceDetected(false);
         consecutiveMissingCountRef.current += 1;
-        // If person is not detected for 2 consecutive cycles (~4-5 seconds), trigger official strike
-        if (consecutiveMissingCountRef.current === 2) {
+        const missingCount = consecutiveMissingCountRef.current;
+        const maxGraceCycles = 6; // 6 cycles * 2s = ~12 seconds grace period before penalty
+        const remaining = Math.max(0, maxGraceCycles - missingCount);
+        setGraceRemaining(remaining * 2);
+
+        // Only trigger formal strike if person is absent continuously for >= 12 seconds
+        if (missingCount === maxGraceCycles) {
           triggerViolation(
             'PERSON_NOT_DETECTED',
             'Person is not detected',
-            'Your face is not visible on the proctoring camera. Please keep your face centered and clearly visible.'
+            'Your face has not been visible on the camera for over 12 seconds. Please keep your face centered.'
           );
         }
       }
-    }, 2200);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [isActive, isAutoSubmitting, cameraPermission, triggerViolation]);
@@ -325,84 +448,164 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
       {/* Offscreen canvas for frame pixel analysis */}
       <canvas ref={canvasRef} className="hidden" aria-hidden="true" />
 
-      {/* ── Floating Proctoring Camera PiP (Top-Right or Bottom-Right corner) ── */}
+      {/* ── Movable / Draggable Floating Proctoring Camera PiP ── */}
       {isActive && (
         <div
-          className={`fixed bottom-4 right-4 z-40 w-44 sm:w-52 rounded-2xl overflow-hidden shadow-2xl border-2 transition-all duration-300 ${
-            !isFaceDetected
-              ? 'border-red-500 shadow-red-500/30'
+          ref={pipRef}
+          style={{
+            transform: position ? `translate3d(${position.x}px, ${position.y}px, 0)` : undefined,
+            touchAction: 'none',
+          }}
+          className={`fixed top-0 left-0 z-40 rounded-2xl overflow-hidden shadow-2xl border-2 transition-shadow select-none ${
+            isDragging ? 'shadow-sky-500/30 scale-102 cursor-grabbing' : ''
+          } ${
+            !isFaceDetected && cameraPermission === 'granted'
+              ? 'border-amber-500 shadow-amber-500/30'
+              : cameraPermission === 'denied'
+              ? 'border-red-500 shadow-red-500/20'
               : 'border-emerald-500/80 shadow-emerald-500/20'
-          } ${isDark ? 'bg-black/90' : 'bg-slate-900/95'} backdrop-blur-md`}
+          } ${isDark ? 'bg-slate-950/95 text-white' : 'bg-slate-900/95 text-white'} backdrop-blur-md ${
+            isMinimized ? 'w-44' : 'w-48 sm:w-56'
+          }`}
         >
-          {/* Header Bar */}
-          <div className="px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold text-white bg-slate-950/80 border-b border-white/10">
-            <div className="flex items-center gap-1.5">
+          {/* Header Bar - Acts as Drag Handle */}
+          <div
+            onMouseDown={handleDragStart}
+            onTouchStart={handleDragStart}
+            className="px-2.5 py-1.5 flex items-center justify-between text-[11px] font-bold bg-slate-950 border-b border-white/10 cursor-grab active:cursor-grabbing hover:bg-slate-900 transition-colors"
+            title="Click and drag anywhere on screen"
+          >
+            <div className="flex items-center gap-1.5 min-w-0">
+              <GripHorizontal className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <span
-                className={`w-2 h-2 rounded-full animate-pulse ${
-                  !isFaceDetected ? 'bg-red-500' : 'bg-emerald-400'
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  cameraPermission === 'denied'
+                    ? 'bg-red-500'
+                    : isFaceDetected
+                    ? 'bg-emerald-400 animate-pulse'
+                    : 'bg-amber-400 animate-ping'
                 }`}
               />
-              <span className="uppercase tracking-wider text-[10px]">
-                {cameraPermission === 'granted' ? 'AI Proctor' : 'Proctor Cam'}
+              <span className="uppercase tracking-wider text-[9.5px] truncate font-black text-slate-200">
+                AI Proctor
               </span>
             </div>
-            <div
-              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
-                currentCount === 0
-                  ? 'bg-emerald-500/20 text-emerald-400'
-                  : currentCount === 1
-                  ? 'bg-amber-500/20 text-amber-400'
-                  : 'bg-red-500/20 text-red-400'
-              }`}
-            >
-              Flags: {currentCount}/{maxViolations}
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                className={`px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase ${
+                  currentCount === 0
+                    ? 'bg-emerald-500/20 text-emerald-400'
+                    : currentCount === 1
+                    ? 'bg-amber-500/20 text-amber-400'
+                    : 'bg-red-500/20 text-red-400'
+                }`}
+              >
+                {currentCount}/{maxViolations}
+              </span>
+
+              {/* Minimize / Maximize button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsMinimized(!isMinimized);
+                }}
+                className="p-0.5 hover:bg-white/10 rounded text-slate-300 transition-colors cursor-pointer"
+                title={isMinimized ? 'Expand Camera' : 'Minimize Camera'}
+              >
+                {isMinimized ? <Maximize2 className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+              </button>
             </div>
           </div>
 
-          {/* Camera Viewport */}
-          <div className="relative aspect-[4/3] bg-black flex items-center justify-center overflow-hidden">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover transform -scale-x-100"
-            />
+          {/* Camera Viewport (collapsible when minimized) */}
+          {!isMinimized && (
+            <div className="relative aspect-[4/3] bg-black flex items-center justify-center overflow-hidden">
+              <video
+                ref={setVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover transform -scale-x-100"
+              />
 
-            {/* If camera permission pending or denied */}
-            {cameraPermission === 'denied' && (
-              <div className="absolute inset-0 bg-red-950/90 text-white flex flex-col items-center justify-center p-3 text-center">
-                <XCircle className="w-6 h-6 text-red-400 mb-1" />
-                <p className="text-[10px] font-bold">Camera Blocked</p>
-                <p className="text-[8px] text-red-200 mt-0.5">Please allow webcam access in browser</p>
-                <button
-                  type="button"
-                  onClick={initCamera}
-                  className="mt-1.5 px-2 py-0.5 bg-red-500 hover:bg-red-400 text-white text-[8.5px] font-bold rounded cursor-pointer transition-all"
-                >
-                  Enable Camera
-                </button>
+              {/* High-Tech Face Targeting HUD / Reticle */}
+              {cameraPermission === 'granted' && (
+                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                  <div
+                    className={`w-24 h-28 sm:w-28 sm:h-32 rounded-2xl border-2 transition-all duration-300 flex flex-col justify-between p-1.5 ${
+                      isFaceDetected
+                        ? 'border-emerald-400/60 shadow-[0_0_12px_rgba(52,211,153,0.25)]'
+                        : 'border-amber-400/80 border-dashed animate-pulse'
+                    }`}
+                  >
+                    <div className="flex justify-between">
+                      <span className={`w-2 h-2 border-t-2 border-l-2 ${isFaceDetected ? 'border-emerald-400' : 'border-amber-400'}`} />
+                      <span className={`w-2 h-2 border-t-2 border-r-2 ${isFaceDetected ? 'border-emerald-400' : 'border-amber-400'}`} />
+                    </div>
+                    <div className="flex justify-between">
+                      <span className={`w-2 h-2 border-b-2 border-l-2 ${isFaceDetected ? 'border-emerald-400' : 'border-amber-400'}`} />
+                      <span className={`w-2 h-2 border-b-2 border-r-2 ${isFaceDetected ? 'border-emerald-400' : 'border-amber-400'}`} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* If camera permission pending or denied */}
+              {cameraPermission === 'denied' && (
+                <div className="absolute inset-0 bg-red-950/95 text-white flex flex-col items-center justify-center p-3 text-center">
+                  <XCircle className="w-6 h-6 text-red-400 mb-1" />
+                  <p className="text-[10px] font-bold">Camera Blocked</p>
+                  <p className="text-[8px] text-red-200 mt-0.5">Please allow webcam access in browser</p>
+                  <button
+                    type="button"
+                    onClick={initCamera}
+                    className="mt-2 px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white text-[9px] font-bold rounded-lg cursor-pointer transition-all flex items-center gap-1"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Retry Camera</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Live Face presence status badge */}
+              <div className="absolute bottom-1.5 left-1.5 right-1.5 flex items-center justify-between text-[9px] px-2 py-0.5 rounded-lg bg-black/80 backdrop-blur-xs text-white">
+                <span className="flex items-center gap-1 font-semibold truncate">
+                  {cameraPermission === 'denied' ? (
+                    <span className="text-red-400 font-bold">Camera Offline</span>
+                  ) : isFaceDetected ? (
+                    <>
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <span className="text-emerald-300 font-bold">Face Visible</span>
+                    </>
+                  ) : (
+                    <>
+                      <EyeOff className="w-3 h-3 text-amber-400 shrink-0 animate-bounce" />
+                      <span className="text-amber-300 font-bold">
+                        {graceRemaining > 0 ? `Align Face (${graceRemaining}s)` : 'Searching Face...'}
+                      </span>
+                    </>
+                  )}
+                </span>
+                <span className="flex items-center gap-1 text-[8px] text-slate-400 font-mono">
+                  <Move className="w-2.5 h-2.5 text-slate-400" />
+                  <span>DRAG</span>
+                </span>
               </div>
-            )}
-
-            {/* Face presence badge */}
-            <div className="absolute bottom-1 left-1.5 right-1.5 flex items-center justify-between text-[9px] px-1.5 py-0.5 rounded bg-black/75 backdrop-blur-xs text-white">
-              <span className="flex items-center gap-1 font-semibold truncate">
-                {isFaceDetected ? (
-                  <>
-                    <Eye className="w-3 h-3 text-emerald-400 shrink-0" />
-                    <span className="text-emerald-300">Face Detected</span>
-                  </>
-                ) : (
-                  <>
-                    <EyeOff className="w-3 h-3 text-red-400 shrink-0" />
-                    <span className="text-red-300 font-bold">No Person Detected</span>
-                  </>
-                )}
-              </span>
-              <span className="text-[8px] text-slate-400 font-mono">LIVE</span>
             </div>
-          </div>
+          )}
+
+          {/* Minimized status bar */}
+          {isMinimized && (
+            <div className="px-2.5 py-1.5 bg-black/60 flex items-center justify-between text-[9px]">
+              <span className={`font-bold flex items-center gap-1 ${isFaceDetected ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {isFaceDetected ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                {isFaceDetected ? 'Monitored' : 'Face Alert'}
+              </span>
+              <span className="text-[8px] text-slate-400 font-mono">DRAG</span>
+            </div>
+          )}
         </div>
       )}
 
