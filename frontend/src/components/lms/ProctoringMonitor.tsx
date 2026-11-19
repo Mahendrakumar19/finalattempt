@@ -13,7 +13,7 @@ interface WindowWithFaceDetector extends Window {
 
 export interface ProctoringViolation {
   id: string;
-  type: 'PERSON_NOT_DETECTED' | 'TAB_SWITCH' | 'WINDOW_BLUR' | 'FULLSCREEN_EXIT';
+  type: 'PERSON_NOT_DETECTED' | 'TAB_SWITCH' | 'WINDOW_BLUR' | 'FULLSCREEN_EXIT' | 'CAMERA_PERMISSION_DENIED';
   title: string;
   description: string;
   timestamp: Date;
@@ -63,7 +63,7 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
 
   const triggerViolation = useCallback(
     (
-      type: 'PERSON_NOT_DETECTED' | 'TAB_SWITCH' | 'WINDOW_BLUR' | 'FULLSCREEN_EXIT',
+      type: 'PERSON_NOT_DETECTED' | 'TAB_SWITCH' | 'WINDOW_BLUR' | 'FULLSCREEN_EXIT' | 'CAMERA_PERMISSION_DENIED',
       title: string,
       description: string
     ) => {
@@ -102,47 +102,47 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
   );
 
   // 1. Initialize Camera Feed
+  const initCamera = useCallback(async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraPermission('denied');
+        return;
+      }
+
+      // Stop any existing stream tracks first
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user',
+        },
+        audio: false,
+      });
+
+      streamRef.current = stream;
+      setCameraPermission('granted');
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(() => {});
+        };
+      }
+
+      if (onCameraReady) onCameraReady();
+    } catch (err) {
+      console.warn('Camera access denied or unassisted:', err);
+      setCameraPermission('denied');
+    }
+  }, [onCameraReady]);
+
   useEffect(() => {
     let mounted = true;
-
-    async function initCamera() {
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          setCameraPermission('denied');
-          return;
-        }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 320 },
-            height: { ideal: 240 },
-            facingMode: 'user',
-          },
-          audio: false,
-        });
-
-        if (!mounted) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-
-        streamRef.current = stream;
-        setCameraPermission('granted');
-
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
-        }
-
-        if (onCameraReady) onCameraReady();
-      } catch (err) {
-        console.warn('Camera access denied or unassisted:', err);
-        if (mounted) {
-          setCameraPermission('denied');
-        }
-      }
-    }
-
     if (isActive) {
       initCamera();
     }
@@ -154,7 +154,7 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
         streamRef.current = null;
       }
     };
-  }, [isActive, onCameraReady]);
+  }, [isActive, initCamera]);
 
   // 2. Tab Switch & Blur Tracking (Counts towards 3 strikes)
   useEffect(() => {
@@ -375,6 +375,13 @@ export const ProctoringMonitor: React.FC<ProctoringMonitorProps> = ({
                 <XCircle className="w-6 h-6 text-red-400 mb-1" />
                 <p className="text-[10px] font-bold">Camera Blocked</p>
                 <p className="text-[8px] text-red-200 mt-0.5">Please allow webcam access in browser</p>
+                <button
+                  type="button"
+                  onClick={initCamera}
+                  className="mt-1.5 px-2 py-0.5 bg-red-500 hover:bg-red-400 text-white text-[8.5px] font-bold rounded cursor-pointer transition-all"
+                >
+                  Enable Camera
+                </button>
               </div>
             )}
 

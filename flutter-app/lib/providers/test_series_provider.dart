@@ -372,8 +372,8 @@ class TestPlayerNotifier extends StateNotifier<TestPlayerState> {
 final quizQuestionsProvider = FutureProvider.family.autoDispose<List<TestQuestion>, String>((ref, quizId) async {
   final apiService = ref.watch(apiServiceProvider);
   try {
-    // If daily quiz ID or slug
-    if (quizId.startsWith('daily') || quizId.contains('quiz')) {
+    // 1. If explicitly a daily quiz ID (starts with 'daily-' or 'dq-')
+    if (quizId.startsWith('daily-') || quizId.startsWith('dq-')) {
       final dailyRes = await apiService.get('/quizzes/daily/$quizId/start');
       final dData = dailyRes is Map ? (dailyRes['data'] ?? dailyRes) : dailyRes;
       if (dData is Map && dData.containsKey('questions')) {
@@ -382,6 +382,7 @@ final quizQuestionsProvider = FutureProvider.family.autoDispose<List<TestQuestio
       }
     }
 
+    // 2. Authoritative Test Series / Full Mock / Course Quiz API: /quizzes/:quizId/start
     final response = await apiService.get('/quizzes/$quizId/start');
     final data = response is Map ? (response['data'] ?? response) : response;
     if (data is Map && data.containsKey('questions')) {
@@ -391,7 +392,15 @@ final quizQuestionsProvider = FutureProvider.family.autoDispose<List<TestQuestio
       return data.map((q) => TestQuestion.fromJson(q)).toList();
     }
   } catch (_) {
-    // Fallback: try daily endpoint if standard failed
+    // Fallback: only if standard test series endpoint returned error, attempt daily or direct questions lookup
+    try {
+      final fallbackRes = await apiService.get('/lms/quizzes/$quizId/questions');
+      final fData = fallbackRes is Map ? (fallbackRes['data'] ?? fallbackRes) : fallbackRes;
+      if (fData is List) {
+        return fData.map((q) => TestQuestion.fromJson(q)).toList();
+      }
+    } catch (_) {}
+
     try {
       final fallbackRes = await apiService.get('/quizzes/daily/$quizId/start');
       final fData = fallbackRes is Map ? (fallbackRes['data'] ?? fallbackRes) : fallbackRes;

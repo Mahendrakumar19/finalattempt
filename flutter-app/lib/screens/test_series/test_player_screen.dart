@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'test_result_screen.dart';
+import '../../widgets/live_camera_proctor_widget.dart';
 
 class TestPlayerScreen extends ConsumerWidget {
   final String quizId;
@@ -222,9 +223,11 @@ class TestPlayerScreen extends ConsumerWidget {
             const SizedBox(width: 6),
           ],
         ),
-        body: Column(
+        body: Stack(
           children: [
-            // Sub-Header: Progress & Countdown Timer Bar
+            Column(
+              children: [
+                // Sub-Header: Progress & Countdown Timer Bar
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               decoration: BoxDecoration(
@@ -523,8 +526,19 @@ class TestPlayerScreen extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
+
+        // Live Camera Proctoring Overlay with PIP preview and strike detection
+        LiveCameraProctorWidget(
+          isActive: true,
+          maxViolations: 3,
+          onAutoSubmitTriggered: (reason) {
+            notifier.submitTest();
+          },
+        ),
+      ],
+    ),
+  ),
+);
   }
 
   Widget _buildOptionTile(
