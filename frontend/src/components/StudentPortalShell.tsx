@@ -5,14 +5,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, FileText, Target, Upload, MessageSquare,
-  TrendingUp, Settings, LogOut, Menu, X, ChevronRight, User
+  TrendingUp, Settings, LogOut, Menu, X, ChevronRight, User,
+  GraduationCap, Compass, FolderDown, HelpCircle
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 
 interface StudentPortalShellProps {
   children: ReactNode;
-  activeNav?: 'dashboard' | 'courses' | 'prelims' | 'mains' | 'upload-mains' | 'resources' | 'mentor' | 'performance';
+  activeNav?: string;
 }
 
 export default function StudentPortalShell({ children, activeNav }: StudentPortalShellProps) {
@@ -22,15 +23,31 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const sidebarLinks = [
-    { key: 'dashboard',    name: t('student.dashboard'),         icon: LayoutDashboard, href: '/student/dashboard' },
-    { key: 'courses',      name: t('student.myCourses'),         icon: BookOpen,        href: '/student/dashboard?tab=My+Courses' },
-    { key: 'prelims',      name: t('student.prelims'),           icon: FileText,        href: '/student/prelims' },
-    { key: 'mains',        name: t('student.mains'),             icon: Target,          href: '/student/mains' },
-    { key: 'upload-mains', name: t('student.uploadMainsCopy'),   icon: Upload,          href: '/student/upload-mains' },
-    { key: 'resources',    name: t('student.resources'),         icon: BookOpen,        href: '/downloads' },
-    { key: 'mentor',       name: t('student.mentorConnect'),     icon: MessageSquare,   href: '/student/dashboard?tab=Mentor+Connect' },
-    { key: 'performance',  name: t('student.performance'),       icon: TrendingUp,      href: '/student/dashboard?tab=Performance' },
+  // Grouped Navigation Sections (Divided ONLY by a subtle line, no section header text)
+  const navSections = [
+    // Section 1: Study & Core Hub
+    [
+      { key: 'study',        name: 'Study',              icon: GraduationCap,   href: '/courses' },
+      { key: 'dashboard',    name: 'Dashboard',          icon: LayoutDashboard, href: '/student/dashboard' },
+      { key: 'courses',      name: 'My courses',         icon: BookOpen,        href: '/student/dashboard?tab=My+Courses' },
+    ],
+    // Section 2: Examination, Practice & Evaluation
+    [
+      { key: 'prelims',      name: 'Prelims',            icon: FileText,        href: '/student/prelims' },
+      { key: 'mains',        name: 'Mains',              icon: Target,          href: '/student/mains' },
+      { key: 'practice',     name: 'Practice',           icon: Compass,         href: '/pyq' },
+      { key: 'upload-mains', name: 'Upload mains copy',  icon: Upload,          href: '/student/upload-mains' },
+    ],
+    // Section 3: Learning Materials
+    [
+      { key: 'resources',    name: 'Resources',          icon: FolderDown,      href: '/downloads' },
+    ],
+    // Section 4: Assistance, Mentorship & Analytics
+    [
+      { key: 'support',      name: 'Support',            icon: HelpCircle,      href: '/contact' },
+      { key: 'mentor',       name: 'Mentor connect',     icon: MessageSquare,   href: '/student/dashboard?tab=Mentor+Connect' },
+      { key: 'performance',  name: 'Performance',        icon: TrendingUp,      href: '/student/dashboard?tab=Performance' },
+    ]
   ];
 
   return (
@@ -97,27 +114,34 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
           </Link>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto styled-scrollbar">
-          {sidebarLinks.map(({ key, name, icon: Icon, href }) => {
-            const isActive = activeNav ? activeNav === key : pathname === href;
-            return (
-              <Link
-                key={key}
-                href={href}
-                onClick={() => setIsSidebarOpen(false)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25 font-extrabold'
-                    : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.07]'
-                }`}
-              >
-                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} />
-                <span>{name}</span>
-                {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-white/80" />}
-              </Link>
-            );
-          })}
+        {/* Navigation Items (Sections divided ONLY by a clean line, no text) */}
+        <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto styled-scrollbar">
+          {navSections.map((section, sIdx) => (
+            <div key={sIdx} className="space-y-1">
+              {sIdx > 0 && (
+                <div className="my-2 border-t border-gray-200 dark:border-white/10" />
+              )}
+              {section.map(({ key, name, icon: Icon, href }) => {
+                const isActive = activeNav ? activeNav === key : pathname === href;
+                return (
+                  <Link
+                    key={key}
+                    href={href}
+                    onClick={() => setIsSidebarOpen(false)}
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      isActive
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/25 font-extrabold'
+                        : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/[0.07]'
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-gray-500 dark:text-gray-400'}`} />
+                    <span>{name}</span>
+                    {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-white/80" />}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Footer options */}
