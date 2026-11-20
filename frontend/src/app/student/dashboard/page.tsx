@@ -154,6 +154,17 @@ function StudentDashboardContent() {
     );
   }
 
+  const isTestSeriesItem = (e: Enrollment) => {
+    if (e.testSeriesSlug) return true;
+    if (e.courseId?.startsWith('ts-') || e.courseId?.startsWith('bpsc-test-series') || e.courseId?.startsWith('bpsc-prelims-pyq') || e.courseId?.includes('test-series')) return true;
+    const cat = (e.category || '').toLowerCase();
+    const title = (e.title || '').toLowerCase();
+    return cat.includes('test series') || title.includes('test series') || title.includes('testing test');
+  };
+
+  const lectureCourses = enrollments.filter(e => !isTestSeriesItem(e));
+  const activeCourse = lectureCourses[0] || enrollments[0];
+
   const stats = [
     { label: t('student.coursesEnrolled'), value: enrollments.length || 0, icon: BookOpen, color: 'text-blue-600 dark:text-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-white dark:bg-[#15171E]', border: 'border-gray-200 dark:border-white/10 shadow-sm' },
     { label: t('student.testsAttempted'), value: allQuizzes.length || 0, icon: FileText, color: 'text-amber-600 dark:text-amber-400', iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-white dark:bg-[#15171E]', border: 'border-gray-200 dark:border-white/10 shadow-sm' },
@@ -167,20 +178,42 @@ function StudentDashboardContent() {
     <StudentPortalShell activeNav={activeNavKey}>
       <div className="flex-1 overflow-y-auto">
         
-        {/* Top Bar */}
-        <header className="sticky top-0 z-20 bg-white dark:bg-[#121316] backdrop-blur-xl border-b border-gray-200 dark:border-white/10 px-6 py-4 flex items-center justify-between">
+        {/* Top Bar Header (Gemini UI Redesign) */}
+        <header className="sticky top-0 z-20 bg-white dark:bg-[#080C14] backdrop-blur-xl border-b border-gray-200 dark:border-white/10 px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-gray-950 dark:text-white font-extrabold text-lg sm:text-xl tracking-tight">
-              {activeTab === 'Dashboard' ? `${new Date().getHours() < 12 ? t('student.morning') : new Date().getHours() < 17 ? t('student.afternoon') : t('student.evening')}, ${user?.fullName ? user.fullName.split(' ')[0] : 'Student'} 👋` : activeTab}
+            <h1 className="text-gray-950 dark:text-white font-extrabold text-lg sm:text-xl tracking-tight flex items-center gap-1.5">
+              <span>{activeTab === 'Dashboard' ? `${new Date().getHours() < 12 ? 'Good Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Good Evening'}, ${user?.fullName ? user.fullName.split(' ')[0] : 'Aspirant'}` : activeTab}</span>
+              {activeTab === 'Dashboard' && <span className="inline-block">👋</span>}
             </h1>
             {activeTab === 'Dashboard' && (
-              <p className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 font-medium">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 font-semibold">
+                {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
             )}
           </div>
+
           <div className="flex items-center gap-3">
+            {/* Countdown & Daily Target Pill Card */}
+            {activeTab === 'Dashboard' && (
+              <div className="hidden sm:flex items-center gap-3.5 px-3.5 py-1.5 rounded-2xl bg-gray-50 dark:bg-white/[0.05] border border-gray-200 dark:border-white/10 shadow-xs text-xs font-semibold">
+                <div className="flex items-center gap-2 text-gray-800 dark:text-gray-200">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                  <span>BPSC Prelims: <strong className="text-blue-600 dark:text-blue-400 font-extrabold">48 Days Left</strong></span>
+                </div>
+                <div className="h-3.5 w-px bg-gray-300 dark:bg-white/15" />
+                <div className="flex items-center gap-1.5 text-gray-700 dark:text-gray-300">
+                  <span>Daily Target:</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 font-black text-[11px] border border-emerald-500/20">
+                    2/3 Done
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Light / Dark Mode Toggle */}
             <button 
               onClick={toggleTheme}
-              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.12] border border-gray-300 dark:border-white/15 text-gray-800 dark:text-white transition-all cursor-pointer"
+              className="p-2.5 rounded-2xl bg-gray-50 hover:bg-gray-100 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white shadow-xs transition-all cursor-pointer"
               aria-label="Toggle Theme"
               title="Toggle Light/Dark Theme"
             >
@@ -194,6 +227,57 @@ function StudentDashboardContent() {
           {/* ── Dashboard Tab ── */}
           {activeTab === 'Dashboard' && (
             <div className="space-y-6">
+
+              {/* ── Continue Learning Hero Banner (From Gemini UI Specification) ── */}
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0a1636] via-[#0f2150] to-[#12285e] border border-blue-500/30 p-5 sm:p-7 text-white shadow-xl shadow-blue-950/25">
+                {/* Decorative ambient background blur */}
+                <div className="absolute -top-16 -right-16 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
+                  <div className="flex items-start gap-4 sm:gap-5">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0 shadow-inner group">
+                      <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-600/40">
+                        <Play className="w-5 h-5 fill-white ml-0.5" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="px-2.5 py-0.5 rounded-full bg-blue-500/30 border border-blue-400/40 text-blue-200 font-black text-[10px] tracking-wider uppercase">
+                          CONTINUE LEARNING
+                        </span>
+                        <span className="text-blue-200/70 text-xs font-semibold">
+                          Last watched 2 hours ago
+                        </span>
+                      </div>
+                      <h2 className="text-white font-extrabold text-base sm:text-lg lg:text-xl leading-snug line-clamp-2">
+                        {activeCourse ? `${activeCourse.title} — Lecture 14: Parliamentary Committees` : 'GS Paper 2: Indian Polity & Governance — Lecture 14: Parliamentary Committees'}
+                      </h2>
+                      <div className="flex items-center gap-3 pt-1">
+                        <span className="text-blue-200/80 text-xs font-medium">Lecture Progress</span>
+                        <div className="w-32 sm:w-48 h-2 rounded-full bg-white/20 overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-blue-400 to-cyan-300 rounded-full transition-all duration-500"
+                            style={{ width: `${activeCourse?.completionPercentage ?? 68}%` }}
+                          />
+                        </div>
+                        <span className="text-white font-black text-xs">{activeCourse?.completionPercentage ?? 68}%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0 self-start md:self-center">
+                    <Link
+                      href={activeCourse ? `/student/course/${activeCourse.courseId}` : '/courses'}
+                      className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/35 hover:shadow-blue-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      <span>Resume Lecture</span>
+                      <ChevronRight className="w-4 h-4 stroke-[3]" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {stats.map(s => (
