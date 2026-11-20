@@ -144,20 +144,20 @@ function StudentDashboardContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A0B0E] flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-slate-500 text-xs font-bold uppercase tracking-wider">{t('student.verifyingSession')}</p>
+          <p className="text-gray-400 text-xs font-bold uppercase tracking-wider">{t('student.verifyingSession')}</p>
         </div>
       </div>
     );
   }
 
   const stats = [
-    { label: t('student.coursesEnrolled'), value: enrollments.length || 0, icon: BookOpen, color: 'text-blue-600 dark:text-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10', border: 'border-blue-200 dark:border-blue-500/20' },
-    { label: t('student.testsAttempted'), value: allQuizzes.length || 0, icon: FileText, color: 'text-amber-600 dark:text-amber-400', iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10', border: 'border-amber-200 dark:border-amber-500/20' },
-    { label: t('student.currentAffairs'), value: '—', icon: TrendingUp, color: 'text-violet-600 dark:text-violet-400', iconColor: 'text-violet-600 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-500/10', border: 'border-violet-200 dark:border-violet-500/20' },
-    { label: t('student.downloads'), value: '—', icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10', border: 'border-emerald-200 dark:border-emerald-500/20' }
+    { label: t('student.coursesEnrolled'), value: enrollments.length || 0, icon: BookOpen, color: 'text-blue-600 dark:text-blue-400', iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-white dark:bg-[#15171E]', border: 'border-gray-200 dark:border-white/10 shadow-sm' },
+    { label: t('student.testsAttempted'), value: allQuizzes.length || 0, icon: FileText, color: 'text-amber-600 dark:text-amber-400', iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-white dark:bg-[#15171E]', border: 'border-gray-200 dark:border-white/10 shadow-sm' },
+    { label: t('student.currentAffairs'), value: '—', icon: TrendingUp, color: 'text-purple-600 dark:text-purple-400', iconColor: 'text-purple-600 dark:text-purple-400', bg: 'bg-white dark:bg-[#15171E]', border: 'border-gray-200 dark:border-white/10 shadow-sm' },
+    { label: t('student.downloads'), value: '—', icon: CheckCircle, color: 'text-emerald-600 dark:text-emerald-400', iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-white dark:bg-[#15171E]', border: 'border-gray-200 dark:border-white/10 shadow-sm' }
   ];
 
   const activeNavKey = activeTab === 'My Courses' ? 'courses' : activeTab === 'Mentor Connect' ? 'mentor' : activeTab === 'Performance' ? 'performance' : 'dashboard';
@@ -167,22 +167,23 @@ function StudentDashboardContent() {
       <div className="flex-1 overflow-y-auto">
         
         {/* Top Bar */}
-        <header className="sticky top-0 z-20 bg-white dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/[0.06] px-6 py-4 flex items-center justify-between">
+        <header className="sticky top-0 z-20 bg-white dark:bg-[#121316] backdrop-blur-xl border-b border-gray-200 dark:border-white/10 px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-slate-900 dark:text-white font-bold text-lg">
+            <h1 className="text-gray-950 dark:text-white font-extrabold text-lg sm:text-xl tracking-tight">
               {activeTab === 'Dashboard' ? `${new Date().getHours() < 12 ? t('student.morning') : new Date().getHours() < 17 ? t('student.afternoon') : t('student.evening')}, ${user?.fullName ? user.fullName.split(' ')[0] : 'Student'} 👋` : activeTab}
             </h1>
             {activeTab === 'Dashboard' && (
-              <p className="text-slate-500 dark:text-slate-500 text-xs mt-0.5">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 font-medium">{new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
             )}
           </div>
           <div className="flex items-center gap-3">
             <button 
               onClick={toggleTheme}
-              className="p-2 rounded-xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/[0.08] transition-all cursor-pointer"
+              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.12] border border-gray-300 dark:border-white/15 text-gray-800 dark:text-white transition-all cursor-pointer"
               aria-label="Toggle Theme"
+              title="Toggle Light/Dark Theme"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-500" />}
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-gray-800" />}
             </button>
           </div>
         </header>
@@ -195,13 +196,13 @@ function StudentDashboardContent() {
               {/* Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {stats.map(s => (
-                  <div key={s.label} className={`p-3.5 sm:p-4 rounded-2xl ${s.bg} border ${s.border} backdrop-blur-xs flex flex-col justify-between`}>
-                    <div className={`w-8 h-8 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center mb-2 sm:mb-3`}>
-                      <s.icon className={`w-4 h-4 ${s.iconColor}`} />
+                  <div key={s.label} className={`p-4 sm:p-5 rounded-2xl ${s.bg} border ${s.border} flex flex-col justify-between transition-all hover:border-blue-500/50`}>
+                    <div className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 flex items-center justify-center mb-2 sm:mb-3">
+                      <s.icon className={`w-5 h-5 ${s.iconColor}`} />
                     </div>
                     <div>
-                      <p className={`text-xl sm:text-2xl font-bold ${s.color}`}>{s.value}</p>
-                      <p className="text-slate-600 dark:text-slate-400 text-[11px] sm:text-xs mt-0.5 font-medium leading-snug break-words">{s.label}</p>
+                      <p className={`text-2xl sm:text-3xl font-black ${s.color}`}>{s.value}</p>
+                      <p className="text-gray-800 dark:text-gray-200 text-xs mt-1 font-bold leading-snug break-words">{s.label}</p>
                     </div>
                   </div>
                 ))}
@@ -222,22 +223,22 @@ function StudentDashboardContent() {
                 return (
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.myEnrolledCourses')}</h2>
-                      <button onClick={() => setActiveTab('My Courses')} className="text-blue-600 dark:text-blue-400 text-xs hover:text-blue-500 dark:hover:text-blue-300 font-medium transition-colors">{t('student.viewAll')}</button>
+                      <h2 className="text-gray-950 dark:text-white font-extrabold text-base sm:text-lg">{t('student.myEnrolledCourses')}</h2>
+                      <button onClick={() => setActiveTab('My Courses')} className="text-blue-600 dark:text-blue-400 text-xs hover:underline font-bold transition-colors cursor-pointer">{t('student.viewAll')}</button>
                     </div>
 
                     {loadingEnrollments ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {[1, 2].map(i => (
-                          <div key={i} className="h-28 rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse" />
+                          <div key={i} className="h-28 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 animate-pulse" />
                         ))}
                       </div>
                     ) : lectureCourses.length === 0 ? (
-                      <div className="p-8 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-center">
-                        <BookOpen className="w-10 h-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
-                        <h3 className="text-slate-700 dark:text-slate-300 font-semibold text-sm mb-1">{t('student.noCoursesYet')}</h3>
-                        <p className="text-slate-500 text-xs mb-4">{t('student.noCoursesDesc')}</p>
-                        <Link href="/courses" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all">
+                      <div className="p-8 sm:p-10 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 text-center shadow-xs">
+                        <BookOpen className="w-10 h-10 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+                        <h3 className="text-gray-900 dark:text-white font-bold text-sm mb-1">{t('student.noCoursesYet')}</h3>
+                        <p className="text-gray-600 dark:text-gray-300 text-xs mb-4 font-medium">{t('student.noCoursesDesc')}</p>
+                        <Link href="/courses" className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all shadow-sm">
                           <BookOpen className="w-3.5 h-3.5" />
                           {t('student.exploreCourses')}
                         </Link>
@@ -248,29 +249,29 @@ function StudentDashboardContent() {
                           <Link
                             key={e.courseId}
                             href={`/student/course/${e.courseId}`}
-                            className="course-card-premium group p-4 rounded-3xl"
+                            className="group p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 hover:border-blue-500 dark:hover:border-blue-500 shadow-xs hover:shadow-md transition-all"
                           >
                             <div className="flex items-start gap-3">
-                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0">
+                              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-sm text-white">
                                 <BookOpen className="w-5 h-5 text-white" />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <h3 className="text-slate-900 dark:text-white text-sm font-semibold truncate group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">{e.title}</h3>
-                                <p className="text-slate-500 text-xs mt-0.5">{e.category} · {e.duration || 'Ongoing'}</p>
+                                <h3 className="text-gray-950 dark:text-white text-sm font-bold truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{e.title}</h3>
+                                <p className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 font-medium">{e.category} · {e.duration || 'Ongoing'}</p>
                                 <div className="mt-2.5">
-                                  <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                                  <div className="flex justify-between text-xs text-gray-700 dark:text-gray-300 font-semibold mb-1">
                                     <span>Progress</span>
-                                    <span>{e.completionPercentage || 0}%</span>
+                                    <span className="font-bold text-blue-600 dark:text-blue-400">{e.completionPercentage || 0}%</span>
                                   </div>
-                                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                                  <div className="h-2 bg-gray-200 dark:bg-neutral-800 rounded-full overflow-hidden">
                                     <div
-                                      className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
+                                      className="h-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all"
                                       style={{ width: `${e.completionPercentage || 0}%` }}
                                     />
                                   </div>
                                 </div>
                               </div>
-                              <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
+                              <ChevronRight className="w-4 h-4 text-gray-400 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
                             </div>
                           </Link>
                         ))}
@@ -282,7 +283,7 @@ function StudentDashboardContent() {
 
               {/* Quick Actions */}
               <div>
-                <h2 className="text-slate-900 dark:text-white font-bold text-base mb-4">{t('student.quickActions')}</h2>
+                <h2 className="text-gray-950 dark:text-white font-extrabold text-base sm:text-lg mb-4">{t('student.quickActions')}</h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
                     { label: t('student.browseCourses'),  href: '/courses',         icon: BookOpen,  color: 'from-blue-600 to-blue-700' },
@@ -293,12 +294,12 @@ function StudentDashboardContent() {
                     <Link
                       key={a.label}
                       href={a.href}
-                      className="group flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.07] hover:border-slate-300 dark:hover:border-white/[0.12] transition-all text-center"
+                      className="group flex flex-col items-center gap-2.5 p-4 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 hover:border-blue-500 hover:shadow-md transition-all text-center"
                     >
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center shadow-lg`}>
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center shadow-md`}>
                         <a.icon className="w-5 h-5 text-white" />
                       </div>
-                    <span className="text-slate-600 dark:text-slate-300 text-[11px] font-medium leading-tight group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{a.label}</span>
+                      <span className="text-gray-900 dark:text-white text-xs font-bold leading-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{a.label}</span>
                     </Link>
                   ))}
                 </div>
@@ -332,11 +333,11 @@ function StudentDashboardContent() {
 
                 if (lectureCourses.length === 0) {
                   return (
-                    <div className="p-12 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-center">
-                      <Lock className="w-12 h-12 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
-                      <h3 className="text-slate-800 dark:text-slate-200 font-bold text-base mb-2">{t('student.noEnrolledCourses')}</h3>
-                      <p className="text-slate-500 text-sm mb-6">{t('student.noEnrolledDesc')}</p>
-                      <Link href="/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold rounded-xl hover:from-blue-500 hover:to-indigo-500 transition-all shadow-lg shadow-blue-900/30">
+                    <div className="p-8 sm:p-12 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 text-center shadow-xs">
+                      <Lock className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                      <h3 className="text-gray-950 dark:text-white font-extrabold text-base mb-2">{t('student.noEnrolledCourses')}</h3>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-6 font-medium">{t('student.noEnrolledDesc')}</p>
+                      <Link href="/courses" className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-bold rounded-xl hover:from-blue-500 hover:to-indigo-500 transition-all shadow-md">
                         <BookOpen className="w-4 h-4" />
                         {t('student.browseBPSCPrograms')}
                       </Link>
@@ -347,22 +348,22 @@ function StudentDashboardContent() {
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {lectureCourses.map(e => (
-                      <Link key={e.courseId} href={`/student/course/${e.courseId}`} className="course-card-premium group p-5 rounded-3xl">
+                      <Link key={e.courseId} href={`/student/course/${e.courseId}`} className="group p-5 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 hover:border-blue-500 shadow-xs hover:shadow-md transition-all">
                         <div className="flex items-start gap-4">
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-md text-white">
                             <BookOpen className="w-6 h-6 text-white" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-slate-900 dark:text-white font-semibold text-sm mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition-colors">{e.title}</h3>
-                            <p className="text-slate-500 text-xs mb-3">{e.category} · Enrolled {new Date(e.enrolledAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
+                            <h3 className="text-gray-950 dark:text-white font-bold text-sm mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{e.title}</h3>
+                            <p className="text-gray-600 dark:text-gray-300 text-xs mb-3 font-medium">{e.category} · Enrolled {new Date(e.enrolledAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
                             <div>
-                              <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                              <div className="flex justify-between text-xs text-gray-700 dark:text-gray-300 font-semibold mb-1">
                                 <span>Progress</span>
-                                <span>{e.completionPercentage || 0}%</span>
+                                <span className="font-bold text-blue-600 dark:text-blue-400">{e.completionPercentage || 0}%</span>
                               </div>
-                              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                              <div className="h-2 bg-gray-200 dark:bg-neutral-800 rounded-full overflow-hidden">
                                 <div
-                                  className="h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all"
+                                  className="h-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all"
                                   style={{ width: `${e.completionPercentage || 0}%` }}
                                 />
                               </div>
@@ -371,7 +372,7 @@ function StudentDashboardContent() {
                         </div>
                         <div className="mt-4 flex items-center gap-2">
                           <div className="flex-1 px-3 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-center">
-                            <p className="text-blue-400 text-[11px] font-bold">Continue Study →</p>
+                            <p className="text-blue-600 dark:text-blue-400 text-xs font-bold">Continue Study →</p>
                           </div>
                           <button
                             type="button"
@@ -391,11 +392,11 @@ function StudentDashboardContent() {
                                 amountPaid: Number(e.amountPaid) > 0 ? (Number(e.amountPaid) > 1000 ? Math.round(Number(e.amountPaid) / 100) : Number(e.amountPaid)) : 4999,
                               });
                             }}
-                            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                            className="p-2 px-3 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/15 text-gray-800 dark:text-white border border-gray-300 dark:border-white/15 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                             title="Download Official GST Tax Invoice & Fee Receipt"
                           >
-                            <Receipt className="w-3.5 h-3.5 text-amber-400" />
-                            <span className="text-[10px]">Invoice</span>
+                            <Receipt className="w-3.5 h-3.5 text-amber-500" />
+                            <span className="text-xs">Invoice</span>
                           </button>
                         </div>
                       </Link>
@@ -409,24 +410,24 @@ function StudentDashboardContent() {
           {/* ── Official QR Verified Certificates Tab ── */}
           {activeTab === 'Certificates' && (
             <div className="space-y-6">
-              <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/20 rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent dark:from-amber-950/40 dark:via-[#141519] dark:to-[#141519] border border-amber-500/30 dark:border-amber-500/20 rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 text-[10px] font-black uppercase tracking-wider border border-amber-500/20 mb-2">
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider border border-amber-500/20 mb-2">
                     <Award className="w-3.5 h-3.5" />
                     Verified Credentials Hub
                   </div>
-                  <h2 className="text-white font-extrabold text-lg sm:text-xl">Your Course Completion Certificates</h2>
-                  <p className="text-slate-400 text-xs mt-1">
+                  <h2 className="text-gray-950 dark:text-white font-black text-xl">Your Course Completion Certificates</h2>
+                  <p className="text-gray-700 dark:text-gray-300 text-xs mt-1 font-medium">
                     Download authentic QR-verifiable certificates signed by the Academic Board upon completing programs.
                   </p>
                 </div>
               </div>
 
               {enrollments.length === 0 ? (
-                <div className="p-12 rounded-3xl bg-slate-900 border border-white/10 text-center space-y-3">
-                  <Award className="w-12 h-12 text-slate-700 mx-auto" />
-                  <p className="font-bold text-slate-300">No Enrolled Courses Found</p>
-                  <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                <div className="p-12 rounded-3xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 text-center space-y-3 shadow-xs">
+                  <Award className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto" />
+                  <p className="font-bold text-gray-900 dark:text-white">No Enrolled Courses Found</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 max-w-sm mx-auto font-medium">
                     Enroll in a program and complete the syllabus to earn your verifiable certificate.
                   </p>
                 </div>
@@ -439,32 +440,32 @@ function StudentDashboardContent() {
                     return (
                       <div
                         key={enr.courseId}
-                        className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4 hover:border-amber-500/40 transition-all shadow-md flex flex-col justify-between"
+                        className="bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 rounded-3xl p-6 space-y-4 hover:border-amber-500/50 transition-all shadow-xs flex flex-col justify-between"
                       >
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black text-amber-400 uppercase tracking-wider">
+                            <span className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                               {enr.category || 'ACADEMIC PROGRAM'}
                             </span>
                             {isCompleted ? (
-                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-black">
+                              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-xs font-black">
                                 ✓ COMPLETED
                               </span>
                             ) : (
-                              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-black">
+                              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-black">
                                 {enr.completionPercentage || 0}% PROGRESS
                               </span>
                             )}
                           </div>
 
-                          <h3 className="text-white font-bold text-base leading-snug">{enr.title}</h3>
-                          <p className="text-slate-400 text-xs">
+                          <h3 className="text-gray-950 dark:text-white font-bold text-base leading-snug">{enr.title}</h3>
+                          <p className="text-gray-600 dark:text-gray-300 text-xs font-medium">
                             Enrolled on: {new Date(enr.enrolledAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         </div>
 
-                        <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
-                          <span className="text-[10px] font-mono text-slate-500">ID: {certId}</span>
+                        <div className="pt-3 border-t border-gray-200 dark:border-white/10 flex items-center justify-between">
+                          <span className="text-xs font-mono text-gray-600 dark:text-gray-400 font-bold">ID: {certId}</span>
                           <button
                             type="button"
                             onClick={() => {
@@ -477,7 +478,7 @@ function StudentDashboardContent() {
                                 duration: enr.duration,
                               });
                             }}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all cursor-pointer"
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-black text-xs rounded-xl shadow-md transition-all cursor-pointer"
                           >
                             <Download className="w-3.5 h-3.5" />
                             <span>Download Certificate (PDF)</span>
@@ -496,8 +497,8 @@ function StudentDashboardContent() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.performanceAnalytics')}</h2>
-                  <p className="text-slate-500 text-xs mt-0.5">{t('student.performanceDesc')}</p>
+                  <h2 className="text-gray-950 dark:text-white font-extrabold text-lg">{t('student.performanceAnalytics')}</h2>
+                  <p className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 font-medium">{t('student.performanceDesc')}</p>
                 </div>
               </div>
               <PerformanceAnalytics accessToken={accessToken || ''} />
@@ -509,8 +510,8 @@ function StudentDashboardContent() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.mentorshipPortal')}</h2>
-                  <p className="text-slate-500 text-xs mt-0.5">{t('student.mentorshipDesc')}</p>
+                  <h2 className="text-gray-950 dark:text-white font-extrabold text-lg">{t('student.mentorshipPortal')}</h2>
+                  <p className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 font-medium">{t('student.mentorshipDesc')}</p>
                 </div>
               </div>
               <MentorshipChat courseId={enrollments[0]?.courseId || 'bpsc-foundation'} />
@@ -522,32 +523,32 @@ function StudentDashboardContent() {
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-slate-900 dark:text-white font-bold text-base">{t('student.testSeries')}</h2>
-                  <p className="text-slate-500 text-xs mt-0.5">{t('student.noTestsDesc')}</p>
+                  <h2 className="text-gray-950 dark:text-white font-extrabold text-lg">{t('student.testSeries')}</h2>
+                  <p className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 font-medium">{t('student.noTestsDesc')}</p>
                 </div>
               </div>
 
               {loadingQuizzes ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="h-36 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] animate-pulse" />
+                    <div key={i} className="h-36 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 animate-pulse" />
                   ))}
                 </div>
               ) : allQuizzes.length === 0 ? (
-                <div className="p-10 rounded-2xl bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] text-center space-y-3">
+                <div className="p-10 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 text-center space-y-3 shadow-xs">
                   <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center mx-auto">
                     <FileText className="w-7 h-7 text-amber-500" />
                   </div>
-                  <h3 className="text-slate-900 dark:text-white font-bold text-sm">
+                  <h3 className="text-gray-950 dark:text-white font-bold text-sm">
                     {enrollments.length === 0 ? t('student.noCourseEnrolled') : t('student.noTestsAvailable')}
                   </h3>
-                  <p className="text-slate-500 text-xs leading-relaxed max-w-xs mx-auto">
+                  <p className="text-gray-600 dark:text-gray-300 text-xs leading-relaxed max-w-xs mx-auto font-medium">
                     {enrollments.length === 0
                       ? t('student.noCourseTestDesc')
                       : t('student.noTestsDesc')}
                   </p>
                   {enrollments.length === 0 && (
-                    <Link href="/courses" className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all">
+                    <Link href="/courses" className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all shadow-sm">
                       <BookOpen className="w-3.5 h-3.5" />
                       {t('student.browseCourses')}
                     </Link>
@@ -558,7 +559,7 @@ function StudentDashboardContent() {
                   {allQuizzes.map(({ quiz, courseTitle, courseId, slug }) => (
                     <div
                       key={quiz.id}
-                      className="group p-5 rounded-2xl bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] hover:border-blue-300 dark:hover:border-blue-500/30 hover:shadow-md transition-all space-y-3"
+                      className="group p-5 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 hover:border-blue-500 hover:shadow-md transition-all space-y-3"
                     >
                       {/* Header */}
                       <div className="flex items-start justify-between gap-3">
@@ -567,29 +568,28 @@ function StudentDashboardContent() {
                             <FileText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                           </div>
                           <div className="min-w-0">
-                            <h3 className="text-slate-900 dark:text-white font-semibold text-sm leading-tight truncate">{quiz.title}</h3>
-                            <p className="text-blue-600 dark:text-blue-400 text-[10px] font-medium mt-0.5 truncate">{courseTitle}</p>
+                            <h3 className="text-gray-950 dark:text-white font-bold text-sm leading-tight truncate">{quiz.title}</h3>
+                            <p className="text-blue-600 dark:text-blue-400 text-xs font-bold mt-0.5 truncate">{courseTitle}</p>
                           </div>
                         </div>
-                        <span className="shrink-0 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 text-[9px] font-bold uppercase">
+                        <span className="shrink-0 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase">
                           {t('student.active')}
                         </span>
                       </div>
 
                       {/* Description */}
                       {quiz.description || quiz.instructions ? (
-                        <p className="text-slate-500 text-xs leading-relaxed line-clamp-2">{quiz.description || quiz.instructions}</p>
+                        <p className="text-gray-700 dark:text-gray-200 text-xs leading-relaxed line-clamp-2 font-medium">{quiz.description || quiz.instructions}</p>
                       ) : null}
 
                       {/* Meta */}
-                      <div className="flex items-center gap-4 text-[10px] text-slate-500 font-medium">
+                      <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-300 font-semibold">
                         {quiz.timeLimitMins && (
                           <span className="flex items-center gap-1">
                             <span className="w-3.5 h-3.5 inline-block">⏱</span>
                             {quiz.timeLimitMins} mins
                           </span>
                         )}
-
                       </div>
 
                       {/* CTA */}
@@ -602,7 +602,6 @@ function StudentDashboardContent() {
                       </Link>
                     </div>
                   ))}
-
                 </div>
               )}
             </div>
@@ -617,7 +616,7 @@ function StudentDashboardContent() {
 export default function StudentDashboard() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0A0B0E] flex items-center justify-center">
         <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     }>
