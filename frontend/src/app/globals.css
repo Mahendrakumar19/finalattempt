@@ -201,50 +201,61 @@ html.dark .text-gray-400 {
   color: var(--text-muted) !important;
 }
 
-/* Portal pages (student/faculty dashboards) — bypass global overrides
-   so Tailwind dark: variant classes work correctly with native values */
+/* Portal pages (student/faculty dashboards) — strict pure white light mode and deep dark mode */
+.portal-page {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+html.dark .portal-page {
+  background-color: #080c14 !important;
+  color: #f8fafc !important;
+}
+
 .portal-page .text-slate-950,
 .portal-page .text-slate-900,
 .portal-page .text-slate-800,
+.portal-page .text-gray-950,
 .portal-page .text-gray-900 {
-  color: #090e1a !important;
+  color: #0f172a !important;
 }
 .portal-page .text-slate-700,
 .portal-page .text-slate-650,
 .portal-page .text-slate-600,
+.portal-page .text-gray-800,
 .portal-page .text-gray-700 {
   color: #1e293b !important;
 }
 .portal-page .text-slate-500,
 .portal-page .text-slate-400,
+.portal-page .text-gray-600,
+.portal-page .text-gray-500,
 .portal-page .text-gray-400 {
-  color: #334155 !important;
+  color: #475569 !important;
 }
 html.dark .portal-page .text-slate-950,
 html.dark .portal-page .text-slate-900,
 html.dark .portal-page .text-slate-800,
+html.dark .portal-page .text-gray-950,
 html.dark .portal-page .text-gray-900 {
   color: #ffffff !important;
 }
 html.dark .portal-page .text-slate-700,
 html.dark .portal-page .text-slate-650,
 html.dark .portal-page .text-slate-600,
+html.dark .portal-page .text-gray-800,
 html.dark .portal-page .text-gray-700 {
-  color: #e2e8f0 !important;
+  color: #f1f5f9 !important;
 }
 html.dark .portal-page .text-slate-500,
 html.dark .portal-page .text-slate-400,
+html.dark .portal-page .text-gray-600,
+html.dark .portal-page .text-gray-500,
 html.dark .portal-page .text-gray-400 {
   color: #cbd5e1 !important;
 }
-html.dark .portal-page .text-slate-500,
-html.dark .portal-page .text-slate-400,
-html.dark .portal-page .text-gray-400 {
-  color: #94a3b8 !important;
-}
 /* Portal white text — on dark sidebar backgrounds */
 html.dark .portal-page .text-white {
-  color: #f8fafc !important;
+  color: #ffffff !important;
 }
 
 .bg-white {
@@ -261,14 +272,18 @@ html.dark .portal-page .text-white {
   border-color: var(--card-border) !important;
 }
 
-/* Portal page background resets */
+/* Portal page background resets — 100% pure white in light mode, deep dark in dark mode */
+.portal-page,
+.portal-page.bg-white,
+.portal-page > .bg-white,
 .portal-page.bg-slate-50,
 .portal-page > .bg-slate-50 {
-  background-color: #f8fafc !important;
+  background-color: #ffffff !important;
 }
+html.dark .portal-page,
 html.dark .portal-page.bg-slate-950,
 html.dark .portal-page > .bg-slate-950 {
-  background-color: #020617 !important;
+  background-color: #080c14 !important;
 }
 
 /* ── Custom Scrollbar (Sleek Dark / Black) ── */

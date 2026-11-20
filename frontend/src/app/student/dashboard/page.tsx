@@ -8,7 +8,8 @@ import {
   Award, CheckCircle, Play,
   ChevronRight,
   Target, Zap, Lock,
-  Sun, Moon, Download, Receipt
+  Sun, Moon, Download, Receipt,
+  Trophy, Medal, Sparkles, ShieldCheck, Flame, Star
 } from 'lucide-react';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -206,6 +207,101 @@ function StudentDashboardContent() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* ── Aspirant Achievements & Medals Showcase ── */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-[#0D111A] border border-gray-200 dark:border-white/10 shadow-xs space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-400 via-amber-500 to-amber-600 flex items-center justify-center text-white shadow-md shadow-amber-500/25 shrink-0">
+                      <Trophy className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-gray-950 dark:text-white font-extrabold text-base sm:text-lg tracking-tight">
+                          Aspirant Achievements & Badges
+                        </h2>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 font-extrabold text-[10px] border border-amber-500/30">
+                          {allQuizzes.length > 0 || enrollments.length > 0 ? 'Milestones Active' : 'Begin Journey'}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-300 text-xs font-medium mt-0.5">
+                        Track your academic accomplishments across BPSC Prelims, GS Syllabus & Mains Writing
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setActiveTab('Certificates')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/15 text-gray-800 dark:text-white text-xs font-bold transition-all self-start sm:self-center cursor-pointer"
+                  >
+                    <Award className="w-4 h-4 text-amber-500" />
+                    <span>View Credentials</span>
+                  </button>
+                </div>
+
+                {/* 4 Rich Graphic Milestone Medals */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
+                  {/* Badge 1: Prelims Vanguard */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-b from-amber-500/10 via-amber-500/[0.02] to-transparent dark:from-amber-500/15 dark:to-transparent border border-amber-500/30 flex flex-col items-center text-center relative overflow-hidden group hover:shadow-md transition-all">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-amber-400 via-amber-500 to-amber-600 p-0.5 shadow-md shadow-amber-500/30 mb-2.5 flex items-center justify-center">
+                      <div className="w-full h-full rounded-full bg-white dark:bg-[#0D111A] flex items-center justify-center relative">
+                        <Trophy className="w-7 h-7 text-amber-500 group-hover:scale-110 transition-transform" />
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400 absolute top-0.5 right-0.5 animate-pulse" />
+                      </div>
+                    </div>
+                    <span className="text-gray-950 dark:text-white font-extrabold text-xs">Prelims Vanguard</span>
+                    <span className="text-gray-600 dark:text-gray-300 text-[11px] mt-0.5 font-medium">All India Mock Series</span>
+                    <div className="mt-3 px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 text-[10px] font-black border border-amber-500/30">
+                      {allQuizzes.length > 0 ? `✓ ${allQuizzes.length} Tests Ready` : 'Level 1 Active'}
+                    </div>
+                  </div>
+
+                  {/* Badge 2: Syllabus Titan */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-b from-blue-500/10 via-blue-500/[0.02] to-transparent dark:from-blue-500/15 dark:to-transparent border border-blue-500/30 flex flex-col items-center text-center relative overflow-hidden group hover:shadow-md transition-all">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-blue-500 via-indigo-500 to-blue-600 p-0.5 shadow-md shadow-blue-500/30 mb-2.5 flex items-center justify-center">
+                      <div className="w-full h-full rounded-full bg-white dark:bg-[#0D111A] flex items-center justify-center relative">
+                        <BookOpen className="w-7 h-7 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                        <Star className="w-3.5 h-3.5 text-blue-400 absolute top-0.5 right-0.5" />
+                      </div>
+                    </div>
+                    <span className="text-gray-950 dark:text-white font-extrabold text-xs">Syllabus Titan</span>
+                    <span className="text-gray-600 dark:text-gray-300 text-[11px] mt-0.5 font-medium">Foundation Lectures</span>
+                    <div className="mt-3 px-2.5 py-0.5 rounded-full bg-blue-500/15 text-blue-600 dark:text-blue-400 text-[10px] font-black border border-blue-500/30">
+                      {enrollments.length > 0 ? `✓ ${enrollments.length} Batches` : 'Aspirant Enrolled'}
+                    </div>
+                  </div>
+
+                  {/* Badge 3: Mains Craftsman */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-b from-purple-500/10 via-purple-500/[0.02] to-transparent dark:from-purple-500/15 dark:to-transparent border border-purple-500/30 flex flex-col items-center text-center relative overflow-hidden group hover:shadow-md transition-all">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-purple-600 p-0.5 shadow-md shadow-purple-500/30 mb-2.5 flex items-center justify-center">
+                      <div className="w-full h-full rounded-full bg-white dark:bg-[#0D111A] flex items-center justify-center relative">
+                        <Target className="w-7 h-7 text-purple-600 dark:text-purple-400 group-hover:scale-110 transition-transform" />
+                        <Medal className="w-3.5 h-3.5 text-purple-400 absolute top-0.5 right-0.5" />
+                      </div>
+                    </div>
+                    <span className="text-gray-950 dark:text-white font-extrabold text-xs">Mains Craftsman</span>
+                    <span className="text-gray-600 dark:text-gray-300 text-[11px] mt-0.5 font-medium">Answer Writing & Review</span>
+                    <div className="mt-3 px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 text-[10px] font-black border border-purple-500/30">
+                      Evaluation Desk Ready
+                    </div>
+                  </div>
+
+                  {/* Badge 4: Verified Aspirant */}
+                  <div className="p-4 rounded-2xl bg-gradient-to-b from-emerald-500/10 via-emerald-500/[0.02] to-transparent dark:from-emerald-500/15 dark:to-transparent border border-emerald-500/30 flex flex-col items-center text-center relative overflow-hidden group hover:shadow-md transition-all">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-400 via-teal-500 to-emerald-600 p-0.5 shadow-md shadow-emerald-500/30 mb-2.5 flex items-center justify-center">
+                      <div className="w-full h-full rounded-full bg-white dark:bg-[#0D111A] flex items-center justify-center relative">
+                        <ShieldCheck className="w-7 h-7 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+                        <Flame className="w-3.5 h-3.5 text-emerald-400 absolute top-0.5 right-0.5" />
+                      </div>
+                    </div>
+                    <span className="text-gray-950 dark:text-white font-extrabold text-xs">Verified Aspirant</span>
+                    <span className="text-gray-600 dark:text-gray-300 text-[11px] mt-0.5 font-medium">BPSC CCE & UPSC Track</span>
+                    <div className="mt-3 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-black border border-emerald-500/30">
+                      Active Aspirant
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Helper filtering: Separate video courses from test series */}
@@ -440,9 +536,13 @@ function StudentDashboardContent() {
                     return (
                       <div
                         key={enr.courseId}
-                        className="bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 rounded-3xl p-6 space-y-4 hover:border-amber-500/50 transition-all shadow-xs flex flex-col justify-between"
+                        className="bg-white dark:bg-[#0D111A] border-2 border-amber-500/20 dark:border-amber-500/30 rounded-3xl p-6 space-y-4 hover:border-amber-500/50 transition-all shadow-sm relative overflow-hidden flex flex-col justify-between"
                       >
-                        <div className="space-y-2">
+                        {/* Decorative Gold Seal Watermark */}
+                        <div className="absolute -right-4 -bottom-4 w-28 h-28 opacity-5 dark:opacity-10 pointer-events-none">
+                          <Award className="w-full h-full text-amber-500" />
+                        </div>
+                        <div className="space-y-2 relative z-10">
                           <div className="flex items-center justify-between">
                             <span className="text-xs font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">
                               {enr.category || 'ACADEMIC PROGRAM'}

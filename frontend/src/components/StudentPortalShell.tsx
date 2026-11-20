@@ -34,7 +34,7 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
   ];
 
   return (
-    <div className="portal-page min-h-screen bg-[#F9FAFB] dark:bg-[#0A0B0E] flex font-body transition-colors duration-200">
+    <div className="portal-page min-h-screen bg-white dark:bg-[#080C14] flex font-body transition-colors duration-200">
       {/* Mobile Backdrop Overlay */}
       {isSidebarOpen && (
         <div
@@ -44,7 +44,7 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
       )}
 
       {/* ──────────────── Sidebar ──────────────── */}
-      <aside className={`w-72 sm:w-64 flex-col bg-white dark:bg-[#121316] border-r border-gray-200 dark:border-white/10 h-screen sticky top-0 z-50 transition-all duration-300 ${isSidebarOpen ? 'flex fixed inset-y-0 left-0 shadow-2xl' : 'hidden lg:flex'}`}>
+      <aside className={`w-72 sm:w-64 flex-col bg-white dark:bg-[#0D111A] border-r border-gray-200 dark:border-white/10 h-screen sticky top-0 z-50 transition-all duration-300 ${isSidebarOpen ? 'flex fixed inset-y-0 left-0 shadow-2xl' : 'hidden lg:flex'}`}>
         {/* Logo */}
         <div className="p-5 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
           <Link href="/" onClick={() => setIsSidebarOpen(false)} className="flex flex-col gap-1">
