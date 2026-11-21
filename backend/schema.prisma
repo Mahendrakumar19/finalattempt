@@ -350,8 +350,8 @@ model lms_questions {
 }
 
 model lms_quiz_attempts {
-  id            String      @id @db.VarChar(36)
-  userId        String      @db.VarChar(36)
+  id            String      @id @db.VarChar(255)
+  userId        String      @db.VarChar(255)
   quizId        String      @db.VarChar(100)
   setCode       String?     @default("SET-A") @db.VarChar(20)
   seed          String?     @db.VarChar(100)

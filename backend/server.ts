@@ -228,9 +228,9 @@ app.get('/api/custom-pages', async (req, res) => {
   }
 });
 
-app.get('/api/custom-pages/:slug', async (req, res) => {
+app.get(['/api/custom-pages/:slug(*)', '/api/custom-pages/*'], async (req, res) => {
   try {
-    const slug = req.params.slug;
+    const slug = (req.params as any).slug || (req.params as any)[0] || '';
     const cacheKey = `custom_pages:slug:${slug}`;
     const cached = memoryCache.get(cacheKey);
     if (cached) {
@@ -1103,44 +1103,7 @@ app.post('/api/student/progress', async (req, res) => {
   }
 });
 
-// CUSTOM PAGES CMS ROUTES
-app.get('/api/custom-pages', async (req, res) => {
-  try {
-    const publishedOnly = req.query.publishedOnly === 'true';
-    const pages = await db.getCustomPages(publishedOnly);
-    res.json({ success: true, data: pages });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.get('/api/custom-pages/*', async (req, res) => {
-  try {
-    const rawSlug = (req.params as any)[0] || '';
-    const page = await db.getCustomPageBySlug(rawSlug);
-    res.json({ success: true, data: page });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.post('/api/custom-pages', async (req, res) => {
-  try {
-    const ok = await db.saveCustomPage(req.body);
-    res.json({ success: ok });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.delete('/api/custom-pages/:id', async (req, res) => {
-  try {
-    const ok = await db.deleteCustomPage(req.params.id);
-    res.json({ success: ok });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+// (Custom pages CMS handlers consolidated above)
 
 
 

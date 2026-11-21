@@ -3196,14 +3196,14 @@ export default function AdminPortal() {
             portalDescription="Upload & manage high-yield consolidated revision modules, infographics, key concepts, and subject-wise notes."
             themeColor="amber"
             typeOptions={[
+              'Polity and Governance',
               'History of Modern India',
-              'Ancient and Medieval History',
-              'Indian Art and Culture',
+              'State Special',
               'Geography',
               'Economics',
-              'Polity and Governance',
               'Ecology and Environment',
-              'State Special',
+              'Indian Art and Culture',
+              'Ancient and Medieval History',
               'General Studies Quick Modules'
             ]}
           />

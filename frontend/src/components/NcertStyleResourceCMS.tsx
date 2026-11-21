@@ -32,14 +32,15 @@ export default function NcertStyleResourceCMS({
   const [activeMediaTargetId, setActiveMediaTargetId] = useState<string | null>(null);
 
   const [filterType, setFilterType] = useState('ALL');
+  const [folderFilter, setFolderFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   const [form, setForm] = useState<DownloadItem>({
     id: '',
     title: '',
     description: '',
-    type: typeOptions[0] || 'BPSC',
-    examCategory: 'BPSC',
+    type: typeOptions[0] || 'Polity and Governance',
+    examCategory: 'BPSC (Bihar)',
     language: 'English',
     editionYear: '2025-26 Edition',
     price: undefined,
@@ -141,8 +142,8 @@ export default function NcertStyleResourceCMS({
           id: '',
           title: '',
           description: '',
-          type: typeOptions[0] || 'BPSC',
-          examCategory: 'BPSC',
+          type: typeOptions[0] || 'Polity and Governance',
+          examCategory: 'BPSC (Bihar)',
           language: 'English',
           editionYear: '2025-26 Edition',
           price: undefined,
@@ -194,9 +195,16 @@ export default function NcertStyleResourceCMS({
 
   const filteredItems = downloadItems.filter(item => {
     if (filterType !== 'ALL' && (item.type || '').toLowerCase() !== filterType.toLowerCase()) return false;
+    if (folderFilter !== 'ALL') {
+      const exam = `${item.examCategory || ''} ${item.type || ''} ${item.title || ''}`.toLowerCase();
+      if (folderFilter === 'UPSC' && !exam.includes('upsc')) return false;
+      if (folderFilter === 'BIHAR' && !exam.includes('bihar') && !exam.includes('bpsc')) return false;
+      if (folderFilter === 'UP' && !exam.includes('uppsc') && !exam.includes('uttar pradesh') && !/\bup\b/.test(exam)) return false;
+      if (folderFilter === 'STATE_PCS' && !exam.includes('bpsc') && !exam.includes('uppsc') && !exam.includes('state')) return false;
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      return item.title.toLowerCase().includes(q) || (item.description || '').toLowerCase().includes(q);
+      return item.title.toLowerCase().includes(q) || (item.description || '').toLowerCase().includes(q) || (item.examCategory || '').toLowerCase().includes(q);
     }
     return true;
   });
@@ -261,6 +269,26 @@ export default function NcertStyleResourceCMS({
             <p className="text-[10px] text-slate-400">
               You can type any custom category name freely (commas, spaces &amp; special chars supported).
             </p>
+          </div>
+
+          {/* Target Exam / Folder (UPSC & State PCS) */}
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center justify-between">
+              <span>Target Exam / Folder (UPSC &amp; State PCS)</span>
+              <span className="text-amber-500 font-bold text-[9px]">*Used for State Filters</span>
+            </label>
+            <select
+              value={form.examCategory || 'BPSC (Bihar)'}
+              onChange={(e) => setForm({ ...form, examCategory: e.target.value })}
+              className="w-full px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none font-bold text-slate-900 dark:text-white cursor-pointer"
+            >
+              <option value="UPSC CSE">🏛️ UPSC CSE</option>
+              <option value="BPSC (Bihar)">📍 Bihar Special (BPSC)</option>
+              <option value="UPPSC (UP)">📍 UP Special (UPPSC)</option>
+              <option value="BPSC & UPSC">🌐 BPSC &amp; UPSC (Combined)</option>
+              <option value="State PCS">🗺️ Other State PCS</option>
+              <option value="General Studies">📚 General Studies (All)</option>
+            </select>
           </div>
 
           {/* Document Title */}
@@ -456,30 +484,59 @@ export default function NcertStyleResourceCMS({
 
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 space-y-4 shadow-xs">
             {/* Table Filters */}
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-100 dark:border-white/10">
-              <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">
-                {pageTitle} Materials Vault ({filteredItems.length})
-              </h4>
+            <div className="space-y-3 pb-4 border-b border-slate-100 dark:border-white/10">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <h4 className="font-heading font-black text-sm text-slate-900 dark:text-white">
+                  {pageTitle} Materials Vault ({filteredItems.length})
+                </h4>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Search materials…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Search materials…"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white"
+                  />
 
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-slate-900 dark:text-white cursor-pointer"
-                >
-                  <option value="ALL">All Categories</option>
-                  {Array.from(new Set([...typeOptions, ...downloadItems.map(i => i.examCategory || i.type || 'General Notes')])).map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl font-bold text-slate-900 dark:text-white cursor-pointer"
+                  >
+                    <option value="ALL">All Categories</option>
+                    {Array.from(new Set([...typeOptions, ...downloadItems.map(i => i.type || 'General Notes')])).map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Quick Folder Tabs (All, UPSC, Bihar BPSC, UP UPPSC, Combined) */}
+              <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-white/10 text-xs">
+                <span className="text-[10px] font-black uppercase text-slate-400 px-2 flex items-center gap-1">
+                  📁 Folder:
+                </span>
+                {[
+                  { id: 'ALL', label: 'All Folders' },
+                  { id: 'UPSC', label: '🏛️ UPSC CSE' },
+                  { id: 'BIHAR', label: '📍 Bihar Special (BPSC)' },
+                  { id: 'UP', label: '📍 UP Special (UPPSC)' },
+                  { id: 'STATE_PCS', label: '🗺️ State PCS' }
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setFolderFilter(f.id)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      folderFilter === f.id
+                        ? `${THEME_CLASSES.bg} text-slate-950 shadow-xs font-black`
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -514,9 +571,20 @@ export default function NcertStyleResourceCMS({
                           )}
                         </td>
                         <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${THEME_CLASSES.badge} border`}>
-                            {item.examCategory || item.type || 'BPSC'}
-                          </span>
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="font-bold text-slate-900 dark:text-white text-[11px]">{item.type || 'General'}</span>
+                            {item.examCategory && (
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                                item.examCategory.includes('BPSC')
+                                  ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+                                  : item.examCategory.includes('UPPSC')
+                                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                                    : 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-500/20'
+                              }`}>
+                                📁 {item.examCategory}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="p-3 max-w-xs">
                           <div className="font-bold text-slate-900 dark:text-white line-clamp-1">{item.title}</div>
@@ -548,7 +616,10 @@ export default function NcertStyleResourceCMS({
                         <td className="p-3 text-right">
                           <div className="flex justify-end gap-2">
                             <button
-                              onClick={() => setForm(item)}
+                              onClick={() => {
+                                setForm(item);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
                               className="p-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl text-slate-600 cursor-pointer"
                             >
                               <Edit2 className="w-3.5 h-3.5" />

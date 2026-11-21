@@ -4490,8 +4490,8 @@ async function initializeAuthTables(pool: mysql.Pool) {
     // Quiz Attempts Table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS lms_quiz_attempts (
-        id              VARCHAR(36) PRIMARY KEY,
-        userId          VARCHAR(36) NOT NULL,
+        id              VARCHAR(255) PRIMARY KEY,
+        userId          VARCHAR(255) NOT NULL,
         quizId          VARCHAR(100) NOT NULL,
         answers         JSON,
         score           FLOAT,
@@ -4503,6 +4503,10 @@ async function initializeAuthTables(pool: mysql.Pool) {
         FOREIGN KEY (quizId) REFERENCES lms_quizzes(id) ON DELETE CASCADE
       )
     `);
+
+    // Ensure ID length is VARCHAR(255) on existing production tables to avoid truncation
+    try { await pool.query("ALTER TABLE lms_quiz_attempts MODIFY COLUMN id VARCHAR(255)"); } catch (e) {}
+    try { await pool.query("ALTER TABLE lms_quiz_attempts MODIFY COLUMN userId VARCHAR(255)"); } catch (e) {}
 
     // Chat Rooms Table
     await pool.query(`
@@ -7286,8 +7290,14 @@ class LmsDB {
     const { v4: uuid } = await import('uuid');
     const resolvedDuration = Number(durationMins) > 0 ? Number(durationMins) : 60;
     
-    // Auto-migrate isActivated column on lms_quiz_attempts
+    // Auto-migrate columns on lms_quiz_attempts
     if (mysqlPool) {
+      try {
+        await mysqlPool.query('ALTER TABLE lms_quiz_attempts MODIFY COLUMN id VARCHAR(255)');
+      } catch (_) {}
+      try {
+        await mysqlPool.query('ALTER TABLE lms_quiz_attempts MODIFY COLUMN userId VARCHAR(255)');
+      } catch (_) {}
       try {
         await mysqlPool.query('ALTER TABLE lms_quiz_attempts ADD COLUMN isActivated TINYINT(1) DEFAULT 0');
       } catch (_) {}
@@ -7324,8 +7334,8 @@ class LmsDB {
       } catch (err) { console.error('[LmsDB] createOrGetQuizSession select MySQL error:', err); }
     }
 
-    // Create new session
-    const id = `att-${uuid()}`;
+    // Create new session - standard UUID (36 chars) fits VARCHAR(36) and VARCHAR(255)
+    const id = uuid();
     const setCodes = ['SET-A', 'SET-B', 'SET-C', 'SET-D'];
     const setCode = setCodes[Math.floor(Math.random() * setCodes.length)];
     const seed = `seed-${quizId}-${setCode}`;
