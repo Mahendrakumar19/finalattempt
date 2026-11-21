@@ -6,6 +6,7 @@ import MediaPicker from './MediaPicker';
 import RichTextEditor from './RichTextEditor';
 import Link from 'next/link';
 import { db, CustomPage, DownloadItem } from '@/services/db';
+import { INITIAL_FALLBACK_ITEMS } from './QuickRevisionPortal';
 
 interface NcertStyleCMSProps {
   pageSlug: string;
@@ -68,24 +69,28 @@ export default function NcertStyleResourceCMS({
         data = allPages.find(p => p.slug === `downloads/${pageSlug}` || p.slug === pageSlug) || null;
       }
 
-      if (data) {
+      if (data && data.downloadItems && data.downloadItems.length > 0) {
         setPage(data);
         setDownloadItems(data.downloadItems || []);
         setPageOverviewContent(data.content || '');
       } else {
+        const defaultItems = (pageSlug === 'quick-revision-material') ? INITIAL_FALLBACK_ITEMS : (data?.downloadItems || []);
         const initPage: CustomPage = {
-          id: `page-${Date.now()}`,
-          title: pageTitle,
-          slug: `downloads/${pageSlug}`,
-          content: `<h3>${pageTitle}</h3><p>${portalDescription}</p>`,
-          showLocation: 'DOWNLOADS_HUB',
-          displayOrder: 1,
+          id: data?.id || `page-${Date.now()}`,
+          title: data?.title || pageTitle,
+          slug: data?.slug || `downloads/${pageSlug}`,
+          content: data?.content || `<h3>${pageTitle}</h3><p>${portalDescription}</p>`,
+          showLocation: data?.showLocation || 'DOWNLOADS_HUB',
+          displayOrder: data?.displayOrder || 1,
           isPublished: true,
-          downloadItems: []
+          downloadItems: defaultItems
         };
         setPage(initPage);
-        setDownloadItems([]);
+        setDownloadItems(defaultItems);
         setPageOverviewContent(initPage.content);
+        if (pageSlug === 'quick-revision-material' && (!data || !data.downloadItems || data.downloadItems.length === 0)) {
+          db.saveCustomPage(initPage).catch(e => console.warn('Auto-seed quick revision items:', e));
+        }
       }
     } catch (err) {
       console.error(`Failed fetching portal page downloads/${pageSlug}:`, err);

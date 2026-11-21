@@ -28,7 +28,7 @@ const SECTIONS_LIST: RevisionSection[] = [
   { id: 'state-special', name: 'State Special', keywords: ['state special', 'bihar', 'bpsc', 'state pcs', 'patna', 'up special'] }
 ];
 
-const INITIAL_FALLBACK_ITEMS: DownloadItem[] = [
+export const INITIAL_FALLBACK_ITEMS: DownloadItem[] = [
   // Modern Indian History
   {
     id: 'qrm-mod-01',

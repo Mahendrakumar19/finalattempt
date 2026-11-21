@@ -1467,8 +1467,13 @@ export default function AdminPortal() {
                 )}
                 {(activeTab as string) === 'Download Hub' && (
                   <>
+                    <option value="Quick Revision">→ Quick Revision Material (/downloads/quick-revision-material)</option>
                     <option value="PYQ">→ PYQ Vault (/downloads/pyq)</option>
                     <option value="NCERT">→ NCERT Books (/downloads/ncert)</option>
+                    <option value="Publications">→ Final Attempt Publications (/downloads/fa-publication)</option>
+                    <option value="Rapid Revision">→ Rapid Revision (/downloads/rapid-revision)</option>
+                    <option value="Value Addition">→ Value Added Materials (/downloads/value-added-mains)</option>
+                    <option value="Toppers Copies">→ Toppers Copies (/downloads/toppers-copies)</option>
                   </>
                 )}
                 {activeTab === 'PYQ' && (
@@ -1504,6 +1509,9 @@ export default function AdminPortal() {
                 {activeTab === 'Quick Revision' && (
                   <>
                     <option value="Quick Revision">📍 Quick Revision Material (/downloads/quick-revision-material) - Connected</option>
+                    <option value="NCERT">→ NCERT Books (/downloads/ncert)</option>
+                    <option value="PYQ">→ PYQ Vault (/downloads/pyq)</option>
+                    <option value="Publications">→ Final Attempt Publications</option>
                   </>
                 )}
                 {activeTab === 'Blogs' && (
@@ -1511,7 +1519,7 @@ export default function AdminPortal() {
                     <option value="Blogs">📍 Blogs & News Page (/blog) - Connected</option>
                   </>
                 )}
-                {!['Home', 'About', 'Contact', 'Download Hub', 'PYQ', 'Blogs'].includes(activeTab) && (
+                {!['Home', 'About', 'Contact', 'Download Hub', 'PYQ', 'NCERT', 'Publications', 'Rapid Revision', 'Value Addition', 'Toppers Copies', 'Quick Revision', 'Blogs'].includes(activeTab) && (
                   <option value="NONE">Not connected to any page</option>
                 )}
               </select>
