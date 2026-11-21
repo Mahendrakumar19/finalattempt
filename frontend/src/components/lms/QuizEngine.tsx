@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ShieldAlert, Award, FileText, Users, Maximize2, AlertOctagon, CheckSquare, Square, Sun, Moon, Grid, X, Sparkles, ArrowRight, CheckCircle2, Trophy, Target, Timer } from 'lucide-react';
@@ -118,10 +118,14 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   // (independent of the site's global theme — avoids dark: variant conflicts)
   const [cbtDark, setCbtDark] = useState(false);
 
-  // Timer states
+  // Timer states & wall-clock anchors
   const [timeLeft, setTimeLeft] = useState(0);
   const [timeTaken, setTimeTaken] = useState(0);
   const [quizState, setQuizState] = useState<'intro' | 'active' | 'result' | 'leaderboard'>('intro');
+
+  const endTimeRef = useRef<number | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+  const hasAutoSubmittedRef = useRef<boolean>(false);
 
   // Result states
   const [results, setResults] = useState<QuizResults | null>(null);
@@ -192,6 +196,8 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             const secsLeft = Math.floor((exp - now) / 1000);
             if (secsLeft > 0) {
               setTimeLeft(secsLeft);
+              endTimeRef.current = exp;
+              startTimeRef.current = exp - (quizDuration * 60 * 1000);
             } else {
               setTimeLeft(0);
             }
@@ -256,37 +262,67 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     }
   }, [accessToken, quizId, selectedAnswers, timeTaken, session]);
 
-  // Active quiz timer count (Only runs when quizState === 'active')
+  // High-Precision CBT Wall-Clock Exam Timer (Zero drift, survives tab switching & CPU throttle)
   useEffect(() => {
-    if (quizState !== 'active' || timeLeft <= 0) {
-      if (timeLeft === 0 && quizState === 'active') {
-        Promise.resolve().then(() => executeFinalSubmit());
-      }
-      return;
+    if (quizState !== 'active') return;
+
+    if (!endTimeRef.current) {
+      const initialSecs = timeLeft > 0 ? timeLeft : (Number(quizInfo?.timeLimitMins || 60) * 60);
+      const now = Date.now();
+      endTimeRef.current = now + (initialSecs * 1000);
+      if (!startTimeRef.current) startTimeRef.current = now;
     }
 
-    const timer = setInterval(() => {
-      setTimeLeft(prev => prev - 1);
-      setTimeTaken(prev => prev + 1);
-    }, 1000);
+    const tick = () => {
+      if (!endTimeRef.current) return;
+      const now = Date.now();
+      const remaining = Math.max(0, Math.ceil((endTimeRef.current - now) / 1000));
+      
+      setTimeLeft(remaining);
 
-    return () => clearInterval(timer);
-  }, [quizState, timeLeft, executeFinalSubmit]);
+      if (startTimeRef.current) {
+        setTimeTaken(Math.max(0, Math.floor((now - startTimeRef.current) / 1000)));
+      }
+
+      if (remaining <= 0) {
+        if (!hasAutoSubmittedRef.current) {
+          hasAutoSubmittedRef.current = true;
+          executeFinalSubmit();
+        }
+      }
+    };
+
+    tick();
+    const interval = setInterval(tick, 500);
+
+    return () => clearInterval(interval);
+  }, [quizState, executeFinalSubmit]);
 
   // Enter Fullscreen and Begin CBT Session
   const enterFullscreenAndStart = async () => {
     setFullscreenError(null);
+    hasAutoSubmittedRef.current = false;
+    let initialSecs = timeLeft > 0 ? timeLeft : (Number(quizInfo?.timeLimitMins || 60) * 60);
+
     try {
       if (accessToken) {
         const res = await beginQuizSession(quizId, accessToken);
         if (res.success && res.data) {
           if (res.data.session) setSession(res.data.session);
-          if (res.data.secsLeft > 0) setTimeLeft(res.data.secsLeft);
+          if (res.data.secsLeft && res.data.secsLeft > 0) {
+            initialSecs = res.data.secsLeft;
+          }
         }
       }
     } catch (e) {
       console.error('Error activating quiz timer session:', e);
     }
+
+    const now = Date.now();
+    endTimeRef.current = now + (initialSecs * 1000);
+    startTimeRef.current = now;
+    setTimeLeft(initialSecs);
+    setTimeTaken(0);
 
     try {
       if (document.documentElement && typeof document.documentElement.requestFullscreen === 'function' && !document.fullscreenElement) {
@@ -416,10 +452,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     }
   };
 
-  const formatTime = (secs: number) => {
-    const mins = Math.floor(secs / 60);
-    const remainingSecs = secs % 60;
-    return `${mins < 10 ? '0' : ''}${mins}:${remainingSecs < 10 ? '0' : ''}${remainingSecs}`;
+  const formatTime = (totalSecs: number) => {
+    const safeSecs = Math.max(0, Math.floor(Number(totalSecs) || 0));
+    const hours = Math.floor(safeSecs / 3600);
+    const mins = Math.floor((safeSecs % 3600) / 60);
+    const secs = safeSecs % 60;
+
+    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+
+    if (hours > 0) {
+      return `${pad(hours)}:${pad(mins)}:${pad(secs)}`;
+    }
+    return `${pad(mins)}:${pad(secs)}`;
   };
 
   if (loading && quizState === 'intro') {
@@ -734,7 +778,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 }}
               >
                 <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Time Left:</span>
-                <span className="font-mono text-sm sm:text-base font-black text-sky-600">
+                <span className={`font-mono text-sm sm:text-base font-black ${timeLeft <= 300 && timeLeft > 0 ? 'text-red-500 animate-pulse' : 'text-sky-600'}`}>
                   {formatTime(timeLeft)}
                 </span>
               </div>
