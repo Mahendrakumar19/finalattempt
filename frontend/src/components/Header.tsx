@@ -265,6 +265,7 @@ export default function Header() {
           { label: t('mega.resources.valMains') || 'Value Added Materials — Mains', href: '/downloads/value-added-mains', desc: t('mega.resources.valMainsDesc') || 'Mains Data & SC Judgments', icon: IC.valmains },
           { label: t('mega.resources.toppersCopies') || 'Toppers\' Copies', href: '/downloads/toppers-copies', desc: t('mega.resources.toppersCopiesDesc') || 'Evaluated Topper Copies', icon: IC.toppers },
           { label: t('mega.resources.faPublication') || 'Final Attempt Publication', href: '/downloads/fa-publication', desc: t('mega.resources.faPublicationDesc') || 'Books & Publication Storefront', icon: IC.fa },
+          { label: 'Quick Revision Material', href: '/downloads/quick-revision-material', desc: 'Consolidated Revision Modules & Notes', icon: IC.rapid },
         ];
 
         const CORE_SLUGS = new Set([
@@ -275,6 +276,7 @@ export default function Header() {
           'downloads/rapid-revision', 'rapid-revision',
           'downloads/value-added-mains', 'value-added-mains',
           'downloads/toppers-copies', 'toppers-copies',
+          'downloads/quick-revision-material', 'quick-revision-material',
           'downloads/ncert', 'ncert',
           'downloads/pyq', 'pyq'
         ]);

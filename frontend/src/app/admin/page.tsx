@@ -38,7 +38,8 @@ import {
   Upload,
   Image as ImageIcon,
   Check,
-  Loader2
+  Loader2,
+  Zap
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTheme } from '@/context/ThemeContext';
@@ -69,7 +70,7 @@ const BookOrdersCMS = dynamic(() => import('@/components/admin/BookOrdersCMS'));
 const OffersAndNotificationsCMS = dynamic(() => import('@/components/admin/OffersAndNotificationsCMS'));
 const ClaudeCurrentAffairsModal = dynamic(() => import('@/components/admin/ClaudeCurrentAffairsModal').then(m => m.ClaudeCurrentAffairsModal));
 
-type AdminTab = 'Dashboard' | 'Student Chats' | 'Book Orders' | 'Books & Publications' | 'Offers & Notifications' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Useful Documents' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Daily Quiz' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
+type AdminTab = 'Dashboard' | 'Student Chats' | 'Book Orders' | 'Books & Publications' | 'Offers & Notifications' | 'Home' | 'About' | 'Contact' | 'PYQ' | 'NCERT' | 'Publications' | 'Useful Documents' | 'Rapid Revision' | 'Value Addition' | 'Toppers Copies' | 'Quick Revision' | 'Blogs' | 'Users' | 'Courses' | 'Test Series' | 'Daily Quiz' | 'Mains Evaluation' | 'Leads' | 'Media Library' | 'Exams & Syllabus' | 'Current Affairs' | 'Super Admin Console';
 
 
 
@@ -1328,6 +1329,7 @@ export default function AdminPortal() {
                   ...(settings.featureFlags?.currentAffairsFilters !== false ? [{ id: 'Current Affairs', icon: FileText }] : []),
                   { id: 'NCERT', icon: BookOpen },
                   { id: 'PYQ', icon: Layers },
+                  { id: 'Quick Revision', icon: Zap },
                   { id: 'Toppers Copies', icon: FolderOpen },
                   { id: 'Value Addition', icon: FileText },
                   { id: 'Useful Documents', icon: Sparkles },
@@ -1354,7 +1356,7 @@ export default function AdminPortal() {
                 }
                 if (adminRole === 'content_manager') {
                   return [
-                    'Dashboard', 'Current Affairs', 'NCERT', 'PYQ', 'Toppers Copies',
+                    'Dashboard', 'Current Affairs', 'NCERT', 'PYQ', 'Quick Revision', 'Toppers Copies',
                     'Value Addition', 'Useful Documents', 'Blogs', 'Daily Quiz', 'Exams & Syllabus'
                   ].includes(tab.id);
                 }
@@ -1497,6 +1499,11 @@ export default function AdminPortal() {
                 {activeTab === 'Toppers Copies' && (
                   <>
                     <option value="Toppers Copies">📍 Toppers Copies (/downloads/toppers-copies) - Connected</option>
+                  </>
+                )}
+                {activeTab === 'Quick Revision' && (
+                  <>
+                    <option value="Quick Revision">📍 Quick Revision Material (/downloads/quick-revision-material) - Connected</option>
                   </>
                 )}
                 {activeTab === 'Blogs' && (
@@ -3169,6 +3176,27 @@ export default function AdminPortal() {
             portalDescription="Upload BPSC rankers evaluated GS & essay answer copies for student downloads."
             themeColor="blue"
             typeOptions={['69th BPSC Rankers', '68th BPSC Rankers', 'GS Paper 1 & 2', 'Essay Copies', 'General']}
+          />
+        )}
+
+        {/* TAB: QUICK REVISION MATERIAL (QRM) */}
+        {activeTab === 'Quick Revision' && (
+          <NcertStyleResourceCMS
+            pageSlug="quick-revision-material"
+            pageTitle="Quick Revision Material"
+            portalCategoryLabel="Quick Revision Material Console"
+            portalDescription="Upload & manage high-yield consolidated revision modules, infographics, key concepts, and subject-wise notes."
+            themeColor="amber"
+            typeOptions={[
+              'Indian Polity & Constitution',
+              'Economy & Budget',
+              'History & Culture',
+              'Geography & Environment',
+              'Science & Technology',
+              'International Relations & Security',
+              'Bihar Special (BPSC)',
+              'General Studies Quick Modules'
+            ]}
           />
         )}
 
