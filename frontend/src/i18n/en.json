@@ -16,7 +16,7 @@
     "pyqTitle": "PYQs",
     "ncertTitle": "NCERT",
     "usefulDocumentsTitle": "Useful Documents",
-    "rapidRevisionTitle": "Useful Documents",
+    "rapidRevisionTitle": "Rapid Revision Material (RRM)",
     "valMainsTitle": "Value Added Materials — Mains"
   },
   "nav": {
@@ -346,7 +346,7 @@
     "viewPDF": "View PDF",
     "downloadPDF": "Download PDF",
     "usefulDocumentsTitle": "Useful Documents",
-    "rapidRevisionTitle": "Useful Documents",
+    "rapidRevisionTitle": "Rapid Revision Material (RRM)",
     "toppersCopiesTitle": "Toppers' Copies",
     "valueAddedTitle": "Value Added Materials — Mains"
   },
@@ -743,9 +743,9 @@
       "usefulDocumentsTitle": "USEFUL DOCUMENTS",
       "usefulDocuments": "Useful Documents",
       "usefulDocumentsDesc": "Important Notes, Guides & Reference Materials",
-      "rapidRevisionTitle": "USEFUL DOCUMENTS",
-      "rapidRevision": "Useful Documents",
-      "rapidRevisionDesc": "Important Notes, Guides & Reference Materials",
+      "rapidRevisionTitle": "RAPID REVISION MATERIAL (RRM)",
+      "rapidRevision": "Rapid Revision Material (RRM)",
+      "rapidRevisionDesc": "High-Yield Revision Modules & Subject Notes",
       "valMainsTitle": "Value Added Materials — Mains",
       "valMains": "Value Added Materials — Mains",
       "valMainsDesc": "Mains Data & Supreme Court Judgments",

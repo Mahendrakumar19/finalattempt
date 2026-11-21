@@ -302,7 +302,8 @@ export default function RapidRevisionPortal() {
   // State Special Sub-filter: 'ALL' | 'BIHAR' | 'UP'
   const [stateSpecialSubFilter, setStateSpecialSubFilter] = useState<'ALL' | 'BIHAR' | 'UP'>('ALL');
 
-  const [loading, setLoading] = useState(true);
+  // Instant render fallback - never block the screen with grey skeleton boxes
+  const [loading, setLoading] = useState(false);
 
   // In-site Document Reader Modal
   const [activeReaderModal, setActiveReaderModal] = useState<{ title: string; url: string } | null>(null);
@@ -328,8 +329,6 @@ export default function RapidRevisionPortal() {
         }
       } catch (err) {
         console.error('Error loading rapid-revision page:', err);
-      } finally {
-        if (active) setLoading(false);
       }
     };
     fetchPage();
@@ -451,23 +450,23 @@ export default function RapidRevisionPortal() {
   }, [allItems]);
 
   return (
-    <div className="min-h-screen bg-slate-50/60 dark:bg-[#080C14] font-body text-slate-900 dark:text-white transition-colors duration-200">
+    <div className="min-h-screen bg-[var(--bg-color)] font-body text-[var(--text-color)] transition-colors duration-200">
       
       {/* ── Top Breadcrumbs & Page Heading ── */}
-      <div className="bg-white dark:bg-[#0D111A] border-b border-slate-200 dark:border-white/10">
+      <div className="bg-[var(--card-bg)] border-b border-[var(--card-border)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-3">
           
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-semibold">
-            <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition-colors">
+            <Link href="/" className="hover:text-amber-500 flex items-center gap-1 transition-colors">
               <Home className="w-3.5 h-3.5" />
               <span>{t('nav.home', 'Home')}</span>
             </Link>
             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            <Link href="/downloads" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            <Link href="/downloads" className="hover:text-amber-500 transition-colors">
               <span>{t('nav.downloads', 'Downloads Hub')}</span>
             </Link>
             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-900 dark:text-white font-bold">Rapid Revision Material (RRM)</span>
+            <span className="font-bold text-[var(--text-color)]">Rapid Revision Material (RRM)</span>
           </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -476,11 +475,11 @@ export default function RapidRevisionPortal() {
                 <Zap className="w-3.5 h-3.5" />
                 <span>RRM • High Yield Revision</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-heading font-black text-slate-950 dark:text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-heading font-black text-[var(--text-color)] tracking-tight">
                 Rapid Revision Material (RRM)
               </h1>
               <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-0.5 font-medium">
-                High-yield consolidated revision modules, infographics & quick charts for UPSC & State PCS (BPSC, UPPSC)
+                High-yield consolidated revision modules, infographics &amp; quick charts for UPSC &amp; State PCS (BPSC, UPPSC)
               </p>
             </div>
 
@@ -500,12 +499,12 @@ export default function RapidRevisionPortal() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* ════ LEFT COLUMN: All Sections Index Sidebar ════ */}
-          <aside className="lg:col-span-3 bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-xs sticky top-20">
-            <h2 className="text-base font-heading font-black text-slate-900 dark:text-white pb-3 border-b border-slate-200 dark:border-white/10">
+          <aside className="lg:col-span-3 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4 sm:p-5 shadow-xs sticky top-20">
+            <h2 className="text-base font-heading font-black text-[var(--text-color)] pb-3 border-b border-[var(--card-border)]">
               All Sections
             </h2>
 
-            <nav className="mt-2 divide-y divide-slate-100 dark:divide-white/[0.06]">
+            <nav className="mt-2 divide-y divide-[var(--card-border)]">
               {SECTIONS_LIST.map((sec) => {
                 const isActive = activeSectionId === sec.id;
                 const isStateSpecial = sec.id === 'state-special';
@@ -521,13 +520,13 @@ export default function RapidRevisionPortal() {
                       }}
                       className={`w-full text-left py-2.5 px-2 text-xs sm:text-sm transition-all flex items-center justify-between group cursor-pointer ${
                         isActive
-                          ? 'text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-500/10 rounded-xl px-3'
-                          : 'text-slate-700 dark:text-slate-300 font-bold hover:text-blue-600 dark:hover:text-blue-400'
+                          ? 'text-amber-600 dark:text-amber-400 font-extrabold bg-amber-500/10 rounded-xl px-3'
+                          : 'text-[var(--text-color)] opacity-85 hover:opacity-100 font-bold hover:text-amber-500'
                       }`}
                     >
                       <span className="truncate pr-2">{sec.name}</span>
                       {isActive && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                       )}
                     </button>
 
@@ -544,7 +543,7 @@ export default function RapidRevisionPortal() {
                           className={`px-2 py-0.5 text-[10px] rounded-md font-bold transition-all cursor-pointer ${
                             activeSectionId === 'state-special' && stateSpecialSubFilter === 'ALL'
                               ? 'bg-amber-500 text-slate-950 font-black shadow-2xs'
-                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-white/[0.04]'
+                              : 'text-slate-500 hover:text-amber-500 bg-slate-100 dark:bg-white/[0.04]'
                           }`}
                         >
                           All
@@ -559,7 +558,7 @@ export default function RapidRevisionPortal() {
                           className={`px-2 py-0.5 text-[10px] rounded-md font-bold transition-all cursor-pointer ${
                             activeSectionId === 'state-special' && stateSpecialSubFilter === 'BIHAR'
                               ? 'bg-amber-500 text-slate-950 font-black shadow-2xs'
-                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-white/[0.04]'
+                              : 'text-slate-500 hover:text-amber-500 bg-slate-100 dark:bg-white/[0.04]'
                           }`}
                         >
                           Bihar (BPSC)
@@ -574,7 +573,7 @@ export default function RapidRevisionPortal() {
                           className={`px-2 py-0.5 text-[10px] rounded-md font-bold transition-all cursor-pointer ${
                             activeSectionId === 'state-special' && stateSpecialSubFilter === 'UP'
                               ? 'bg-amber-500 text-slate-950 font-black shadow-2xs'
-                              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-white/[0.04]'
+                              : 'text-slate-500 hover:text-amber-500 bg-slate-100 dark:bg-white/[0.04]'
                           }`}
                         >
                           UP (UPPSC)
@@ -591,9 +590,9 @@ export default function RapidRevisionPortal() {
           <main className="lg:col-span-9 space-y-6">
             
             {/* Header of Content: Active Section Name + Search & Language Toggle */}
-            <div className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 p-4 sm:p-5 rounded-2xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="bg-[var(--card-bg)] border border-[var(--card-border)] p-4 sm:p-5 rounded-2xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 dark:text-white">
+                <h3 className="text-xl sm:text-2xl font-heading font-black text-[var(--text-color)]">
                   {activeSectionId === 'state-special' 
                     ? (stateSpecialSubFilter === 'BIHAR' 
                         ? 'State Special — Bihar (BPSC)' 
@@ -616,7 +615,7 @@ export default function RapidRevisionPortal() {
                     placeholder="Search topics, modules..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-medium focus:border-blue-500 transition-colors"
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-[var(--bg-color)] border border-[var(--card-border)] rounded-xl outline-none text-[var(--text-color)] font-medium focus:border-amber-500 transition-colors"
                   />
                   {searchQuery && (
                     <button
@@ -629,15 +628,15 @@ export default function RapidRevisionPortal() {
                 </div>
 
                 {/* Medium / Language Filter Toggle (All, English, Hindi) */}
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/[0.06] p-1 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold">
+                <div className="flex items-center gap-1 bg-[var(--bg-color)] p-1 rounded-xl border border-[var(--card-border)] text-xs font-bold">
                   {(['ALL', 'English', 'Hindi'] as const).map((lang) => (
                     <button
                       key={lang}
                       onClick={() => setSelectedLanguage(lang)}
                       className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                         selectedLanguage === lang
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                          ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-amber-500'
                       }`}
                     >
                       {lang === 'ALL' ? 'All Mediums' : lang}
@@ -649,7 +648,7 @@ export default function RapidRevisionPortal() {
 
             {/* ════ STATE SPECIAL PROMINENT SUB-FILTER (Bihar vs UP) ════ */}
             {activeSectionId === 'state-special' && (
-              <div className="p-3.5 sm:p-4 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+              <div className="p-3.5 sm:p-4 bg-[var(--card-bg)] border border-amber-500/30 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-2xs">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                     <MapPin className="w-4 h-4 text-amber-500" />
@@ -660,7 +659,7 @@ export default function RapidRevisionPortal() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-white dark:bg-[#0D111A] p-1 rounded-xl border border-amber-500/30 text-xs font-bold shadow-2xs">
+                <div className="flex items-center gap-1.5 bg-[var(--bg-color)] p-1 rounded-xl border border-amber-500/30 text-xs font-bold shadow-2xs">
                   <button
                     type="button"
                     onClick={() => setStateSpecialSubFilter('ALL')}
@@ -682,7 +681,7 @@ export default function RapidRevisionPortal() {
                     }`}
                   >
                     <span>Bihar Special (BPSC)</span>
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 font-black text-amber-700 dark:text-amber-300">
                       {biharCount}
                     </span>
                   </button>
@@ -696,7 +695,7 @@ export default function RapidRevisionPortal() {
                     }`}
                   >
                     <span>UP Special (UPPSC)</span>
-                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-black/10 dark:bg-white/10">
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 font-black text-amber-700 dark:text-amber-300">
                       {upCount}
                     </span>
                   </button>
@@ -704,21 +703,11 @@ export default function RapidRevisionPortal() {
               </div>
             )}
 
-            {/* Grid of Revision Items */}
-            {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 p-5 rounded-2xl animate-pulse space-y-4">
-                    <div className="h-5 bg-slate-200 dark:bg-slate-800 rounded w-3/4" />
-                    <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/2" />
-                    <div className="h-9 bg-slate-200 dark:bg-slate-800 rounded-xl mt-4" />
-                  </div>
-                ))}
-              </div>
-            ) : filteredItems.length === 0 ? (
-              <div className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 rounded-2xl p-12 text-center space-y-3">
+            {/* Grid of Revision Items — Direct Instant Render */}
+            {filteredItems.length === 0 ? (
+              <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-12 text-center space-y-3">
                 <BookOpen className="w-10 h-10 text-slate-400 mx-auto opacity-40" />
-                <h4 className="font-heading font-black text-base text-slate-800 dark:text-slate-200">
+                <h4 className="font-heading font-black text-base text-[var(--text-color)]">
                   No revision material found
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
@@ -729,7 +718,7 @@ export default function RapidRevisionPortal() {
                 {(searchQuery || selectedLanguage !== 'ALL' || stateSpecialSubFilter !== 'ALL') && (
                   <button
                     onClick={() => { setSearchQuery(''); setSelectedLanguage('ALL'); setStateSpecialSubFilter('ALL'); }}
-                    className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl shadow-xs hover:bg-blue-700 transition-colors cursor-pointer mt-2"
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl shadow-xs transition-colors cursor-pointer mt-2"
                   >
                     Reset Filters
                   </button>
@@ -740,17 +729,16 @@ export default function RapidRevisionPortal() {
                 {filteredItems.map((item) => {
                   const resolvedUrl = resolveUrl(item.url);
                   const isHindi = item.language?.toLowerCase() === 'hindi';
-                  const isStateItem = (item.type || '').includes('State Special') || (item.examCategory || '').includes('BPSC') || (item.examCategory || '').includes('UPPSC');
 
                   return (
                     <div
                       key={item.id}
-                      className="group bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 hover:border-amber-500/50 dark:hover:border-amber-500/40 rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 shadow-xs hover:shadow-md hover:-translate-y-0.5"
+                      className="group bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/60 rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 shadow-xs hover:shadow-md hover:-translate-y-0.5"
                     >
                       {/* Top content */}
                       <div className="space-y-3">
                         {/* Title */}
-                        <h4 className="font-heading font-extrabold text-base text-slate-950 dark:text-white group-hover:text-amber-500 transition-colors line-clamp-2">
+                        <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors line-clamp-2">
                           {item.title}
                         </h4>
 
@@ -788,7 +776,7 @@ export default function RapidRevisionPortal() {
                       </div>
 
                       {/* Bottom Button Action */}
-                      <div className="pt-5 mt-4 border-t border-slate-100 dark:border-white/[0.06] flex items-center gap-2">
+                      <div className="pt-5 mt-4 border-t border-[var(--card-border)] flex items-center gap-2">
                         {/* View / Read Button */}
                         <button
                           type="button"
@@ -799,7 +787,7 @@ export default function RapidRevisionPortal() {
                               alert('Document file will be available shortly.');
                             }
                           }}
-                          className="flex-1 py-2.5 px-3 bg-white dark:bg-white/[0.04] hover:bg-amber-50 dark:hover:bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                          className="flex-1 py-2.5 px-3 bg-[var(--card-bg)] hover:bg-amber-500/10 border border-amber-500/40 text-amber-600 dark:text-amber-400 font-bold rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>View / Read</span>
@@ -836,16 +824,16 @@ export default function RapidRevisionPortal() {
             )}
 
             {/* Bottom info banner */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 sm:p-5 rounded-2xl bg-[var(--card-bg)] border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-xs font-black">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-heading font-black text-xs sm:text-sm text-slate-900 dark:text-white">
+                  <h4 className="font-heading font-black text-xs sm:text-sm text-[var(--text-color)]">
                     Need state-specific BPSC &amp; UPPSC Previous Year Questions?
                   </h4>
-                  <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                     Visit our solved PYQ Vault with detailed topic-wise explanations.
                   </p>
                 </div>

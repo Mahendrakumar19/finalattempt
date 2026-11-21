@@ -16,7 +16,7 @@
     "pyqTitle": "पीवाइक्यू (PYQ)",
     "ncertTitle": "एनसीईआरटी (NCERT)",
     "usefulDocumentsTitle": "उपयोगी दस्तावेज (USEFUL DOCUMENTS)",
-    "rapidRevisionTitle": "उपयोगी दस्तावेज (USEFUL DOCUMENTS)",
+    "rapidRevisionTitle": "रैपिड रिवीजन मटेरियल (RRM)",
     "valMainsTitle": "वैल्यू एडेड सामग्री — मुख्य परीक्षा"
   },
   "nav": {
@@ -105,9 +105,9 @@
       "usefulDocumentsTitle": "उपयोगी दस्तावेज",
       "usefulDocuments": "उपयोगी दस्तावेज",
       "usefulDocumentsDesc": "महत्वपूर्ण नोट्स, गाइड एवं संदर्भ सामग्री",
-      "rapidRevisionTitle": "उपयोगी दस्तावेज",
-      "rapidRevision": "उपयोगी दस्तावेज",
-      "rapidRevisionDesc": "महत्वपूर्ण नोट्स, गाइड एवं संदर्भ सामग्री",
+      "rapidRevisionTitle": "रैपिड रिवीजन मटेरियल (RRM)",
+      "rapidRevision": "रैपिड रिवीजन मटेरियल (RRM)",
+      "rapidRevisionDesc": "उच्च स्कोरिंग रिवीजन मॉड्यूल एवं विषय नोट्स",
       "valMainsTitle": "वैल्यू एडेड सामग्री — मुख्य परीक्षा",
       "valMains": "वैल्यू एडेड सामग्री — मुख्य परीक्षा",
       "valMainsDesc": "मुख्य परीक्षा डेटा और सुप्रीम कोर्ट के फैसले",
@@ -537,7 +537,7 @@
     "premium": "प्रीमियम",
     "viewPDF": "PDF देखें",
     "downloadPDF": "PDF डाउनलोड करें",
-    "rapidRevisionTitle": "रैपिड रिवीजन",
+    "rapidRevisionTitle": "रैपिड रिवीजन मटेरियल (RRM)",
     "toppersCopiesTitle": "टॉपर्स की प्रतियां",
     "valueAddedTitle": "वैल्यू एडेड सामग्री — मुख्य परीक्षा"
   },
