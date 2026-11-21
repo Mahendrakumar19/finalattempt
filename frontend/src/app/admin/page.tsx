@@ -3188,13 +3188,14 @@ export default function AdminPortal() {
             portalDescription="Upload & manage high-yield consolidated revision modules, infographics, key concepts, and subject-wise notes."
             themeColor="amber"
             typeOptions={[
-              'Indian Polity & Constitution',
-              'Economy & Budget',
-              'History & Culture',
-              'Geography & Environment',
-              'Science & Technology',
-              'International Relations & Security',
-              'Bihar Special (BPSC)',
+              'History of Modern India',
+              'Ancient and Medieval History',
+              'Indian Art and Culture',
+              'Geography',
+              'Economics',
+              'Polity and Governance',
+              'Ecology and Environment',
+              'State Special',
               'General Studies Quick Modules'
             ]}
           />

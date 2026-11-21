@@ -1,108 +1,243 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Search, Download, Eye, Home, ChevronRight, X, Zap, BookOpen, Layers, CheckCircle2, Sparkles, Filter } from 'lucide-react';
+import { 
+  Search, Download, Eye, Home, ChevronRight, X, Zap, BookOpen, 
+  Layers, CheckCircle2, Sparkles, Filter, Globe, Calendar, FileText
+} from 'lucide-react';
 import { db, CustomPage, DownloadItem } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
 import ShareButton from '@/components/ShareButton';
 
+export interface RevisionSection {
+  id: string;
+  name: string;
+  keywords: string[];
+}
+
+const SECTIONS_LIST: RevisionSection[] = [
+  { id: 'all', name: 'Latest', keywords: [] },
+  { id: 'ancient-medieval', name: 'Ancient and Medieval History', keywords: ['ancient', 'medieval', 'indus', 'vedic', 'sultanate', 'mughal'] },
+  { id: 'ecology-env', name: 'Ecology and Environment', keywords: ['ecology', 'environment', 'wetlands', 'biodiversity', 'wildlife', 'climate'] },
+  { id: 'economics', name: 'Economics', keywords: ['economic', 'economy', 'budget', 'monetary', 'fiscal', 'inflation', 'banking'] },
+  { id: 'geography', name: 'Geography', keywords: ['geography', 'drainage', 'monsoon', 'climate', 'agriculture', 'mineral', 'river'] },
+  { id: 'modern-history', name: 'History of Modern India', keywords: ['modern', 'freedom struggle', '1857', 'gandhi', 'congress', 'timeline'] },
+  { id: 'art-culture', name: 'Indian Art and Culture', keywords: ['art', 'culture', 'temple', 'architecture', 'dance', 'unesco', 'heritage', 'painting'] },
+  { id: 'polity', name: 'Polity and Governance', keywords: ['polity', 'governance', 'constitution', 'parliament', 'rights', 'dpsp', 'amendment'] },
+  { id: 'state-special', name: 'State Special', keywords: ['state special', 'bihar', 'bpsc', 'state pcs', 'patna', 'up special'] }
+];
+
 const INITIAL_FALLBACK_ITEMS: DownloadItem[] = [
+  // Modern Indian History
   {
-    id: 'qrm-polity-01',
-    title: 'Indian Polity: Constitutional Framework, Fundamental Rights & DPSP',
-    description: 'High-yield consolidated revision notes covering historical underpinnings, Preamble, Articles 12-51A, Judicial Doctrines, and Landmark Judgments for rapid recall.',
-    type: 'Indian Polity & Constitution',
-    examCategory: 'BPSC & UPSC',
-    language: 'English',
-    editionYear: '2025-26',
-    size: '3.4 MB',
-    url: '/sample-resources/polity-constitutional-framework.pdf'
-  },
-  {
-    id: 'qrm-polity-02',
-    title: 'भारतीय राजव्यवस्था: संसद, राष्ट्रपति एवं महत्वपूर्ण संवैधानिक संशोधन',
-    description: 'संसदीय समितियां, विधायी प्रक्रिया, आपातकालीन उपबंध, 101वां से 106वां संविधान संशोधन सारांश एवं प्रमुख अनुसूचियां।',
-    type: 'Indian Polity & Constitution',
+    id: 'qrm-mod-01',
+    title: 'Modern Indian History',
+    description: 'History of Modern India — Major Movements, Freedom Struggle Timeline & Important Personalities',
+    type: 'History of Modern India',
     examCategory: 'BPSC & UPSC',
     language: 'Hindi',
-    editionYear: '2025-26',
-    size: '3.1 MB',
-    url: '/sample-resources/polity-parliament-amendments-hi.pdf'
-  },
-  {
-    id: 'qrm-economy-01',
-    title: 'Indian Economy: Macroeconomic Indicators, Budget & Economic Survey Crux',
-    description: 'National Income, Monetary Policy, Fiscal Deficit, Inflation targeting, Banking reforms, External Sector, and Key Government Schemes.',
-    type: 'Economy & Budget',
-    examCategory: 'BPSC & UPSC',
-    language: 'English',
-    editionYear: '2025-26',
-    size: '4.2 MB',
-    url: '/sample-resources/economy-survey-crux.pdf'
-  },
-  {
-    id: 'qrm-history-01',
-    title: 'Modern Indian History: Major Movements, Governor Generals & Timeline',
-    description: 'Chronological timeline of Freedom Struggle from 1857 to 1947, Revolutionary Nationalism, Socio-Religious Reform Movements, and Tribal Uprisings.',
-    type: 'History & Culture',
-    examCategory: 'BPSC & UPSC',
-    language: 'English',
-    editionYear: '2025-26',
+    editionYear: '2026',
     size: '3.8 MB',
-    url: '/sample-resources/modern-history-timeline.pdf'
+    url: '/sample-resources/history-of-modern-india-hi.pdf'
   },
   {
-    id: 'qrm-bihar-01',
-    title: 'बिहार विशेष: आधुनिक इतिहास, 1857 क्रांति एवं स्वतंत्रता आंदोलन में योगदान',
-    description: 'कुंवर सिंह और 1857, चंपारण सत्याग्रह, किसान आंदोलन (स्वामी सहजानंद सरस्वती), भारत छोड़ो आंदोलन और बिहार विभूति।',
-    type: 'Bihar Special (BPSC)',
-    examCategory: 'BPSC Prelims & Mains',
-    language: 'Hindi',
-    editionYear: '2025-26',
-    size: '2.9 MB',
-    url: '/sample-resources/bihar-special-history.pdf'
-  },
-  {
-    id: 'qrm-env-01',
-    title: 'Environment & Ecology: National Parks, Ramsar Sites & Wildlife Conventions',
-    description: 'Comprehensive mapping of Tiger Reserves, Biosphere Reserves, Ramsar Wetlands, UNFCCC COP summits, and Biodiversity Hotspots.',
-    type: 'Geography & Environment',
+    id: 'qrm-mod-02',
+    title: 'Modern Indian History (Chronology & Acts)',
+    description: 'Constitutional Developments, Governor Generals & Freedom Struggle Movements (1857–1947)',
+    type: 'History of Modern India',
     examCategory: 'BPSC & UPSC',
     language: 'English',
-    editionYear: '2025-26',
-    size: '4.5 MB',
-    url: '/sample-resources/environment-wetlands-conventions.pdf'
+    editionYear: '2026',
+    size: '3.5 MB',
+    url: '/sample-resources/modern-history-chronology-en.pdf'
   },
-  {
-    id: 'qrm-scitech-01',
-    title: 'Science & Technology: Space Missions, Defense Systems & Biotech',
-    description: 'ISRO Roadmap (Gaganyaan, Chandrayaan, Aditya-L1), Missile systems, Nuclear energy, AI, Quantum Computing, and CRISPR gene editing.',
-    type: 'Science & Technology',
-    examCategory: 'BPSC & UPSC',
-    language: 'English',
-    editionYear: '2025-26',
-    size: '3.6 MB',
-    url: '/sample-resources/scitech-space-defense.pdf'
-  },
+
+  // Geography
   {
     id: 'qrm-geo-01',
-    title: 'Geography: Indian Drainage System, Climate & Agriculture Mapping',
-    description: 'Himalayan vs Peninsular river systems, Monsoon mechanism, Soil types, Major mineral belts, and Cropping patterns across India.',
-    type: 'Geography & Environment',
+    title: 'Geography',
+    description: 'Indian Physical Geography, River Drainage Systems & Monsoon Mechanism',
+    type: 'Geography',
+    examCategory: 'BPSC & UPSC',
+    language: 'Hindi',
+    editionYear: '2026',
+    size: '4.1 MB',
+    url: '/sample-resources/geography-drainage-monsoon-hi.pdf'
+  },
+  {
+    id: 'qrm-geo-02',
+    title: 'Indian & World Geography Maps',
+    description: 'Key Minerals, Cropping Patterns, Oceanic Currents & Important Geographical Locations',
+    type: 'Geography',
     examCategory: 'BPSC & UPSC',
     language: 'English',
-    editionYear: '2025-26',
+    editionYear: '2026',
     size: '3.9 MB',
-    url: '/sample-resources/geography-drainage-climate.pdf'
+    url: '/sample-resources/geography-maps-minerals-en.pdf'
+  },
+
+  // Economics
+  {
+    id: 'qrm-eco-01',
+    title: 'Economics',
+    description: 'Macroeconomic Concepts, Banking System & Economic Survey Crux',
+    type: 'Economics',
+    examCategory: 'BPSC & UPSC',
+    language: 'Hindi',
+    editionYear: '2026',
+    size: '3.6 MB',
+    url: '/sample-resources/economics-survey-macro-hi.pdf'
+  },
+  {
+    id: 'qrm-eco-02',
+    title: 'Indian Economy & Union Budget',
+    description: 'Fiscal & Monetary Policy, Inflation Indices, External Trade & Government Key Schemes',
+    type: 'Economics',
+    examCategory: 'BPSC & UPSC',
+    language: 'English',
+    editionYear: '2026',
+    size: '4.2 MB',
+    url: '/sample-resources/indian-economy-budget-en.pdf'
+  },
+
+  // Indian Art and Culture
+  {
+    id: 'qrm-art-01',
+    title: 'Indian Art and Culture',
+    description: 'Indian Architecture, Temple Styles, Classical Dances & UNESCO Heritage Sites',
+    type: 'Indian Art and Culture',
+    examCategory: 'BPSC & UPSC',
+    language: 'Hindi',
+    editionYear: '2026',
+    size: '3.2 MB',
+    url: '/sample-resources/indian-art-and-culture-hi.pdf'
+  },
+  {
+    id: 'qrm-art-02',
+    title: 'Art, Architecture & Cultural Heritage',
+    description: 'Sculpture, Cave Traditions, Literature, Music Gharanas & Religious Philosophies',
+    type: 'Indian Art and Culture',
+    examCategory: 'BPSC & UPSC',
+    language: 'English',
+    editionYear: '2026',
+    size: '3.7 MB',
+    url: '/sample-resources/art-culture-heritage-en.pdf'
+  },
+
+  // Ancient and Medieval History
+  {
+    id: 'qrm-anc-01',
+    title: 'Ancient and Medieval History',
+    description: 'Indus Valley Civilization, Vedic Period, Mauryas, Guptas, Delhi Sultanate & Mughals',
+    type: 'Ancient and Medieval History',
+    examCategory: 'BPSC & UPSC',
+    language: 'Hindi',
+    editionYear: '2026',
+    size: '4.0 MB',
+    url: '/sample-resources/ancient-medieval-history-hi.pdf'
+  },
+  {
+    id: 'qrm-anc-02',
+    title: 'Ancient & Medieval India Revision Module',
+    description: 'Administrative Systems, Social Stratification, Bhakti-Sufi Movements & Chronology',
+    type: 'Ancient and Medieval History',
+    examCategory: 'BPSC & UPSC',
+    language: 'English',
+    editionYear: '2026',
+    size: '3.8 MB',
+    url: '/sample-resources/ancient-medieval-revision-en.pdf'
+  },
+
+  // Ecology and Environment
+  {
+    id: 'qrm-eco-env-01',
+    title: 'Ecology and Environment',
+    description: 'Biodiversity, National Parks, Ramsar Wetlands & Global Climate Agreements (UNFCCC/CBD)',
+    type: 'Ecology and Environment',
+    examCategory: 'BPSC & UPSC',
+    language: 'Hindi',
+    editionYear: '2026',
+    size: '4.4 MB',
+    url: '/sample-resources/ecology-and-environment-hi.pdf'
+  },
+  {
+    id: 'qrm-eco-env-02',
+    title: 'Environmental Protocols & Wildlife Mapping',
+    description: 'IUCN Red List Categories, Biosphere Reserves, Pollution Acts & Renewable Energy Goals',
+    type: 'Ecology and Environment',
+    examCategory: 'BPSC & UPSC',
+    language: 'English',
+    editionYear: '2026',
+    size: '4.6 MB',
+    url: '/sample-resources/environmental-protocols-en.pdf'
+  },
+
+  // Polity and Governance
+  {
+    id: 'qrm-pol-01',
+    title: 'Polity and Governance',
+    description: 'Constitutional Framework, Fundamental Rights, DPSP, Parliament & Landmark Judicial Cases',
+    type: 'Polity and Governance',
+    examCategory: 'BPSC & UPSC',
+    language: 'Hindi',
+    editionYear: '2026',
+    size: '3.9 MB',
+    url: '/sample-resources/polity-and-governance-hi.pdf'
+  },
+  {
+    id: 'qrm-pol-02',
+    title: 'Indian Polity & Constitutional Bodies',
+    description: 'Panchayati Raj, Election Commission, CAG, Emergency Provisions & Recent Amendments',
+    type: 'Polity and Governance',
+    examCategory: 'BPSC & UPSC',
+    language: 'English',
+    editionYear: '2026',
+    size: '3.7 MB',
+    url: '/sample-resources/polity-governance-bodies-en.pdf'
+  },
+
+  // State Special (Bihar & State PCS)
+  {
+    id: 'qrm-state-01',
+    title: 'State Special',
+    description: 'बिहार विशेष: आधुनिक इतिहास, 1857 क्रांति, चंपारण सत्याग्रह एवं स्वतंत्रता सेनानी',
+    type: 'State Special',
+    examCategory: 'BPSC (Bihar)',
+    language: 'Hindi',
+    editionYear: '2026',
+    size: '3.4 MB',
+    url: '/sample-resources/bihar-history-freedom-struggle-hi.pdf'
+  },
+  {
+    id: 'qrm-state-02',
+    title: 'State Special',
+    description: 'Bihar Special: Geography, River Systems, Soil Profiles, Mineral Wealth & Forest Report',
+    type: 'State Special',
+    examCategory: 'BPSC (Bihar)',
+    language: 'English',
+    editionYear: '2026',
+    size: '3.2 MB',
+    url: '/sample-resources/bihar-geography-minerals-en.pdf'
+  },
+  {
+    id: 'qrm-state-03',
+    title: 'State Special',
+    description: 'बिहार आर्थिक सर्वेक्षण एवं बजट सारांश (BPSC Prelims & Mains Specific Data)',
+    type: 'State Special',
+    examCategory: 'BPSC (Bihar)',
+    language: 'Hindi',
+    editionYear: '2026',
+    size: '2.8 MB',
+    url: '/sample-resources/bihar-economic-survey-budget-hi.pdf'
   }
 ];
 
 export default function QuickRevisionPortal() {
   const { t } = useTranslation();
   const [pageData, setPageData] = useState<CustomPage | null>(null);
+  const [activeSectionId, setActiveSectionId] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState<string>('ALL');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('ALL');
   const [loading, setLoading] = useState(true);
 
@@ -139,294 +274,314 @@ export default function QuickRevisionPortal() {
     return `${BACKEND_URL}/${url.replace(/^\//, '')}`;
   };
 
-  // Combine CMS download items with initial fallback items if empty
-  const rawItems: DownloadItem[] = (pageData?.downloadItems && pageData.downloadItems.length > 0)
-    ? pageData.downloadItems
-    : INITIAL_FALLBACK_ITEMS;
-
-  const dynamicSubjects = Array.from(new Set(
-    rawItems
-      .map(i => i.type || i.examCategory)
-      .filter((t): t is string => Boolean(t && t.trim()))
-  )).sort();
-
-  // Filter items without ANY year filter (as strictly specified by user!)
-  const filteredItems = rawItems.filter(item => {
-    if (selectedLanguage === 'English') {
-      if (item.language && item.language !== 'English' && item.language !== 'Bilingual') return false;
-    } else if (selectedLanguage === 'Hindi') {
-      if (item.language && item.language !== 'Hindi' && item.language !== 'Bilingual') return false;
+  // Combine CMS download items with initial fallback items
+  const allItems: DownloadItem[] = useMemo(() => {
+    if (pageData?.downloadItems && pageData.downloadItems.length > 0) {
+      return pageData.downloadItems;
     }
+    return INITIAL_FALLBACK_ITEMS;
+  }, [pageData]);
 
-    if (selectedSubject !== 'ALL') {
-      const subj = (item.type || item.examCategory || '').toLowerCase();
-      if (subj !== selectedSubject.toLowerCase()) return false;
-    }
+  // Current selected section metadata
+  const currentSection = useMemo(() => {
+    return SECTIONS_LIST.find(s => s.id === activeSectionId) || SECTIONS_LIST[0];
+  }, [activeSectionId]);
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        item.title.toLowerCase().includes(q) ||
-        (item.description || '').toLowerCase().includes(q) ||
-        (item.type || '').toLowerCase().includes(q)
-      );
-    }
+  // Filter items by selected section, language, and search query (NO YEAR FILTER!)
+  const filteredItems = useMemo(() => {
+    return allItems.filter(item => {
+      // 1. Language filter
+      if (selectedLanguage === 'English') {
+        if (item.language && item.language.toLowerCase() !== 'english' && item.language.toLowerCase() !== 'bilingual') return false;
+      } else if (selectedLanguage === 'Hindi') {
+        if (item.language && item.language.toLowerCase() !== 'hindi' && item.language.toLowerCase() !== 'bilingual') return false;
+      }
 
-    return true;
-  });
+      // 2. Section index filter
+      if (activeSectionId !== 'all') {
+        const itemType = (item.type || '').toLowerCase();
+        const itemTitle = (item.title || '').toLowerCase();
+        const itemDesc = (item.description || '').toLowerCase();
+        const itemExam = (item.examCategory || '').toLowerCase();
+
+        const sec = SECTIONS_LIST.find(s => s.id === activeSectionId);
+        if (sec) {
+          const matchByName = itemType.includes(sec.name.toLowerCase()) || itemTitle.includes(sec.name.toLowerCase());
+          const matchByKeyword = sec.keywords.some(k => 
+            itemType.includes(k) || itemTitle.includes(k) || itemDesc.includes(k) || itemExam.includes(k)
+          );
+          if (!matchByName && !matchByKeyword) return false;
+        }
+      }
+
+      // 3. Search query filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        return (
+          (item.title || '').toLowerCase().includes(q) ||
+          (item.description || '').toLowerCase().includes(q) ||
+          (item.type || '').toLowerCase().includes(q) ||
+          (item.examCategory || '').toLowerCase().includes(q)
+        );
+      }
+
+      return true;
+    });
+  }, [allItems, activeSectionId, selectedLanguage, searchQuery]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 min-h-screen font-body">
+    <div className="min-h-screen bg-slate-50/60 dark:bg-[#080C14] font-body text-slate-900 dark:text-white transition-colors duration-200">
       
-      {/* ── Breadcrumbs ── */}
-      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-semibold">
-        <Link href="/" className="hover:text-amber-500 flex items-center gap-1 transition-colors">
-          <Home className="w-3.5 h-3.5" />
-          <span>{t('nav.home', 'Home')}</span>
-        </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <Link href="/downloads" className="hover:text-amber-500 transition-colors">
-          <span>{t('nav.downloads', 'Downloads Hub')}</span>
-        </Link>
-        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-        <span className="text-slate-900 dark:text-white font-bold">Quick Revision Material (QRM)</span>
-      </div>
-
-      {/* ── Page Header Banner ── */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-5 pb-6 border-b border-slate-200 dark:border-white/10">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-black uppercase tracking-wider border border-amber-500/25">
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>High-Yield Revision Vault</span>
-          </div>
-          <h1 className="text-2xl sm:text-4xl font-heading font-black text-slate-950 dark:text-white tracking-tight">
-            Quick Revision Material
-          </h1>
-          <p className="text-slate-600 dark:text-slate-300 text-xs sm:text-sm max-w-2xl font-medium leading-relaxed">
-            Consolidated subject-wise revision modules, infographics, flowcharts, and key concepts designed for swift retention and maximum score in BPSC & UPSC examinations.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
-          <ShareButton
-            title="Quick Revision Material | Final Attempt"
-            text="Download free Quick Revision Modules & subject notes for BPSC & UPSC preparation."
-            url="/downloads/quick-revision-material"
-            variant="compact"
-          />
-          <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/25 px-4 py-2.5 rounded-2xl shrink-0">
-            <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm">
-              <Zap className="w-4 h-4 fill-current" />
-            </div>
-            <div>
-              <span className="text-xs font-black text-slate-950 dark:text-white block">{rawItems.length} Revision Modules</span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase">Consolidated & Free</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Search & Filter Control Panel (NO Year Filter as requested) ── */}
-      <div className="p-4 sm:p-5 bg-white dark:bg-[#0D111A] rounded-3xl border border-slate-200 dark:border-white/10 shadow-xs flex flex-col md:flex-row gap-4 items-center justify-between">
-        
-        {/* Search Input */}
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search revision modules, topics, keywords..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-xs bg-slate-50 dark:bg-white/[0.05] border border-slate-250 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white font-medium focus:border-amber-500 transition-colors"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+      {/* ── Top Breadcrumbs & Page Heading ── */}
+      <div className="bg-white dark:bg-[#0D111A] border-b border-slate-200 dark:border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-3">
           
-          {/* Language Selector */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/[0.06] p-1 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-bold">
-            <button
-              onClick={() => setSelectedLanguage('ALL')}
-              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                selectedLanguage === 'ALL'
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setSelectedLanguage('English')}
-              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                selectedLanguage === 'English'
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
-              }`}
-            >
-              English
-            </button>
-            <button
-              onClick={() => setSelectedLanguage('Hindi')}
-              className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer ${
-                selectedLanguage === 'Hindi'
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
-              }`}
-            >
-              Hindi
-            </button>
+          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-semibold">
+            <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 flex items-center gap-1 transition-colors">
+              <Home className="w-3.5 h-3.5" />
+              <span>{t('nav.home', 'Home')}</span>
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+            <Link href="/downloads" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+              <span>{t('nav.downloads', 'Downloads Hub')}</span>
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+            <span className="text-slate-900 dark:text-white font-bold">Quick Revision Material</span>
           </div>
 
-          {/* Subject Dropdown Filter */}
-          <div className="relative">
-            <select
-              value={selectedSubject}
-              onChange={(e) => setSelectedSubject(e.target.value)}
-              className="px-4 py-2.5 text-xs bg-slate-50 dark:bg-white/[0.06] border border-slate-200 dark:border-white/10 rounded-2xl outline-none text-slate-900 dark:text-white font-bold cursor-pointer pr-8"
-            >
-              <option value="ALL">All Subjects ({dynamicSubjects.length})</option>
-              {dynamicSubjects.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-heading font-black text-slate-950 dark:text-white tracking-tight">
+                Quick Revision Material
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm mt-0.5 font-medium">
+                High-yield consolidated revision modules, infographics & quick charts for BPSC & UPSC
+              </p>
+            </div>
+
+            <ShareButton
+              title="Quick Revision Material | Final Attempt"
+              text="Download free Quick Revision Modules & subject notes for BPSC & UPSC preparation."
+              url="/downloads/quick-revision-material"
+              variant="compact"
+            />
           </div>
 
         </div>
       </div>
 
-      {/* ── Subject Quick Pills Bar ── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 styled-scrollbar text-xs">
-        <button
-          onClick={() => setSelectedSubject('ALL')}
-          className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
-            selectedSubject === 'ALL'
-              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-950 shadow-xs'
-              : 'bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-amber-500'
-          }`}
-        >
-          All Subjects ({rawItems.length})
-        </button>
-        {dynamicSubjects.map((s) => {
-          const count = rawItems.filter(i => (i.type || i.examCategory) === s).length;
-          const isSelected = selectedSubject === s;
-          return (
-            <button
-              key={s}
-              onClick={() => setSelectedSubject(s)}
-              className={`px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
-                isSelected
-                  ? 'bg-amber-500 text-slate-950 font-black shadow-xs'
-                  : 'bg-white dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-amber-500'
-              }`}
-            >
-              {s} ({count})
-            </button>
-          );
-        })}
-      </div>
+      {/* ── Main Two-Column Container (Left Index Sidebar + Right Content) ── */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          {/* ════ LEFT COLUMN: All Sections Index Sidebar (Matches User Photo) ════ */}
+          <aside className="lg:col-span-3 bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 rounded-2xl p-4 sm:p-5 shadow-xs sticky top-20">
+            <h2 className="text-base font-heading font-black text-slate-900 dark:text-white pb-3 border-b border-slate-200 dark:border-white/10">
+              All Sections
+            </h2>
 
-      {/* ── Revision Modules Cards Grid ── */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-56 bg-slate-100 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 rounded-3xl animate-pulse" />
-          ))}
-        </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 rounded-3xl max-w-md mx-auto space-y-3 shadow-xs">
-          <BookOpen className="w-12 h-12 text-slate-400 mx-auto" />
-          <h3 className="font-heading font-black text-base text-slate-950 dark:text-white">No Revision Modules Found</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Try adjusting your search keyword or selected subject.</p>
-          <button
-            onClick={() => { setSearchQuery(''); setSelectedSubject('ALL'); setSelectedLanguage('ALL'); }}
-            className="px-4 py-2 bg-amber-500 text-slate-950 text-xs font-bold rounded-xl hover:bg-amber-400 transition-all cursor-pointer"
-          >
-            Reset Filters
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 rounded-3xl p-5 sm:p-6 space-y-4 shadow-xs hover:border-amber-500/50 hover:shadow-xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden"
-            >
-              <div className="space-y-3">
-                
-                {/* Header Badges */}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-xl flex items-center gap-1 truncate max-w-[190px]">
-                    <Zap className="w-3 h-3 shrink-0 fill-current" />
-                    <span className="truncate">{item.type || item.examCategory || 'Revision Module'}</span>
-                  </span>
-
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {item.size && (
-                      <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-100 dark:bg-white/[0.06] px-2 py-0.5 rounded-lg">
-                        {item.size}
-                      </span>
+            <nav className="mt-2 divide-y divide-slate-100 dark:divide-white/[0.06]">
+              {SECTIONS_LIST.map((sec) => {
+                const isActive = activeSectionId === sec.id;
+                return (
+                  <button
+                    key={sec.id}
+                    onClick={() => setActiveSectionId(sec.id)}
+                    className={`w-full text-left py-3.5 px-2 text-xs sm:text-sm transition-all flex items-center justify-between group cursor-pointer ${
+                      isActive
+                        ? 'text-blue-600 dark:text-blue-400 font-extrabold bg-blue-50/50 dark:bg-blue-500/10 rounded-xl px-3'
+                        : 'text-slate-700 dark:text-slate-300 font-bold hover:text-blue-600 dark:hover:text-blue-400'
+                    }`}
+                  >
+                    <span className="truncate pr-2">{sec.name}</span>
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0" />
                     )}
-                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-lg ${
-                      item.language === 'Hindi'
-                        ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
-                        : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                    }`}>
-                      {item.language || 'English'}
-                    </span>
-                  </div>
+                  </button>
+                );
+              })}
+            </nav>
+          </aside>
+
+          {/* ════ RIGHT COLUMN: Revision Cards Grid ════ */}
+          <main className="lg:col-span-9 space-y-6">
+            
+            {/* Header of Content: Active Section Name + Search & Language Toggle */}
+            <div className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 p-4 sm:p-5 rounded-2xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-xl sm:text-2xl font-heading font-black text-slate-900 dark:text-white">
+                  {currentSection.name}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                  Showing {filteredItems.length} revision documents
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Search Bar */}
+                <div className="relative w-full sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search topics, modules..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 dark:bg-white/[0.05] border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-medium focus:border-blue-500 transition-colors"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
 
-                <h3 className="font-heading font-extrabold text-base text-slate-950 dark:text-white leading-snug group-hover:text-amber-500 transition-colors line-clamp-2">
-                  {item.title}
-                </h3>
-
-                {item.description && (
-                  <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed font-medium">
-                    {item.description}
-                  </p>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2 pt-4 border-t border-slate-100 dark:border-white/10">
-                {item.url && (
+                {/* Language / Medium Toggle Filter */}
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-white/[0.06] p-1 rounded-xl border border-slate-200 dark:border-white/10 text-xs font-bold">
                   <button
-                    onClick={() => setActiveReaderModal({ title: item.title, url: item.url })}
-                    className="flex-1 py-2.5 px-3 bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-900 dark:text-white text-xs font-black rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-slate-200 dark:border-white/10"
-                    title="Read PDF directly in browser"
+                    onClick={() => setSelectedLanguage('ALL')}
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                      selectedLanguage === 'ALL'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
+                    }`}
                   >
-                    <Eye className="w-3.5 h-3.5 text-amber-500" />
-                    <span>View PDF</span>
+                    All
                   </button>
-                )}
-
-                {item.url && (
-                  <a
-                    href={resolveUrl(item.url)}
-                    download
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex-1 py-2.5 px-3 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 hover:scale-[1.02] transition-all cursor-pointer"
-                    title="Download module PDF"
+                  <button
+                    onClick={() => setSelectedLanguage('English')}
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                      selectedLanguage === 'English'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
+                    }`}
                   >
-                    <Download className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Download</span>
-                  </a>
-                )}
+                    English
+                  </button>
+                  <button
+                    onClick={() => setSelectedLanguage('Hindi')}
+                    className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                      selectedLanguage === 'Hindi'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'text-slate-600 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white'
+                    }`}
+                  >
+                    Hindi
+                  </button>
+                </div>
               </div>
             </div>
-          ))}
+
+            {/* Cards Grid (Styled Exactly as in User's Photo) */}
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="h-48 bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 rounded-2xl animate-pulse" />
+                ))}
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <div className="text-center py-16 bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 rounded-2xl space-y-3 shadow-xs">
+                <BookOpen className="w-12 h-12 text-slate-400 mx-auto" />
+                <h4 className="font-heading font-black text-base text-slate-950 dark:text-white">
+                  No Revision Material Found
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  No documents found for &quot;{currentSection.name}&quot; with current filters.
+                </p>
+                <button
+                  onClick={() => { setActiveSectionId('all'); setSelectedLanguage('ALL'); setSearchQuery(''); }}
+                  className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all cursor-pointer"
+                >
+                  View All Modules
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredItems.map((item) => {
+                  const isHindi = (item.language || '').toLowerCase().includes('hindi');
+                  return (
+                    <div
+                      key={item.id}
+                      className="bg-white dark:bg-[#0D111A] border border-slate-200 dark:border-white/10 hover:border-blue-500/50 rounded-2xl p-5 shadow-xs hover:shadow-lg transition-all flex flex-col justify-between space-y-4 group"
+                    >
+                      <div className="space-y-2">
+                        {/* Title (e.g. Modern Indian History / Economics / State Special) */}
+                        <h4 className="font-heading font-extrabold text-base text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">
+                          {item.title}
+                        </h4>
+
+                        {/* Description / Subtitle */}
+                        {item.description && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 font-medium">
+                            {item.description}
+                          </p>
+                        )}
+
+                        {/* Badges Row: Language & Size/Year */}
+                        <div className="flex items-center gap-3 pt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                          {item.editionYear && (
+                            <span className="flex items-center gap-1 font-mono">
+                              <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{item.editionYear}</span>
+                            </span>
+                          )}
+
+                          <span className={`flex items-center gap-1 uppercase font-black px-2 py-0.5 rounded ${
+                            isHindi 
+                              ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10'
+                              : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
+                          }`}>
+                            <Globe className="w-3 h-3" />
+                            <span>{item.language || 'English'}</span>
+                          </span>
+
+                          {item.size && (
+                            <span className="font-mono text-slate-400">
+                              {item.size}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Wide "View / Download" Button (Matches User Photo) */}
+                      <div className="pt-3 border-t border-slate-100 dark:border-white/[0.06] flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (item.url) {
+                              setActiveReaderModal({ title: item.title, url: item.url });
+                            }
+                          }}
+                          className="flex-1 py-2.5 px-3 bg-white dark:bg-white/[0.04] hover:bg-blue-50 dark:hover:bg-blue-500/10 border border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 text-xs font-black rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs group-hover:bg-blue-600 group-hover:text-white"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>View / Read</span>
+                        </button>
+
+                        {item.url && (
+                          <a
+                            href={resolveUrl(item.url)}
+                            download
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] text-slate-800 dark:text-white rounded-xl transition-all cursor-pointer border border-slate-200 dark:border-white/10"
+                            title="Direct Download PDF"
+                          >
+                            <Download className="w-4 h-4" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          </main>
+
         </div>
-      )}
+      </div>
 
       {/* ── In-Site PDF Document Viewer Modal ── */}
       {activeReaderModal && (
@@ -436,8 +591,8 @@ export default function QuickRevisionPortal() {
             {/* Modal Header */}
             <div className="px-5 py-3.5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-3 bg-slate-50 dark:bg-white/[0.03]">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold shrink-0">
-                  <Zap className="w-4 h-4 fill-current" />
+                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
+                  <FileText className="w-4 h-4" />
                 </div>
                 <h3 className="font-heading font-black text-xs sm:text-sm text-slate-950 dark:text-white truncate">
                   {activeReaderModal.title}
@@ -450,10 +605,10 @@ export default function QuickRevisionPortal() {
                   download
                   target="_blank"
                   rel="noreferrer"
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
                 >
-                  <Download className="w-3.5 h-3.5 stroke-[2.5]" />
-                  <span className="hidden sm:inline">Download</span>
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Download PDF</span>
                 </a>
                 <button
                   onClick={() => setActiveReaderModal(null)}
