@@ -6,7 +6,7 @@ import MediaPicker from './MediaPicker';
 import RichTextEditor from './RichTextEditor';
 import Link from 'next/link';
 import { db, CustomPage, DownloadItem } from '@/services/db';
-import { INITIAL_FALLBACK_ITEMS } from './QuickRevisionPortal';
+import { INITIAL_FALLBACK_ITEMS } from './RapidRevisionPortal';
 
 interface NcertStyleCMSProps {
   pageSlug: string;
@@ -60,9 +60,16 @@ export default function NcertStyleResourceCMS({
   const fetchPage = async () => {
     setLoading(true);
     try {
+      const isRrmSlug = pageSlug === 'rapid-revision' || pageSlug === 'quick-revision-material';
       let data = await db.getCustomPageBySlug(`downloads/${pageSlug}`);
       if (!data) {
         data = await db.getCustomPageBySlug(pageSlug);
+      }
+      if (!data && isRrmSlug) {
+        data = await db.getCustomPageBySlug('downloads/rapid-revision') ||
+               await db.getCustomPageBySlug('rapid-revision') ||
+               await db.getCustomPageBySlug('downloads/quick-revision-material') ||
+               await db.getCustomPageBySlug('quick-revision-material');
       }
       if (!data) {
         const allPages = await db.getCustomPages(false);
@@ -74,7 +81,7 @@ export default function NcertStyleResourceCMS({
         setDownloadItems(data.downloadItems || []);
         setPageOverviewContent(data.content || '');
       } else {
-        const defaultItems = (pageSlug === 'quick-revision-material') ? INITIAL_FALLBACK_ITEMS : (data?.downloadItems || []);
+        const defaultItems = isRrmSlug ? INITIAL_FALLBACK_ITEMS : (data?.downloadItems || []);
         const initPage: CustomPage = {
           id: data?.id || `page-${Date.now()}`,
           title: data?.title || pageTitle,
@@ -88,8 +95,8 @@ export default function NcertStyleResourceCMS({
         setPage(initPage);
         setDownloadItems(defaultItems);
         setPageOverviewContent(initPage.content);
-        if (pageSlug === 'quick-revision-material' && (!data || !data.downloadItems || data.downloadItems.length === 0)) {
-          db.saveCustomPage(initPage).catch(e => console.warn('Auto-seed quick revision items:', e));
+        if (isRrmSlug && (!data || !data.downloadItems || data.downloadItems.length === 0)) {
+          db.saveCustomPage(initPage).catch(e => console.warn('Auto-seed rapid revision items:', e));
         }
       }
     } catch (err) {

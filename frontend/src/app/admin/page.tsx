@@ -1329,7 +1329,7 @@ export default function AdminPortal() {
                   ...(settings.featureFlags?.currentAffairsFilters !== false ? [{ id: 'Current Affairs', icon: FileText }] : []),
                   { id: 'NCERT', icon: BookOpen },
                   { id: 'PYQ', icon: Layers },
-                  { id: 'Quick Revision', icon: Zap },
+                  { id: 'Rapid Revision', label: 'Rapid Revision (RRM)', icon: Zap },
                   { id: 'Toppers Copies', icon: FolderOpen },
                   { id: 'Value Addition', icon: FileText },
                   { id: 'Useful Documents', icon: Sparkles },
@@ -1356,7 +1356,7 @@ export default function AdminPortal() {
                 }
                 if (adminRole === 'content_manager') {
                   return [
-                    'Dashboard', 'Current Affairs', 'NCERT', 'PYQ', 'Quick Revision', 'Toppers Copies',
+                    'Dashboard', 'Current Affairs', 'NCERT', 'PYQ', 'Rapid Revision', 'Quick Revision', 'Toppers Copies',
                     'Value Addition', 'Useful Documents', 'Blogs', 'Daily Quiz', 'Exams & Syllabus'
                   ].includes(tab.id);
                 }
@@ -1390,7 +1390,7 @@ export default function AdminPortal() {
                       style={activeTab === tab.id ? { background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)', borderColor: '#1E3A8A' } : {}}
                     >
                       <tab.icon className="w-4 h-4 shrink-0" />
-                      {!isSidebarCollapsed && <span className="truncate">{tab.id}</span>}
+                      {!isSidebarCollapsed && <span className="truncate">{(tab as any).label || tab.id}</span>}
                     </button>
                   ))}
                 </div>
@@ -1467,11 +1467,11 @@ export default function AdminPortal() {
                 )}
                 {(activeTab as string) === 'Download Hub' && (
                   <>
-                    <option value="Quick Revision">→ Quick Revision Material (/downloads/quick-revision-material)</option>
+                    <option value="Rapid Revision">→ Rapid Revision Material (RRM) (/downloads/rapid-revision)</option>
                     <option value="PYQ">→ PYQ Vault (/downloads/pyq)</option>
                     <option value="NCERT">→ NCERT Books (/downloads/ncert)</option>
                     <option value="Publications">→ Final Attempt Publications (/downloads/fa-publication)</option>
-                    <option value="Rapid Revision">→ Rapid Revision (/downloads/rapid-revision)</option>
+                    <option value="Useful Documents">→ Useful Documents (/downloads/useful-documents)</option>
                     <option value="Value Addition">→ Value Added Materials (/downloads/value-added-mains)</option>
                     <option value="Toppers Copies">→ Toppers Copies (/downloads/toppers-copies)</option>
                   </>
@@ -1491,9 +1491,17 @@ export default function AdminPortal() {
                     <option value="Publications">📍 Final Attempt Publications (/downloads/fa-publication) - Connected</option>
                   </>
                 )}
-                {activeTab === 'Rapid Revision' && (
+                {activeTab === 'Useful Documents' && (
                   <>
-                    <option value="Rapid Revision">📍 Rapid Revision Materials (/downloads/rapid-revision) - Connected</option>
+                    <option value="Useful Documents">📍 Useful Documents (/downloads/useful-documents) - Connected</option>
+                  </>
+                )}
+                {(activeTab === 'Rapid Revision' || activeTab === 'Quick Revision') && (
+                  <>
+                    <option value="Rapid Revision">📍 Rapid Revision Material (RRM) (/downloads/rapid-revision) - Connected</option>
+                    <option value="NCERT">→ NCERT Books (/downloads/ncert)</option>
+                    <option value="PYQ">→ PYQ Vault (/downloads/pyq)</option>
+                    <option value="Publications">→ Final Attempt Publications</option>
                   </>
                 )}
                 {activeTab === 'Value Addition' && (
@@ -1506,20 +1514,12 @@ export default function AdminPortal() {
                     <option value="Toppers Copies">📍 Toppers Copies (/downloads/toppers-copies) - Connected</option>
                   </>
                 )}
-                {activeTab === 'Quick Revision' && (
-                  <>
-                    <option value="Quick Revision">📍 Quick Revision Material (/downloads/quick-revision-material) - Connected</option>
-                    <option value="NCERT">→ NCERT Books (/downloads/ncert)</option>
-                    <option value="PYQ">→ PYQ Vault (/downloads/pyq)</option>
-                    <option value="Publications">→ Final Attempt Publications</option>
-                  </>
-                )}
                 {activeTab === 'Blogs' && (
                   <>
                     <option value="Blogs">📍 Blogs & News Page (/blog) - Connected</option>
                   </>
                 )}
-                {!['Home', 'About', 'Contact', 'Download Hub', 'PYQ', 'NCERT', 'Publications', 'Rapid Revision', 'Value Addition', 'Toppers Copies', 'Quick Revision', 'Blogs'].includes(activeTab) && (
+                {!['Home', 'About', 'Contact', 'Download Hub', 'PYQ', 'NCERT', 'Publications', 'Rapid Revision', 'Value Addition', 'Toppers Copies', 'Quick Revision', 'Useful Documents', 'Blogs'].includes(activeTab) && (
                   <option value="NONE">Not connected to any page</option>
                 )}
               </select>
@@ -3152,7 +3152,7 @@ export default function AdminPortal() {
 
 
         {/* TAB: USEFUL DOCUMENTS */}
-        {(activeTab === 'Useful Documents' || (activeTab as string) === 'Rapid Revision') && (
+        {activeTab === 'Useful Documents' && (
           <NcertStyleResourceCMS
             pageSlug="useful-documents"
             pageTitle="Useful Documents"
@@ -3187,12 +3187,12 @@ export default function AdminPortal() {
           />
         )}
 
-        {/* TAB: QUICK REVISION MATERIAL (QRM) */}
-        {activeTab === 'Quick Revision' && (
+        {/* TAB: RAPID REVISION MATERIAL (RRM) */}
+        {(activeTab === 'Rapid Revision' || activeTab === 'Quick Revision') && (
           <NcertStyleResourceCMS
-            pageSlug="quick-revision-material"
-            pageTitle="Quick Revision Material"
-            portalCategoryLabel="Quick Revision Material Console"
+            pageSlug="rapid-revision"
+            pageTitle="Rapid Revision Material (RRM)"
+            portalCategoryLabel="Rapid Revision Material (RRM) Console"
             portalDescription="Upload & manage high-yield consolidated revision modules, infographics, key concepts, and subject-wise notes."
             themeColor="amber"
             typeOptions={[

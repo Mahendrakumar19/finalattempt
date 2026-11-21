@@ -447,7 +447,7 @@ export default function DedicatedDownloadsPage() {
 
               {/* 5. Useful Documents */}
               {(() => {
-                const udPage = allPagesList.find(p => p.slug === 'downloads/useful-documents' || p.slug === 'useful-documents' || p.slug === 'downloads/rapid-revision' || p.slug === 'rapid-revision');
+                const udPage = allPagesList.find(p => p.slug === 'downloads/useful-documents' || p.slug === 'useful-documents');
                 const logoUrl = udPage?.logoUrl;
                 return (
                   <Link
@@ -549,25 +549,25 @@ export default function DedicatedDownloadsPage() {
                 );
               })()}
 
-              {/* 9. Quick Revision Material (Vision IAS Style QRM) */}
+              {/* 9. Rapid Revision Material (RRM) */}
               {(() => {
-                const qrmPage = allPagesList.find(p => p.slug === 'downloads/quick-revision-material' || p.slug === 'quick-revision-material');
-                const logoUrl = qrmPage?.logoUrl;
+                const rrmPage = allPagesList.find(p => p.slug === 'downloads/rapid-revision' || p.slug === 'rapid-revision' || p.slug === 'downloads/quick-revision-material' || p.slug === 'quick-revision-material');
+                const logoUrl = rrmPage?.logoUrl;
                 return (
                   <Link
-                    href="/downloads/quick-revision-material"
+                    href="/downloads/rapid-revision"
                     className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
                   >
                     <div className="w-12 h-12 rounded-xl bg-white text-amber-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
                       {logoUrl ? (
-                        <img src={logoUrl} alt="Quick Revision Material" className="w-full h-full object-contain" />
+                        <img src={logoUrl} alt="Rapid Revision Material (RRM)" className="w-full h-full object-contain" />
                       ) : (
                         <Zap className="w-6 h-6 text-amber-500" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors truncate">
-                        {t('downloadsHub.quickRevisionTitle', locale === 'hi' ? 'क्विक रिवीजन मटेरियल (QRM)' : 'Quick Revision Material')}
+                        {t('downloadsHub.rapidRevisionTitle', locale === 'hi' ? 'रैपिड रिवीजन मटेरियल (RRM)' : 'Rapid Revision Material (RRM)')}
                       </h4>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-500 group-hover:translate-x-1 transition-all shrink-0" />
