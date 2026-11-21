@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, FileText, Eye, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, FileText, Eye, ExternalLink, Image as ImageIcon, Upload, Save, CheckCircle, Sparkles } from 'lucide-react';
 import MediaPicker from './MediaPicker';
 import RichTextEditor from './RichTextEditor';
 import Link from 'next/link';
@@ -30,6 +30,12 @@ export default function NcertStyleResourceCMS({
   const [loading, setLoading] = useState(true);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [activeMediaTargetId, setActiveMediaTargetId] = useState<string | null>(null);
+
+  // Page Header Banner & Icon Branding State
+  const [bannerUrl, setBannerUrl] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [savingBranding, setSavingBranding] = useState(false);
+  const [brandingSuccess, setBrandingSuccess] = useState(false);
 
   const [filterType, setFilterType] = useState('ALL');
   const [folderFilter, setFolderFilter] = useState('ALL');
@@ -81,6 +87,8 @@ export default function NcertStyleResourceCMS({
         setPage(data);
         setDownloadItems(data.downloadItems || []);
         setPageOverviewContent(data.content || '');
+        setBannerUrl(data.bannerUrl || '');
+        setLogoUrl(data.logoUrl || '');
       } else {
         const defaultItems = isRrmSlug ? INITIAL_FALLBACK_ITEMS : (data?.downloadItems || []);
         const initPage: CustomPage = {
@@ -91,11 +99,15 @@ export default function NcertStyleResourceCMS({
           showLocation: data?.showLocation || 'DOWNLOADS_HUB',
           displayOrder: data?.displayOrder || 1,
           isPublished: true,
-          downloadItems: defaultItems
+          downloadItems: defaultItems,
+          bannerUrl: data?.bannerUrl || '',
+          logoUrl: data?.logoUrl || ''
         };
         setPage(initPage);
         setDownloadItems(defaultItems);
         setPageOverviewContent(initPage.content);
+        setBannerUrl(initPage.bannerUrl || '');
+        setLogoUrl(initPage.logoUrl || '');
         if (isRrmSlug && (!data || !data.downloadItems || data.downloadItems.length === 0)) {
           db.saveCustomPage(initPage).catch(e => console.warn('Auto-seed rapid revision items:', e));
         }
@@ -105,6 +117,85 @@ export default function NcertStyleResourceCMS({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveBranding = async () => {
+    setSavingBranding(true);
+    try {
+      const updatedPage: CustomPage = {
+        ...page,
+        id: page?.id || `page-${Date.now()}`,
+        title: page?.title || pageTitle,
+        slug: page?.slug || `downloads/${pageSlug}`,
+        content: pageOverviewContent || page?.content || `<h3>${pageTitle}</h3>`,
+        downloadItems,
+        bannerUrl,
+        logoUrl,
+        showLocation: page?.showLocation || 'DOWNLOADS_HUB',
+        isPublished: true
+      };
+      const ok = await db.saveCustomPage(updatedPage);
+      if (ok) {
+        setPage(updatedPage);
+        setBrandingSuccess(true);
+        setTimeout(() => setBrandingSuccess(false), 3000);
+      } else {
+        alert('Failed to save page banner and logo.');
+      }
+    } catch (err) {
+      console.error('Error saving branding:', err);
+      alert('Error saving banner.');
+    } finally {
+      setSavingBranding(false);
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/upload`, {
+        method: 'POST',
+        body: fd
+      });
+      const data = await res.json();
+      if (data.success && (data.fileUrl || data.url)) {
+        setBannerUrl(data.fileUrl || data.url);
+        return;
+      }
+    } catch {}
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) setBannerUrl(ev.target.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/upload`, {
+        method: 'POST',
+        body: fd
+      });
+      const data = await res.json();
+      if (data.success && (data.fileUrl || data.url)) {
+        setLogoUrl(data.fileUrl || data.url);
+        return;
+      }
+    } catch {}
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (ev.target?.result) setLogoUrl(ev.target.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveItem = async (e: React.FormEvent) => {
@@ -133,6 +224,8 @@ export default function NcertStyleResourceCMS({
         slug: page?.slug || `downloads/${pageSlug}`,
         content: pageOverviewContent,
         downloadItems: updatedList,
+        bannerUrl: bannerUrl || page?.bannerUrl || '',
+        logoUrl: logoUrl || page?.logoUrl || '',
         isPublished: true
       });
 
@@ -237,6 +330,139 @@ export default function NcertStyleResourceCMS({
           <ExternalLink className="w-4 h-4" />
           <span>Open Live /downloads/{pageSlug}</span>
         </Link>
+      </div>
+
+      {/* ── Page Image Banner & Icon Branding Panel ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-white/[0.06]">
+          <div className="flex items-center gap-2">
+            <div className={`p-2 rounded-xl ${THEME_CLASSES.badge}`}>
+              <ImageIcon className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="font-heading font-black text-sm text-slate-900 dark:text-white">
+                Page Header Image Banner &amp; Icon Branding
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Set a high-resolution top hero banner image and category icon for /downloads/{pageSlug}.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSaveBranding}
+            disabled={savingBranding}
+            className={`px-4 py-2 ${THEME_CLASSES.bg} ${THEME_CLASSES.hoverBg} text-white font-black text-xs rounded-xl shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-60 shrink-0`}
+          >
+            {brandingSuccess ? (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                <span>Saved!</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>{savingBranding ? 'Saving...' : 'Save Banner & Branding'}</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
+          
+          {/* Banner URL & Upload */}
+          <div className="md:col-span-8 space-y-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                Top Image Banner URL (Full-Width Responsive Header)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. /uploads/images/useful-documents-banner.webp or https://domain.com/banner.jpg"
+                  value={bannerUrl}
+                  onChange={(e) => setBannerUrl(e.target.value)}
+                  className="flex-1 px-3.5 py-2.5 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                />
+                <label className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl cursor-pointer shrink-0 flex items-center gap-1.5 border border-slate-200 dark:border-white/10 transition-colors">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBannerUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Banner Live Preview */}
+            <div className="w-full h-32 sm:h-44 rounded-2xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 relative flex items-center justify-center">
+              {bannerUrl ? (
+                <img
+                  src={bannerUrl.startsWith('http') || bannerUrl.startsWith('data:') ? bannerUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/${bannerUrl.replace(/^\//, '')}`}
+                  alt="Banner Preview"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="text-center p-4 text-slate-400 space-y-1">
+                  <ImageIcon className="w-8 h-8 mx-auto opacity-40" />
+                  <p className="text-xs font-semibold">No banner image uploaded yet</p>
+                  <p className="text-[10px] text-slate-400">Recommended size: 1920x480px or 1200x400px (16:4 aspect ratio)</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Logo / Icon URL & Upload */}
+          <div className="md:col-span-4 space-y-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                Category Logo / Hub Icon
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. /uploads/images/icon.png"
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  className="flex-1 px-3 py-2 text-xs border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none font-bold text-slate-900 dark:text-white"
+                />
+                <label className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl cursor-pointer shrink-0 border border-slate-200 dark:border-white/10" title="Upload Icon">
+                  <Upload className="w-3.5 h-3.5" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Logo Preview */}
+            <div className="w-20 h-20 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden p-2">
+              {logoUrl ? (
+                <img
+                  src={logoUrl.startsWith('http') || logoUrl.startsWith('data:') ? logoUrl : `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000'}/${logoUrl.replace(/^\//, '')}`}
+                  alt="Icon Preview"
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <span className="text-[10px] font-bold text-slate-400 text-center">No Icon</span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400">
+              Shown on Downloads Hub card ({pageSlug}).
+            </p>
+          </div>
+
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

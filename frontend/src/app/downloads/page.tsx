@@ -448,17 +448,18 @@ export default function DedicatedDownloadsPage() {
               {/* 5. Useful Documents */}
               {(() => {
                 const udPage = allPagesList.find(p => p.slug === 'downloads/useful-documents' || p.slug === 'useful-documents');
-                const logoUrl = udPage?.logoUrl;
+                const rawImg = udPage?.logoUrl || udPage?.bannerUrl;
+                const resolvedImg = rawImg ? (rawImg.startsWith('http') || rawImg.startsWith('data:') ? rawImg : `${BACKEND_URL}/${rawImg.replace(/^\//, '')}`) : null;
                 return (
                   <Link
                     href="/downloads/useful-documents"
                     className="group p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-4"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-white text-amber-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
-                      {logoUrl ? (
-                        <img src={logoUrl} alt="Useful Documents" className="w-full h-full object-contain" />
+                    <div className="w-12 h-12 rounded-xl bg-white text-rose-500 border border-slate-200 dark:border-slate-700 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-2xs">
+                      {resolvedImg ? (
+                        <img src={resolvedImg} alt="Useful Documents" className="w-full h-full object-contain" />
                       ) : (
-                        <Zap className="w-6 h-6 text-amber-500" />
+                        <FileText className="w-6 h-6 text-rose-500" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
