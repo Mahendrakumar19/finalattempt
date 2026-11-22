@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Edit2, Trash2, FileText, ExternalLink, Image as ImageIcon, Upload, Save, CheckCircle } from 'lucide-react';
 import MediaPicker from './MediaPicker';
 import RichTextEditor from './RichTextEditor';
@@ -76,61 +76,66 @@ export default function NcertStyleResourceCMS({
     return `${BACKEND_URL}/${url.replace(/^\//, '')}`;
   };
 
-  const fetchPage = useCallback(async () => {
-    try {
-      const isRrmSlug = pageSlug === 'rapid-revision' || pageSlug === 'quick-revision-material';
-      let data = await db.getCustomPageBySlug(`downloads/${pageSlug}`);
-      if (!data) {
-        data = await db.getCustomPageBySlug(pageSlug);
-      }
-      if (!data && isRrmSlug) {
-        data = await db.getCustomPageBySlug('downloads/rapid-revision') ||
-               await db.getCustomPageBySlug('rapid-revision') ||
-               await db.getCustomPageBySlug('downloads/quick-revision-material') ||
-               await db.getCustomPageBySlug('quick-revision-material');
-      }
-      if (!data) {
-        const allPages = await db.getCustomPages(false);
-        data = allPages.find(p => p.slug === `downloads/${pageSlug}` || p.slug === pageSlug) || null;
-      }
-
-      if (data) {
-        setPage(data);
-        setDownloadItems(Array.isArray(data.downloadItems) ? data.downloadItems : []);
-        setPageOverviewContent(data.content || '');
-        setBannerUrl(data.bannerUrl || '');
-        setLogoUrl(data.logoUrl || '');
-      } else {
-        const defaultItems = isRrmSlug ? INITIAL_FALLBACK_ITEMS : [];
-        const initPage: CustomPage = {
-          id: createPageId(),
-          title: pageTitle,
-          slug: `downloads/${pageSlug}`,
-          content: `<h3>${pageTitle}</h3><p>${portalDescription}</p>`,
-          showLocation: 'DOWNLOADS_HUB',
-          displayOrder: 1,
-          isPublished: true,
-          downloadItems: defaultItems,
-          bannerUrl: '',
-          logoUrl: ''
-        };
-        setPage(initPage);
-        setDownloadItems(defaultItems);
-        setPageOverviewContent(initPage.content);
-        setBannerUrl('');
-        setLogoUrl('');
-        if (isRrmSlug) {
-          db.saveCustomPage(initPage).catch(e => console.warn('Auto-seed rapid revision items:', e));
-        }
-      }
-    } catch (err) {
-      console.error(`Failed fetching portal page downloads/${pageSlug}:`, err);
-    }
-  }, [pageSlug, pageTitle, portalDescription]);
-
   useEffect(() => {
-    fetchPage();
-  }, [fetchPage]);
+    let ignore = false;
+    async function loadPage() {
+      try {
+        const isRrmSlug = pageSlug === 'rapid-revision' || pageSlug === 'quick-revision-material';
+        let data = await db.getCustomPageBySlug(`downloads/${pageSlug}`);
+        if (!data) {
+          data = await db.getCustomPageBySlug(pageSlug);
+        }
+        if (!data && isRrmSlug) {
+          data = await db.getCustomPageBySlug('downloads/rapid-revision') ||
+                 await db.getCustomPageBySlug('rapid-revision') ||
+                 await db.getCustomPageBySlug('downloads/quick-revision-material') ||
+                 await db.getCustomPageBySlug('quick-revision-material');
+        }
+        if (!data) {
+          const allPages = await db.getCustomPages(false);
+          data = allPages.find(p => p.slug === `downloads/${pageSlug}` || p.slug === pageSlug) || null;
+        }
+
+        if (ignore) return;
+
+        if (data) {
+          setPage(data);
+          setDownloadItems(Array.isArray(data.downloadItems) ? data.downloadItems : []);
+          setPageOverviewContent(data.content || '');
+          setBannerUrl(data.bannerUrl || '');
+          setLogoUrl(data.logoUrl || '');
+        } else {
+          const defaultItems = isRrmSlug ? INITIAL_FALLBACK_ITEMS : [];
+          const initPage: CustomPage = {
+            id: createPageId(),
+            title: pageTitle,
+            slug: `downloads/${pageSlug}`,
+            content: `<h3>${pageTitle}</h3><p>${portalDescription}</p>`,
+            showLocation: 'DOWNLOADS_HUB',
+            displayOrder: 1,
+            isPublished: true,
+            downloadItems: defaultItems,
+            bannerUrl: '',
+            logoUrl: ''
+          };
+          setPage(initPage);
+          setDownloadItems(defaultItems);
+          setPageOverviewContent(initPage.content);
+          setBannerUrl('');
+          setLogoUrl('');
+          if (isRrmSlug) {
+            db.saveCustomPage(initPage).catch(e => console.warn('Auto-seed rapid revision items:', e));
+          }
+        }
+      } catch (err) {
+        console.error(`Failed fetching portal page downloads/${pageSlug}:`, err);
+      }
+    }
+    loadPage();
+    return () => {
+      ignore = true;
+    };
+  }, [pageSlug, pageTitle, portalDescription]);
 
   const handleSaveBranding = async () => {
     setSavingBranding(true);
