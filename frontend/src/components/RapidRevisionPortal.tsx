@@ -736,42 +736,56 @@ export default function RapidRevisionPortal() {
                       className="group bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/60 rounded-2xl p-5 flex flex-col justify-between transition-all duration-200 shadow-xs hover:shadow-md hover:-translate-y-0.5"
                     >
                       {/* Top content */}
-                      <div className="space-y-3">
-                        {/* Title */}
-                        <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors line-clamp-2">
-                          {item.title}
-                        </h4>
+                      <div className="flex gap-4 items-start">
+                        {item.thumbnailUrl && (
+                          <div className="shrink-0 w-16 h-22 rounded-xl overflow-hidden border border-[var(--card-border)] bg-slate-100 dark:bg-white/[0.04] shadow-xs group-hover:scale-105 transition-transform duration-200">
+                            <img
+                              src={resolveUrl(item.thumbnailUrl)}
+                              alt={item.title}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLElement).parentElement?.classList.add('hidden');
+                              }}
+                            />
+                          </div>
+                        )}
+                        <div className="space-y-2.5 flex-1 min-w-0">
+                          {/* Title */}
+                          <h4 className="font-heading font-extrabold text-base text-[var(--text-color)] group-hover:text-amber-500 transition-colors line-clamp-2">
+                            {item.title}
+                          </h4>
 
-                        {/* Subject / Category subtitle */}
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-2">
-                          {item.description || item.type || 'Consolidated Revision Module'}
-                        </p>
+                          {/* Subject / Category subtitle */}
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium line-clamp-2">
+                            {item.description || item.type || 'Consolidated Revision Module'}
+                          </p>
 
-                        {/* Metadata row: Exam Category & Language */}
-                        <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-600 dark:text-slate-400 font-semibold">
-                          {item.examCategory && (
-                            <span className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                              item.examCategory.includes('BPSC') 
-                                ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20' 
-                                : item.examCategory.includes('UPPSC')
-                                  ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
-                                  : 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300'
-                            }`}>
-                              <Layers className="w-3 h-3" />
-                              <span>{item.examCategory}</span>
+                          {/* Metadata row: Exam Category & Language */}
+                          <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-slate-600 dark:text-slate-400 font-semibold">
+                            {item.examCategory && (
+                              <span className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                item.examCategory.includes('BPSC') 
+                                  ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20' 
+                                  : item.examCategory.includes('UPPSC')
+                                    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20'
+                                    : 'bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300'
+                              }`}>
+                                <Layers className="w-3 h-3" />
+                                <span>{item.examCategory}</span>
+                              </span>
+                            )}
+
+                            <span className="flex items-center gap-1 uppercase tracking-wider text-[10px] font-black px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300">
+                              <Globe className="w-3 h-3 text-blue-500" />
+                              <span>{item.language || 'English'}</span>
                             </span>
-                          )}
 
-                          <span className="flex items-center gap-1 uppercase tracking-wider text-[10px] font-black px-2 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.06] text-slate-700 dark:text-slate-300">
-                            <Globe className="w-3 h-3 text-blue-500" />
-                            <span>{item.language || 'English'}</span>
-                          </span>
-
-                          {item.size && (
-                            <span className="text-slate-400 text-[10px]">
-                              {item.size}
-                            </span>
-                          )}
+                            {item.size && (
+                              <span className="text-slate-400 text-[10px]">
+                                {item.size}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 

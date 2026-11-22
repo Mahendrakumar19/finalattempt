@@ -342,6 +342,7 @@ export interface CustomPage {
   metaKeywords?: string;
   metaDescription?: string;
   bannerUrl?: string;
+  logoUrl?: string;
   downloadItems?: DownloadItem[];
   isPublished?: boolean;
   createdAt?: string;
@@ -1093,6 +1094,7 @@ async function initializeMySQLTables(pool: mysql.Pool) {
         metaTitle VARCHAR(255),
         metaDescription TEXT,
         bannerUrl TEXT,
+        logoUrl TEXT,
         downloadItems JSON,
         isPublished TINYINT(1) DEFAULT 1,
         createdAt VARCHAR(255),
@@ -1101,6 +1103,7 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     `);
 
     try { await pool.query('ALTER TABLE custom_pages ADD COLUMN bannerUrl TEXT'); } catch (_) {}
+    try { await pool.query('ALTER TABLE custom_pages ADD COLUMN logoUrl TEXT'); } catch (_) {}
     try { await pool.query('ALTER TABLE custom_pages ADD COLUMN downloadItems JSON'); } catch (_) {}
     try { await pool.query('ALTER TABLE custom_pages ADD COLUMN metaKeywords TEXT'); } catch (_) {}
 
@@ -4088,6 +4091,8 @@ class BackendDB {
         if (rows.length > 0) {
           return {
             ...rows[0],
+            bannerUrl: rows[0].bannerUrl || '',
+            logoUrl: rows[0].logoUrl || '',
             isPublished: Boolean(rows[0].isPublished),
             downloadItems: typeof rows[0].downloadItems === 'string' ? JSON.parse(rows[0].downloadItems) : (rows[0].downloadItems || [])
           };
@@ -4105,6 +4110,7 @@ class BackendDB {
     const id = pageData.id || `page-${Date.now()}`;
     const title = pageData.title || 'Untitled Page';
     const slug = (pageData.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-')).replace(/(^-|-$)/g, '');
+    const altSlug = slug.startsWith('downloads/') ? slug.replace('downloads/', '') : `downloads/${slug}`;
     const content = pageData.content || '';
     const showLocation = pageData.showLocation || 'NAVBAR';
     const displayOrder = pageData.displayOrder || 0;
@@ -4112,15 +4118,26 @@ class BackendDB {
     const metaKeywords = pageData.metaKeywords || '';
     const metaDescription = pageData.metaDescription || '';
     const bannerUrl = pageData.bannerUrl || '';
+    const logoUrl = pageData.logoUrl || '';
     const downloadItems = pageData.downloadItems || [];
     const isPublished = pageData.isPublished !== false ? 1 : 0;
     const now = new Date().toISOString();
 
+    let targetId = id;
+
     if (mysqlPool) {
       try {
+        const [existing]: any = await mysqlPool.query(
+          'SELECT id FROM custom_pages WHERE id = ? OR slug = ? OR slug = ? LIMIT 1',
+          [id, slug, altSlug]
+        );
+        if (existing && existing.length > 0) {
+          targetId = existing[0].id;
+        }
+
         await mysqlPool.query(
-          `INSERT INTO custom_pages (id, title, slug, content, showLocation, displayOrder, metaTitle, metaKeywords, metaDescription, bannerUrl, downloadItems, isPublished, createdAt, updatedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO custom_pages (id, title, slug, content, showLocation, displayOrder, metaTitle, metaKeywords, metaDescription, bannerUrl, logoUrl, downloadItems, isPublished, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
              title = VALUES(title),
              slug = VALUES(slug),
@@ -4131,10 +4148,11 @@ class BackendDB {
              metaKeywords = VALUES(metaKeywords),
              metaDescription = VALUES(metaDescription),
              bannerUrl = VALUES(bannerUrl),
+             logoUrl = VALUES(logoUrl),
              downloadItems = VALUES(downloadItems),
              isPublished = VALUES(isPublished),
              updatedAt = VALUES(updatedAt)`,
-          [id, title, slug, content, showLocation, displayOrder, metaTitle, metaKeywords, metaDescription, bannerUrl, JSON.stringify(downloadItems), isPublished, pageData.createdAt || now, now]
+          [targetId, title, slug, content, showLocation, displayOrder, metaTitle, metaKeywords, metaDescription, bannerUrl, logoUrl, JSON.stringify(downloadItems), isPublished, pageData.createdAt || now, now]
         );
       } catch (err) {
         handlePoolDegrade(err);
@@ -4143,18 +4161,14 @@ class BackendDB {
 
     const store = this.localStore;
     if (!store.customPages) store.customPages = [];
-    const idx = store.customPages.findIndex(p => p.id === id);
     const updatedRecord: CustomPage = {
-      id, title, slug, content, showLocation, displayOrder, metaTitle, metaKeywords, metaDescription, bannerUrl, downloadItems,
+      id: targetId, title, slug, content, showLocation, displayOrder, metaTitle, metaKeywords, metaDescription, bannerUrl, logoUrl, downloadItems,
       isPublished: Boolean(isPublished),
       createdAt: pageData.createdAt || now,
       updatedAt: now
     };
-    if (idx >= 0) {
-      store.customPages[idx] = updatedRecord;
-    } else {
-      store.customPages.push(updatedRecord);
-    }
+    store.customPages = store.customPages.filter(p => p.id !== targetId && p.slug !== slug && p.slug !== altSlug);
+    store.customPages.push(updatedRecord);
     this.saveLocalData();
     return updatedRecord;
   }

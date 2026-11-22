@@ -60,6 +60,14 @@ export default function NcertStyleResourceCMS({
 
   const [pageOverviewContent, setPageOverviewContent] = useState('');
 
+  const resolveUrl = (url?: string) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+    if (url.startsWith('/api/')) return `${BACKEND_URL}${url}`;
+    return `${BACKEND_URL}/${url.replace(/^\//, '')}`;
+  };
+
   useEffect(() => {
     fetchPage();
   }, [pageSlug]);
@@ -83,32 +91,32 @@ export default function NcertStyleResourceCMS({
         data = allPages.find(p => p.slug === `downloads/${pageSlug}` || p.slug === pageSlug) || null;
       }
 
-      if (data && data.downloadItems && data.downloadItems.length > 0) {
+      if (data) {
         setPage(data);
-        setDownloadItems(data.downloadItems || []);
+        setDownloadItems(Array.isArray(data.downloadItems) ? data.downloadItems : []);
         setPageOverviewContent(data.content || '');
         setBannerUrl(data.bannerUrl || '');
         setLogoUrl(data.logoUrl || '');
       } else {
-        const defaultItems = isRrmSlug ? INITIAL_FALLBACK_ITEMS : (data?.downloadItems || []);
+        const defaultItems = isRrmSlug ? INITIAL_FALLBACK_ITEMS : [];
         const initPage: CustomPage = {
-          id: data?.id || `page-${Date.now()}`,
-          title: data?.title || pageTitle,
-          slug: data?.slug || `downloads/${pageSlug}`,
-          content: data?.content || `<h3>${pageTitle}</h3><p>${portalDescription}</p>`,
-          showLocation: data?.showLocation || 'DOWNLOADS_HUB',
-          displayOrder: data?.displayOrder || 1,
+          id: `page-${Date.now()}`,
+          title: pageTitle,
+          slug: `downloads/${pageSlug}`,
+          content: `<h3>${pageTitle}</h3><p>${portalDescription}</p>`,
+          showLocation: 'DOWNLOADS_HUB',
+          displayOrder: 1,
           isPublished: true,
           downloadItems: defaultItems,
-          bannerUrl: data?.bannerUrl || '',
-          logoUrl: data?.logoUrl || ''
+          bannerUrl: '',
+          logoUrl: ''
         };
         setPage(initPage);
         setDownloadItems(defaultItems);
         setPageOverviewContent(initPage.content);
-        setBannerUrl(initPage.bannerUrl || '');
-        setLogoUrl(initPage.logoUrl || '');
-        if (isRrmSlug && (!data || !data.downloadItems || data.downloadItems.length === 0)) {
+        setBannerUrl('');
+        setLogoUrl('');
+        if (isRrmSlug) {
           db.saveCustomPage(initPage).catch(e => console.warn('Auto-seed rapid revision items:', e));
         }
       }
@@ -216,21 +224,25 @@ export default function NcertStyleResourceCMS({
       updatedList = [newItem, ...downloadItems];
     }
 
+    const updatedPage: CustomPage = {
+      ...page,
+      id: page?.id || `page-${Date.now()}`,
+      title: page?.title || pageTitle,
+      slug: page?.slug || `downloads/${pageSlug}`,
+      content: pageOverviewContent,
+      downloadItems: updatedList,
+      bannerUrl: bannerUrl || page?.bannerUrl || '',
+      logoUrl: logoUrl || page?.logoUrl || '',
+      showLocation: page?.showLocation || 'DOWNLOADS_HUB',
+      isPublished: true
+    };
+
     try {
-      const ok = await db.saveCustomPage({
-        ...page,
-        id: page?.id || `page-${Date.now()}`,
-        title: page?.title || pageTitle,
-        slug: page?.slug || `downloads/${pageSlug}`,
-        content: pageOverviewContent,
-        downloadItems: updatedList,
-        bannerUrl: bannerUrl || page?.bannerUrl || '',
-        logoUrl: logoUrl || page?.logoUrl || '',
-        isPublished: true
-      });
+      const ok = await db.saveCustomPage(updatedPage);
 
       if (ok) {
         setDownloadItems(updatedList);
+        setPage(updatedPage);
         setForm({
           id: '',
           title: '',
@@ -259,28 +271,51 @@ export default function NcertStyleResourceCMS({
   const handleDeleteItem = async (itemId: string) => {
     if (!confirm('Are you sure you want to delete this study document?')) return;
     const updatedList = downloadItems.filter(i => i.id !== itemId);
+    const updatedPage: CustomPage = {
+      ...page,
+      id: page?.id || `page-${Date.now()}`,
+      title: page?.title || pageTitle,
+      slug: page?.slug || `downloads/${pageSlug}`,
+      content: pageOverviewContent || page?.content || `<h3>${pageTitle}</h3>`,
+      downloadItems: updatedList,
+      bannerUrl: bannerUrl || page?.bannerUrl || '',
+      logoUrl: logoUrl || page?.logoUrl || '',
+      showLocation: page?.showLocation || 'DOWNLOADS_HUB',
+      isPublished: true
+    };
     try {
-      const ok = await db.saveCustomPage({
-        ...page,
-        content: pageOverviewContent,
-        downloadItems: updatedList
-      });
+      const ok = await db.saveCustomPage(updatedPage);
       if (ok) {
         setDownloadItems(updatedList);
+        setPage(updatedPage);
+      } else {
+        alert('Failed to delete item from database. Please try again.');
       }
     } catch (err) {
-      console.error(err);
+      console.error('Delete item error:', err);
+      alert('Error deleting item.');
     }
   };
 
   const handleSaveOverview = async () => {
     try {
-      const ok = await db.saveCustomPage({
+      const updatedPage: CustomPage = {
         ...page,
+        id: page?.id || `page-${Date.now()}`,
+        title: page?.title || pageTitle,
+        slug: page?.slug || `downloads/${pageSlug}`,
         content: pageOverviewContent,
-        downloadItems
-      });
-      if (ok) alert('Page Overview content updated successfully!');
+        downloadItems,
+        bannerUrl: bannerUrl || page?.bannerUrl || '',
+        logoUrl: logoUrl || page?.logoUrl || '',
+        showLocation: page?.showLocation || 'DOWNLOADS_HUB',
+        isPublished: true
+      };
+      const ok = await db.saveCustomPage(updatedPage);
+      if (ok) {
+        setPage(updatedPage);
+        alert('Page Overview content updated successfully!');
+      }
     } catch (err) {
       console.error(err);
     }
@@ -582,8 +617,19 @@ export default function NcertStyleResourceCMS({
           </div>
 
           {/* Book Cover Image Thumbnail */}
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase">Book Cover Image URL (Thumbnail)</label>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-bold text-slate-400 uppercase">Book Cover Image URL (Thumbnail)</label>
+              {form.thumbnailUrl && (
+                <button
+                  type="button"
+                  onClick={() => setForm(prev => ({ ...prev, thumbnailUrl: '' }))}
+                  className="text-[10px] text-rose-500 hover:underline font-bold cursor-pointer"
+                >
+                  ✕ Remove Cover
+                </button>
+              )}
+            </div>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -598,11 +644,59 @@ export default function NcertStyleResourceCMS({
                   setActiveMediaTargetId('thumbnail');
                   setShowMediaPicker(true);
                 }}
-                className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-white font-bold text-xs rounded-xl shrink-0 cursor-pointer"
+                className="px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs rounded-xl shrink-0 cursor-pointer"
               >
                 Cover DAM
               </button>
             </div>
+
+            {/* Direct Cover Image Upload from Computer */}
+            <button
+              type="button"
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/png,image/jpeg,image/webp,image/jpg';
+                input.onchange = async (evt: any) => {
+                  const file = evt.target?.files?.[0];
+                  if (!file) return;
+                  const fd = new FormData();
+                  fd.append('file', file);
+                  try {
+                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+                    const res = await fetch(`${backendUrl}/api/upload`, { method: 'POST', body: fd });
+                    const data = await res.json();
+                    if (data.success && (data.url || data.fileUrl)) {
+                      setForm(prev => ({
+                        ...prev,
+                        thumbnailUrl: data.fileUrl || data.url
+                      }));
+                    }
+                  } catch (e) {
+                    console.error('Error uploading cover photo:', e);
+                  }
+                };
+                input.click();
+              }}
+              className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/20 font-bold text-[11px] rounded-xl cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
+            >
+              🖼️ Upload Cover Image From Computer
+            </button>
+
+            {/* Live Cover Preview */}
+            {form.thumbnailUrl && (
+              <div className="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-white/10">
+                <img
+                  src={resolveUrl(form.thumbnailUrl)}
+                  alt="Cover Preview"
+                  className="w-10 h-14 object-cover rounded-lg border border-slate-300 dark:border-white/20 shadow-xs"
+                />
+                <div className="text-[11px] overflow-hidden">
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 block text-[10px]">✓ Cover Attached</span>
+                  <span className="text-[9px] text-slate-400 font-mono truncate block max-w-[200px]">{form.thumbnailUrl}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sample PDF URL */}
@@ -791,9 +885,21 @@ export default function NcertStyleResourceCMS({
                       <tr key={item.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-amber-500/5 transition-colors">
                         <td className="p-3">
                           {item.thumbnailUrl ? (
-                            <img src={item.thumbnailUrl} alt={item.title} className="w-9 h-12 rounded object-cover border border-slate-200 dark:border-white/10 shadow-xs" />
+                            <img
+                              src={resolveUrl(item.thumbnailUrl)}
+                              alt={item.title}
+                              className="w-10 h-14 rounded-lg object-cover border border-slate-200 dark:border-white/10 shadow-xs"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
                           ) : (
-                            <div className="w-9 h-12 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center text-[10px] text-slate-400 font-bold">No Cover</div>
+                            <div className="w-10 h-14 rounded-lg bg-gradient-to-br from-amber-500/15 to-orange-500/10 border border-amber-500/30 flex flex-col items-center justify-center p-1 text-center shadow-xs">
+                              <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400 mb-0.5" />
+                              <span className="text-[7px] font-black uppercase tracking-tighter text-amber-700 dark:text-amber-300 line-clamp-1 leading-tight">
+                                {item.language === 'Hindi' ? 'हिन्दी' : 'PDF'}
+                              </span>
+                            </div>
                           )}
                         </td>
                         <td className="p-3">
