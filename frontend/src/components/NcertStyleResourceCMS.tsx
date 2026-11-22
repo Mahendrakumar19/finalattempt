@@ -1,12 +1,21 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, FileText, Eye, ExternalLink, Image as ImageIcon, Upload, Save, CheckCircle, Sparkles } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Edit2, Trash2, FileText, ExternalLink, Image as ImageIcon, Upload, Save, CheckCircle } from 'lucide-react';
 import MediaPicker from './MediaPicker';
 import RichTextEditor from './RichTextEditor';
 import Link from 'next/link';
 import { db, CustomPage, DownloadItem } from '@/services/db';
 import { INITIAL_FALLBACK_ITEMS } from './RapidRevisionPortal';
+
+function createPageId() {
+  return `page-${Date.now()}`;
+}
+
+function createItemId() {
+  return `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+}
 
 interface NcertStyleCMSProps {
   pageSlug: string;
@@ -27,7 +36,7 @@ export default function NcertStyleResourceCMS({
 }: NcertStyleCMSProps) {
   const [page, setPage] = useState<CustomPage | null>(null);
   const [downloadItems, setDownloadItems] = useState<DownloadItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [activeMediaTargetId, setActiveMediaTargetId] = useState<string | null>(null);
 
@@ -68,11 +77,7 @@ export default function NcertStyleResourceCMS({
     return `${BACKEND_URL}/${url.replace(/^\//, '')}`;
   };
 
-  useEffect(() => {
-    fetchPage();
-  }, [pageSlug]);
-
-  const fetchPage = async () => {
+  const fetchPage = useCallback(async () => {
     setLoading(true);
     try {
       const isRrmSlug = pageSlug === 'rapid-revision' || pageSlug === 'quick-revision-material';
@@ -100,7 +105,7 @@ export default function NcertStyleResourceCMS({
       } else {
         const defaultItems = isRrmSlug ? INITIAL_FALLBACK_ITEMS : [];
         const initPage: CustomPage = {
-          id: `page-${Date.now()}`,
+          id: createPageId(),
           title: pageTitle,
           slug: `downloads/${pageSlug}`,
           content: `<h3>${pageTitle}</h3><p>${portalDescription}</p>`,
@@ -125,14 +130,18 @@ export default function NcertStyleResourceCMS({
     } finally {
       setLoading(false);
     }
-  };
+  }, [pageSlug, pageTitle, portalDescription]);
+
+  useEffect(() => {
+    fetchPage();
+  }, [fetchPage]);
 
   const handleSaveBranding = async () => {
     setSavingBranding(true);
     try {
       const updatedPage: CustomPage = {
         ...page,
-        id: page?.id || `page-${Date.now()}`,
+        id: page?.id || createPageId(),
         title: page?.title || pageTitle,
         slug: page?.slug || `downloads/${pageSlug}`,
         content: pageOverviewContent || page?.content || `<h3>${pageTitle}</h3>`,
@@ -219,14 +228,14 @@ export default function NcertStyleResourceCMS({
     } else {
       const newItem: DownloadItem = {
         ...form,
-        id: `item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+        id: createItemId()
       };
       updatedList = [newItem, ...downloadItems];
     }
 
     const updatedPage: CustomPage = {
       ...page,
-      id: page?.id || `page-${Date.now()}`,
+      id: page?.id || createPageId(),
       title: page?.title || pageTitle,
       slug: page?.slug || `downloads/${pageSlug}`,
       content: pageOverviewContent,
@@ -273,7 +282,7 @@ export default function NcertStyleResourceCMS({
     const updatedList = downloadItems.filter(i => i.id !== itemId);
     const updatedPage: CustomPage = {
       ...page,
-      id: page?.id || `page-${Date.now()}`,
+      id: page?.id || createPageId(),
       title: page?.title || pageTitle,
       slug: page?.slug || `downloads/${pageSlug}`,
       content: pageOverviewContent || page?.content || `<h3>${pageTitle}</h3>`,
@@ -301,7 +310,7 @@ export default function NcertStyleResourceCMS({
     try {
       const updatedPage: CustomPage = {
         ...page,
-        id: page?.id || `page-${Date.now()}`,
+        id: page?.id || createPageId(),
         title: page?.title || pageTitle,
         slug: page?.slug || `downloads/${pageSlug}`,
         content: pageOverviewContent,
@@ -657,8 +666,9 @@ export default function NcertStyleResourceCMS({
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = 'image/png,image/jpeg,image/webp,image/jpg';
-                input.onchange = async (evt: any) => {
-                  const file = evt.target?.files?.[0];
+                input.onchange = async (evt: Event) => {
+                  const target = evt.target as HTMLInputElement | null;
+                  const file = target?.files?.[0];
                   if (!file) return;
                   const fd = new FormData();
                   fd.append('file', file);
@@ -701,7 +711,7 @@ export default function NcertStyleResourceCMS({
 
           {/* Sample PDF URL */}
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase">Free Sample PDF URL (Optional for "Read Sample")</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase">Free Sample PDF URL (Optional for &quot;Read Sample&quot;)</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -752,8 +762,9 @@ export default function NcertStyleResourceCMS({
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.accept = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.txt,.mp4,.jpg,.jpeg,.png';
-                input.onchange = async (evt: any) => {
-                  const file = evt.target?.files?.[0];
+                input.onchange = async (evt: Event) => {
+                  const target = evt.target as HTMLInputElement | null;
+                  const file = target?.files?.[0];
                   if (!file) return;
                   const fd = new FormData();
                   fd.append('file', file);
