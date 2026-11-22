@@ -425,8 +425,8 @@ export default function DedicatedDownloadsPage() {
               {/* 5. Useful Documents */}
               {(() => {
                 const udPage = allPagesList.find(p => p.slug === 'downloads/useful-documents' || p.slug === 'useful-documents');
-                const rawImg = udPage?.logoUrl || udPage?.bannerUrl;
-                const resolvedImg = rawImg ? (rawImg.startsWith('http') || rawImg.startsWith('data:') ? rawImg : `${BACKEND_URL}/${rawImg.replace(/^\//, '')}`) : null;
+                const logoUrl = udPage?.logoUrl;
+                const resolvedImg = logoUrl ? (logoUrl.startsWith('http') || logoUrl.startsWith('data:') ? logoUrl : `${BACKEND_URL}/${logoUrl.replace(/^\//, '')}`) : null;
                 return (
                   <Link
                     href="/downloads/useful-documents"

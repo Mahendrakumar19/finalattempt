@@ -4066,6 +4066,8 @@ class BackendDB {
         const [rows]: any = await mysqlPool.query(query);
         return rows.map((r: any) => ({
           ...r,
+          bannerUrl: r.bannerUrl || '',
+          logoUrl: r.logoUrl || '',
           isPublished: Boolean(r.isPublished),
           downloadItems: typeof r.downloadItems === 'string' ? JSON.parse(r.downloadItems) : (r.downloadItems || [])
         }));
