@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -30,17 +31,15 @@ interface PYQItem {
   year?: number | string;
   exam?: { name?: string };
   examId?: string;
-  questionPaper?: any;
-  answerKey?: any;
-  solution?: any;
+  questionPaper?: { storagePath?: string; url?: string; path?: string } | string | null;
+  answerKey?: { storagePath?: string; url?: string; path?: string } | string | null;
+  solution?: { storagePath?: string; url?: string; path?: string } | string | null;
 }
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 export default function DedicatedDownloadsPage() {
   const { t, locale } = useTranslation();
-  const [downloadStates, setDownloadStates] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [resourcesList, setResourcesList] = useState<ResourceItem[]>([]);
   const [customDownloadPages, setCustomDownloadPages] = useState<CustomPage[]>([]);
@@ -49,7 +48,6 @@ export default function DedicatedDownloadsPage() {
 
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
       try {
         const [res, pages, pyqRes] = await Promise.all([
           db.getResources(),
@@ -71,7 +69,7 @@ export default function DedicatedDownloadsPage() {
             'downloads/pyq', 'pyq'
           ]);
           const downloadPages = pages.filter(
-            (p: any) => !CORE_SLUGS.has(p.slug) && (p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/') || (p.downloadItems && p.downloadItems.length > 0))
+            (p: CustomPage) => !CORE_SLUGS.has(p.slug) && (p.showLocation === 'DOWNLOADS_HUB' || p.slug.startsWith('downloads/') || (p.downloadItems && p.downloadItems.length > 0))
           );
           setCustomDownloadPages(downloadPages);
           setAllPagesList(pages);
@@ -81,8 +79,6 @@ export default function DedicatedDownloadsPage() {
         }
       } catch (err) {
         console.error('Failed loading downloads hub:', err);
-      } finally {
-        setLoading(false);
       }
     };
     loadData();
@@ -95,30 +91,11 @@ export default function DedicatedDownloadsPage() {
     return `${BACKEND_URL}/${url.replace(/^\//, '')}`;
   };
 
-  const handleDownload = (res: ResourceItem) => {
-    setDownloadStates(prev => ({ ...prev, [res.id]: true }));
-    const url = resolveUrl(res.url);
-    const a = document.createElement('a');
-    a.href = url;
-    const ext = res.url ? res.url.split('.').pop()?.split('?')[0] : '';
-    a.download = ext ? `${res.title}.${ext}` : res.title || 'download';
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => {
-      setDownloadStates(prev => ({ ...prev, [res.id]: false }));
-    }, 3000);
+  const getMediaFilePath = (media: { storagePath?: string; url?: string; path?: string } | string | null | undefined): string => {
+    if (!media) return '';
+    if (typeof media === 'string') return media;
+    return media.storagePath || media.url || media.path || '';
   };
-
-  // Build category tabs from live data
-  const categoryTabs = useMemo(() => {
-    const cats = new Set<string>();
-    resourcesList.forEach(res => {
-      if (res.category && res.category !== 'General Downloads') cats.add(res.category);
-    });
-    return ['All', ...Array.from(cats)];
-  }, [resourcesList]);
 
   // Universal search results across both Resources list AND Custom Download Pages & Embedded Files
   const searchResults = useMemo(() => {
@@ -189,7 +166,7 @@ export default function DedicatedDownloadsPage() {
       ) {
         // Question Paper match
         if (pyq.questionPaper) {
-          const paperPath = pyq.questionPaper.storagePath || pyq.questionPaper.url || pyq.questionPaper.path || (typeof pyq.questionPaper === 'string' ? pyq.questionPaper : '');
+          const paperPath = getMediaFilePath(pyq.questionPaper);
           matches.push({
             id: `pyq-qp-${pyq.id}`,
             title: `${paperName} (${year} ${stage})`,
@@ -204,7 +181,7 @@ export default function DedicatedDownloadsPage() {
 
         // Answer Key match
         if (pyq.answerKey) {
-          const keyPath = pyq.answerKey.storagePath || pyq.answerKey.url || pyq.answerKey.path || (typeof pyq.answerKey === 'string' ? pyq.answerKey : '');
+          const keyPath = getMediaFilePath(pyq.answerKey);
           matches.push({
             id: `pyq-ak-${pyq.id}`,
             title: `${paperName} Answer Key (${year})`,
@@ -219,7 +196,7 @@ export default function DedicatedDownloadsPage() {
 
         // Solution match
         if (pyq.solution) {
-          const solPath = pyq.solution.storagePath || pyq.solution.url || pyq.solution.path || (typeof pyq.solution === 'string' ? pyq.solution : '');
+          const solPath = getMediaFilePath(pyq.solution);
           matches.push({
             id: `pyq-sol-${pyq.id}`,
             title: `${paperName} Solution (${year})`,
@@ -577,7 +554,7 @@ export default function DedicatedDownloadsPage() {
               })()}
 
               {/* Custom Created Download Sub-Pages */}
-              {customDownloadPages.map((pg: any) => {
+              {customDownloadPages.map((pg: CustomPage) => {
                 const cleanSlug = pg.slug.startsWith('downloads/') ? pg.slug : `downloads/${pg.slug}`;
                 const logoUrl = pg.logoUrl;
                 return (
