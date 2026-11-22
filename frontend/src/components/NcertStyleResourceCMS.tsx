@@ -36,7 +36,6 @@ export default function NcertStyleResourceCMS({
 }: NcertStyleCMSProps) {
   const [page, setPage] = useState<CustomPage | null>(null);
   const [downloadItems, setDownloadItems] = useState<DownloadItem[]>([]);
-  const [_loading, setLoading] = useState(true);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [activeMediaTargetId, setActiveMediaTargetId] = useState<string | null>(null);
 
@@ -78,7 +77,6 @@ export default function NcertStyleResourceCMS({
   };
 
   const fetchPage = useCallback(async () => {
-    setLoading(true);
     try {
       const isRrmSlug = pageSlug === 'rapid-revision' || pageSlug === 'quick-revision-material';
       let data = await db.getCustomPageBySlug(`downloads/${pageSlug}`);
@@ -127,8 +125,6 @@ export default function NcertStyleResourceCMS({
       }
     } catch (err) {
       console.error(`Failed fetching portal page downloads/${pageSlug}:`, err);
-    } finally {
-      setLoading(false);
     }
   }, [pageSlug, pageTitle, portalDescription]);
 
