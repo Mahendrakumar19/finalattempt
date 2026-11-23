@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ShieldAlert, Award, FileText, Users, Maximize2, AlertOctagon, CheckSquare, Square, Sun, Moon, Grid, X, Sparkles, ArrowRight, CheckCircle2, Trophy, Target, Timer } from 'lucide-react';
+import { ShieldAlert, Award, FileText, Users, Maximize2, AlertOctagon, CheckSquare, Square, Sun, Moon, Grid, X, Sparkles, ArrowRight, CheckCircle2, Trophy, Target, Timer, Play, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from '@/context/LocaleContext';
 import { startQuiz, saveQuizProgress, submitQuizAnswers, getQuizLeaderboard, getMyQuizResult, beginQuizSession } from '@/services/auth';
@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { sanitizeAndRepairQuestion, renderFormattedQuestionText } from '@/utils/questionFormatter';
 import FormattedExplanation from '@/components/FormattedExplanation';
 import { ProctoringMonitor } from '@/components/lms/ProctoringMonitor';
+import { db, SiteSettings } from '@/services/db';
 
 interface QuizInfo {
   id?: string;
@@ -23,6 +24,9 @@ interface QuizInfo {
   language?: string;
   languageMode?: string;
   language_mode?: string;
+  enableProctoring?: boolean;
+  requireFullscreen?: boolean;
+  detectTabSwitch?: boolean;
 }
 
 interface QuizSession {
@@ -37,6 +41,8 @@ interface QuizQuestion {
   id: string;
   questionText?: string;
   questionTextHi?: string;
+  imageUrl?: string;
+  questionImageUrl?: string;
   optionA?: string;
   optionAHi?: string;
   optionB?: string;
@@ -55,6 +61,8 @@ interface QuizDetail {
   questionId: string;
   questionText?: string;
   questionTextHi?: string;
+  imageUrl?: string;
+  questionImageUrl?: string;
   explanation?: string;
   explanationHi?: string;
   isCorrect?: boolean;
@@ -131,6 +139,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
   const [results, setResults] = useState<QuizResults | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
   // Synchronize language from locale context on load
   useEffect(() => {
@@ -139,7 +148,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     }
   }, [locale]);
 
-  // Load Quiz Metadata & Questions & Persistent Session (Timer DOES NOT auto-start here)
+  // Load Quiz Metadata & Questions & Persistent Session & Site Settings (Timer DOES NOT auto-start here)
   useEffect(() => {
     let effectiveToken = accessToken;
     if (!effectiveToken && typeof window !== 'undefined') {
@@ -148,7 +157,15 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     if (!effectiveToken) return;
     const init = async () => {
       try {
-        const res = await startQuiz(quizId, effectiveToken!);
+        const [res, loadedSettings] = await Promise.all([
+          startQuiz(quizId, effectiveToken!),
+          db.getSettings().catch(() => null)
+        ]);
+
+        if (loadedSettings) {
+          setSiteSettings(loadedSettings);
+        }
+
         if (res.success && res.data) {
           const quizObj = res.data.quiz;
           setQuizInfo(quizObj);
@@ -216,8 +233,20 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     init();
   }, [quizId, accessToken, locale]);
 
+  // Derived CBT Engine Feature Controls (configurable by SuperAdmin in Admin CMS)
+  const ff = (siteSettings?.featureFlags || {}) as Record<string, unknown>;
+  const isCameraProctoringEnabled = Boolean(quizInfo?.enableProctoring ?? ff.cbtCameraProctoring);
+  const isFullscreenEnforced = Boolean(quizInfo?.requireFullscreen ?? ff.cbtFullscreenEnforcement);
+  const isTabSwitchWarningEnabled = Boolean(quizInfo?.detectTabSwitch ?? ff.cbtTabSwitchWarning);
+  const isInstantResultsEnabled = ff.cbtShowInstantResults !== false;
+  const isSolutionReviewEnabled = ff.cbtAllowSolutionReview !== false;
+  const isBilingualEnabled = ff.cbtBilingualToggle !== false;
+
   // Listen to browser Fullscreen Change events (document.fullscreenElement)
   useEffect(() => {
+    // If strict fullscreen is disabled, do not pause or block test on fullscreen change
+    if (!isFullscreenEnforced) return;
+
     const handleFullscreenChange = () => {
       const isFs = !!document.fullscreenElement;
       if (!isFs && quizState === 'active') {
@@ -230,7 +259,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
 
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, [quizState]);
+  }, [quizState, isFullscreenEnforced]);
 
   const executeFinalSubmit = useCallback(async () => {
     if (!accessToken) return;
@@ -262,12 +291,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
     }
   }, [accessToken, quizId, selectedAnswers, timeTaken, session]);
 
+  const timeLimitMins = quizInfo?.timeLimitMins;
+  const timeLimitMinsRef = useRef(timeLimitMins);
+  useEffect(() => {
+    timeLimitMinsRef.current = timeLimitMins;
+  }, [timeLimitMins]);
+
   // High-Precision CBT Wall-Clock Exam Timer (Zero drift, survives tab switching & CPU throttle)
   useEffect(() => {
     if (quizState !== 'active') return;
 
     if (!endTimeRef.current) {
-      const initialSecs = timeLeft > 0 ? timeLeft : (Number(quizInfo?.timeLimitMins || 60) * 60);
+      const initialSecs = Number(timeLimitMinsRef.current || 60) * 60;
       const now = Date.now();
       endTimeRef.current = now + (initialSecs * 1000);
       if (!startTimeRef.current) startTimeRef.current = now;
@@ -626,7 +661,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               </div>
             </div>
 
-            {/* Caution Banner */}
+            {/* Caution & Rules Banner */}
             <div
               className="p-5 rounded-2xl space-y-2"
               style={{
@@ -636,18 +671,24 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
             >
               <div className="flex items-center gap-2 font-black text-sm uppercase tracking-wider text-amber-600 dark:text-amber-400">
                 <AlertOctagon className="w-5 h-5 shrink-0" />
-                <span>IMPORTANT CAUTION & RULES</span>
+                <span>EXAMINATION GUIDELINES & RULES</span>
               </div>
               <ul
                 className="text-xs space-y-2 list-disc list-inside font-semibold leading-relaxed"
                 style={{ color: cbtDark ? '#F3F4F6' : '#1E293B' }}
               >
-                <li>The timer will <strong>NOT</strong> start until you click &quot;START EXAM (FULLSCREEN)&quot; below.</li>
-                <li>Fullscreen browser mode and <strong>Camera Access</strong> are mandatory for this examination.</li>
-                <li><strong>AI Webcam Proctoring:</strong> The camera must remain on throughout the exam. If your face or person is not detected, a security warning flag will be issued.</li>
-                <li><strong>3-Strike Auto-Termination:</strong> If flagged <strong>3 times</strong> (including tab switches, window blurs, or person not detected), the test will <strong>close and submit automatically</strong>.</li>
+                <li>The timer will <strong>NOT</strong> start until you click &quot;{isFullscreenEnforced ? 'START EXAM (FULLSCREEN)' : 'START EXAMINATION NOW'}&quot; below.</li>
                 <li>All selected answers are continuously auto-saved to the server during the attempt.</li>
-                <li>The test will also automatically submit when the allotted timer expires.</li>
+                <li>The test will automatically submit when the allotted timer expires.</li>
+                {isFullscreenEnforced && (
+                  <li>Fullscreen browser mode is mandatory for this examination. Exiting fullscreen will pause the exam.</li>
+                )}
+                {isCameraProctoringEnabled && (
+                  <li><strong>AI Webcam Proctoring:</strong> The camera must remain on throughout the exam. If your face or person is not detected, a security warning flag will be issued.</li>
+                )}
+                {(isCameraProctoringEnabled || isTabSwitchWarningEnabled) && (
+                  <li><strong>Integrity Monitoring:</strong> If flagged 3 times (including tab switches or unauthorized actions), the test will close and submit automatically.</li>
+                )}
               </ul>
             </div>
 
@@ -656,7 +697,7 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 <span>{fullscreenError}</span>
                 <button
                   onClick={enterFullscreenAndStart}
-                  className="px-4 py-1.5 bg-red-500 text-white font-black rounded-lg text-[10px] uppercase"
+                  className="px-4 py-1.5 bg-red-500 text-white font-black rounded-lg text-[10px] uppercase cursor-pointer"
                 >
                   TRY AGAIN
                 </button>
@@ -685,12 +726,12 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               <button
                 type="button"
                 onClick={() => setInstructionsRead(!instructionsRead)}
-                className="shrink-0 text-amber-500"
+                className="shrink-0 text-amber-500 cursor-pointer"
               >
                 {instructionsRead ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5 text-neutral-400" />}
               </button>
               <span className="text-xs font-bold" style={{ color: cbtDark ? '#FFFFFF' : '#0F172A' }}>
-                I have read and fully understood all the examination instructions and cautions above.
+                I have read and fully understood all the examination instructions and rules above.
               </span>
             </label>
 
@@ -699,15 +740,15 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               onClick={enterFullscreenAndStart}
               className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-black font-black text-sm uppercase tracking-widest rounded-2xl disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg"
             >
-              <Maximize2 className="w-4 h-4" />
-              <span>START EXAM (FULLSCREEN)</span>
+              {isFullscreenEnforced ? <Maximize2 className="w-4 h-4" /> : <Play className="w-4 h-4 fill-black" />}
+              <span>{isFullscreenEnforced ? 'START EXAM (FULLSCREEN)' : 'START EXAMINATION NOW'}</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* ── 2. FULLSCREEN WARNING OVERLAY (When student exits fullscreen) ── */}
-      {isPaused && quizState === 'active' && (
+      {/* ── 2. FULLSCREEN WARNING OVERLAY (When student exits fullscreen and enforcement is enabled) ── */}
+      {isFullscreenEnforced && isPaused && quizState === 'active' && (
         <div className="fixed inset-0 z-50 bg-black/90 text-white flex items-center justify-center p-6 backdrop-blur-md">
           <div className="max-w-md w-full border-2 border-white p-8 rounded-3xl text-center space-y-6">
             <AlertOctagon className="w-12 h-12 text-white mx-auto animate-bounce" />
@@ -863,12 +904,12 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               const isHindiOnly = langMode.includes('hindi') || langMode === 'hi' || (hasHiContent && !hasEngContent);
               const isEnglishOnly = langMode.includes('english') || langMode === 'en' || (hasEngContent && !hasHiContent);
 
-              if (isHindiOnly) {
+              if (!isBilingualEnabled || isHindiOnly) {
                 return (
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className="text-[11px] sm:text-xs" style={{ color: cbtDark ? '#A3A3A3' : '#6B7280' }}>Language:</span>
                     <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-xs rounded border border-amber-500/30">
-                      Hindi (हिन्दी)
+                      {activeLang === 'hi' || isHindiOnly ? 'Hindi (हिन्दी)' : 'English'}
                     </span>
                   </div>
                 );
@@ -961,11 +1002,11 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
               </div>
 
               {/* Question Visual / Diagram (if attached via imageUrl or questionImageUrl) */}
-              {Boolean((currentQ as any)?.questionImageUrl || (currentQ as any)?.imageUrl) && (
+              {Boolean(currentQ?.questionImageUrl || currentQ?.imageUrl) && (
                 <div className="my-3 p-2 bg-slate-100 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-white/10 flex justify-center max-w-xl">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={(currentQ as any).questionImageUrl || (currentQ as any).imageUrl}
+                    src={currentQ?.questionImageUrl || currentQ?.imageUrl}
                     alt="Question Diagram"
                     className="max-h-72 max-w-full object-contain rounded-xl shadow-xs"
                   />
@@ -1409,27 +1450,29 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                 </span>
               </div>
               {/* Language switcher */}
-              <div
-                className="flex items-center text-[11px] font-bold rounded-lg overflow-hidden"
-                style={{ border: `1px solid ${border}` }}
-              >
-                <button
-                  onClick={() => setActiveLang('en')}
-                  className="px-3 py-1.5 cursor-pointer transition-colors"
-                  style={{
-                    backgroundColor: activeLang === 'en' ? accent : 'transparent',
-                    color: activeLang === 'en' ? '#000' : textSec,
-                  }}
-                >EN</button>
-                <button
-                  onClick={() => setActiveLang('hi')}
-                  className="px-3 py-1.5 cursor-pointer transition-colors"
-                  style={{
-                    backgroundColor: activeLang === 'hi' ? accent : 'transparent',
-                    color: activeLang === 'hi' ? '#000' : textSec,
-                  }}
-                >हिन्दी</button>
-              </div>
+              {isBilingualEnabled && (
+                <div
+                  className="flex items-center text-[11px] font-bold rounded-lg overflow-hidden"
+                  style={{ border: `1px solid ${border}` }}
+                >
+                  <button
+                    onClick={() => setActiveLang('en')}
+                    className="px-3 py-1.5 cursor-pointer transition-colors"
+                    style={{
+                      backgroundColor: activeLang === 'en' ? accent : 'transparent',
+                      color: activeLang === 'en' ? '#000' : textSec,
+                    }}
+                  >EN</button>
+                  <button
+                    onClick={() => setActiveLang('hi')}
+                    className="px-3 py-1.5 cursor-pointer transition-colors"
+                    style={{
+                      backgroundColor: activeLang === 'hi' ? accent : 'transparent',
+                      color: activeLang === 'hi' ? '#000' : textSec,
+                    }}
+                  >हिन्दी</button>
+                </div>
+              )}
             </div>
 
             {/* ── SCROLLABLE BODY ── */}
@@ -1479,30 +1522,36 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                     </button>
                   </div>
 
-                  {/* Score progress bar */}
-                  <div className="space-y-2">
-                    <div className="flex items-end justify-between">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: textSec }}>YOUR SCORE</p>
-                        <p className="text-3xl sm:text-4xl font-black mt-0.5" style={{ color: text }}>
-                          {(Number(results?.score) || 0).toFixed(2)}
-                          <span className="text-base font-bold ml-1" style={{ color: textSec }}>/ {results?.maxScore}</span>
+                  {/* Score progress bar or pending evaluation note */}
+                  {!isInstantResultsEnabled ? (
+                    <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 font-bold text-xs sm:text-sm">
+                      📝 Test submitted successfully! The organizer has scheduled official score and merit rank publication after the exam window closes.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-end justify-between">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: textSec }}>YOUR SCORE</p>
+                          <p className="text-3xl sm:text-4xl font-black mt-0.5" style={{ color: text }}>
+                            {(Number(results?.score) || 0).toFixed(2)}
+                            <span className="text-base font-bold ml-1" style={{ color: textSec }}>/ {results?.maxScore}</span>
+                          </p>
+                        </div>
+                        <p className="text-2xl font-black font-mono" style={{ color: scorePercent >= 50 ? successText : errorText }}>
+                          {scorePercent.toFixed(1)}%
                         </p>
                       </div>
-                      <p className="text-2xl font-black font-mono" style={{ color: scorePercent >= 50 ? successText : errorText }}>
-                        {scorePercent.toFixed(1)}%
-                      </p>
+                      <div className="h-2 w-full rounded-full overflow-hidden" style={{ backgroundColor: surface2 }}>
+                        <div
+                          className="h-2 rounded-full transition-all"
+                          style={{
+                            width: `${Math.min(scorePercent, 100)}%`,
+                            backgroundColor: scorePercent >= 60 ? '#15803D' : scorePercent >= 40 ? accent : '#B91C1C',
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-2 w-full rounded-full overflow-hidden" style={{ backgroundColor: surface2 }}>
-                      <div
-                        className="h-2 rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(scorePercent, 100)}%`,
-                          backgroundColor: scorePercent >= 60 ? '#15803D' : scorePercent >= 40 ? accent : '#B91C1C',
-                        }}
-                      />
-                    </div>
-                  </div>
+                  )}
 
                   {/* Stats grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-1">
@@ -1527,11 +1576,12 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                   </div>
                 </div>
 
-                {/* ── DETAILED SOLUTIONS ── */}
-                <div className="space-y-3">
-                  <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: textSec }}>
-                    Detailed Solutions
-                  </h2>
+                {/* ── DETAILED SOLUTIONS (Controlled by SuperAdmin CMS) ── */}
+                {isSolutionReviewEnabled ? (
+                  <div className="space-y-3">
+                    <h2 className="text-xs font-black uppercase tracking-widest" style={{ color: textSec }}>
+                      Detailed Solutions
+                    </h2>
 
                   {results?.details?.map((det: QuizDetail, i: number) => {
                     const isCorrect    = det.isCorrect;
@@ -1590,11 +1640,11 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                           })()}
 
                           {/* Question Attached Diagram (if present) */}
-                          {Boolean((det as any)?.questionImageUrl || (det as any)?.imageUrl) && (
+                          {Boolean(det.questionImageUrl || det.imageUrl) && (
                             <div className="my-2 p-2 bg-slate-100 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-white/10 flex justify-center max-w-md">
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
-                                src={(det as any).questionImageUrl || (det as any).imageUrl}
+                                src={det.questionImageUrl || det.imageUrl}
                                 alt="Question Diagram"
                                 className="max-h-56 max-w-full object-contain rounded-lg"
                               />
@@ -1699,6 +1749,18 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
                     );
                   })}
                 </div>
+              ) : (
+                <div
+                  className="p-8 rounded-3xl text-center space-y-3"
+                  style={{ backgroundColor: surface, border: `1px solid ${border}` }}
+                >
+                  <Lock className="w-10 h-10 text-amber-500 mx-auto" />
+                  <h3 className="font-heading font-black text-base" style={{ color: text }}>Detailed Solutions &amp; Answer Keys Reserved</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto leading-relaxed">
+                    Detailed question-by-question explanations, correct answer keys, and model answers will be released once all test submissions close.
+                  </p>
+                </div>
+              )}
 
                 {/* ── BOTTOM ACTIONS ── */}
                 <div
@@ -2084,8 +2146,8 @@ export default function QuizEngine({ quizId }: QuizEngineProps) {
         </div>
       )}
 
-      {/* ── 5. AI WEBCAM PROCTORING & INTEGRITY SYSTEM (Active during test) ── */}
-      {quizState === 'active' && (
+      {/* ── 5. AI WEBCAM PROCTORING (Active ONLY when enabled in Admin CMS) ── */}
+      {isCameraProctoringEnabled && quizState === 'active' && (
         <ProctoringMonitor
           isActive={quizState === 'active'}
           maxViolations={3}

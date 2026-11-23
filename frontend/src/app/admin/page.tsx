@@ -96,7 +96,7 @@ interface SiteSettings {
   aboutValues?: string;
   aboutMethodology?: { title: string; desc: string }[];
   announcements?: { date: string; text: string; link?: string; isNew?: boolean; createdAt?: string }[];
-  featureFlags?: Record<string, any>;
+  featureFlags?: Record<string, unknown>;
   promoBanner?: PromoBannerConfig | null;
 }
 
@@ -491,7 +491,7 @@ export default function AdminPortal() {
       console.warn('Backend server offline. Running in mock offline mode:', err);
       setBackendOffline(true);
     }
-  }, [BACKEND_URL]);
+  }, [BACKEND_URL, getAdminAuthHeaders]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -669,7 +669,7 @@ export default function AdminPortal() {
           await db.updateSettings(updatedSettings);
           setPromoSaveSuccess(true);
           setTimeout(() => setPromoSaveSuccess(false), 3000);
-        } catch (_) {}
+        } catch {}
       } else {
         alert('Upload failed: ' + (data.error || 'Server error'));
       }
@@ -1390,7 +1390,7 @@ export default function AdminPortal() {
                       style={activeTab === tab.id ? { background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%)', borderColor: '#1E3A8A' } : {}}
                     >
                       <tab.icon className="w-4 h-4 shrink-0" />
-                      {!isSidebarCollapsed && <span className="truncate">{(tab as any).label || tab.id}</span>}
+                      {!isSidebarCollapsed && <span className="truncate">{(tab as { label?: string; id: string }).label || tab.id}</span>}
                     </button>
                   ))}
                 </div>
@@ -3014,6 +3014,151 @@ export default function AdminPortal() {
                 </div>
               </div>
 
+              {/* CBT & Prelims Examination Security & Engine Controls */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-sm md:col-span-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-white/10 pb-4">
+                  <div>
+                    <h3 className="font-heading font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                      <span>🛡️ CBT &amp; Prelims Exam Engine Master Controls</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Superadmin master switches for Web Camera Proctoring, Fullscreen Lock, Anti-Cheating, and Instant Score / Solutions Visibility.
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 w-fit">
+                    ⚡ Live Exam Sync
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                  {[
+                    {
+                      key: 'cbtCameraProctoring',
+                      title: '📷 AI Webcam Face Proctoring',
+                      desc: 'Requires webcam stream & face presence tracking during test. (Default: OFF)',
+                      defaultVal: false,
+                      badge: 'Security',
+                      badgeColor: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20'
+                    },
+                    {
+                      key: 'cbtFullscreenEnforcement',
+                      title: '🖥️ Strict Fullscreen Lock',
+                      desc: 'Forces fullscreen browser mode & pauses test when exited. (Default: OFF)',
+                      defaultVal: false,
+                      badge: 'Anti-Cheat',
+                      badgeColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+                    },
+                    {
+                      key: 'cbtTabSwitchWarning',
+                      title: '🔀 Tab Switch & Blur Monitor',
+                      desc: 'Tracks window focus and issues security warnings on tab switch. (Default: OFF)',
+                      defaultVal: false,
+                      badge: 'Anti-Cheat',
+                      badgeColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+                    },
+                    {
+                      key: 'cbtShowInstantResults',
+                      title: '📊 Instant Score & Rank Card',
+                      desc: 'Shows student their score, accuracy %, and rank analysis upon submit.',
+                      defaultVal: true,
+                      badge: 'Student UX',
+                      badgeColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                    },
+                    {
+                      key: 'cbtAllowSolutionReview',
+                      title: '📖 Instant Solutions Review',
+                      desc: 'Enables "Review Answers" to see full explanations & answer keys.',
+                      defaultVal: true,
+                      badge: 'Student UX',
+                      badgeColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                    },
+                    {
+                      key: 'cbtBilingualToggle',
+                      title: '🌐 Bilingual Language Switch',
+                      desc: 'Allows student to toggle between Hindi & English during test.',
+                      defaultVal: true,
+                      badge: 'Exam Feature',
+                      badgeColor: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20'
+                    },
+                    {
+                      key: 'cbtWatermark',
+                      title: '🛡️ Anti-Screenshot Watermark',
+                      desc: 'Displays student name/roll watermark across CBT question canvas.',
+                      defaultVal: true,
+                      badge: 'Security',
+                      badgeColor: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20'
+                    },
+                    {
+                      key: 'cbtCalculator',
+                      title: '🧮 On-Screen Virtual Calculator',
+                      desc: 'Provides on-screen calculator for numerical/CSAT test papers. (Default: OFF)',
+                      defaultVal: false,
+                      badge: 'Exam Feature',
+                      badgeColor: 'text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
+                    }
+                  ].map((feat) => {
+                    const isEnabled = feat.defaultVal === false
+                      ? Boolean(settings.featureFlags?.[feat.key])
+                      : settings.featureFlags?.[feat.key] !== false;
+
+                    const toggleFeature = async () => {
+                      const updatedFlags = {
+                        ...settings.featureFlags,
+                        [feat.key]: !isEnabled
+                      };
+                      const updatedSettings = { ...settings, featureFlags: updatedFlags };
+                      setSettings(updatedSettings);
+                      try {
+                        await fetch(`${BACKEND_URL}/api/settings`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
+                          body: JSON.stringify(updatedSettings)
+                        });
+                      } catch (err) {
+                        console.error('Failed toggling feature:', err);
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={feat.key}
+                        className={`flex flex-col justify-between p-4 rounded-2xl border transition-all ${
+                          isEnabled
+                            ? 'bg-amber-500/[0.04] dark:bg-amber-500/[0.03] border-amber-500/30 shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/60 dark:border-white/5 opacity-80 hover:opacity-100'
+                        }`}
+                      >
+                        <div className="space-y-1 mb-3">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${feat.badgeColor}`}>
+                              {feat.badge}
+                            </span>
+                            <span className={`text-[10px] font-black uppercase ${isEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                              {isEnabled ? '● Active' : '○ Disabled'}
+                            </span>
+                          </div>
+                          <h4 className="font-bold text-xs text-slate-900 dark:text-white pt-1">{feat.title}</h4>
+                          <p className="text-[10px] text-slate-400 leading-tight">{feat.desc}</p>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-white/5">
+                          <span className="text-[10px] font-bold text-slate-500">Status</span>
+                          <button
+                            type="button"
+                            onClick={toggleFeature}
+                            className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors shrink-0 ${
+                              isEnabled ? 'bg-emerald-500 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
+                            }`}
+                          >
+                            <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 rounded-3xl space-y-4 shadow-sm">
                 <h3 className="font-heading font-extrabold text-slate-900 dark:text-white text-sm flex items-center gap-2">
                   <span>🔑 Super Admin Passkeys</span>
@@ -4015,8 +4160,9 @@ export default function AdminPortal() {
                           } else {
                             alert(`Auto-draft failed: ${res.error || 'Server error'}`);
                           }
-                        } catch (err: any) {
-                          alert(`Error: ${err.message}`);
+                        } catch (err: unknown) {
+                          const errMsg = err instanceof Error ? err.message : String(err);
+                          alert(`Error: ${errMsg}`);
                         } finally {
                           setIsAutoGeneratingNews(false);
                         }

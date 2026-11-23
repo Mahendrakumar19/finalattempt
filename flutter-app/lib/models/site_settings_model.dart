@@ -13,6 +13,7 @@ class SiteSettingsModel {
   final String? aboutMission;
   final String? aboutVision;
   final int? visitorsCount;
+  final Map<String, dynamic>? featureFlags;
 
   const SiteSettingsModel({
     required this.heroTitle,
@@ -29,7 +30,14 @@ class SiteSettingsModel {
     this.aboutMission,
     this.aboutVision,
     this.visitorsCount,
+    this.featureFlags,
   });
+
+  bool get isCameraProctorEnabled {
+    if (featureFlags == null) return false;
+    final val = featureFlags!['cameraProctoring'] ?? featureFlags!['camera_proctoring'] ?? featureFlags!['enableCameraProctor'];
+    return val == true || val == 'true' || val == 1;
+  }
 
   factory SiteSettingsModel.fromJson(Map<String, dynamic> json) => SiteSettingsModel(
     heroTitle: json['heroTitle'] ?? 'Final Attempt — & BPSC Mentorship',
@@ -46,6 +54,7 @@ class SiteSettingsModel {
     aboutMission: json['aboutMission'],
     aboutVision: json['aboutVision'],
     visitorsCount: json['visitorsCount'],
+    featureFlags: json['featureFlags'] is Map<String, dynamic> ? json['featureFlags'] as Map<String, dynamic> : null,
   );
 
   static SiteSettingsModel get fallback => const SiteSettingsModel(

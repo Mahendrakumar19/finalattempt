@@ -3,6 +3,7 @@ class PyqExamModel {
   final String name;
   final String? code;
   final String? slug;
+  final String? logoUrl;
   final bool isActive;
 
   const PyqExamModel({
@@ -10,6 +11,7 @@ class PyqExamModel {
     required this.name,
     this.code,
     this.slug,
+    this.logoUrl,
     this.isActive = true,
   });
 
@@ -18,6 +20,7 @@ class PyqExamModel {
     name: json['name'] ?? '',
     code: json['code'],
     slug: json['slug'],
+    logoUrl: json['logoUrl'] ?? (json['logo'] is Map ? json['logo']['storagePath'] : null),
     isActive: json['isActive'] ?? true,
   );
 }

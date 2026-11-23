@@ -10,14 +10,28 @@ import '../../providers/test_series_provider.dart';
 import '../../widgets/apple_pressable.dart';
 
 class UploadMainsModal extends ConsumerStatefulWidget {
-  const UploadMainsModal({super.key});
+  final String? initialSeriesId;
+  final String? initialTestId;
 
-  static Future<void> show(BuildContext context) {
+  const UploadMainsModal({
+    super.key,
+    this.initialSeriesId,
+    this.initialTestId,
+  });
+
+  static Future<void> show(
+    BuildContext context, {
+    String? initialSeriesId,
+    String? initialTestId,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const UploadMainsModal(),
+      builder: (context) => UploadMainsModal(
+        initialSeriesId: initialSeriesId,
+        initialTestId: initialTestId,
+      ),
     );
   }
 
@@ -33,6 +47,13 @@ class _UploadMainsModalState extends ConsumerState<UploadMainsModal> {
   bool _isUploading = false;
   String? _uploadedPdfUrl;
   String? _errorMsg;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedSeriesId = widget.initialSeriesId;
+    _selectedTestId = widget.initialTestId;
+  }
 
   @override
   void dispose() {

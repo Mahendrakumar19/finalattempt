@@ -405,13 +405,13 @@ class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
           if (article == null) return null;
           final sections = _buildSections(article);
           return Container(
-            margin: const EdgeInsets.only(bottom: 24),
+            margin: const EdgeInsets.only(bottom: 96), // Lifted well above floating liquid dock & navigation bar
             child: FloatingActionButton.extended(
               heroTag: 'ca_article_index_fab',
               onPressed: () => _showTableOfContentsModal(context, article, sections),
               backgroundColor: AppColors.primaryOf(context),
               foregroundColor: Colors.white,
-              elevation: 6,
+              elevation: 8,
               icon: const Icon(Icons.menu_book_rounded, size: 18),
               label: const Text(
                 'Index',
@@ -636,7 +636,7 @@ class _CAArticleScreenState extends ConsumerState<CAArticleScreen> {
                     )).toList(),
                   ),
                 ],
-                const SizedBox(height: 110), // Padding to clear bottom FAB and dock
+                const SizedBox(height: 180), // Ample bottom clearance so last paragraphs and diagrams are never hidden behind dock
               ],
             ),
           );

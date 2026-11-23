@@ -1,5 +1,6 @@
 class SyllabusItemModel {
   final String id;
+  final String? examId;
   final String? examName;
   final String stage;
   final String? version;
@@ -8,6 +9,7 @@ class SyllabusItemModel {
 
   SyllabusItemModel({
     required this.id,
+    this.examId,
     this.examName,
     required this.stage,
     this.version,
@@ -17,11 +19,20 @@ class SyllabusItemModel {
 
   factory SyllabusItemModel.fromJson(Map<String, dynamic> json) {
     String? fileUrl;
-    if (json['fileMedia'] != null && json['fileMedia']['url'] != null) {
-      fileUrl = json['fileMedia']['url'].toString();
+    if (json['fileMedia'] != null) {
+      final p = json['fileMedia']['url'] ?? json['fileMedia']['storagePath'];
+      if (p != null) {
+        final pStr = p.toString();
+        if (pStr.startsWith('http')) {
+          fileUrl = pStr;
+        } else {
+          fileUrl = 'https://finalattemptias.com/${pStr.replaceAll(RegExp(r'^/'), '')}';
+        }
+      }
     }
     return SyllabusItemModel(
       id: json['id']?.toString() ?? '',
+      examId: json['examId']?.toString() ?? json['exam']?['id']?.toString(),
       examName: json['exam'] != null ? json['exam']['name']?.toString() : null,
       stage: json['stage']?.toString() ?? 'PRELIMS',
       version: json['version']?.toString(),
@@ -33,6 +44,7 @@ class SyllabusItemModel {
 
 class StrategyBlockModel {
   final String id;
+  final String? examId;
   final String title;
   final String? category;
   final String? content;
@@ -43,6 +55,7 @@ class StrategyBlockModel {
 
   StrategyBlockModel({
     required this.id,
+    this.examId,
     required this.title,
     this.category,
     this.content,
@@ -54,11 +67,20 @@ class StrategyBlockModel {
 
   factory StrategyBlockModel.fromJson(Map<String, dynamic> json) {
     String? imageUrl;
-    if (json['featuredImage'] != null && json['featuredImage']['url'] != null) {
-      imageUrl = json['featuredImage']['url'].toString();
+    if (json['featuredImage'] != null) {
+      final p = json['featuredImage']['url'] ?? json['featuredImage']['storagePath'];
+      if (p != null) {
+        final pStr = p.toString();
+        if (pStr.startsWith('http')) {
+          imageUrl = pStr;
+        } else {
+          imageUrl = 'https://finalattemptias.com/${pStr.replaceAll(RegExp(r'^/'), '')}';
+        }
+      }
     }
     return StrategyBlockModel(
       id: json['id']?.toString() ?? '',
+      examId: json['examId']?.toString(),
       title: json['title']?.toString() ?? 'BPSC Strategy Guide',
       category: json['category']?.toString(),
       content: json['content']?.toString(),

@@ -3422,6 +3422,42 @@ export default function TestSeriesAdmin({
                 </div>
               </div>
 
+              {/* Optional Test-Level Proctoring & Security Overrides */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                    Test Security &amp; Proctoring (Optional Override)
+                  </span>
+                  <span className="text-[9px] text-amber-500 font-bold">Follows Global Superadmin Settings by Default</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <label className="flex items-center gap-2.5 p-2.5 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean((quizForm as any).enableProctoring)}
+                      onChange={e => setQuizForm({ ...quizForm, enableProctoring: e.target.checked } as any)}
+                      className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                    />
+                    <div>
+                      <span className="font-bold text-slate-900 dark:text-white block text-[11px]">Force Web Camera Proctoring</span>
+                      <span className="text-[9px] text-slate-400">Require camera presence for this specific test</span>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-2.5 p-2.5 bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean((quizForm as any).requireFullscreen)}
+                      onChange={e => setQuizForm({ ...quizForm, requireFullscreen: e.target.checked } as any)}
+                      className="w-4 h-4 accent-amber-500 rounded cursor-pointer"
+                    />
+                    <div>
+                      <span className="font-bold text-slate-900 dark:text-white block text-[11px]">Strict Fullscreen Lock</span>
+                      <span className="text-[9px] text-slate-400">Lock test interaction on fullscreen exit</span>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               {/* Quiz Description / Instructions */}
               <div>
                 <label className="block text-slate-700 dark:text-slate-300 mb-1.5 text-xs">Quiz Description / Instructions</label>

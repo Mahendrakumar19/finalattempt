@@ -59,6 +59,7 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     final testSeriesAsync = ref.watch(testSeriesListProvider);
     final attemptsAsync = ref.watch(studentQuizAttemptsProvider);
     final submissionsAsync = ref.watch(studentMainsSubmissionsProvider);
+    final mainsTestsAsync = ref.watch(mainsTestsProvider(null));
     final analyticsAsync = ref.watch(studentAnalyticsProvider);
 
     return Scaffold(
@@ -164,8 +165,8 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           // 3. Prelims Tests & Attempts Tab
           _buildPrelimsTab(context, attemptsAsync, testSeriesAsync),
 
-          // 4. Mains Submissions & Evaluations Tab
-          _buildMainsTab(context, submissionsAsync),
+          // 4. Mains Tests, Papers & Evaluations Tab
+          _buildMainsTab(context, submissionsAsync, mainsTestsAsync),
 
           // 5. Performance Analytics Tab
           _buildAnalyticsTab(context, analyticsAsync, attemptsAsync, enrollmentsAsync),
@@ -725,201 +726,417 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // TAB 4: MAINS SUBMISSIONS & EVALUATIONS
+  // TAB 4: MAINS TESTS, PAPERS & EVALUATIONS
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildMainsTab(
     BuildContext context,
     AsyncValue<List<dynamic>> submissionsAsync,
+    AsyncValue<List<dynamic>> mainsTestsAsync,
   ) {
     final cardBg = AppTheme.cardBgOf(context);
     final borderCol = AppTheme.borderOf(context);
     final textPrimary = AppTheme.textPrimaryOf(context);
     final textMuted = AppTheme.textMutedOf(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return submissionsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primaryBlue)),
-      error: (e, _) => Center(child: Text('Error: $e', style: const TextStyle(color: AppTheme.error))),
-      data: (subs) {
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Card
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE11D48).withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE11D48).withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.history_edu_rounded, color: Color(0xFFE11D48), size: 28),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Mains Answer Sheet Evaluations',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFFE11D48)),
-                          ),
-                          Text(
-                            'Uploaded copies are checked by faculty evaluators within 24-48 hours.',
-                            style: TextStyle(fontSize: 11, color: textMuted),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    ElevatedButton(
-                      onPressed: () => UploadMainsModal.show(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE11D48),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: const Text('Upload', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
+    final subs = submissionsAsync.valueOrNull ?? [];
+    final tests = mainsTestsAsync.valueOrNull ?? [];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Banner Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: isDark
+                    ? [const Color(0xFF881337), const Color(0xFF4C0519)]
+                    : [const Color(0xFFFFF1F2), const Color(0xFFFFE4E6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              const SizedBox(height: 20),
-
-              Text(
-                'My Submissions (${subs.length})',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
-              ),
-              const SizedBox(height: 10),
-
-              if (subs.isEmpty)
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF43F5E).withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              children: [
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: borderCol),
+                    color: const Color(0xFFE11D48).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: const Icon(Icons.history_edu_rounded, color: Color(0xFFE11D48), size: 26),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.assignment_outlined, size: 40, color: textMuted),
-                      const SizedBox(height: 10),
-                      Text('No Mains Copies Submitted', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimary)),
-                      const SizedBox(height: 4),
-                      Text('Upload handwritten answer copies in PDF format to receive marks and remarks.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: textMuted)),
-                      const SizedBox(height: 14),
-                      ElevatedButton.icon(
-                        onPressed: () => UploadMainsModal.show(context),
-                        icon: const Icon(Icons.upload_file_rounded, size: 16),
-                        label: const Text('Upload Answer Copy'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE11D48),
-                          foregroundColor: Colors.white,
+                      Text(
+                        'Mains Answer Writing & Evaluation',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : const Color(0xFF9F1239),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Download question papers, upload your handwritten copy, and receive detailed mentor feedback within 48h.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? Colors.white70 : const Color(0xFF881337),
                         ),
                       ),
                     ],
                   ),
-                )
-              else
-                ...subs.map((s) {
-                  final title = s['assignmentTitle'] ?? s['title'] ?? 'Mains Test';
-                  final status = s['status']?.toString() ?? 'Submitted';
-                  final isEvaluated = status.toLowerCase() == 'evaluated';
-                  final grade = s['grade'];
-                  final evalPdf = s['evaluatedCopyUrl']?.toString();
-                  final feedback = s['feedback']?.toString();
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () => UploadMainsModal.show(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE11D48),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Upload Copy', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
 
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: cardBg,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: isEvaluated ? const Color(0xFF10B981).withValues(alpha: 0.3) : borderCol),
-                    ),
-                    child: Column(
+          // ──────────────────────────────────────────────────────────
+          // SECTION 1: AVAILABLE MAINS TEST PAPERS
+          // ──────────────────────────────────────────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Available Mains Papers (${tests.length})',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
+              ),
+              if (mainsTestsAsync.isLoading)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primaryBlue),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          if (mainsTestsAsync.isLoading && tests.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(color: AppTheme.primaryBlue),
+              ),
+            )
+          else if (tests.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderCol),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.description_outlined, size: 36, color: textMuted),
+                  const SizedBox(height: 8),
+                  Text('No Active Mains Papers', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
+                  const SizedBox(height: 2),
+                  Text('New tests and mock assignments will appear here once published.', style: TextStyle(fontSize: 11, color: textMuted)),
+                ],
+              ),
+            )
+          else
+            ...tests.map((t) {
+              final testId = t['id']?.toString() ?? '';
+              final seriesId = t['testSeriesId']?.toString();
+              final title = t['title']?.toString() ?? 'Mains Test Paper';
+              final desc = t['description']?.toString() ?? '';
+              final maxMarks = t['maxMarks'] ?? 300;
+              final durationMins = t['durationMins'] ?? 180;
+              final questionPaperUrl = t['questionPaperUrl']?.toString();
+              final answerBookletUrl = t['answerBookletUrl']?.toString();
+              final modelAnswerUrl = t['modelAnswerUrl']?.toString();
+              final syllabusPdfUrl = t['syllabusPdfUrl']?.toString();
+              final discussionVideoUrl = t['discussionVideoUrl']?.toString();
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: borderCol),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
                                 title,
                                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textPrimary),
-                                maxLines: 1,
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: isEvaluated
-                                    ? const Color(0xFF10B981).withValues(alpha: 0.12)
-                                    : const Color(0xFFD97706).withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                status.toUpperCase(),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: isEvaluated ? const Color(0xFF10B981) : const Color(0xFFD97706),
+                              if (desc.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  desc,
+                                  style: TextStyle(fontSize: 11, color: textMuted),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '$maxMarks Marks',
+                            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFF6366F1)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.schedule_rounded, size: 13, color: textMuted),
+                        const SizedBox(width: 4),
+                        Text('$durationMins Mins', style: TextStyle(fontSize: 11, color: textMuted, fontWeight: FontWeight.w600)),
+                        const SizedBox(width: 14),
+                        Icon(Icons.language_rounded, size: 13, color: textMuted),
+                        const SizedBox(width: 4),
+                        Text('Bilingual (Hindi / English)', style: TextStyle(fontSize: 11, color: textMuted, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1),
+                    const SizedBox(height: 10),
+
+                    // Resource action chips
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        if (questionPaperUrl != null && questionPaperUrl.isNotEmpty)
+                          _MainsActionChip(
+                            icon: Icons.download_rounded,
+                            label: 'Question Paper',
+                            color: const Color(0xFF2563EB),
+                            onTap: () => launchUrl(Uri.parse(questionPaperUrl), mode: LaunchMode.externalApplication),
+                          ),
+                        if (answerBookletUrl != null && answerBookletUrl.isNotEmpty)
+                          _MainsActionChip(
+                            icon: Icons.menu_book_rounded,
+                            label: 'Blank Booklet',
+                            color: const Color(0xFF0D9488),
+                            onTap: () => launchUrl(Uri.parse(answerBookletUrl), mode: LaunchMode.externalApplication),
+                          ),
+                        if (modelAnswerUrl != null && modelAnswerUrl.isNotEmpty)
+                          _MainsActionChip(
+                            icon: Icons.verified_rounded,
+                            label: 'Model Answer',
+                            color: const Color(0xFF16A34A),
+                            onTap: () => launchUrl(Uri.parse(modelAnswerUrl), mode: LaunchMode.externalApplication),
+                          ),
+                        if (syllabusPdfUrl != null && syllabusPdfUrl.isNotEmpty)
+                          _MainsActionChip(
+                            icon: Icons.list_alt_rounded,
+                            label: 'Syllabus',
+                            color: const Color(0xFFD97706),
+                            onTap: () => launchUrl(Uri.parse(syllabusPdfUrl), mode: LaunchMode.externalApplication),
+                          ),
+                        if (discussionVideoUrl != null && discussionVideoUrl.isNotEmpty)
+                          _MainsActionChip(
+                            icon: Icons.play_circle_outline_rounded,
+                            label: 'Discussion',
+                            color: const Color(0xFF7C3AED),
+                            onTap: () => launchUrl(Uri.parse(discussionVideoUrl), mode: LaunchMode.externalApplication),
+                          ),
+                        _MainsActionChip(
+                          icon: Icons.upload_file_rounded,
+                          label: 'Submit Answer',
+                          color: const Color(0xFFE11D48),
+                          isFilled: true,
+                          onTap: () => UploadMainsModal.show(
+                            context,
+                            initialSeriesId: seriesId,
+                            initialTestId: testId,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+          const SizedBox(height: 28),
+
+          // ──────────────────────────────────────────────────────────
+          // SECTION 2: MY SUBMISSIONS & EVALUATION COPIES
+          // ──────────────────────────────────────────────────────────
+          Text(
+            'My Submitted Copies (${subs.length})',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
+          ),
+          const SizedBox(height: 10),
+
+          if (submissionsAsync.isLoading && subs.isEmpty)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: CircularProgressIndicator(color: AppTheme.primaryBlue),
+              ),
+            )
+          else if (subs.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: borderCol),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.assignment_outlined, size: 40, color: textMuted),
+                  const SizedBox(height: 10),
+                  Text('No Mains Copies Submitted Yet', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimary)),
+                  const SizedBox(height: 4),
+                  Text('Upload handwritten answer copies in PDF format to receive marks and evaluator remarks.', textAlign: TextAlign.center, style: TextStyle(fontSize: 11, color: textMuted)),
+                  const SizedBox(height: 14),
+                  ElevatedButton.icon(
+                    onPressed: () => UploadMainsModal.show(context),
+                    icon: const Icon(Icons.upload_file_rounded, size: 16),
+                    label: const Text('Upload Answer Copy'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE11D48),
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            ...subs.map((s) {
+              final title = s['assignmentTitle'] ?? s['title'] ?? 'Mains Test';
+              final status = s['status']?.toString() ?? 'Submitted';
+              final isEvaluated = status.toLowerCase() == 'evaluated';
+              final grade = s['grade'];
+              final evalPdf = s['evaluatedCopyUrl']?.toString();
+              final feedback = s['feedback']?.toString();
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: isEvaluated ? const Color(0xFF10B981).withValues(alpha: 0.3) : borderCol),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textPrimary),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isEvaluated
+                                ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                                : const Color(0xFFD97706).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            status.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: isEvaluated ? const Color(0xFF10B981) : const Color(0xFFD97706),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (isEvaluated && grade != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text(
+                            'Score: ',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textMuted),
+                          ),
+                          Text(
+                            '$grade Marks',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF10B981)),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (feedback != null && feedback.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Evaluator Feedback: $feedback',
+                        style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: textPrimary),
+                      ),
+                    ],
+                    if (evalPdf != null && evalPdf.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      InkWell(
+                        onTap: () => launchUrl(Uri.parse(evalPdf), mode: LaunchMode.externalApplication),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.picture_as_pdf_rounded, color: AppTheme.primaryBlue, size: 16),
+                            SizedBox(width: 6),
+                            Text(
+                              'Download Evaluated Copy PDF',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
                             ),
                           ],
                         ),
-                        if (isEvaluated && grade != null) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Text(
-                                'Score: ',
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textMuted),
-                              ),
-                              Text(
-                                '$grade Marks',
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF10B981)),
-                              ),
-                            ],
-                          ),
-                        ],
-                        if (feedback != null && feedback.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Text(
-                            'Evaluator Feedback: $feedback',
-                            style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: textPrimary),
-                          ),
-                        ],
-                        if (evalPdf != null && evalPdf.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          InkWell(
-                            onTap: () => launchUrl(Uri.parse(evalPdf), mode: LaunchMode.externalApplication),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.picture_as_pdf_rounded, color: AppTheme.primaryBlue, size: 16),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Download Evaluated Copy PDF',
-                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryBlue),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  );
-                }),
-            ],
-          ),
-        );
-      },
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
     );
   }
 
@@ -1305,6 +1522,53 @@ class _QuickActionPill extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MainsActionChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  final bool isFilled;
+
+  const _MainsActionChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.isFilled = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isFilled ? color : color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: isFilled ? null : Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: isFilled ? Colors.white : color),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isFilled ? Colors.white : color,
+              ),
+            ),
+          ],
         ),
       ),
     );

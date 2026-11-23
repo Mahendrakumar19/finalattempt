@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/test_series_provider.dart';
+import '../../providers/content_providers.dart';
 import '../../models/test_series_model.dart';
 import '../../core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
@@ -527,12 +528,20 @@ class TestPlayerScreen extends ConsumerWidget {
           ],
         ),
 
-        // Live Camera Proctoring Overlay with PIP preview and strike detection
-        LiveCameraProctorWidget(
-          isActive: true,
-          maxViolations: 3,
-          onAutoSubmitTriggered: (reason) {
-            notifier.submitTest();
+        // Live Camera Proctoring Overlay (Configurable via Admin Site Settings featureFlags)
+        Consumer(
+          builder: (context, ref, _) {
+            final settingsAsync = ref.watch(settingsProvider);
+            final isCameraEnabled = settingsAsync.valueOrNull?.isCameraProctorEnabled ?? false;
+            if (!isCameraEnabled) return const SizedBox.shrink();
+
+            return LiveCameraProctorWidget(
+              isActive: true,
+              maxViolations: 3,
+              onAutoSubmitTriggered: (reason) {
+                notifier.submitTest();
+              },
+            );
           },
         ),
       ],

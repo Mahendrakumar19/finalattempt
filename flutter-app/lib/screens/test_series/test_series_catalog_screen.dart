@@ -200,9 +200,12 @@ class _TestSeriesCatalogScreenState extends ConsumerState<TestSeriesCatalogScree
                     error: (err, stack) => _buildErrorState(context, err.toString()),
                     data: (list) {
                       var filtered = list.where((item) {
+                        final catLower = _selectedCategory.toLowerCase();
                         final matchesCategory = _selectedCategory == 'All' ||
-                            item.examCategory.toLowerCase().contains(_selectedCategory.toLowerCase()) ||
-                            item.title.toLowerCase().contains(_selectedCategory.toLowerCase());
+                            item.examCategory.toLowerCase().contains(catLower) ||
+                            item.title.toLowerCase().contains(catLower) ||
+                            (_selectedCategory == 'PYQ' && (item.title.toLowerCase().contains('pyq') || item.title.toLowerCase().contains('previous') || item.highlights.any((h) => h.toLowerCase().contains('pyq')))) ||
+                            ((_selectedCategory == 'CURRENT AFFAIRS' || _selectedCategory == 'CURRENT') && (item.title.toLowerCase().contains('current') || item.title.toLowerCase().contains('samayiki') || item.highlights.any((h) => h.toLowerCase().contains('current'))));
                         final matchesQuery = _searchQuery.isEmpty ||
                             item.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
                             item.examCategory.toLowerCase().contains(_searchQuery.toLowerCase());
