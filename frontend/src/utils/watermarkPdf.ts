@@ -53,7 +53,7 @@ export async function downloadWatermarkedPdf(pdfUrl: string, filename: string, o
       });
 
       // Bottom security banner
-      page.drawText(`FINAL ATTEMPT IAS • STAMPED ON: ${datePart} • STRICTLY CONFIDENTIAL`, {
+      page.drawText(`FINAL ATTEMPT • STAMPED ON: ${datePart} • STRICTLY CONFIDENTIAL`, {
         x: 20,
         y: 12,
         size: 7,

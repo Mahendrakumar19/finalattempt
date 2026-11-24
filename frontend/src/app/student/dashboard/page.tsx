@@ -173,6 +173,9 @@ function StudentDashboardContent() {
   }
 
   const isTestSeriesItem = (e: Enrollment) => {
+    // If it has lessons or is an LMS course ID, it is definitely a lecture course!
+    if ((Number(e.totalLessons) || 0) > 0) return false;
+    if (e.courseId?.startsWith('c-') || e.courseId?.startsWith('course-')) return false;
     if (e.testSeriesSlug) return true;
     if (e.courseId?.startsWith('ts-') || e.courseId?.startsWith('bpsc-test-series') || e.courseId?.startsWith('bpsc-prelims-pyq') || e.courseId?.includes('test-series')) return true;
     const cat = (e.category || '').toLowerCase();
@@ -509,15 +512,8 @@ function StudentDashboardContent() {
           {activeTab === 'My Courses' && (
             <div className="space-y-4">
               {(() => {
-                const isTestSeriesItem = (e: Enrollment) => {
-                  if (e.testSeriesSlug) return true;
-                  if (e.courseId?.startsWith('ts-') || e.courseId?.startsWith('bpsc-test-series') || e.courseId?.startsWith('bpsc-prelims-pyq') || e.courseId?.includes('test-series')) return true;
-                  const cat = (e.category || '').toLowerCase();
-                  const title = (e.title || '').toLowerCase();
-                  return cat.includes('test series') || title.includes('test series') || title.includes('testing test') || title.includes('test series');
-                };
-
                 const lectureCourses = enrollments.filter(e => !isTestSeriesItem(e));
+                const displayCourses = lectureCourses.length > 0 ? lectureCourses : enrollments;
 
                 if (loadingEnrollments) {
                   return (
@@ -529,7 +525,7 @@ function StudentDashboardContent() {
                   );
                 }
 
-                if (lectureCourses.length === 0) {
+                if (displayCourses.length === 0) {
                   return (
                     <div className="p-8 sm:p-12 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 text-center shadow-xs">
                       <Lock className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
@@ -545,32 +541,46 @@ function StudentDashboardContent() {
 
                 return (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {lectureCourses.map(e => (
-                      <Link key={e.courseId} href={`/student/course/${e.courseId}`} className="group p-5 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 hover:border-blue-500 shadow-xs hover:shadow-md transition-all">
+                    {displayCourses.map(e => (
+                      <Link
+                        key={e.courseId}
+                        href={e.testSeriesSlug ? `/student/prelims?series=${e.testSeriesSlug}` : `/student/course/${e.courseId}`}
+                        className="group p-5 rounded-2xl bg-white dark:bg-[#15171E] border border-gray-200 dark:border-white/10 hover:border-blue-500 shadow-xs hover:shadow-md transition-all flex flex-col justify-between"
+                      >
                         <div className="flex items-start gap-4">
-                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-md text-white">
-                            <BookOpen className="w-6 h-6 text-white" />
+                          <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 shadow-md bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white">
+                            {e.thumbnailUrl ? (
+                              <img
+                                src={e.thumbnailUrl}
+                                alt={e.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              />
+                            ) : (
+                              <span className="font-extrabold text-base tracking-wider">
+                                {e.title?.slice(0, 2).toUpperCase() || 'FA'}
+                              </span>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-gray-950 dark:text-white font-bold text-sm mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{e.title}</h3>
+                            <h3 className="text-gray-950 dark:text-white font-bold text-sm mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">{e.title}</h3>
                             <p className="text-gray-600 dark:text-gray-300 text-xs mb-3 font-medium">{e.category} · Enrolled {new Date(e.enrolledAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</p>
                             <div>
                               <div className="flex justify-between text-xs text-gray-700 dark:text-gray-300 font-semibold mb-1">
                                 <span>Progress</span>
-                                <span className="font-bold text-blue-600 dark:text-blue-400">{e.completionPercentage || 0}%</span>
+                                <span className="font-bold text-blue-600 dark:text-blue-400">{Math.min(100, Math.max(0, e.completionPercentage || 0))}%</span>
                               </div>
                               <div className="h-2 bg-gray-200 dark:bg-neutral-800 rounded-full overflow-hidden">
                                 <div
                                   className="h-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all"
-                                  style={{ width: `${e.completionPercentage || 0}%` }}
+                                  style={{ width: `${Math.min(100, Math.max(0, e.completionPercentage || 0))}%` }}
                                 />
                               </div>
                             </div>
                           </div>
                         </div>
                         <div className="mt-4 flex items-center gap-2">
-                          <div className="flex-1 px-3 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-center">
-                            <p className="text-blue-600 dark:text-blue-400 text-xs font-bold">Continue Study →</p>
+                          <div className="flex-1 px-3 py-2 rounded-xl bg-blue-600/10 border border-blue-500/20 text-center group-hover:bg-blue-600 transition-colors">
+                            <p className="text-blue-600 dark:text-blue-400 group-hover:text-white text-xs font-bold transition-colors">Continue Study →</p>
                           </div>
                           <button
                             type="button"

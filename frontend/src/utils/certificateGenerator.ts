@@ -24,6 +24,24 @@ export async function generateCourseCertificatePdf(data: CertificateData): Promi
 
   const { width, height } = page.getSize();
 
+  // Subtle Background Logo Watermark
+  try {
+    const res = await fetch('/fa-logo-mark.png');
+    if (res.ok) {
+      const bytes = await res.arrayBuffer();
+      const markImg = await pdfDoc.embedPng(bytes);
+      const wmWidth = 320;
+      const wmHeight = 213;
+      page.drawImage(markImg, {
+        x: (width - wmWidth) / 2,
+        y: (height - wmHeight) / 2,
+        width: wmWidth,
+        height: wmHeight,
+        opacity: 0.05,
+      });
+    }
+  } catch (_) {}
+
   // 1. Elegant Multi-Layer Border
   page.drawRectangle({
     x: 20,
@@ -57,8 +75,8 @@ export async function generateCourseCertificatePdf(data: CertificateData): Promi
 
   // 3. Header Branding
   const topY = height - 85;
-  page.drawText('FINAL ATTEMPT IAS ACADEMY', {
-    x: (width - 340) / 2,
+  page.drawText('FINAL ATTEMPT ACADEMY', {
+    x: (width - 300) / 2,
     y: topY,
     size: 22,
     font: fontBold,
@@ -133,8 +151,8 @@ export async function generateCourseCertificatePdf(data: CertificateData): Promi
     color: rgb(0.08, 0.15, 0.32),
   });
 
-  page.drawText(`Conducted by the Mentorship & Faculty Board of Final Attempt IAS with distinguished merit.`, {
-    x: (width - 420) / 2,
+  page.drawText(`Conducted by the Mentorship & Faculty Board of Final Attempt with distinguished merit.`, {
+    x: (width - 400) / 2,
     y: descY - 44,
     size: 10,
     font: fontOblique,
@@ -152,7 +170,7 @@ export async function generateCourseCertificatePdf(data: CertificateData): Promi
     thickness: 1,
   });
   page.drawText('ACADEMIC DIRECTOR', { x: 95, y: signY - 14, size: 9, font: fontBold, color: rgb(0.1, 0.15, 0.25) });
-  page.drawText('Final Attempt IAS Mentorship Board', { x: 75, y: signY - 26, size: 7.5, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
+  page.drawText('Final Attempt Mentorship Board', { x: 80, y: signY - 26, size: 7.5, font: fontRegular, color: rgb(0.4, 0.4, 0.4) });
 
   // Center: Official Gold Seal Badge
   const sealCenterX = width / 2;
@@ -179,8 +197,8 @@ export async function generateCourseCertificatePdf(data: CertificateData): Promi
   page.drawText(`Issued: ${data.completionDate}`, { x: width - 215, y: signY - 37, size: 7.5, font: fontRegular, color: rgb(0.3, 0.3, 0.3) });
 
   // Bottom Security Verification Bar
-  page.drawText(`VERIFICATION URL: https://finalattemptias.com/verify-certificate?id=${data.certificateId}`, {
-    x: (width - 380) / 2,
+  page.drawText(`VERIFICATION URL: https://finalattempt.com/verify-certificate?id=${data.certificateId}`, {
+    x: (width - 370) / 2,
     y: 35,
     size: 7.5,
     font: fontBold,

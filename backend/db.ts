@@ -1472,6 +1472,45 @@ class BackendDB {
       };
     }
 
+    // Merge repo template data (courses, sections, lessons, lmsEnrollments) so newly seeded records are never omitted
+    if (fs.existsSync(LOCAL_REPO_JSON_PATH)) {
+      try {
+        const repoData = JSON.parse(fs.readFileSync(LOCAL_REPO_JSON_PATH, 'utf-8'));
+        if (repoData.courses && repoData.courses.length > 0) {
+          if (!this.localStore.courses) this.localStore.courses = [];
+          repoData.courses.forEach((rc: any) => {
+            if (!this.localStore.courses.some((c: any) => c.id === rc.id || (rc.slug && c.slug === rc.slug))) {
+              this.localStore.courses.push(rc);
+            }
+          });
+        }
+        if (repoData.sections && repoData.sections.length > 0) {
+          if (!this.localStore.sections) this.localStore.sections = [];
+          repoData.sections.forEach((rs: any) => {
+            if (!this.localStore.sections.some((s: any) => s.id === rs.id)) {
+              this.localStore.sections.push(rs);
+            }
+          });
+        }
+        if (repoData.lessons && repoData.lessons.length > 0) {
+          if (!this.localStore.lessons) this.localStore.lessons = [];
+          repoData.lessons.forEach((rl: any) => {
+            if (!this.localStore.lessons.some((l: any) => l.id === rl.id)) {
+              this.localStore.lessons.push(rl);
+            }
+          });
+        }
+        if (repoData.lmsEnrollments && repoData.lmsEnrollments.length > 0) {
+          if (!this.localStore.lmsEnrollments) this.localStore.lmsEnrollments = [];
+          repoData.lmsEnrollments.forEach((re: any) => {
+            if (!this.localStore.lmsEnrollments.some((e: any) => e.userId === re.userId && e.courseId === re.courseId)) {
+              this.localStore.lmsEnrollments.push(re);
+            }
+          });
+        }
+      } catch (_) {}
+    }
+
     if (!this.localStore.users || this.localStore.users.length === 0) {
       this.localStore.users = [...authLocalUsers];
     }
@@ -5041,9 +5080,14 @@ class LmsDB {
   }
 
   async getCourseById(id: string): Promise<any | null> {
+    const altSlug1 = id.replace(/_/g, '-');
+    const altSlug2 = id.replace(/-/g, '_');
     if (mysqlPool) {
       try {
-        const [rows]: any = await mysqlPool.query('SELECT * FROM lms_courses WHERE id = ? OR slug = ? LIMIT 1', [id, id]);
+        const [rows]: any = await mysqlPool.query(
+          'SELECT * FROM lms_courses WHERE id = ? OR slug = ? OR id = ? OR slug = ? OR id = ? OR slug = ? LIMIT 1',
+          [id, id, altSlug1, altSlug1, altSlug2, altSlug2]
+        );
         if (!rows || rows.length === 0) return null;
         const r = rows[0];
         return {
@@ -5061,10 +5105,10 @@ class LmsDB {
         };
       } catch (err) { 
         console.error('[LmsDB] getCourseById MySQL error, serving local fallback:', err); 
-        return db.localStore.courses.find(c => c.id === id || (c as any).slug === id) || null;
+        return db.localStore.courses.find(c => c.id === id || (c as any).slug === id || c.id === altSlug1 || (c as any).slug === altSlug1 || c.id === altSlug2 || (c as any).slug === altSlug2) || null;
       }
     }
-    return db.localStore.courses.find(c => c.id === id || (c as any).slug === id) || null;
+    return db.localStore.courses.find(c => c.id === id || (c as any).slug === id || c.id === altSlug1 || (c as any).slug === altSlug1 || c.id === altSlug2 || (c as any).slug === altSlug2) || null;
   }
 
   async createCourse(data: any): Promise<any> {
@@ -5493,8 +5537,46 @@ class LmsDB {
 
         if (fields.length > 0) {
           vals.push(id);
-          await mysqlPool.query(`UPDATE lms_lessons SET ${fields.join(', ')} WHERE id = ?`, vals);
-          return true;
+          try {
+            await mysqlPool.query(`UPDATE lms_lessons SET ${fields.join(', ')} WHERE id = ?`, vals);
+            return true;
+          } catch (updateErr: any) {
+            // Auto-heal schema if missing live class columns on production MySQL
+            if (updateErr && (updateErr.code === 'ER_BAD_FIELD_ERROR' || updateErr.errno === 1054)) {
+              try {
+                await mysqlPool.query("ALTER TABLE lms_lessons ADD COLUMN liveClassType VARCHAR(50) DEFAULT 'youtube'");
+                await mysqlPool.query("ALTER TABLE lms_lessons ADD COLUMN liveScheduledAt VARCHAR(100)");
+                await mysqlPool.query("ALTER TABLE lms_lessons ADD COLUMN liveMeetingUrl TEXT");
+                await mysqlPool.query("ALTER TABLE lms_lessons ADD COLUMN liveStatus VARCHAR(50) DEFAULT 'scheduled'");
+                await mysqlPool.query("ALTER TABLE lms_lessons ADD COLUMN recordingUrl TEXT");
+                await mysqlPool.query("ALTER TABLE lms_lessons ADD COLUMN liveStreamKey VARCHAR(100)");
+                await mysqlPool.query("ALTER TABLE lms_lessons ADD COLUMN customRtmpUrl TEXT");
+                await mysqlPool.query("ALTER TABLE lms_lessons ADD COLUMN playbackHlsUrl TEXT");
+                await mysqlPool.query("ALTER TABLE lms_lessons ADD COLUMN notesPdfUrl TEXT");
+                await mysqlPool.query("ALTER TABLE lms_lessons ADD COLUMN dppPdfUrl TEXT");
+                // Retry update with full fields
+                await mysqlPool.query(`UPDATE lms_lessons SET ${fields.join(', ')} WHERE id = ?`, vals);
+                return true;
+              } catch (_) {
+                // Fallback: update only safe base columns
+                try {
+                  const baseFields: string[] = [];
+                  const baseVals: any[] = [];
+                  if (data.title !== undefined) { baseFields.push('title = ?'); baseVals.push(data.title); }
+                  if (data.videoUrl !== undefined) { baseFields.push('videoUrl = ?'); baseVals.push(data.videoUrl); }
+                  if (data.duration !== undefined) { baseFields.push('duration = ?'); baseVals.push(data.duration); }
+                  if (data.type !== undefined) { baseFields.push('type = ?'); baseVals.push(data.type); }
+                  if (data.isFree !== undefined) { baseFields.push('isFree = ?'); baseVals.push(data.isFree ? 1 : 0); }
+                  if (baseFields.length > 0) {
+                    baseVals.push(id);
+                    await mysqlPool.query(`UPDATE lms_lessons SET ${baseFields.join(', ')} WHERE id = ?`, baseVals);
+                    return true;
+                  }
+                } catch (_) {}
+              }
+            }
+            throw updateErr;
+          }
         }
       } catch (err) {
         console.error('[LmsDB] updateLesson MySQL error, falling back to local storage:', err);
@@ -5643,6 +5725,7 @@ class LmsDB {
       }
     }
     lmsLocalEnrollments.push({ id: enrollment.id, userId, courseId, enrolledAt: enrollment.enrolledAt, expiresAt: enrollment.expiresAt });
+    db.saveLocalData();
     return enrollment;
   }
 
@@ -5659,6 +5742,7 @@ class LmsDB {
     const idx = lmsLocalEnrollments.findIndex(e => e.userId === userId && e.courseId === courseId);
     if (idx >= 0) {
       lmsLocalEnrollments.splice(idx, 1);
+      db.saveLocalData();
       return true;
     }
     return false;
@@ -5912,7 +5996,7 @@ class LmsDB {
                   COALESCE(c.category, ts.category, 'Test Series') as category, 
                   COALESCE(c.thumbnailUrl, ts.thumbnailUrl) as thumbnailUrl, 
                   COALESCE(c.duration, ts.duration) as duration,
-                  ts.slug as testSeriesSlug,
+                  CASE WHEN c.id IS NOT NULL THEN NULL ELSE ts.slug END as testSeriesSlug,
                   (SELECT COUNT(DISTINCT lessonId) FROM lms_progress WHERE userId = e.userId AND courseId = e.courseId AND completed = 1) as completedLessons,
                   (SELECT COUNT(l.id) FROM lms_lessons l WHERE l.courseId = e.courseId AND l.isPublished = 1) as totalLessons
            FROM lms_enrollments e
@@ -5931,7 +6015,7 @@ class LmsDB {
                     COALESCE(c.title, ts.title) as title,
                     COALESCE(c.category, ts.category, 'Test Series') as category,
                     COALESCE(c.thumbnailUrl, ts.thumbnailUrl) as thumbnailUrl,
-                    ts.slug as testSeriesSlug
+                    CASE WHEN c.id IS NOT NULL THEN NULL ELSE ts.slug END as testSeriesSlug
              FROM user_entitlements u
              LEFT JOIN lms_courses c ON c.id = u.series_id OR c.slug = u.series_id
              LEFT JOIN TestSeries ts ON ts.id = u.series_id OR ts.slug = u.series_id
@@ -5977,17 +6061,20 @@ class LmsDB {
     }
     const userEnrolled = lmsLocalEnrollments.filter(e => e.userId === userId);
     return userEnrolled.map(e => {
+      const c = (db.localStore.courses || []).find((crs: any) => crs.id === e.courseId || crs.slug === e.courseId);
       const ts = ((db.localStore as any).testSeries || []).find((t: any) => t.id === e.courseId || t.slug === e.courseId);
-      const c = (db.localStore.courses || []).find((crs: any) => crs.id === e.courseId);
+      const lessons = (db.localStore.lessons || []).filter((l: any) => l.courseId === e.courseId);
+      const totalLessons = lessons.length;
       return {
         ...e,
-        title: ts?.title || c?.title || 'Enrolled Program',
-        category: ts ? `${ts.category || 'Prelims'} • ${ts.exam || 'BPSC'}` : (c?.category || 'General'),
-        thumbnailUrl: ts?.thumbnailUrl || c?.thumbnailUrl || '',
-        duration: ts?.duration || c?.duration || 'Active Access',
-        testSeriesSlug: ts?.slug || null,
+        canonicalCourseId: c?.id || ts?.id || e.courseId,
+        title: c?.title || ts?.title || 'Enrolled Program',
+        category: c?.category ? c.category : (ts ? `${ts.category || 'Prelims'} • ${ts.exam || 'BPSC'}` : 'General'),
+        thumbnailUrl: c?.thumbnailUrl || ts?.thumbnailUrl || '',
+        duration: c?.duration || ts?.duration || 'Active Access',
+        testSeriesSlug: c ? null : (ts?.slug || null),
         completedLessons: 0,
-        totalLessons: 0,
+        totalLessons,
         completionPercentage: 0
       };
     });
