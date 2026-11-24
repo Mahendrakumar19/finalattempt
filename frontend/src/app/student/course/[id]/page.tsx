@@ -40,6 +40,7 @@ interface Section {
 
 interface CourseDetail {
   id: string;
+  slug?: string;
   title: string;
   description: string;
   category: string;
@@ -542,39 +543,86 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
 
         {/* ── Main Panel ── */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Course Info Banner */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-xs transition-colors">
+          {/* Course Info Banner - Redesigned to match premium EdTech layout */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-xs relative overflow-hidden transition-colors">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 dark:shadow-blue-900/30">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 dark:shadow-blue-900/30">
                 <BookOpen className="w-7 h-7 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">{course.category}</span>
-                <h2 className="text-slate-900 dark:text-white font-extrabold text-lg sm:text-xl mt-0.5 leading-tight">{course.title}</h2>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2.5 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-wider">
+                    {course.category || 'PROGRAM'}
+                  </span>
+                  <span className="text-[11px] text-slate-400 font-medium">Batch: {course.slug || course.id}</span>
+                </div>
+                <h2 className="text-slate-900 dark:text-white font-extrabold text-lg sm:text-xl leading-tight">{course.title}</h2>
                 {course.description && (
-                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mt-2">{course.description}</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-xs sm:text-sm leading-relaxed mt-1.5">{course.description}</p>
                 )}
-                <div className="flex items-center gap-4 mt-4">
-                  <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs font-semibold">
-                    <Video className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                    <span>{totalLessons} lessons</span>
-                  </div>
-                  {course.duration && (
-                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs font-semibold">
-                      <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                      <span>{course.duration}</span>
-                    </div>
-                  )}
+                <div className="flex flex-wrap items-center gap-4 mt-4 pt-3 border-t border-slate-100 dark:border-white/[0.06] text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <Video className="w-4 h-4 text-blue-500" />
+                    <span>{totalLessons} Comprehensive Lectures</span>
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-slate-400" />
+                    <span>{course.duration || 'Full Batch Access'}</span>
+                  </span>
                   {!isEnrolled && freeLessons > 0 && (
-                    <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
-                      <Sparkles className="w-4 h-4 animate-pulse" />
-                      <span>{freeLessons} free preview</span>
-                    </div>
+                    <>
+                      <span>•</span>
+                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                        <Sparkles className="w-4 h-4" />
+                        <span>{freeLessons} Free Demo Lessons</span>
+                      </span>
+                    </>
+                  )}
+                  {isEnrolled && (
+                    <>
+                      <span>•</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                        ✨ Watermarked Notes & DPP Included
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Spotlight Card if class is live right now */}
+          {liveActiveCount > 0 && (
+            <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-rose-500/10 via-white dark:via-slate-900 to-white dark:to-slate-900 border-2 border-rose-500/40 shadow-md space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="px-3 py-1 rounded-full bg-rose-600 text-white text-[10px] font-black uppercase tracking-wider animate-pulse flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-white"></span>
+                  BROADCASTING LIVE NOW
+                </span>
+                <span className="text-xs font-bold text-rose-600 dark:text-rose-400">🔴 Live Interactive Studio</span>
+              </div>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div>
+                  <h3 className="text-slate-900 dark:text-white font-extrabold text-base sm:text-lg">
+                    {liveLessons.find(l => l.liveStatus === 'live')?.title || 'Interactive Live Classroom'}
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Live doubt clearing, lecture stream & notes. Join to interact with faculty.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    const activeL = liveLessons.find(l => l.liveStatus === 'live');
+                    if (activeL) handleLessonClick(activeL);
+                  }}
+                  className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-xs shadow-lg shadow-rose-600/30 transition-transform hover:scale-105 cursor-pointer shrink-0"
+                >
+                  Join Live Class 🚀
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* PhysicsWallah-Style Tabs Switcher */}
           <div className="flex gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] rounded-2xl w-full sm:w-fit overflow-x-auto transition-colors">
@@ -901,13 +949,13 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                           onClick={() => toggleSection(section.id)}
                           className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-all text-left cursor-pointer"
                         >
-                          <div className="flex items-center gap-3">
-                            <span className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
+                          <div className="flex items-center gap-3.5">
+                            <span className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-black text-xs shrink-0 shadow-2xs">
                               {sIdx + 1}
                             </span>
                             <div>
-                              <p className="text-slate-900 dark:text-white font-bold text-sm sm:text-base">{section.title}</p>
-                              <p className="text-slate-500 text-xs mt-0.5">{section.lessons.length} items</p>
+                              <p className="text-slate-900 dark:text-white font-extrabold text-sm sm:text-base">{section.title}</p>
+                              <p className="text-slate-500 text-xs mt-0.5">{section.lessons.length} Lectures & Study Materials</p>
                             </div>
                           </div>
                           <ChevronDown className={`w-5 h-5 text-slate-400 dark:text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
@@ -1011,19 +1059,15 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                         </button>
                                       )}
 
-                                      {lesson.type === 'live' && lesson.liveStatus === 'live' && !lesson.isLocked && (
-                                        <span className="px-3 py-1 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-extrabold shadow-sm transition-all">
-                                          Join Live Class 🚀
+                                      {lesson.type === 'live' && lesson.liveStatus === 'live' && !lesson.isLocked ? (
+                                        <span className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black shadow-sm transition-all animate-pulse">
+                                          Join Live 🚀
                                         </span>
-                                      )}
-                                      {lesson.isFree && !lesson.isLocked && (
-                                        <span className="text-[9px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
-                                          Free preview
+                                      ) : !lesson.isLocked && (lesson.videoUrl || lesson.liveMeetingUrl || lesson.recordingUrl) ? (
+                                        <span className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold transition-all shadow-xs flex items-center gap-1">
+                                          Play
                                         </span>
-                                      )}
-                                      {!lesson.isLocked && (lesson.videoUrl || lesson.liveMeetingUrl || lesson.recordingUrl) && (
-                                        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-600" />
-                                      )}
+                                      ) : null}
                                     </div>
                                   </div>
                                 );
@@ -1177,6 +1221,22 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
               </Link>
             </div>
           )}
+
+          {/* Dedicated Faculty Support Card */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 space-y-3 shadow-xs">
+            <h3 className="text-slate-900 dark:text-white font-bold text-sm">Dedicated Faculty Support</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs leading-relaxed">
+              Stuck on a lecture doubt or answer structure? Ask your assigned faculty mentors directly.
+            </p>
+            <button
+              type="button"
+              onClick={() => setActiveTab('doubts')}
+              className="w-full py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs shadow-md shadow-violet-600/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>Ask Mentor a Doubt</span>
+            </button>
+          </div>
 
           {/* Quick Actions */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 space-y-3 shadow-xs">
