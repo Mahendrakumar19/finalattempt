@@ -100,9 +100,27 @@ function StudentDashboardContent() {
       setLoadingEnrollments(false);
 
       if (res.success && res.data) {
-        setEnrollments(res.data as Enrollment[]);
+        const rawList = res.data as Enrollment[];
+        // Deduplicate enrollments by canonical courseId or normalized title
+        const dedupeMap = new Map<string, Enrollment>();
+        rawList.forEach((e: Enrollment) => {
+          const titleKey = (e.title || '').trim().toLowerCase();
+          const idKey = (e.courseId || '').trim().toLowerCase();
+          const key = titleKey || idKey;
+          if (!dedupeMap.has(key)) {
+            dedupeMap.set(key, e);
+          } else {
+            const existing = dedupeMap.get(key)!;
+            if ((e.completionPercentage || 0) > (existing.completionPercentage || 0)) {
+              dedupeMap.set(key, { ...existing, ...e });
+            }
+          }
+        });
+        const uniqueList = Array.from(dedupeMap.values());
+
+        setEnrollments(uniqueList);
         const quizResults = await Promise.all(
-          (res.data as Enrollment[]).map(async (e: Enrollment) => {
+          uniqueList.map(async (e: Enrollment) => {
             const qRes = await getCourseQuizzes(e.courseId, accessToken);
             if (qRes.success && qRes.data && qRes.data.length > 0) {
               return (qRes.data as QuizEntry[]).map((quiz: QuizEntry) => ({ quiz, courseTitle: e.title, courseId: e.courseId }));

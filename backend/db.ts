@@ -5518,10 +5518,12 @@ class LmsDB {
             `SELECT e.id FROM lms_enrollments e
              WHERE e.userId = ? AND (
                e.courseId = ? 
+               OR e.courseId IN (SELECT c.id FROM lms_courses c WHERE c.id = ? OR c.slug = ?)
+               OR e.courseId IN (SELECT c.slug FROM lms_courses c WHERE c.id = ? OR c.slug = ?)
                OR e.courseId IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
                OR e.courseId IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
              ) AND (e.expiresAt IS NULL OR e.expiresAt > NOW()) LIMIT 1`,
-            [userId, courseId, courseId, courseId, courseId, courseId]
+            [userId, courseId, courseId, courseId, courseId, courseId, courseId, courseId, courseId, courseId]
           );
           if (rows && rows.length > 0) return true;
         } catch (colErr: any) {
@@ -5534,10 +5536,12 @@ class LmsDB {
                 `SELECT e.id FROM lms_enrollments e
                  WHERE e.userId = ? AND (
                    e.courseId = ? 
+                   OR e.courseId IN (SELECT c.id FROM lms_courses c WHERE c.id = ? OR c.slug = ?)
+                   OR e.courseId IN (SELECT c.slug FROM lms_courses c WHERE c.id = ? OR c.slug = ?)
                    OR e.courseId IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
                    OR e.courseId IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
                  ) LIMIT 1`,
-                [userId, courseId, courseId, courseId, courseId, courseId]
+                [userId, courseId, courseId, courseId, courseId, courseId, courseId, courseId, courseId, courseId]
               );
               if (fallbackRows && fallbackRows.length > 0) return true;
             } catch (innerErr) {
@@ -5903,6 +5907,7 @@ class LmsDB {
       try {
         const [rows]: any = await mysqlPool.query(
           `SELECT e.*, 
+                  COALESCE(c.id, ts.id, e.courseId) as canonicalCourseId,
                   COALESCE(c.title, ts.title) as title, 
                   COALESCE(c.category, ts.category, 'Test Series') as category, 
                   COALESCE(c.thumbnailUrl, ts.thumbnailUrl) as thumbnailUrl, 
@@ -5911,7 +5916,7 @@ class LmsDB {
                   (SELECT COUNT(DISTINCT lessonId) FROM lms_progress WHERE userId = e.userId AND courseId = e.courseId AND completed = 1) as completedLessons,
                   (SELECT COUNT(l.id) FROM lms_lessons l WHERE l.courseId = e.courseId AND l.isPublished = 1) as totalLessons
            FROM lms_enrollments e
-           LEFT JOIN lms_courses c ON c.id = e.courseId
+           LEFT JOIN lms_courses c ON c.id = e.courseId OR c.slug = e.courseId
            LEFT JOIN TestSeries ts ON ts.id = e.courseId OR ts.slug = e.courseId
            WHERE e.userId = ?
            ORDER BY e.enrolledAt DESC`,
@@ -5922,6 +5927,7 @@ class LmsDB {
         try {
           const [eRows]: any = await mysqlPool.query(
             `SELECT u.series_id as courseId, u.granted_at as enrolledAt, 'paid' as paymentStatus,
+                    COALESCE(c.id, ts.id, u.series_id) as canonicalCourseId,
                     COALESCE(c.title, ts.title) as title,
                     COALESCE(c.category, ts.category, 'Test Series') as category,
                     COALESCE(c.thumbnailUrl, ts.thumbnailUrl) as thumbnailUrl,
@@ -5936,10 +5942,28 @@ class LmsDB {
         } catch (_) {}
 
         const combinedMap = new Map<string, any>();
-        (rows || []).forEach((r: any) => combinedMap.set(r.courseId, r));
+        const getDedupeKey = (r: any) => {
+          if (r.canonicalCourseId) return `id:${r.canonicalCourseId}`;
+          if (r.title && String(r.title).trim()) return `title:${String(r.title).trim().toLowerCase()}`;
+          return `course:${r.courseId}`;
+        };
+
+        (rows || []).forEach((r: any) => {
+          const key = getDedupeKey(r);
+          if (!combinedMap.has(key)) {
+            combinedMap.set(key, r);
+          } else {
+            const existing = combinedMap.get(key);
+            if ((Number(r.totalLessons) || 0) > (Number(existing.totalLessons) || 0)) {
+              combinedMap.set(key, { ...existing, ...r });
+            }
+          }
+        });
+
         entRows.forEach((r: any) => {
-          if (!combinedMap.has(r.courseId)) {
-            combinedMap.set(r.courseId, r);
+          const key = getDedupeKey(r);
+          if (!combinedMap.has(key)) {
+            combinedMap.set(key, r);
           }
         });
 

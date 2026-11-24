@@ -307,7 +307,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-body text-[15px] transition-colors duration-200">
+    <div className="portal-page min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-body text-[15px] transition-colors duration-200">
       {/* Video Player Modal */}
       {playingLesson && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
@@ -543,9 +543,9 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
         {/* ── Main Panel ── */}
         <div className="lg:col-span-2 space-y-6">
           {/* Course Info Banner */}
-          <div className="bg-gradient-to-br from-blue-50/90 via-indigo-50/40 to-white dark:from-blue-600/20 dark:via-indigo-600/10 dark:to-slate-900/50 border border-blue-200/80 dark:border-blue-500/20 rounded-3xl p-6 shadow-xs transition-colors">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-xs transition-colors">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 dark:shadow-blue-900/30">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 dark:shadow-blue-900/30">
                 <BookOpen className="w-7 h-7 text-white" />
               </div>
               <div className="flex-1 min-w-0">
@@ -556,12 +556,12 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                 )}
                 <div className="flex items-center gap-4 mt-4">
                   <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs font-semibold">
-                    <Video className="w-4 h-4" />
+                    <Video className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                     <span>{totalLessons} lessons</span>
                   </div>
                   {course.duration && (
                     <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs font-semibold">
-                      <Clock className="w-4 h-4" />
+                      <Clock className="w-4 h-4 text-slate-400 dark:text-slate-500" />
                       <span>{course.duration}</span>
                     </div>
                   )}
@@ -577,7 +577,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           </div>
 
           {/* PhysicsWallah-Style Tabs Switcher */}
-          <div className="flex gap-1.5 p-1.5 bg-slate-200/80 dark:bg-slate-900 border border-slate-300/80 dark:border-white/[0.08] rounded-2xl w-full sm:w-fit overflow-x-auto transition-colors">
+          <div className="flex gap-1.5 p-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/[0.08] rounded-2xl w-full sm:w-fit overflow-x-auto transition-colors">
             {[
               { 
                 id: 'live', 
@@ -626,15 +626,15 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                     activeTab === tab.id 
                       ? tab.id === 'live' && tab.isPulse
                         ? 'bg-rose-600 text-white shadow-md shadow-rose-900/30 font-black'
-                        : 'bg-blue-600 text-white shadow-sm font-black' 
-                      : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
+                        : 'bg-blue-600 text-white shadow-xs font-black' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-white dark:hover:bg-white/[0.04]'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
                   {tab.count > 0 && (
                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                      activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-slate-300/80 dark:bg-slate-800 text-slate-700 dark:text-slate-400'
+                      activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400'
                     }`}>
                       {tab.count}
                     </span>
@@ -1126,28 +1126,36 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           {/* Progress Card */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 space-y-4 shadow-xs">
             <h3 className="text-slate-900 dark:text-white font-bold text-base">Your Progress</h3>
-            <div>
-              <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold mb-2">
-                <span>Completed</span>
-                <span>{totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0}%</span>
-              </div>
-              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
-                  style={{ width: `${totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0}%` }}
-                />
-              </div>
-            </div>
-            <div className="pt-2 grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200/80 dark:border-blue-500/20 text-center">
-                <p className="text-blue-600 dark:text-blue-400 font-bold text-lg">{totalLessons}</p>
-                <p className="text-slate-500 text-[10px] mt-0.5">Total Lessons</p>
-              </div>
-              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/80 dark:border-emerald-500/20 text-center">
-                <p className="text-emerald-600 dark:text-emerald-400 font-bold text-lg">{completedCount}</p>
-                <p className="text-slate-500 text-[10px] mt-0.5">Completed</p>
-              </div>
-            </div>
+            {(() => {
+              const displayCompleted = Math.min(completedCount, totalLessons);
+              const progressPct = totalLessons > 0 ? Math.min(100, Math.round((displayCompleted / totalLessons) * 100)) : 0;
+              return (
+                <>
+                  <div>
+                    <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold mb-2">
+                      <span>Completed</span>
+                      <span>{progressPct}%</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="pt-2 grid grid-cols-2 gap-3">
+                    <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200/80 dark:border-blue-500/20 text-center">
+                      <p className="text-blue-600 dark:text-blue-400 font-bold text-lg">{totalLessons}</p>
+                      <p className="text-slate-500 text-[10px] mt-0.5">Total Lessons</p>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/80 dark:border-emerald-500/20 text-center">
+                      <p className="text-emerald-600 dark:text-emerald-400 font-bold text-lg">{displayCompleted}</p>
+                      <p className="text-slate-500 text-[10px] mt-0.5">Completed</p>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Enrollment status */}

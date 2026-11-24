@@ -1086,11 +1086,9 @@ router.post('/admin/courses/:courseId/enroll', authenticateAdminLms, async (req:
       }
     } catch (_) {}
 
-    await lmsDB.createEnrollment(userId, targetCourseId, 'ADMIN_MANUAL', 0);
-    if (targetSlug && targetSlug !== targetCourseId) {
-      try {
-        await lmsDB.createEnrollment(userId, targetSlug, 'ADMIN_MANUAL', 0);
-      } catch (_) {}
+    const already = await lmsDB.isEnrolled(userId, targetCourseId);
+    if (!already) {
+      await lmsDB.createEnrollment(userId, targetCourseId, 'ADMIN_MANUAL', 0);
     }
 
     // Also grant FULL active entitlement in user_entitlements
