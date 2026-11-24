@@ -5,9 +5,10 @@ import Link from 'next/link';
 import {
   BookOpen, Play, CheckCircle, ChevronLeft, ChevronDown, ChevronRight,
   Lock, Video, Clock, Sparkles, Trophy, MessageSquare, HelpCircle, FileText,
-  Radio, Calendar, Bell, CheckSquare, Inbox, Download
+  Radio, Calendar, Bell, CheckSquare, Inbox, Download, Sun, Moon
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useTheme } from '@/context/ThemeContext';
 import { downloadWatermarkedPdf } from '@/utils/watermarkPdf';
 import DoubtsCommunityForum from '@/components/DoubtsCommunityForum';
 import HlsVideoPlayer from '@/components/HlsVideoPlayer';
@@ -75,6 +76,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
   const resolvedParams = use(params);
   const courseId = resolvedParams.id;
   const { user, accessToken, isLoading: authLoading } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
@@ -268,10 +270,10 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-900 dark:text-white transition-colors">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-2 border-blue-500/30 border-t-blue-400 rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm font-medium">Loading course content...</p>
+          <div className="w-12 h-12 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Loading course content...</p>
         </div>
       </div>
     );
@@ -279,13 +281,13 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6 gap-4">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center text-slate-900 dark:text-white p-6 gap-4 transition-colors">
         <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
-          <BookOpen className="w-7 h-7 text-red-400" />
+          <BookOpen className="w-7 h-7 text-red-500" />
         </div>
-        <h2 className="text-lg font-bold text-white">Could Not Load Course</h2>
-        <p className="text-slate-400 text-sm text-center max-w-xs">{error}</p>
-        <Link href="/student/dashboard" className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500 transition-all">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Could Not Load Course</h2>
+        <p className="text-slate-500 dark:text-slate-400 text-sm text-center max-w-xs">{error}</p>
+        <Link href="/student/dashboard" className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-500 transition-all shadow-sm">
           Back to Dashboard
         </Link>
       </div>
@@ -294,10 +296,10 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white p-6">
-        <h2 className="text-lg font-bold">Course Not Found</h2>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center text-slate-900 dark:text-white p-6 transition-colors">
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Course Not Found</h2>
         <p className="text-slate-500 text-xs mt-1 mb-4">This course does not exist or has been removed.</p>
-        <Link href="/student/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">
+        <Link href="/student/dashboard" className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-sm">
           Back to Portal
         </Link>
       </div>
@@ -305,7 +307,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-body text-[15px]">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-body text-[15px] transition-colors duration-200">
       {/* Video Player Modal */}
       {playingLesson && (
         <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
@@ -490,25 +492,50 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
       )}
 
       {/* Top Header */}
-      <header className="sticky top-0 z-20 bg-slate-950/90 backdrop-blur-xl border-b border-white/[0.06] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-20 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/[0.06] px-4 sm:px-6 py-3.5 flex items-center justify-between transition-colors">
+        <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/student/dashboard"
-            className="p-2.5 bg-white/[0.04] border border-white/[0.06] rounded-xl hover:bg-white/[0.08] transition-all"
+            className="p-2 bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] rounded-xl hover:bg-slate-200 dark:hover:bg-white/[0.08] transition-all text-slate-600 dark:text-slate-400 shrink-0"
+            title="Back to Dashboard"
           >
-            <ChevronLeft className="w-4.5 h-4.5 text-slate-400" />
+            <ChevronLeft className="w-4.5 h-4.5" />
           </Link>
-          <div>
-            <span className="text-xs text-blue-400 font-bold uppercase tracking-wider">Student Portal</span>
-            <h1 className="text-white font-extrabold text-base mt-0.5 truncate max-w-xs sm:max-w-md">{course.title}</h1>
+          <div className="min-w-0">
+            <span className="text-[11px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider block">Student Portal</span>
+            <h1 className="text-slate-900 dark:text-white font-extrabold text-sm sm:text-base truncate max-w-[200px] sm:max-w-md">{course.title}</h1>
           </div>
         </div>
-        {isEnrolled && (
-          <div className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold">
-            <CheckCircle className="w-3.5 h-3.5" />
-            Enrolled
-          </div>
-        )}
+
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Light / Dark Mode Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.1] border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer shadow-2xs"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle Theme"
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun className="w-4 h-4 text-amber-400" />
+                <span className="hidden sm:inline">Light</span>
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4 text-slate-600" />
+                <span className="hidden sm:inline">Dark</span>
+              </>
+            )}
+          </button>
+
+          {isEnrolled && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+              <CheckCircle className="w-3.5 h-3.5" />
+              <span>Enrolled</span>
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="p-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -516,30 +543,30 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
         {/* ── Main Panel ── */}
         <div className="lg:col-span-2 space-y-6">
           {/* Course Info Banner */}
-          <div className="bg-gradient-to-br from-blue-600/20 via-indigo-600/10 to-slate-900/50 border border-blue-500/20 rounded-3xl p-6">
+          <div className="bg-gradient-to-br from-blue-50/90 via-indigo-50/40 to-white dark:from-blue-600/20 dark:via-indigo-600/10 dark:to-slate-900/50 border border-blue-200/80 dark:border-blue-500/20 rounded-3xl p-6 shadow-xs transition-colors">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/30">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 dark:shadow-blue-900/30">
                 <BookOpen className="w-7 h-7 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-xs text-blue-400 font-bold uppercase tracking-wider">{course.category}</span>
-                <h2 className="text-white font-extrabold text-lg sm:text-xl mt-0.5 leading-tight">{course.title}</h2>
+                <span className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">{course.category}</span>
+                <h2 className="text-slate-900 dark:text-white font-extrabold text-lg sm:text-xl mt-0.5 leading-tight">{course.title}</h2>
                 {course.description && (
-                  <p className="text-slate-400 text-sm leading-relaxed mt-2">{course.description}</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mt-2">{course.description}</p>
                 )}
                 <div className="flex items-center gap-4 mt-4">
-                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold">
+                  <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs font-semibold">
                     <Video className="w-4 h-4" />
                     <span>{totalLessons} lessons</span>
                   </div>
                   {course.duration && (
-                    <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold">
+                    <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs font-semibold">
                       <Clock className="w-4 h-4" />
                       <span>{course.duration}</span>
                     </div>
                   )}
                   {!isEnrolled && freeLessons > 0 && (
-                    <div className="flex items-center gap-1 text-emerald-400 text-xs font-semibold">
+                    <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
                       <Sparkles className="w-4 h-4 animate-pulse" />
                       <span>{freeLessons} free preview</span>
                     </div>
@@ -550,7 +577,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           </div>
 
           {/* PhysicsWallah-Style Tabs Switcher */}
-          <div className="flex gap-1.5 p-1.5 bg-slate-900 border border-white/[0.08] rounded-2xl w-full sm:w-fit overflow-x-auto">
+          <div className="flex gap-1.5 p-1.5 bg-slate-200/80 dark:bg-slate-900 border border-slate-300/80 dark:border-white/[0.08] rounded-2xl w-full sm:w-fit overflow-x-auto transition-colors">
             {[
               { 
                 id: 'live', 
@@ -598,16 +625,16 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                   className={`px-4 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                     activeTab === tab.id 
                       ? tab.id === 'live' && tab.isPulse
-                        ? 'bg-rose-600 text-white shadow-lg shadow-rose-900/40'
-                        : 'bg-blue-600 text-white shadow-md shadow-blue-900/30' 
-                      : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                        ? 'bg-rose-600 text-white shadow-md shadow-rose-900/30 font-black'
+                        : 'bg-blue-600 text-white shadow-sm font-black' 
+                      : 'text-slate-700 dark:text-slate-400 hover:text-slate-950 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/[0.04]'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
                   {tab.count > 0 && (
                     <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
-                      activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400'
+                      activeTab === tab.id ? 'bg-white/20 text-white' : 'bg-slate-300/80 dark:bg-slate-800 text-slate-700 dark:text-slate-400'
                     }`}>
                       {tab.count}
                     </span>
@@ -626,16 +653,16 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           {activeTab === 'live' && (
             <div className="space-y-6">
               {/* Live Status Hero Header */}
-              <div className="bg-gradient-to-r from-rose-950/80 via-slate-900 to-slate-900 border border-rose-500/30 rounded-3xl p-6 relative overflow-hidden">
+              <div className="bg-gradient-to-r from-rose-50 via-slate-50 to-white dark:from-rose-950/80 dark:via-slate-900 dark:to-slate-900 border border-rose-200 dark:border-rose-500/30 rounded-3xl p-6 relative overflow-hidden shadow-xs">
                 <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-gradient-to-l from-rose-500/10 to-transparent pointer-events-none" />
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
                   <div className="space-y-1">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-black uppercase tracking-wider border border-rose-500/30">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-300 text-[10px] font-black uppercase tracking-wider border border-rose-500/20 dark:border-rose-500/30">
                       <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
                       Live Interactive Studio
                     </div>
-                    <h3 className="text-white font-extrabold text-lg sm:text-xl">Today&apos;s Live Broadcasts & Schedule</h3>
-                    <p className="text-slate-400 text-xs">
+                    <h3 className="text-slate-900 dark:text-white font-extrabold text-lg sm:text-xl">Today&apos;s Live Broadcasts & Schedule</h3>
+                    <p className="text-slate-600 dark:text-slate-400 text-xs">
                       Join real-time faculty doubt clearing and lecture sessions directly.
                     </p>
                   </div>
@@ -649,9 +676,9 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
 
               {/* Live Classes List */}
               {liveLessons.length === 0 ? (
-                <div className="bg-slate-900 border border-white/10 rounded-3xl p-12 text-center text-slate-500 space-y-3">
-                  <Radio className="w-12 h-12 text-slate-700 mx-auto" />
-                  <p className="font-bold text-slate-300">No Live Classes Scheduled Right Now</p>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-12 text-center text-slate-500 space-y-3 shadow-xs">
+                  <Radio className="w-12 h-12 text-slate-400 dark:text-slate-700 mx-auto" />
+                  <p className="font-bold text-slate-700 dark:text-slate-300">No Live Classes Scheduled Right Now</p>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
                     Faculty schedules live sessions weekly. Check your batch schedule or browse recorded lectures below.
                   </p>
@@ -667,10 +694,10 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                         key={les.id}
                         className={`p-6 rounded-3xl border transition-all ${
                           isBroadcasting
-                            ? 'bg-gradient-to-r from-rose-950/40 to-slate-900 border-rose-500/50 shadow-xl shadow-rose-950/30'
+                            ? 'bg-gradient-to-r from-rose-50 to-white dark:from-rose-950/40 dark:to-slate-900 border-rose-400 dark:border-rose-500/50 shadow-md shadow-rose-950/10'
                             : isEnded
-                              ? 'bg-slate-900/80 border-white/[0.06]'
-                              : 'bg-slate-900 border-white/10 hover:border-rose-500/30'
+                              ? 'bg-slate-50 dark:bg-slate-900/80 border-slate-200 dark:border-white/[0.06]'
+                              : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 hover:border-rose-400 dark:hover:border-rose-500/30 shadow-xs'
                         }`}
                       >
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -680,8 +707,8 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                 isBroadcasting
                                   ? 'bg-rose-500 text-white animate-pulse'
                                   : isEnded
-                                    ? 'bg-slate-800 text-slate-400 border border-slate-700'
-                                    : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                    ? 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700'
+                                    : 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/20 dark:border-rose-500/30'
                               }`}>
                                 {isBroadcasting ? '● LIVE BROADCASTING NOW' : isEnded ? 'CLASS ENDED' : 'UPCOMING SESSION'}
                               </span>
@@ -693,36 +720,36 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                 const pLabel = isGMeet ? 'Google Meet' : isZ ? 'Zoom' : isYT ? 'YouTube Live' : (les.liveClassType?.toUpperCase() || 'STUDIO');
                                 return (
                                   <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                                    isGMeet ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
-                                    isZ ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                                    isYT ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                                    'bg-white/[0.04] text-slate-400'
+                                    isGMeet ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 dark:border-emerald-500/30' :
+                                    isZ ? 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 dark:border-blue-500/30' :
+                                    isYT ? 'bg-red-500/10 dark:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 dark:border-red-500/30' :
+                                    'bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-transparent'
                                   }`}>
                                     {pLabel}
                                   </span>
                                 );
                               })()}
                               {les.isFree && (
-                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-bold">
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold border border-emerald-500/20">
                                   FREE PREVIEW
                                 </span>
                               )}
                             </div>
 
-                            <h4 className="text-white font-extrabold text-base sm:text-lg">{les.title}</h4>
+                            <h4 className="text-slate-900 dark:text-white font-extrabold text-base sm:text-lg">{les.title}</h4>
 
-                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 font-medium">
-                              <span className="flex items-center gap-1.5 text-slate-300">
-                                <Calendar className="w-3.5 h-3.5 text-rose-400" />
+                            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                              <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+                                <Calendar className="w-3.5 h-3.5 text-rose-500" />
                                 {les.liveScheduledAt || 'Schedule announced in batch'}
                               </span>
-                              <span>&bull;</span>
+                              <span>•</span>
                               <span className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-slate-500" />
+                                <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                                 {les.duration || '60 mins'}
                               </span>
-                              <span>&bull;</span>
-                              <span className="text-slate-400 text-[11px]">
+                              <span>•</span>
+                              <span className="text-slate-500 dark:text-slate-400 text-[11px]">
                                 Chapter: {les.sectionTitle}
                               </span>
                             </div>
@@ -752,8 +779,8 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                   onClick={() => handleSetReminder(les)}
                                   className={`w-full sm:w-auto px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                                     remindedLessons[les.id]
-                                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                                      : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30'
+                                      ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                                      : 'bg-amber-500/10 dark:bg-amber-500/20 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30'
                                   }`}
                                 >
                                   <Bell className={`w-3.5 h-3.5 ${remindedLessons[les.id] ? 'fill-current' : ''}`} />
@@ -761,7 +788,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                 </button>
                                 <button
                                   onClick={() => handleLessonClick(les)}
-                                  className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                                  className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-slate-100 dark:bg-white/[0.06] hover:bg-slate-200 dark:hover:bg-white/[0.12] text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-slate-200 dark:border-transparent"
                                 >
                                   Class Details
                                 </button>
@@ -782,22 +809,22 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           {/* ────────────────────────────────────────────────────────── */}
           {activeTab === 'recordings' && (
             <div className="space-y-6">
-              <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xs">
                 <div>
-                  <h3 className="text-white font-extrabold text-base">Recorded Video Lectures Library</h3>
-                  <p className="text-slate-500 text-xs mt-1">
+                  <h3 className="text-slate-900 dark:text-white font-extrabold text-base">Recorded Video Lectures Library</h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-xs mt-1">
                     Watch anytime with high-speed playback, auto-progress, and downloadable study notes.
                   </p>
                 </div>
-                <div className="px-3.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-400 font-black text-xs border border-blue-500/20">
+                <div className="px-3.5 py-1.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 font-black text-xs border border-blue-500/20">
                   {recordedLessons.length} Recorded Videos Available
                 </div>
               </div>
 
               {recordedLessons.length === 0 ? (
-                <div className="bg-slate-900 border border-white/10 rounded-3xl p-12 text-center text-slate-500">
-                  <Play className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-                  <p className="font-bold">No recorded lectures uploaded yet</p>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-12 text-center text-slate-500 shadow-xs">
+                  <Play className="w-12 h-12 text-slate-400 dark:text-slate-700 mx-auto mb-3" />
+                  <p className="font-bold text-slate-700 dark:text-slate-300">No recorded lectures uploaded yet</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -807,17 +834,17 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                       onClick={() => handleLessonClick(les)}
                       className={`p-5 rounded-3xl border transition-all cursor-pointer flex flex-col justify-between space-y-4 ${
                         les.isLocked
-                          ? 'bg-slate-950/40 border-white/[0.04] opacity-60'
-                          : 'bg-slate-900 border-white/10 hover:border-blue-500/40 hover:bg-slate-900/90 hover:shadow-xl'
+                          ? 'bg-slate-100 dark:bg-slate-950/40 border-slate-200 dark:border-white/[0.04] opacity-60'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 hover:border-blue-500/40 hover:shadow-md'
                       }`}
                     >
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-black text-blue-400 uppercase tracking-wider">
+                          <span className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">
                             LECTURE {lIdx + 1}
                           </span>
                           {les.isFree && !les.isLocked && (
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold border border-emerald-500/20">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold border border-emerald-500/20">
                               Free Demo
                             </span>
                           )}
@@ -828,16 +855,16 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                           )}
                         </div>
 
-                        <h4 className="text-white font-bold text-sm leading-snug line-clamp-2">{les.title}</h4>
+                        <h4 className="text-slate-900 dark:text-white font-bold text-sm leading-snug line-clamp-2">{les.title}</h4>
                         <p className="text-slate-500 text-[11px]">{les.sectionTitle}</p>
                       </div>
 
-                      <div className="pt-3 border-t border-white/[0.04] flex items-center justify-between text-xs">
-                        <span className="text-slate-400 font-medium flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5 text-slate-500" />
+                      <div className="pt-3 border-t border-slate-100 dark:border-white/[0.04] flex items-center justify-between text-xs">
+                        <span className="text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                           {les.duration || 'Video'}
                         </span>
-                        <span className="text-blue-400 font-bold text-[11px] flex items-center gap-1 hover:underline">
+                        <span className="text-blue-600 dark:text-blue-400 font-bold text-[11px] flex items-center gap-1 hover:underline">
                           Play Lecture <ChevronRight className="w-3.5 h-3.5" />
                         </span>
                       </div>
@@ -852,19 +879,19 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           {/* ── 3. CURRICULUM TAB (Full Outline) ── */}
           {/* ────────────────────────────────────────────────────────── */}
           {activeTab === 'curriculum' && (
-            <div className="bg-slate-900 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
-              <div className="px-6 py-5 border-b border-white/[0.06]">
-                <h3 className="text-white font-extrabold text-base">Course Curriculum</h3>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-xs">
+              <div className="px-6 py-5 border-b border-slate-100 dark:border-white/[0.06]">
+                <h3 className="text-slate-900 dark:text-white font-extrabold text-base">Course Curriculum</h3>
                 <p className="text-slate-500 text-xs mt-1">{sections.length} chapters · {totalLessons} lectures & files</p>
               </div>
 
               {sections.length === 0 ? (
                 <div className="p-12 text-center">
-                  <BookOpen className="w-12 h-12 text-slate-700 mx-auto mb-3" />
+                  <BookOpen className="w-12 h-12 text-slate-400 dark:text-slate-700 mx-auto mb-3" />
                   <p className="text-slate-500 font-bold">No curriculum published yet</p>
                 </div>
               ) : (
-                <div className="divide-y divide-white/[0.04]">
+                <div className="divide-y divide-slate-100 dark:divide-white/[0.04]">
                   {sections.map((section, sIdx) => {
                     const isOpen = openSections.has(section.id);
                     return (
@@ -872,25 +899,25 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                         {/* Section header */}
                         <button
                           onClick={() => toggleSection(section.id)}
-                          className="w-full flex items-center justify-between px-6 py-5 hover:bg-white/[0.02] transition-all text-left cursor-pointer"
+                          className="w-full flex items-center justify-between px-6 py-5 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-all text-left cursor-pointer"
                         >
                           <div className="flex items-center gap-3">
-                            <span className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
+                            <span className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
                               {sIdx + 1}
                             </span>
                             <div>
-                              <p className="text-white font-bold text-sm sm:text-base">{section.title}</p>
+                              <p className="text-slate-900 dark:text-white font-bold text-sm sm:text-base">{section.title}</p>
                               <p className="text-slate-500 text-xs mt-0.5">{section.lessons.length} items</p>
                             </div>
                           </div>
-                          <ChevronDown className={`w-5 h-5 text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                          <ChevronDown className={`w-5 h-5 text-slate-400 dark:text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                         </button>
 
                         {/* Lessons */}
                         {isOpen && (
                           <div className="px-6 pb-4 space-y-2">
                             {section.lessons.length === 0 ? (
-                              <p className="text-slate-600 text-xs italic py-2 pl-10">No items inside this chapter yet.</p>
+                              <p className="text-slate-400 dark:text-slate-600 text-xs italic py-2 pl-10">No items inside this chapter yet.</p>
                             ) : (
                               section.lessons.map((lesson) => {
                                 const isVideo = lesson.type !== 'pdf' && lesson.type !== 'resource';
@@ -899,18 +926,18 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                     key={lesson.id}
                                     className={`flex items-center justify-between px-4 py-3 rounded-2xl border transition-all ${
                                       lesson.isLocked
-                                        ? 'bg-slate-950/50 border-white/[0.04] opacity-50'
-                                        : 'bg-white/[0.02] border-white/[0.06] hover:border-blue-500/30 hover:bg-blue-500/5 cursor-pointer'
+                                        ? 'bg-slate-100/60 dark:bg-slate-950/50 border-slate-200 dark:border-white/[0.04] opacity-60'
+                                        : 'bg-slate-50/70 dark:bg-white/[0.02] border-slate-200/80 dark:border-white/[0.06] hover:border-blue-500/40 hover:bg-blue-50/40 dark:hover:bg-blue-500/5 cursor-pointer'
                                     }`}
                                     onClick={() => handleLessonClick(lesson)}
                                   >
                                     <div className="flex items-center gap-3">
                                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                                         lesson.isLocked
-                                          ? 'bg-slate-800 text-slate-600'
+                                          ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600'
                                           : lesson.type === 'live'
-                                            ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                                            : isVideo ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'
+                                            ? 'bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-500/20'
+                                            : isVideo ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
                                       }`}>
                                         {lesson.isLocked ? (
                                           <Lock className="w-4 h-4" />
@@ -924,7 +951,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                       </div>
                                       <div>
                                         <div className="flex items-center gap-2">
-                                          <p className={`text-xs sm:text-sm font-semibold ${lesson.isLocked ? 'text-slate-600' : 'text-slate-200'}`}>
+                                          <p className={`text-xs sm:text-sm font-semibold ${lesson.isLocked ? 'text-slate-400 dark:text-slate-600' : 'text-slate-900 dark:text-slate-200'}`}>
                                             {lesson.title}
                                           </p>
                                           {lesson.type === 'live' && (
@@ -932,16 +959,16 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                               lesson.liveStatus === 'live'
                                                 ? 'bg-rose-500 text-white animate-pulse'
                                                 : lesson.liveStatus === 'ended'
-                                                  ? 'bg-slate-800 text-slate-400 border border-slate-700'
-                                                  : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                                                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700'
+                                                  : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
                                             }`}>
                                               {lesson.liveStatus === 'live' ? 'LIVE NOW' : lesson.liveStatus === 'ended' ? 'RECORDING' : 'UPCOMING LIVE'}
                                             </span>
                                           )}
                                         </div>
-                                        <p className="text-[11px] text-slate-500 mt-0.5 uppercase font-bold tracking-wider">
-                                          {lesson.duration || '—'} &bull; {lesson.type === 'live' ? 'Interactive Live Class' : (lesson.type || 'video')}
-                                          {lesson.liveScheduledAt && ` &bull; 🗓 ${lesson.liveScheduledAt}`}
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 uppercase font-bold tracking-wider">
+                                          {lesson.duration || '—'} • {lesson.type === 'live' ? 'Interactive Live Class' : (lesson.type || 'video')}
+                                          {lesson.liveScheduledAt && ` • 🗓 ${lesson.liveScheduledAt}`}
                                         </p>
                                       </div>
                                     </div>
@@ -958,7 +985,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                               mobile: user?.mobile,
                                             });
                                           }}
-                                          className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 transition-all"
+                                          className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 transition-all"
                                           title="Download Watermarked Class Notes"
                                         >
                                           <Download className="w-3 h-3" />
@@ -976,8 +1003,8 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                               mobile: user?.mobile,
                                             });
                                           }}
-                                          className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold flex items-center gap-1 transition-all"
-                                          title="Download Watermarked Daily Practice Paper"
+                                          className="p-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[10px] font-bold flex items-center gap-1 transition-all"
+                                          title="Download Daily Practice Paper"
                                         >
                                           <Download className="w-3 h-3" />
                                           <span className="hidden sm:inline">DPP</span>
@@ -990,12 +1017,12 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                                         </span>
                                       )}
                                       {lesson.isFree && !lesson.isLocked && (
-                                        <span className="text-[9px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 uppercase tracking-wide">
+                                        <span className="text-[9px] font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
                                           Free preview
                                         </span>
                                       )}
                                       {!lesson.isLocked && (lesson.videoUrl || lesson.liveMeetingUrl || lesson.recordingUrl) && (
-                                        <ChevronRight className="w-4 h-4 text-slate-600" />
+                                        <ChevronRight className="w-4 h-4 text-slate-400 dark:text-slate-600" />
                                       )}
                                     </div>
                                   </div>
@@ -1015,29 +1042,29 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           {/* ── Quizzes Tab ── */}
           {activeTab === 'quizzes' && (
             <div className="space-y-4">
-              <div className="bg-slate-900 border border-white/10 rounded-3xl p-6">
-                <h3 className="text-white font-extrabold text-base">Course Mock Tests & Quizzes</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-xs">
+                <h3 className="text-slate-900 dark:text-white font-extrabold text-base">Course Mock Tests & Quizzes</h3>
                 <p className="text-slate-500 text-xs mt-1">Practice timed examination sets with standard marking configurations.</p>
               </div>
 
               {quizzes.length === 0 ? (
-                <div className="bg-slate-900 border border-white/10 rounded-3xl p-12 text-center text-slate-500">
-                  <HelpCircle className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-                  <p className="font-bold">No quizzes published yet</p>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-12 text-center text-slate-500 shadow-xs">
+                  <HelpCircle className="w-12 h-12 text-slate-400 dark:text-slate-700 mx-auto mb-3" />
+                  <p className="font-bold text-slate-700 dark:text-slate-300">No quizzes published yet</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {quizzes.map((q) => (
-                    <div key={q.id} className="bg-slate-900 border border-white/10 hover:border-blue-500/30 p-5 rounded-3xl flex flex-col justify-between space-y-4">
+                    <div key={q.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 hover:border-blue-500/30 p-5 rounded-3xl flex flex-col justify-between space-y-4 shadow-xs">
                       <div>
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3">
                           <HelpCircle className="w-5.5 h-5.5" />
                         </div>
-                        <h4 className="text-white font-bold text-sm sm:text-base leading-tight">{q.title}</h4>
-                        <p className="text-slate-400 text-xs mt-2 line-clamp-2">{q.description || 'Practice mock test'}</p>
+                        <h4 className="text-slate-900 dark:text-white font-bold text-sm sm:text-base leading-tight">{q.title}</h4>
+                        <p className="text-slate-600 dark:text-slate-400 text-xs mt-2 line-clamp-2">{q.description || 'Practice mock test'}</p>
                       </div>
-                      <div className="pt-2 flex justify-between items-center border-t border-white/[0.04] text-[11px] font-bold text-slate-500">
-                        <span>{q.timeLimitMins} MINS &bull; {q.passingScore}% CUTOFF</span>
+                      <div className="pt-2 flex justify-between items-center border-t border-slate-100 dark:border-white/[0.04] text-[11px] font-bold text-slate-500">
+                        <span>{q.timeLimitMins} MINS • {q.passingScore}% CUTOFF</span>
                         <Link 
                           href={`/student/course/${courseId}/quiz/${q.id}`}
                           className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-900/30 transition-all cursor-pointer"
@@ -1062,30 +1089,30 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           )}
           {activeTab === 'assignments' && (
             <div className="space-y-4">
-              <div className="bg-slate-900 border border-white/10 rounded-3xl p-6">
-                <h3 className="text-white font-extrabold text-base">Course Written Assignments</h3>
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-xs">
+                <h3 className="text-slate-900 dark:text-white font-extrabold text-base">Course Written Assignments</h3>
                 <p className="text-slate-500 text-xs mt-1">Submit essay responses or uploaded answer sheet files for feedback.</p>
               </div>
 
               {assignments.length === 0 ? (
-                <div className="bg-slate-900 border border-white/10 rounded-3xl p-12 text-center text-slate-500">
-                  <FileText className="w-12 h-12 text-slate-700 mx-auto mb-3" />
-                  <p className="font-bold">No assignments published yet</p>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-12 text-center text-slate-500 shadow-xs">
+                  <FileText className="w-12 h-12 text-slate-400 dark:text-slate-700 mx-auto mb-3" />
+                  <p className="font-bold text-slate-700 dark:text-slate-300">No assignments published yet</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {assignments.map((a) => (
-                    <div key={a.id} className="bg-slate-900 border border-white/10 p-5 rounded-3xl space-y-3">
+                    <div key={a.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-5 rounded-3xl space-y-3 shadow-xs">
                       <div className="flex justify-between items-start gap-4">
                         <div>
-                          <h4 className="text-white font-bold text-sm sm:text-base leading-snug">{a.title}</h4>
-                          <span className="text-[10px] text-amber-400 font-bold uppercase mt-1 block">Due Date: {a.dueDate || 'No Limit'}</span>
+                          <h4 className="text-slate-900 dark:text-white font-bold text-sm sm:text-base leading-snug">{a.title}</h4>
+                          <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase mt-1 block">Due Date: {a.dueDate || 'No Limit'}</span>
                         </div>
-                        <span className="px-2.5 py-0.5 rounded-md bg-white/[0.04] text-[10px] font-bold text-slate-400 shrink-0">
+                        <span className="px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-white/[0.04] text-[10px] font-bold text-slate-600 dark:text-slate-400 shrink-0">
                           {a.maxMarks} MARKS
                         </span>
                       </div>
-                      <p className="text-slate-450 text-xs leading-relaxed line-clamp-3">{a.description}</p>
+                      <p className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed line-clamp-3">{a.description}</p>
                     </div>
                   ))}
                 </div>
@@ -1097,14 +1124,14 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
         {/* ── Sidebar ── */}
         <div className="space-y-4">
           {/* Progress Card */}
-          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-4">
-            <h3 className="text-white font-bold text-base">Your Progress</h3>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 space-y-4 shadow-xs">
+            <h3 className="text-slate-900 dark:text-white font-bold text-base">Your Progress</h3>
             <div>
-              <div className="flex justify-between text-xs text-slate-400 font-semibold mb-2">
+              <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-semibold mb-2">
                 <span>Completed</span>
                 <span>{totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0}%</span>
               </div>
-              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
                   style={{ width: `${totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0}%` }}
@@ -1112,12 +1139,12 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
               </div>
             </div>
             <div className="pt-2 grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-center">
-                <p className="text-blue-400 font-bold text-lg">{totalLessons}</p>
+              <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200/80 dark:border-blue-500/20 text-center">
+                <p className="text-blue-600 dark:text-blue-400 font-bold text-lg">{totalLessons}</p>
                 <p className="text-slate-500 text-[10px] mt-0.5">Total Lessons</p>
               </div>
-              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                <p className="text-emerald-400 font-bold text-lg">{completedCount}</p>
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/80 dark:border-emerald-500/20 text-center">
+                <p className="text-emerald-600 dark:text-emerald-400 font-bold text-lg">{completedCount}</p>
                 <p className="text-slate-500 text-[10px] mt-0.5">Completed</p>
               </div>
             </div>
@@ -1125,12 +1152,12 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
 
           {/* Enrollment status */}
           {!isEnrolled && (
-            <div className="bg-slate-900 border border-amber-500/20 rounded-3xl p-6 space-y-3">
+            <div className="bg-white dark:bg-slate-900 border border-amber-500/30 rounded-3xl p-6 space-y-3 shadow-xs">
               <div className="flex items-center gap-2">
-                <Lock className="w-4 h-4 text-amber-400" />
-                <h3 className="text-white font-bold text-sm">Enroll to Unlock</h3>
+                <Lock className="w-4 h-4 text-amber-500" />
+                <h3 className="text-slate-900 dark:text-white font-bold text-sm">Enroll to Unlock</h3>
               </div>
-              <p className="text-slate-450 text-xs leading-relaxed">
+              <p className="text-slate-600 dark:text-slate-400 text-xs leading-relaxed">
                 You need to enroll in this course to access all lessons. Free preview lessons are still available.
               </p>
               <Link
@@ -1144,21 +1171,21 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
           )}
 
           {/* Quick Actions */}
-          <div className="bg-slate-900 border border-white/10 rounded-3xl p-6 space-y-3">
-            <h3 className="text-white font-bold text-sm">Quick Actions</h3>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl p-6 space-y-3 shadow-xs">
+            <h3 className="text-slate-900 dark:text-white font-bold text-sm">Quick Actions</h3>
             <div className="space-y-2">
               <Link
                 href="/student/dashboard"
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:border-violet-500/30 hover:bg-violet-500/5 transition-all text-slate-350 hover:text-white text-xs font-semibold"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] hover:border-violet-500/30 hover:bg-violet-50 dark:hover:bg-violet-500/5 transition-all text-slate-700 dark:text-slate-350 hover:text-slate-950 dark:hover:text-white text-xs font-semibold"
               >
-                <MessageSquare className="w-4 h-4 text-violet-400" />
+                <MessageSquare className="w-4 h-4 text-violet-500 dark:text-violet-400" />
                 Mentor Connect
               </Link>
               <Link
                 href="/student/dashboard"
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:border-amber-500/30 hover:bg-amber-500/5 transition-all text-slate-350 hover:text-white text-xs font-semibold"
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.06] hover:border-amber-500/30 hover:bg-amber-50 dark:hover:bg-amber-500/5 transition-all text-slate-700 dark:text-slate-350 hover:text-slate-950 dark:hover:text-white text-xs font-semibold"
               >
-                <Trophy className="w-4 h-4 text-amber-400" />
+                <Trophy className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                 View Performance
               </Link>
             </div>
