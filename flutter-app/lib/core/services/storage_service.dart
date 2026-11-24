@@ -49,11 +49,15 @@ class StorageService {
     required String name,
     required String email,
     required String role,
+    String? mobile,
   }) async {
     await _prefs.setString(_keyUserId, userId);
     await _prefs.setString(_keyUserName, name);
     await _prefs.setString(_keyUserEmail, email);
     await _prefs.setString(_keyUserRole, role);
+    if (mobile != null && mobile.isNotEmpty) {
+      await _prefs.setString(_keyUserMobile, mobile);
+    }
   }
 
   Future<void> saveUserProfile({

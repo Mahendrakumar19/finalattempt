@@ -123,13 +123,17 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     console.warn(`[MinIO Dual-Write Warning] S3 upload for /api/upload (${filename}) failed:`, err.message);
   }
 
-  const backendBase = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+  const proto = (req.headers['x-forwarded-proto'] as string) || req.protocol || 'http';
+  const host = (req.headers['x-forwarded-host'] as string) || req.get('host') || `localhost:${process.env.PORT || 5000}`;
+  const dynamicBase = `${proto}://${host}`;
+  const backendBase = process.env.BACKEND_URL && !process.env.BACKEND_URL.includes('localhost') ? process.env.BACKEND_URL : dynamicBase;
   const fileUrl = `${backendBase}/api/files/${filename}`;
   const cdnUrl = getMediaCdnUrl(filename);
 
   res.json({
     success: true,
     url: fileUrl,
+    fileUrl,
     cdnUrl,
     filename: req.file.filename,
     originalName: req.file.originalname,

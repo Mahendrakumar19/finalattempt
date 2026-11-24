@@ -134,7 +134,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         courses.forEach((c: SitemapEntity) => {
           if (c.isPublished !== false) {
             dynamicPaths.push({
-              url: `${baseUrl}/courses/${c.id}`,
+              url: `${baseUrl}/courses/${c.slug || c.id}`,
               lastModified: new Date(c.updatedAt || c.createdAt || now),
               changeFrequency: 'weekly',
               priority: 0.9,

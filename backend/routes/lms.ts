@@ -1,8 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import fs from 'fs';
+import path from 'path';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { requireStudent, requireAdmin } from '../middleware/role';
 import { lmsDB } from '../db';
+import { minioStorage } from '../services/minioStorage';
 import { ContentLocalizer, getTargetLang } from '../services/contentLocalizer';
 
 const router = Router();
@@ -143,10 +146,13 @@ router.get('/courses/:id/sections', async (req: Request, res: Response) => {
           ...section,
           lessons: lessons.map((lesson: any) => ({
             ...lesson,
-            // Hide video URL and live meeting credentials if not enrolled and not a free lesson
+            // Hide video URL and live stream credentials if not enrolled and not a free lesson
             videoUrl: (enrolled || lesson.isFree) ? lesson.videoUrl : null,
             liveMeetingUrl: (enrolled || lesson.isFree) ? lesson.liveMeetingUrl : null,
+            playbackHlsUrl: (enrolled || lesson.isFree) ? lesson.playbackHlsUrl : null,
             recordingUrl: (enrolled || lesson.isFree) ? lesson.recordingUrl : null,
+            liveStreamKey: null, // Never leak RTMP stream key to students
+            customRtmpUrl: null, // Never leak RTMP publish URL to students
             isLocked: !enrolled && !lesson.isFree
           }))
         };
@@ -437,8 +443,8 @@ router.post('/sections/:sectionId/lessons', authenticateAdminLms, async (req: Re
   try {
     const id = `les-${sectionId}-${Date.now()}`;
     const generatedStreamKey = liveStreamKey || (type === 'live' ? `fa_live_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}` : undefined);
-    const defaultRtmpUrl = customRtmpUrl || process.env.LIVE_RTMP_SERVER_URL || 'rtmp://live.finalattempt.com/live';
-    const defaultPlayback = playbackHlsUrl || (generatedStreamKey ? `https://live.finalattempt.com/hls/${generatedStreamKey}.m3u8` : undefined);
+    const defaultRtmpUrl = customRtmpUrl || process.env.LIVE_RTMP_SERVER_URL || 'rtmp://stream.finalattemptias.com/live';
+    const defaultPlayback = playbackHlsUrl || (generatedStreamKey ? `${process.env.LIVE_HLS_PLAYBACK_URL || 'https://stream.finalattemptias.com/live'}/${generatedStreamKey}.m3u8` : undefined);
 
     const lesson = await lmsDB.createLesson({
       id,
@@ -486,8 +492,8 @@ router.post('/lessons/:lessonId/live-stream-credentials', authenticateAdminLms, 
       streamKey = `fa_live_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}`;
     }
 
-    const customRtmpUrl = process.env.LIVE_RTMP_SERVER_URL || 'rtmp://live.finalattempt.com/live';
-    const playbackHlsUrl = `https://live.finalattempt.com/hls/${streamKey}.m3u8`;
+    const customRtmpUrl = process.env.LIVE_RTMP_SERVER_URL || 'rtmp://stream.finalattemptias.com/live';
+    const playbackHlsUrl = `${process.env.LIVE_HLS_PLAYBACK_URL || 'https://stream.finalattemptias.com/live'}/${streamKey}.m3u8`;
 
     await lmsDB.updateLesson(lessonId, {
       liveClassType: 'custom',
@@ -515,6 +521,164 @@ router.post('/lessons/:lessonId/live-stream-credentials', authenticateAdminLms, 
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─────────────────────────── SRS 6.0 LIVE STREAMING WEBHOOKS ──────────────────
+// In-memory debounce map for OBS Wi-Fi dropouts / brief disconnects (45 seconds)
+const unpublishDebounceTimers = new Map<string, NodeJS.Timeout>();
+const SRS_UNPUBLISH_DEBOUNCE_MS = 45000;
+
+/**
+ * POST /api/lms/streaming/on-publish
+ * Called by SRS when an encoder (OBS Studio) begins publishing RTMP.
+ * Validates stream key against lms_lessons; returns { code: 0 } on success or 403 / { code: 1 } to kick.
+ */
+router.post('/streaming/on-publish', async (req: Request, res: Response) => {
+  try {
+    const { stream, ip, client_id } = req.body;
+    const streamKey = stream ? String(stream).trim() : '';
+
+    if (!streamKey) {
+      console.warn(`[SRS on_publish] Rejected: missing stream key from client ${client_id} (${ip})`);
+      return res.status(403).json({ code: 1, error: 'Stream key is required' });
+    }
+
+    const lesson = await lmsDB.getLessonByStreamKey(streamKey);
+    if (!lesson) {
+      console.warn(`[SRS on_publish] Rejected: unauthorized stream key "${streamKey}" from client ${client_id} (${ip})`);
+      return res.status(403).json({ code: 1, error: 'Unauthorized stream key' });
+    }
+
+    // Cancel pending unpublish debounce timer if broadcaster reconnected in time
+    if (unpublishDebounceTimers.has(streamKey)) {
+      clearTimeout(unpublishDebounceTimers.get(streamKey)!);
+      unpublishDebounceTimers.delete(streamKey);
+      console.log(`[SRS on_publish] Cleared unpublish debounce timer for stream ${streamKey}`);
+    }
+
+    const hlsUrl = `${process.env.LIVE_HLS_PLAYBACK_URL || 'https://stream.finalattemptias.com/live'}/${streamKey}.m3u8`;
+
+    // Automatically transition lesson to live status
+    await lmsDB.updateLesson(lesson.id, {
+      liveStatus: 'live',
+      liveMeetingUrl: hlsUrl,
+      playbackHlsUrl: hlsUrl
+    });
+
+    console.log(`[SRS on_publish] Stream authorized: "${lesson.title}" (${lesson.id}) is now LIVE`);
+    return res.json({ code: 0 });
+  } catch (err: any) {
+    console.error('[SRS on_publish] Error:', err);
+    return res.status(500).json({ code: 1, error: err.message });
+  }
+});
+
+/**
+ * POST /api/lms/streaming/on-unpublish
+ * Called by SRS when the RTMP publisher disconnects.
+ * Uses a 45-second debounce window to prevent transient network drops from prematurely ending class.
+ */
+router.post('/streaming/on-unpublish', async (req: Request, res: Response) => {
+  try {
+    const { stream, client_id } = req.body;
+    const streamKey = stream ? String(stream).trim() : '';
+
+    if (!streamKey) {
+      return res.json({ code: 0 });
+    }
+
+    // Clear any previous timer
+    if (unpublishDebounceTimers.has(streamKey)) {
+      clearTimeout(unpublishDebounceTimers.get(streamKey)!);
+    }
+
+    // Debounce transition to 'ended'
+    const timer = setTimeout(async () => {
+      unpublishDebounceTimers.delete(streamKey);
+      try {
+        const lesson = await lmsDB.getLessonByStreamKey(streamKey);
+        if (lesson && lesson.liveStatus === 'live') {
+          await lmsDB.updateLesson(lesson.id, { liveStatus: 'ended' });
+          console.log(`[SRS on_unpublish] Lesson "${lesson.title}" (${lesson.id}) marked as ENDED after 45s debounce.`);
+        }
+      } catch (debounceErr: any) {
+        console.error('[SRS on_unpublish] Error updating lesson status to ended:', debounceErr);
+      }
+    }, SRS_UNPUBLISH_DEBOUNCE_MS);
+
+    unpublishDebounceTimers.set(streamKey, timer);
+    console.log(`[SRS on_unpublish] Stream ${streamKey} disconnected. 45-second debounce timer started.`);
+    return res.json({ code: 0 });
+  } catch (err: any) {
+    console.error('[SRS on_unpublish] Error:', err);
+    return res.json({ code: 0 });
+  }
+});
+
+/**
+ * POST /api/lms/streaming/on-dvr
+ * Called by SRS when DVR recording concludes and MP4 file is written to disk.
+ * Uploads .mp4 via MinIO streaming fPutObject, updates recordingUrl, and deletes local copy.
+ */
+router.post('/streaming/on-dvr', async (req: Request, res: Response) => {
+  try {
+    const { stream, file } = req.body;
+    const streamKey = stream ? String(stream).trim() : '';
+
+    if (!streamKey || !file) {
+      return res.json({ code: 0 });
+    }
+
+    console.log(`[SRS on_dvr] Received recording callback for stream ${streamKey}: ${file}`);
+
+    const fileName = path.basename(file);
+    const candidatePaths = [
+      file,
+      path.join('/opt/finalattempt-srs/objs/nginx/html/live', fileName),
+      path.join('/opt/finalattempt-srs/objs/nginx/html', fileName),
+      path.join(process.cwd(), 'recordings', fileName)
+    ];
+
+    const hostFilePath = candidatePaths.find(p => fs.existsSync(p));
+    if (!hostFilePath) {
+      console.warn(`[SRS on_dvr] Host file not found in candidate paths for ${fileName}`);
+      return res.json({ code: 0 });
+    }
+
+    const lesson = await lmsDB.getLessonByStreamKey(streamKey);
+    if (!lesson) {
+      console.warn(`[SRS on_dvr] No lesson associated with stream key ${streamKey}`);
+      return res.json({ code: 0 });
+    }
+
+    // Stream upload file directly to MinIO without holding file in RAM
+    const s3Key = `recordings/${lesson.courseId || 'courses'}/${fileName}`;
+    try {
+      const uploadResult = await minioStorage.uploadLocalFile(s3Key, hostFilePath, 'video/mp4', false);
+      const recordingUrl = uploadResult.url;
+
+      await lmsDB.updateLesson(lesson.id, {
+        recordingUrl,
+        videoUrl: lesson.videoUrl || recordingUrl
+      });
+      console.log(`[SRS on_dvr] Successfully uploaded recording to MinIO: ${recordingUrl}`);
+
+      // Unlink local host recording file to prevent disk exhaustion
+      try {
+        fs.unlinkSync(hostFilePath);
+        console.log(`[SRS on_dvr] Unlinked local file: ${hostFilePath}`);
+      } catch (unlinkErr: any) {
+        console.warn(`[SRS on_dvr] Failed to unlink local file ${hostFilePath}:`, unlinkErr.message);
+      }
+    } catch (minioErr: any) {
+      console.error('[SRS on_dvr] MinIO upload failed:', minioErr);
+    }
+
+    return res.json({ code: 0 });
+  } catch (err: any) {
+    console.error('[SRS on_dvr] Error:', err);
+    return res.json({ code: 0 });
   }
 });
 

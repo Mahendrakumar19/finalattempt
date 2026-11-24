@@ -184,11 +184,12 @@ class TestQuiz {
   final int timeLimitMins;
   final int totalQuestions;
   final double totalMarks;
-  final String testCategory; // 'FULL', 'SECTIONAL', 'CHAPTER', 'PYQ'
+  final String testCategory; // 'FULL', 'SECTIONAL', 'CHAPTER', 'PYQ', 'CURRENT'
   final bool isFree;
   final bool isAttempted;
   final double? lastScore;
   final int sequenceNumber;
+  final double? individualPrice;
 
   TestQuiz({
     required this.id,
@@ -203,6 +204,7 @@ class TestQuiz {
     this.isAttempted = false,
     this.lastScore,
     this.sequenceNumber = 9999,
+    this.individualPrice,
   });
 
   static int extractTestNumber(String text) {
@@ -245,6 +247,7 @@ class TestQuiz {
       isAttempted: json['isAttempted'] == true || json['isAttempted'] == 1,
       lastScore: TestSeries._parseDouble(json['lastScore']),
       sequenceNumber: seq,
+      individualPrice: TestSeries._parseDouble(json['individualPrice'] ?? json['individual_price']),
     );
   }
 }

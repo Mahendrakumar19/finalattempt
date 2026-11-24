@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     if (course) {
       const title = `${course.title} — UPSC & State PCS Course`;
       const description = course.description || `Enroll in ${course.title} at Final Attempt. Comprehensive coverage, test series, and mentorship for civil services.`;
-      const url = `https://finalattemptias.com/courses/${course.id}`;
+      const url = `https://finalattemptias.com/courses/${course.slug || course.id}`;
       const image = course.thumbnailUrl || '/og-image.jpg';
 
       return {

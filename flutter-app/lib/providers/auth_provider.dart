@@ -16,6 +16,7 @@ class AuthState {
   final String? userName;
   final String? userEmail;
   final String? userRole;
+  final String? userMobile;
   final bool isLoading;
   final String? error;
 
@@ -25,6 +26,7 @@ class AuthState {
     this.userName,
     this.userEmail,
     this.userRole,
+    this.userMobile,
     this.isLoading = false,
     this.error,
   });
@@ -35,6 +37,7 @@ class AuthState {
     String? userName,
     String? userEmail,
     String? userRole,
+    String? userMobile,
     bool? isLoading,
     String? error,
   }) => AuthState(
@@ -43,6 +46,7 @@ class AuthState {
     userName: userName ?? this.userName,
     userEmail: userEmail ?? this.userEmail,
     userRole: userRole ?? this.userRole,
+    userMobile: userMobile ?? this.userMobile,
     isLoading: isLoading ?? this.isLoading,
     error: error,
   );
@@ -64,6 +68,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         userName: _storage.getUserName(),
         userEmail: _storage.getUserEmail(),
         userRole: _storage.getUserRole(),
+        userMobile: _storage.getUserMobile(),
       );
     }
   }
@@ -80,6 +85,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           userName: _storage.getUserName(),
           userEmail: _storage.getUserEmail(),
           userRole: _storage.getUserRole(),
+          userMobile: _storage.getUserMobile(),
         );
         return null;
       } else {
@@ -116,6 +122,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           userName: _storage.getUserName(),
           userEmail: _storage.getUserEmail(),
           userRole: _storage.getUserRole(),
+          userMobile: _storage.getUserMobile(),
         );
         return null;
       } else {

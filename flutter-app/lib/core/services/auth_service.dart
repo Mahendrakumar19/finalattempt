@@ -34,11 +34,13 @@ class AuthService {
           'email': email,
           'role': 'student',
         };
+        final userMobile = user['mobile'] ?? user['phone'] ?? responseData['mobile'] ?? '';
         await _storage.saveUserSession(
           userId: user['id']?.toString() ?? 'usr_demo_1',
           name: (user['fullName'] ?? user['name'] ?? email.split('@').first).toString(),
           email: user['email'] ?? email,
           role: user['role'] ?? 'student',
+          mobile: userMobile?.toString(),
         );
         return {'success': true, 'user': user};
       }
@@ -91,6 +93,7 @@ class AuthService {
           name: (user['fullName'] ?? user['name'] ?? fullName).toString(),
           email: user['email'] ?? email,
           role: user['role'] ?? 'student',
+          mobile: mobile,
         );
         return {'success': true, 'user': user};
       }

@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../models/test_series_model.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/services/api_service.dart';
+import '../../core/services/storage_service.dart';
 import '../../widgets/apple_pressable.dart';
 import '../../widgets/app_toast.dart';
 
@@ -175,8 +176,8 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     }
   }
 
-  // ── Initiate Checkout with Selected Plan ──────────────────────────────────
-  Future<void> _startPayment({TestSeriesPlan? planOverride}) async {
+  // ── Initiate Checkout with Selected Plan or Individual Test ───────────────
+  Future<void> _startPayment({TestSeriesPlan? planOverride, TestQuiz? individualQuiz}) async {
     if (_isProcessingPayment) return;
 
     final authState = ref.read(authStateProvider);
@@ -198,45 +199,77 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
       final entitlements = await ref.read(userEntitlementsProvider(widget.seriesId).future);
       final highestTier = _getHighestTier(entitlements);
 
-      // Determine selected plan
-      final targetPlanCode = planOverride?.planCode ?? _selectedPlanCode ?? 'FULL';
-      final selectedPlan = plans.firstWhere(
-        (p) => p.planCode == targetPlanCode,
-        orElse: () => plans.isNotEmpty ? plans.first : TestSeriesPlan(
-          id: 'default',
-          seriesId: widget.seriesId,
-          planCode: 'FULL',
-          title: 'FULL Package',
-          price: 599,
-        ),
-      );
-
-      final isUpgrade = highestTier == 'MINI' || highestTier == 'HALF' || highestTier == 'FULL';
-      final itemType = isUpgrade ? 'UPGRADE_PLAN' : 'PACKAGE_PLAN';
-
       final userUid = authState.userId ?? 'user';
       final idempotencyKey = 'idemp_${userUid}_${widget.seriesId}_${DateTime.now().millisecondsSinceEpoch}';
 
-      // 1. Call authoritative order creation endpoint (Same as Web)
       dynamic orderRes;
-      try {
-        orderRes = await apiService.post('/test-series-purchase/order/create', data: {
-          'seriesId': widget.seriesId,
-          'items': [
-            {
-              'itemType': itemType,
-              'planCode': selectedPlan.planCode,
-            }
-          ],
-          'idempotencyKey': idempotencyKey,
-        });
-      } catch (e) {
-        // Fallback to legacy payments/create-order if custom purchase endpoint has issue
-        orderRes = await apiService.post('/payments/create-order', data: {
-          'courseId': widget.seriesId,
-          'amount': selectedPlan.sellingPrice,
-          'currency': 'INR',
-        });
+      String orderDescription = '';
+      int expectedSellingPrice = 0;
+
+      if (individualQuiz != null) {
+        // Individual Single Test Purchase
+        final singlePrice = (individualQuiz.individualPrice != null && individualQuiz.individualPrice! > 0)
+            ? individualQuiz.individualPrice!.toInt()
+            : 49;
+        expectedSellingPrice = singlePrice;
+        orderDescription = 'Single Test: ${individualQuiz.title}';
+
+        try {
+          orderRes = await apiService.post('/test-series-purchase/order/create', data: {
+            'seriesId': widget.seriesId,
+            'items': [
+              {
+                'itemType': 'INDIVIDUAL_TEST',
+                'quizId': individualQuiz.id,
+              }
+            ],
+            'idempotencyKey': idempotencyKey,
+          });
+        } catch (e) {
+          orderRes = await apiService.post('/payments/create-order', data: {
+            'courseId': widget.seriesId,
+            'quizId': individualQuiz.id,
+            'amount': singlePrice,
+            'currency': 'INR',
+          });
+        }
+      } else {
+        // Determine selected plan (MINI, HALF, FULL)
+        final targetPlanCode = planOverride?.planCode ?? _selectedPlanCode ?? 'FULL';
+        final selectedPlan = plans.firstWhere(
+          (p) => p.planCode == targetPlanCode,
+          orElse: () => plans.isNotEmpty ? plans.first : TestSeriesPlan(
+            id: 'default',
+            seriesId: widget.seriesId,
+            planCode: 'FULL',
+            title: 'FULL Package',
+            price: 599,
+          ),
+        );
+
+        final isUpgrade = highestTier == 'MINI' || highestTier == 'HALF' || highestTier == 'FULL';
+        final itemType = isUpgrade ? 'UPGRADE_PLAN' : 'PACKAGE_PLAN';
+        expectedSellingPrice = selectedPlan.sellingPrice.toInt();
+        orderDescription = '${selectedPlan.title} (${selectedPlan.planCode})';
+
+        try {
+          orderRes = await apiService.post('/test-series-purchase/order/create', data: {
+            'seriesId': widget.seriesId,
+            'items': [
+              {
+                'itemType': itemType,
+                'planCode': selectedPlan.planCode,
+              }
+            ],
+            'idempotencyKey': idempotencyKey,
+          });
+        } catch (e) {
+          orderRes = await apiService.post('/payments/create-order', data: {
+            'courseId': widget.seriesId,
+            'amount': selectedPlan.sellingPrice,
+            'currency': 'INR',
+          });
+        }
       }
 
       final data = orderRes['data'] ?? orderRes;
@@ -264,20 +297,22 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
       final gatewayOrderId = data['gatewayOrderId'] ?? data['order_id'] ?? data['id'];
       final rawAmount = data['netAmount'] != null
           ? (data['netAmount'] * 100).toInt()
-          : (data['amount'] ?? (selectedPlan.sellingPrice * 100).toInt());
+          : (data['amount'] ?? (expectedSellingPrice * 100));
       final razorpayKey = data['key'] ?? 'rzp_test_TTzBxGpMqc0rAD';
+
+      final userMobile = authState.userMobile ?? ref.read(storageServiceProvider).getUserMobile() ?? '';
 
       final options = {
         'key': razorpayKey,
         'amount': rawAmount,
         'name': 'Final Attempt',
         'order_id': gatewayOrderId,
-        'description': '${selectedPlan.title} (${selectedPlan.planCode})',
+        'description': orderDescription,
         'prefill': {
-          'contact': '',
-          'email': authState.userEmail ?? '',
+          'contact': userMobile,
+          'email': authState.userEmail ?? ref.read(storageServiceProvider).getUserEmail() ?? '',
         },
-        'theme': {'color': '#f59e0b'},
+        'theme': {'color': '#15803D'},
       };
 
       if (!kIsWeb && _razorpay != null) {
@@ -591,23 +626,25 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                                           context.push('/test/${quiz.id}/instructions');
                                         }
                                       : () {
-                                          _startPayment();
+                                          _showUnlockOptionsModal(context, quiz, plans, series);
                                         },
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: canAttempt ? AppColors.primaryBlue : const Color(0xFF94A3B8),
+                                    backgroundColor: const Color(0xFF15803D),
                                     foregroundColor: Colors.white,
                                     elevation: 0,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      if (!canAttempt) const Icon(Icons.lock, size: 12, color: Colors.white),
+                                      if (!canAttempt) const Icon(Icons.lock_open_rounded, size: 13, color: Colors.white),
                                       if (!canAttempt) const SizedBox(width: 4),
                                       Text(
-                                        canAttempt ? (quiz.isAttempted ? 'Re-attempt' : 'Start Test') : 'Unlock 🔒',
-                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                        canAttempt
+                                            ? (quiz.isAttempted ? 'Re-attempt' : 'Start Test')
+                                            : 'Unlock (₹' + ((quiz.individualPrice != null && quiz.individualPrice! > 0) ? quiz.individualPrice!.toInt().toString() : '49') + ')',
+                                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                                       ),
                                     ],
                                   ),
@@ -664,6 +701,168 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
     );
   }
 
+  void _showUnlockOptionsModal(BuildContext context, TestQuiz quiz, List<TestSeriesPlan> plans, TestSeries series) {
+    final singlePrice = (quiz.individualPrice != null && quiz.individualPrice! > 0) ? quiz.individualPrice!.toInt() : 49;
+    final cardBg = AppTheme.cardBgOf(context);
+    final textPrimary = AppTheme.textPrimaryOf(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: cardBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(ctx).padding.bottom + 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'UNLOCK TEST',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                quiz.title,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
+              ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _startPayment(individualQuiz: quiz);
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFDCFCE7).withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF15803D), width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF15803D),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.flash_on_rounded, color: Colors.white, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Buy Single Test Only',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF15803D)),
+                            ),
+                            Text(
+                              'Instant access to this specific test paper & solutions',
+                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Text(
+                        '₹' + singlePrice.toString(),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Color(0xFF15803D)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (plans.isNotEmpty)
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    final fullPlan = plans.firstWhere((p) => p.planCode == 'FULL', orElse: () => plans.first);
+                    _startPayment(planOverride: fullPlan);
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.borderOf(ctx)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E3A8A),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.all_inclusive_rounded, color: Colors.white, size: 22),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Unlock All Tests (' + series.totalTests.toString() + ' Tests)',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary),
+                              ),
+                              const Text(
+                                'Full package pass with all future mocks & ranking',
+                                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          '₹' + plans.firstWhere((p) => p.planCode == 'FULL', orElse: () => plans.first).sellingPrice.toInt().toString(),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
   // ── Tab 2: Packages & Overview (Matches Website Options: MINI, HALF, FULL) ──
   Widget _buildOverviewTab(
     BuildContext context,

@@ -337,14 +337,20 @@ export default function RapidRevisionPortal() {
 
   const resolveUrl = (url?: string) => {
     if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    if (url.startsWith('/api/')) return `${BACKEND_URL}${url}`;
-    return `${BACKEND_URL}/${url.replace(/^\//, '')}`;
+    if (url.includes('localhost:5000') || url.includes('127.0.0.1:5000')) {
+      url = url.replace(/^http:\/\/(localhost|127\.0\.0\.1):5000/, '');
+    }
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('https://') || (url.startsWith('http://') && !url.includes('localhost') && !url.includes('127.0.0.1'))) {
+      return url;
+    }
+    if (url.startsWith('/api/')) return url;
+    return `/${url.replace(/^\//, '')}`;
   };
 
-  // Combine CMS download items with initial fallback items
+  // When pageData is retrieved from CMS, respect its items (even if empty after deletion)
   const allItems: DownloadItem[] = useMemo(() => {
-    if (pageData?.downloadItems && pageData.downloadItems.length > 0) {
+    if (pageData && Array.isArray(pageData.downloadItems)) {
       return pageData.downloadItems;
     }
     return INITIAL_FALLBACK_ITEMS;

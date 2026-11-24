@@ -193,12 +193,12 @@ function CoursesContent() {
                   style={{ minHeight: course.thumbnailUrl ? '390px' : '260px' }}
                   className={`flip-card-container cursor-pointer relative ${isFlipped ? 'is-flipped' : ''}`}
                   onClick={() => {
-                    window.location.href = `/courses/${course.id}`;
+                    window.location.href = `/courses/${course.slug || course.id}`;
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      window.location.href = `/courses/${course.id}`;
+                      window.location.href = `/courses/${course.slug || course.id}`;
                     }
                   }}
                   tabIndex={0}
@@ -404,7 +404,7 @@ function CoursesContent() {
                           onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            window.location.href = `/courses/${course.id}`;
+                            window.location.href = `/courses/${course.slug || course.id}`;
                           }}
                           className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 text-[9px] font-black rounded-lg transition-all shadow-xs inline-flex items-center gap-1 uppercase tracking-wider relative z-50 pointer-events-auto cursor-pointer"
                         >

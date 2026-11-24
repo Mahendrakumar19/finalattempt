@@ -323,7 +323,7 @@ export default function Home() {
         feed.push({
           date: 'NEW BATCH',
           text: `${c.title} — Admissions Open`,
-          link: `/courses/${c.id}`,
+          link: `/courses/${c.slug || c.id}`,
           isNew: true,
           isExternal: false,
           timestamp: getTS(c as unknown as Record<string, unknown>),
@@ -589,7 +589,7 @@ export default function Home() {
                             </button>
 
                             <Link
-                              href={`/courses/${course.id}`}
+                              href={`/courses/${course.slug || course.id}`}
                               onClick={(e) => e.stopPropagation()}
                               className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-bold rounded-xl transition-colors inline-flex items-center gap-1"
                             >

@@ -10,6 +10,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { downloadWatermarkedPdf } from '@/utils/watermarkPdf';
 import DoubtsCommunityForum from '@/components/DoubtsCommunityForum';
+import HlsVideoPlayer from '@/components/HlsVideoPlayer';
 
 interface Lesson {
   id: string;
@@ -240,15 +241,15 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
     const isVideo = lesson.type !== 'pdf' && lesson.type !== 'resource' && !isLive;
 
     if (isLive) {
-      // If Zoom or Meet external link, allow launching or modal stream
-      if (lesson.liveClassType === 'zoom' || lesson.liveClassType === 'meet') {
-        const meetingUrl = lesson.liveMeetingUrl || lesson.videoUrl;
-        if (meetingUrl) {
-          window.open(meetingUrl, '_blank');
-          return;
-        }
+      const meetingUrl = lesson.liveMeetingUrl || lesson.videoUrl || '';
+      const isExternalMeeting = lesson.liveClassType === 'meet' || lesson.liveClassType === 'zoom' 
+        || /meet\.google\.com|zoom\.us|teams\.microsoft\.com|webex\.com/i.test(meetingUrl);
+
+      if (isExternalMeeting && meetingUrl && !lesson.recordingUrl) {
+        window.open(meetingUrl, '_blank');
+        setPlayingLesson(lesson);
+        return;
       }
-      // If YouTube live or direct video/stream embed
       setPlayingLesson(lesson);
     } else if (isVideo && (lesson.videoUrl || lesson.recordingUrl)) {
       setPlayingLesson(lesson);
@@ -337,30 +338,53 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
             {/* Video or Live Stream Container */}
             <div className="aspect-video bg-black relative flex flex-col justify-center items-center">
               {(() => {
+                const meetingLink = (playingLesson.liveMeetingUrl || playingLesson.videoUrl || '').trim();
+                const isGoogleMeet = playingLesson.liveClassType === 'meet' || /meet\.google\.com/i.test(meetingLink);
+                const isZoom = playingLesson.liveClassType === 'zoom' || /zoom\.us/i.test(meetingLink);
+                const isExternalMeeting = isGoogleMeet || isZoom || /teams\.microsoft\.com|webex\.com/i.test(meetingLink);
+
                 // If Zoom or Google Meet with no embed, provide direct launcher screen
-                if (playingLesson.type === 'live' && (playingLesson.liveClassType === 'zoom' || playingLesson.liveClassType === 'meet') && !playingLesson.recordingUrl) {
-                  const meetingLink = playingLesson.liveMeetingUrl || playingLesson.videoUrl;
+                if (playingLesson.type === 'live' && isExternalMeeting && !playingLesson.recordingUrl) {
                   return (
-                    <div className="p-8 text-center space-y-4 max-w-md">
-                      <div className="w-16 h-16 rounded-3xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto text-2xl">
-                        🔴
+                    <div className="p-8 text-center space-y-4 max-w-lg mx-auto">
+                      <div className="w-16 h-16 rounded-3xl bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                        {isGoogleMeet ? '🟢' : isZoom ? '🔵' : '🔴'}
                       </div>
-                      <h4 className="text-white font-extrabold text-lg">Interactive Live Classroom</h4>
-                      <p className="text-slate-400 text-xs leading-relaxed">
-                        This interactive session is conducted via {playingLesson.liveClassType === 'zoom' ? 'Zoom Meeting' : 'Google Meet'}.
+                      <h4 className="text-white font-extrabold text-lg">
+                        {isGoogleMeet ? 'Google Meet Classroom' : isZoom ? 'Zoom Live Session' : 'Interactive Live Classroom'}
+                      </h4>
+                      <p className="text-slate-300 text-xs leading-relaxed">
+                        This interactive session is conducted via <strong className="text-white">{isGoogleMeet ? 'Google Meet' : isZoom ? 'Zoom' : 'Live Meeting'}</strong>.
                         {playingLesson.liveScheduledAt ? ` Class is scheduled for ${playingLesson.liveScheduledAt}.` : ''}
                       </p>
                       {meetingLink ? (
-                        <a
-                          href={meetingLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition-all hover:scale-105"
-                        >
-                          Join Interactive Classroom 🚀
-                        </a>
+                        <div className="space-y-3 pt-2">
+                          <a
+                            href={meetingLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-black text-sm shadow-xl shadow-rose-600/30 transition-all hover:scale-[1.02] cursor-pointer"
+                          >
+                            <span>Join {isGoogleMeet ? 'Google Meet' : isZoom ? 'Zoom' : 'Live Class'} Now 🚀</span>
+                          </a>
+                          <div className="flex items-center gap-2 p-2 bg-slate-900 border border-white/10 rounded-xl text-left">
+                            <span className="text-[10px] text-slate-400 font-mono flex-1 truncate px-2 select-all">{meetingLink}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(meetingLink);
+                                alert('Meeting link copied to clipboard!');
+                              }}
+                              className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold rounded-lg shrink-0 cursor-pointer"
+                            >
+                              Copy Link
+                            </button>
+                          </div>
+                        </div>
                       ) : (
-                        <p className="text-rose-400 text-xs font-bold">Class link will be active 15 minutes before the session.</p>
+                        <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-xs font-bold">
+                          Class meeting link will be updated here shortly before session starts.
+                        </div>
                       )}
                     </div>
                   );
@@ -394,8 +418,7 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                 }
 
                 return (
-                  <video
-                    ref={videoRef}
+                  <HlsVideoPlayer
                     src={streamUrl}
                     controls
                     playsInline
@@ -662,9 +685,23 @@ export default function StudentCourseDetailPage({ params }: CourseDetailPageProp
                               }`}>
                                 {isBroadcasting ? '● LIVE BROADCASTING NOW' : isEnded ? 'CLASS ENDED' : 'UPCOMING SESSION'}
                               </span>
-                              <span className="px-2 py-0.5 rounded-full bg-white/[0.04] text-slate-400 text-[9px] font-bold uppercase">
-                                {les.liveClassType || 'STUDIO'}
-                              </span>
+                              {(() => {
+                                const mLink = les.liveMeetingUrl || les.videoUrl || '';
+                                const isGMeet = les.liveClassType === 'meet' || /meet\.google\.com/i.test(mLink);
+                                const isZ = les.liveClassType === 'zoom' || /zoom\.us/i.test(mLink);
+                                const isYT = les.liveClassType === 'youtube' || /youtu(\.be|be\.com)/i.test(mLink);
+                                const pLabel = isGMeet ? 'Google Meet' : isZ ? 'Zoom' : isYT ? 'YouTube Live' : (les.liveClassType?.toUpperCase() || 'STUDIO');
+                                return (
+                                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                                    isGMeet ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                                    isZ ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                                    isYT ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                                    'bg-white/[0.04] text-slate-400'
+                                  }`}>
+                                    {pLabel}
+                                  </span>
+                                );
+                              })()}
                               {les.isFree && (
                                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-bold">
                                   FREE PREVIEW

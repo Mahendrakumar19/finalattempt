@@ -147,6 +147,37 @@ export class MinioStorageService {
     return this.uploadBuffer(key, buffer, mimeType, isPrivate);
   }
 
+  public async uploadLocalFile(
+    key: string,
+    filePath: string,
+    mimeType: string = 'video/mp4',
+    isPrivate: boolean = false
+  ): Promise<{ key: string; bucket: string; url: string }> {
+    const sanitizedKey = sanitizeObjectKey(key);
+    const bucket = this.getBucketName(isPrivate);
+
+    if (!this.isEnabled()) {
+      return {
+        key: sanitizedKey,
+        bucket,
+        url: this.getPublicUrl(sanitizedKey),
+      };
+    }
+
+    try {
+      const metaData = { 'Content-Type': mimeType };
+      await this.client.fPutObject(bucket, sanitizedKey, filePath, metaData);
+      const url = isPrivate ? await this.getPrivateUrl(sanitizedKey) : this.getPublicUrl(sanitizedKey);
+      return { key: sanitizedKey, bucket, url };
+    } catch (err: any) {
+      throw new MinioStorageError(
+        `MinIO Upload File Error for key '${sanitizedKey}': ${err.message}`,
+        'OPERATION_FAILED',
+        err
+      );
+    }
+  }
+
   public async getObject(key: string, isPrivate: boolean = false): Promise<NodeJS.ReadableStream> {
     const sanitizedKey = sanitizeObjectKey(key);
     const bucket = this.getBucketName(isPrivate);

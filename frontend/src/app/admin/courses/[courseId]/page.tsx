@@ -233,7 +233,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     liveStatus: 'scheduled',
     recordingUrl: '',
     liveStreamKey: '',
-    customRtmpUrl: 'rtmp://live.finalattempt.com/live',
+    customRtmpUrl: 'rtmp://stream.finalattemptias.com/live',
     playbackHlsUrl: '',
     isFree: false
   });
@@ -597,7 +597,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
       liveStatus: 'scheduled',
       recordingUrl: '',
       liveStreamKey: '',
-      customRtmpUrl: 'rtmp://live.finalattempt.com/live',
+      customRtmpUrl: 'rtmp://stream.finalattemptias.com/live',
       playbackHlsUrl: '',
       isFree: false
     });
@@ -605,20 +605,16 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   };
 
   const handleAddLiveClass = (sectionId: string) => {
-    const defaultStreamKey = `fa_live_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}`;
-    const rtmpServer = process.env.NEXT_PUBLIC_RTMP_SERVER_URL || 'rtmp://live.finalattempt.com/live';
-    const hlsUrl = `https://live.finalattempt.com/hls/${defaultStreamKey}.m3u8`;
-
     setLessonForm({
       id: '',
       sectionId,
       title: 'Live Interactive Session',
       type: 'live',
-      videoUrl: hlsUrl,
+      videoUrl: '',
       duration: '60 mins',
       notesPdfUrl: '',
       dppPdfUrl: '',
-      liveClassType: 'custom',
+      liveClassType: 'meet',
       liveScheduledAt: new Date(Date.now() + 86400000).toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
@@ -627,12 +623,12 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
         minute: '2-digit',
         hour12: true
       }),
-      liveMeetingUrl: hlsUrl,
+      liveMeetingUrl: '',
       liveStatus: 'scheduled',
       recordingUrl: '',
-      liveStreamKey: defaultStreamKey,
-      customRtmpUrl: rtmpServer,
-      playbackHlsUrl: hlsUrl,
+      liveStreamKey: '',
+      customRtmpUrl: 'rtmp://stream.finalattemptias.com/live',
+      playbackHlsUrl: '',
       isFree: false
     });
     setShowLessonModal(true);
@@ -641,8 +637,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   const handleGenerateObsCredentials = async () => {
     if (!lessonForm.id) {
       const newKey = `fa_live_${Math.random().toString(36).substring(2, 10)}_${Date.now().toString(36)}`;
-      const rtmp = lessonForm.customRtmpUrl || 'rtmp://live.finalattempt.com/live';
-      const hls = `https://live.finalattempt.com/hls/${newKey}.m3u8`;
+      const rtmp = lessonForm.customRtmpUrl || 'rtmp://stream.finalattemptias.com/live';
+      const hls = `https://stream.finalattemptias.com/live/${newKey}.m3u8`;
       setLessonForm(prev => ({
         ...prev,
         liveStreamKey: newKey,
@@ -686,6 +682,17 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
         ? `${BACKEND_URL}/api/lms/lessons/${lessonForm.id}` 
         : `${BACKEND_URL}/api/lms/sections/${lessonForm.sectionId}/lessons`;
 
+      // Auto-detect live meeting type from link
+      let detectedType = lessonForm.liveClassType || 'meet';
+      const meetingLink = (lessonForm.liveMeetingUrl || lessonForm.videoUrl || '').trim();
+      if (/meet\.google\.com/i.test(meetingLink)) {
+        detectedType = 'meet';
+      } else if (/zoom\.us/i.test(meetingLink)) {
+        detectedType = 'zoom';
+      } else if (/youtu(\.be|be\.com)/i.test(meetingLink)) {
+        detectedType = 'youtube';
+      }
+
       const res = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
@@ -693,16 +700,18 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
           courseId,
           title: lessonForm.title,
           type: lessonForm.type,
-          videoUrl: lessonForm.videoUrl,
+          videoUrl: lessonForm.videoUrl || lessonForm.liveMeetingUrl,
           duration: lessonForm.duration,
-          liveClassType: lessonForm.liveClassType,
+          liveClassType: detectedType,
           liveScheduledAt: lessonForm.liveScheduledAt,
-          liveMeetingUrl: lessonForm.liveMeetingUrl,
+          liveMeetingUrl: lessonForm.liveMeetingUrl || lessonForm.videoUrl,
           liveStatus: lessonForm.liveStatus,
           recordingUrl: lessonForm.recordingUrl,
           liveStreamKey: lessonForm.liveStreamKey,
           customRtmpUrl: lessonForm.customRtmpUrl,
           playbackHlsUrl: lessonForm.playbackHlsUrl,
+          notesPdfUrl: lessonForm.notesPdfUrl,
+          dppPdfUrl: lessonForm.dppPdfUrl,
           isFree: lessonForm.isFree
         })
       });
@@ -1456,7 +1465,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                                         liveStatus: les.liveStatus || 'scheduled',
                                         recordingUrl: les.recordingUrl || '',
                                         liveStreamKey: les.liveStreamKey || '',
-                                        customRtmpUrl: les.customRtmpUrl || 'rtmp://live.finalattempt.com/live',
+                                        customRtmpUrl: les.customRtmpUrl || 'rtmp://stream.finalattemptias.com/live',
                                         playbackHlsUrl: les.playbackHlsUrl || '',
                                         isFree: !!les.isFree
                                       });
@@ -2514,14 +2523,14 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-slate-700 uppercase">Live Broadcast Platform</label>
                       <select
-                        value={lessonForm.liveClassType || 'custom'}
+                        value={lessonForm.liveClassType || 'meet'}
                         onChange={(e) => setLessonForm({ ...lessonForm, liveClassType: e.target.value })}
                         className="w-full px-3 py-2 bg-white border border-rose-200 rounded-xl text-xs font-semibold text-slate-800 outline-none cursor-pointer"
                       >
+                        <option value="meet">🟢 Google Meet (Direct Join Link)</option>
+                        <option value="zoom">🔵 Zoom Meeting (Direct Join Link)</option>
+                        <option value="youtube">🔴 YouTube Live (Embed / Stream)</option>
                         <option value="custom">🎥 OBS Studio (Custom RTMP + Stream Key)</option>
-                        <option value="youtube">YouTube Live (Unlisted / Public)</option>
-                        <option value="zoom">Zoom Meeting (Direct Launch)</option>
-                        <option value="meet">Google Meet (Direct Launch)</option>
                       </select>
                     </div>
                     <div className="space-y-1.5">
@@ -2560,7 +2569,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                           <button
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText(lessonForm.customRtmpUrl || 'rtmp://live.finalattempt.com/live');
+                              navigator.clipboard.writeText(lessonForm.customRtmpUrl || 'rtmp://stream.finalattemptias.com/live');
                               setCopiedRtmp(true);
                               setTimeout(() => setCopiedRtmp(false), 2000);
                             }}
@@ -2573,7 +2582,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                         <input
                           type="text"
                           readOnly
-                          value={lessonForm.customRtmpUrl || 'rtmp://live.finalattempt.com/live'}
+                          value={lessonForm.customRtmpUrl || 'rtmp://stream.finalattemptias.com/live'}
                           className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 outline-none select-all"
                         />
                       </div>
@@ -2622,9 +2631,21 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                     </label>
                     <input
                       type="text"
-                      value={lessonForm.liveMeetingUrl || ''}
-                      onChange={(e) => setLessonForm({ ...lessonForm, liveMeetingUrl: e.target.value, videoUrl: e.target.value })}
-                      placeholder={lessonForm.liveClassType === 'custom' ? 'https://live.finalattempt.com/hls/stream.m3u8' : 'https://zoom.us/j/... or https://youtube.com/live/...'}
+                      value={lessonForm.liveMeetingUrl || lessonForm.videoUrl || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const updates: any = { liveMeetingUrl: val, videoUrl: val };
+                        if (/meet\.google\.com/i.test(val)) updates.liveClassType = 'meet';
+                        else if (/zoom\.us/i.test(val)) updates.liveClassType = 'zoom';
+                        else if (/youtu(\.be|be\.com)/i.test(val)) updates.liveClassType = 'youtube';
+                        setLessonForm({ ...lessonForm, ...updates });
+                      }}
+                      placeholder={
+                        lessonForm.liveClassType === 'meet' ? 'https://meet.google.com/xxx-yyyy-zzz'
+                        : lessonForm.liveClassType === 'zoom' ? 'https://us04web.zoom.us/j/123456789'
+                        : lessonForm.liveClassType === 'youtube' ? 'https://youtube.com/live/... or https://youtu.be/...'
+                        : 'https://stream.finalattemptias.com/live/stream.m3u8'
+                      }
                       className="w-full px-3.5 py-2 bg-white border border-rose-200 rounded-xl text-xs font-mono text-slate-800 outline-none"
                     />
                   </div>

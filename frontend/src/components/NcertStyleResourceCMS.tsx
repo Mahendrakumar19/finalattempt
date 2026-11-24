@@ -70,10 +70,26 @@ export default function NcertStyleResourceCMS({
 
   const resolveUrl = (url?: string) => {
     if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
-    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-    if (url.startsWith('/api/')) return `${BACKEND_URL}${url}`;
-    return `${BACKEND_URL}/${url.replace(/^\//, '')}`;
+    if (url.includes('localhost:5000') || url.includes('127.0.0.1:5000')) {
+      url = url.replace(/^http:\/\/(localhost|127\.0\.0\.1):5000/, '');
+    }
+    if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+    if (url.startsWith('https://') || (url.startsWith('http://') && !url.includes('localhost') && !url.includes('127.0.0.1'))) {
+      return url;
+    }
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (backendUrl) {
+      if (url.startsWith('/api/')) return `${backendUrl}${url}`;
+      return `${backendUrl}/${url.replace(/^\//, '')}`;
+    }
+    if (url.startsWith('/api/')) return url;
+    return `/${url.replace(/^\//, '')}`;
+  };
+
+  const getApiUploadUrl = () => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL;
+    if (backendUrl) return `${backendUrl}/api/upload`;
+    return '/api/upload';
   };
 
   useEffect(() => {
@@ -105,7 +121,6 @@ export default function NcertStyleResourceCMS({
           setBannerUrl(data.bannerUrl || '');
           setLogoUrl(data.logoUrl || '');
         } else {
-          const defaultItems = isRrmSlug ? INITIAL_FALLBACK_ITEMS : [];
           const initPage: CustomPage = {
             id: createPageId(),
             title: pageTitle,
@@ -114,18 +129,15 @@ export default function NcertStyleResourceCMS({
             showLocation: 'DOWNLOADS_HUB',
             displayOrder: 1,
             isPublished: true,
-            downloadItems: defaultItems,
+            downloadItems: [],
             bannerUrl: '',
             logoUrl: ''
           };
           setPage(initPage);
-          setDownloadItems(defaultItems);
+          setDownloadItems([]);
           setPageOverviewContent(initPage.content);
           setBannerUrl('');
           setLogoUrl('');
-          if (isRrmSlug) {
-            db.saveCustomPage(initPage).catch(e => console.warn('Auto-seed rapid revision items:', e));
-          }
         }
       } catch (err) {
         console.error(`Failed fetching portal page downloads/${pageSlug}:`, err);
@@ -173,15 +185,14 @@ export default function NcertStyleResourceCMS({
     if (!file) return;
     const fd = new FormData();
     fd.append('file', file);
-    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
     try {
-      const res = await fetch(`${BACKEND_URL}/api/upload`, {
+      const res = await fetch(getApiUploadUrl(), {
         method: 'POST',
         body: fd
       });
       const data = await res.json();
-      if (data.success && (data.fileUrl || data.url)) {
-        setBannerUrl(data.fileUrl || data.url);
+      if (data.success && (data.url || data.fileUrl || data.cdnUrl)) {
+        setBannerUrl(data.url || data.fileUrl || data.cdnUrl);
         return;
       }
     } catch {}
@@ -197,15 +208,14 @@ export default function NcertStyleResourceCMS({
     if (!file) return;
     const fd = new FormData();
     fd.append('file', file);
-    const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
     try {
-      const res = await fetch(`${BACKEND_URL}/api/upload`, {
+      const res = await fetch(getApiUploadUrl(), {
         method: 'POST',
         body: fd
       });
       const data = await res.json();
-      if (data.success && (data.fileUrl || data.url)) {
-        setLogoUrl(data.fileUrl || data.url);
+      if (data.success && (data.url || data.fileUrl || data.cdnUrl)) {
+        setLogoUrl(data.url || data.fileUrl || data.cdnUrl);
         return;
       }
     } catch {}
@@ -674,13 +684,12 @@ export default function NcertStyleResourceCMS({
                   const fd = new FormData();
                   fd.append('file', file);
                   try {
-                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-                    const res = await fetch(`${backendUrl}/api/upload`, { method: 'POST', body: fd });
+                    const res = await fetch(getApiUploadUrl(), { method: 'POST', body: fd });
                     const data = await res.json();
-                    if (data.success && (data.url || data.fileUrl)) {
+                    if (data.success && (data.url || data.fileUrl || data.cdnUrl)) {
                       setForm(prev => ({
                         ...prev,
-                        thumbnailUrl: data.fileUrl || data.url
+                        thumbnailUrl: data.url || data.fileUrl || data.cdnUrl
                       }));
                     }
                   } catch (e) {
@@ -897,14 +906,24 @@ export default function NcertStyleResourceCMS({
                       <tr key={item.id} className="border-b border-slate-100 dark:border-white/5 hover:bg-amber-500/5 transition-colors">
                         <td className="p-3">
                           {item.thumbnailUrl ? (
-                            <img
-                              src={resolveUrl(item.thumbnailUrl)}
-                              alt={item.title}
-                              className="w-10 h-14 rounded-lg object-cover border border-slate-200 dark:border-white/10 shadow-xs"
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = 'none';
-                              }}
-                            />
+                            <div className="relative w-10 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-white/10 shadow-xs bg-slate-100 dark:bg-slate-800">
+                              <img
+                                src={resolveUrl(item.thumbnailUrl)}
+                                alt={item.title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                  const fallback = (e.target as HTMLElement).nextElementSibling as HTMLElement | null;
+                                  if (fallback) fallback.style.display = 'flex';
+                                }}
+                              />
+                              <div className="hidden absolute inset-0 bg-gradient-to-br from-amber-500/15 to-orange-500/10 flex-col items-center justify-center p-1 text-center">
+                                <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400 mb-0.5" />
+                                <span className="text-[7px] font-black uppercase tracking-tighter text-amber-700 dark:text-amber-300 line-clamp-1 leading-tight">
+                                  {item.language === 'Hindi' ? 'हिन्दी' : 'PDF'}
+                                </span>
+                              </div>
+                            </div>
                           ) : (
                             <div className="w-10 h-14 rounded-lg bg-gradient-to-br from-amber-500/15 to-orange-500/10 border border-amber-500/30 flex flex-col items-center justify-center p-1 text-center shadow-xs">
                               <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400 mb-0.5" />

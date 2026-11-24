@@ -1107,9 +1107,30 @@ async function initializeMySQLTables(pool: mysql.Pool) {
     try { await pool.query('ALTER TABLE custom_pages ADD COLUMN downloadItems JSON'); } catch (_) {}
     try { await pool.query('ALTER TABLE custom_pages ADD COLUMN metaKeywords TEXT'); } catch (_) {}
 
-    // LMS Courses column migrations (add exam & schedule columns if not present)
-    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS exam VARCHAR(100) DEFAULT 'BPSC'"); } catch (_) {}
-    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS schedule VARCHAR(255)"); } catch (_) {}
+    // LMS Courses column migrations (add exam, schedule, courseFormat, syllabusPdfUrl, validityMonths)
+    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN exam VARCHAR(100) DEFAULT 'BPSC'"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN schedule VARCHAR(255)"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN courseFormat VARCHAR(50) DEFAULT 'hybrid'"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN syllabusPdfUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN validityMonths INT DEFAULT 12"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses MODIFY COLUMN thumbnailUrl LONGTEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses MODIFY COLUMN bannerUrl LONGTEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses MODIFY COLUMN previewVideoUrl LONGTEXT"); } catch (_) {}
+    try {
+      await pool.query("UPDATE lms_courses SET slug = LOWER(REPLACE(REPLACE(title, ' ', '-'), '/', '-')) WHERE slug IS NULL OR slug = ''");
+    } catch (_) {}
+
+    // LMS Lessons live class schema auto-migrations (safe across all MySQL/MariaDB engines)
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN liveClassType VARCHAR(50) DEFAULT 'youtube'"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN liveScheduledAt VARCHAR(100)"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN liveMeetingUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN liveStatus VARCHAR(50) DEFAULT 'scheduled'"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN recordingUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN liveStreamKey VARCHAR(100)"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN customRtmpUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN playbackHlsUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN notesPdfUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN dppPdfUrl TEXT"); } catch (_) {}
 
     // TestSeries table column auto-migrations
     try { await pool.query('ALTER TABLE TestSeries ADD COLUMN exam VARCHAR(100)'); } catch (_) {}
@@ -4087,7 +4108,7 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query(
-          'SELECT * FROM custom_pages WHERE slug = ? OR slug = ? OR slug = ? OR slug = ? LIMIT 1',
+          'SELECT * FROM custom_pages WHERE slug = ? OR slug = ? OR slug = ? OR slug = ? ORDER BY updatedAt DESC LIMIT 1',
           [slug, cleanSlug, altSlug, `downloads/${altSlug}`]
         );
         if (rows.length > 0) {
@@ -4104,15 +4125,22 @@ class BackendDB {
       }
     }
     const store = this.localStore;
-    const pages = store.customPages || [];
-    return pages.find(p => p.slug === slug || p.slug === cleanSlug || p.slug === altSlug) || null;
+    const pages = (store.customPages || []).slice().reverse();
+    const found = pages.find(p => p.slug === slug || p.slug === cleanSlug || p.slug === altSlug);
+    return found ? {
+      ...found,
+      bannerUrl: found.bannerUrl || '',
+      logoUrl: found.logoUrl || '',
+      downloadItems: Array.isArray(found.downloadItems) ? found.downloadItems : []
+    } : null;
   }
 
   public async saveCustomPage(pageData: Partial<CustomPage>): Promise<CustomPage> {
     const id = pageData.id || `page-${Date.now()}`;
     const title = pageData.title || 'Untitled Page';
     const slug = (pageData.slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-')).replace(/(^-|-$)/g, '');
-    const altSlug = slug.startsWith('downloads/') ? slug.replace('downloads/', '') : `downloads/${slug}`;
+    const cleanSlug = slug.replace(/^\/+|\/+$/g, '');
+    const altSlug = cleanSlug.startsWith('downloads/') ? cleanSlug.replace('downloads/', '') : `downloads/${cleanSlug}`;
     const content = pageData.content || '';
     const showLocation = pageData.showLocation || 'NAVBAR';
     const displayOrder = pageData.displayOrder || 0;
@@ -4130,11 +4158,15 @@ class BackendDB {
     if (mysqlPool) {
       try {
         const [existing]: any = await mysqlPool.query(
-          'SELECT id FROM custom_pages WHERE id = ? OR slug = ? OR slug = ? LIMIT 1',
-          [id, slug, altSlug]
+          'SELECT id FROM custom_pages WHERE id = ? OR slug = ? OR slug = ? OR slug = ? ORDER BY updatedAt DESC',
+          [id, slug, altSlug, cleanSlug]
         );
         if (existing && existing.length > 0) {
           targetId = existing[0].id;
+          if (existing.length > 1) {
+            const duplicateIds = existing.slice(1).map((r: any) => r.id);
+            await mysqlPool.query('DELETE FROM custom_pages WHERE id IN (?)', [duplicateIds]);
+          }
         }
 
         await mysqlPool.query(
@@ -4169,7 +4201,7 @@ class BackendDB {
       createdAt: pageData.createdAt || now,
       updatedAt: now
     };
-    store.customPages = store.customPages.filter(p => p.id !== targetId && p.slug !== slug && p.slug !== altSlug);
+    store.customPages = store.customPages.filter(p => p.id !== targetId && p.slug !== slug && p.slug !== altSlug && p.slug !== cleanSlug);
     store.customPages.push(updatedRecord);
     this.saveLocalData();
     return updatedRecord;
@@ -4415,22 +4447,20 @@ async function initializeAuthTables(pool: mysql.Pool) {
       )
     `);
 
-    try {
-      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveClassType VARCHAR(50) DEFAULT 'youtube'");
-      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveScheduledAt VARCHAR(100)");
-      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveMeetingUrl TEXT");
-      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveStatus VARCHAR(50) DEFAULT 'scheduled'");
-      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS recordingUrl TEXT");
-      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS liveStreamKey VARCHAR(100)");
-      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS customRtmpUrl TEXT");
-      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS playbackHlsUrl TEXT");
-      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS notesPdfUrl TEXT");
-      await pool.query("ALTER TABLE lms_lessons ADD COLUMN IF NOT EXISTS dppPdfUrl TEXT");
-      await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS courseFormat VARCHAR(50) DEFAULT 'hybrid'");
-      await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS syllabusPdfUrl TEXT");
-      await pool.query("ALTER TABLE lms_courses ADD COLUMN IF NOT EXISTS validityMonths INT DEFAULT 12");
-      await pool.query("ALTER TABLE lms_enrollments ADD COLUMN IF NOT EXISTS expiresAt DATETIME NULL");
-    } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN liveClassType VARCHAR(50) DEFAULT 'youtube'"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN liveScheduledAt VARCHAR(100)"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN liveMeetingUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN liveStatus VARCHAR(50) DEFAULT 'scheduled'"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN recordingUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN liveStreamKey VARCHAR(100)"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN customRtmpUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN playbackHlsUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN notesPdfUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_lessons ADD COLUMN dppPdfUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN courseFormat VARCHAR(50) DEFAULT 'hybrid'"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN syllabusPdfUrl TEXT"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_courses ADD COLUMN validityMonths INT DEFAULT 12"); } catch (_) {}
+    try { await pool.query("ALTER TABLE lms_enrollments ADD COLUMN expiresAt DATETIME NULL"); } catch (_) {}
 
     // LMS Enrollments
     await pool.query(`
@@ -5038,12 +5068,44 @@ class LmsDB {
   }
 
   async createCourse(data: any): Promise<any> {
-    const slug = data.slug || data.title?.toLowerCase()?.replace(/[^a-z0-9]+/g, '-') || `course-${Date.now()}`;
+    const rawSlug = (data.slug || data.title?.toLowerCase()?.replace(/[^a-z0-9]+/g, '-') || `course-${Date.now()}`)
+      .replace(/(^-|-$)/g, '')
+      .toLowerCase();
+    let slug = rawSlug || `course-${Date.now()}`;
+    data.id = data.id || slug || `course-${Date.now()}`;
+
     if (mysqlPool) {
       try {
+        const [existing]: any = await mysqlPool.query('SELECT id FROM lms_courses WHERE slug = ? AND id != ? LIMIT 1', [slug, data.id]);
+        if (existing && existing.length > 0) {
+          slug = `${slug}-${Date.now().toString().slice(-4)}`;
+        }
+        data.slug = slug;
+
         await mysqlPool.query(
           `INSERT INTO lms_courses (id, title, slug, exam, category, description, overview, thumbnailUrl, bannerUrl, fee, originalPrice, discount, duration, schedule, syllabusPdfUrl, enrolledCount, syllabus, features, faq, faculty, demoLectures, isPublished)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             title = VALUES(title),
+             slug = VALUES(slug),
+             exam = VALUES(exam),
+             category = VALUES(category),
+             description = VALUES(description),
+             overview = VALUES(overview),
+             thumbnailUrl = VALUES(thumbnailUrl),
+             bannerUrl = VALUES(bannerUrl),
+             fee = VALUES(fee),
+             originalPrice = VALUES(originalPrice),
+             discount = VALUES(discount),
+             duration = VALUES(duration),
+             schedule = VALUES(schedule),
+             syllabusPdfUrl = VALUES(syllabusPdfUrl),
+             syllabus = VALUES(syllabus),
+             features = VALUES(features),
+             faq = VALUES(faq),
+             faculty = VALUES(faculty),
+             demoLectures = VALUES(demoLectures),
+             isPublished = VALUES(isPublished)`,
           [
             data.id, data.title, slug, data.exam || 'BPSC', data.category || 'Prelims', data.description || '', data.overview || '',
             data.thumbnailUrl || null, data.bannerUrl || null,
@@ -5059,7 +5121,20 @@ class LmsDB {
           // Fallback if extra columns are missing in older MySQL schemas
           await mysqlPool.query(
             `INSERT INTO lms_courses (id, title, slug, exam, category, description, fee, duration, schedule, enrolledCount, syllabus, features, faq, isPublished)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)`,
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+               title = VALUES(title),
+               slug = VALUES(slug),
+               exam = VALUES(exam),
+               category = VALUES(category),
+               description = VALUES(description),
+               fee = VALUES(fee),
+               duration = VALUES(duration),
+               schedule = VALUES(schedule),
+               syllabus = VALUES(syllabus),
+               features = VALUES(features),
+               faq = VALUES(faq),
+               isPublished = VALUES(isPublished)`,
             [
               data.id, data.title, slug, data.exam || 'BPSC', data.category || 'Prelims', data.description,
               data.fee || 0, data.duration || '', data.schedule || '',
@@ -5070,16 +5145,18 @@ class LmsDB {
             ]
           );
         });
-        return data;
+        return { ...data, slug };
       } catch (err) {
         console.error('[LmsDB] createCourse MySQL error:', err);
         throw err;
       }
     }
 
+    data.slug = slug;
     if (!db.localStore.courses.some(c => c.id === data.id)) {
       db.localStore.courses.push({
         ...data,
+        slug,
         thumbnailUrl: data.thumbnailUrl || '',
         bannerUrl: data.bannerUrl || '',
         syllabus: typeof data.syllabus === 'string' ? JSON.parse(data.syllabus) : data.syllabus || [],
@@ -5090,14 +5167,19 @@ class LmsDB {
       });
       db.saveLocalData();
     }
-    return data;
+    return { ...data, slug };
   }
 
   async updateCourse(id: string, updates: any): Promise<boolean> {
+    if (updates.slug !== undefined) {
+      const clean = updates.slug ? String(updates.slug).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/(^-|-$)/g, '') : '';
+      if (clean) updates.slug = clean;
+    }
     if (mysqlPool) {
       try {
         const fields: string[] = [];
         const vals: any[] = [];
+        if (updates.slug !== undefined && updates.slug) { fields.push('slug = ?'); vals.push(updates.slug); }
         if (updates.title !== undefined) { fields.push('title = ?'); vals.push(updates.title); }
         if (updates.description !== undefined) { fields.push('description = ?'); vals.push(updates.description); }
         if (updates.overview !== undefined) { fields.push('overview = ?'); vals.push(updates.overview); }
@@ -5123,6 +5205,7 @@ class LmsDB {
           await mysqlPool.query(`UPDATE lms_courses SET ${fields.join(', ')} WHERE id = ? OR slug = ?`, vals).catch(async (e) => {
             const safeFields: string[] = [];
             const safeVals: any[] = [];
+            if (updates.slug !== undefined && updates.slug) { safeFields.push('slug = ?'); safeVals.push(updates.slug); }
             if (updates.title !== undefined) { safeFields.push('title = ?'); safeVals.push(updates.title); }
             if (updates.description !== undefined) { safeFields.push('description = ?'); safeVals.push(updates.description); }
             if (updates.thumbnailUrl !== undefined) { safeFields.push('thumbnailUrl = ?'); safeVals.push(updates.thumbnailUrl); }
@@ -5271,6 +5354,20 @@ class LmsDB {
       } catch (err) { console.error('[LmsDB] getLessonById MySQL error:', err); }
     }
     const found = db.localStore.lessons.find(l => l.id === id);
+    return found || null;
+  }
+
+  async getLessonByStreamKey(streamKey: string): Promise<any | null> {
+    if (mysqlPool) {
+      try {
+        const [rows]: any = await mysqlPool.query(
+          'SELECT * FROM lms_lessons WHERE liveStreamKey = ? AND isPublished = 1 LIMIT 1',
+          [streamKey]
+        );
+        if (rows && rows.length > 0) return { ...rows[0], isFree: !!rows[0].isFree };
+      } catch (err) { console.error('[LmsDB] getLessonByStreamKey MySQL error:', err); }
+    }
+    const found = db.localStore.lessons.find(l => l.liveStreamKey === streamKey && l.isPublished !== 0);
     return found || null;
   }
 
@@ -5516,7 +5613,7 @@ class LmsDB {
     if (mysqlPool) {
       try {
         await mysqlPool.query(
-          'INSERT INTO lms_enrollments (id, userId, courseId, paymentOrderId, paymentStatus, amountPaid, expiresAt) VALUES (?, ?, ?, ?, ?, ?)',
+          'INSERT INTO lms_enrollments (id, userId, courseId, paymentOrderId, paymentStatus, amountPaid, expiresAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [enrollment.id, userId, courseId, enrollment.paymentOrderId, enrollment.paymentStatus, enrollment.amountPaid, expiresAt]
         );
         // Update enrolled count on both Courses and Test Series
@@ -5530,7 +5627,7 @@ class LmsDB {
           try {
             await mysqlPool.query('ALTER TABLE lms_enrollments DROP FOREIGN KEY lms_enrollments_ibfk_2');
             await mysqlPool.query(
-              'INSERT INTO lms_enrollments (id, userId, courseId, paymentOrderId, paymentStatus, amountPaid, expiresAt) VALUES (?, ?, ?, ?, ?, ?)',
+              'INSERT INTO lms_enrollments (id, userId, courseId, paymentOrderId, paymentStatus, amountPaid, expiresAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
               [enrollment.id, userId, courseId, enrollment.paymentOrderId, enrollment.paymentStatus, enrollment.amountPaid, expiresAt]
             );
             await mysqlPool.query('UPDATE TestSeries SET enrolledCount = enrolledCount + 1 WHERE id = ? OR slug = ?', [courseId, courseId]);

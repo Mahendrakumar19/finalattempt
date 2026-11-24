@@ -62,6 +62,7 @@ export interface SiteSettings {
 
 export interface Course {
   id: string;
+  slug?: string;
   title: string;
   exam?: 'BPSC' | 'Arunachal PCS' | string;
   category: 'BPSC' | 'Foundation' | 'Prelims' | 'Mains' | 'Interview' | string;
@@ -164,6 +165,15 @@ export interface CourseLesson {
   videoUrl: string;
   duration: string;
   orderIndex: number;
+  type?: 'video' | 'pdf' | 'text' | 'quiz' | 'live' | string;
+  liveClassType?: 'youtube' | 'zoom' | 'meet' | 'custom' | string;
+  liveScheduledAt?: string;
+  liveMeetingUrl?: string;
+  liveStatus?: 'scheduled' | 'live' | 'ended' | string;
+  recordingUrl?: string;
+  notesPdfUrl?: string;
+  dppPdfUrl?: string;
+  isFree?: boolean;
 }
 
 export interface CourseProgress {

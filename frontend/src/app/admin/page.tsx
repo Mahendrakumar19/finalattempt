@@ -172,6 +172,7 @@ interface ResourceDownload {
 
 interface Course {
   id: string;
+  slug?: string;
   title: string;
   exam?: string;
   category: string;
@@ -394,7 +395,7 @@ export default function AdminPortal() {
   const [caEditionTargetFilter, setCaEditionTargetFilter] = useState<'all' | 'english' | 'hindi' | 'both'>('all');
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '', category: 'Prelims', subcategory: '' });
   const [resourceUploading, setResourceUploading] = useState(false);
-  const [courseForm, setCourseForm] = useState<Course>({ id: '', title: '', category: 'BPSC Course', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
+  const [courseForm, setCourseForm] = useState<Course>({ id: '', slug: '', title: '', category: 'BPSC Course', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
   const [bannerUploading, setBannerUploading] = useState(false);
   const [bannerUrlInput, setBannerUrlInput] = useState('');
   const [bannerSaveSuccess, setBannerSaveSuccess] = useState(false);
@@ -6101,7 +6102,7 @@ export default function AdminPortal() {
                 {editMode && (
                   <button
                     onClick={() => {
-                      setCourseForm({ id: `course-${Date.now()}`, title: '', exam: 'BPSC', category: 'Prelims', description: '', fee: 4999, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
+                      setCourseForm({ id: `course-${Date.now()}`, slug: '', title: '', exam: 'BPSC', category: 'Prelims', description: '', fee: 4999, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
                       setActiveModal({ type: 'add' });
                     }}
                     className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs animate-in shadow-sm"
@@ -6118,8 +6119,9 @@ export default function AdminPortal() {
                 <div key={course.id} className="p-6 bg-white border border-slate-200 flex flex-col justify-between space-y-4 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
                   <div>
                     <div className="flex justify-between items-start gap-4">
-                      <Link href={`/courses/${course.id}`} className="hover:underline">
+                      <Link href={`/courses/${course.slug || course.id}`} className="hover:underline">
                         <h4 className="font-bold text-sm text-slate-900 leading-tight">{course.title}</h4>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">slug: <span className="text-slate-600 font-medium">/courses/{course.slug || course.id}</span></p>
                       </Link>
                       {editMode && (
                         <div className="flex gap-2">
@@ -6275,20 +6277,24 @@ export default function AdminPortal() {
               <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                 <form onSubmit={async (e) => {
                   e.preventDefault();
+                  const autoSlug = (courseForm.slug || courseForm.title.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/(^-|-$)/g, '') || courseForm.id).trim();
+                  const payload = { ...courseForm, slug: autoSlug };
                   if (activeModal.type === 'add') {
-                    setCoursesList(prev => [...prev, courseForm]);
-                    await fetch(`${BACKEND_URL}/api/lms/courses`, {
+                    const res = await fetch(`${BACKEND_URL}/api/lms/courses`, {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
-                      body: JSON.stringify(courseForm)
+                      body: JSON.stringify(payload)
                     });
+                    const resData = await res.json();
+                    const createdCourse = resData?.data || payload;
+                    setCoursesList(prev => [...prev, createdCourse]);
                   } else {
                     const id = courseForm.id;
-                    setCoursesList(prev => prev.map(c => c.id === id ? courseForm : c));
+                    setCoursesList(prev => prev.map(c => c.id === id ? payload : c));
                     await fetch(`${BACKEND_URL}/api/lms/courses/${id}`, {
                       method: 'PUT',
                       headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
-                      body: JSON.stringify(courseForm)
+                      body: JSON.stringify(payload)
                     });
                   }
                   setActiveModal(null);
@@ -6298,20 +6304,44 @@ export default function AdminPortal() {
                   </h3>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] text-slate-400 font-bold uppercase">Course ID (Slug)</label>
+                    <label className="text-[10px] text-slate-400 font-bold uppercase">Course ID (Internal)</label>
                     <input
                       type="text" required value={courseForm.id}
                       disabled={activeModal.type === 'edit'}
                       onChange={(e) => setCourseForm({ ...courseForm, id: e.target.value })}
-                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 disabled:opacity-50"
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 disabled:opacity-50 font-mono text-[11px]"
                     />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase">Course Slug (SEO URL)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. bpsc-71st-prelims-foundation"
+                      value={courseForm.slug || ''}
+                      onChange={(e) => {
+                        const clean = e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-');
+                        setCourseForm({ ...courseForm, slug: clean });
+                      }}
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 font-mono text-[11px]"
+                    />
+                    <p className="text-[9px] text-slate-400">
+                      Live URL: <span className="font-semibold text-slate-600">/courses/{courseForm.slug || courseForm.title?.toLowerCase()?.replace(/[^a-z0-9-]+/g, '-') || courseForm.id}</span>
+                    </p>
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-[10px] text-slate-400 font-bold uppercase">Course Title</label>
                     <input
                       type="text" required value={courseForm.title}
-                      onChange={(e) => setCourseForm({ ...courseForm, title: e.target.value })}
+                      onChange={(e) => {
+                        const newTitle = e.target.value;
+                        const updates: Partial<Course> = { title: newTitle };
+                        if (activeModal.type === 'add' && (!courseForm.slug || courseForm.slug === courseForm.title.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/(^-|-$)/g, ''))) {
+                          updates.slug = newTitle.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/(^-|-$)/g, '');
+                        }
+                        setCourseForm({ ...courseForm, ...updates });
+                      }}
                       className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400"
                     />
                   </div>
