@@ -79,7 +79,7 @@ function CoursesContent() {
 
     const matchesFormat = selectedFormat === 'All' ||
       (selectedFormat === 'Live' && isLiveCourse) ||
-      (selectedFormat === 'Recorded' && !isLiveCourse);
+      (selectedFormat === 'Recorded' && (course.courseFormat === 'recorded' || course.description?.toLowerCase().includes('recorded') || course.schedule?.toLowerCase().includes('recorded')));
 
     const matchesSearch = (course.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (course.description || '').toLowerCase().includes(searchQuery.toLowerCase());
@@ -232,11 +232,11 @@ function CoursesContent() {
                               <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping" />
                               LIVE
                             </span>
-                          ) : (
+                          ) : (course.courseFormat === 'recorded' || course.description?.toLowerCase().includes('recorded') || course.schedule?.toLowerCase().includes('recorded')) ? (
                             <span className="px-2 py-0.5 rounded-full bg-blue-600/90 text-white text-[9px] font-extrabold tracking-wider uppercase border border-blue-400/30 backdrop-blur-xs shadow-sm">
                               RECORDED
                             </span>
-                          )}
+                          ) : null}
                           <span className="px-2.5 py-0.5 rounded-full bg-slate-900/80 text-amber-400 text-[9px] font-extrabold tracking-wider uppercase border border-amber-500/30 backdrop-blur-xs">
                             {course.category || 'BATCH'}
                           </span>
@@ -257,11 +257,11 @@ function CoursesContent() {
                                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
                                   LIVE
                                 </span>
-                              ) : (
+                              ) : (course.courseFormat === 'recorded' || course.description?.toLowerCase().includes('recorded') || course.schedule?.toLowerCase().includes('recorded')) ? (
                                 <span className="px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase tracking-wider border border-blue-500/20">
                                   RECORDED
                                 </span>
-                              )}
+                              ) : null}
                               <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[9px] font-extrabold tracking-wider uppercase border border-slate-200/60 dark:border-white/10">
                                 {course.category || 'BATCH'}
                               </span>

@@ -128,11 +128,11 @@ export default async function CourseDetailPage({ params }: PageProps) {
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping" />
                 Live Interactive Batch
               </div>
-            ) : (
+            ) : ((course as ExtendedCourse).courseFormat === 'recorded' || course.description?.toLowerCase().includes('recorded')) ? (
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-black uppercase tracking-wider">
                 📼 Complete Recorded Course
               </div>
-            )}
+            ) : null}
           </div>
           <h1 className="text-3xl sm:text-4xl font-heading font-extrabold text-brand-primary leading-tight">
             {course.title}
@@ -151,7 +151,7 @@ export default async function CourseDetailPage({ params }: PageProps) {
               <p className="text-sm font-extrabold text-slate-900">
                 {((course as ExtendedCourse).courseFormat === 'live' || course.title?.toLowerCase().includes('live'))
                   ? '🔴 Live + Recorded Backups' 
-                  : (course.schedule || 'Self-Paced Recorded')}
+                  : ((course as ExtendedCourse).courseFormat === 'recorded' ? '📼 Self-Paced Recorded' : (course.schedule || 'Comprehensive Mentorship'))}
               </p>
             </div>
             <div className="space-y-1">
