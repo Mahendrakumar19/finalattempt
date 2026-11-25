@@ -614,7 +614,109 @@ export default function TestSeriesDetailPage() {
           </div>
         </div>
 
-        {/* ── SECTION 1: PACKAGE OPTIONS (MINI, HALF, FULL) ───────────────── */}
+        {/* ── SECTION 1: PACKAGE OPTIONS (MINI/HALF/FULL for Prelims | Enrollment card for Mains) ── */}
+        {series.category?.toLowerCase().includes('mains') ? (
+          /* ── MAINS ENROLLMENT CARD ─────────────────────────────────────── */
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-xl font-heading font-black text-[var(--text-color)]">
+                Enroll in this Program
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Review program details and register below.
+              </p>
+            </div>
+
+            {/* Program Details Table Card */}
+            <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl overflow-hidden">
+              <table className="w-full text-sm">
+                <tbody>
+                  {[
+                    { label: 'Title', value: series.title },
+                    { label: 'Module ID', value: series.moduleCode || series.id.split('-').slice(0,3).join('-').toUpperCase() },
+                    {
+                      label: 'Target Exam',
+                      value: (series.exam && series.exam.toUpperCase() !== 'GENERAL') ? series.exam : 'BPSC'
+                    },
+                    {
+                      label: 'Medium',
+                      value: series.medium || (
+                        (series.language || '').toLowerCase().includes('hindi') && (series.publish_target === 'both' || series.language?.toLowerCase().includes('english'))
+                          ? 'Bilingual (Hindi + English)'
+                          : (series.language || 'Bilingual')
+                      )
+                    },
+                    {
+                      label: 'Fee',
+                      value: (() => {
+                        const activePlan = plans.length > 0 ? plans[0] : null;
+                        const sp = activePlan?.discounted_price || activePlan?.price || series.discountedPrice || series.price;
+                        const mrp = activePlan?.price || series.price;
+                        if (sp && mrp && sp < mrp) {
+                          return `₹${sp} (MRP ₹${mrp})`;
+                        }
+                        return sp ? `₹${sp}` : (series.price ? `₹${series.price}` : '—');
+                      })()
+                    },
+                    {
+                      label: 'No. of Tests',
+                      value: `${series.totalTests || quizzes.length || '—'} Descriptive Papers`
+                    },
+                    { label: 'Validity', value: series.duration || `${series.validityDays || '—'} Days` },
+                    {
+                      label: 'Start Date',
+                      value: series.batchStartDate
+                        ? (() => {
+                            try {
+                              return new Date(series.batchStartDate).toLocaleDateString('en-IN', {
+                                day: 'numeric', month: 'long', year: 'numeric'
+                              });
+                            } catch { return series.batchStartDate; }
+                          })()
+                        : '—'
+                    },
+                  ].map(({ label, value }, i) => (
+                    <tr key={label} className={i % 2 === 0 ? 'bg-slate-50 dark:bg-slate-800/40' : ''}>
+                      <td className="py-3 px-5 text-[11px] font-extrabold text-slate-500 uppercase tracking-widest w-36 shrink-0 border-r border-[var(--card-border)]">
+                        {label}
+                      </td>
+                      <td className="py-3 px-5 font-semibold text-[var(--text-color)] text-sm">
+                        {value}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Enroll Button */}
+            <div className="pt-2">
+              {highestTier !== 'NONE' ? (
+                <div className="w-full py-4 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-2xl text-sm text-center border border-emerald-500/20 flex items-center justify-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  <span>You are enrolled in this program</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    // For Mains, enroll with the first available plan or full package
+                    const firstPlan = plans[0];
+                    if (firstPlan) {
+                      setSelectedPackages([firstPlan.plan_code]);
+                    } else {
+                      setSelectedPackages(['FULL']);
+                    }
+                    setShowCheckoutDrawer(true);
+                  }}
+                  className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-2xl text-sm uppercase tracking-wider transition-all cursor-pointer shadow-md"
+                >
+                  Register Now
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+        /* ── PRELIMS: MINI / HALF / FULL PACKAGE GRID ──────────────────── */
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -1088,6 +1190,7 @@ export default function TestSeriesDetailPage() {
             })()}
           </div>
         </div>
+        )} {/* end Mains/Prelims ternary */}
 
         {/* ── SECTION 2: INDIVIDUAL TEST SELECTION GRID ───────────────────── */}
         <div className="space-y-4 pt-4 border-t border-[var(--card-border)]">

@@ -760,7 +760,9 @@ export default function TestSeriesDetailPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {(() => {
-                  const defaultCodes = ['MINI', 'HALF', 'FULL', 'COMPLETE'];
+                  const isMainsSeries = (series?.category || '').toLowerCase().includes('mains');
+                  // For Mains, show only the FULL/Mains program plan and custom plans, NOT Prelims MINI/HALF/COMPLETE
+                  const defaultCodes = isMainsSeries ? ['FULL'] : ['MINI', 'HALF', 'FULL', 'COMPLETE'];
                   const fetchedCodes = plans.map(p => p.plan_code);
                   const allCodes = Array.from(new Set([...defaultCodes, ...fetchedCodes]));
 
@@ -768,14 +770,21 @@ export default function TestSeriesDetailPage() {
                     const plan = plans.find(p => p.plan_code === code) || {
                       series_id: series?.id || testSeriesId,
                       plan_code: code,
-                      title: code === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${code} Package`,
-                      sequence_start_number: code === 'HALF' ? 17 : code === 'FULL' ? 29 : 1,
-                      sequence_end_number: code === 'MINI' ? 16 : code === 'HALF' ? 28 : code === 'FULL' ? 40 : (quizzes.length > 0 ? Math.max(quizzes.length, 40) : 40),
-                      price: code === 'MINI' ? 299 : code === 'HALF' ? 499 : code === 'FULL' ? 699 : (series?.discountedPrice || series?.price || 799),
+                      title: isMainsSeries && code === 'FULL'
+                        ? (series?.title || 'BPSC MAINS TEST SERIES')
+                        : (code === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${code} Package`),
+                      sequence_start_number: code === 'HALF' ? 17 : code === 'FULL' ? (isMainsSeries ? 1 : 29) : 1,
+                      sequence_end_number: code === 'MINI' ? 16 : code === 'HALF' ? 28 : (series?.totalTests || (quizzes.length > 0 ? Math.max(quizzes.length, 27) : 27)),
+                      price: isMainsSeries ? (series?.price || 8000) : (code === 'MINI' ? 299 : code === 'HALF' ? 499 : code === 'FULL' ? 699 : 799),
+                      discounted_price: isMainsSeries ? (series?.discountedPrice || 6400) : undefined,
                       is_active: true
                     };
 
-                    const displayTitle = plan.title || (code === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${code} Package`);
+                    const displayTitle = plan.title || (
+                      isMainsSeries && code === 'FULL'
+                        ? (series?.title || 'BPSC MAINS TEST SERIES')
+                        : (code === 'COMPLETE' ? 'COMPLETE TEST SERIES' : `${code} Package`)
+                    );
 
                     let includedCount = 0;
                     if (plan.included_quiz_ids) {

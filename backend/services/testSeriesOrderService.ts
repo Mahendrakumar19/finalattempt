@@ -51,16 +51,23 @@ export class TestSeriesOrderService {
     });
 
     // Fallback: check the TestSeries MySQL table via db (primary source for test series records)
+    let foundTestSeries: any = null;
     if (!series) {
       try {
         const { db } = await import('../db');
         const found = await db.getTestSeriesBySlugOrId(seriesId);
         if (found) {
-          series = { id: found.id, title: found.title, fee: Number(found.price) || 0 };
+          foundTestSeries = found;
+          series = { id: found.id, title: found.title, fee: Number(found.discountedPrice || found.price) || 0 };
         }
       } catch (e: any) {
         console.warn('[TestSeriesOrderService] TestSeries db lookup failed:', e.message);
       }
+    } else {
+      try {
+        const { db } = await import('../db');
+        foundTestSeries = await db.getTestSeriesBySlugOrId(seriesId);
+      } catch (_) {}
     }
 
     if (!series) {
@@ -87,6 +94,14 @@ export class TestSeriesOrderService {
     });
 
     // ── Default fallback plans when admin hasn't configured plans yet ──────────
+    // Determine dynamic price based on the actual test series entity
+    const dynamicPrice = Number(foundTestSeries?.price) || Number(series.fee) || 699;
+    const dynamicDiscounted = foundTestSeries?.discountedPrice !== undefined && foundTestSeries?.discountedPrice !== null
+      ? Number(foundTestSeries.discountedPrice)
+      : null;
+    const finalFullPrice = dynamicDiscounted !== null && dynamicDiscounted > 0 ? dynamicDiscounted : dynamicPrice;
+    const isMains = (foundTestSeries?.category || '').toLowerCase().includes('mains');
+
     // 4 Cumulative Package Tiers: MINI, HALF, FULL, COMPLETE
     const FALLBACK_PLANS: Array<{
       id: string; series_id: string; plan_code: PlanCode;
@@ -99,28 +114,28 @@ export class TestSeriesOrderService {
         id: `${canonicalSeriesId}-mini-default`, series_id: canonicalSeriesId,
         plan_code: 'MINI' as PlanCode, title: 'MINI Package', description: null,
         sequence_start_number: 1, sequence_end_number: 10,
-        price: 299, discounted_price: null, is_active: true,
+        price: isMains ? finalFullPrice : 299, discounted_price: isMains ? dynamicDiscounted : null, is_active: true,
         created_at: new Date(), updated_at: new Date()
       },
       {
         id: `${canonicalSeriesId}-half-default`, series_id: canonicalSeriesId,
         plan_code: 'HALF' as PlanCode, title: 'HALF Package', description: null,
         sequence_start_number: 1, sequence_end_number: 20,
-        price: 499, discounted_price: null, is_active: true,
+        price: isMains ? finalFullPrice : 499, discounted_price: isMains ? dynamicDiscounted : null, is_active: true,
         created_at: new Date(), updated_at: new Date()
       },
       {
         id: `${canonicalSeriesId}-full-default`, series_id: canonicalSeriesId,
-        plan_code: 'FULL' as PlanCode, title: 'FULL Package', description: null,
-        sequence_start_number: 1, sequence_end_number: 30,
-        price: 699, discounted_price: null, is_active: true,
+        plan_code: 'FULL' as PlanCode, title: isMains ? (foundTestSeries?.title || 'FULL Package') : 'FULL Package', description: null,
+        sequence_start_number: 1, sequence_end_number: Number(foundTestSeries?.totalTests) || 30,
+        price: dynamicPrice, discounted_price: dynamicDiscounted, is_active: true,
         created_at: new Date(), updated_at: new Date()
       },
       {
         id: `${canonicalSeriesId}-complete-default`, series_id: canonicalSeriesId,
         plan_code: 'COMPLETE' as PlanCode, title: 'COMPLETE TEST SERIES', description: null,
-        sequence_start_number: 1, sequence_end_number: 40,
-        price: 799, discounted_price: null, is_active: true,
+        sequence_start_number: 1, sequence_end_number: Number(foundTestSeries?.totalTests) || 40,
+        price: dynamicPrice, discounted_price: dynamicDiscounted, is_active: true,
         created_at: new Date(), updated_at: new Date()
       }
     ];

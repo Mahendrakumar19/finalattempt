@@ -346,7 +346,11 @@ export default function TestSeriesComparisonTable({
                   else if (rawExam.includes('appcs') || rawExam.includes('appsc')) examBadge = 'APPCS';
                   else if (rawExam.includes('apssb')) examBadge = 'APSSB';
                   else if (rawExam.includes('upsc')) examBadge = 'UPSC';
-                  else if (program.exam) examBadge = program.exam.split(' ')[0].toUpperCase();
+                  else if (program.exam) {
+                    const rawBadge = program.exam.split(' ')[0].toUpperCase();
+                    // Don't show 'GENERAL' — fall back to 'BPSC' (default exam)
+                    examBadge = rawBadge === 'GENERAL' ? 'BPSC' : rawBadge;
+                  }
 
                   return (
                     <tr
