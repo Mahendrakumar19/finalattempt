@@ -416,7 +416,9 @@ export default function TestSeriesAdmin({
 
   useEffect(() => {
     if (subTab === 'packages' && selectedSeriesId) {
-      loadSeriesPlans();
+      queueMicrotask(() => {
+        loadSeriesPlans();
+      });
     }
   }, [subTab, selectedSeriesId, loadSeriesPlans]);
 
@@ -3296,7 +3298,12 @@ export default function TestSeriesAdmin({
                 <div>
                   <label className="block text-slate-400 mb-1">Target Exam *</label>
                   <select
-                    value={editingSeries.examId || (examsList[0]?.id || '')}
+                    value={
+                      examsList.find(ex =>
+                        ex.id === editingSeries.examId ||
+                        (editingSeries.exam && (ex.code?.toLowerCase() === editingSeries.exam.toLowerCase() || ex.name?.toLowerCase() === editingSeries.exam.toLowerCase()))
+                      )?.id || editingSeries.examId || (examsList[0]?.id || '')
+                    }
                     onChange={e => {
                       const selectedExId = e.target.value;
                       const selectedExObj = examsList.find(ex => ex.id === selectedExId) || examsList[0];
@@ -3317,9 +3324,18 @@ export default function TestSeriesAdmin({
                     }}
                     className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
                   >
-                    {examsList.map((ex: any) => (
-                      <option key={ex.id} value={ex.id}>{ex.name} ({ex.hasStages ? 'Has Stages' : 'Direct Series'})</option>
-                    ))}
+                    {examsList.length === 0 ? (
+                      <>
+                        <option value="exam-bpsc">BPSC (71st / 72nd)</option>
+                        <option value="exam-upsc">UPSC CSE</option>
+                        <option value="exam-uppsc">UPPSC</option>
+                        <option value="exam-arunachal">Arunachal PCS</option>
+                      </>
+                    ) : (
+                      examsList.map((ex: any) => (
+                        <option key={ex.id} value={ex.id}>{ex.name} ({ex.hasStages ? 'Has Stages' : 'Direct Series'})</option>
+                      ))
+                    )}
                   </select>
                 </div>
 
