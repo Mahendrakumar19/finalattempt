@@ -482,14 +482,20 @@ export default function TestSeriesAdmin({
   const handleOpenAddSeries = () => {
     setSeriesModalType('add');
     const newId = `ts-${Date.now()}`;
-    const defaultEx = examsList[0] || { id: '', name: 'General', code: 'GENERAL', hasStages: false, stages: [] };
-    const examName = defaultEx.code || defaultEx.name || 'exam';
+    const defaultEx = examsList[0] || {
+      id: 'exam-bpsc',
+      name: 'BPSC',
+      code: 'BPSC',
+      hasStages: true,
+      stages: [{ id: 'stage-prelims', name: 'Prelims' }, { id: 'stage-mains', name: 'Mains' }]
+    };
+    const examName = defaultEx.code || defaultEx.name || 'BPSC';
     const initial = {
       ...BLANK_SERIES,
       id: newId,
       slug: `${examName.toLowerCase()}-test-series`,
       examId: defaultEx.id,
-      exam: defaultEx.code || defaultEx.name || 'Exam',
+      exam: examName,
       stageId: defaultEx.hasStages && defaultEx.stages?.[0] ? defaultEx.stages[0].id : null,
       category: defaultEx.hasStages && defaultEx.stages?.[0] ? defaultEx.stages[0].name : 'Prelims'
     };
@@ -503,19 +509,30 @@ export default function TestSeriesAdmin({
     setSeriesModalType('edit');
     const cleanLang = (item.language && item.language.toLowerCase().includes('hindi')) ? 'Hindi' : 'English';
 
-    // Resolve matching examId from examsList by examId, code, or name
-    const foundEx = examsList.find((ex: any) =>
+    const effectiveExams = examsList.length > 0 ? examsList : [
+      { id: 'exam-bpsc', name: 'BPSC', code: 'BPSC', slug: 'bpsc', hasStages: true, stages: [{ id: 'stage-prelims', name: 'Prelims' }, { id: 'stage-mains', name: 'Mains' }] },
+      { id: 'exam-upsc', name: 'UPSC CSE', code: 'UPSC', slug: 'upsc', hasStages: true, stages: [{ id: 'stage-prelims', name: 'Prelims' }, { id: 'stage-mains', name: 'Mains' }] },
+      { id: 'exam-uppsc', name: 'UPPSC', code: 'UPPSC', slug: 'uppsc', hasStages: true, stages: [{ id: 'stage-prelims', name: 'Prelims' }, { id: 'stage-mains', name: 'Mains' }] },
+      { id: 'exam-arunachal', name: 'Arunachal PCS', code: 'ARUNACHAL', slug: 'arunachal', hasStages: true, stages: [{ id: 'stage-prelims', name: 'Prelims' }, { id: 'stage-mains', name: 'Mains' }] }
+    ];
+
+    // Resolve matching exam from effectiveExams (also auto-fix legacy 'GENERAL' exam using title/fallback)
+    const isLegacyGeneral = !item.exam || item.exam.toUpperCase() === 'GENERAL';
+    const foundEx = effectiveExams.find((ex: any) =>
       ex.id === item.examId ||
       ex.code?.toLowerCase() === (item.exam || '').toLowerCase() ||
       ex.name?.toLowerCase() === (item.exam || '').toLowerCase() ||
-      (item.exam || '').toLowerCase().includes((ex.slug || '').toLowerCase())
-    );
+      (item.exam || '').toLowerCase().includes((ex.slug || '').toLowerCase()) ||
+      (isLegacyGeneral && (item.title || '').toLowerCase().includes((ex.code || ex.name || '').toLowerCase()))
+    ) || (isLegacyGeneral ? effectiveExams[0] : undefined);
 
-    const resolvedExamId = foundEx ? foundEx.id : (item.examId || examsList[0]?.id || '');
+    const resolvedExamId = foundEx ? foundEx.id : (item.examId || effectiveExams[0]?.id || 'exam-bpsc');
+    const resolvedExamName = (isLegacyGeneral && foundEx) ? (foundEx.code || foundEx.name) : (item.exam || foundEx?.code || 'BPSC');
 
     setEditingSeries({
       ...item,
       examId: resolvedExamId,
+      exam: resolvedExamName,
       language: cleanLang,
       medium: cleanLang
     });
@@ -3297,46 +3314,46 @@ export default function TestSeriesAdmin({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-slate-400 mb-1">Target Exam *</label>
-                  <select
-                    value={
-                      examsList.find(ex =>
-                        ex.id === editingSeries.examId ||
-                        (editingSeries.exam && (ex.code?.toLowerCase() === editingSeries.exam.toLowerCase() || ex.name?.toLowerCase() === editingSeries.exam.toLowerCase()))
-                      )?.id || editingSeries.examId || (examsList[0]?.id || '')
-                    }
-                    onChange={e => {
-                      const selectedExId = e.target.value;
-                      const selectedExObj = examsList.find(ex => ex.id === selectedExId) || examsList[0];
-                      const defaultStageId = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].id : (editingSeries.category === 'Mains' ? 'stage-mains' : 'stage-prelims');
-                      const defaultCategory = editingSeries.category || (selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].name : 'Prelims');
-                      const newExamCode = selectedExObj?.code || selectedExObj?.name || 'exam';
-                      const categoryPart = (defaultCategory || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-                      const titlePart = (editingSeries.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                      const autoSlug = [newExamCode.toLowerCase().replace(/[^a-z0-9]/g, ''), categoryPart, titlePart].filter(Boolean).join('-');
-                      setEditingSeries({
-                        ...editingSeries,
-                        examId: selectedExId,
-                        exam: selectedExObj?.code || selectedExObj?.name || '',
-                        stageId: defaultStageId,
-                        category: defaultCategory,
-                        slug: autoSlug
-                      });
-                    }}
-                    className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
-                  >
-                    {examsList.length === 0 ? (
-                      <>
-                        <option value="exam-bpsc">BPSC (71st / 72nd)</option>
-                        <option value="exam-upsc">UPSC CSE</option>
-                        <option value="exam-uppsc">UPPSC</option>
-                        <option value="exam-arunachal">Arunachal PCS</option>
-                      </>
-                    ) : (
-                      examsList.map((ex: any) => (
-                        <option key={ex.id} value={ex.id}>{ex.name} ({ex.hasStages ? 'Has Stages' : 'Direct Series'})</option>
-                      ))
-                    )}
-                  </select>
+                  {(() => {
+                    const effectiveExams = examsList.length > 0 ? examsList : [
+                      { id: 'exam-bpsc', name: 'BPSC', code: 'BPSC', hasStages: true, stages: [{ id: 'stage-prelims', name: 'Prelims' }, { id: 'stage-mains', name: 'Mains' }] },
+                      { id: 'exam-upsc', name: 'UPSC CSE', code: 'UPSC', hasStages: true, stages: [{ id: 'stage-prelims', name: 'Prelims' }, { id: 'stage-mains', name: 'Mains' }] },
+                      { id: 'exam-uppsc', name: 'UPPSC', code: 'UPPSC', hasStages: true, stages: [{ id: 'stage-prelims', name: 'Prelims' }, { id: 'stage-mains', name: 'Mains' }] },
+                      { id: 'exam-arunachal', name: 'Arunachal PCS', code: 'ARUNACHAL', hasStages: true, stages: [{ id: 'stage-prelims', name: 'Prelims' }, { id: 'stage-mains', name: 'Mains' }] }
+                    ];
+                    const matchedEx = effectiveExams.find((ex: any) =>
+                      ex.id === editingSeries.examId ||
+                      (editingSeries.exam && (ex.code?.toLowerCase() === editingSeries.exam.toLowerCase() || ex.name?.toLowerCase() === editingSeries.exam.toLowerCase()))
+                    ) || effectiveExams[0];
+                    return (
+                      <select
+                        value={matchedEx?.id || ''}
+                        onChange={e => {
+                          const selectedExId = e.target.value;
+                          const selectedExObj = effectiveExams.find((ex: any) => ex.id === selectedExId) || effectiveExams[0];
+                          const defaultStageId = selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].id : (editingSeries.category === 'Mains' ? 'stage-mains' : 'stage-prelims');
+                          const defaultCategory = editingSeries.category || (selectedExObj?.hasStages && selectedExObj.stages?.[0] ? selectedExObj.stages[0].name : 'Prelims');
+                          const newExamCode = selectedExObj?.code || selectedExObj?.name || 'BPSC';
+                          const categoryPart = (defaultCategory || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                          const titlePart = (editingSeries.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                          const autoSlug = [newExamCode.toLowerCase().replace(/[^a-z0-9]/g, ''), categoryPart, titlePart].filter(Boolean).join('-');
+                          setEditingSeries({
+                            ...editingSeries,
+                            examId: selectedExId,
+                            exam: newExamCode,
+                            stageId: defaultStageId,
+                            category: defaultCategory,
+                            slug: autoSlug
+                          });
+                        }}
+                        className="w-full px-3 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold cursor-pointer"
+                      >
+                        {effectiveExams.map((ex: any) => (
+                          <option key={ex.id} value={ex.id}>{ex.name} ({ex.hasStages ? 'Has Stages' : 'Direct Series'})</option>
+                        ))}
+                      </select>
+                    );
+                  })()}
                 </div>
 
                 <div>
