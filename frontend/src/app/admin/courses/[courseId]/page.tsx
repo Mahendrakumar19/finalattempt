@@ -1204,7 +1204,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-extrabold text-slate-400 uppercase">Full Program Overview Notes (Displayed under Overview Tab)</label>
                   <textarea
-                    rows={4}
+                    rows={7}
                     value={courseData.overview || ''}
                     placeholder="Detailed explanation of program objectives, mentorship approach, study materials provided..."
                     onChange={(e) => setCourseData({ ...courseData, overview: e.target.value })}

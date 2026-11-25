@@ -6311,7 +6311,7 @@ export default function AdminPortal() {
                     });
                   }
                   setActiveModal(null);
-                }} className="bg-white border border-slate-200 p-6 rounded-3xl max-w-md w-full space-y-4 shadow-2xl">
+                }} className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-2xl">
                   <h3 className="font-extrabold text-sm text-slate-900">
                     {activeModal.type === 'add' ? 'Create Course' : 'Edit Course'}
                   </h3>
