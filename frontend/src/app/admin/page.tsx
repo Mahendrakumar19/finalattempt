@@ -182,6 +182,7 @@ interface Course {
   discount?: string | null;
   duration: string;
   schedule: string;
+  syllabusPdfUrl?: string;
   isPublished: boolean;
 }
 
@@ -395,7 +396,8 @@ export default function AdminPortal() {
   const [caEditionTargetFilter, setCaEditionTargetFilter] = useState<'all' | 'english' | 'hindi' | 'both'>('all');
   const [resourceForm, setResourceForm] = useState<ResourceDownload>({ id: '', title: '', size: '', type: 'PDF', downloadCount: 0, url: '', category: 'Prelims', subcategory: '' });
   const [resourceUploading, setResourceUploading] = useState(false);
-  const [courseForm, setCourseForm] = useState<Course>({ id: '', slug: '', title: '', category: 'BPSC Course', description: '', fee: 0, duration: '', schedule: '', isPublished: true });
+  const [courseForm, setCourseForm] = useState<Course>({ id: '', slug: '', title: '', category: 'BPSC Course', description: '', fee: 0, duration: '', schedule: '', isPublished: true, syllabusPdfUrl: '' });
+  const [coursePdfUploading, setCoursePdfUploading] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [bannerUrlInput, setBannerUrlInput] = useState('');
   const [bannerSaveSuccess, setBannerSaveSuccess] = useState(false);
@@ -6102,7 +6104,7 @@ export default function AdminPortal() {
                 {editMode && (
                   <button
                     onClick={() => {
-                      setCourseForm({ id: `course-${Date.now()}`, slug: '', title: '', exam: 'BPSC', category: 'Prelims', description: '', fee: 4999, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true });
+                      setCourseForm({ id: `course-${Date.now()}`, slug: '', title: '', exam: 'BPSC', category: 'Prelims', description: '', fee: 4999, duration: '6 Months', schedule: 'Daily 2 hrs', isPublished: true, syllabusPdfUrl: '' });
                       setActiveModal({ type: 'add' });
                     }}
                     className="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-2xl text-xs animate-in shadow-sm"
@@ -6127,7 +6129,7 @@ export default function AdminPortal() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
-                              setCourseForm(course);
+                              setCourseForm({ ...course, syllabusPdfUrl: course.syllabusPdfUrl || '' });
                               setActiveModal({ type: 'edit', index: idx });
                             }}
                             className="p-1.5 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-655"
@@ -6162,6 +6164,15 @@ export default function AdminPortal() {
                         <span className="text-[10px] text-slate-500 font-bold">
                           {typeof course.fee === 'number' ? `₹${course.fee.toLocaleString('en-IN')}` : (course.fee || '₹0')}
                         </span>
+                        {course.syllabusPdfUrl ? (
+                          <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1">
+                            <FileText className="w-2.5 h-2.5" /> Syllabus PDF
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-md text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-400">
+                            No PDF
+                          </span>
+                        )}
                       </div>
                       <Link
                         href={`/admin/courses/${course.id}`}
@@ -6199,7 +6210,7 @@ export default function AdminPortal() {
                         <button
                           onClick={async () => {
                             const title = window.prompt('Enter Lecture Video Title:');
-                            const videoUrl = window.prompt('Enter Cloudinary/Video URL:', 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4');
+                            const videoUrl = window.prompt('Enter Video/Lecture URL (e.g. YouTube / Media link):', '');
                             if (title && videoUrl) {
                               const secRes = await fetch(`${BACKEND_URL}/api/lms/courses/${course.id}/sections`, {
                                 headers: { ...getAdminAuthHeaders() }
@@ -6427,6 +6438,76 @@ export default function AdminPortal() {
                       onChange={(e) => setCourseForm({ ...courseForm, duration: e.target.value })}
                       className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400"
                     />
+                  </div>
+
+                  {/* Official Syllabus PDF Document Upload & URL */}
+                  <div className="space-y-2 p-3.5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/70 dark:border-blue-900/40">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] text-blue-900 dark:text-blue-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <FileText className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Official Course Syllabus Document (PDF)</span>
+                      </label>
+                      {courseForm.syllabusPdfUrl && (
+                        <a
+                          href={courseForm.syllabusPdfUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[10px] text-blue-600 hover:text-blue-800 font-bold underline flex items-center gap-1"
+                        >
+                          <span>View Uploaded PDF</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-tight">
+                      Upload or paste the direct URL to the official syllabus PDF. Students will see an interactive PDF viewer and download button in the course page.
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                      <input
+                        type="text"
+                        placeholder="Paste PDF link (https://.../syllabus.pdf) or click Upload"
+                        value={courseForm.syllabusPdfUrl || ''}
+                        onChange={(e) => setCourseForm({ ...courseForm, syllabusPdfUrl: e.target.value })}
+                        className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-xs rounded-xl focus:outline-none focus:border-blue-500 font-mono"
+                      />
+                      <label className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold cursor-pointer inline-flex items-center justify-center gap-1.5 shrink-0 transition-all shadow-sm">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{coursePdfUploading ? 'Uploading...' : 'Upload PDF'}</span>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          className="hidden"
+                          disabled={coursePdfUploading}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setCoursePdfUploading(true);
+                            try {
+                              const formData = new FormData();
+                              formData.append('file', file);
+                              formData.append('target', 'course_syllabus');
+                              const res = await fetch(`${BACKEND_URL}/api/upload`, {
+                                method: 'POST',
+                                headers: getAdminAuthHeaders(),
+                                body: formData
+                              });
+                              const data = await res.json();
+                              if (data.success && data.url) {
+                                setCourseForm(prev => ({ ...prev, syllabusPdfUrl: data.url }));
+                                alert('✓ Course Syllabus PDF uploaded successfully! Remember to click "Save Course".');
+                              } else {
+                                alert(data.error || 'Failed to upload PDF.');
+                              }
+                            } catch (err: unknown) {
+                              const msg = err instanceof Error ? err.message : String(err);
+                              alert('Upload failed: ' + msg);
+                            } finally {
+                              setCoursePdfUploading(false);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
 
                   <div className="flex justify-end gap-3 pt-2">

@@ -1327,6 +1327,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                         formData.append('target', 'course_syllabus');
                         const res = await fetch(`${BACKEND_URL}/api/upload`, {
                           method: 'POST',
+                          headers: { ...getAdminAuthHeaders() },
                           body: formData
                         });
                         const data = await res.json();

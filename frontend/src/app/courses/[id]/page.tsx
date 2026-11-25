@@ -67,8 +67,10 @@ export default async function CourseDetailPage({ params }: PageProps) {
   }
 
   // Find relevant faculty members for the course
-  const allFaculty = await db.getFaculty();
-  const courseFaculty = (allFaculty || []).slice(0, 3); // Map mock mentors
+  const allFaculty = (await db.getFaculty()) || [];
+  const courseFaculty = ((course as unknown as { faculty?: typeof allFaculty })?.faculty?.length)
+    ? (course as unknown as { faculty: typeof allFaculty }).faculty
+    : allFaculty;
 
   const cleanPrice = String(course.fee || '0').replace(/[^\d]/g, '');
 

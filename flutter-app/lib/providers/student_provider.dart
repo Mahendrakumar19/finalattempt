@@ -49,7 +49,25 @@ final enrollmentsProvider = FutureProvider<List<Enrollment>>((ref) async {
   
   final service = ref.watch(studentServiceProvider);
   final raw = await service.getMyEnrollments();
-  return raw.map((e) => Enrollment.fromJson(e as Map<String, dynamic>)).toList();
+  final list = raw.map((e) => Enrollment.fromJson(e as Map<String, dynamic>)).toList();
+
+  // Deduplicate enrollments by canonical courseId or normalized title
+  final dedupeMap = <String, Enrollment>{};
+  for (final e in list) {
+    final titleKey = e.title.trim().toLowerCase();
+    final idKey = e.courseId.trim().toLowerCase();
+    final key = titleKey.isNotEmpty ? titleKey : idKey;
+    if (!dedupeMap.containsKey(key)) {
+      dedupeMap[key] = e;
+    } else {
+      final existing = dedupeMap[key]!;
+      if (e.completionPercentage > existing.completionPercentage) {
+        dedupeMap[key] = e;
+      }
+    }
+  }
+
+  return dedupeMap.values.toList();
 });
 
 // ── Student Analytics Provider ──────────────────────────────────────────────

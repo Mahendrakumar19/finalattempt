@@ -8,7 +8,7 @@ import { TestSeriesOrderService, RequestedCartItem } from '../services/testSerie
 import { AuditLogService } from '../services/auditLogService';
 import { razorpay } from '../services/razorpay';
 import { PlanCode } from '@prisma/client';
-import { lmsDB } from '../db';
+import { db, lmsDB } from '../db';
 
 const router = Router();
 
@@ -20,11 +20,15 @@ router.get('/:seriesId/plans', optionalAuth, async (req: AuthRequest, res: Respo
   try {
     const seriesId = req.params.seriesId as string;
     let targetIds = [seriesId];
+    let resolvedTs: any = null;
     try {
-      const ts = await lmsDB.getTestSeriesById(seriesId);
-      if (ts) {
-        if (ts.id) targetIds.push(ts.id);
-        if (ts.slug) targetIds.push(ts.slug);
+      resolvedTs = await db.getTestSeriesBySlugOrId(seriesId);
+      if (!resolvedTs) {
+        resolvedTs = await lmsDB.getTestSeriesById(seriesId);
+      }
+      if (resolvedTs) {
+        if (resolvedTs.id) targetIds.push(resolvedTs.id);
+        if (resolvedTs.slug) targetIds.push(resolvedTs.slug);
       }
     } catch (_) {}
     targetIds = Array.from(new Set(targetIds.filter(Boolean)));
@@ -49,6 +53,24 @@ router.get('/:seriesId/plans', optionalAuth, async (req: AuthRequest, res: Respo
         }
       }
     });
+
+    // If no custom plans were configured in database for this series, generate authoritative dynamic plan from the test series entity
+    if (planMap.size === 0 && resolvedTs) {
+      const price = Number(resolvedTs.price) || 0;
+      const disc = resolvedTs.discountedPrice !== undefined && resolvedTs.discountedPrice !== null ? Number(resolvedTs.discountedPrice) : null;
+      planMap.set('FULL', {
+        id: `${resolvedTs.id || seriesId}-full`,
+        series_id: resolvedTs.id || seriesId,
+        plan_code: 'FULL',
+        title: resolvedTs.title || 'FULL Package',
+        description: resolvedTs.description || 'Full Test Series Pass',
+        sequence_start_number: 1,
+        sequence_end_number: Number(resolvedTs.totalTests) || 40,
+        price: price > 0 ? price : (disc || 499),
+        discounted_price: disc,
+        is_active: true
+      });
+    }
 
     res.json({ success: true, data: Array.from(planMap.values()) });
   } catch (err: any) {

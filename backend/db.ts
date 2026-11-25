@@ -1472,45 +1472,6 @@ class BackendDB {
       };
     }
 
-    // Merge repo template data (courses, sections, lessons, lmsEnrollments) so newly seeded records are never omitted
-    if (fs.existsSync(LOCAL_REPO_JSON_PATH)) {
-      try {
-        const repoData = JSON.parse(fs.readFileSync(LOCAL_REPO_JSON_PATH, 'utf-8'));
-        if (repoData.courses && repoData.courses.length > 0) {
-          if (!this.localStore.courses) this.localStore.courses = [];
-          repoData.courses.forEach((rc: any) => {
-            if (!this.localStore.courses.some((c: any) => c.id === rc.id || (rc.slug && c.slug === rc.slug))) {
-              this.localStore.courses.push(rc);
-            }
-          });
-        }
-        if (repoData.sections && repoData.sections.length > 0) {
-          if (!this.localStore.sections) this.localStore.sections = [];
-          repoData.sections.forEach((rs: any) => {
-            if (!this.localStore.sections.some((s: any) => s.id === rs.id)) {
-              this.localStore.sections.push(rs);
-            }
-          });
-        }
-        if (repoData.lessons && repoData.lessons.length > 0) {
-          if (!this.localStore.lessons) this.localStore.lessons = [];
-          repoData.lessons.forEach((rl: any) => {
-            if (!this.localStore.lessons.some((l: any) => l.id === rl.id)) {
-              this.localStore.lessons.push(rl);
-            }
-          });
-        }
-        if (repoData.lmsEnrollments && repoData.lmsEnrollments.length > 0) {
-          if (!this.localStore.lmsEnrollments) this.localStore.lmsEnrollments = [];
-          repoData.lmsEnrollments.forEach((re: any) => {
-            if (!this.localStore.lmsEnrollments.some((e: any) => e.userId === re.userId && e.courseId === re.courseId)) {
-              this.localStore.lmsEnrollments.push(re);
-            }
-          });
-        }
-      } catch (_) {}
-    }
-
     if (!this.localStore.users || this.localStore.users.length === 0) {
       this.localStore.users = [...authLocalUsers];
     }
@@ -5189,6 +5150,13 @@ class LmsDB {
             ]
           );
         });
+        const existsLocal = db.localStore.courses.findIndex(c => c.id === data.id || c.slug === slug);
+        if (existsLocal >= 0) {
+          db.localStore.courses[existsLocal] = { ...db.localStore.courses[existsLocal], ...data, slug };
+        } else {
+          db.localStore.courses.push({ ...data, slug });
+        }
+        db.saveLocalData();
         return { ...data, slug };
       } catch (err) {
         console.error('[LmsDB] createCourse MySQL error:', err);
@@ -5278,6 +5246,11 @@ class LmsDB {
             tsVals.push(id, id);
             await mysqlPool.query(`UPDATE TestSeries SET ${tsFields.join(', ')} WHERE id = ? OR slug = ?`, tsVals).catch(() => null);
           }
+        }
+        const localIdx = db.localStore.courses.findIndex(c => c.id === id || c.slug === id);
+        if (localIdx >= 0) {
+          db.localStore.courses[localIdx] = { ...db.localStore.courses[localIdx], ...updates };
+          db.saveLocalData();
         }
         return true;
       } catch (err) {

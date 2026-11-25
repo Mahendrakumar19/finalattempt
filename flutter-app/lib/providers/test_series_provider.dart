@@ -57,42 +57,25 @@ final testSeriesPlansProvider = FutureProvider.family.autoDispose<List<TestSerie
     }
   } catch (_) {}
 
-  // Fallback defaults if plans are not yet customized in DB
-  return [
-    TestSeriesPlan(
-      id: 'mini-default',
-      seriesId: seriesId,
-      planCode: 'MINI',
-      title: 'MINI Package',
-      description: 'Tests 1 to 16 with solutions & rankings',
-      sequenceStartNumber: 1,
-      sequenceEndNumber: 16,
-      price: 299,
-      discountedPrice: 249,
-    ),
-    TestSeriesPlan(
-      id: 'half-default',
-      seriesId: seriesId,
-      planCode: 'HALF',
-      title: 'HALF Package',
-      description: 'Tests 1 to 28 with sectional practice',
-      sequenceStartNumber: 1,
-      sequenceEndNumber: 28,
-      price: 499,
-      discountedPrice: 399,
-    ),
-    TestSeriesPlan(
-      id: 'full-default',
-      seriesId: seriesId,
-      planCode: 'FULL',
-      title: 'FULL Package',
-      description: 'All 40+ tests, all sectional & full length mocks',
-      sequenceStartNumber: 1,
-      sequenceEndNumber: 40,
-      price: 699,
-      discountedPrice: 599,
-    ),
-  ];
+  // If plans endpoint returns empty or fails, dynamically resolve plan from series details
+  try {
+    final series = await ref.watch(testSeriesDetailProvider(seriesId).future);
+    return [
+      TestSeriesPlan(
+        id: '${series.id}-full',
+        seriesId: series.id,
+        planCode: 'FULL',
+        title: series.title,
+        description: 'Complete Test Series Package',
+        sequenceStartNumber: 1,
+        sequenceEndNumber: series.totalTests > 0 ? series.totalTests : 40,
+        price: series.price > 0 ? series.price : (series.discountedPrice ?? 0),
+        discountedPrice: series.discountedPrice,
+      ),
+    ];
+  } catch (_) {}
+
+  return [];
 });
 
 // User Entitlements Provider

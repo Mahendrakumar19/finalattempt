@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { 
   Play, 
   Check, 
@@ -9,10 +10,12 @@ import {
   Plus, 
   Trash2, 
   Edit3, 
-  Save, 
-  BookOpen, 
   Video, 
-  FileText
+  FileText,
+  Download,
+  ExternalLink,
+  Upload,
+  User
 } from 'lucide-react';
 import { Course } from '@/services/db';
 
@@ -162,7 +165,7 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
 
   const handleAddLesson = async (sectionId: string) => {
     const title = window.prompt('Enter Lesson Title:');
-    const videoUrl = window.prompt('Enter Video URL (e.g. Media/YouTube link):', 'https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4');
+    const videoUrl = window.prompt('Enter Video URL (e.g. Media/YouTube link):', '');
     if (!title || !videoUrl) return;
 
     try {
@@ -293,39 +296,38 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
             <p className="text-xs text-slate-600 leading-relaxed max-w-2xl whitespace-pre-line">
               {course.overview || course.description || 'This program is meticulously designed by selected officers and subject matter experts to cover the entire syllabus with micro-scheduled classes, practice papers, and 1-on-1 mentorship.'}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl pt-2">
-              {(course.features && course.features.length > 0 ? course.features : [
-                'Bilingual Study Material (Hindi & English)',
-                'Prelims & Mains Integrated Test Series',
-                '1-on-1 Personalized Mentorship with Officers',
-                'Daily Mains Answer Writing & Copy Evaluation',
-                'Comprehensive Bihar Special & Current Affairs Modules'
-              ]).map((feature, idx) => (
-                <div key={idx} className="flex gap-3 items-start">
-                  <div className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
-                    <Check className="w-3 h-3" />
+            {course.features && course.features.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-3xl pt-2">
+                {course.features.map((feature, idx) => (
+                  <div key={idx} className="flex gap-3 items-start">
+                    <div className="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check className="w-3 h-3" />
+                    </div>
+                    <span className="text-xs text-slate-600 font-semibold">{feature}</span>
                   </div>
-                  <span className="text-xs text-slate-600 font-semibold">{feature}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* TAB 2: SYLLABUS */}
         {activeTab === 'Syllabus' && (
           <div className="space-y-6">
-            <div className="flex flex-wrap justify-between items-center gap-3 max-w-3xl">
-              <h3 className="font-heading font-extrabold text-lg text-brand-primary">Syllabus Breakdown</h3>
+            <div className="flex flex-wrap justify-between items-center gap-3">
+              <div>
+                <h3 className="font-heading font-extrabold text-lg text-brand-primary">Course Syllabus & Curriculum</h3>
+                <p className="text-xs text-slate-500">Official micro-scheduled syllabus and detailed topic breakdown.</p>
+              </div>
               <div className="flex items-center gap-2">
                 {(course as CourseExtended).syllabusPdfUrl && (
                   <a
                     href={(course as CourseExtended).syllabusPdfUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-[11px] shadow-sm transition-all"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-xs shadow-sm transition-all"
                   >
-                    <FileText className="w-3.5 h-3.5" />
+                    <Download className="w-3.5 h-3.5" />
                     <span>Download Official Syllabus PDF</span>
                   </a>
                 )}
@@ -341,152 +343,214 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
               </div>
             </div>
 
-            <div className="space-y-6 max-w-3xl">
-              {sections.length === 0 ? (
-                Array.isArray((course as CourseExtended).syllabus) && ((course as CourseExtended).syllabus?.length ?? 0) > 0 ? (
-                  <div className="space-y-4">
-                    {((course as CourseExtended).syllabus || []).map((subj, idx: number) => (
-                      <div key={idx} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                            {idx + 1}
-                          </span>
-                          <h4 className="font-bold text-xs text-slate-900">{typeof subj === 'string' ? subj : subj.subject || `Module ${idx + 1}`}</h4>
-                        </div>
-                        {typeof subj === 'object' && Array.isArray(subj.topics) && (
-                          <ul className="text-xs text-slate-600 space-y-1 pl-8 list-disc">
-                            {subj.topics.map((top: string, tIdx: number) => (
-                              <li key={tIdx}>{top}</li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {[
-                      { title: 'General Studies I & Bihar Special History', lessons: ['Ancient & Medieval History of Bihar', 'Modern Indian History & Freedom Struggle', 'Art & Culture of Bihar (Mauryan, Pala, Patna Kalam)'] },
-                      { title: 'General Studies II & Polity & Economy', lessons: ['Indian Constitution & Federal Framework', 'Bihar Economy & Agricultural Statistics', 'Science & Technology in Development'] },
-                      { title: 'Prelims Test Series & Current Affairs Revision', lessons: ['12 Months National & Bihar Special Current Affairs', 'Sectional & Full-Length Mock Tests'] }
-                    ].map((sec, idx) => (
-                      <div key={idx} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                            {idx + 1}
-                          </span>
-                          <h4 className="font-bold text-xs text-slate-900">{sec.title}</h4>
-                        </div>
-                        <div className="space-y-1.5 pl-8">
-                          {sec.lessons.map((les, lIdx) => (
-                            <div key={lIdx} className="text-xs text-slate-600 flex items-center gap-2">
-                              <BookOpen className="w-3 h-3 text-slate-400" />
-                              <span>{les}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )
-              ) : (
-                sections.map((section: Section, sIdx: number) => (
-                  <div key={section.id} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-3 items-center">
-                        <span className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
-                          {sIdx + 1}
-                        </span>
-                        <h4 className="font-bold text-xs text-slate-900">{section.title}</h4>
-                        {editMode && (
-                          <button 
-                            onClick={() => handleEditSection(section.id, section.title)}
-                            className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-slate-900 transition-colors"
-                          >
-                            <Edit3 className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                      {editMode && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleAddLesson(section.id)}
-                            className="flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[9px] font-bold"
-                          >
-                            <Plus className="w-3 h-3" /> Add Lesson
-                          </button>
-                          <button
-                            onClick={() => handleDeleteSection(section.id)}
-                            className="p-1 border border-red-100 hover:bg-red-50 text-red-500 rounded-lg"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
+            {/* Official Syllabus PDF Document Viewer Card */}
+            {(course as CourseExtended).syllabusPdfUrl && (
+              <div className="space-y-4">
+                <div className="p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-blue-50/90 via-indigo-50/60 to-slate-50 border border-blue-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                  <div className="flex items-start gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                      <FileText className="w-6 h-6" />
                     </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-blue-600 text-white">
+                          Official Curriculum
+                        </span>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+                          Verified Document
+                        </span>
+                      </div>
+                      <h4 className="font-heading font-extrabold text-sm text-slate-900 mt-1">
+                        {course.title} — Official Detailed Syllabus PDF
+                      </h4>
+                      <p className="text-[11px] text-slate-600 mt-0.5">
+                        Download or view the complete official topic-wise micro-schedule syllabus below.
+                      </p>
+                    </div>
+                  </div>
 
-                    {/* Lessons inside Section */}
-                    <div className="space-y-2.5 pt-2">
-                      {(!section.lessons || section.lessons.length === 0) ? (
-                        <p className="text-[10px] text-slate-400 italic">No lectures inside this chapter yet.</p>
-                      ) : (
-                        section.lessons.map((lesson: Lesson) => (
-                          <div key={lesson.id} className="bg-white px-4 py-3 rounded-2xl border border-slate-150 flex justify-between items-center shadow-2xs">
-                            <div className="flex items-center gap-2">
-                              {lesson.type === 'live' ? (
-                                <span className="text-xs">🔴</span>
-                              ) : (
-                                <Video className="w-3.5 h-3.5 text-slate-400" />
-                              )}
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <p className="text-[11px] font-bold text-slate-800">{lesson.title}</p>
-                                  {lesson.type === 'live' && (
-                                    <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200">
-                                      {lesson.liveStatus === 'live' ? 'LIVE NOW' : 'LIVE'}
-                                    </span>
-                                  )}
-                                  {editMode && (
-                                    <button 
-                                      onClick={() => handleEditLesson(lesson.id, lesson.title, lesson.videoUrl, lesson.duration)}
-                                      className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-colors"
-                                    >
-                                      <Edit3 className="w-2.5 h-2.5" />
-                                    </button>
-                                  )}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <a
+                      href={(course as CourseExtended).syllabusPdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-2xs"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Open in New Tab</span>
+                    </a>
+                    <a
+                      href={(course as CourseExtended).syllabusPdfUrl}
+                      download
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download PDF</span>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Embedded Responsive PDF Viewer */}
+                <div className="w-full h-[650px] sm:h-[800px] rounded-3xl overflow-hidden border border-slate-200 shadow-sm bg-slate-900 relative">
+                  <iframe
+                    src={`${(course as CourseExtended).syllabusPdfUrl}#toolbar=1&navpanes=0`}
+                    className="w-full h-full border-0"
+                    title="Course Syllabus PDF"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Chapters and Modules Section */}
+            <div className="space-y-6 max-w-3xl">
+              {sections.length > 0 ? (
+                <div className="space-y-4">
+                  {(course as CourseExtended).syllabusPdfUrl && (
+                    <h4 className="font-heading font-extrabold text-sm text-slate-900 pt-2">
+                      Lecture Modules &amp; Chapters Breakdown
+                    </h4>
+                  )}
+                  {sections.map((section: Section, sIdx: number) => (
+                    <div key={section.id} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex gap-3 items-center">
+                          <span className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                            {sIdx + 1}
+                          </span>
+                          <h4 className="font-bold text-xs text-slate-900">{section.title}</h4>
+                          {editMode && (
+                            <button 
+                              onClick={() => handleEditSection(section.id, section.title)}
+                              className="p-1 hover:bg-slate-200 rounded text-slate-500 hover:text-slate-900 transition-colors"
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        {editMode && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleAddLesson(section.id)}
+                              className="flex items-center gap-1 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-[9px] font-bold"
+                            >
+                              <Plus className="w-3 h-3" /> Add Lesson
+                            </button>
+                            <button
+                              onClick={() => handleDeleteSection(section.id)}
+                              className="p-1 border border-red-100 hover:bg-red-50 text-red-500 rounded-lg"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Lessons inside Section */}
+                      <div className="space-y-2.5 pt-2">
+                        {(!section.lessons || section.lessons.length === 0) ? (
+                          <p className="text-[10px] text-slate-400 italic">No lectures inside this chapter yet.</p>
+                        ) : (
+                          section.lessons.map((lesson: Lesson) => (
+                            <div key={lesson.id} className="bg-white px-4 py-3 rounded-2xl border border-slate-150 flex justify-between items-center shadow-2xs">
+                              <div className="flex items-center gap-2">
+                                {lesson.type === 'live' ? (
+                                  <span className="text-xs">🔴</span>
+                                ) : (
+                                  <Video className="w-3.5 h-3.5 text-slate-400" />
+                                )}
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <p className="text-[11px] font-bold text-slate-800">{lesson.title}</p>
+                                    {lesson.type === 'live' && (
+                                      <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 border border-rose-200">
+                                        {lesson.liveStatus === 'live' ? 'LIVE NOW' : 'LIVE'}
+                                      </span>
+                                    )}
+                                    {editMode && (
+                                      <button 
+                                        onClick={() => handleEditLesson(lesson.id, lesson.title, lesson.videoUrl, lesson.duration)}
+                                        className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-700 transition-colors"
+                                      >
+                                        <Edit3 className="w-2.5 h-2.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                  <p className="text-[9px] text-slate-400 uppercase font-semibold">
+                                    {lesson.duration || '10 mins'}
+                                    {lesson.liveScheduledAt && ` • 🗓 ${lesson.liveScheduledAt}`}
+                                  </p>
                                 </div>
-                                <p className="text-[9px] text-slate-400 uppercase font-semibold">
-                                  {lesson.duration || '10 mins'}
-                                  {lesson.liveScheduledAt && ` • 🗓 ${lesson.liveScheduledAt}`}
-                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {lesson.videoUrl && (
+                                  <button
+                                    onClick={() => setPlayingVideo(lesson.videoUrl)}
+                                    className="p-1 text-blue-600 hover:bg-blue-50 rounded cursor-pointer"
+                                  >
+                                    <Play className="w-4 h-4 fill-current" />
+                                  </button>
+                                )}
+                                {editMode && (
+                                  <button
+                                    onClick={() => handleDeleteLesson(lesson.id)}
+                                    className="p-1 text-red-500 hover:bg-red-500/10 rounded"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                               </div>
                             </div>
-
-                            <div className="flex items-center gap-2">
-                              {lesson.videoUrl && (
-                                <button
-                                  onClick={() => setPlayingVideo(lesson.videoUrl)}
-                                  className="p-1 text-blue-600 hover:bg-blue-50 rounded"
-                                >
-                                  <Play className="w-4 h-4 fill-current" />
-                                </button>
-                              )}
-                              {editMode && (
-                                <button
-                                  onClick={() => handleDeleteLesson(lesson.id)}
-                                  className="p-1 text-red-500 hover:bg-red-55/10 rounded"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        ))
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : Array.isArray((course as CourseExtended).syllabus) && ((course as CourseExtended).syllabus?.length ?? 0) > 0 ? (
+                <div className="space-y-4">
+                  {((course as CourseExtended).syllabus || []).map((subj, idx: number) => (
+                    <div key={idx} className="p-5 rounded-3xl bg-slate-50 border border-slate-100 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+                          {idx + 1}
+                        </span>
+                        <h4 className="font-bold text-xs text-slate-900">{typeof subj === 'string' ? subj : subj.subject || `Module ${idx + 1}`}</h4>
+                      </div>
+                      {typeof subj === 'object' && Array.isArray(subj.topics) && (
+                        <ul className="text-xs text-slate-600 space-y-1 pl-8 list-disc">
+                          {subj.topics.map((top: string, tIdx: number) => (
+                            <li key={tIdx}>{top}</li>
+                          ))}
+                        </ul>
                       )}
                     </div>
+                  ))}
+                </div>
+              ) : !((course as CourseExtended).syllabusPdfUrl) ? (
+                <div className="p-8 sm:p-12 text-center rounded-3xl bg-slate-50 border border-slate-100 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto shadow-2xs">
+                    <FileText className="w-6 h-6" />
                   </div>
-                ))
-              )}
+                  <h4 className="font-heading font-extrabold text-base text-slate-900">Official Syllabus &amp; Schedule</h4>
+                  <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+                    The comprehensive topic-wise micro-schedule and official syllabus PDF for this course are currently being finalized by the faculty board.
+                  </p>
+                  {canEdit && (
+                    <div className="pt-2">
+                      <Link
+                        href={`/admin/courses/${course.id}`}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-sm"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Syllabus PDF in Course Editor</span>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              ) : null}
             </div>
           </div>
         )}
@@ -494,23 +558,33 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
         {/* TAB 3: FACULTY */}
         {activeTab === 'Faculty' && (
           <div className="space-y-6">
-            <h3 className="font-heading font-extrabold text-lg text-brand-primary">Faculty & Mentorship Board</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
-              {((((course as CourseExtended).faculty && ((course as CourseExtended).faculty?.length ?? 0) > 0) ? (course as CourseExtended).faculty : faculty) || [])?.map((member, idx: number) => (
-                <div key={member.id || idx} className="flex gap-4 items-start p-4 rounded-xl border border-slate-100 shadow-2xs bg-white">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200 relative">
-                    <Image src={member.avatar || member.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200'} alt={member.name} fill unoptimized className="w-full h-full object-cover" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <div>
-                      <h4 className="font-heading font-extrabold text-sm text-slate-900">{member.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase">{member.role} {member.experience ? `• ${member.experience} exp` : ''}</p>
+            <h3 className="font-heading font-extrabold text-lg text-brand-primary">Faculty &amp; Mentorship Board</h3>
+            {((((course as CourseExtended).faculty && ((course as CourseExtended).faculty?.length ?? 0) > 0) ? (course as CourseExtended).faculty : faculty) || []).length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
+                {((((course as CourseExtended).faculty && ((course as CourseExtended).faculty?.length ?? 0) > 0) ? (course as CourseExtended).faculty : faculty) || [])?.map((member, idx: number) => (
+                  <div key={member.id || idx} className="flex gap-4 items-start p-4 rounded-xl border border-slate-100 shadow-2xs bg-white">
+                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 border border-slate-200 relative flex items-center justify-center">
+                      {(member.avatar || member.avatarUrl) ? (
+                        <Image src={member.avatar || member.avatarUrl || ''} alt={member.name} fill unoptimized className="w-full h-full object-cover" />
+                      ) : (
+                        <User className="w-7 h-7 text-slate-400" />
+                      )}
                     </div>
-                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{member.bio}</p>
+                    <div className="space-y-1.5">
+                      <div>
+                        <h4 className="font-heading font-extrabold text-sm text-slate-900">{member.name}</h4>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase">{member.role} {member.experience ? `• ${member.experience} exp` : ''}</p>
+                      </div>
+                      <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">{member.bio}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center rounded-2xl bg-slate-50 border border-slate-100">
+                <p className="text-xs text-slate-500 font-medium">Faculty and mentorship board for this batch is being assigned.</p>
+              </div>
+            )}
           </div>
         )}
 
@@ -518,22 +592,28 @@ export default function CourseTabs({ course, faculty, onRefresh }: CourseTabsPro
         {activeTab === 'Demo' && (
           <div className="space-y-6">
             <h3 className="font-heading font-extrabold text-lg text-brand-primary">Free Demo Lectures</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
-              {((((course as CourseExtended).demoLectures && ((course as CourseExtended).demoLectures?.length ?? 0) > 0) ? (course as CourseExtended).demoLectures : (faculty || []).flatMap((f) => Array.isArray(f.demoLectures) ? f.demoLectures.map((lec) => ({ ...lec, teacher: f.name })) : [])) || [])?.map((lec, idx: number) => (
-                <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center hover:bg-white hover:border-blue-100 transition-all">
-                  <div className="space-y-1">
-                    <h5 className="font-bold text-xs text-slate-900">{lec.title}</h5>
-                    <p className="text-[10px] text-slate-400">{lec.teacher ? `By ${lec.teacher} • ` : ''}{lec.duration || '15 mins'}</p>
+            {((course as CourseExtended).demoLectures && ((course as CourseExtended).demoLectures?.length ?? 0) > 0) ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl">
+                {((course as CourseExtended).demoLectures || []).map((lec, idx: number) => (
+                  <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center hover:bg-white hover:border-blue-100 transition-all">
+                    <div className="space-y-1">
+                      <h5 className="font-bold text-xs text-slate-900">{lec.title}</h5>
+                      <p className="text-[10px] text-slate-400">{lec.teacher ? `By ${lec.teacher} • ` : ''}{lec.duration || '15 mins'}</p>
+                    </div>
+                    <button
+                      onClick={() => setPlayingVideo(lec.url)}
+                      className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md transition-transform hover:scale-105 cursor-pointer"
+                    >
+                      <Play className="w-4.5 h-4.5 fill-current ml-0.5" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setPlayingVideo(lec.url)}
-                    className="w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md transition-transform hover:scale-105"
-                  >
-                    <Play className="w-4.5 h-4.5 fill-current ml-0.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center rounded-2xl bg-slate-50 border border-slate-100">
+                <p className="text-xs text-slate-500 font-medium">No demo lectures currently published for this course. Free demo classes are announced on our official YouTube and Telegram channels.</p>
+              </div>
+            )}
 
             {/* Video Player Modal */}
             {playingVideo && (() => {

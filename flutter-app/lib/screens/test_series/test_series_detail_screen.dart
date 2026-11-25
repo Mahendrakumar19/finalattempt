@@ -242,8 +242,11 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
             id: 'default',
             seriesId: widget.seriesId,
             planCode: 'FULL',
-            title: 'FULL Package',
-            price: 599,
+            title: series.title,
+            price: (series.discountedPrice != null && series.discountedPrice! > 0)
+                ? series.discountedPrice!
+                : series.price,
+            discountedPrice: series.discountedPrice,
           ),
         );
 
@@ -1370,7 +1373,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                 children: [
                   Text(
                     '${activePlan.planCode} PLAN SELECTED',
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFFD97706), letterSpacing: 0.5),
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF16A34A), letterSpacing: 0.5),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1402,11 +1405,11 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF59E0B),
+                  color: const Color(0xFF16A34A),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+                      color: const Color(0xFF16A34A).withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: const Offset(0, 3),
                     ),
@@ -1416,7 +1419,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : Text(
                         'Buy ${activePlan.planCode} (₹${activePlan.sellingPrice.toInt()})',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
                       ),
               ),
             ),

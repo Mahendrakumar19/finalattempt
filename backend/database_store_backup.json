@@ -150,7 +150,7 @@
     "heroTitle": "72nd BPSC Preparation Starts Here",
     "heroSubtitle": "Personalized mentorship, smart study tools, and Bihar-focused content designed to help you clear BPSC with confidence.",
     "tagline": "One Mentor. One Strategy. One Final Attempt.",
-    "visitorsCount": 2192,
+    "visitorsCount": 2196,
     "heroImageUrl": "https://finalattemptias.com/uploads/images/BOOK_HEAD.webp, https://finalattemptias.com/uploads/images/BPSC_PYQ_TEST_SERIES__1_.webp, https://finalattemptias.com/uploads/images/FA.webp",
     "featureFlags": {
       "livePageBuilder": false,
@@ -185,14 +185,8 @@
       "overview": "",
       "thumbnailUrl": "https://finalattemptias.com/uploads/images/FA.webp",
       "faculty": [],
-      "demoLectures": [
-        {
-          "title": "Demo video",
-          "teacher": "",
-          "duration": "10 min",
-          "url": "http://localhost:5000/uploads/videos/Instructions_Task_1_.mp4"
-        }
-      ]
+      "demoLectures": [],
+      "slug": "bpsc"
     },
     {
       "id": "test-live-batch-1790768398331",
@@ -216,30 +210,32 @@
       "faq": [],
       "faculty": [],
       "demoLectures": []
+    },
+    {
+      "id": "bpsc-mains-spl",
+      "title": "BPSC MAINS SPL",
+      "slug": "bpsc-mains-spl",
+      "exam": "BPSC",
+      "category": "PRELIMS",
+      "description": "Bpsc course",
+      "overview": "Comprehensive BPSC Mains Special preparation with live and recorded sessions.",
+      "thumbnailUrl": "",
+      "fee": 4999,
+      "duration": "6 Months",
+      "schedule": "Daily Live Classes",
+      "isPublished": true,
+      "syllabus": [],
+      "features": [
+        "Live Interactive Classes",
+        "Recorded Backups",
+        "Dedicated Faculty Support"
+      ],
+      "faq": [],
+      "faculty": [],
+      "demoLectures": []
     }
   ],
   "sections": [
-    {
-      "id": "sect-bpsc-foundation-1",
-      "courseId": "bpsc-foundation",
-      "title": "Foundational Concepts & Strategy",
-      "orderIndex": 1,
-      "isPublished": 1
-    },
-    {
-      "id": "sect-bpsc-foundation-2",
-      "courseId": "bpsc-foundation",
-      "title": "Core Syllabus Depth Integration",
-      "orderIndex": 2,
-      "isPublished": 1
-    },
-    {
-      "id": "sect-bpsc-foundation-3",
-      "courseId": "bpsc-foundation",
-      "title": "Mock Tests & Essay Mentorship",
-      "orderIndex": 3,
-      "isPublished": 1
-    },
     {
       "id": "sec-test-1790768398331",
       "courseId": "test-live-batch-1790768398331",
@@ -249,19 +245,6 @@
     }
   ],
   "lessons": [
-    {
-      "id": "les-bpsc-foundation-1-2",
-      "sectionId": "sect-bpsc-foundation-1",
-      "courseId": "bpsc-foundation",
-      "title": "Strategic Reading of Newspapers",
-      "type": "video",
-      "videoUrl": "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4",
-      "duration": "60 mins",
-      "durationSeconds": 3600,
-      "orderIndex": 2,
-      "isFree": 0,
-      "isPublished": 1
-    },
     {
       "id": "les-live-1790768398331",
       "sectionId": "sec-test-1790768398331",
@@ -404,14 +387,160 @@
       "expiresAt": "2026-11-20T20:38:58.923Z"
     },
     {
-      "id": "df60c4f4-4ce9-4ca9-9e21-a72bd6ea330c",
+      "id": "2c8af853-0d96-4192-b1b8-faa88e8567fb",
       "userId": "student-local-fallback-id",
-      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJzdHVkZW50LWxvY2FsLWZhbGxiYWNrLWlkIiwiZW1haWwiOiJzdHVkZW50QGZpbmFsYXR0ZW1wdC5jb20iLCJyb2xlIjoic3R1ZGVudCIsInNlc3Npb25JZCI6ImRmNjBjNGY0LTRjZTktNGNhOS05ZTIxLWE3MmJkNmVhMzMwYyIsImlhdCI6MTc5NDI0MzA3NywiZXhwIjoxNzk2ODM1MDc3fQ.4wq6lddu1va9ldvdx5-iPfUTOcNzUO8by0jd4E2axsU",
-      "expiresAt": "2026-12-09T16:51:17.346Z"
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJzdHVkZW50LWxvY2FsLWZhbGxiYWNrLWlkIiwiZW1haWwiOiJzdHVkZW50QGZpbmFsYXR0ZW1wdC5jb20iLCJyb2xlIjoic3R1ZGVudCIsInNlc3Npb25JZCI6IjJjOGFmODUzLTBkOTYtNDE5Mi1iMWI4LWZhYTg4ZTg1NjdmYiIsImlhdCI6MTc5NDI4NzgwOCwiZXhwIjoxNzk2ODc5ODA4fQ.GInNqKHPsHVDQ3T3LBbuFfuSvqMzTcQ3M6rWMrX5b2g",
+      "expiresAt": "2026-12-10T05:16:48.065Z"
+    },
+    {
+      "id": "ae1eff8f-cf8f-467d-b059-de31dc0f4aeb",
+      "userId": "student-local-fallback-id",
+      "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJzdHVkZW50LWxvY2FsLWZhbGxiYWNrLWlkIiwiZW1haWwiOiJzdHVkZW50QGZpbmFsYXR0ZW1wdC5jb20iLCJyb2xlIjoic3R1ZGVudCIsInNlc3Npb25JZCI6ImFlMWVmZjhmLWNmOGYtNDY3ZC1iMDU5LWRlMzFkYzBmNGFlYiIsImlhdCI6MTc5NDMwMDQ5NSwiZXhwIjoxNzk2ODkyNDk1fQ.KO-jnZS2k4MSGtiNyQhVBPB9_2dLENTqg9OBEh5a5V4",
+      "expiresAt": "2026-12-10T08:48:15.603Z"
     }
   ],
   "otps": [],
   "dynamicCurrentAffairEditions": [
+    {
+      "id": "edition-2026-11-16",
+      "publishDate": "2026-11-16",
+      "summary": "Today's analysis covers the emergence of Cyclonic Storm Akvan, rising wholesale inflation concerns, the strategic shift in COP31 climate negotiations, and the cultural preservation efforts via the Yuge Yugeen Bharat Museum.",
+      "title_hi": "दैनिक समसामयिकी - 2026-11-16",
+      "summary_hi": "आज के विश्लेषण में चक्रवाती तूफान 'अकवन', थोक मुद्रास्फीति में वृद्धि, COP31 जलवायु वार्ता में रणनीतिक बदलाव और 'युगे युगीन भारत' संग्रहालय के माध्यम से सांस्कृतिक संरक्षण प्रयासों को शामिल किया गया है।",
+      "publish_target": "both",
+      "articles": [
+        {
+          "id": "auto-1794849330268-0-fuyw",
+          "editionId": "edition-2026-11-16",
+          "slug": "cyclonic-storm-akvan-preparedness-and-disaster-management",
+          "title": "Cyclonic Storm Akvan: Preparedness and Disaster Management",
+          "title_hi": "चक्रवाती तूफान 'अकवन': तैयारी और आपदा प्रबंधन",
+          "summary": "Cyclonic Storm Akvan is intensifying in the Bay of Bengal and is expected to make landfall as a severe storm on the Andhra Pradesh coast by November 20. The IMD has issued warnings for heavy rainfall, necessitating immediate precautionary measures by state authorities. Fishermen have been advised to remain ashore to prevent loss of life and property.",
+          "summary_hi": "चक्रवाती तूफान 'अकवन' बंगाल की खाड़ी में तीव्र हो रहा है और 20 नवंबर तक आंध्र प्रदेश तट पर एक गंभीर तूफान के रूप में टकराने की उम्मीद है। IMD ने भारी बारिश की चेतावनी जारी की है, जिससे राज्य अधिकारियों द्वारा तत्काल एहतियाती उपाय आवश्यक हो गए हैं। जान-माल की हानि को रोकने के लिए मछुआरों को तट पर रहने की सलाह दी गई है।",
+          "content": "### Overview\nCyclonic Storm Akvan is currently developing over the Bay of Bengal. Meteorological data suggests it will intensify into a 'Severe Cyclonic Storm' before hitting the Andhra Pradesh coast. \n\n### Disaster Management Protocol\n1. **Early Warning:** IMD's real-time tracking is crucial for evacuation.\n2. **State Response:** Coordination between NDRF and local administration is vital.\n3. **Economic Impact:** Coastal agriculture and fishing sectors face immediate risks.",
+          "content_hi": "### अवलोकन\nचक्रवाती तूफान 'अकवन' वर्तमान में बंगाल की खाड़ी के ऊपर विकसित हो रहा है। मौसम संबंधी आंकड़े बताते हैं कि आंध्र प्रदेश तट से टकराने से पहले यह एक 'गंभीर चक्रवाती तूफान' में बदल जाएगा।\n\n### आपदा प्रबंधन प्रोटोकॉल\n1. **प्रारंभिक चेतावनी:** निकासी के लिए IMD की रीयल-टाइम ट्रैकिंग महत्वपूर्ण है।\n2. **राज्य प्रतिक्रिया:** NDRF और स्थानीय प्रशासन के बीच समन्वय महत्वपूर्ण है।\n3. **आर्थिक प्रभाव:** तटीय कृषि और मत्स्य पालन क्षेत्र तत्काल जोखिम का सामना कर रहे हैं।",
+          "category": "NATIONAL",
+          "publishStatus": "DRAFT",
+          "publishedDate": "2026-11-16",
+          "readingTime": "4 mins",
+          "importance": "HIGH",
+          "publish_target": "both",
+          "language": "bilingual",
+          "whyInNews": "The IMD has predicted the storm's landfall between Nellore and Tuni, posing a significant threat to coastal infrastructure and livelihoods.",
+          "keyHighlights": "Expected landfall on Nov 20; heavy rainfall predicted for Nov 19-20; IMD monitoring system activation.",
+          "importantFacts": "IMD (India Meteorological Department) is the nodal agency for cyclone forecasting; Cyclones are named by the WMO/ESCAP Panel on Tropical Cyclones.",
+          "examRelevance": "Mains: Disaster Management (GS3) - Role of early warning systems and state preparedness in mitigating climate-induced disasters.",
+          "tags": [
+            "Environment",
+            "Disaster Management",
+            "GS3"
+          ],
+          "sources": [
+            "The Hindu"
+          ],
+          "createdAt": "2026-11-16T17:15:30.270Z",
+          "updatedAt": "2026-11-16T17:15:30.270Z"
+        },
+        {
+          "id": "auto-1794849330269-1-ddui",
+          "editionId": "edition-2026-11-16",
+          "slug": "wholesale-inflation-surges-to-12-3-economic-implications",
+          "title": "Wholesale Inflation Surges to 12.3%: Economic Implications",
+          "title_hi": "थोक मुद्रास्फीति 12.3% तक पहुंची: आर्थिक निहितार्थ",
+          "summary": "India's wholesale inflation has hit 12.3% in October 2026, marking the second consecutive month of double-digit figures. Economists warn that this trend will likely lead to higher consumer prices and potential interest rate hikes by the RBI. The persistent inflation poses a challenge to maintaining economic growth momentum.",
+          "summary_hi": "भारत की थोक मुद्रास्फीति अक्टूबर 2026 में 12.3% तक पहुंच गई है, जो लगातार दूसरे महीने दोहरे अंकों में है। अर्थशास्त्रियों ने चेतावनी दी है कि यह प्रवृत्ति उपभोक्ता कीमतों में वृद्धि और RBI द्वारा संभावित ब्याज दर वृद्धि का कारण बनेगी। निरंतर मुद्रास्फीति आर्थिक विकास की गति को बनाए रखने के लिए एक चुनौती है।",
+          "content": "### Economic Analysis\nThe rise in WPI reflects supply-side constraints and rising input costs. When wholesale prices rise, manufacturers eventually pass these costs to consumers, leading to higher CPI inflation.\n\n### Policy Response\nThe RBI faces a dilemma: raising rates to curb inflation might slow down economic growth, while keeping them low could lead to runaway inflation.",
+          "content_hi": "### आर्थिक विश्लेषण\nWPI में वृद्धि आपूर्ति-पक्ष की बाधाओं और बढ़ती इनपुट लागत को दर्शाती है। जब थोक कीमतें बढ़ती हैं, तो निर्माता अंततः इन लागतों को उपभोक्ताओं पर डाल देते हैं, जिससे CPI मुद्रास्फीति बढ़ जाती है।\n\n### नीतिगत प्रतिक्रिया\nRBI एक दुविधा का सामना कर रहा है: मुद्रास्फीति को रोकने के लिए दरों में वृद्धि आर्थिक विकास को धीमा कर सकती है, जबकि उन्हें कम रखने से अनियंत्रित मुद्रास्फीति हो सकती है।",
+          "category": "NATIONAL",
+          "publishStatus": "DRAFT",
+          "publishedDate": "2026-11-16",
+          "readingTime": "4 mins",
+          "importance": "HIGH",
+          "publish_target": "both",
+          "language": "bilingual",
+          "whyInNews": "The sustained high inflation rate is impacting market sentiment and raising concerns about the cost of living.",
+          "keyHighlights": "12.3% inflation rate; potential for monetary policy tightening; impact on consumer price index (CPI).",
+          "importantFacts": "WPI (Wholesale Price Index) measures the change in the price of goods sold in bulk; RBI uses inflation data to decide Repo Rates.",
+          "examRelevance": "Mains: Indian Economy (GS3) - Impact of inflation on purchasing power and the role of monetary policy in price stability.",
+          "tags": [
+            "Economy",
+            "Inflation",
+            "GS3"
+          ],
+          "sources": [
+            "The Hindu"
+          ],
+          "createdAt": "2026-11-16T17:15:30.270Z",
+          "updatedAt": "2026-11-16T17:15:30.270Z"
+        },
+        {
+          "id": "auto-1794849330269-2-u17g",
+          "editionId": "edition-2026-11-16",
+          "slug": "cop31-climate-negotiations-divergent-global-positions",
+          "title": "COP31 Climate Negotiations: Divergent Global Positions",
+          "title_hi": "COP31 जलवायु वार्ता: वैश्विक मतभेद",
+          "summary": "Draft texts at the COP31 climate summit in Turkey reveal significant disagreements between developed and developing nations. Developing countries are demanding that developed nations take the lead in emission cuts and provide substantial climate finance. The negotiations highlight the ongoing struggle for 'Common but Differentiated Responsibilities'.",
+          "summary_hi": "तुर्की में COP31 जलवायु शिखर सम्मेलन के मसौदा पाठ विकसित और विकासशील देशों के बीच महत्वपूर्ण असहमति को उजागर करते हैं। विकासशील देश मांग कर रहे हैं कि विकसित देश उत्सर्जन कटौती में नेतृत्व करें और पर्याप्त जलवायु वित्त प्रदान करें। वार्ता 'साझा लेकिन विभेदित जिम्मेदारियों' के लिए चल रहे संघर्ष को उजागर करती है।",
+          "content": "### The Core Conflict\nDeveloped nations are pushing for universal emission targets, while developing nations argue that historical emissions by the West necessitate a differentiated approach.\n\n### Climate Finance\nDeveloping nations require funds for technology transfer and adaptation, which remains a sticking point in the current draft.",
+          "content_hi": "### मुख्य संघर्ष\nविकसित देश सार्वभौमिक उत्सर्जन लक्ष्यों के लिए जोर दे रहे हैं, जबकि विकासशील देशों का तर्क है कि पश्चिम द्वारा ऐतिहासिक उत्सर्जन के लिए एक विभेदित दृष्टिकोण की आवश्यकता है।\n\n### जलवायु वित्त\nविकासशील देशों को प्रौद्योगिकी हस्तांतरण और अनुकूलन के लिए धन की आवश्यकता है, जो वर्तमान मसौदे में एक विवादास्पद मुद्दा बना हुआ है।",
+          "category": "INTERNATIONAL",
+          "publishStatus": "DRAFT",
+          "publishedDate": "2026-11-16",
+          "readingTime": "3 mins",
+          "importance": "MEDIUM",
+          "publish_target": "both",
+          "language": "bilingual",
+          "whyInNews": "The summit is a critical juncture for defining climate finance targets for the next decade.",
+          "keyHighlights": "Demand for climate finance; debate on emission reduction targets; North-South divide in climate policy.",
+          "importantFacts": "COP (Conference of Parties) is the supreme decision-making body of the UNFCCC.",
+          "examRelevance": "Mains: International Relations (GS2) - Global climate governance and India's stance on climate justice.",
+          "tags": [
+            "Environment",
+            "International Relations",
+            "GS2"
+          ],
+          "sources": [
+            "The Hindu"
+          ],
+          "createdAt": "2026-11-16T17:15:30.270Z",
+          "updatedAt": "2026-11-16T17:15:30.270Z"
+        },
+        {
+          "id": "auto-1794849330269-3-64hp",
+          "editionId": "edition-2026-11-16",
+          "slug": "yuge-yugeen-bharat-museum-preserving-india-s-heritage",
+          "title": "Yuge Yugeen Bharat Museum: Preserving India's Heritage",
+          "title_hi": "युगे युगीन भारत संग्रहालय: भारत की विरासत का संरक्षण",
+          "summary": "The Yuge Yugeen Bharat Museum, built at a cost of ₹3,230 crore, is set to become the world's largest museum in terms of display area. It will house iconic artifacts, including the famous 'Dancing Girl' and Nizam’s jewels, aiming to showcase India's civilizational journey. This project is a major initiative in cultural diplomacy and heritage preservation.",
+          "summary_hi": "₹3,230 करोड़ की लागत से बना 'युगे युगीन भारत संग्रहालय' प्रदर्शन क्षेत्र के मामले में दुनिया का सबसे बड़ा संग्रहालय बनने के लिए तैयार है। इसमें प्रसिद्ध 'डांसिंग गर्ल' और निजाम के गहनों सहित प्रतिष्ठित कलाकृतियां रखी जाएंगी, जिसका उद्देश्य भारत की सभ्यतागत यात्रा को प्रदर्शित करना है। यह परियोजना सांस्कृतिक कूटनीति और विरासत संरक्षण में एक बड़ी पहल है।",
+          "content": "### Cultural Significance\nBy centralizing artifacts like the Dancing Girl, the museum provides a comprehensive view of India's history from the Indus Valley Civilization to the modern era.\n\n### Governance Aspect\nSuch large-scale infrastructure projects reflect the government's focus on 'Soft Power' and cultural identity.",
+          "content_hi": "### सांस्कृतिक महत्व\nडांसिंग गर्ल जैसी कलाकृतियों को केंद्रीकृत करके, संग्रहालय सिंधु घाटी सभ्यता से लेकर आधुनिक युग तक भारत के इतिहास का व्यापक दृष्टिकोण प्रदान करता है।\n\n### शासन का पहलू\nइस तरह की बड़े पैमाने की बुनियादी ढांचा परियोजनाएं 'सॉफ्ट पावर' और सांस्कृतिक पहचान पर सरकार के फोकस को दर्शाती हैं।",
+          "category": "NATIONAL",
+          "publishStatus": "DRAFT",
+          "publishedDate": "2026-11-16",
+          "readingTime": "3 mins",
+          "importance": "MEDIUM",
+          "publish_target": "both",
+          "language": "bilingual",
+          "whyInNews": "The museum is being positioned as a global landmark for Indian history and culture.",
+          "keyHighlights": "Largest display area globally; focus on civilizational history; preservation of national treasures.",
+          "importantFacts": "The museum aims to consolidate India's historical narrative under one roof.",
+          "examRelevance": "Mains: Art & Culture (GS1) - Importance of museums in preserving and promoting national heritage.",
+          "tags": [
+            "Culture",
+            "Governance",
+            "GS1"
+          ],
+          "sources": [
+            "The Hindu"
+          ],
+          "createdAt": "2026-11-16T17:15:30.270Z",
+          "updatedAt": "2026-11-16T17:15:30.270Z"
+        }
+      ],
+      "createdAt": "2026-11-16T17:15:30.270Z",
+      "updatedAt": "2026-11-16T17:15:30.270Z"
+    },
     {
       "id": "edition-pm-internship-1791880756298",
       "publishDate": "2026-10-13",
@@ -462,6 +591,16 @@
     }
   ],
   "youtubeVideos": [
+    {
+      "youtubeVideoId": "h7DwYl8FgRs",
+      "title": "Transpiration in Plants | वाष्पोत्सर्जन क्या है? | Types & Importance of Transpiration",
+      "description": "🌱 क्या आपने कभी सोचा है कि पौधे अपनी पत्तियों से पानी बाहर कैसे निकालते हैं? 🤔\n\nइस प्रक्रिया को Transpiration (वाष्पोत्सर्जन) कहते हैं। आइए जानते हैं इसके पीछे का रोचक विज्ञान!\n\n📌 इस वीडियो में जानिए:\n✅ Transpiration (वाष्पोत्सर्जन) क्या है?\n✅ पौधों में वाष्पोत्सर्जन की प्रक्रिया\n✅ Stomata (रंध्र) की भूमिका\n✅ वाष्पोत्सर्जन के प्रमुख प्रकार\n✅ पौधों के लिए वाष्पोत्सर्जन का महत्व\n✅ Transpiration और पौधों में जल परिवहन का संबंध\n\n पौधों में अधिकांश वाष्पोत्सर्जन पत्तियों के रंध्रों (Stomata) के माध्यम से होता है। यह पौधों में जल के ऊपर की ओर परिवहन में भी मदद करता है।\n\n🎯 BPSC, UPSC, SSC, Bihar SI एवं अन्य प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण Biology Topic!\n\n📲 WhatsApp: +91 97099 92093\n🌐 Website: www.finalattemptias.com\n\n#Transpiration #वाष्पोत्सर्जन #PlantPhysiology #BiologyInHindi #BPSC #UPSC #GeneralScience #finalattempt",
+      "thumbnail": "https://i.ytimg.com/vi/h7DwYl8FgRs/maxresdefault.jpg",
+      "duration": "0:42",
+      "publishedAt": "2026-11-09T12:50:23Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-09T15:57:49.167Z"
+    },
     {
       "youtubeVideoId": "Mpwxm7SlsbM",
       "title": "अब गेम बदलेगा! 🔥 Daily Current Affairs हिंदी में | UPSC & State PCS | Coming Soon | Final Attempt",
@@ -3923,149 +4062,247 @@
       "createdAt": "2026-07-18T12:31:29.096Z"
     },
     {
-      "youtubeVideoId": "h7DwYl8FgRs",
-      "title": "Transpiration in Plants | वाष्पोत्सर्जन क्या है? | Types & Importance of Transpiration",
-      "description": "🌱 क्या आपने कभी सोचा है कि पौधे अपनी पत्तियों से पानी बाहर कैसे निकालते हैं? 🤔\n\nइस प्रक्रिया को Transpiration (वाष्पोत्सर्जन) कहते हैं। आइए जानते हैं इसके पीछे का रोचक विज्ञान!\n\n📌 इस वीडियो में जानिए:\n✅ Transpiration (वाष्पोत्सर्जन) क्या है?\n✅ पौधों में वाष्पोत्सर्जन की प्रक्रिया\n✅ Stomata (रंध्र) की भूमिका\n✅ वाष्पोत्सर्जन के प्रमुख प्रकार\n✅ पौधों के लिए वाष्पोत्सर्जन का महत्व\n✅ Transpiration और पौधों में जल परिवहन का संबंध\n\n पौधों में अधिकांश वाष्पोत्सर्जन पत्तियों के रंध्रों (Stomata) के माध्यम से होता है। यह पौधों में जल के ऊपर की ओर परिवहन में भी मदद करता है।\n\n🎯 BPSC, UPSC, SSC, Bihar SI एवं अन्य प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण Biology Topic!\n\n📲 WhatsApp: +91 97099 92093\n🌐 Website: www.finalattemptias.com\n\n#Transpiration #वाष्पोत्सर्जन #PlantPhysiology #BiologyInHindi #BPSC #UPSC #GeneralScience #finalattempt",
-      "thumbnail": "https://i.ytimg.com/vi/h7DwYl8FgRs/maxresdefault.jpg",
-      "duration": "0:42",
-      "publishedAt": "2026-11-09T12:50:23Z",
+      "youtubeVideoId": "2PLdb5ccTBM",
+      "title": "UPSC Mains Answer Writing: DPSP से Answer कैसे Improve करें? | Article 42",
+      "description": "UPSC Mains में सिर्फ सही जानकारी लिखना काफी नहीं, उत्तर में Constitutional Linkage भी महत्वपूर्ण है।\nउदाहरण के लिए, Maternity Relief से जुड़े प्रश्न में Article 42 का उल्लेख करके आप अपने उत्तर को अधिक मजबूत संवैधानिक आधार दे सकते हैं।\nइस वीडियो में समझिए कि DPSP के Articles को GS Paper 2, GS Paper 3 और सामाजिक न्याय से जुड़े प्रश्नों में कैसे उपयोग किया जा सकता है।\nबेहतर Answer Writing के लिए Concepts को Interlink करना सीखिए।\nWatch Full DPSP Discussion:\nhttps://www.youtube.com/watch?v=GfIpVbSbYz8\nFINAL ATTEMPT | UPSC Mains Preparation\n#UPSCMains #AnswerWriting #DPSP #Article42 #FinalAttempt",
+      "thumbnail": "https://i.ytimg.com/vi/2PLdb5ccTBM/maxresdefault.jpg",
+      "duration": "3:00",
+      "publishedAt": "2026-11-10T05:14:26Z",
       "channelTitle": "Final Attempt",
-      "createdAt": "2026-11-09T15:57:49.167Z"
+      "createdAt": "2026-11-10T05:21:28.817Z"
+    },
+    {
+      "youtubeVideoId": "rmUjjlBXp9Q",
+      "title": "दृष्टि 2026: खेल परिदृश्य एवं UP विशेष | UPPCS 2026 Current Affairs Practice Qn. | @UPSC_SCIENTIST",
+      "description": "UP-PCS 2026 की प्रभावी तैयारी के लिए प्रस्तुत है खेल परिदृश्य एवं UP विशेष पर आधारित विशेष Question Practice Session.\n\nइस वीडियो में दृष्टि 2026 (2) के कंटेंट को आधार बनाकर महत्वपूर्ण प्रश्नों का अभ्यास कराया गया है। यह सत्र UP-PCS Prelims 2026 की तैयारी कर रहे अभ्यर्थियों के लिए उपयोगी है।\n\nखेल परिदृश्य एवं UP विशेष से जुड़े महत्वपूर्ण तथ्यों, समसामयिक घटनाओं एवं परीक्षा उपयोगी प्रश्नों के माध्यम से अपनी तैयारी को मजबूत करें।\n\nBy: Navratan Sir\n\n#Drishti2026 #UPPCS #UPPSC #UPPCS2026 #UPPSCPrelims2026 #QuestionPractice #CurrentAffairs #NationalPerspective #PrelimsPreparation #FinalAttempt #science",
+      "thumbnail": "https://i.ytimg.com/vi/rmUjjlBXp9Q/maxresdefault.jpg",
+      "duration": "1:52:30",
+      "publishedAt": "2026-11-23T21:28:51Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:53.666Z"
+    },
+    {
+      "youtubeVideoId": "gRs7W_568W8",
+      "title": "दृष्टि 2026: विज्ञान & प्रौद्योगिकी | UPPCS 2026 Current Affairs Practice Qn. | @UPSC_SCIENTIST",
+      "description": "UP-PCS 2026 की प्रभावी तैयारी के लिए प्रस्तुत है विज्ञान & प्रौद्योगिकी पर आधारित विशेष Question Practice Session.\n\nइस वीडियो में दृष्टि 2026 (2) के कंटेंट को आधार बनाकर महत्वपूर्ण प्रश्नों का अभ्यास कराया गया है। यह सत्र UP-PCS Prelims 2026 की तैयारी कर रहे अभ्यर्थियों के लिए उपयोगी है।\n\nविज्ञान & प्रौद्योगिकी से जुड़े महत्वपूर्ण तथ्यों, समसामयिक घटनाओं एवं परीक्षा उपयोगी प्रश्नों के माध्यम से अपनी तैयारी को मजबूत करें।\n\nBy: Navratan Sir\n\n#Drishti2026 #UPPCS #UPPSC #UPPCS2026 #UPPSCPrelims2026 #QuestionPractice #CurrentAffairs #NationalPerspective #PrelimsPreparation #FinalAttempt #science",
+      "thumbnail": "https://i.ytimg.com/vi/gRs7W_568W8/maxresdefault.jpg",
+      "duration": "3:59:45",
+      "publishedAt": "2026-11-22T21:57:37Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:53.748Z"
+    },
+    {
+      "youtubeVideoId": "Rm9wVc8w6Gs",
+      "title": "BPSC PRE में PYQ के POINTER NOTES बनाएं !",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/Rm9wVc8w6Gs/maxresdefault.jpg",
+      "duration": "1:11",
+      "publishedAt": "2026-11-22T18:29:03Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:53.834Z"
+    },
+    {
+      "youtubeVideoId": "Br73_aJiBjQ",
+      "title": "72nd BPSC Prelims New Date घोषित! अब आगे की रणनीति क्या होनी चाहिए? | BPSC 2026 | FINAL ATTEMPT",
+      "description": "72वीं BPSC प्रारंभिक परीक्षा की नई तारीख के बाद अब अभ्यर्थियों के सामने सबसे बड़ा सवाल है – आगे की तैयारी की रणनीति क्या होनी चाहिए?\n\nइस वीडियो में 72nd BPSC Prelims की नई तारीख के बाद तैयारी की दिशा, समय का सही उपयोग और आगामी परीक्षा के लिए प्रभावी रणनीति पर चर्चा की गई है।\n\nअगर आप BPSC 2026 की तैयारी कर रहे हैं, तो यह चर्चा आपके लिए बेहद महत्वपूर्ण है।\n\nअपनी तैयारी को सही दिशा दें और अपने हर प्रयास को सफलता की ओर ले जाएं।\n\nFOLLOW FINAL ATTEMPT\n\n📸 Instagram: https://www.instagram.com/finalattempt_official/\n\n▶️ YouTube: https://www.youtube.com/@FinalAttemptOfficial\n\n📢 Telegram: https://t.me/Finalattemptofficial\n\n🌐 Website: https://finalattemptias.com\n\nFinal Attempt – Your Final Step Towards Success!\n\nHASHTAGS\n\n#72ndBPSC #BPSC2026 #BPSCPrelims #BPSCNewDate #BPSCPreparation #BPSCStrategy #BPSCExam #BiharPSC #BPSCUpdate #BPSCStudents #BPSCaspirants #Bihar",
+      "thumbnail": "https://i.ytimg.com/vi/Br73_aJiBjQ/maxresdefault.jpg",
+      "duration": "9:25",
+      "publishedAt": "2026-11-22T02:30:09Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:53.925Z"
+    },
+    {
+      "youtubeVideoId": "LdgHU_7aC5A",
+      "title": "72nd BPSC Prelims New Date घोषित! अब आगे की रणनीति क्या होनी चाहिए? #finalattempt #education #bpsc",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/LdgHU_7aC5A/maxresdefault.jpg",
+      "duration": "0:57",
+      "publishedAt": "2026-11-21T19:12:15Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.038Z"
+    },
+    {
+      "youtubeVideoId": "xNliQFS7CrM",
+      "title": "दृष्टि 2026: आर्थिक परिदृश्य | UPPCS 2026 Current Affairs Practice Qn.  @UPSC_SCIENTIST",
+      "description": "UP-PCS 2026 की प्रभावी तैयारी के लिए प्रस्तुत है आर्थिक परिदृश्य पर आधारित विशेष Question Practice Session.\n\nइस वीडियो में दृष्टि 2026 (2) के कंटेंट को आधार बनाकर महत्वपूर्ण प्रश्नों का अभ्यास कराया गया है। यह सत्र UP-PCS Prelims 2026 की तैयारी कर रहे अभ्यर्थियों के लिए उपयोगी है।\n\nआर्थिक परिदृश्य से जुड़े महत्वपूर्ण तथ्यों, समसामयिक घटनाओं एवं परीक्षा उपयोगी प्रश्नों के माध्यम से अपनी तैयारी को मजबूत करें।\n\nBy: Navratan Sir\n\n#Drishti2026 #UPPCS #UPPSC #UPPCS2026 #UPPSCPrelims2026 #QuestionPractice #CurrentAffairs #NationalPerspective #PrelimsPreparation #FinalAttempt",
+      "thumbnail": "https://i.ytimg.com/vi/xNliQFS7CrM/maxresdefault.jpg",
+      "duration": "5:56:10",
+      "publishedAt": "2026-11-21T18:18:33Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.132Z"
+    },
+    {
+      "youtubeVideoId": "Hb1Pacn786k",
+      "title": "Biology - विविध | UP-PCS Prelims Science PYQ | Navaratan Sir | ‪@UPSC_SCIENTIST",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/Hb1Pacn786k/maxresdefault.jpg",
+      "duration": "1:38:51",
+      "publishedAt": "2026-11-21T03:28:58Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.218Z"
+    },
+    {
+      "youtubeVideoId": "woX6NBMpU2s",
+      "title": "दृष्टि 2026: अंतर्राष्ट्रीय परिदृश्य | UPPCS 2026 Current Affairs Practice Qn.  @UPSC_SCIENTIST  ​",
+      "description": "UP-PCS 2026 की प्रभावी तैयारी के लिए प्रस्तुत है अंतर्राष्ट्रीय परिदृश्य पर आधारित विशेष Question Practice Session.\n\nइस वीडियो में दृष्टि 2026 (2) के कंटेंट को आधार बनाकर महत्वपूर्ण प्रश्नों का अभ्यास कराया गया है। यह सत्र UP-PCS Prelims 2026 की तैयारी कर रहे अभ्यर्थियों के लिए उपयोगी है।\n\nअंतर्राष्ट्रीय परिदृश्य से जुड़े महत्वपूर्ण तथ्यों, समसामयिक घटनाओं एवं परीक्षा उपयोगी प्रश्नों के माध्यम से अपनी तैयारी को मजबूत करें।\n\nBy: Navratan Sir\n\n#Drishti2026 #राष्ट्रीयपरिदृश्य #UPPCS #UPPSC #UPPCS2026 #UPPSCPrelims2026 #QuestionPractice #CurrentAffairs #NationalPerspective #PrelimsPreparation #FinalAttempt",
+      "thumbnail": "https://i.ytimg.com/vi/woX6NBMpU2s/maxresdefault.jpg",
+      "duration": "4:26:30",
+      "publishedAt": "2026-11-20T11:12:22Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.301Z"
+    },
+    {
+      "youtubeVideoId": "3w9gQVd1I4Y",
+      "title": "Biology - वर्गिकी एवं जैव तकनीकी | UP-PCS Prelims Science PYQ | Navaratan Sir | ‪@UPSC_SCIENTIST",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/3w9gQVd1I4Y/maxresdefault.jpg",
+      "duration": "1:55:34",
+      "publishedAt": "2026-11-20T05:27:55Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.383Z"
+    },
+    {
+      "youtubeVideoId": "1SSzmzbcIBI",
+      "title": "दृष्टि 2026: राष्ट्रीय परिदृश्य (PART-2)  | UPPCS 2026 Current Affairs Practice Qn. @UPSC_SCIENTIST​",
+      "description": "UP-PCS 2026 की प्रभावी तैयारी के लिए प्रस्तुत है राष्ट्रीय परिदृश्य (National Perspective) पर आधारित विशेष Question Practice Session.\n\nइस वीडियो में दृष्टि 2026 (2) के कंटेंट को आधार बनाकर महत्वपूर्ण प्रश्नों का अभ्यास कराया गया है। यह सत्र UP-PCS Prelims 2026 की तैयारी कर रहे अभ्यर्थियों के लिए उपयोगी है।\n\nराष्ट्रीय परिदृश्य से जुड़े महत्वपूर्ण तथ्यों, समसामयिक घटनाओं एवं परीक्षा उपयोगी प्रश्नों के माध्यम से अपनी तैयारी को मजबूत करें।\n\nBy: Navratan Sir\n\n#Drishti2026 #राष्ट्रीयपरिदृश्य #UPPCS #UPPSC #UPPCS2026 #UPPSCPrelims2026 #QuestionPractice #CurrentAffairs #NationalPerspective #PrelimsPreparation #FinalAttempt",
+      "thumbnail": "https://i.ytimg.com/vi/1SSzmzbcIBI/maxresdefault.jpg",
+      "duration": "3:48:06",
+      "publishedAt": "2026-11-19T23:03:36Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.462Z"
+    },
+    {
+      "youtubeVideoId": "MhcHNbgl2w4",
+      "title": "दृष्टि 2026: राष्ट्रीय परिदृश्य | UPPCS 2026 Current Affairs Practice @UPSC_SCIENTIST​",
+      "description": "UP-PCS 2026 की प्रभावी तैयारी के लिए प्रस्तुत है राष्ट्रीय परिदृश्य (National Perspective) पर आधारित विशेष Question Practice Session.\n\nइस वीडियो में दृष्टि 2026 (2) के कंटेंट को आधार बनाकर महत्वपूर्ण प्रश्नों का अभ्यास कराया गया है। यह सत्र UP-PCS Prelims 2026 की तैयारी कर रहे अभ्यर्थियों के लिए उपयोगी है।\n\nराष्ट्रीय परिदृश्य से जुड़े महत्वपूर्ण तथ्यों, समसामयिक घटनाओं एवं परीक्षा उपयोगी प्रश्नों के माध्यम से अपनी तैयारी को मजबूत करें।\n\nBy: Navratan Sir\n\n#Drishti2026 #राष्ट्रीयपरिदृश्य #UPPCS #UPPSC #UPPCS2026 #UPPSCPrelims2026 #QuestionPractice #CurrentAffairs #NationalPerspective #PrelimsPreparation #FinalAttempt",
+      "thumbnail": "https://i.ytimg.com/vi/MhcHNbgl2w4/maxresdefault.jpg",
+      "duration": "3:08:35",
+      "publishedAt": "2026-11-19T07:18:59Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.543Z"
+    },
+    {
+      "youtubeVideoId": "uXhIPNS5tkQ",
+      "title": "उत्तर प्रदेश के प्रमुख बांध एवं उनकी स्थिति 📝",
+      "description": "उत्तर प्रदेश के प्रमुख बांध एवं उनकी स्थिति 📝\n\nUPPCS Prelims 2026 की तैयारी के लिए महत्वपूर्ण Static GK को एक ही जगह व्यवस्थित तरीके से याद करें।\n\nनदी और जिले के साथ प्रमुख बांधों का त्वरित रिवीजन करें।\n\n#UPPCS #UPPSC #UPPCS2026 #UttarPradeshGK #StaticGK #Prelims2026",
+      "thumbnail": "https://i.ytimg.com/vi/uXhIPNS5tkQ/maxresdefault.jpg",
+      "duration": "0:43",
+      "publishedAt": "2026-11-18T12:46:27Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.619Z"
+    },
+    {
+      "youtubeVideoId": "2J8bZfc2a_w",
+      "title": "Mineral Resources in Bihar | बिहार के खनिज संसाधन | BPSC | FINAL ATTEMPT",
+      "description": "क्या आप जानते हैं बिहार में कौन-कौन से खनिज पाए जाते हैं? ⛏️\n\nइस वीडियो में हम बिहार के खनिज संसाधनों (Mineral Resources in Bihar) को आसान भाषा में समझेंगे। जानिए बिहार के प्रमुख खनिज, उनके उत्पादन क्षेत्र, आर्थिक महत्व, खनन से जुड़े महत्वपूर्ण तथ्य और परीक्षा में बार-बार पूछे जाने वाले प्रश्न।\n\n🎯 यह वीडियो BPSC, Bihar SI, BSSC, BTSC, Bihar Police, CSBC, SSC, Railway, Banking तथा अन्य सभी प्रतियोगी परीक्षाओं के लिए अत्यंत महत्वपूर्ण है।\n\n📚 इस वीडियो में शामिल विषय:\n✅ बिहार के प्रमुख खनिज\n✅ खनिज उत्पादन वाले प्रमुख जिले\n✅ आर्थिक महत्व\n✅ परीक्षा में पूछे जाने वाले महत्वपूर्ण तथ्य\n✅ Important MCQs & One-Liners\n\n📲 WhatsApp: +91 97099 92093\n🌐 Website: www.finalattemptias.com\n\n👍 अगर वीडियो उपयोगी लगे तो Like करें, अपने दोस्तों के साथ Share करें और ऐसे ही महत्वपूर्ण बिहार स्पेशल कंटेंट के लिए Final Attempt को Subscribe करना न भूलें।\n\nFinal Attempt – Your Final Step Towards Success! 🚀\n\n#FinalAttempt #MineralResources #BiharGK #BPSC #BiharSpecial #GeographyGK #BiharExams #StaticGK #BiharPreparation",
+      "thumbnail": "https://i.ytimg.com/vi/2J8bZfc2a_w/maxresdefault.jpg",
+      "duration": "11:08",
+      "publishedAt": "2026-11-18T09:58:46Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.699Z"
+    },
+    {
+      "youtubeVideoId": "m6Q_PSKaQVs",
+      "title": "Auxin का कमाल! पौधे प्रकाश की ओर क्यों झुकते हैं? | Phototropism in Plants | Biology in Hindi",
+      "description": "इसका जवाब है Auxin (ऑक्सिन)! आइए समझते हैं पौधों के इस अद्भुत विज्ञान को।\n\n📌 इस वीडियो में जानिए:\n✅ Auxin (ऑक्सिन) क्या है?\n✅ पौधों में ऑक्सिन हार्मोन की भूमिका\n✅ Phototropism (प्रकाशानुवर्तन) क्या है?\n✅ पौधे प्रकाश की दिशा में कैसे झुकते हैं?\n✅ Auxin का पौधों की वृद्धि में महत्व\n✅ Positive Phototropism और Negative Phototropism\n\n🎯 BPSC, UPSC, SSC, Bihar SI एवं अन्य प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण Biology Topic!\n\n📲 WhatsApp: +91 97099 92093\n🌐 Website: www.finalattemptias.com\n\n#Auxin #Phototropism #PlantHormones #BiologyInHindi #ScienceFacts #BPSC #UPSC #GeneralScience #finalattempt",
+      "thumbnail": "https://i.ytimg.com/vi/m6Q_PSKaQVs/maxresdefault.jpg",
+      "duration": "0:36",
+      "publishedAt": "2026-11-18T04:18:26Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.786Z"
+    },
+    {
+      "youtubeVideoId": "I3oTBuK5CpU",
+      "title": "Theories of Ascent of Sap | पौधों में जल का ऊपर की ओर चढ़ना | Biology | BPSC UPSC",
+      "description": "🌿 क्या आपने कभी सोचा है कि पौधों की जड़ों से पानी गुरुत्वाकर्षण के विपरीत ऊपर पत्तियों तक कैसे पहुँचता है? 🤔\n\nआइए समझते हैं Ascent of Sap (रसारोहण) के पीछे का रोचक विज्ञान और इससे संबंधित प्रमुख वैज्ञानिक सिद्धांत!\n\n📌 इस वीडियो में जानिए:\n✅ Ascent of Sap (रसारोहण) क्या है?\n✅ Vital Force Theory\n✅ Root Pressure Theory\n✅ Capillary Theory\n✅ Cohesion-Tension Theory\n✅ Transpiration Pull Mechanism\n✅ जल के ऊपर चढ़ने की प्रक्रिया\n\n🔬 Science Fact: वर्तमान में Cohesion-Tension Theory पौधों में जल के ऊपर की ओर परिवहन की सबसे व्यापक रूप से स्वीकृत व्याख्या है।\n\n🎯 BPSC, UPSC, SSC, Bihar SI एवं अन्य प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण Biology Topic!\n\n📲 WhatsApp: +91 97099 92093\n🌐 Website: www.finalattemptias.com\n\n#AscentOfSap #PlantPhysiology #CohesionTensionTheory #BiologyInHindi #Botany #BPSC #UPSC #GeneralScience #finalattempt",
+      "thumbnail": "https://i.ytimg.com/vi/I3oTBuK5CpU/maxresdefault.jpg",
+      "duration": "0:32",
+      "publishedAt": "2026-11-17T12:45:07Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.875Z"
+    },
+    {
+      "youtubeVideoId": "WKRtDqINoSU",
+      "title": "Inflorescence in Plants | पुष्पक्रम क्या है? | Types of Inflorescence | Botany in Hindi | BPSC UPSC",
+      "description": "🌺 क्या आपने कभी सोचा है कि पौधों में फूल किस क्रम और व्यवस्था में लगते हैं? 🤔\n\nइस व्यवस्था को Inflorescence (पुष्पक्रम) कहते हैं। आइए समझते हैं इसके पीछे का रोचक विज्ञान!\n\n📌 इस वीडियो में जानिए:\n✅ Inflorescence (पुष्पक्रम) क्या है?\n✅ Racemose Inflorescence (असीमाक्षी पुष्पक्रम)\n✅ Cymose Inflorescence (ससीमाक्षी पुष्पक्रम)\n✅ पुष्पक्रम के प्रमुख प्रकार\n✅ दोनों प्रकारों में अंतर\n✅ महत्वपूर्ण उदाहरण एवं विशेषताएँ\n\n🎯 BPSC, UPSC, SSC, Bihar SI एवं अन्य प्रतियोगी परीक्षाओं के लिए महत्वपूर्ण Biology Topic!\n\n📲 WhatsApp: +91 97099 92093\n🌐 Website: www.finalattemptias.com\n\n#Inflorescence #पुष्पक्रम #Botany #BiologyInHindi #plantmorphology  #BPSC #UPSC #GeneralScience #finalattempt",
+      "thumbnail": "https://i.ytimg.com/vi/WKRtDqINoSU/hqdefault.jpg",
+      "duration": "0:38",
+      "publishedAt": "2026-11-17T06:49:11Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:54.955Z"
+    },
+    {
+      "youtubeVideoId": "e4v_6Hz8KzU",
+      "title": "भारत के 16वें फाइनेंस कमीशन के चेयरमैन के तौर पर किसे नियुक्त किया गया है?",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/e4v_6Hz8KzU/maxresdefault.jpg",
+      "duration": "0:27",
+      "publishedAt": "2026-11-17T03:12:45Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:55.035Z"
+    },
+    {
+      "youtubeVideoId": "H1dLzFVwqjM",
+      "title": "किताब पढ़ना ≠ REVISION! ACTIVE RECALL से बदलें तैयारी",
+      "description": "#finalattempt #bpsc #preparation",
+      "thumbnail": "https://i.ytimg.com/vi/H1dLzFVwqjM/maxresdefault.jpg",
+      "duration": "0:54",
+      "publishedAt": "2026-11-14T06:19:38Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:55.112Z"
+    },
+    {
+      "youtubeVideoId": "aOPY-Ef3L08",
+      "title": "ARTICLE 45 में क्या बदला  86th AMENDMENT  | RIGHT TO EDUCATION",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/aOPY-Ef3L08/maxresdefault.jpg",
+      "duration": "1:02",
+      "publishedAt": "2026-11-13T05:45:04Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:55.189Z"
+    },
+    {
+      "youtubeVideoId": "aw7GdMrOvoY",
+      "title": "LUNGS में कौन सा TISSUE  EPITHELIAL TISSUE   SCIENCE MCQ",
+      "description": "",
+      "thumbnail": "https://i.ytimg.com/vi/aw7GdMrOvoY/maxresdefault.jpg",
+      "duration": "0:57",
+      "publishedAt": "2026-11-12T05:25:42Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:55.267Z"
+    },
+    {
+      "youtubeVideoId": "TqxL056IugA",
+      "title": "DPSP (राज्य के नीति निदेशक तत्व) | Directive Principles of State Policy | Article 36–51",
+      "description": "क्या आप जानते हैं भारतीय संविधान में राज्य के नीति निदेशक तत्वों का उल्लेख किस भाग में किया गया है?\n\nइस वीडियो में जानिए DPSP (Directive Principles of State Policy) से जुड़े महत्वपूर्ण संवैधानिक प्रावधान और तथ्य।\n\n📌 इस वीडियो में जानिए:\n✅ DPSP क्या है?\n✅ संविधान का भाग IV (अनुच्छेद 36–51)\n✅ DPSP की विशेषताएँ एवं उद्देश्य\n✅ नीति निदेशक तत्वों के प्रमुख प्रकार\n✅ आयरलैंड के संविधान से प्रेरणा\n✅ मौलिक अधिकार और DPSP में अंतर\n✅ परीक्षा में पूछे जाने वाले महत्वपूर्ण अनुच्छेद\n\n🎯 BPSC, UPSC, Bihar SI, SSC एवं अन्य State PCS परीक्षाओं के लिए महत्वपूर्ण Indian Polity Topic!\n\n📲 WhatsApp: +91 97099 92093\n🌐 Website: www.finalattemptias.com\n\n#DPSP #DirectivePrinciples #IndianPolity #भारतीयसंविधान #BPSC #UPSC #BPSCPrelims #finalattempt",
+      "thumbnail": "https://i.ytimg.com/vi/TqxL056IugA/maxresdefault.jpg",
+      "duration": "0:36",
+      "publishedAt": "2026-11-11T11:12:51Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:55.350Z"
+    },
+    {
+      "youtubeVideoId": "Az7GhQjR_d4",
+      "title": "TENDON vs LIGAMENT BONE–BONE या MUSCLE–BONE",
+      "description": "#finalattempt #bpsc #uppcs",
+      "thumbnail": "https://i.ytimg.com/vi/Az7GhQjR_d4/maxresdefault.jpg",
+      "duration": "0:40",
+      "publishedAt": "2026-11-11T04:54:12Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:55.432Z"
+    },
+    {
+      "youtubeVideoId": "D31GVwXo-KE",
+      "title": "President (राष्ट्रपति) | All Exams PYQ | Indian Polity | FINAL ATTEMPT",
+      "description": "President (राष्ट्रपति) | All Exams PYQ | Indian Polity | FINAL ATTEMPT\n\n\nइस वीडियो में हम भारतीय संविधान के महत्वपूर्ण विषय राष्ट्रपति (President of India) से जुड़े विभिन्न प्रतियोगी परीक्षाओं में पूछे गए Previous Year Questions (PYQs) पर चर्चा करेंगे।\n\nइस क्लास में महत्वपूर्ण प्रश्नों के साथ उनके उत्तर और संबंधित संवैधानिक प्रावधानों को आसान भाषा में समझाया गया है।\n\n📚 Topics Covered:\n- President of India (भारत का राष्ट्रपति)\n- राष्ट्रपति से संबंधित संवैधानिक प्रावधान\n- संविधान के अनुच्छेद 52–62\n- राष्ट्रपति का निर्वाचन एवं कार्यकाल\n- राष्ट्रपति की शक्तियाँ एवं कार्य\n- महाभियोग की प्रक्रिया\n- महत्वपूर्ण Previous Year Questions (PYQs)\n- UPSC, BPSC, UPPCS एवं अन्य परीक्षाओं के महत्वपूर्ण प्रश्न\n\n🎯 Useful For: UPSC | BPSC | UPPCS | SSC | State PCS | Other Competitive Exams\n\nवीडियो पसंद आए तो Like, Share और Subscribe जरूर करें।\n\nअपने Attempt को Final बनाएं!\n\n#PresidentOfIndia #PresidentPYQ #IndianPolity #IndianConstitution #AllExamsPYQ #UPSC #BPSC #UPPCS #SSC #StatePCS #FinalAttempt #patna",
+      "thumbnail": "https://i.ytimg.com/vi/D31GVwXo-KE/maxresdefault.jpg",
+      "duration": "1:08:42",
+      "publishedAt": "2026-11-10T13:48:27Z",
+      "channelTitle": "Final Attempt",
+      "createdAt": "2026-11-24T13:32:55.511Z"
     }
   ],
   "youtubeSyncLogs": [
-    {
-      "syncTime": "6/10/2026, 12:39:19 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "6/10/2026, 1:05:17 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "6/10/2026, 1:34:24 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "6/10/2026, 1:39:11 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "6/10/2026, 1:39:29 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "6/10/2026, 1:40:37 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "6/10/2026, 1:42:10 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "6/10/2026, 2:12:07 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "6/10/2026, 2:42:07 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "11/10/2026, 5:29:29 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "11/10/2026, 5:59:24 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "11/10/2026, 6:12:22 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "11/10/2026, 6:18:01 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "11/10/2026, 6:21:20 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "11/10/2026, 6:22:17 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "11/10/2026, 6:29:07 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "11/10/2026, 6:33:45 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "11/10/2026, 6:54:53 pm",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "11/10/2026, 11:43:19 pm",
-      "videosSynced": 0,
-      "status": "FAILURE",
-      "error": "fetch failed"
-    },
-    {
-      "syncTime": "12/10/2026, 12:06:53 am",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "12/10/2026, 12:36:48 am",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
-    {
-      "syncTime": "12/10/2026, 1:06:49 am",
-      "videosSynced": 50,
-      "status": "SUCCESS",
-      "error": null
-    },
     {
       "syncTime": "12/10/2026, 1:36:44 am",
       "videosSynced": 50,
@@ -4530,6 +4767,138 @@
     },
     {
       "syncTime": "10/11/2026, 10:03:37 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 10:07:58 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 10:33:30 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 10:51:32 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 10:52:03 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 10:52:33 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 11:02:04 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 11:19:39 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 11:20:53 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 11:21:15 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 11:21:42 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 11:43:47 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 11:58:03 am",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 12:27:58 pm",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 12:57:59 pm",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 1:18:04 pm",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 1:27:53 pm",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 1:57:38 pm",
+      "videosSynced": 0,
+      "status": "FAILURE",
+      "error": "fetch failed"
+    },
+    {
+      "syncTime": "10/11/2026, 2:27:44 pm",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 2:57:43 pm",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 3:27:44 pm",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 3:57:44 pm",
+      "videosSynced": 50,
+      "status": "SUCCESS",
+      "error": null
+    },
+    {
+      "syncTime": "10/11/2026, 4:27:46 pm",
       "videosSynced": 50,
       "status": "SUCCESS",
       "error": null
@@ -113804,6 +114173,12 @@
       "userId": "student-local-fallback-id",
       "courseId": "ts-1786352658132",
       "enrolledAt": "2026-08-17T19:59:31.599Z"
+    },
+    {
+      "id": "enr-bpsc-mains-001",
+      "userId": "student-local-fallback-id",
+      "courseId": "bpsc-mains-spl",
+      "enrolledAt": "2026-11-24T15:40:35.159Z"
     }
   ],
   "customPages": [

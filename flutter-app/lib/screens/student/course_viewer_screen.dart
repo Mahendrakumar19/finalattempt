@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/services/student_service.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -235,7 +237,14 @@ class _CourseViewerScreenState extends ConsumerState<CourseViewerScreen>
     }
 
     final title = _activeLesson!['title']?.toString() ?? 'Lesson';
-    final videoUrl = _activeLesson!['videoUrl']?.toString() ?? _activeLesson!['recordingUrl']?.toString();
+    final rawVideoUrl = _activeLesson!['videoUrl']?.toString() ??
+        _activeLesson!['recordingUrl']?.toString() ??
+        _activeLesson!['liveMeetingUrl']?.toString();
+    final videoUrl = (rawVideoUrl != null && rawVideoUrl.trim().isNotEmpty)
+        ? (rawVideoUrl.trim().startsWith('/')
+            ? 'https://finalattemptias.com${rawVideoUrl.trim()}'
+            : rawVideoUrl.trim())
+        : null;
     final isLive = _activeLesson!['type'] == 'live';
 
     return Container(
@@ -246,47 +255,60 @@ class _CourseViewerScreenState extends ConsumerState<CourseViewerScreen>
         children: [
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Video background simulation/thumbnail
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.blueGrey.shade900, Colors.black],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+            child: InkWell(
+              onTap: videoUrl == null
+                  ? null
+                  : () async {
+                      final uri = Uri.tryParse(videoUrl);
+                      if (uri != null) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Video background
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.blueGrey.shade900, Colors.black],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                     ),
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          isLive ? Icons.sensors : Icons.play_circle_fill,
-                          size: 64,
-                          color: isLive ? Colors.redAccent : AppTheme.primaryBlue,
-                        ),
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            title,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isLive ? Icons.sensors : Icons.play_circle_fill,
+                            size: 64,
+                            color: videoUrl != null
+                                ? (isLive ? Colors.redAccent : AppTheme.primaryBlue)
+                                : Colors.white38,
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          videoUrl != null ? 'Tap to stream content' : 'No direct video stream linked',
-                          style: const TextStyle(color: Colors.white54, fontSize: 11),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              title,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            videoUrl != null
+                                ? (isLive ? 'Tap to join live session' : 'Tap to play video')
+                                : 'No direct video stream linked',
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
                 if (isLive)
                   Positioned(
                     top: 12,
@@ -307,6 +329,7 @@ class _CourseViewerScreenState extends ConsumerState<CourseViewerScreen>
                     ),
                   ),
               ],
+            ),
             ),
           ),
           Padding(
@@ -344,13 +367,13 @@ class _CourseViewerScreenState extends ConsumerState<CourseViewerScreen>
                 children: [
                   if (_activeLesson!['notesPdfUrl'] != null)
                     InkWell(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Opening Notes: ${_activeLesson!['title']}'),
-                            backgroundColor: Colors.amber.shade800,
-                          ),
-                        );
+                      onTap: () async {
+                        final raw = _activeLesson!['notesPdfUrl'].toString().trim();
+                        final url = raw.startsWith('/') ? 'https://finalattemptias.com$raw' : raw;
+                        final uri = Uri.tryParse(url);
+                        if (uri != null) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -371,13 +394,13 @@ class _CourseViewerScreenState extends ConsumerState<CourseViewerScreen>
                     ),
                   if (_activeLesson!['dppPdfUrl'] != null)
                     InkWell(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Opening DPP: ${_activeLesson!['title']}'),
-                            backgroundColor: AppTheme.primaryBlue,
-                          ),
-                        );
+                      onTap: () async {
+                        final raw = _activeLesson!['dppPdfUrl'].toString().trim();
+                        final url = raw.startsWith('/') ? 'https://finalattemptias.com$raw' : raw;
+                        final uri = Uri.tryParse(url);
+                        if (uri != null) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -567,9 +590,10 @@ class _CourseViewerScreenState extends ConsumerState<CourseViewerScreen>
             subtitle: Text('${quiz['totalQuestions'] ?? 10} Questions • ${quiz['duration'] ?? '15 mins'}', style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
             trailing: ElevatedButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Starting ${quiz['title']}...')),
-                );
+                final qId = quiz['id']?.toString();
+                if (qId != null && qId.isNotEmpty) {
+                  context.push('/test/$qId/instructions');
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryBlue),
               child: const Text('Start Quiz', style: TextStyle(color: Colors.white, fontSize: 12)),

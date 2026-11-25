@@ -2,12 +2,11 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { Search, SlidersHorizontal, BookOpen, Clock, Calendar, ChevronDown, GraduationCap } from 'lucide-react';
-import { db } from '@/services/db';
-import { courseData } from '@/services/seedData';
+import { Search, SlidersHorizontal, BookOpen, Clock, Calendar, ChevronDown, GraduationCap, FileText } from 'lucide-react';
+import { db, Course } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
 
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 type CategoryType = 'All' | 'Prelims' | 'Mains' | 'Interview';
 type ExamType = 'All' | 'BPSC' | 'Arunachal PCS';
@@ -15,7 +14,6 @@ type FormatType = 'All' | 'Live' | 'Recorded';
 
 function CoursesContent() {
   const { t, locale } = useTranslation();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const initialCat = (searchParams.get('category') as CategoryType) || 'All';
   const initialExam = (searchParams.get('exam') as ExamType) || 'All';
@@ -25,22 +23,13 @@ function CoursesContent() {
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>(initialCat);
   const [selectedFormat, setSelectedFormat] = useState<FormatType>(initialFormat);
   const [searchQuery, setSearchQuery] = useState('');
-  const [coursesList, setCoursesList] = useState<any[]>([]);
+  const [coursesList, setCoursesList] = useState<Course[]>([]);
   const [flippedCards, setFlippedCards] = useState<Record<string, boolean>>({});
   const [hoveredCourseId, setHoveredCourseId] = useState<string | null>(null);
 
   const toggleFlip = (id: string) => {
     setFlippedCards(prev => ({ ...prev, [id]: !prev[id] }));
   };
-
-  useEffect(() => {
-    const cat = searchParams.get('category') as CategoryType;
-    const ex = searchParams.get('exam') as ExamType;
-    const fmt = searchParams.get('format') as FormatType;
-    if (cat) setSelectedCategory(cat);
-    if (ex) setSelectedExam(ex);
-    if (fmt) setSelectedFormat(fmt);
-  }, [searchParams]);
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -356,6 +345,14 @@ function CoursesContent() {
                           </p>
                         </div>
                         
+                        {/* Syllabus PDF Document Badge */}
+                        {course.syllabusPdfUrl && (
+                          <div className="flex items-center gap-1.5 p-2 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/30 text-blue-700 dark:text-blue-300">
+                            <FileText className="w-3.5 h-3.5 shrink-0 text-blue-600" />
+                            <span className="text-[10px] font-bold">Official Syllabus PDF Attached</span>
+                          </div>
+                        )}
+                        
                         {/* Syllabus Highlights */}
                         {course.syllabus && course.syllabus.length > 0 && (
                           <div className="space-y-1">
@@ -372,18 +369,18 @@ function CoursesContent() {
                         )}
 
                         {/* Key Feature Badges */}
-                        <div className="space-y-1">
-                          <p className="text-[9px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">Key Highlights</p>
-                          <div className="flex flex-wrap gap-1">
-                            {(course.features && course.features.length > 0 ? course.features : [
-                              'Bilingual Study Notes', 'Prelims & Mains Tests', '1-on-1 Mentorship', 'Answer Writing'
-                            ]).map((feat: string, idx: number) => (
-                              <span key={idx} className="px-2 py-0.5 bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white border border-slate-200 dark:border-white/15 rounded text-[8.5px] font-bold">
-                                {feat}
-                              </span>
-                            ))}
+                        {course.features && course.features.length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-[9px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">Key Highlights</p>
+                            <div className="flex flex-wrap gap-1">
+                              {course.features.map((feat: string, idx: number) => (
+                                <span key={idx} className="px-2 py-0.5 bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-white border border-slate-200 dark:border-white/15 rounded text-[8.5px] font-bold">
+                                  {feat}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
                       <div className="pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between gap-2 shrink-0 relative z-50">

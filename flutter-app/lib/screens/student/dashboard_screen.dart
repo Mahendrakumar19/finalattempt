@@ -454,11 +454,16 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-          physics: const BouncingScrollPhysics(),
-          itemCount: enrollments.length,
-          itemBuilder: (context, i) => _buildCourseCard(context, enrollments[i]),
+        return RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(enrollmentsProvider);
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            itemCount: enrollments.length,
+            itemBuilder: (context, i) => _buildCourseCard(context, enrollments[i]),
+          ),
         );
       },
     );
@@ -469,6 +474,19 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
     final borderCol = AppTheme.borderOf(context);
     final textPrimary = AppTheme.textPrimaryOf(context);
     final textMuted = AppTheme.textMutedOf(context);
+
+    final isTestSeries = (e.totalLessons <= 0 &&
+        !e.courseId.startsWith('c-') &&
+        !e.courseId.startsWith('course-') &&
+        (e.testSeriesSlug != null ||
+            e.courseId.startsWith('ts-') ||
+            e.courseId.startsWith('bpsc-test-series') ||
+            e.courseId.startsWith('bpsc-prelims-pyq') ||
+            e.courseId.contains('test-series') ||
+            e.category.toLowerCase().contains('test series') ||
+            e.title.toLowerCase().contains('test series')));
+
+    final clampedProgress = (e.completionPercentage).clamp(0, 100);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -489,14 +507,21 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => CourseViewerScreen(
-                  courseId: e.courseId,
-                  courseTitle: e.title,
+            if (isTestSeries) {
+              final targetSlug = (e.testSeriesSlug != null && e.testSeriesSlug!.isNotEmpty)
+                  ? e.testSeriesSlug!
+                  : e.courseId;
+              context.push('/test-series/$targetSlug');
+            } else {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => CourseViewerScreen(
+                    courseId: e.courseId,
+                    courseTitle: e.title,
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           },
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -507,8 +532,8 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 44,
-                      height: 44,
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
@@ -517,7 +542,26 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                         ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.play_circle_filled_rounded, color: Colors.white, size: 24),
+                      clipBehavior: Clip.antiAlias,
+                      child: (e.thumbnailUrl != null && e.thumbnailUrl!.trim().isNotEmpty)
+                          ? Image.network(
+                              e.thumbnailUrl!.trim().startsWith('/')
+                                  ? 'https://finalattemptias.com${e.thumbnailUrl!.trim()}'
+                                  : e.thumbnailUrl!.trim(),
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Center(
+                                child: Text(
+                                  e.title.isNotEmpty ? e.title.substring(0, e.title.length >= 2 ? 2 : 1).toUpperCase() : 'FA',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                ),
+                              ),
+                            )
+                          : Center(
+                              child: Text(
+                                e.title.isNotEmpty ? e.title.substring(0, e.title.length >= 2 ? 2 : 1).toUpperCase() : 'FA',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                            ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -544,15 +588,21 @@ class _StudentDashboardScreenState extends ConsumerState<StudentDashboardScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Course Progress', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMuted)),
-                    Text('${e.completionPercentage}%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.primaryBlue)),
+                    Text(
+                      isTestSeries ? 'Package Access' : 'Course Progress',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.textMuted),
+                    ),
+                    Text(
+                      '$clampedProgress%',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppTheme.primaryBlue),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 6),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: (e.completionPercentage / 100).clamp(0.0, 1.0),
+                    value: (clampedProgress / 100).clamp(0.0, 1.0),
                     minHeight: 6,
                     backgroundColor: borderCol,
                     valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),

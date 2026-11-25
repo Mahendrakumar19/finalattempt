@@ -57,7 +57,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final screenSize = MediaQuery.of(context).size;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final accentCircleRadius = (screenSize.width * 0.75).clamp(300.0, 700.0);
-    final logoHeight = (screenSize.height * 0.1).clamp(64.0, 96.0);
+    final logoHeight = (screenSize.height * 0.14).clamp(96.0, 140.0);
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
@@ -103,133 +103,36 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Spacer(flex: 2),
-
-                          // 1. Logo & Sub-branding
+                          // 1. Logo
                           AppLogo(height: logoHeight),
-                          const SizedBox(height: 16),
-                          Text(
-                            'PREPARE  •  PRACTICE  •  SUCCEED',
+                          const SizedBox(height: 28),
+
+                          // 2. Main Hero Tagline: Your Final Step Toward Success
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Your Final Step Toward ',
+                                  style: TextStyle(
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: 'Success',
+                                  style: TextStyle(
+                                    color: Color(0xFF0061FF),
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ],
+                            ),
                             style: TextStyle(
-                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5B708B),
-                              fontSize: (screenSize.width * 0.025).clamp(10.0, 12.0),
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 2.4,
+                              fontSize: (screenSize.height * 0.026).clamp(18.0, 24.0),
+                              height: 1.3,
+                              letterSpacing: -0.2,
                             ),
                             textAlign: TextAlign.center,
-                          ),
-
-                          const Spacer(flex: 2),
-
-                          // 2. Main Hero Tagline
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Same Aspirations',
-                                style: TextStyle(
-                                  color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF4A5568),
-                                  fontSize: (screenSize.height * 0.028).clamp(20.0, 26.0),
-                                  fontWeight: FontWeight.w400,
-                                  letterSpacing: 0.1,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 6),
-                              Text.rich(
-                                TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Stronger ',
-                                      style: TextStyle(
-                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    const TextSpan(
-                                      text: 'You',
-                                      style: TextStyle(
-                                        color: Color(0xFF0061FF),
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                style: TextStyle(
-                                  fontSize: (screenSize.height * 0.042).clamp(30.0, 40.0),
-                                  height: 1.2,
-                                  letterSpacing: -0.5,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-
-                          const Spacer(flex: 2),
-
-                          // 3. Progress Indicator
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const SizedBox(
-                                width: 36,
-                                height: 36,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 3.0,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0061FF)),
-                                  backgroundColor: Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              Text(
-                                'Loading...',
-                                style: TextStyle(
-                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const Spacer(flex: 2),
-
-                          // 4. Platform Branding Footer
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                "INDIA'S COMPETITIVE EXAM",
-                                style: TextStyle(
-                                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF64748B),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 1.8,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                'PREPARATION PLATFORM',
-                                style: TextStyle(
-                                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF64748B),
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 1.8,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                width: 44,
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF0061FF),
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
-                              ),
-                            ],
                           ),
                         ],
                       ),
