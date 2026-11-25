@@ -583,8 +583,14 @@ export default function TestSeriesDetailPage() {
             {/* Quick Metrics Bar */}
             <div className="pt-4 border-t border-[var(--card-border)] grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div>
-                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">{t('testSeries.totalMocksPool')}</span>
-                <span className="font-bold text-[var(--text-color)]">{quizzes.length || series.totalTests || 40} CBT Tests</span>
+                <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">
+                  {series.category?.toLowerCase().includes('mains') ? 'Total Mains Papers' : t('testSeries.totalMocksPool')}
+                </span>
+                <span className="font-bold text-[var(--text-color)]">
+                  {series.category?.toLowerCase().includes('mains')
+                    ? `${series.totalTests || quizzes.length || 0} Descriptive Papers`
+                    : `${quizzes.length || series.totalTests || 40} CBT Tests`}
+                </span>
               </div>
               <div>
                 <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider block">{t('testSeries.programValidity')}</span>
@@ -597,7 +603,11 @@ export default function TestSeriesDetailPage() {
                     {t('testSeries.downloadSchedulePdf')}
                   </a>
                 ) : (
-                  <span className="font-bold text-[var(--text-color)]">Official BPSC CBT Pattern</span>
+                  <span className="font-bold text-[var(--text-color)]">
+                    {series.category?.toLowerCase().includes('mains')
+                      ? 'Mains Descriptive & Copy Evaluation'
+                      : 'Official BPSC CBT Pattern'}
+                  </span>
                 )}
               </div>
             </div>

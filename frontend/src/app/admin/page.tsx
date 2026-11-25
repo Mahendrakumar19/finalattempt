@@ -182,6 +182,8 @@ interface Course {
   discount?: string | null;
   duration: string;
   schedule: string;
+  courseFormat?: string;
+  thumbnailUrl?: string;
   syllabusPdfUrl?: string;
   isPublished: boolean;
 }
@@ -6509,6 +6511,53 @@ export default function AdminPortal() {
                       </label>
                     </div>
                   </div>
+
+                  {/* Schedule, Format & Thumbnail */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Schedule / Timing</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Daily 6:00 PM Live"
+                        value={courseForm.schedule || ''}
+                        onChange={(e) => setCourseForm({ ...courseForm, schedule: e.target.value })}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase">Course Format</label>
+                      <select
+                        value={courseForm.courseFormat || 'live'}
+                        onChange={(e) => setCourseForm({ ...courseForm, courseFormat: e.target.value })}
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 font-semibold"
+                      >
+                        <option value="live">🔴 Live + Recorded</option>
+                        <option value="recorded">📼 Self-Paced Recorded</option>
+                        <option value="hybrid">🏫 Hybrid (Offline + Online)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] text-slate-400 font-bold uppercase">Thumbnail Image URL (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="https://.../course-thumbnail.webp"
+                      value={courseForm.thumbnailUrl || ''}
+                      onChange={(e) => setCourseForm({ ...courseForm, thumbnailUrl: e.target.value })}
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 text-slate-900 text-xs rounded-2xl focus:outline-none focus:border-slate-400 font-mono"
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer pt-1">
+                    <input
+                      type="checkbox"
+                      checked={courseForm.isPublished !== false}
+                      onChange={(e) => setCourseForm({ ...courseForm, isPublished: e.target.checked })}
+                      className="rounded"
+                    />
+                    <span>Published (Visible on /courses page)</span>
+                  </label>
 
                   <div className="flex justify-end gap-3 pt-2">
                     <button type="button" onClick={() => setActiveModal(null)} className="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-semibold rounded-2xl">
