@@ -527,7 +527,7 @@ router.post('/lessons/:lessonId/live-stream-credentials', authenticateAdminLms, 
 // ─────────────────────────── SRS 6.0 LIVE STREAMING WEBHOOKS ──────────────────
 // In-memory debounce map for OBS Wi-Fi dropouts / brief disconnects (45 seconds)
 const unpublishDebounceTimers = new Map<string, NodeJS.Timeout>();
-const SRS_UNPUBLISH_DEBOUNCE_MS = 45000;
+const SRS_UNPUBLISH_DEBOUNCE_MS = 8000;
 
 /**
  * POST /api/lms/streaming/on-publish

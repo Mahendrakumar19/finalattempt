@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { use, useState, useEffect, useCallback } from 'react';
@@ -149,11 +150,11 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   const [availableExams, setAvailableExams] = useState<ExamData[]>([]);
 
   // Enrolled Students tab states
-  const [students, setStudents] = useState<any[]>([]);
+  const [students, setStudents] = useState<Array<{ enrollmentId?: string; userId: string; fullName: string; mobile?: string; email?: string; state?: string; district?: string; enrolledAt: string; paymentStatus?: string; paymentOrderId?: string; amountPaid?: number }>>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
   const [studentSearchText, setStudentSearchText] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<Array<{ id?: string; fullName?: string; email?: string; mobile?: string }>>([]);
   const [filterEmail, setFilterEmail] = useState('');
   const [filterState, setFilterState] = useState('');
   const [filterDistrict, setFilterDistrict] = useState('');
@@ -206,7 +207,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   const [questions, setQuestions] = useState<Question[]>([]);
 
   // Assignments State
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [, setAssignments] = useState<Assignment[]>([]);
 
   // Modals / Form States
   const [showQuizModal, setShowQuizModal] = useState(false);
@@ -303,13 +304,13 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
         if (exams && exams.length > 0) {
           setAvailableExams(exams);
         }
-      } catch (_) {}
+      } catch {}
 
       // Fetch enrolled students
       try {
         const stds = await db.getCourseEnrolledStudents(courseId);
         setStudents(stds || []);
-      } catch (_) {}
+      } catch {}
 
       const quizRes = await fetch(`${BACKEND_URL}/api/lms/courses/${courseId}/quizzes`, { headers: getAdminAuthHeaders() });
       const quizData = await quizRes.json();
@@ -340,7 +341,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   }, [fetchCourseDetails]);
 
   // Save whole Course Data parameters & tab contents to Backend DB
-  const saveCourseDataToBackend = async (dataToSave?: any) => {
+  const saveCourseDataToBackend = async (dataToSave?: CourseData) => {
     setSavingSettings(true);
     const payload = dataToSave || courseData;
     try {
@@ -373,7 +374,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
   };
 
   const handleRemoveFeature = (idx: number) => {
-    const nextFeatures = (courseData.features || []).filter((_: any, i: number) => i !== idx);
+    const nextFeatures = (courseData.features || []).filter((_: string, i: number) => i !== idx);
     const nextData = { ...courseData, features: nextFeatures };
     setCourseData(nextData);
     saveCourseDataToBackend(nextData);
@@ -416,7 +417,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
 
   const handleDeleteDemo = (idx: number) => {
     if (!window.confirm('Delete this demo lecture?')) return;
-    const updated = (courseData.demoLectures || []).filter((_: any, i: number) => i !== idx);
+    const updated = (courseData.demoLectures || []).filter((_: DemoLecture, i: number) => i !== idx);
     const nextData = { ...courseData, demoLectures: updated };
     setCourseData(nextData);
     saveCourseDataToBackend(nextData);
@@ -440,7 +441,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
 
   const handleDeleteFaq = (idx: number) => {
     if (!window.confirm('Delete this FAQ?')) return;
-    const updated = (courseData.faq || []).filter((_: any, i: number) => i !== idx);
+    const updated = (courseData.faq || []).filter((_: FaqItem, i: number) => i !== idx);
     const nextData = { ...courseData, faq: updated };
     setCourseData(nextData);
     saveCourseDataToBackend(nextData);
@@ -465,7 +466,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
 
   const handleDeleteSyllabusSubject = (idx: number) => {
     if (!window.confirm('Delete this syllabus subject?')) return;
-    const updated = (courseData.syllabus || []).filter((_: any, i: number) => i !== idx);
+    const updated = (courseData.syllabus || []).filter((_: SyllabusSubject, i: number) => i !== idx);
     const nextData = { ...courseData, syllabus: updated };
     setCourseData(nextData);
     saveCourseDataToBackend(nextData);
@@ -521,8 +522,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
       } else {
         alert(res.error || 'Failed enrolling student.');
       }
-    } catch (err: any) {
-      alert(err?.message || 'Failed enrolling student.');
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : String(err)) || 'Failed enrolling student.');
     }
   };
 
@@ -835,17 +836,6 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
     } catch (err) { console.error(err); }
   };
 
-  const handleDeleteAssignment = async (assignId: string) => {
-    if (!window.confirm('Delete this assignment?')) return;
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/lms/assignments/${assignId}`, {
-        method: 'DELETE',
-        headers: { ...getAdminAuthHeaders() }
-      });
-      if (res.ok) fetchCourseDetails();
-    } catch (err) { console.error(err); }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -922,7 +912,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
             return (
               <button
                 key={t.id}
-                onClick={() => setActiveTab(t.id as any)}
+                onClick={() => setActiveTab(t.id as typeof activeTab)}
                 className={`px-5 py-3 rounded-xl transition-all text-left whitespace-nowrap cursor-pointer ${
                   activeTab === t.id 
                     ? 'bg-slate-900 text-white shadow-xs font-bold' 
@@ -1138,22 +1128,22 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                             });
                             const data = await res.json();
                             if (data && data.url) {
-                              setCourseData((prev: any) => ({ ...prev, thumbnailUrl: data.url }));
+                              setCourseData((prev) => ({ ...prev, thumbnailUrl: data.url }));
                               alert('Course image uploaded successfully!');
                             } else {
                               const reader = new FileReader();
                               reader.onload = (ev) => {
                                 if (ev.target?.result) {
-                                  setCourseData((prev: any) => ({ ...prev, thumbnailUrl: ev.target?.result as string }));
+                                  setCourseData((prev) => ({ ...prev, thumbnailUrl: ev.target?.result as string }));
                                 }
                               };
                               reader.readAsDataURL(file);
                             }
-                          } catch (_) {
+                          } catch {
                             const reader = new FileReader();
                             reader.onload = (ev) => {
                               if (ev.target?.result) {
-                                setCourseData((prev: any) => ({ ...prev, thumbnailUrl: ev.target?.result as string }));
+                                setCourseData((prev) => ({ ...prev, thumbnailUrl: ev.target?.result as string }));
                               }
                             };
                             reader.readAsDataURL(file);
@@ -1339,8 +1329,8 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                         } else {
                           alert(data.error || 'Failed to upload syllabus PDF.');
                         }
-                      } catch (err: any) {
-                        alert('Upload failed: ' + (err.message || err));
+                      } catch (err: unknown) {
+                        alert('Upload failed: ' + (err instanceof Error ? err.message : String(err)));
                       } finally {
                         setUploadingSyllabusPdf(false);
                       }
@@ -1448,7 +1438,54 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                                     </p>
                                   </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex items-center gap-2">
+                                  {les.type === 'live' && les.liveStatus === 'live' && (
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        if (!window.confirm(`End live class "${les.title}" now?`)) return;
+                                        try {
+                                          const res = await fetch(`${BACKEND_URL}/api/lms/lessons/${les.id}`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
+                                            body: JSON.stringify({ liveStatus: 'ended' })
+                                          });
+                                          if (res.ok) {
+                                            await fetchCourseDetails(true);
+                                          } else {
+                                            alert('Failed to end live class.');
+                                          }
+                                        } catch {
+                                          alert('Connection error while ending class.');
+                                        }
+                                      }}
+                                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white text-[10px] font-black rounded-lg shadow-xs cursor-pointer transition-colors"
+                                      title="End this live class now"
+                                    >
+                                      ⏹ End Class
+                                    </button>
+                                  )}
+                                  {les.type === 'live' && les.liveStatus !== 'live' && (
+                                    <button
+                                      type="button"
+                                      onClick={async () => {
+                                        try {
+                                          const res = await fetch(`${BACKEND_URL}/api/lms/lessons/${les.id}`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
+                                            body: JSON.stringify({ liveStatus: 'live' })
+                                          });
+                                          if (res.ok) {
+                                            await fetchCourseDetails(true);
+                                          }
+                                        } catch {}
+                                      }}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black rounded-lg shadow-xs cursor-pointer transition-colors"
+                                      title="Mark this class as Live Now"
+                                    >
+                                      ▶ Go Live
+                                    </button>
+                                  )}
                                   <button 
                                     onClick={() => {
                                       setLessonForm({
@@ -1517,7 +1554,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                 {(!courseData.syllabus || courseData.syllabus.length === 0) ? (
                   <p className="text-xs text-slate-400 italic py-2">No subject breakdown added yet.</p>
                 ) : (
-                  courseData.syllabus.map((item: any, idx: number) => {
+                  courseData.syllabus.map((item: SyllabusSubject | string, idx: number) => {
                     const isObj = typeof item === 'object' && item !== null;
                     const subjectName = isObj ? item.subject : `Module ${idx + 1}`;
                     const topicsList = isObj ? (item.topics || []) : [String(item)];
@@ -1993,7 +2030,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 font-medium">
-                      {filteredStudents.map((st: any) => (
+                      {filteredStudents.map((st) => (
                         <tr key={st.enrollmentId || `${st.userId}_${st.enrolledAt}`}>
                           <td className="p-4 font-bold text-slate-900">{st.fullName}</td>
                           <td className="p-4 text-slate-600">
@@ -2012,7 +2049,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                           <td className="p-4 text-slate-500">{new Date(st.enrolledAt).toLocaleDateString('en-IN')}</td>
                           <td className="p-4">
                             <span className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 rounded-md text-[9px] uppercase font-bold">
-                              {st.paymentOrderId === 'ADMIN_MANUAL' ? 'ADMIN / MANUAL' : (st.amountPaid > 0 ? `₹${st.amountPaid}` : 'PAID (ONLINE)')}
+                              {st.paymentOrderId === 'ADMIN_MANUAL' ? 'ADMIN / MANUAL' : ((st.amountPaid || 0) > 0 ? `₹${st.amountPaid}` : 'PAID (ONLINE)')}
                             </span>
                           </td>
                           <td className="p-4 text-right">
@@ -2635,7 +2672,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                       value={lessonForm.liveMeetingUrl || lessonForm.videoUrl || ''}
                       onChange={(e) => {
                         const val = e.target.value;
-                        const updates: any = { liveMeetingUrl: val, videoUrl: val };
+                        const updates: Partial<typeof lessonForm> = { liveMeetingUrl: val, videoUrl: val };
                         if (/meet\.google\.com/i.test(val)) updates.liveClassType = 'meet';
                         else if (/zoom\.us/i.test(val)) updates.liveClassType = 'zoom';
                         else if (/youtu(\.be|be\.com)/i.test(val)) updates.liveClassType = 'youtube';
@@ -2771,7 +2808,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
             } else if (mediaPickerConfig.target === 'demo') {
               setDemoForm(prev => ({ ...prev, url: url }));
             } else if (mediaPickerConfig.target === 'course_thumbnail') {
-              setCourseData((prev: any) => ({ ...prev, thumbnailUrl: url }));
+              setCourseData((prev) => ({ ...prev, thumbnailUrl: url }));
             }
             setMediaPickerConfig({ isOpen: false, target: 'lesson' });
           }}
@@ -2820,7 +2857,7 @@ export default function CourseEditorPage({ params }: { params: Promise<{ courseI
                       ) : (
                         <button
                           type="button"
-                          onClick={() => handleAddStudent(st.id)}
+                          onClick={() => st.id && handleAddStudent(st.id)}
                           className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black rounded-lg text-[10px] cursor-pointer shadow-xs"
                         >
                           Enroll

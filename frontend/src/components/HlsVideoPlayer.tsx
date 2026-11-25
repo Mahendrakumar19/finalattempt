@@ -51,7 +51,11 @@ export default function HlsVideoPlayer({
   className = 'w-full h-full bg-black object-contain'
 }: HlsVideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hlsRef = useRef<any>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [playbackRate, setPlaybackRate] = useState<number>(1);
+  const [qualityLevels, setQualityLevels] = useState<{ index: number; label: string }[]>([]);
+  const [currentQuality, setCurrentQuality] = useState<number>(-1); // -1 = Auto
   const isM3u8 = src.includes('.m3u8');
 
   useEffect(() => {
@@ -112,11 +116,21 @@ export default function HlsVideoPlayer({
           manifestLoadingTimeOut: 15000,
           levelLoadingTimeOut: 15000
         });
+        hlsRef.current = hlsInstance;
 
         hlsInstance.loadSource(src);
         hlsInstance.attachMedia(video);
 
-        hlsInstance.on(window.Hls.Events.MANIFEST_PARSED, () => {
+        hlsInstance.on(window.Hls.Events.MANIFEST_PARSED, (_event: any, data: any) => {
+          if (data?.levels && Array.isArray(data.levels) && data.levels.length > 1) {
+            const levels = data.levels.map((lvl: any, idx: number) => ({
+              index: idx,
+              label: lvl.height ? `${lvl.height}p` : `Level ${idx + 1}`
+            }));
+            setQualityLevels(levels);
+          } else {
+            setQualityLevels([]);
+          }
           if (autoPlay && videoRef.current) {
             videoRef.current.play().catch(() => {
               if (videoRef.current) {
@@ -191,14 +205,143 @@ export default function HlsVideoPlayer({
     );
   }
 
+  const handleSpeedChange = (rate: number) => {
+    setPlaybackRate(rate);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = rate;
+    }
+  };
+
+  const handleQualityChange = (levelIndex: number) => {
+    setCurrentQuality(levelIndex);
+    if (hlsRef.current) {
+      hlsRef.current.currentLevel = levelIndex;
+    }
+  };
+
+  const handleJumpLive = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (hlsRef.current && typeof hlsRef.current.liveSyncPosition === 'number') {
+      video.currentTime = hlsRef.current.liveSyncPosition;
+    } else if (isFinite(video.duration) && video.duration > 0) {
+      video.currentTime = Math.max(0, video.duration - 2);
+    }
+    video.play().catch(() => {});
+  };
+
+  const handleSkip = (secs: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = Math.max(0, video.currentTime + secs);
+  };
+
+  const handlePiP = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (document.pictureInPictureEnabled) {
+        await video.requestPictureInPicture();
+      }
+    } catch {}
+  };
+
   return (
-    <video
-      ref={videoRef}
-      poster={poster}
-      controls={controls}
-      playsInline={playsInline}
-      autoPlay={autoPlay}
-      className={className}
-    />
+    <div className="w-full h-full flex flex-col bg-black relative">
+      <div className="flex-1 min-h-0 relative">
+        <video
+          ref={videoRef}
+          poster={poster}
+          controls={controls}
+          controlsList="nodownload"
+          onContextMenu={(e) => e.preventDefault()}
+          playsInline={playsInline}
+          autoPlay={autoPlay}
+          className={className}
+        />
+      </div>
+
+      {/* Student Media Player Quick Controls Bar */}
+      <div className="bg-slate-950/95 border-t border-white/10 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-300 shrink-0">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => handleSkip(-10)}
+            className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/15 font-bold cursor-pointer transition-colors"
+            title="Rewind 10 seconds"
+          >
+            ↺ 10s
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSkip(10)}
+            className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/15 font-bold cursor-pointer transition-colors"
+            title="Forward 10 seconds"
+          >
+            10s ↻
+          </button>
+          {isM3u8 && (
+            <button
+              type="button"
+              onClick={handleJumpLive}
+              className="px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-400 border border-rose-500/30 font-black cursor-pointer transition-colors flex items-center gap-1"
+              title="Jump to Live Edge"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              <span>LIVE</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Speed Selector */}
+          <div className="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-0.5 border border-white/10">
+            <span className="text-[10px] text-slate-400 font-bold">Speed:</span>
+            <select
+              value={playbackRate}
+              onChange={(e) => handleSpeedChange(Number(e.target.value))}
+              className="bg-transparent text-amber-400 font-black outline-none cursor-pointer"
+            >
+              {[0.75, 1, 1.25, 1.5, 1.75, 2].map((r) => (
+                <option key={r} value={r} className="bg-slate-900 text-white">
+                  {r}x
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Quality Selector (when multi-bitrate levels exist) */}
+          {qualityLevels.length > 0 && (
+            <div className="flex items-center gap-1 bg-white/5 rounded-lg px-2 py-0.5 border border-white/10">
+              <span className="text-[10px] text-slate-400 font-bold">Quality:</span>
+              <select
+                value={currentQuality}
+                onChange={(e) => handleQualityChange(Number(e.target.value))}
+                className="bg-transparent text-emerald-400 font-black outline-none cursor-pointer"
+              >
+                <option value={-1} className="bg-slate-900 text-white">Auto</option>
+                {qualityLevels.map((lvl) => (
+                  <option key={lvl.index} value={lvl.index} className="bg-slate-900 text-white">
+                    {lvl.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Picture-in-Picture */}
+          <button
+            type="button"
+            onClick={handlePiP}
+            className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/15 font-bold cursor-pointer transition-colors"
+            title="Mini Player (Picture-in-Picture)"
+          >
+            PiP ❐
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
