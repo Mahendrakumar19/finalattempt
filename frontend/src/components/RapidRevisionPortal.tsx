@@ -1,10 +1,11 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { 
   Search, Download, Eye, Home, ChevronRight, X, Zap, BookOpen, 
-  Layers, CheckCircle2, Sparkles, Filter, Globe, Calendar, FileText, MapPin
+  Layers, CheckCircle2, Globe, FileText, MapPin
 } from 'lucide-react';
 import { db, CustomPage, DownloadItem } from '@/services/db';
 import { useTranslation } from '@/context/LocaleContext';
@@ -302,13 +303,8 @@ export default function RapidRevisionPortal() {
   // State Special Sub-filter: 'ALL' | 'BIHAR' | 'UP'
   const [stateSpecialSubFilter, setStateSpecialSubFilter] = useState<'ALL' | 'BIHAR' | 'UP'>('ALL');
 
-  // Instant render fallback - never block the screen with grey skeleton boxes
-  const [loading, setLoading] = useState(false);
-
   // In-site Document Reader Modal
   const [activeReaderModal, setActiveReaderModal] = useState<{ title: string; url: string } | null>(null);
-
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
   useEffect(() => {
     let active = true;
@@ -501,16 +497,44 @@ export default function RapidRevisionPortal() {
       </div>
 
       {/* ── Main Two-Column Container (Left Index Sidebar + Right Content) ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-8 items-start">
           
           {/* ════ LEFT COLUMN: All Sections Index Sidebar ════ */}
-          <aside className="lg:col-span-3 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-4 sm:p-5 shadow-xs sticky top-20">
-            <h2 className="text-base font-heading font-black text-[var(--text-color)] pb-3 border-b border-[var(--card-border)]">
+          <aside className="lg:col-span-3 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl p-3 sm:p-5 shadow-xs lg:sticky lg:top-20">
+            <h2 className="text-sm sm:text-base font-heading font-black text-[var(--text-color)] pb-2 sm:pb-3 border-b border-[var(--card-border)]">
               All Sections
             </h2>
 
-            <nav className="mt-2 divide-y divide-[var(--card-border)]">
+            {/* Mobile Compact Horizontal/Wrap Pills */}
+            <div className="mt-2.5 flex flex-wrap gap-1.5 lg:hidden">
+              {SECTIONS_LIST.map((sec) => {
+                const isActive = activeSectionId === sec.id;
+                const isStateSpecial = sec.id === 'state-special';
+
+                return (
+                  <button
+                    key={sec.id}
+                    onClick={() => {
+                      setActiveSectionId(sec.id);
+                      if (!isStateSpecial) {
+                        setStateSpecialSubFilter('ALL');
+                      }
+                    }}
+                    className={`px-2.5 py-1.5 text-[11px] rounded-lg transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-amber-500 text-slate-950 font-black shadow-2xs'
+                        : 'bg-slate-100 dark:bg-white/[0.05] text-[var(--text-color)] font-bold hover:text-amber-500'
+                    }`}
+                  >
+                    {sec.name}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Desktop Vertical Sidebar */}
+            <nav className="hidden lg:block mt-2 divide-y divide-[var(--card-border)]">
               {SECTIONS_LIST.map((sec) => {
                 const isActive = activeSectionId === sec.id;
                 const isStateSpecial = sec.id === 'state-special';
@@ -734,7 +758,6 @@ export default function RapidRevisionPortal() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredItems.map((item) => {
                   const resolvedUrl = resolveUrl(item.url);
-                  const isHindi = item.language?.toLowerCase() === 'hindi';
 
                   return (
                     <div
