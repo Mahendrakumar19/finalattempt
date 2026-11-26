@@ -1923,7 +1923,9 @@ export default function TestSeriesAdmin({
                     {/* Specs Pills */}
                     <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500 pt-2 border-t border-[var(--card-border)]">
                       <div>Mocks: <span className="text-[var(--text-color)]">{series.totalTests} Tests</span></div>
-                      <div>Questions: <span className="text-[var(--text-color)]">{series.totalQuestions} Qs</span></div>
+                      {(series.category !== 'Mains' || (series.totalQuestions && series.totalQuestions > 0)) && (
+                        <div>Questions: <span className="text-[var(--text-color)]">{series.totalQuestions} Qs</span></div>
+                      )}
                       <div>Fee: <span className="text-emerald-500 font-extrabold">₹{series.discountedPrice || series.price}</span></div>
                       <div>Start Date: <span className="text-amber-500 font-extrabold">{formatDateFormatted(series.batchStartDate)}</span></div>
                       {series.scheduledReleaseAt && (
@@ -3469,13 +3471,14 @@ export default function TestSeriesAdmin({
 
               <div>
                 <label className="block text-slate-400 mb-1">
-                  {editingSeries.category === 'Mains' ? 'Total Questions' : 'Total Questions'}
+                  {editingSeries.category === 'Mains' ? 'Total Questions (Optional)' : 'Total Questions'}
                 </label>
                 <input
                   type="number"
-                  min="1"
-                  value={editingSeries.totalQuestions || (editingSeries.category === 'Mains' ? 80 : 1500)}
-                  onChange={e => setEditingSeries({ ...editingSeries, totalQuestions: Number(e.target.value) })}
+                  min={editingSeries.category === 'Mains' ? 0 : 1}
+                  placeholder={editingSeries.category === 'Mains' ? 'Optional for Mains' : '1500'}
+                  value={editingSeries.category === 'Mains' ? (editingSeries.totalQuestions ?? '') : (editingSeries.totalQuestions || 1500)}
+                  onChange={e => setEditingSeries({ ...editingSeries, totalQuestions: e.target.value === '' ? 0 : Number(e.target.value) })}
                   className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] text-[var(--text-color)] rounded-xl outline-none font-bold"
                 />
               </div>

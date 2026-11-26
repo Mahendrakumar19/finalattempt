@@ -367,6 +367,7 @@ class _FaPublicationsScreenState extends ConsumerState<FaPublicationsScreen> {
       final options = {
         'key': razorpayKey,
         'amount': rawAmount,
+        'currency': data['currency'] ?? 'INR',
         'name': 'Final Attempt Publications',
         'order_id': gatewayOrderId,
         'description': book.title,

@@ -121,6 +121,7 @@ class _CourseDetailScreenState extends ConsumerState<CourseDetailScreen> {
       final options = {
         'key': data['key'] ?? 'rzp_test_TTzBxGpMqc0rAD',
         'amount': data['amount'],
+        'currency': data['currency'] ?? 'INR',
         'name': 'Final Attempt',
         'order_id': data['order_id'] ?? data['id'],
         'description': course.title,

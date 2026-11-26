@@ -308,6 +308,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
       final options = {
         'key': razorpayKey,
         'amount': rawAmount,
+        'currency': data['currency'] ?? 'INR',
         'name': 'Final Attempt',
         'order_id': gatewayOrderId,
         'description': orderDescription,
