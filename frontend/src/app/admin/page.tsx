@@ -204,6 +204,7 @@ interface UserProfile {
   fullName: string;
   email: string;
   mobile?: string;
+  rollNumber?: string;
   avatarUrl?: string;
   role: 'student' | 'faculty' | 'admin' | 'evaluator' | 'content_manager' | 'counselor';
   targetExam?: string;
@@ -722,6 +723,71 @@ export default function AdminPortal() {
     } finally {
       setSyncingYoutube(false);
     }
+  };
+
+  // Super Admin Student Roll Number Management & Exports
+  const [rollPrefix, setRollPrefix] = useState('FA-2026-');
+  const [isAssigningRolls, setIsAssigningRolls] = useState(false);
+
+  const handleAutoAssignRollNumbers = async () => {
+    if (!confirm(`Are you sure you want to auto-assign sequential institutional roll numbers (prefix: ${rollPrefix}) to all students currently without one?`)) {
+      return;
+    }
+    setIsAssigningRolls(true);
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/auth/users/auto-assign-roll-numbers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
+        body: JSON.stringify({ prefix: rollPrefix })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Roll Numbers Assigned! Successfully updated ${data.updatedCount} students.`);
+        // Reload users list
+        const usersRes = await fetch(`${BACKEND_URL}/api/auth/users`, { headers: getAdminAuthHeaders() });
+        const usersData = await usersRes.json();
+        if (Array.isArray(usersData)) setUsersList(usersData);
+      } else {
+        alert(`Failed: ${data.error || 'Server error'}`);
+      }
+    } catch (err) {
+      console.error('Auto assign roll numbers failed:', err);
+      alert('Network or server error while assigning roll numbers.');
+    } finally {
+      setIsAssigningRolls(false);
+    }
+  };
+
+  const handleExportStudentsCSV = () => {
+    const students = usersList.filter(u => u.role === 'student' || !u.role);
+    if (students.length === 0) {
+      alert('No student records found to export.');
+      return;
+    }
+
+    const headers = ['Roll Number', 'Full Name', 'Email', 'Mobile', 'Target Exam', 'Enrolled Courses', 'Status', 'Registered Date'];
+    const rows = students.map(s => {
+      const courses = (s.enrollments || []).map(e => e.courseTitle).join('; ');
+      return [
+        `"${s.rollNumber || 'Unassigned'}"`,
+        `"${(s.fullName || '').replace(/"/g, '""')}"`,
+        `"${(s.email || '').replace(/"/g, '""')}"`,
+        `"${(s.mobile || '').replace(/"/g, '""')}"`,
+        `"${(s.targetExam || 'General BPSC').replace(/"/g, '""')}"`,
+        `"${courses.replace(/"/g, '""')}"`,
+        `"${s.isActive ? 'Active' : 'Disabled'}"`,
+        `"${new Date(s.createdAt).toLocaleDateString('en-IN')}"`
+      ].join(',');
+    });
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Final_Attempt_Students_Roster_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const [mediaPickerConfig, setMediaPickerConfig] = useState<{
@@ -2960,10 +3026,218 @@ export default function AdminPortal() {
               <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/20 border border-amber-500/30 px-3 py-1 rounded-xl inline-block">
                 👑 Super Admin Master Console
               </span>
-              <h2 className="text-2xl sm:text-3xl font-heading font-black">Platform Master Controls & Feature Toggles</h2>
+              <h2 className="text-2xl sm:text-3xl font-heading font-black">Platform Master Controls &amp; Feature Toggles</h2>
               <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-                As Super Admin, you have full unrestricted access to system-wide flags, offline store overrides, database reset options, user roles management, and CMS permissions.
+                As Super Admin, you have full unrestricted access to institutional student roll numbers, system-wide flags, anti-piracy policies, offline store overrides, user roles management, and CMS permissions.
               </p>
+            </div>
+
+            {/* Student Roll Number Master Station & Automation */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl shadow-sm space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-white/10 pb-5">
+                <div>
+                  <h3 className="font-heading font-extrabold text-slate-900 dark:text-white text-lg flex items-center gap-2">
+                    <span>🎓 Student Roll Number Master Station</span>
+                    <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 uppercase">
+                      Institutional ID System
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Manage student roll numbers across batches, auto-generate sequential IDs, and export complete student rosters.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleExportStudentsCSV}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                  >
+                    <Download className="w-4 h-4 text-amber-500" />
+                    <span>Export CSV Master</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Stats Counters */}
+              {(() => {
+                const totalStudents = usersList.filter(u => u.role === 'student' || !u.role).length;
+                const assignedCount = usersList.filter(u => (u.role === 'student' || !u.role) && Boolean(u.rollNumber)).length;
+                const unassignedCount = totalStudents - assignedCount;
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/5">
+                      <div className="text-[10px] uppercase font-bold text-slate-400">Total Enrolled / Registered Students</div>
+                      <div className="text-2xl font-black text-slate-900 dark:text-white mt-1">{totalStudents}</div>
+                      <div className="text-[10px] text-slate-500 mt-1">Platform wide student pool</div>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                      <div className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Assigned Roll Numbers</div>
+                      <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{assignedCount}</div>
+                      <div className="text-[10px] text-emerald-700/70 dark:text-emerald-400/70 mt-1">Active verified roll numbers</div>
+                    </div>
+                    <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+                      <div className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400">Pending / Missing Roll Numbers</div>
+                      <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1">{unassignedCount}</div>
+                      <div className="text-[10px] text-amber-700/70 dark:text-amber-400/70 mt-1">Students awaiting auto-numbering</div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Auto Assign Action Bar */}
+              <div className="p-5 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/25 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h4 className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <span>⚡ One-Click Roll Number Auto-Assign Engine</span>
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl">
+                    Assign sequential IDs (e.g. <span className="font-mono font-bold text-amber-600 dark:text-amber-400">{rollPrefix}0001</span> onwards) to every student who currently has no roll number. Existing roll numbers are never overwritten.
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] font-bold uppercase text-slate-400 block">Roll Prefix</span>
+                    <input
+                      type="text"
+                      value={rollPrefix}
+                      onChange={(e) => setRollPrefix(e.target.value)}
+                      placeholder="FA-2026-"
+                      className="w-28 px-3 py-1.5 text-xs font-mono font-bold bg-white dark:bg-slate-800 border border-slate-300 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white shadow-inner"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={isAssigningRolls}
+                    onClick={handleAutoAssignRollNumbers}
+                    className="mt-3 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer shrink-0"
+                  >
+                    {isAssigningRolls ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Assigning...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-3.5 h-3.5 fill-current" />
+                        <span>Auto-Assign Missing Roll Numbers</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Master Security & Anti-Piracy Policies */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 sm:p-8 rounded-3xl space-y-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-white/10 pb-4">
+                <div>
+                  <h3 className="font-heading font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                    <span>🛡️ Platform Security &amp; Anti-Piracy Safeguards</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Central enforcement switches for student device concurrency, dynamic roll watermarking, and materials copy-protection.
+                  </p>
+                </div>
+                <span className="px-3 py-1 bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 w-fit">
+                  🔒 Enterprise Security
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+                {[
+                  {
+                    key: 'securityRollWatermark',
+                    title: '🎓 Dynamic Roll Watermark Overlay',
+                    desc: 'Overlays student name & roll number across protected PDF readers & lesson playback.',
+                    defaultVal: true,
+                    badge: 'Anti-Leak',
+                    badgeColor: 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20'
+                  },
+                  {
+                    key: 'singleDeviceSession',
+                    title: '📱 Single Concurrent Device Session',
+                    desc: 'Restricts simultaneous logins to a single browser session per student account.',
+                    defaultVal: false,
+                    badge: 'Account Sharing',
+                    badgeColor: 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+                  },
+                  {
+                    key: 'disableContentCopy',
+                    title: '🚫 Anti-Copy & Right-Click Lock',
+                    desc: 'Blocks text copying, right-click context menu, and inspector shortcuts on study material.',
+                    defaultVal: true,
+                    badge: 'IP Protection',
+                    badgeColor: 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20'
+                  },
+                  {
+                    key: 'maintenanceMode',
+                    title: '🚧 Platform Maintenance Mode',
+                    desc: 'Shows maintenance banner to public visitors while allowing super admin bypass.',
+                    defaultVal: false,
+                    badge: 'Ops Mode',
+                    badgeColor: 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20'
+                  }
+                ].map((sec) => {
+                  const isEnabled = sec.defaultVal === false
+                    ? Boolean(settings.featureFlags?.[sec.key])
+                    : settings.featureFlags?.[sec.key] !== false;
+
+                  const toggleSec = async () => {
+                    const updatedFlags = {
+                      ...settings.featureFlags,
+                      [sec.key]: !isEnabled
+                    };
+                    const updatedSettings = { ...settings, featureFlags: updatedFlags };
+                    setSettings(updatedSettings);
+                    try {
+                      await fetch(`${BACKEND_URL}/api/settings`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', ...getAdminAuthHeaders() },
+                        body: JSON.stringify(updatedSettings)
+                      });
+                    } catch (err) {
+                      console.error('Failed toggling security flag:', err);
+                    }
+                  };
+
+                  return (
+                    <div
+                      key={sec.key}
+                      className={`flex flex-col justify-between p-4 rounded-2xl border transition-all ${
+                        isEnabled
+                          ? 'bg-purple-500/[0.04] dark:bg-purple-500/[0.03] border-purple-500/30 shadow-xs'
+                          : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200/60 dark:border-white/5 opacity-80 hover:opacity-100'
+                      }`}
+                    >
+                      <div className="space-y-1 mb-3">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${sec.badgeColor}`}>
+                            {sec.badge}
+                          </span>
+                          <span className={`text-[10px] font-black uppercase ${isEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                            {isEnabled ? '● Active' : '○ Inactive'}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-xs text-slate-900 dark:text-white pt-1">{sec.title}</h4>
+                        <p className="text-[10px] text-slate-400 leading-tight">{sec.desc}</p>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-white/5">
+                        <span className="text-[10px] font-bold text-slate-500">Status</span>
+                        <button
+                          type="button"
+                          onClick={toggleSec}
+                          className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors shrink-0 ${
+                            isEnabled ? 'bg-emerald-500 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
+                          }`}
+                        >
+                          <div className="w-4 h-4 rounded-full bg-white shadow-md" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -3784,10 +4058,29 @@ export default function AdminPortal() {
                 <h3 className="font-extrabold text-sm text-slate-900">User Directory & Platform Accounts</h3>
                 <p className="text-[10px] text-slate-500 font-medium">Manage student course enrollments, faculty credentials, and administrator roles.</p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-xl">
                   Total Users: {usersList.length}
                 </span>
+                <button
+                  type="button"
+                  onClick={handleExportStudentsCSV}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  title="Export Students & Roll Numbers Master CSV"
+                >
+                  <Download className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Export CSV</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={isAssigningRolls}
+                  onClick={handleAutoAssignRollNumbers}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-slate-950 font-extrabold text-[11px] rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  title="Auto-assign sequential roll numbers to all unassigned students"
+                >
+                  <Zap className="w-3.5 h-3.5 fill-current" />
+                  <span>{isAssigningRolls ? 'Assigning...' : 'Auto-Assign Rolls'}</span>
+                </button>
               </div>
             </div>
 
@@ -3825,6 +4118,7 @@ export default function AdminPortal() {
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-700 uppercase tracking-wider text-[10px]">
                       <th className="p-4">User Info</th>
+                      <th className="p-4">Roll Number</th>
                       <th className="p-4">Mobile & Email</th>
                       <th className="p-4">Target Exam</th>
                       <th className="p-4">Course Enrolled</th>
@@ -3844,7 +4138,7 @@ export default function AdminPortal() {
                       return true;
                     }).length === 0 ? (
                       <tr>
-                        <td colSpan={9} className="p-8 text-center text-slate-400 text-xs">No accounts found for selected filter.</td>
+                        <td colSpan={11} className="p-8 text-center text-slate-400 text-xs">No accounts found for selected filter.</td>
                       </tr>
                     ) : (
                       usersList.filter(u => {
@@ -3879,6 +4173,22 @@ export default function AdminPortal() {
                                   {user.role}
                                 </span>
                               </div>
+                            </td>
+
+                            {/* Roll Number */}
+                            <td className="p-4">
+                              {user.rollNumber ? (
+                                <span className="inline-flex items-center gap-1 font-mono font-bold text-xs text-amber-900 bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg">
+                                  <span>🎓</span>
+                                  <span>{user.rollNumber}</span>
+                                </span>
+                              ) : isStudent ? (
+                                <span className="text-[10px] text-rose-500 font-semibold bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md">
+                                  Unassigned
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 text-[10px] italic">N/A</span>
+                              )}
                             </td>
 
                             {/* Mobile & Email */}
@@ -6709,6 +7019,29 @@ export default function AdminPortal() {
                       value={editUserForm.mobile || ''}
                       onChange={(e) => setEditUserForm(prev => ({ ...prev, mobile: e.target.value }))}
                       className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Institutional Roll Number</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const randomNum = Math.floor(1000 + Math.random() * 9000);
+                          setEditUserForm(prev => ({ ...prev, rollNumber: `FA-2026-${randomNum}` }));
+                        }}
+                        className="text-[9px] font-bold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                      >
+                        ⚡ Generate Roll
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="e.g. FA-2026-0001"
+                      value={editUserForm.rollNumber || ''}
+                      onChange={(e) => setEditUserForm(prev => ({ ...prev, rollNumber: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-xl outline-none text-slate-900 dark:text-white font-mono font-bold"
                     />
                   </div>
 

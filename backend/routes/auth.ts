@@ -596,7 +596,7 @@ router.put('/users/:id/role', authenticate, requireAdmin, async (req: AuthReques
 // ─── SUPER ADMIN: Update User Full Profile Info ─────────────────────────────
 router.put('/users/:id/profile', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-  const { fullName, email, mobile, targetExam, role, avatarUrl } = req.body;
+  const { fullName, email, mobile, targetExam, role, avatarUrl, rollNumber } = req.body;
   const ALLOWED_ROLES = ['student', 'faculty', 'admin', 'evaluator', 'content_manager', 'counselor'];
   try {
     const user = await authDB.findUserById(id);
@@ -608,11 +608,50 @@ router.put('/users/:id/profile', authenticate, requireAdmin, async (req: AuthReq
       fullName: fullName || user.fullName,
       email: email || user.email,
       mobile: mobile !== undefined ? mobile : user.mobile,
+      rollNumber: rollNumber !== undefined ? rollNumber : (user as any).rollNumber,
       targetExam: targetExam !== undefined ? targetExam : user.targetExam,
       avatarUrl: avatarUrl !== undefined ? avatarUrl : user.avatarUrl,
       role: role && ALLOWED_ROLES.includes(role) ? role : user.role
     });
     res.json({ success: true, message: 'User profile updated successfully' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ─── SUPER ADMIN: Auto-Assign Missing Student Roll Numbers ──────────────────
+router.post('/users/auto-assign-roll-numbers', authenticate, requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const prefix = req.body.prefix || 'FA-2026-';
+    const users = await authDB.getUsers();
+    const students = users.filter((u: any) => u.role === 'student' || !u.role);
+
+    // Find highest existing roll number with same prefix to avoid collision
+    let counter = 1;
+    const existingNums: number[] = [];
+    students.forEach((s: any) => {
+      const roll = (s as any).rollNumber;
+      if (roll && typeof roll === 'string' && roll.startsWith(prefix)) {
+        const numPart = parseInt(roll.replace(prefix, ''), 10);
+        if (!isNaN(numPart)) existingNums.push(numPart);
+      }
+    });
+    if (existingNums.length > 0) {
+      counter = Math.max(...existingNums) + 1;
+    }
+
+    let assignedCount = 0;
+    for (const student of students) {
+      const currentRoll = (student as any).rollNumber;
+      if (!currentRoll || String(currentRoll).trim() === '') {
+        const newRoll = `${prefix}${String(counter).padStart(4, '0')}`;
+        await authDB.updateProfile(student.id, { rollNumber: newRoll });
+        counter++;
+        assignedCount++;
+      }
+    }
+
+    res.json({ success: true, message: `Successfully assigned roll numbers to ${assignedCount} students.`, assignedCount });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

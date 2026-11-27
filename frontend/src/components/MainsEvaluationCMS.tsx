@@ -1,11 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FileText, Search, Download, Eye,
-  Award, Upload, RefreshCw, X, PenTool, UserCheck
+  Award, Upload, RefreshCw, X, PenTool, UserCheck,
+  Users, User, GraduationCap, Trash2, ArrowLeft,
+  CheckCircle2, Clock, AlertCircle, ChevronRight, Filter
 } from 'lucide-react';
-import { getAllMainsSubmissionsAdmin, evaluateMainsSubmissionAdmin, assignMainsEvaluatorAdmin } from '@/services/auth';
+import {
+  getAllMainsSubmissionsAdmin,
+  evaluateMainsSubmissionAdmin,
+  assignMainsEvaluatorAdmin,
+  deleteMainsSubmissionAdmin,
+  deleteMainsEvaluatedCopyAdmin
+} from '@/services/auth';
 import PDFAnnotationEditor, { RubricsScore } from './PDFAnnotationEditor';
 
 interface SubmissionItem {
@@ -14,6 +22,8 @@ interface SubmissionItem {
   assignmentId: string;
   studentName?: string;
   studentEmail?: string;
+  studentRollNumber?: string;
+  studentMobile?: string;
   testTitle?: string;
   testTitleHi?: string;
   testSeriesTitle?: string;
@@ -42,11 +52,29 @@ interface SubmissionItem {
   rubricsBreakdown?: string | Record<string, unknown>;
 }
 
+interface StudentGroup {
+  userId: string;
+  studentName: string;
+  studentEmail: string;
+  studentRollNumber?: string;
+  studentMobile?: string;
+  totalSubmissions: number;
+  pendingCount: number;
+  evaluatedCount: number;
+  lastSubmittedAt: string;
+  submissions: SubmissionItem[];
+}
+
 export default function MainsEvaluationCMS({ accessToken }: { accessToken?: string }) {
   const [submissions, setSubmissions] = useState<SubmissionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'Submitted' | 'Under Evaluation' | 'Evaluated'>('ALL');
+  
+  // Student-first navigation state
+  const [viewMode, setViewMode] = useState<'students' | 'feed'>('students');
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [studentFilter, setStudentFilter] = useState<'ALL' | 'PENDING' | 'EVALUATED'>('ALL');
 
   // Evaluation modal state
   const [selectedSub, setSelectedSub] = useState<SubmissionItem | null>(null);
@@ -62,67 +90,6 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
 
   // In-browser PDF checking studio state
   const [annotatingSub, setAnnotatingSub] = useState<SubmissionItem | null>(null);
-
-  // Quick Direct Upload Handler: Upload checked copy directly from the card
-  const handleDirectEvaluatedUpload = async (sub: SubmissionItem, file: File) => {
-    if (!file || !accessToken) return;
-    if (file.type !== 'application/pdf') {
-      alert('Please upload a valid PDF file.');
-      return;
-    }
-
-    setUploadingForSubId(sub.id);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('target', 'mains_evaluated_copy');
-
-      const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
-      const uploadRes = await fetch(`${backendBase}/api/upload`, {
-        method: 'POST',
-        body: formData
-      });
-      const uploadData = await uploadRes.json();
-
-      if (!uploadData.success || !uploadData.url) {
-        alert('PDF Upload failed: ' + (uploadData.error || 'Server error'));
-        return;
-      }
-
-      const uploadedUrl = uploadData.url;
-
-      // Ask for marks or confirm publication directly
-      const inputMarks = prompt(
-        `Checked PDF uploaded successfully!\n\nEnter marks obtained (Max: ${sub.maxMarks || 100}) or leave blank to keep current:`,
-        sub.grade !== undefined && sub.grade !== null ? String(sub.grade) : ''
-      );
-
-      const payload: any = {
-        evaluatedCopyUrl: uploadedUrl,
-        status: 'Evaluated'
-      };
-
-      if (inputMarks !== null && inputMarks.trim() !== '') {
-        const num = Number(inputMarks.trim());
-        if (!isNaN(num)) {
-          payload.grade = num;
-        }
-      }
-
-      const evalRes = await evaluateMainsSubmissionAdmin(sub.id, payload, accessToken);
-      if (evalRes.success) {
-        alert('Checked Evaluated PDF has been successfully linked and published for the student!');
-        loadSubmissions();
-      } else {
-        alert('Failed saving evaluated record: ' + (evalRes.error || 'Unknown error'));
-      }
-    } catch (err) {
-      console.error('Error during direct evaluated PDF upload:', err);
-      alert('Network error while uploading evaluated PDF.');
-    } finally {
-      setUploadingForSubId(null);
-    }
-  };
 
   // Assignment Modal State (Assign Evaluator)
   const [assigningSub, setAssigningSub] = useState<SubmissionItem | null>(null);
@@ -180,6 +147,194 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
     };
   }, [accessToken]);
 
+  // Group submissions by student (userId)
+  const studentGroups: StudentGroup[] = useMemo(() => {
+    const map = new Map<string, StudentGroup>();
+    submissions.forEach(sub => {
+      const key = sub.userId || sub.studentEmail || sub.id;
+      if (!map.has(key)) {
+        map.set(key, {
+          userId: sub.userId,
+          studentName: sub.studentName || 'Student',
+          studentEmail: sub.studentEmail || '',
+          studentRollNumber: sub.studentRollNumber || '',
+          studentMobile: sub.studentMobile || '',
+          totalSubmissions: 0,
+          pendingCount: 0,
+          evaluatedCount: 0,
+          lastSubmittedAt: sub.submittedAt,
+          submissions: []
+        });
+      }
+      const grp = map.get(key)!;
+      grp.totalSubmissions += 1;
+      if (sub.status === 'Evaluated' || (sub.grade !== undefined && sub.grade !== null)) {
+        grp.evaluatedCount += 1;
+      } else {
+        grp.pendingCount += 1;
+      }
+      if (new Date(sub.submittedAt).getTime() > new Date(grp.lastSubmittedAt).getTime()) {
+        grp.lastSubmittedAt = sub.submittedAt;
+      }
+      grp.submissions.push(sub);
+    });
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.lastSubmittedAt).getTime() - new Date(a.lastSubmittedAt).getTime()
+    );
+  }, [submissions]);
+
+  // Filtered student groups
+  const filteredStudents = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return studentGroups.filter(grp => {
+      const matchesSearch =
+        !q ||
+        grp.studentName.toLowerCase().includes(q) ||
+        grp.studentEmail.toLowerCase().includes(q) ||
+        (grp.studentRollNumber && grp.studentRollNumber.toLowerCase().includes(q)) ||
+        (grp.studentMobile && grp.studentMobile.includes(q)) ||
+        grp.submissions.some(s => (s.testTitle || '').toLowerCase().includes(q));
+
+      let matchesFilter = true;
+      if (studentFilter === 'PENDING') matchesFilter = grp.pendingCount > 0;
+      if (studentFilter === 'EVALUATED') matchesFilter = grp.pendingCount === 0 && grp.evaluatedCount > 0;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [studentGroups, searchQuery, studentFilter]);
+
+  // Active student details when drilled down
+  const activeStudent = useMemo(() => {
+    if (!selectedStudentId) return null;
+    return studentGroups.find(g => g.userId === selectedStudentId) || null;
+  }, [studentGroups, selectedStudentId]);
+
+  // Global flat feed filter
+  const filteredSubmissions = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return submissions.filter(s => {
+      const matchesSearch =
+        !q ||
+        (s.studentName && s.studentName.toLowerCase().includes(q)) ||
+        (s.studentEmail && s.studentEmail.toLowerCase().includes(q)) ||
+        (s.studentRollNumber && s.studentRollNumber.toLowerCase().includes(q)) ||
+        (s.testTitle && s.testTitle.toLowerCase().includes(q)) ||
+        (s.testSeriesTitle && s.testSeriesTitle.toLowerCase().includes(q));
+
+      const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [submissions, searchQuery, statusFilter]);
+
+  // Delete an entire submission copy
+  const handleDeleteSubmission = async (sub: SubmissionItem) => {
+    if (!accessToken) return;
+    const studentLabel = sub.studentName
+      ? `${sub.studentName} (${sub.studentRollNumber || sub.studentEmail || 'Student'})`
+      : 'Student';
+    const confirmMsg = `Are you sure you want to delete this Mains copy submission?\n\n• Test: ${sub.testTitle || 'Mains Test'}\n• Student: ${studentLabel}\n\nThis will permanently delete the uploaded answer file and evaluation records.`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      const res = await deleteMainsSubmissionAdmin(sub.id, accessToken);
+      if (res.success) {
+        alert('Submission copy deleted successfully.');
+        setSubmissions(prev => prev.filter(s => s.id !== sub.id));
+      } else {
+        alert('Failed to delete submission: ' + (res.message || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Error deleting submission:', err);
+      alert('Network error while deleting submission.');
+    }
+  };
+
+  // Remove just the evaluated copy PDF from a submission
+  const handleRemoveEvaluatedCopy = async (sub: SubmissionItem) => {
+    if (!accessToken) return;
+    if (
+      !confirm(
+        `Remove the checked/evaluated copy for "${sub.testTitle}"?\n\nThe student's original answer copy will be kept intact, and the status will reset to "Submitted".`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await deleteMainsEvaluatedCopyAdmin(sub.id, accessToken);
+      if (res.success) {
+        alert('Evaluated copy removed successfully.');
+        loadSubmissions();
+      } else {
+        alert('Failed removing evaluated copy: ' + (res.message || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Error removing evaluated copy:', err);
+      alert('Network error while removing evaluated copy.');
+    }
+  };
+
+  // Quick Direct Upload Handler: Upload checked copy directly from the card
+  const handleDirectEvaluatedUpload = async (sub: SubmissionItem, file: File) => {
+    if (!file || !accessToken) return;
+    if (file.type !== 'application/pdf') {
+      alert('Please upload a valid PDF file.');
+      return;
+    }
+
+    setUploadingForSubId(sub.id);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('target', 'mains_evaluated_copy');
+
+      const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+      const uploadRes = await fetch(`${backendBase}/api/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const uploadData = await uploadRes.json();
+
+      if (!uploadData.success || !uploadData.url) {
+        alert('PDF Upload failed: ' + (uploadData.error || 'Server error'));
+        return;
+      }
+
+      const uploadedUrl = uploadData.url;
+
+      // Ask for marks or confirm publication directly
+      const inputMarks = prompt(
+        `Checked PDF uploaded successfully!\n\nEnter marks obtained (Max: ${sub.maxMarks || 100}) or leave blank to keep current:`,
+        sub.grade !== undefined && sub.grade !== null ? String(sub.grade) : ''
+      );
+
+      const payload: Record<string, unknown> = {
+        evaluatedCopyUrl: uploadedUrl,
+        status: 'Evaluated'
+      };
+
+      if (inputMarks !== null && inputMarks.trim() !== '') {
+        const num = Number(inputMarks.trim());
+        if (!isNaN(num)) {
+          payload.grade = num;
+        }
+      }
+
+      const evalRes = await evaluateMainsSubmissionAdmin(sub.id, payload, accessToken);
+      if (evalRes.success) {
+        alert('Checked Evaluated PDF has been successfully linked and published for the student!');
+        loadSubmissions();
+      } else {
+        alert('Failed saving evaluated record: ' + (evalRes.error || 'Unknown error'));
+      }
+    } catch (err) {
+      console.error('Error during direct evaluated PDF upload:', err);
+      alert('Network error while uploading evaluated PDF.');
+    } finally {
+      setUploadingForSubId(null);
+    }
+  };
+
   const openEvaluationModal = (sub: SubmissionItem) => {
     setSelectedSub(sub);
     setEvalGrade(sub.grade !== undefined && sub.grade !== null ? String(sub.grade) : '');
@@ -189,7 +344,14 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
 
     let parsedRubrics: Record<string, unknown> | null = null;
     if (sub.rubricsBreakdown) {
-      parsedRubrics = typeof sub.rubricsBreakdown === 'string' ? JSON.parse(sub.rubricsBreakdown) : (sub.rubricsBreakdown as Record<string, unknown>);
+      try {
+        parsedRubrics =
+          typeof sub.rubricsBreakdown === 'string'
+            ? JSON.parse(sub.rubricsBreakdown)
+            : (sub.rubricsBreakdown as Record<string, unknown>);
+      } catch {
+        // ignore
+      }
     }
     setRubricIntro(parsedRubrics?.introduction !== undefined ? String(parsedRubrics.introduction) : '');
     setRubricContent(parsedRubrics?.contentAndFacts !== undefined ? String(parsedRubrics.contentAndFacts) : '');
@@ -335,7 +497,7 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
 
       const res = await evaluateMainsSubmissionAdmin(annotatingSub.id, payload, accessToken);
       if (res.success) {
-        alert('Checked PDF copy and evaluation saved & reverted back successfully!');
+        alert('Checked PDF copy and evaluation saved & published successfully!');
         setAnnotatingSub(null);
         loadSubmissions();
       } else {
@@ -348,255 +510,674 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
     }
   };
 
-  const filteredSubmissions = submissions.filter(s => {
-    const matchesSearch =
-      !searchQuery.trim() ||
-      (s.studentName?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (s.studentEmail?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (s.testTitle?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (s.testSeriesTitle?.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Render a clean, non-cluttered single submission card
+  const renderSubmissionCard = (sub: SubmissionItem, showStudentBadge = false) => {
+    const isGraded = sub.status === 'Evaluated' || (sub.grade !== undefined && sub.grade !== null);
 
-    const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
+    return (
+      <div
+        key={sub.id}
+        className="p-5 sm:p-6 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/40 rounded-3xl transition-all space-y-5 shadow-xs"
+      >
+        {/* Top Header: Test Info, Status, Marks */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div className="space-y-1.5 flex-1">
+            {showStudentBadge && (
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <span className="text-amber-600 dark:text-amber-400 font-extrabold text-xs flex items-center gap-1 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                  <User className="w-3.5 h-3.5" />
+                  {sub.studentName || 'Student'}
+                </span>
+                {sub.studentRollNumber ? (
+                  <span className="font-mono font-bold text-[11px] text-amber-900 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/50 px-2 py-0.5 rounded-md">
+                    🎓 {sub.studentRollNumber}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-400 italic">No Roll No</span>
+                )}
+                <span className="text-slate-400 text-xs">({sub.studentEmail})</span>
+              </div>
+            )}
 
-    return matchesSearch && matchesStatus;
-  });
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-[var(--text-color)] font-heading font-black text-lg">
+                {sub.testTitle || 'Mains Test'}
+              </h4>
+              {sub.testSeriesTitle && (
+                <span className="px-2.5 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-500 font-bold text-[11px] border border-indigo-500/20">
+                  {sub.testSeriesTitle}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+              <span className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                Submitted: {new Date(sub.submittedAt).toLocaleString('en-IN')}
+              </span>
+              {sub.testMedium && (
+                <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                  Medium: {sub.testMedium}
+                </span>
+              )}
+              {sub.assignedToName && (
+                <span className="px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[10px] font-bold">
+                  Evaluator: {sub.assignedToName}
+                </span>
+              )}
+            </div>
+
+            {/* Candidate remarks note */}
+            {sub.submissionText && (
+              <div className="p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl mt-2 text-xs text-amber-900 dark:text-amber-300">
+                <span className="font-bold">Student Note:</span> {sub.submissionText}
+              </div>
+            )}
+          </div>
+
+          {/* Right Status & Score Badge */}
+          <div className="flex md:flex-col items-end gap-2 shrink-0">
+            <span
+              className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                sub.status === 'Evaluated'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                  : sub.status === 'Under Evaluation'
+                  ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                  : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30'
+              }`}
+            >
+              {sub.status || 'Submitted'}
+            </span>
+
+            {isGraded && (
+              <div className="text-right">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Marks Awarded</span>
+                <span className="text-emerald-600 dark:text-emerald-400 font-heading font-black text-xl">
+                  {sub.grade} <span className="text-xs text-slate-400 font-normal">/ {sub.maxMarks || 100}</span>
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Dedicated Clean File Slots: Exact files only */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-[var(--card-border)]">
+          {/* File Slot 1: Student Submitted Answer Copy */}
+          <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200/80 dark:border-white/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-blue-500" />
+                1. Student Answer Copy (PDF)
+              </span>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                Original Upload
+              </span>
+            </div>
+
+            {sub.submissionUrl ? (
+              <div className="flex items-center gap-2 pt-1">
+                <a
+                  href={sub.submissionUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 py-2 px-3 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-xl border border-blue-500/20 text-center flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span>Preview PDF</span>
+                </a>
+                <a
+                  href={sub.submissionUrl}
+                  download
+                  className="py-2 px-3 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold rounded-xl border border-slate-200 dark:border-white/10 text-center flex items-center justify-center gap-1.5 transition-all shadow-xs"
+                  title="Download File"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </a>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic py-2">No submission URL found.</p>
+            )}
+          </div>
+
+          {/* File Slot 2: Checked & Evaluated Copy */}
+          <div className="p-4 rounded-2xl bg-amber-500/[0.03] dark:bg-amber-500/[0.02] border border-amber-500/20 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                <PenTool className="w-3.5 h-3.5" />
+                2. Checked & Evaluated Copy
+              </span>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                  sub.evaluatedCopyUrl
+                    ? 'text-emerald-600 bg-emerald-500/10 border border-emerald-500/20'
+                    : 'text-amber-600 bg-amber-500/10 border border-amber-500/20'
+                }`}
+              >
+                {sub.evaluatedCopyUrl ? 'Checked PDF Attached' : 'Awaiting Check'}
+              </span>
+            </div>
+
+            {sub.evaluatedCopyUrl ? (
+              <div className="space-y-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <a
+                    href={sub.evaluatedCopyUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 py-2 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-extrabold rounded-xl border border-emerald-500/30 text-center flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>View Checked Copy (PDF)</span>
+                  </a>
+
+                  {/* Remove Checked PDF button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveEvaluatedCopy(sub)}
+                    className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900 rounded-xl transition-all cursor-pointer"
+                    title="Remove Checked PDF and reset status"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Replace evaluated copy */}
+                <label className="text-[11px] font-bold text-amber-600 hover:underline cursor-pointer inline-flex items-center gap-1">
+                  <Upload className="w-3 h-3" />
+                  <span>Replace Checked Copy</span>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    disabled={uploadingForSubId === sub.id}
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) handleDirectEvaluatedUpload(sub, file);
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 pt-1">
+                {sub.submissionUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setAnnotatingSub(sub)}
+                    className="flex-1 py-2 px-3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-extrabold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <PenTool className="w-3.5 h-3.5" />
+                    <span>Check & Annotate</span>
+                  </button>
+                )}
+
+                <label className="py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
+                  <Upload className={`w-3.5 h-3.5 ${uploadingForSubId === sub.id ? 'animate-bounce' : ''}`} />
+                  <span>{uploadingForSubId === sub.id ? 'Uploading…' : 'Upload Checked PDF'}</span>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    disabled={uploadingForSubId === sub.id}
+                    onChange={e => {
+                      const file = e.target.files?.[0];
+                      if (file) handleDirectEvaluatedUpload(sub, file);
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Optional Reference Files (Question Paper / Model Answer) if attached */}
+        {(sub.questionPaperUrl || sub.modelAnswerUrl || sub.answerBookletUrl) && (
+          <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
+            <span className="text-[10px] font-bold uppercase text-slate-400">Exam Reference Papers:</span>
+            {sub.questionPaperUrl && (
+              <a
+                href={sub.questionPaperUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold rounded-lg border border-blue-500/20 hover:bg-blue-500/20 text-[11px]"
+              >
+                <Download className="w-3 h-3" /> Question Paper (QP)
+              </a>
+            )}
+            {sub.modelAnswerUrl && (
+              <a
+                href={sub.modelAnswerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold rounded-lg border border-emerald-500/20 hover:bg-emerald-500/20 text-[11px]"
+              >
+                <Download className="w-3 h-3" /> Model Answer
+              </a>
+            )}
+            {sub.answerBookletUrl && (
+              <a
+                href={sub.answerBookletUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold rounded-lg border border-amber-500/20 hover:bg-amber-500/20 text-[11px]"
+              >
+                <Download className="w-3 h-3" /> Booklet Format
+              </a>
+            )}
+          </div>
+        )}
+
+        {/* Feedback Snippet if Graded */}
+        {isGraded && sub.feedback && (
+          <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-[var(--card-border)] space-y-1 text-xs">
+            <span className="text-[10px] font-bold text-slate-400 uppercase block">Examiner Feedback</span>
+            <p className="text-slate-700 dark:text-slate-300 font-medium leading-relaxed">{sub.feedback}</p>
+          </div>
+        )}
+
+        {/* Bottom Action Controls: Evaluate Modal, Assign, and DELETE */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--card-border)]">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => openEvaluationModal(sub)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-xs cursor-pointer"
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>{isGraded ? 'Edit Marks & Feedback' : 'Score & Remarks'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openAssignModal(sub)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[var(--text-color)] text-xs font-bold rounded-xl transition-all border border-[var(--card-border)] cursor-pointer"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
+              <span>{sub.assignedToName ? `Assigned: ${sub.assignedToName}` : 'Assign Evaluator'}</span>
+            </button>
+          </div>
+
+          {/* Delete Submission File Button */}
+          <button
+            type="button"
+            onClick={() => handleDeleteSubmission(sub)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 text-xs font-extrabold rounded-xl transition-all cursor-pointer"
+            title="Permanently delete this submission and file"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete Submission</span>
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 font-body">
-      {/* Header Banner */}
+      {/* Top Banner Header */}
       <div className="p-6 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <span className="px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full text-[10px] font-black uppercase tracking-widest inline-block mb-2">
-              Mains Evaluation Engine
-            </span>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-full text-[10px] font-black uppercase tracking-widest inline-block">
+                Mains Evaluation Master Station
+              </span>
+              <span className="px-3 py-1 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 rounded-full text-[10px] font-black uppercase tracking-widest inline-block">
+                Student-Wise Tracking
+              </span>
+            </div>
             <h2 className="text-2xl font-heading font-black text-[var(--text-color)]">
-              Student Mains Answer Copy Evaluation
+              Mains Answer Copy Evaluation & Student Tracking
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Review submitted answer PDFs, assign marks out of Max Marks, write feedback, and attach annotated copies.
+              Select any student to review their individual test copies, check answers, upload evaluated PDFs, or delete redundant files.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={loadSubmissions}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs rounded-2xl transition-all self-start sm:self-auto cursor-pointer shadow-sm"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh Submissions
-          </button>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+            {/* View Mode Toggle: Student Directory vs All Submissions Feed */}
+            <div className="p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center border border-[var(--card-border)]">
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode('students');
+                  setSelectedStudentId(null);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'students'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-[var(--text-color)]'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Students View</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('feed')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  viewMode === 'feed'
+                    ? 'bg-amber-500 text-slate-950 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-[var(--text-color)]'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>All Submissions Feed</span>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={loadSubmissions}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-extrabold text-xs rounded-2xl transition-all cursor-pointer shadow-xs"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        {/* Live Metrics Row */}
+        {(() => {
+          const totalStudents = studentGroups.length;
+          const totalSubs = submissions.length;
+          const totalPending = submissions.filter(
+            s => s.status !== 'Evaluated' && (s.grade === undefined || s.grade === null)
+          ).length;
+          const totalEvaluated = totalSubs - totalPending;
+
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-[var(--card-border)]">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Students</span>
+                <span className="text-xl font-heading font-black text-[var(--text-color)] mt-0.5 block">
+                  {totalStudents}
+                </span>
+                <span className="text-[10px] text-slate-500">With answer uploads</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-[var(--card-border)]">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block">Total Copies</span>
+                <span className="text-xl font-heading font-black text-[var(--text-color)] mt-0.5 block">
+                  {totalSubs}
+                </span>
+                <span className="text-[10px] text-slate-500">Mains answer sheets</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-amber-500/5 border border-amber-500/20">
+                <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">
+                  Pending Checking
+                </span>
+                <span className="text-xl font-heading font-black text-amber-600 dark:text-amber-400 mt-0.5 block">
+                  {totalPending}
+                </span>
+                <span className="text-[10px] text-amber-700/70 dark:text-amber-400/70">Awaiting evaluation</span>
+              </div>
+              <div className="p-3.5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">
+                  Evaluated Copies
+                </span>
+                <span className="text-xl font-heading font-black text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                  {totalEvaluated}
+                </span>
+                <span className="text-[10px] text-emerald-700/70 dark:text-emerald-400/70">Marks published</span>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Search Bar & Filter Options */}
+        <div className="flex flex-col sm:flex-row gap-3 pt-1">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by student name, email, or test title…"
+              placeholder={
+                viewMode === 'students'
+                  ? 'Search by student name, roll number, email, or mobile…'
+                  : 'Search by student name, roll number, or test title…'
+              }
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl text-xs text-[var(--text-color)] placeholder-slate-400 outline-none focus:border-amber-500 font-medium"
             />
           </div>
-          <div className="flex gap-1.5 overflow-x-auto">
-            {(['ALL', 'Submitted', 'Under Evaluation', 'Evaluated'] as const).map((st) => (
-              <button
-                key={st}
-                type="button"
-                onClick={() => setStatusFilter(st)}
-                className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all shrink-0 cursor-pointer ${
-                  statusFilter === st
-                    ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md'
-                    : 'bg-[var(--card-bg)] text-slate-600 dark:text-slate-300 border-[var(--card-border)] hover:text-amber-500'
-                }`}
-              >
-                {st}
-              </button>
-            ))}
-          </div>
+
+          {viewMode === 'students' ? (
+            <div className="flex gap-1.5 overflow-x-auto">
+              {(
+                [
+                  { id: 'ALL', label: 'All Students' },
+                  { id: 'PENDING', label: 'Needs Evaluation' },
+                  { id: 'EVALUATED', label: 'All Checked' }
+                ] as const
+              ).map(st => (
+                <button
+                  key={st.id}
+                  type="button"
+                  onClick={() => setStudentFilter(st.id)}
+                  className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all shrink-0 cursor-pointer ${
+                    studentFilter === st.id
+                      ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                      : 'bg-[var(--card-bg)] text-slate-600 dark:text-slate-300 border-[var(--card-border)] hover:text-amber-500'
+                  }`}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex gap-1.5 overflow-x-auto">
+              {(['ALL', 'Submitted', 'Under Evaluation', 'Evaluated'] as const).map(st => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setStatusFilter(st)}
+                  className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all shrink-0 cursor-pointer ${
+                    statusFilter === st
+                      ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-sm'
+                      : 'bg-[var(--card-bg)] text-slate-600 dark:text-slate-300 border-[var(--card-border)] hover:text-amber-500'
+                  }`}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Submissions Table / Cards */}
+      {/* MAIN VIEW CONTENT */}
       {loading ? (
         <div className="p-12 text-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl">
           <RefreshCw className="w-8 h-8 text-amber-500 animate-spin mx-auto mb-3" />
           <p className="text-slate-500 dark:text-slate-400 text-xs font-bold">Loading Mains Submissions…</p>
         </div>
-      ) : filteredSubmissions.length === 0 ? (
-        <div className="p-12 text-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-3">
-          <FileText className="w-10 h-10 text-slate-400 mx-auto" />
-          <h3 className="text-[var(--text-color)] font-bold text-base">No Mains Submissions Found</h3>
-          <p className="text-slate-500 dark:text-slate-400 text-xs max-w-sm mx-auto">
-            {submissions.length === 0
-              ? 'No student answer copies have been submitted yet.'
-              : 'No submissions match your current search and filter criteria.'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {filteredSubmissions.map((sub) => {
-            const isGraded = sub.status === 'Evaluated' || (sub.grade !== undefined && sub.grade !== null);
-            return (
-              <div
-                key={sub.id}
-                className="p-5 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/40 rounded-2xl transition-all space-y-4 shadow-xs"
-              >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  {/* Student & Test Info */}
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-amber-600 dark:text-amber-400 font-extrabold text-sm">
-                        {sub.studentName || 'Student'}
+      ) : viewMode === 'students' ? (
+        /* MODE 1: STUDENT DIRECTORY OR SINGLE-STUDENT DRILL-DOWN */
+        selectedStudentId && activeStudent ? (
+          /* SINGLE STUDENT DRILL-DOWN WORKSPACE */
+          <div className="space-y-6">
+            {/* Student Navigation Bar & Header */}
+            <div className="p-6 bg-[var(--card-bg)] border border-amber-500/30 rounded-3xl space-y-4 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStudentId(null)}
+                    className="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-600 dark:text-amber-400 hover:underline mb-2 cursor-pointer"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span>Back to All Students List</span>
+                  </button>
+
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h3 className="font-heading font-black text-2xl text-[var(--text-color)]">
+                      {activeStudent.studentName}
+                    </h3>
+                    {activeStudent.studentRollNumber ? (
+                      <span className="font-mono font-black text-xs text-amber-900 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/50 px-3 py-1 rounded-xl">
+                        🎓 Roll No: {activeStudent.studentRollNumber}
                       </span>
-                      <span className="text-slate-400 text-xs">({sub.studentEmail})</span>
-                    </div>
-                    <h4 className="text-[var(--text-color)] font-heading font-black text-base">
-                      {sub.testTitle || 'Mains Test'}
-                    </h4>
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                      {sub.testSeriesTitle && (
-                        <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-500 font-bold text-[10px]">
-                          {sub.testSeriesTitle}
-                        </span>
-                      )}
-                      <span>Submitted: {new Date(sub.submittedAt).toLocaleString('en-IN')}</span>
-                    </div>
-
-                    {/* Student Remarks / Note if provided */}
-                    {sub.submissionText && (
-                      <p className="text-[11px] text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg mt-1 inline-block max-w-xl">
-                        <span className="font-bold">Note from Student:</span> {sub.submissionText}
-                      </p>
+                    ) : (
+                      <span className="text-[11px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 px-2.5 py-0.5 rounded-lg">
+                        No Roll No Assigned
+                      </span>
                     )}
                   </div>
 
-                  {/* Status & Actions */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                        sub.status === 'Evaluated'
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                          : sub.status === 'Under Evaluation'
-                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30'
-                          : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30'
-                      }`}
-                    >
-                      {sub.status || 'Submitted'}
-                    </span>
-
-                    {sub.submissionUrl && (
-                      <button
-                        type="button"
-                        onClick={() => setAnnotatingSub(sub)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-black rounded-xl transition-all shadow-sm cursor-pointer"
-                        title="Open Interactive PDF Evaluation Canvas"
-                      >
-                        <PenTool className="w-3.5 h-3.5" />
-                        Check & Annotate PDF
-                      </button>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Email: <span className="font-mono text-slate-800 dark:text-slate-200">{activeStudent.studentEmail}</span>
+                    {activeStudent.studentMobile && (
+                      <span className="ml-3">
+                        Mobile: <span className="font-mono text-slate-800 dark:text-slate-200">{activeStudent.studentMobile}</span>
+                      </span>
                     )}
-
-                    {sub.submissionUrl && (
-                      <a
-                        href={sub.submissionUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-[var(--card-bg)] text-[var(--text-color)] text-xs font-bold rounded-xl transition-colors border border-[var(--card-border)]"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-blue-500" />
-                        Original PDF
-                      </a>
-                    )}
-
-                    {/* Assign Evaluator Button */}
-                    <button
-                      type="button"
-                      onClick={() => openAssignModal(sub)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[var(--text-color)] text-xs font-bold rounded-xl transition-all border border-[var(--card-border)] cursor-pointer"
-                      title="Assign specific evaluator / faculty teacher"
-                    >
-                      <UserCheck className="w-3.5 h-3.5 text-indigo-500" />
-                      {sub.assignedToName ? `Evaluator: ${sub.assignedToName}` : 'Assign Evaluator'}
-                    </button>
-
-                    {/* Direct Upload Checked/Evaluated PDF Button */}
-                    <label
-                      className={`inline-flex items-center gap-1.5 px-3 py-2 ${
-                        sub.evaluatedCopyUrl
-                          ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                          : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
-                      } text-xs font-black rounded-xl transition-all border border-[var(--card-border)] cursor-pointer shrink-0`}
-                      title="Directly upload evaluated / checked PDF received from external evaluator"
-                    >
-                      <Upload className={`w-3.5 h-3.5 ${uploadingForSubId === sub.id ? 'animate-bounce' : ''}`} />
-                      {uploadingForSubId === sub.id
-                        ? 'Uploading…'
-                        : sub.evaluatedCopyUrl
-                        ? 'Replace Checked PDF'
-                        : 'Upload Checked PDF'}
-                      <input
-                        type="file"
-                        accept="application/pdf"
-                        disabled={uploadingForSubId === sub.id}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleDirectEvaluatedUpload(sub, file);
-                          }
-                          e.target.value = '';
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-
-                    {/* View Evaluated Copy if present */}
-                    {sub.evaluatedCopyUrl && (
-                      <a
-                        href={sub.evaluatedCopyUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl transition-colors border border-emerald-500/20"
-                        title="Download / View Evaluated Copy"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        View Checked PDF
-                      </a>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={() => openEvaluationModal(sub)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-sm cursor-pointer"
-                    >
-                      <Award className="w-3.5 h-3.5" />
-                      {isGraded ? 'Edit Marks/Feedback' : 'Score & Remarks'}
-                    </button>
-                  </div>
+                  </p>
                 </div>
 
-                {/* Grade & Feedback snippet if already evaluated */}
-                {isGraded && (
-                  <div className="pt-3 border-t border-[var(--card-border)] grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                    <div className="bg-[var(--card-bg)] p-3 rounded-xl border border-[var(--card-border)]">
-                      <span className="text-slate-400 text-[10px] font-bold uppercase block">Marks Awarded</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-black text-sm">
-                        {sub.grade} / {sub.maxMarks || 100} Marks
+                {/* Student Score / Status Summary Pills */}
+                <div className="flex items-center gap-2">
+                  <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-[var(--card-border)]">
+                    {activeStudent.totalSubmissions} Total Copies
+                  </span>
+                  {activeStudent.pendingCount > 0 && (
+                    <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                      {activeStudent.pendingCount} Pending Check
+                    </span>
+                  )}
+                  {activeStudent.evaluatedCount > 0 && (
+                    <span className="px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                      {activeStudent.evaluatedCount} Evaluated
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Submissions of THIS student */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-extrabold text-slate-900 dark:text-white uppercase tracking-wider flex items-center justify-between">
+                <span>Submitted Mains Papers ({activeStudent.submissions.length})</span>
+                <span className="text-xs text-slate-400 normal-case font-normal">
+                  Showing answer copies submitted by {activeStudent.studentName}
+                </span>
+              </h4>
+
+              {activeStudent.submissions.map(sub => renderSubmissionCard(sub, false))}
+            </div>
+          </div>
+        ) : (
+          /* STUDENT LIST VIEW (FIRST SCREEN) */
+          filteredStudents.length === 0 ? (
+            <div className="p-12 text-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-3">
+              <Users className="w-10 h-10 text-slate-400 mx-auto" />
+              <h3 className="text-[var(--text-color)] font-bold text-base">No Students Found</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs max-w-sm mx-auto">
+                {studentGroups.length === 0
+                  ? 'No student answer copy submissions have been received yet.'
+                  : 'No student matches your current search criteria.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredStudents.map(student => {
+                const hasPending = student.pendingCount > 0;
+
+                return (
+                  <div
+                    key={student.userId || student.studentEmail}
+                    onClick={() => setSelectedStudentId(student.userId)}
+                    className="p-6 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/60 rounded-3xl transition-all space-y-4 cursor-pointer shadow-xs hover:shadow-md group flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      {/* Top Student Header: Initials + Name + Roll Number */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-heading font-black text-base flex items-center justify-center shrink-0">
+                            {student.studentName
+                              .split(' ')
+                              .map(p => p[0])
+                              .join('')
+                              .slice(0, 2)
+                              .toUpperCase() || 'ST'}
+                          </div>
+                          <div>
+                            <h4 className="font-heading font-black text-base text-[var(--text-color)] group-hover:text-amber-600 transition-colors">
+                              {student.studentName}
+                            </h4>
+                            <p className="text-[11px] text-slate-400 font-mono truncate max-w-[180px]">
+                              {student.studentEmail}
+                            </p>
+                          </div>
+                        </div>
+
+                        {student.studentRollNumber ? (
+                          <span className="font-mono font-bold text-[10px] text-amber-900 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/50 px-2 py-0.5 rounded-md shrink-0">
+                            🎓 {student.studentRollNumber}
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-slate-400 italic shrink-0">No Roll No</span>
+                        )}
+                      </div>
+
+                      {/* Metrics Badges */}
+                      <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                        <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-[var(--card-border)]">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase block">Total</span>
+                          <span className="text-sm font-black text-[var(--text-color)]">{student.totalSubmissions}</span>
+                        </div>
+                        <div className={`p-2 rounded-xl border ${hasPending ? 'bg-amber-500/10 border-amber-500/30' : 'bg-slate-50 dark:bg-slate-800/40 border-[var(--card-border)]'}`}>
+                          <span className={`text-[9px] font-bold uppercase block ${hasPending ? 'text-amber-600' : 'text-slate-400'}`}>Pending</span>
+                          <span className={`text-sm font-black ${hasPending ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}`}>
+                            {student.pendingCount}
+                          </span>
+                        </div>
+                        <div className="p-2 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                          <span className="text-[9px] font-bold text-emerald-600 uppercase block">Checked</span>
+                          <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                            {student.evaluatedCount}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Latest Paper Title Preview */}
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                        <span className="font-bold text-slate-700 dark:text-slate-300">Latest:</span>{' '}
+                        {student.submissions[0]?.testTitle || 'Mains Assignment'}
+                      </div>
+                    </div>
+
+                    {/* Footer Button */}
+                    <div className="pt-3 border-t border-[var(--card-border)] flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400">
+                        {new Date(student.lastSubmittedAt).toLocaleDateString('en-IN')}
+                      </span>
+                      <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                        <span>View Evaluations ({student.totalSubmissions})</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
                       </span>
                     </div>
-                    <div className="bg-[var(--card-bg)] p-3 rounded-xl border border-[var(--card-border)] md:col-span-2">
-                      <span className="text-slate-400 text-[10px] font-bold uppercase block">Evaluator Feedback</span>
-                      <p className="text-slate-700 dark:text-slate-300 font-medium line-clamp-2 mt-0.5">
-                        {sub.feedback || 'No written feedback provided.'}
-                      </p>
-                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          )
+        )
+      ) : (
+        /* MODE 2: FLAT FEED OF ALL SUBMISSIONS */
+        filteredSubmissions.length === 0 ? (
+          <div className="p-12 text-center bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl space-y-3">
+            <FileText className="w-10 h-10 text-slate-400 mx-auto" />
+            <h3 className="text-[var(--text-color)] font-bold text-base">No Mains Submissions Found</h3>
+            <p className="text-slate-500 dark:text-slate-400 text-xs max-w-sm mx-auto">
+              No submissions match your current search and filter criteria.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredSubmissions.map(sub => renderSubmissionCard(sub, true))}
+          </div>
+        )
       )}
 
       {/* EVALUATION POPUP MODAL */}
@@ -605,9 +1186,14 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
           <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-3xl max-w-2xl w-full p-6 space-y-6 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between border-b border-[var(--card-border)] pb-4">
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">Evaluation Portal</span>
+                <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider">
+                  Evaluation Scorecard
+                </span>
                 <h3 className="text-lg font-heading font-black text-[var(--text-color)]">{selectedSub.testTitle}</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Student: {selectedSub.studentName} ({selectedSub.studentEmail})</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Student: {selectedSub.studentName}{' '}
+                  {selectedSub.studentRollNumber ? `(Roll: ${selectedSub.studentRollNumber})` : ''} ({selectedSub.studentEmail})
+                </p>
               </div>
               <button
                 type="button"
@@ -623,50 +1209,11 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
               {selectedSub.submissionText && (
                 <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1">
                   <span className="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400 block tracking-wider">
-                    Candidate Remarks / Selection Note:
+                    Candidate Remarks / Note:
                   </span>
                   <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium whitespace-pre-wrap">
                     {selectedSub.submissionText}
                   </p>
-                </div>
-              )}
-
-              {/* Reference Documents Links (QP, Model Answer, Booklet) */}
-              {(selectedSub.questionPaperUrl || selectedSub.modelAnswerUrl || selectedSub.answerBookletUrl) && (
-                <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-[var(--card-border)] flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-[11px] font-bold text-slate-500">Test Question &amp; Solutions:</span>
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {selectedSub.questionPaperUrl && (
-                      <a
-                        href={selectedSub.questionPaperUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-0.5 rounded-lg border border-blue-500/20"
-                      >
-                        <Download className="w-3 h-3" /> Question Paper
-                      </a>
-                    )}
-                    {selectedSub.modelAnswerUrl && (
-                      <a
-                        href={selectedSub.modelAnswerUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 px-2 py-0.5 rounded-lg border border-emerald-500/20"
-                      >
-                        <Download className="w-3 h-3" /> Model Answer
-                      </a>
-                    )}
-                    {selectedSub.answerBookletUrl && (
-                      <a
-                        href={selectedSub.answerBookletUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/20"
-                      >
-                        <Download className="w-3 h-3" /> Booklet
-                      </a>
-                    )}
-                  </div>
                 </div>
               )}
 
@@ -716,7 +1263,7 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
               {/* Rubrics Breakdown in Modal */}
               <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-[var(--card-border)] space-y-2">
                 <span className="text-[10px] font-black uppercase text-amber-500 tracking-wider block">
-                  UPSC/BPSC Evaluation Rubrics Breakdown
+                  Evaluation Rubrics Breakdown
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
                   <div>
@@ -769,7 +1316,7 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
               {/* Evaluated Copy PDF Upload */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold uppercase text-slate-400">
-                  Upload Checked/Evaluated PDF Copy (Optional)
+                  Upload Checked/Evaluated PDF Copy
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -789,7 +1336,9 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
 
               {/* Feedback Text Area */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase text-slate-400">Evaluator Detailed Feedback & Remarks</label>
+                <label className="text-[10px] font-bold uppercase text-slate-400">
+                  Evaluator Detailed Feedback & Remarks
+                </label>
                 <textarea
                   rows={4}
                   placeholder="Provide constructive feedback on introduction, body structure, conclusion, map diagrams, and factual coverage…"
@@ -843,7 +1392,9 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
             <form onSubmit={handleSaveAssignment} className="space-y-4">
               <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-[var(--card-border)] text-xs space-y-1">
                 <p className="font-bold text-[var(--text-color)]">{assigningSub.testTitle}</p>
-                <p className="text-slate-400">Student: {assigningSub.studentName} ({assigningSub.studentEmail})</p>
+                <p className="text-slate-400">
+                  Student: {assigningSub.studentName} ({assigningSub.studentEmail})
+                </p>
               </div>
 
               <div className="space-y-1">
@@ -894,11 +1445,12 @@ export default function MainsEvaluationCMS({ accessToken }: { accessToken?: stri
         let initialRubrics: RubricsScore | undefined;
         if (annotatingSub.rubricsBreakdown) {
           try {
-            initialRubrics = typeof annotatingSub.rubricsBreakdown === 'string'
-              ? JSON.parse(annotatingSub.rubricsBreakdown)
-              : annotatingSub.rubricsBreakdown;
+            initialRubrics =
+              typeof annotatingSub.rubricsBreakdown === 'string'
+                ? JSON.parse(annotatingSub.rubricsBreakdown)
+                : annotatingSub.rubricsBreakdown;
           } catch {
-            // ignore malformed rubrics json
+            // ignore
           }
         }
         return (

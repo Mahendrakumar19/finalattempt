@@ -92,6 +92,13 @@ export default function StudentPortalShell({ children, activeNav }: StudentPorta
               <p className="text-gray-950 dark:text-white text-xs font-bold truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                 {user?.fullName || 'Student'}
               </p>
+              {user?.rollNumber && (
+                <div className="inline-block mt-0.5">
+                  <span className="text-[9px] font-mono font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                    Roll No: {user.rollNumber}
+                  </span>
+                </div>
+              )}
               <p className="text-gray-600 dark:text-gray-300 text-[11px] font-medium truncate">{user?.email || ''}</p>
             </div>
           </Link>

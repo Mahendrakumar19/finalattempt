@@ -423,6 +423,20 @@ export async function assignMainsEvaluatorAdmin(
   }, accessToken);
 }
 
+// ─── Mains Admin: Delete Submission ─────────────────────────────────────────
+export async function deleteMainsSubmissionAdmin(submissionId: string, accessToken: string) {
+  return apiFetch<{ success: boolean; message?: string }>(`/api/lms/admin/mains-submissions/${submissionId}`, {
+    method: 'DELETE'
+  }, accessToken);
+}
+
+// ─── Mains Admin: Remove Evaluated Copy ─────────────────────────────────────
+export async function deleteMainsEvaluatedCopyAdmin(submissionId: string, accessToken: string) {
+  return apiFetch<{ success: boolean; message?: string }>(`/api/lms/admin/mains-submissions/${submissionId}/evaluated-copy`, {
+    method: 'DELETE'
+  }, accessToken);
+}
+
 // ─── Doubts & Community Discussion ──────────────────────────────────────────
 export async function getCourseDoubts(courseId: string, lessonId?: string) {
   const query = lessonId ? `?lessonId=${encodeURIComponent(lessonId)}` : '';

@@ -1414,6 +1414,28 @@ router.put('/admin/mains-submissions/:submissionId/assign', authenticateAdminLms
   }
 });
 
+// Admin Delete Mains Submission Copy
+router.delete('/admin/mains-submissions/:submissionId', authenticateAdminLms, async (req: Request, res: Response) => {
+  const submissionId = req.params.submissionId as string;
+  try {
+    const ok = await lmsDB.deleteMainsSubmission(submissionId);
+    res.json({ success: ok, message: 'Mains submission copy deleted successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Admin Remove Evaluated Copy from Mains Submission
+router.delete('/admin/mains-submissions/:submissionId/evaluated-copy', authenticateAdminLms, async (req: Request, res: Response) => {
+  const submissionId = req.params.submissionId as string;
+  try {
+    const ok = await lmsDB.deleteMainsEvaluatedCopy(submissionId);
+    res.json({ success: ok, message: 'Evaluated copy removed successfully.' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // ─────────────────────────── DOUBTS & COMMUNITY DISCUSSION ────────────────────
 
 // GET /api/lms/courses/:courseId/doubts - List doubts for a course (or lesson)

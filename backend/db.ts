@@ -4797,7 +4797,7 @@ class AuthDB {
     }
   }
 
-  async updateProfile(userId: string, data: { fullName?: string; email?: string; mobile?: string; state?: string; district?: string; targetExam?: string; avatarUrl?: string; role?: 'student' | 'faculty' | 'admin' }): Promise<void> {
+  async updateProfile(userId: string, data: { fullName?: string; email?: string; mobile?: string; rollNumber?: string; state?: string; district?: string; targetExam?: string; avatarUrl?: string; role?: 'student' | 'faculty' | 'admin' }): Promise<void> {
     if (mysqlPool) {
       try {
         const setClauses: string[] = [];
@@ -4805,6 +4805,7 @@ class AuthDB {
         if (data.fullName !== undefined) { setClauses.push('fullName = ?'); params.push(data.fullName); }
         if (data.email !== undefined) { setClauses.push('email = ?'); params.push(data.email); }
         if (data.mobile !== undefined) { setClauses.push('mobile = ?'); params.push(data.mobile); }
+        if (data.rollNumber !== undefined) { setClauses.push('rollNumber = ?'); params.push(data.rollNumber); }
         if (data.state !== undefined) { setClauses.push('state = ?'); params.push(data.state); }
         if (data.district !== undefined) { setClauses.push('district = ?'); params.push(data.district); }
         if (data.targetExam !== undefined) { setClauses.push('targetExam = ?'); params.push(data.targetExam); }
@@ -4823,6 +4824,7 @@ class AuthDB {
       if (data.fullName !== undefined) u.fullName = data.fullName;
       if (data.email !== undefined) u.email = data.email;
       if (data.mobile !== undefined) u.mobile = data.mobile;
+      if (data.rollNumber !== undefined) (u as any).rollNumber = data.rollNumber;
       if (data.state !== undefined) (u as any).state = data.state;
       if (data.district !== undefined) (u as any).district = data.district;
       if (data.targetExam !== undefined) u.targetExam = data.targetExam;
@@ -7340,7 +7342,7 @@ class LmsDB {
     if (mysqlPool) {
       try {
         const [rows]: any = await mysqlPool.query(
-          `SELECT s.*, u.fullName as studentName, u.email as studentEmail, 
+          `SELECT s.*, u.fullName as studentName, u.email as studentEmail, u.rollNumber as studentRollNumber, u.mobile as studentMobile,
                   a.title as testTitle, a.titleHi as testTitleHi, a.maxMarks, 
                   a.questionPaperUrl, a.questionPaperUrlHi, 
                   a.answerBookletUrl, a.answerBookletUrlHi, 
@@ -7367,6 +7369,8 @@ class LmsDB {
         ...s,
         studentName: matchUser?.fullName || 'Student',
         studentEmail: matchUser?.email || 'student@finalattempt.com',
+        studentRollNumber: matchUser?.rollNumber || '',
+        studentMobile: matchUser?.mobile || '',
         testTitle: matchTest?.title || s.assignmentId,
         testTitleHi: matchTest?.titleHi || '',
         maxMarks: matchTest?.maxMarks || 100,
@@ -7481,6 +7485,54 @@ class LmsDB {
     }
 
     return true;
+  }
+
+  async deleteMainsSubmission(submissionId: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query('DELETE FROM lms_assignment_submissions WHERE id = ?', [submissionId]);
+        return true;
+      } catch (err) {
+        console.error('[LmsDB] deleteMainsSubmission MySQL error:', err);
+      }
+    }
+    const store = getLocalStore();
+    if (store.lmsAssignmentSubmissions) {
+      store.lmsAssignmentSubmissions = store.lmsAssignmentSubmissions.filter((s: any) => s.id !== submissionId);
+      saveLocalStore(store);
+      return true;
+    }
+    return false;
+  }
+
+  async deleteMainsEvaluatedCopy(submissionId: string): Promise<boolean> {
+    if (mysqlPool) {
+      try {
+        await mysqlPool.query(
+          `UPDATE lms_assignment_submissions 
+           SET evaluatedCopyUrl = NULL, grade = NULL, status = 'Submitted', evaluatedAt = NULL, feedback = '' 
+           WHERE id = ?`,
+          [submissionId]
+        );
+        return true;
+      } catch (err) {
+        console.error('[LmsDB] deleteMainsEvaluatedCopy MySQL error:', err);
+      }
+    }
+    const store = getLocalStore();
+    if (store.lmsAssignmentSubmissions) {
+      const item = store.lmsAssignmentSubmissions.find((s: any) => s.id === submissionId);
+      if (item) {
+        item.evaluatedCopyUrl = null;
+        item.grade = null;
+        item.status = 'Submitted';
+        item.evaluatedAt = null;
+        item.feedback = '';
+        saveLocalStore(store);
+        return true;
+      }
+    }
+    return false;
   }
 
   async createOrGetQuizSession(userId: string, quizId: string, durationMins: number): Promise<any> {

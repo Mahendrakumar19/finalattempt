@@ -511,6 +511,7 @@ model users {
   fullName          String              @db.VarChar(255)
   email             String              @unique(map: "email") @db.VarChar(255)
   mobile            String?             @unique(map: "mobile") @db.VarChar(20)
+  rollNumber        String?             @unique(map: "rollNumber") @db.VarChar(50)
   passwordHash      String?             @db.VarChar(255)
   googleId          String?             @unique(map: "googleId") @db.VarChar(255)
   role              users_role?         @default(student)

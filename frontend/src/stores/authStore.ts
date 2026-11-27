@@ -6,6 +6,7 @@ export interface AuthUser {
   fullName: string;
   email: string;
   mobile?: string;
+  rollNumber?: string;
   role: 'student' | 'faculty' | 'admin' | 'evaluator' | 'content_manager' | 'counselor';
   avatarUrl?: string;
   isEmailVerified: boolean;
