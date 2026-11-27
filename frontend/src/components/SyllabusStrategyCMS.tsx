@@ -695,59 +695,123 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
             <button type="submit" className="w-full btn-primary text-xs py-2.5">Save Syllabus</button>
           </form>
 
-          <div className="lg:col-span-7 bg-white border rounded-3xl overflow-hidden shadow-xs">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
-                  <th className="p-4">Exam</th>
-                  <th className="p-4">Title / File</th>
-                  <th className="p-4">Stage</th>
-                  <th className="p-4">Destination</th>
-                  <th className="p-4">Version</th>
-                  <th className="p-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="lg:col-span-7 space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h4 className="font-heading font-black text-sm text-slate-900 flex items-center gap-2">
+                <span>Existing Syllabus Entries</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-mono font-bold border border-blue-200">
+                  {syllabusList.length}
+                </span>
+              </h4>
+            </div>
+
+            {syllabusList.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-500 bg-white border border-dashed rounded-3xl">
+                No syllabus entries created yet.
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto pr-1">
                 {syllabusList.map((sy) => {
                   const target = sy.publish_target || 'both';
                   return (
-                    <tr key={sy.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="p-4 font-bold">{sy.exam.name}</td>
-                      <td className="p-4 font-mono text-slate-700">{sy.title || sy.fileMedia?.originalName || 'Syllabus PDF'}</td>
-                      <td className="p-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
-                          sy.stage === 'PRELIMS' ? 'bg-blue-100 text-blue-700' : sy.stage === 'MAINS' ? 'bg-violet-100 text-violet-700' : 'bg-amber-100 text-amber-700'
-                        }`}>{sy.stage}</span>
-                      </td>
-                      <td className="p-4">
-                        {target === 'hindi' ? (
-                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-orange-100 text-orange-700 border border-orange-200">
-                            Hindi Only
+                    <div
+                      key={sy.id}
+                      className="p-4 bg-white border border-slate-200 hover:border-blue-500/50 rounded-2xl shadow-xs transition-all space-y-2.5 relative"
+                    >
+                      {/* Top row: Badges + Action Buttons (ALWAYS VISIBLE, NEVER CUT OFF) */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-slate-900 text-white font-mono">
+                            {sy.exam?.name || 'EXAM'}
                           </span>
-                        ) : target === 'english' ? (
-                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-blue-100 text-blue-700 border border-blue-200">
-                            English Only
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                            sy.stage === 'PRELIMS' ? 'bg-blue-100 text-blue-700' : sy.stage === 'MAINS' ? 'bg-violet-100 text-violet-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {sy.stage}
                           </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
-                            Both Portals
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-4 font-mono text-slate-500">{sy.version}</td>
-                      <td className="p-4 flex gap-2">
-                        <button onClick={() => setSyllabusForm({ id: sy.id, examId: sy.examId, title: sy.title || '', slug: sy.slug || '', stage: sy.stage, version: sy.version, mediaId: sy.mediaId, featuredImageMediaId: sy.featuredImageMediaId || '', attachmentMediaId: sy.attachmentMediaId || '', videoUrl: sy.videoUrl || '', ctaText: sy.ctaText || '', ctaUrl: sy.ctaUrl || '', description: sy.description || '', sortOrder: sy.sortOrder, publish_target: sy.publish_target || 'both', language: sy.language || 'en' })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
-                          <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                        </button>
-                        <button onClick={() => handleDeleteItem('syllabus', sy.id)} className="p-1 bg-slate-50 rounded hover:bg-red-50">
-                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                        </button>
-                      </td>
-                    </tr>
+                          {target === 'hindi' ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200">
+                              Hindi Only
+                            </span>
+                          ) : target === 'english' ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
+                              English Only
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                              Both Portals
+                            </span>
+                          )}
+                          {sy.version && (
+                            <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                              v{sy.version}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Action Buttons: Edit & Delete clearly visible and prominent */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setSyllabusForm({
+                              id: sy.id,
+                              examId: sy.examId,
+                              title: sy.title || '',
+                              slug: sy.slug || '',
+                              stage: sy.stage,
+                              version: sy.version,
+                              mediaId: sy.mediaId,
+                              featuredImageMediaId: sy.featuredImageMediaId || '',
+                              attachmentMediaId: sy.attachmentMediaId || '',
+                              videoUrl: sy.videoUrl || '',
+                              ctaText: sy.ctaText || '',
+                              ctaUrl: sy.ctaUrl || '',
+                              description: sy.description || '',
+                              sortOrder: sy.sortOrder,
+                              publish_target: sy.publish_target || 'both',
+                              language: sy.language || 'en'
+                            })}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-amber-500 hover:text-slate-950 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                            title="Edit Syllabus"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-slate-500 hover:text-slate-950" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteItem('syllabus', sy.id)}
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                            title="Delete Syllabus"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-500 hover:text-white" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Title & File details */}
+                      <div className="pt-0.5">
+                        <h5 className="font-heading font-black text-sm text-slate-900 leading-snug">
+                          {sy.title || sy.fileMedia?.originalName || 'Syllabus PDF'}
+                        </h5>
+                        <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-1 flex-wrap">
+                          {sy.fileMedia?.originalName && (
+                            <span className="font-mono text-slate-500 truncate max-w-xs">
+                              📄 {sy.fileMedia.originalName}
+                            </span>
+                          )}
+                          {sy.slug && (
+                            <span className="font-mono text-slate-400">
+                              🔗 /{sy.slug}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -903,51 +967,103 @@ export default function SyllabusStrategyCMS({ defaultTab = 'exams' }: { defaultT
             <button type="submit" className="w-full btn-primary text-xs py-2.5">Save Strategy Block</button>
           </form>
 
-          <div className="lg:col-span-7 bg-white border rounded-3xl overflow-hidden shadow-xs">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 font-bold text-slate-600">
-                  <th className="p-4">Title</th>
-                  <th className="p-4">Category</th>
-                  <th className="p-4">Destination</th>
-                  <th className="p-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="lg:col-span-7 space-y-3">
+            <div className="flex items-center justify-between px-1">
+              <h4 className="font-heading font-black text-sm text-slate-900 flex items-center gap-2">
+                <span>Existing Strategy Blocks</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-mono font-bold border border-emerald-200">
+                  {strategyBlocks.length}
+                </span>
+              </h4>
+            </div>
+
+            {strategyBlocks.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-500 bg-white border border-dashed rounded-3xl">
+                No strategy blocks created yet.
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[calc(100vh-180px)] overflow-y-auto pr-1">
                 {strategyBlocks.map((st) => {
                   const target = st.publish_target || 'both';
                   return (
-                    <tr key={st.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="p-4 font-bold">{st.title}</td>
-                      <td className="p-4 text-slate-500 font-bold">{st.category}</td>
-                      <td className="p-4">
-                        {target === 'hindi' ? (
-                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-orange-100 text-orange-700 border border-orange-200">
-                            Hindi Only
+                    <div
+                      key={st.id}
+                      className="p-4 bg-white border border-slate-200 hover:border-emerald-500/50 rounded-2xl shadow-xs transition-all space-y-2.5 relative"
+                    >
+                      {/* Top row: Badges + Action Buttons */}
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-slate-900 text-white font-mono">
+                            {st.category}
                           </span>
-                        ) : target === 'english' ? (
-                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-blue-100 text-blue-700 border border-blue-200">
-                            English Only
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200">
-                            Both Portals
-                          </span>
+                          {target === 'hindi' ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200">
+                              Hindi Only
+                            </span>
+                          ) : target === 'english' ? (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
+                              English Only
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                              Both Portals
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Action Buttons: Edit & Delete clearly visible and prominent */}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setStrategyForm({
+                              id: st.id,
+                              title: st.title,
+                              slug: st.slug,
+                              content: st.content,
+                              category: st.category,
+                              featuredImageMediaId: st.featuredImageMediaId || '',
+                              attachmentMediaId: st.attachmentMediaId || '',
+                              videoUrl: st.videoUrl || '',
+                              ctaText: st.ctaText || '',
+                              ctaUrl: st.ctaUrl || '',
+                              sortOrder: st.sortOrder,
+                              publish_target: st.publish_target || 'both',
+                              language: st.language || 'en'
+                            })}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-amber-500 hover:text-slate-950 text-slate-700 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                            title="Edit Strategy Block"
+                          >
+                            <Edit2 className="w-3.5 h-3.5 text-slate-500 hover:text-slate-950" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteItem('strategy', st.id)}
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-600 hover:text-white text-rose-600 rounded-lg text-xs font-bold flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                            title="Delete Strategy Block"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-500 hover:text-white" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Title & Slug */}
+                      <div className="pt-0.5">
+                        <h5 className="font-heading font-black text-sm text-slate-900 leading-snug">
+                          {st.title}
+                        </h5>
+                        {st.slug && (
+                          <p className="text-[11px] font-mono text-slate-400 mt-0.5">
+                            🔗 /{st.slug}
+                          </p>
                         )}
-                      </td>
-                      <td className="p-4 flex gap-2">
-                        <button onClick={() => setStrategyForm({ id: st.id, title: st.title, slug: st.slug, content: st.content, category: st.category, featuredImageMediaId: st.featuredImageMediaId || '', attachmentMediaId: st.attachmentMediaId || '', videoUrl: st.videoUrl || '', ctaText: st.ctaText || '', ctaUrl: st.ctaUrl || '', sortOrder: st.sortOrder, publish_target: st.publish_target || 'both', language: st.language || 'en' })} className="p-1 bg-slate-50 rounded hover:bg-slate-100">
-                          <Edit2 className="w-3.5 h-3.5 text-slate-500" />
-                        </button>
-                        <button onClick={() => handleDeleteItem('strategy', st.id)} className="p-1 bg-slate-50 rounded hover:bg-red-50">
-                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                        </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+              </div>
+            )}
           </div>
         </div>
       )}

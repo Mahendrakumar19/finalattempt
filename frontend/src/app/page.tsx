@@ -205,7 +205,7 @@ export default function Home() {
             tagline: s.tagline || prev.tagline,
             heroImageUrl: s.heroImageUrl || ''
           }));
-          const rawPromo = s.promoBanner || (s.featureFlags as any)?.promoBanner;
+          const rawPromo = s.promoBanner || (s.featureFlags as Record<string, unknown> | undefined)?.promoBanner;
           if (rawPromo) {
             try {
               const parsedPromo = typeof rawPromo === 'string' ? JSON.parse(rawPromo) : rawPromo;
@@ -795,7 +795,7 @@ export default function Home() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 max-w-7xl mx-auto">
             {[
               {
                 title: t('home.quickCA'),
@@ -823,9 +823,16 @@ export default function Home() {
                 link: '/downloads/ncert'
               },
               {
-                title: t('home.quickUseful', 'USEFUL DOCUMENTS'),
+                title: t('home.quickRapid', 'RAPID REVISION MATERIAL (RRM)'),
                 icon: Zap,
                 iconColor: 'text-amber-500',
+                link: '/downloads/rapid-revision',
+                badge: 'HOT'
+              },
+              {
+                title: t('home.quickUseful', 'USEFUL DOCUMENTS'),
+                icon: Layers,
+                iconColor: 'text-rose-500',
                 link: '/downloads/useful-documents'
               },
               {
@@ -855,24 +862,24 @@ export default function Home() {
               <Link
                 key={idx}
                 href={item.link}
-                className="group relative overflow-hidden rounded-3xl p-8 sm:p-10 text-center flex flex-col items-center justify-center gap-5 transition-all duration-300 hover-lift bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl hover:scale-[1.03] border border-slate-200/80 dark:border-slate-800 cursor-pointer"
+                className="group relative overflow-hidden rounded-3xl p-6 sm:p-8 text-center flex flex-col items-center justify-center gap-4 sm:gap-5 transition-all duration-300 hover-lift bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl hover:scale-[1.03] border border-slate-200/80 dark:border-slate-800 cursor-pointer"
               >
                 {item.badge && (
-                  <span className="absolute top-4 right-4 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/25 animate-pulse">
-                    <Flame className="w-3 h-3 fill-current" />
+                  <span className="absolute top-3.5 right-3.5 inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 text-white shadow-md shadow-orange-500/25 animate-pulse">
+                    <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 fill-current" />
                     {item.badge}
                   </span>
                 )}
                 <div className="flex items-center justify-center p-2">
                   {item.imgSrc ? (
-                    <div className="w-11 h-11 sm:w-13 sm:h-13 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-110 transition-all duration-300">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden flex items-center justify-center group-hover:scale-110 transition-all duration-300">
                       <img src={item.imgSrc} alt={item.title} className="w-full h-full object-cover" />
                     </div>
                   ) : item.icon ? (
-                    <item.icon className={`w-10 h-10 sm:w-12 sm:h-12 ${item.iconColor} stroke-[2.2] group-hover:scale-110 transition-all duration-300`} />
+                    <item.icon className={`w-10 h-10 sm:w-11 sm:h-11 ${item.iconColor} stroke-[2.2] group-hover:scale-110 transition-all duration-300`} />
                   ) : null}
                 </div>
-                <h3 className="font-heading font-black text-xs sm:text-sm text-slate-800 dark:text-white uppercase tracking-wider leading-relaxed">
+                <h3 className="font-heading font-black text-[11px] sm:text-xs lg:text-[12.5px] text-slate-800 dark:text-white uppercase tracking-wider leading-snug">
                   {item.title}
                 </h3>
               </Link>
