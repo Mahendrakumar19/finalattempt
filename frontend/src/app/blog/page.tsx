@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calendar, ArrowRight } from 'lucide-react';
+import { Calendar, ArrowRight, BookOpen, Compass, Globe } from 'lucide-react';
 import { db, BlogItem } from '@/services/db';
 import { useLocale } from '@/context/LocaleContext';
 
@@ -73,6 +73,66 @@ export default function Blog() {
           >
             <span>Switch to Hindi Blogs (हिन्दी पोर्टल)</span>
             <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Quick Access Hub (Syllabus, Strategy, Hindi Blogs) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-4">
+          {/* 1. Syllabus */}
+          <Link
+            href="/syllabus-strategy#syllabus"
+            className="group p-4 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-blue-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-3.5 hover:shadow-md"
+          >
+            <div className="w-11 h-11 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center shrink-0">
+              <BookOpen className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
+                Syllabus (पाठ्यक्रम)
+              </h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                Exam pattern, marks & syllabus PDF
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-1 transition-all shrink-0" />
+          </Link>
+
+          {/* 2. Strategy */}
+          <Link
+            href="/syllabus-strategy#strategy"
+            className="group p-4 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-emerald-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-3.5 hover:shadow-md"
+          >
+            <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <Compass className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate">
+                Strategy (रणनीति)
+              </h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                Preparation roadmap & guidance
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 group-hover:translate-x-1 transition-all shrink-0" />
+          </Link>
+
+          {/* 3. Hindi Blogs */}
+          <Link
+            href="/blog-hindi"
+            className="group p-4 bg-[var(--card-bg)] border border-[var(--card-border)] hover:border-amber-500/50 rounded-2xl transition-all shadow-xs flex items-center gap-3.5 hover:shadow-md"
+          >
+            <div className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0">
+              <Globe className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h4 className="font-heading font-extrabold text-sm text-[var(--text-color)] group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors truncate">
+                Hindi Blogs (हिन्दी पोर्टल)
+              </h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                BPSC विशेषांक एवं संपूर्ण हिंदी लेख
+              </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:translate-x-1 transition-all shrink-0" />
           </Link>
         </div>
 

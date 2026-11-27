@@ -72,6 +72,21 @@ export default function SyllabusStrategyPage() {
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
   useEffect(() => {
+    const handleHash = () => {
+      if (typeof window !== 'undefined') {
+        if (window.location.hash === '#strategy') {
+          setActiveTab('strategy');
+        } else if (window.location.hash === '#syllabus') {
+          setActiveTab('syllabus');
+        }
+      }
+    };
+    handleHash();
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
+
+  useEffect(() => {
     let ignore = false;
     const fetchData = async () => {
       try {
@@ -183,7 +198,7 @@ export default function SyllabusStrategyPage() {
 
       {/* ── DRISHTI IAS STYLE TOP NAVIGATION HEADER ───────────────────────────────────── */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8">
 
           {/* Breadcrumbs & Title */}
           <div className="py-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/60 dark:border-slate-800/60">
@@ -314,10 +329,10 @@ export default function SyllabusStrategyPage() {
       </div>
 
       {/* ── MAIN CONTENT CONTAINER (2-COLUMN CLEAN LAYOUT) ─────────────────────────── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-[1536px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
 
         {/* Search Bar */}
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -331,13 +346,13 @@ export default function SyllabusStrategyPage() {
         </div>
 
         {/* 2-Column Responsive Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
 
-          {/* ── LEFT SIDEBAR: LIST OF PAPERS / TOPICS (4 cols) ────────────────────── */}
-          <div className="lg:col-span-4 space-y-3 lg:sticky lg:top-36 max-h-[calc(100vh-160px)] overflow-y-auto pr-1">
-            <h3 className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-2 px-1">
+          {/* ── LEFT SIDEBAR: LIST OF PAPERS / TOPICS (Compact 3 cols) ────────────────────── */}
+          <div className="lg:col-span-3 xl:col-span-3 space-y-2 lg:sticky lg:top-36 max-h-[calc(100vh-160px)] overflow-y-auto pr-1">
+            <h3 className="text-xs font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider flex items-center gap-1.5 px-1 pb-1">
               <ListFilter className="w-3.5 h-3.5" />
-              <span>{activeTab === 'syllabus' ? 'Official Syllabus Papers' : 'Strategy Guides'}</span>
+              <span>{activeTab === 'syllabus' ? 'Official Papers' : 'Strategy Guides'}</span>
             </h3>
 
             {activeTab === 'syllabus' ? (
@@ -354,37 +369,37 @@ export default function SyllabusStrategyPage() {
                     <div
                       key={s.id}
                       onClick={() => setSelectedSyllabusId(s.id)}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 space-y-2 relative overflow-hidden ${
+                      className={`p-3 rounded-xl border cursor-pointer transition-all duration-200 space-y-1.5 relative overflow-hidden ${
                         isSelected
-                          ? 'bg-amber-500/10 border-amber-500 dark:bg-amber-500/15 shadow-md scale-[1.01]'
+                          ? 'bg-amber-500/10 border-amber-500 dark:bg-amber-500/15 shadow-sm'
                           : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-amber-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                       }`}
                     >
                       {isSelected && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500 rounded-r-md" />
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 rounded-r-sm" />
                       )}
 
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                         {s.stage && (
-                          <span className="text-[9px] font-black text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md uppercase tracking-wider font-mono">
+                          <span className="text-[8.5px] font-black text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded uppercase tracking-wider font-mono">
                             {s.stage}
                           </span>
                         )}
                         {s.exam?.name && (
-                          <span className="text-[9px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase">
+                          <span className="text-[8.5px] font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded uppercase">
                             {s.exam.name}
                           </span>
                         )}
                       </div>
 
-                      <h4 className="font-heading font-black text-slate-900 dark:text-white text-xs sm:text-sm leading-snug line-clamp-2">
+                      <h4 className="font-heading font-extrabold text-slate-900 dark:text-white text-[11.5px] sm:text-xs leading-snug line-clamp-2">
                         {name}
                       </h4>
 
-                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400 pt-1">
+                      <div className="flex items-center justify-between text-[9px] font-bold text-slate-500 dark:text-slate-400 pt-0.5">
                         <span>Updated: {s.lastUpdated}</span>
                         <span className="text-amber-600 dark:text-amber-400 font-extrabold flex items-center gap-0.5">
-                          Read <ChevronRight className="w-3 h-3" />
+                          Read <ChevronRight className="w-2.5 h-2.5" />
                         </span>
                       </div>
                     </div>
@@ -404,21 +419,21 @@ export default function SyllabusStrategyPage() {
                     <div
                       key={st.id}
                       onClick={() => setSelectedStrategyId(st.id)}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 space-y-2 relative overflow-hidden ${
+                      className={`p-3 rounded-xl border cursor-pointer transition-all duration-200 space-y-1.5 relative overflow-hidden ${
                         isSelected
-                          ? 'bg-amber-500/10 border-amber-500 dark:bg-amber-500/15 shadow-md scale-[1.01]'
+                          ? 'bg-amber-500/10 border-amber-500 dark:bg-amber-500/15 shadow-sm'
                           : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-amber-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/60'
                       }`}
                     >
                       {isSelected && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-amber-500 rounded-r-md" />
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 rounded-r-sm" />
                       )}
 
-                      <span className="text-[9px] font-black text-amber-800 dark:text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2.5 py-0.5 rounded-md uppercase tracking-wider font-mono">
+                      <span className="text-[8.5px] font-black text-amber-800 dark:text-amber-300 bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 rounded uppercase tracking-wider font-mono inline-block">
                         {st.category}
                       </span>
 
-                      <h4 className="font-heading font-black text-slate-900 dark:text-white text-xs sm:text-sm leading-snug line-clamp-2">
+                      <h4 className="font-heading font-extrabold text-slate-900 dark:text-white text-[11.5px] sm:text-xs leading-snug line-clamp-2">
                         {st.title}
                       </h4>
                     </div>
@@ -428,32 +443,32 @@ export default function SyllabusStrategyPage() {
             )}
           </div>
 
-          {/* ── RIGHT MAIN DISPLAY: FULL READ ARTICLE (8 cols) ───────── */}
-          <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-10 shadow-lg space-y-8 min-h-[650px]">
+          {/* ── RIGHT MAIN DISPLAY: FULL READ ARTICLE (Wide 9 cols) ───────── */}
+          <div className="lg:col-span-9 xl:col-span-9 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 sm:p-7 lg:p-8 shadow-sm space-y-6 min-h-[650px]">
 
             {activeTab === 'syllabus' && activeSyllabus ? (
-              <div className="space-y-8">
+              <div className="space-y-6">
 
                 {/* Header Banner inside Reading View */}
-                <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-6 space-y-4">
+                <div className="bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 sm:p-5 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <span className="text-xs font-bold text-slate-500 dark:text-slate-400 font-mono">
+                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 font-mono">
                       Last Updated: {activeSyllabus.lastUpdated}
                     </span>
                   </div>
 
-                  <h2 className="text-2xl sm:text-3xl font-heading font-black text-slate-900 dark:text-white tracking-tight leading-tight">
+                  <h2 className="text-xl sm:text-2xl font-heading font-black text-slate-900 dark:text-white tracking-tight leading-snug">
                     {activeSyllabus.fileMedia?.originalName || activeSyllabus.description || `${activeSyllabus.exam?.name} Official Syllabus`}
                   </h2>
 
                   {/* Drishti IAS Style Action Buttons Bar */}
-                  <div className="pt-2 flex flex-wrap items-center gap-3">
+                  <div className="pt-1 flex flex-wrap items-center gap-2.5">
                     {/* Open in New Tab Button */}
                     <a
                       href={`${BACKEND_URL}/${activeSyllabus.fileMedia.storagePath}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="py-3 px-5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-2xl text-xs flex items-center gap-2 shadow-md hover:scale-[1.02] transition-all cursor-pointer"
+                      className="py-2.5 px-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm hover:scale-[1.02] transition-all cursor-pointer"
                     >
                       <ArrowUpRight className="w-4 h-4" />
                       <span>Open PDF </span>
@@ -463,7 +478,7 @@ export default function SyllabusStrategyPage() {
                     <a
                       href={`${BACKEND_URL}/${activeSyllabus.fileMedia.storagePath}`}
                       download
-                      className="py-3 px-5 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-extrabold rounded-2xl text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+                      className="py-2.5 px-4 bg-slate-900 dark:bg-slate-700 hover:bg-slate-800 text-white font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
                       <span>Download PDF</span>
@@ -512,8 +527,9 @@ export default function SyllabusStrategyPage() {
                       /* Table Layout & Container */
                       .syllabus-content-area table {
                         width: 100% !important;
+                        font-size: 0.8125rem !important;
                         border-collapse: collapse !important;
-                        margin: 1.5rem 0 !important;
+                        margin: 1.25rem 0 !important;
                         background-color: #ffffff !important;
                         border: 1px solid #cbd5e1 !important;
                         border-radius: 0.75rem !important;
@@ -526,7 +542,8 @@ export default function SyllabusStrategyPage() {
                         background: #f1f5f9 !important;
                         color: #0f172a !important;
                         font-weight: 800 !important;
-                        padding: 0.75rem 1rem !important;
+                        padding: 0.5rem 0.75rem !important;
+                        font-size: 0.8125rem !important;
                         border: 1px solid #cbd5e1 !important;
                         text-align: left !important;
                       }
@@ -545,7 +562,8 @@ export default function SyllabusStrategyPage() {
                         background-color: #ffffff !important;
                         background: #ffffff !important;
                         color: #0f172a !important;
-                        padding: 0.75rem 1rem !important;
+                        padding: 0.5rem 0.75rem !important;
+                        font-size: 0.8125rem !important;
                         border: 1px solid #e2e8f0 !important;
                       }
 
@@ -573,6 +591,8 @@ export default function SyllabusStrategyPage() {
                         background-color: #1e293b !important;
                         background: #1e293b !important;
                         color: #fbbf24 !important;
+                        padding: 0.5rem 0.75rem !important;
+                        font-size: 0.8125rem !important;
                         border-color: #334155 !important;
                       }
 
@@ -589,6 +609,8 @@ export default function SyllabusStrategyPage() {
                         background-color: #0f172a !important;
                         background: #0f172a !important;
                         color: #f1f5f9 !important;
+                        padding: 0.5rem 0.75rem !important;
+                        font-size: 0.8125rem !important;
                         border-color: #334155 !important;
                       }
 
@@ -608,7 +630,7 @@ export default function SyllabusStrategyPage() {
                     `}</style>
 
                     <div
-                      className="syllabus-content-area prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed space-y-4 overflow-x-auto"
+                      className="syllabus-content-area prose dark:prose-invert max-w-none text-xs sm:text-[13px] leading-relaxed space-y-4 overflow-x-auto"
                       dangerouslySetInnerHTML={{ __html: activeSyllabus.description }}
                     />
                   </div>
@@ -653,7 +675,7 @@ export default function SyllabusStrategyPage() {
                 )}
 
                 <div
-                  className="syllabus-content-area prose dark:prose-invert max-w-none text-xs sm:text-sm leading-relaxed space-y-4 overflow-x-auto"
+                  className="syllabus-content-area prose dark:prose-invert max-w-none text-xs sm:text-[13px] leading-relaxed space-y-4 overflow-x-auto"
                   dangerouslySetInnerHTML={{ __html: activeStrategy.content }}
                 />
 

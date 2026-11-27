@@ -235,6 +235,7 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
         }
       } else {
         // Determine selected plan (MINI, HALF, FULL)
+        final series = ref.read(testSeriesDetailProvider(widget.seriesId)).valueOrNull;
         final targetPlanCode = planOverride?.planCode ?? _selectedPlanCode ?? 'FULL';
         final selectedPlan = plans.firstWhere(
           (p) => p.planCode == targetPlanCode,
@@ -242,11 +243,11 @@ class _TestSeriesDetailScreenState extends ConsumerState<TestSeriesDetailScreen>
             id: 'default',
             seriesId: widget.seriesId,
             planCode: 'FULL',
-            title: series.title,
-            price: (series.discountedPrice != null && series.discountedPrice! > 0)
+            title: series?.title ?? 'FULL Package',
+            price: (series?.discountedPrice != null && series!.discountedPrice! > 0)
                 ? series.discountedPrice!
-                : series.price,
-            discountedPrice: series.discountedPrice,
+                : (series?.price ?? 0),
+            discountedPrice: series?.discountedPrice,
           ),
         );
 
