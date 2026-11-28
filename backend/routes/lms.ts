@@ -175,6 +175,24 @@ router.get('/enrollments/check/:courseId', authenticate, async (req: AuthRequest
       res.status(400).json({ success: false, error: 'Invalid courseId parameter.' });
       return;
     }
+
+    // Admins, faculty, evaluators, and system master key have universal access
+    if (
+      req.user?.role === 'admin' ||
+      req.user?.role === 'faculty' ||
+      req.user?.role === 'evaluator' ||
+      req.user?.userId === 'admin-master'
+    ) {
+      res.json({ success: true, data: { enrolled: true, roleBypass: true } });
+      return;
+    }
+
+    // General practice or open tests do not require a paid enrollment
+    if (courseId === 'general-mains-practice' || courseId === 'general' || courseId === 'open') {
+      res.json({ success: true, data: { enrolled: true, openAccess: true } });
+      return;
+    }
+
     const enrolled = await lmsDB.isEnrolled(req.user!.userId, courseId);
     res.json({ success: true, data: { enrolled } });
   } catch (err: any) {
@@ -187,7 +205,20 @@ router.get('/enrollments/check/:courseId', authenticate, async (req: AuthRequest
 
 router.get('/enrollments/me', authenticate, requireStudent, async (req: AuthRequest, res: Response) => {
   try {
+    const isStaff = req.user?.role === 'admin' || req.user?.role === 'faculty' || req.user?.role === 'evaluator' || req.user?.userId === 'admin-master';
     const enrollments = await lmsDB.getUserEnrollments(req.user!.userId);
+    if (isStaff) {
+      const staffUniversalEnrollment = {
+        courseId: 'all',
+        canonicalCourseId: 'all',
+        title: 'Full Universal Access (Staff)',
+        category: 'Test Series',
+        testSeriesSlug: 'all',
+        roleBypass: true
+      };
+      res.json({ success: true, data: [staffUniversalEnrollment, ...enrollments] });
+      return;
+    }
     res.json({ success: true, data: enrollments });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

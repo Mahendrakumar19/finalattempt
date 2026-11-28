@@ -16,13 +16,29 @@ interface QuizItem {
   id: string;
   title: string;
   courseId?: string;
+  testSeriesId?: string;
+  seriesId?: string;
   description?: string;
   timeLimitMins?: number;
   passingScore?: number;
   isPublished?: boolean;
   seriesTitle?: string;
   maxMarks?: number;
+  totalMaxMarks?: number;
+  totalQuestions?: number | string;
   durationMinutes?: number;
+  isFree?: boolean;
+  sequence_number?: number;
+}
+
+interface EnrollmentItem {
+  id?: string;
+  courseId?: string;
+  canonicalCourseId?: string;
+  testSeriesSlug?: string;
+  slug?: string;
+  series_id?: string;
+  title?: string;
 }
 
 interface AttemptItem {
@@ -39,7 +55,7 @@ interface AttemptItem {
 }
 
 export default function StudentPrelimsPage() {
-  const { accessToken } = useAuth();
+  const { user, accessToken } = useAuth();
   const { t } = useTranslation();
 
   const [exams, setExams] = useState<ExamData[]>([]);
@@ -52,35 +68,42 @@ export default function StudentPrelimsPage() {
   const [loadingTests, setLoadingTests] = useState(true);
 
   const [enrolledCourseIds, setEnrolledCourseIds] = useState<Set<string>>(new Set());
-  const [loadingEnrollments, setLoadingEnrollments] = useState(true);
 
   const [attempts, setAttempts] = useState<AttemptItem[]>([]);
   const [loadingAttempts, setLoadingAttempts] = useState(true);
 
   // Load active student enrollments & entitlements
   useEffect(() => {
+    let isMounted = true;
     const fetchEnrollments = async () => {
-      if (!accessToken) {
-        setLoadingEnrollments(false);
+      const activeToken = accessToken || (typeof window !== 'undefined' ? localStorage.getItem('access_token') || localStorage.getItem('token') : null);
+      if (!activeToken) {
         return;
       }
       try {
-        const res = await getMyEnrollments(accessToken);
-        if (res && Array.isArray(res)) {
+        const res = await getMyEnrollments(activeToken);
+        const list: EnrollmentItem[] = Array.isArray(res) ? res : (res?.data && Array.isArray(res.data) ? res.data : []);
+        if (list.length > 0 && isMounted) {
           const ids = new Set<string>();
-          res.forEach((item: any) => {
+          list.forEach((item: EnrollmentItem) => {
             if (item.courseId) ids.add(item.courseId);
+            if (item.canonicalCourseId) ids.add(item.canonicalCourseId);
             if (item.testSeriesSlug) ids.add(item.testSeriesSlug);
+            if (item.slug) ids.add(item.slug);
+            if (item.id) ids.add(item.id);
+            if (item.series_id) ids.add(item.series_id);
+            if (item.title) ids.add(item.title.toLowerCase().trim());
           });
           setEnrolledCourseIds(ids);
         }
       } catch (err) {
         console.error('Error loading student enrollments:', err);
-      } finally {
-        setLoadingEnrollments(false);
       }
     };
     fetchEnrollments();
+    return () => {
+      isMounted = false;
+    };
   }, [accessToken]);
 
   const [analytics, setAnalytics] = useState<{
@@ -150,15 +173,17 @@ export default function StudentPrelimsPage() {
         if (!ignore) {
           const allQuizzes: QuizItem[] = [];
           results.forEach((qList, idx) => {
-            const seriesTitle = seriesToFetch[idx]?.title || 'Prelims Series';
+            const currentSeries = seriesToFetch[idx];
+            const seriesTitle = currentSeries?.title || 'Prelims Series';
+            const seriesId = currentSeries?.id;
             qList.forEach((q: QuizItem) => {
-              const itemAny = q as any;
-              const calcMaxMarks = q.maxMarks || itemAny.totalMaxMarks || (itemAny.totalQuestions ? Number(itemAny.totalQuestions) : 100);
+              const calcMaxMarks = q.maxMarks || q.totalMaxMarks || (q.totalQuestions ? Number(q.totalQuestions) : 100);
               allQuizzes.push({
                 ...q,
+                courseId: q.courseId || seriesId,
                 seriesTitle,
                 maxMarks: calcMaxMarks,
-                durationMinutes: q.durationMinutes || (q as any).timeLimitMins || 120,
+                durationMinutes: q.durationMinutes || q.timeLimitMins || 120,
               });
             });
           });
@@ -208,14 +233,50 @@ export default function StudentPrelimsPage() {
   }, [accessToken]);
 
   useEffect(() => {
-    let ignore = false;
-    if (accessToken) {
-      loadAttempts();
-    } else {
-      setLoadingAttempts(false);
+    let isMounted = true;
+    if (!accessToken) {
+      queueMicrotask(() => {
+        if (isMounted) setLoadingAttempts(false);
+      });
+      return;
     }
-    return () => { ignore = true; };
-  }, [accessToken, loadAttempts]);
+
+    const fetchAttempts = async () => {
+      try {
+        const res = await getMyQuizAttempts(accessToken);
+        if (isMounted && res.success && res.data) {
+          setAttempts(res.data);
+
+          const list: AttemptItem[] = res.data;
+          if (list.length > 0) {
+            const totalAttempts = list.length;
+            const totalScore = list.reduce((acc: number, item: AttemptItem) => acc + (item.score || 0), 0);
+            const totalMax = list.reduce((acc: number, item: AttemptItem) => acc + (item.maxScore || 150), 0);
+            const passedCount = list.filter((item: AttemptItem) => item.passed).length;
+
+            setAnalytics({
+              totalAttempts,
+              avgScore: totalScore / totalAttempts,
+              accuracy: totalMax > 0 ? (totalScore / totalMax) * 100 : 0,
+              passRate: (passedCount / totalAttempts) * 100
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error loading attempts:', err);
+      } finally {
+        if (isMounted) {
+          setLoadingAttempts(false);
+        }
+      }
+    };
+
+    fetchAttempts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [accessToken]);
 
   // Filter series by selected exam
   const filteredSeries = testSeriesList.filter(s => {
@@ -386,16 +447,28 @@ export default function StudentPrelimsPage() {
                 {quizzes.map((quiz, idx) => {
                   const userAttempt = attempts.find(a => a.quizId === quiz.id);
 
+                  // Staff bypass: Admins, faculty, evaluators have full universal access
+                  const isStaff = user?.role === 'admin' || user?.role === 'faculty' || user?.role === 'evaluator';
+
                   // Check if student has valid enrollment/entitlement for this test series or quiz
-                  const matchingSeries = testSeriesList.find(ts => ts.id === quiz.courseId || ts.slug === quiz.courseId);
+                  const matchingSeries = testSeriesList.find(ts => 
+                    ts.id === quiz.courseId || 
+                    ts.slug === quiz.courseId || 
+                    quiz.testSeriesId === ts.id ||
+                    quiz.seriesId === ts.id
+                  );
                   const isEnrolled = Boolean(
+                    isStaff ||
+                    enrolledCourseIds.has('all') ||
                     (quiz.courseId && enrolledCourseIds.has(quiz.courseId)) ||
+                    (quiz.testSeriesId && enrolledCourseIds.has(quiz.testSeriesId)) ||
                     (matchingSeries?.id && enrolledCourseIds.has(matchingSeries.id)) ||
-                    (matchingSeries?.slug && enrolledCourseIds.has(matchingSeries.slug))
+                    (matchingSeries?.slug && enrolledCourseIds.has(matchingSeries.slug)) ||
+                    (matchingSeries?.title && enrolledCourseIds.has(matchingSeries.title.toLowerCase().trim()))
                   );
 
-                  const isFreeDemo = Boolean((quiz as any).isFree || (quiz as any).sequence_number === 1);
-                  const hasAccess = isEnrolled || isFreeDemo;
+                  const isFreeDemo = Boolean(quiz.isFree || quiz.sequence_number === 1);
+                  const hasAccess = isStaff || isEnrolled || isFreeDemo;
 
                   const purchaseUrl = matchingSeries?.slug
                     ? `/test-series/program/${matchingSeries.slug}`
@@ -463,7 +536,7 @@ export default function StudentPrelimsPage() {
                           {userAttempt ? 'Completed' : hasAccess ? 'Ready for CBT' : 'Purchase Required'}
                         </span>
 
-                        {hasAccess ? (
+                        {hasAccess || userAttempt ? (
                           <Link
                             href={`/student/course/cbt/quiz/${quiz.id}`}
                             className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition-all shadow-md cursor-pointer"

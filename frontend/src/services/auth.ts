@@ -34,23 +34,53 @@ async function apiFetch<T>(
     return !!tok && tok !== 'guest-token' && tok !== 'null' && tok !== 'undefined' && tok.trim().length > 0;
   };
 
+  // Determine which token to send:
+  let resolvedToken: string | undefined = undefined;
+
   if (endpoint.includes('/admin/')) {
-    // When calling an admin endpoint, prioritize the admin token
+    // When calling an admin endpoint, prioritize the admin master token
     if (typeof window !== 'undefined') {
       const adminTok = localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token');
       if (isTokenAcceptable(adminTok)) {
-        headers['Authorization'] = `Bearer ${adminTok}`;
-      } else if (isTokenAcceptable(accessToken)) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
+        resolvedToken = adminTok;
       }
     }
-  } else if (isTokenAcceptable(accessToken)) {
-    headers['Authorization'] = `Bearer ${accessToken}`;
-  } else if (typeof window !== 'undefined') {
-    const adminTok = localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token');
-    if (isTokenAcceptable(adminTok)) {
-      headers['Authorization'] = `Bearer ${adminTok}`;
+    if (!resolvedToken && isTokenAcceptable(accessToken)) {
+      resolvedToken = accessToken;
     }
+  } else {
+    // For student & general public/protected endpoints:
+    // 1. Explicit accessToken passed in
+    if (isTokenAcceptable(accessToken)) {
+      resolvedToken = accessToken;
+    }
+    // 2. Zustand authStore accessToken
+    if (!resolvedToken) {
+      try {
+        const storeToken = useAuthStore.getState().accessToken;
+        if (isTokenAcceptable(storeToken)) {
+          resolvedToken = storeToken;
+        }
+      } catch {}
+    }
+    // 3. localStorage student access_token / token
+    if (!resolvedToken && typeof window !== 'undefined') {
+      const localToken = localStorage.getItem('access_token') || localStorage.getItem('token');
+      if (isTokenAcceptable(localToken)) {
+        resolvedToken = localToken;
+      }
+    }
+    // 4. Fallback to admin token ONLY if no student token exists
+    if (!resolvedToken && typeof window !== 'undefined') {
+      const adminTok = localStorage.getItem('admin_token') || localStorage.getItem('finalattempt_admin_token');
+      if (isTokenAcceptable(adminTok)) {
+        resolvedToken = adminTok;
+      }
+    }
+  }
+
+  if (resolvedToken) {
+    headers['Authorization'] = `Bearer ${resolvedToken}`;
   }
 
   try {
@@ -63,15 +93,17 @@ async function apiFetch<T>(
     const data: ApiResponse<T> = await res.json();
 
     // ── Auto token-refresh retry ─────────────────────────────────────────────
-    // Only retry on an explicit AUTH_TOKEN_EXPIRED response code.
-    // Generic 401s (e.g. "not enrolled", "insufficient permissions") are NOT
-    // retried — they are legitimate authorization failures.
-    // A second 401 on the retry propagates normally (no infinite loop).
+    // Retry on explicit token expiration/invalidation if we sent a user bearer token
+    const isAuthFailure = !data.success && (data.code === 'AUTH_TOKEN_EXPIRED' || data.code === 'AUTH_INVALID_TOKEN');
+    const isMasterKey = resolvedToken && (resolvedToken.includes('master') || resolvedToken.includes('admin'));
+
     if (
       !_isRetry &&
-      !data.success &&
-      data.code === 'AUTH_TOKEN_EXPIRED' &&
-      accessToken // only attempt when the original call carried a bearer token
+      isAuthFailure &&
+      resolvedToken &&
+      !isMasterKey &&
+      !endpoint.includes('/auth/login') &&
+      !endpoint.includes('/auth/refresh')
     ) {
       const refreshResult = await singletonRefresh();
       if (refreshResult.success && refreshResult.data) {
@@ -87,7 +119,9 @@ async function apiFetch<T>(
         return data;
       }
       // Auth error (refresh token expired/revoked) — session is dead.
-      useAuthStore.getState().clearAuth();
+      if (refreshResult.code === 'AUTH_SESSION_EXPIRED' || refreshResult.code === 'AUTH_INVALID_TOKEN') {
+        useAuthStore.getState().clearAuth();
+      }
     }
 
     return data;

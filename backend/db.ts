@@ -5567,6 +5567,10 @@ class LmsDB {
 
   // ── Enrollments ────────────────────────────────────────────────────────────
   async isEnrolled(userId: string, courseId: string): Promise<boolean> {
+    if (!courseId || courseId === 'general-mains-practice' || courseId === 'general' || courseId === 'open') {
+      return true;
+    }
+
     if (mysqlPool) {
       try {
         // Check direct enrollment by courseId or testSeriesId / slug (ensuring not expired)
@@ -5575,12 +5579,13 @@ class LmsDB {
             `SELECT e.id FROM lms_enrollments e
              WHERE e.userId = ? AND (
                e.courseId = ? 
+               OR e.courseId = 'all'
                OR e.courseId IN (SELECT c.id FROM lms_courses c WHERE c.id = ? OR c.slug = ?)
                OR e.courseId IN (SELECT c.slug FROM lms_courses c WHERE c.id = ? OR c.slug = ?)
                OR e.courseId IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
                OR e.courseId IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
              ) AND (e.expiresAt IS NULL OR e.expiresAt > NOW()) LIMIT 1`,
-            [userId, courseId, courseId, courseId, courseId, courseId, courseId, courseId, courseId, courseId]
+            [userId, courseId, courseId, courseId, courseId, courseId, courseId, courseId]
           );
           if (rows && rows.length > 0) return true;
         } catch (colErr: any) {
@@ -5593,12 +5598,13 @@ class LmsDB {
                 `SELECT e.id FROM lms_enrollments e
                  WHERE e.userId = ? AND (
                    e.courseId = ? 
+                   OR e.courseId = 'all'
                    OR e.courseId IN (SELECT c.id FROM lms_courses c WHERE c.id = ? OR c.slug = ?)
                    OR e.courseId IN (SELECT c.slug FROM lms_courses c WHERE c.id = ? OR c.slug = ?)
                    OR e.courseId IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
                    OR e.courseId IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
                  ) LIMIT 1`,
-                [userId, courseId, courseId, courseId, courseId, courseId, courseId, courseId, courseId, courseId]
+                [userId, courseId, courseId, courseId, courseId, courseId, courseId, courseId]
               );
               if (fallbackRows && fallbackRows.length > 0) return true;
             } catch (innerErr) {
@@ -5615,6 +5621,8 @@ class LmsDB {
             `SELECT id FROM user_entitlements
              WHERE user_id = ? AND (
                series_id = ?
+               OR series_id = 'all'
+               OR series_id IS NULL
                OR series_id IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
                OR series_id IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
              ) AND status = 'ACTIVE' AND (expires_at IS NULL OR expires_at > NOW()) LIMIT 1`,
@@ -5627,6 +5635,8 @@ class LmsDB {
               `SELECT id FROM user_entitlements
                WHERE user_id = ? AND (
                  series_id = ?
+                 OR series_id = 'all'
+                 OR series_id IS NULL
                  OR series_id IN (SELECT ts.id FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
                  OR series_id IN (SELECT ts.slug FROM TestSeries ts WHERE ts.id = ? OR ts.slug = ?)
                ) AND status = 'ACTIVE' LIMIT 1`,
@@ -5639,7 +5649,7 @@ class LmsDB {
         return false;
       } catch (err) { console.error('[LmsDB] isEnrolled MySQL error:', err); }
     }
-    return lmsLocalEnrollments.some(e => e.userId === userId && e.courseId === courseId);
+    return lmsLocalEnrollments.some(e => e.userId === userId && (e.courseId === courseId || e.courseId === 'all'));
   }
 
   async createEnrollment(userId: string, courseId: string, paymentOrderId?: string, amountPaid?: number, validityMonths?: number): Promise<any> {
@@ -5990,7 +6000,8 @@ class LmsDB {
                     COALESCE(c.title, ts.title) as title,
                     COALESCE(c.category, ts.category, 'Test Series') as category,
                     COALESCE(c.thumbnailUrl, ts.thumbnailUrl) as thumbnailUrl,
-                    CASE WHEN c.id IS NOT NULL THEN NULL ELSE ts.slug END as testSeriesSlug
+                    CASE WHEN c.id IS NOT NULL THEN NULL ELSE ts.slug END as testSeriesSlug,
+                    u.entitlement_type, u.plan_code, u.snapshot_max_sequence
              FROM user_entitlements u
              LEFT JOIN lms_courses c ON c.id = u.series_id OR c.slug = u.series_id
              LEFT JOIN TestSeries ts ON ts.id = u.series_id OR ts.slug = u.series_id
@@ -7356,7 +7367,33 @@ class LmsDB {
            ORDER BY s.submittedAt DESC`
         );
         if (rows && rows.length > 0) return rows;
-      } catch (err) { console.error('[LmsDB] getAllMainsSubmissionsForAdmin MySQL error:', err); }
+      } catch (err: any) {
+        console.error('[LmsDB] getAllMainsSubmissionsForAdmin MySQL error:', err);
+        // Fallback if rollNumber column is not yet migrated in production MySQL
+        if (err && (err.code === 'ER_BAD_FIELD_ERROR' || err.errno === 1054 || String(err.message).includes('rollNumber'))) {
+          try {
+            // Attempt auto-heal migration in background
+            mysqlPool.query('ALTER TABLE users ADD COLUMN rollNumber VARCHAR(50) NULL').catch(() => {});
+            const [fallbackRows]: any = await mysqlPool.query(
+              `SELECT s.*, u.fullName as studentName, u.email as studentEmail, '' as studentRollNumber, u.mobile as studentMobile,
+                      a.title as testTitle, a.titleHi as testTitleHi, a.maxMarks, 
+                      a.questionPaperUrl, a.questionPaperUrlHi, 
+                      a.answerBookletUrl, a.answerBookletUrlHi, 
+                      a.modelAnswerUrl, a.modelAnswerUrlHi, 
+                      a.syllabus, a.syllabusHi, a.medium as testMedium,
+                      ts.title as testSeriesTitle, ts.title as testSeriesTitleHi
+               FROM lms_assignment_submissions s
+               LEFT JOIN users u ON u.id = s.userId
+               LEFT JOIN lms_assignments a ON a.id = s.assignmentId
+               LEFT JOIN TestSeries ts ON ts.id = a.testSeriesId
+               ORDER BY s.submittedAt DESC`
+            );
+            if (fallbackRows && fallbackRows.length > 0) return fallbackRows;
+          } catch (innerErr) {
+            console.error('[LmsDB] getAllMainsSubmissionsForAdmin fallback error:', innerErr);
+          }
+        }
+      }
     }
     const store = getLocalStore();
     const subs = store.lmsAssignmentSubmissions || [];

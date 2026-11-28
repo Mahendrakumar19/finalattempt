@@ -141,6 +141,19 @@ export const prisma = new PrismaClient({
     } catch (_) {}
 
     try {
+      const userCols: any[] = await prisma.$queryRawUnsafe(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'`
+      );
+      const userColNames = new Set(userCols.map(c => (c.COLUMN_NAME || c.column_name || '').toLowerCase()));
+      if (!userColNames.has('rollnumber')) {
+        await prisma.$executeRawUnsafe(`ALTER TABLE \`users\` ADD COLUMN \`rollNumber\` VARCHAR(50) NULL;`);
+        console.log('[Prisma] ✅ Added rollNumber column to users table.');
+      }
+    } catch (uErr: any) {
+      console.warn('[Prisma] Warning adding rollNumber column to users:', uErr?.message || uErr);
+    }
+
+    try {
       const strategyCols: any[] = await prisma.$queryRawUnsafe(
         `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'StrategyBlock'`
       );

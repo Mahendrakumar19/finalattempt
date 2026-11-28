@@ -126,7 +126,7 @@ export class EntitlementService {
       const legacyEnrollment = await prisma.lms_enrollments.findFirst({
         where: {
           userId,
-          courseId: { in: seriesIdList }
+          courseId: { in: [...seriesIdList, 'all'] }
         }
       });
 
@@ -150,7 +150,7 @@ export class EntitlementService {
       const entitlements: any[] = await userEntitlementsDelegate.findMany({
         where: {
           user_id: userId,
-          series_id: { in: seriesIdList },
+          series_id: { in: [...seriesIdList, 'all'] },
           status: 'ACTIVE'
         }
       });

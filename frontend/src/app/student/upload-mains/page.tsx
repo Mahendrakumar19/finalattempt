@@ -59,7 +59,7 @@ interface StudentSubmission {
 }
 
 export default function UploadMainsCopyPage() {
-  const { accessToken, isLoading, requireAuth } = useAuth();
+  const { user, accessToken, isLoading, requireAuth } = useAuth();
   const { t } = useTranslation();
 
   const [testSeriesList, setTestSeriesList] = useState<TestSeriesItem[]>([]);
@@ -181,11 +181,26 @@ export default function UploadMainsCopyPage() {
 
     // Verify enrollment for selected series or test
     const effectiveSeriesId = selectedSeriesId || (selectedTestId ? mainsTests.find(t => t.id === selectedTestId)?.testSeriesId : undefined);
-    if (effectiveSeriesId && accessToken) {
+    
+    // If user is Admin or Faculty, or if it's general practice with no series required, always permit
+    const isStaff = user?.role === 'admin' || user?.role === 'faculty' || user?.role === 'evaluator';
+    if (isStaff || !effectiveSeriesId) {
+      queueMicrotask(() => {
+        if (!isCancelled) {
+          setIsSeriesEnrolled(true);
+          setCheckingEnrollment(false);
+        }
+      });
+      return;
+    }
+
+    // When an effective test series is required, check enrollment
+    const activeToken = accessToken || (typeof window !== 'undefined' ? localStorage.getItem('access_token') || localStorage.getItem('token') : null);
+    if (effectiveSeriesId && activeToken) {
       queueMicrotask(() => {
         if (!isCancelled) setCheckingEnrollment(true);
       });
-      checkEnrollment(effectiveSeriesId, accessToken)
+      checkEnrollment(effectiveSeriesId, activeToken)
         .then(res => {
           if (!isCancelled) {
             setIsSeriesEnrolled(!!res.data?.enrolled);
@@ -206,7 +221,7 @@ export default function UploadMainsCopyPage() {
     return () => {
       isCancelled = true;
     };
-  }, [selectedSeriesId, selectedTestId, mainsTests, accessToken]);
+  }, [selectedSeriesId, selectedTestId, mainsTests, accessToken, user]);
 
   // Fetch Student Submissions
   const loadSubmissions = useCallback(async () => {
