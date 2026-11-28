@@ -114,6 +114,22 @@ export default function PublicationsStorefront() {
 
   const downloadItems: DownloadItem[] = pageData?.downloadItems || [];
 
+  // Normalize category names so 'BPSC' and 'BPSC (Bihar)' merge into one single canonical folder
+  const normalizeExamFolder = (raw?: string): string => {
+    const s = (raw || '').trim();
+    const lower = s.toLowerCase();
+    if (!s || lower === 'bpsc' || lower.includes('bpsc') || lower === 'bihar' || lower.includes('bihar special')) {
+      return 'BPSC';
+    }
+    if (lower.includes('appsc') || lower.includes('arunachal psc')) {
+      return 'Arunachal PSC (APPSC)';
+    }
+    if (lower.includes('apssb') || lower.includes('staff selection board')) {
+      return 'Arunachal Staff Selection Board (APSSB)';
+    }
+    return s;
+  };
+
   // Default Folders with Explicit Priority Ranking
   const FOLDER_RANK: Record<string, number> = {
     'BPSC': 1,
@@ -125,11 +141,11 @@ export default function PublicationsStorefront() {
 
   const defaultFolders = ['BPSC', 'Arunachal PSC (APPSC)', 'Arunachal Staff Selection Board (APSSB)'];
 
-  // All Folders derived from Database + Defaults sorted with BPSC first
+  // All Folders derived from Database + Defaults sorted with BPSC first (duplicates unified)
   const allFolders = Array.from(new Set([
     ...defaultFolders,
-    ...downloadItems.map(i => i.examCategory || i.type).filter((c): c is string => Boolean(c && c.trim()))
-  ])).sort((a, b) => {
+    ...downloadItems.map(i => normalizeExamFolder(i.examCategory || i.type))
+  ])).filter(Boolean).sort((a, b) => {
     const rankA = FOLDER_RANK[a] || 99;
     const rankB = FOLDER_RANK[b] || 99;
     if (rankA !== rankB) return rankA - rankB;
@@ -139,8 +155,8 @@ export default function PublicationsStorefront() {
   // Group items by Folder
   const folderVaults = allFolders.map(folderName => {
     const items = downloadItems.filter(item => {
-      const cat = (item.examCategory || item.type || '').toLowerCase();
-      return cat === folderName.toLowerCase() || (folderName === 'BPSC' && cat === '') || (folderName.includes('BPSC') && cat.includes('bpsc'));
+      const cat = normalizeExamFolder(item.examCategory || item.type);
+      return cat.toLowerCase() === folderName.toLowerCase();
     });
     return {
       folderName,
@@ -151,10 +167,8 @@ export default function PublicationsStorefront() {
   // Filter items inside opened folder
   const currentFolderItems = activeFolder
     ? downloadItems.filter(item => {
-        const cat = (item.examCategory || item.type || '').toLowerCase();
-        const matchesFolder = cat === activeFolder.toLowerCase() ||
-                              (activeFolder === 'BPSC' && (cat === '' || cat.includes('bpsc'))) ||
-                              cat.includes(activeFolder.toLowerCase());
+        const cat = normalizeExamFolder(item.examCategory || item.type);
+        const matchesFolder = cat.toLowerCase() === activeFolder.toLowerCase();
         
         if (!matchesFolder) return false;
 
